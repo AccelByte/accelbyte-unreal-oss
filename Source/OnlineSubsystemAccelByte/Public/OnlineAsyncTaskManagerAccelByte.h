@@ -1,0 +1,27 @@
+// Copyright (c) 2021 AccelByte Inc. All Rights Reserved.
+// This is licensed software from AccelByte Inc, for limitations
+// and restrictions contact your company contract manager.
+
+#pragma once
+
+#include "OnlineAsyncTaskManager.h"
+
+class FOnlineSubsystemAccelByte;
+
+class ONLINESUBSYSTEMACCELBYTE_API FOnlineAsyncTaskManagerAccelByte : public FOnlineAsyncTaskManager
+{
+public:
+
+	/** Constructor to set up the cached parent subsystem for this manager instance */
+	FOnlineAsyncTaskManagerAccelByte(FOnlineSubsystemAccelByte* ParentSubsystem);
+
+	virtual ~FOnlineAsyncTaskManagerAccelByte() = default;
+
+	void OnlineTick() override;
+
+private:
+
+	/** Pointer to subsystem instance that constructed this manager */
+	FOnlineSubsystemAccelByte* AccelByteSubsystem;
+
+};
