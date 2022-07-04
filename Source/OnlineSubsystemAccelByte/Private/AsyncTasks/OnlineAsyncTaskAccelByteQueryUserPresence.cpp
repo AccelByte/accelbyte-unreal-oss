@@ -71,12 +71,13 @@ void FOnlineAsyncTaskAccelByteQueryUserPresence::OnQueryUserPresenceSuccess(cons
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Query User Presence succeeded"));
 
 	LocalCachedPresence = StaticCastSharedPtr<FOnlinePresenceAccelByte>(Subsystem->GetPresenceInterface())->FindOrCreatePresence(TargetUserId);
-	FOnlineUserPresenceStatus PresenceStatus;
+	FOnlineUserPresenceStatusAccelByte PresenceStatus;
 	
 	// We can only set status if we have data from the backend, if we don't have this, then the user is offline
 	if (Result.Data.IsValidIndex(0))
 	{
 		PresenceStatus.StatusStr = Result.Data[0].Activity;
+		PresenceStatus.SetPresenceStatus(Result.Data[0].Availability);
 	}
 
 	LocalCachedPresence->Status = PresenceStatus;

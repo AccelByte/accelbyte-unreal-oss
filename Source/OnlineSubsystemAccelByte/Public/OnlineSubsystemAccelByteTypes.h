@@ -37,7 +37,8 @@ enum class EAccelByteLoginType : uint8
 	PS4,
 	PS5,
 	Launcher,
-	Steam
+	Steam,
+	RefreshToken
 };
 
 /**

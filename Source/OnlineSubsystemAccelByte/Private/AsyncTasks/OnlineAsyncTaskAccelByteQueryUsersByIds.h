@@ -90,11 +90,6 @@ private:
 	FThreadSafeBool bHasQueriedBasicUserInfo = false;
 
 	/**
-	 * Flag representing whether we have finished querying public user profile
-	 */
-	FThreadSafeBool bHasQueriedPublicUserProfile = false;
-
-	/**
 	 * Flag representing whether we have finished querying platform user information
 	 */
 	FThreadSafeBool bHasQueriedUserPlatformInfo = false;
@@ -123,16 +118,6 @@ private:
 	 * Delegate handler for when querying basic user information by platform IDs fails
 	 */
 	void OnGetBasicUserInfoError(int32 ErrorCode, const FString& ErrorMessage);
-
-	/**
-	 * Delegate handler for when we get a successful response back for querying a user profiles in bulk
-	 */
-	void OnGetPublicUserProfilesSuccess(const TArray<FAccelByteModelsPublicUserProfileInfo>& Results);
-
-	/**
-	 * Delegate handler for when we get an error response back for querying a user profiles in bulk
-	 */
-	void OnGetPublicUserProfilesError(int32 ErrorCode, const FString& ErrorMessage);
 
 	/**
 	 * Make a call to query the user manually on the platform that corresponds to the one we are currently on

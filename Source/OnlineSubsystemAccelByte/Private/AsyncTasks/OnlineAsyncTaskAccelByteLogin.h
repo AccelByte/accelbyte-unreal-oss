@@ -8,6 +8,7 @@
 #include "OnlineSubsystemAccelByteTypes.h"
 #include "OnlineIdentityInterfaceAccelByte.h"
 #include "OnlineUserInterfaceAccelByte.h"
+#include "OnlineAgreementInterfaceAccelByte.h"
 #include "Engine/Texture.h"
 #include "AccelByteTimerObject.h"
 
@@ -20,7 +21,9 @@ class FOnlineAsyncTaskAccelByteLogin : public FOnlineAsyncTaskAccelByte, public 
 {
 public:
 
-	FOnlineAsyncTaskAccelByteLogin(FOnlineSubsystemAccelByte* const InABSubsystem, int32 InLocalUserNum, const FOnlineAccountCredentials& InAccountCredentials);
+	FOnlineAsyncTaskAccelByteLogin(FOnlineSubsystemAccelByte* const InABSubsystem
+		, int32 InLocalUserNum
+		, const FOnlineAccountCredentials& InAccountCredentials);
 
 	virtual void Initialize() override;
 	virtual void Finalize() override;
@@ -107,32 +110,6 @@ private:
 	 * @param LocalUserNum Index of the user that the login failed for
 	 */
 	void OnLoginError(int32 ErrorCode, const FString& ErrorMessage);
-
-	/**
-	 * Delegate handler fired when the lobby websocket successfully connects.
-	 *
-	 * @param LocalUserNum Index of the user that successfully connected to lobby.
-	 * @param UserId NetId of the user that successfully connected to lobby.
-	 */
-	void OnLobbyConnectSuccess();
-	AccelByte::Api::Lobby::FConnectSuccess OnLobbyConnectSuccessDelegate;
-
-	/**
-	 * Delegate handler fired when we fail to connect to the lobby websocket.
-	 */
-	void OnLobbyConnectError(int32 ErrorCode, const FString& ErrorMessage);
-	FErrorHandler OnLobbyConnectErrorDelegate;
-
-	/** Delegate handler for when receive a lobby disconnected notification. */
-	void OnLobbyDisconnectedNotif(const FAccelByteModelsDisconnectNotif&);
-	AccelByte::Api::Lobby::FDisconnectNotif OnLobbyDisconnectedNotifDelegate;
-
-	/** Delegate handler for when a lobby connection is disconnected. */
-	static void OnLobbyConnectionClosed(int32 StatusCode, const FString& Reason, bool WasClean, int32 InLocalUserNum);
-
-	static void OnLobbyReconnected(int32 InLocalUserNum);
-
-	void UnbindDelegates();
 
 	/**
 	 * Method to calculate a local offset timestamp from UTC

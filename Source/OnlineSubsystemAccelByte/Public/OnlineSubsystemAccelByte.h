@@ -29,6 +29,7 @@ class FOnlinePresenceAccelByte;
 class FOnlineFriendsAccelByte;
 class FOnlinePartySystemAccelByte;
 class FOnlineUserCacheAccelByte;
+class FOnlineAgreementAccelByte;
 class FExecTestBase;
 
 struct FAccelByteModelsNotificationMessage;
@@ -63,6 +64,9 @@ typedef TSharedPtr<FOnlineUserCacheAccelByte, ESPMode::ThreadSafe> FOnlineUserCa
 /** Shared pointer to the AccelByte async task manager for this OSS */
 typedef TSharedPtr<FOnlineAsyncTaskManagerAccelByte, ESPMode::ThreadSafe> FOnlineAsyncTaskManagerAccelBytePtr;
 
+/** Shared pointer to the AccelByte agreement */
+typedef TSharedPtr<FOnlineAgreementAccelByte, ESPMode::ThreadSafe> FOnlineAgreementAccelBytePtr;
+
 class ONLINESUBSYSTEMACCELBYTE_API FOnlineSubsystemAccelByte final : public FOnlineSubsystemImpl
 {
 public:
@@ -85,6 +89,7 @@ public:
 	virtual IOnlinePurchasePtr GetPurchaseInterface() const override;
 	virtual IOnlineEntitlementsPtr GetEntitlementsInterface() const override;
 	virtual IOnlineAchievementsPtr GetAchievementsInterface() const override;
+	virtual FOnlineAgreementAccelBytePtr GetAgreementInterface() const;
 	virtual bool Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar) override;
 	virtual bool IsEnabled() const override;
 	//~ End IOnlineSubsystem Interface
@@ -233,6 +238,8 @@ PACKAGE_SCOPE:
 	 */
 	FString GetSimplifiedNativePlatformName(const FString& PlatformName);
 
+	bool bAutoLobbyConnectAfterLoginSuccess;
+
 private:
 
 	/** Shared instance of our session implementation */
@@ -264,6 +271,9 @@ private:
 
 	/** Async task manager used by interfaces in our OSS to handle async */
 	FOnlineAsyncTaskManagerAccelBytePtr AsyncTaskManager;
+
+	/** Shared instance of our agreement interface implementation */
+	FOnlineAgreementAccelBytePtr AgreementInterface;
 
 	/** Thread spawned to run the FOnlineAsyncTaskManagerAccelBytePtr instance */
 	TUniquePtr<FRunnableThread> AsyncTaskManagerThread;

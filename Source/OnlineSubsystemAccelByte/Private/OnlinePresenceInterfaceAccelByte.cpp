@@ -7,6 +7,7 @@
 #include "Online.h"
 #include "Core/AccelByteMultiRegistry.h"
 #include "AsyncTasks/OnlineAsyncTaskAccelByteQueryUserPresence.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteSetUserPresence.h"
 
 FOnlinePresenceAccelByte::FOnlinePresenceAccelByte(FOnlineSubsystemAccelByte* InSubsystem) 
 	: AccelByteSubsystem(InSubsystem)
@@ -21,7 +22,23 @@ IOnlinePresencePtr FOnlinePresenceAccelByte::GetPlatformOnlinePresenceInterface(
 
 void FOnlinePresenceAccelByte::SetPresence(const FUniqueNetId& User, const FOnlineUserPresenceStatus& Status, const FOnPresenceTaskCompleteDelegate& Delegate) 
 {
-	// #NOTE (Voltaire) We may not need this since it appears that Splitgate friend's presence are not changed, additionally there is a manual refresh button to re-query presence data in the friends list widget(s)
+	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystem->GetIdentityInterface());
+	if (IdentityInterface.IsValid())
+	{
+		TSharedPtr<FUserOnlineAccount> UserAccount = IdentityInterface->GetUserAccount(User);
+
+		if (UserAccount.IsValid())
+		{
+			const TSharedPtr<FUserOnlineAccountAccelByte> UserAccountAccelByte = StaticCastSharedPtr<FUserOnlineAccountAccelByte>(UserAccount);
+			if(UserAccountAccelByte->IsConnectedToLobby())
+			{
+				// Async task to set presence from AccelByte backend
+				AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteSetUserPresence>(AccelByteSubsystem, User, Status, Delegate);
+				return;
+			}
+		}
+	}
+	Delegate.ExecuteIfBound(User, false);
 }
 
 void FOnlinePresenceAccelByte::QueryPresence(const FUniqueNetId& User, const FOnPresenceTaskCompleteDelegate& Delegate) 

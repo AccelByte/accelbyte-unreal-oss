@@ -41,6 +41,7 @@ bool FOnlineSubsystemAccelByte::Init()
 	PartyInterface = MakeShared<FOnlinePartySystemAccelByte, ESPMode::ThreadSafe>(this);
 	PresenceInterface = MakeShared<FOnlinePresenceAccelByte, ESPMode::ThreadSafe>(this);
 	UserCache = MakeShared<FOnlineUserCacheAccelByte, ESPMode::ThreadSafe>(this);
+	AgreementInterface = MakeShared<FOnlineAgreementAccelByte, ESPMode::ThreadSafe>(this);
 	
 	// Create an async task manager and a thread for the manager to process tasks on
 	AsyncTaskManager = MakeShared<FOnlineAsyncTaskManagerAccelByte, ESPMode::ThreadSafe>(this);
@@ -51,6 +52,8 @@ bool FOnlineSubsystemAccelByte::Init()
 	{
 		IdentityInterface->AddOnLoginCompleteDelegate_Handle(i, FOnLoginCompleteDelegate::CreateRaw(this, &FOnlineSubsystemAccelByte::OnLoginCallback));
 	}
+
+	GConfig->GetBool(TEXT("OnlineSubsystemAccelByte"), TEXT("bAutoLobbyConnectAfterLoginSuccess"), bAutoLobbyConnectAfterLoginSuccess, GEngineIni);
 
 	return true;
 }
@@ -85,6 +88,7 @@ bool FOnlineSubsystemAccelByte::Shutdown()
 	IdentityInterface.Reset();
 	SessionInterface.Reset();
 	UserCache.Reset();
+	AgreementInterface.Reset();
 
 	return true;
 }
@@ -163,6 +167,11 @@ IOnlineEntitlementsPtr FOnlineSubsystemAccelByte::GetEntitlementsInterface() con
 IOnlineAchievementsPtr FOnlineSubsystemAccelByte::GetAchievementsInterface() const
 {
 	return nullptr;
+}
+
+FOnlineAgreementAccelBytePtr FOnlineSubsystemAccelByte::GetAgreementInterface() const
+{
+	return AgreementInterface;
 }
 
 bool FOnlineSubsystemAccelByte::Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar)
@@ -372,7 +381,17 @@ void FOnlineSubsystemAccelByte::OnLoginCallback(int LocalUserNum, bool bWasSucce
 		// listen to Message Notif Lobby
 		const AccelByte::FApiClientPtr ApiClient = IdentityInterface->GetApiClient(LocalUserNum); 
 		const AccelByte::Api::Lobby::FMessageNotif Delegate = AccelByte::Api::Lobby::FMessageNotif::CreateRaw(this, &FOnlineSubsystemAccelByte::OnMessageNotif, LocalUserNum);		
-		ApiClient->Lobby.SetMessageNotifDelegate(Delegate);
+		if (ApiClient.IsValid())
+		{
+			ApiClient->Lobby.SetMessageNotifDelegate(Delegate);
+			if (bAutoLobbyConnectAfterLoginSuccess)
+			{
+				if (IdentityInterface.IsValid())
+				{
+					IdentityInterface->ConnectAccelByteLobby(LocalUserNum);
+				}
+			}
+		}
 	}
 }
 

@@ -93,7 +93,7 @@ DECLARE_DELEGATE_TwoParams(FOnQueryUsersComplete, bool /*bIsSuccessful*/, TArray
  * users will stay in cache with the `UserCachePurgeTimeoutSeconds` variable in the `OnlineSubsystemAccelByte` settings
  * in `DefaultEngine.ini`. Users will also not be purged if they were marked as important when queried.
  */
-class FOnlineUserCacheAccelByte
+class ONLINESUBSYSTEMACCELBYTE_API FOnlineUserCacheAccelByte
 {
 public:
 

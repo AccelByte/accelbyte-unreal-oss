@@ -110,7 +110,7 @@ void FOnlineAsyncTaskAccelByteQueryUsersByIds::Tick()
 {
 	Super::Tick();
 
-	if (bHasQueriedBasicUserInfo && bHasQueriedPublicUserProfile && bHasQueriedUserPlatformInfo)
+	if (bHasQueriedBasicUserInfo && bHasQueriedUserPlatformInfo)
 	{
 		CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
 	}
@@ -228,6 +228,7 @@ void FOnlineAsyncTaskAccelByteQueryUsersByIds::OnGetBasicUserInfoSuccess(const F
 		User->DisplayName = BasicInfo.DisplayName;
 		User->bIsImportant = bIsImportant;
 		User->LastAccessedTimeInSeconds = FPlatformTime::Seconds();
+		User->AvatarUrl = BasicInfo.AvatarUrl;
 
 		// Construct a composite ID for this user
 		FAccelByteUniqueIdComposite CompositeId;
@@ -247,10 +248,6 @@ void FOnlineAsyncTaskAccelByteQueryUsersByIds::OnGetBasicUserInfoSuccess(const F
 		}
 	}
 
-	const auto OnGetPublicUserProfilesSuccessDelegate = THandler<TArray<FAccelByteModelsPublicUserProfileInfo>>::CreateRaw(this, &FOnlineAsyncTaskAccelByteQueryUsersByIds::OnGetPublicUserProfilesSuccess);
-	const FErrorHandler OnGetPublicUserProfilesErrorDelegate = FErrorHandler::CreateRaw(this, &FOnlineAsyncTaskAccelByteQueryUsersByIds::OnGetPublicUserProfilesError);
-
-	ApiClient->UserProfile.BatchGetPublicUserProfileInfos(FString::Join(UsersToQuery, TEXT(",")), OnGetPublicUserProfilesSuccessDelegate, OnGetPublicUserProfilesErrorDelegate);
 	if (PlatformIdsToQuery.Num() > 0)
 	{
 		QueryUsersOnNativePlatform(PlatformIdsToQuery);
@@ -269,36 +266,6 @@ void FOnlineAsyncTaskAccelByteQueryUsersByIds::OnGetBasicUserInfoSuccess(const F
 void FOnlineAsyncTaskAccelByteQueryUsersByIds::OnGetBasicUserInfoError(int32 ErrorCode, const FString& ErrorMessage)
 {
 	UE_LOG_AB(Warning, TEXT("Failed to get basic user information from backend! Error code: %d; Error message: %s"), ErrorCode, *ErrorMessage);
-	CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
-}
-
-void FOnlineAsyncTaskAccelByteQueryUsersByIds::OnGetPublicUserProfilesSuccess(const TArray<FAccelByteModelsPublicUserProfileInfo>& Results)
-{
-	// Go through each profile that we have retrieved and add public ID to their user information struct
-	for (const FAccelByteModelsPublicUserProfileInfo& Profile : Results)
-	{
-		// First, find the corresponding user that we have already queried to add this information to
-		TSharedRef<FAccelByteUserInfo>* User = UsersQueried.FindByPredicate([&Profile](const TSharedRef<FAccelByteUserInfo>& TestUser) {
-			return TestUser->Id->GetAccelByteId() == Profile.UserId;
-		});
-
-		// Skip this profile if a corresponding user cannot be found
-		if (User == nullptr)
-		{
-			continue;
-		}
-
-		(*User)->AvatarUrl = Profile.AvatarUrl;
-		(*User)->AvatarSmallUrl = Profile.AvatarSmallUrl;
-		(*User)->AvatarLargeUrl = Profile.AvatarLargeUrl;
-	}
-
-	bHasQueriedPublicUserProfile = true;
-}
-
-void FOnlineAsyncTaskAccelByteQueryUsersByIds::OnGetPublicUserProfilesError(int32 ErrorCode, const FString& ErrorMessage)
-{
-	UE_LOG_AB(Warning, TEXT("Failed to get public user profile information from backend! Error code: %d; Error message: %s"), ErrorCode, *ErrorMessage);
 	CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
 }
 

@@ -9,6 +9,7 @@
 #include "OnlineSubsystem.h"
 #include "OnlineSubsystemAccelByteTypes.h"
 #include "Interfaces/OnlinePresenceInterface.h"
+#include "Models/AccelByteLobbyModels.h"
 
 class FOnlineSubsystemAccelByte;
 
@@ -22,6 +23,27 @@ public:
 	{
 	}
 
+};
+
+class FOnlineUserPresenceStatusAccelByte : public FOnlineUserPresenceStatus
+{
+public:
+
+	void SetPresenceStatus(EAvailability InPresenceStatus)
+	{
+		switch (InPresenceStatus)
+		{
+		case EAvailability::Online: State = EOnlinePresenceState::Online; break;
+		case EAvailability::Busy: State = EOnlinePresenceState::DoNotDisturb; break;
+		case EAvailability::Invisible: State = EOnlinePresenceState::Chat; break;
+		case EAvailability::Offline:
+		default: State = EOnlinePresenceState::Offline; break;
+		}
+	}
+
+	FOnlineUserPresenceStatusAccelByte()
+		: FOnlineUserPresenceStatus()
+	{}
 };
 
 /**

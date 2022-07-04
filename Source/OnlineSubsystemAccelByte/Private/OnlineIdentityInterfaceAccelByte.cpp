@@ -17,6 +17,7 @@
 #include "Interfaces/OnlineExternalUIInterface.h"
 #include "OnlineSubsystemAccelByteInternalHelpers.h"
 #include "AsyncTasks/OnlineAsyncTaskAccelByteLogin.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteConnectLobby.h"
 #include "Misc/Base64.h"
 #include "OnlineSubsystemAccelByteTypes.h"
 #include "GameServerApi/AccelByteServerOauth2Api.h"
@@ -46,7 +47,7 @@ bool FOnlineIdentityAccelByte::Login(int32 LocalUserNum, const FOnlineAccountCre
 	}
 
 	// Don't attempt to authenticate again if we are already reporting as logged in
-	if (GetLoginStatus(LocalUserNum) == ELoginStatus::LoggedIn && LocalUserNumToNetIdMap.Contains(LocalUserNum))
+	if (GetLoginStatus(LocalUserNum) == ELoginStatus::LoggedIn && LocalUserNumToNetIdMap.Contains(LocalUserNum) && (AccountCredentials.Type != StaticEnum<EAccelByteLoginType>()->GetValueAsString(EAccelByteLoginType::RefreshToken)))
 	{
 		const TSharedPtr<const FUniqueNetId> UserIdPtr = GetUniquePlayerId(LocalUserNum);
 		TSharedPtr<FUserOnlineAccount> UserAccount;
@@ -57,16 +58,13 @@ bool FOnlineIdentityAccelByte::Login(int32 LocalUserNum, const FOnlineAccountCre
 		}
 
 		const TSharedPtr<FUserOnlineAccountAccelByte> UserAccountAccelByte = StaticCastSharedPtr<FUserOnlineAccountAccelByte>(UserAccount);
-		if (UserAccountAccelByte->IsConnectedToLobby())
-		{
-			const FString ErrorStr = TEXT("login-failed-already-logged-in");
-			AB_OSS_INTERFACE_TRACE_END(TEXT("User already logged in at user index '%d'!"), LocalUserNum);
+		const FString ErrorStr = TEXT("login-failed-already-logged-in");
+		AB_OSS_INTERFACE_TRACE_END(TEXT("User already logged in at user index '%d'!"), LocalUserNum);
 
-			TriggerOnLoginChangedDelegates(LocalUserNum);
-			TriggerOnLoginCompleteDelegates(LocalUserNum, false, FUniqueNetIdAccelByteUser::Invalid().Get(), ErrorStr);
-			TriggerOnLoginStatusChangedDelegates(LocalUserNum, ELoginStatus::NotLoggedIn, ELoginStatus::NotLoggedIn, FUniqueNetIdAccelByteUser::Invalid().Get());
-			return false;
-		}
+		TriggerOnLoginChangedDelegates(LocalUserNum);
+		TriggerOnLoginCompleteDelegates(LocalUserNum, false, FUniqueNetIdAccelByteUser::Invalid().Get(), ErrorStr);
+		TriggerOnLoginStatusChangedDelegates(LocalUserNum, ELoginStatus::NotLoggedIn, ELoginStatus::NotLoggedIn, FUniqueNetIdAccelByteUser::Invalid().Get());
+		return false;
 	}
 
 	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteLogin>(AccelByteSubsystem, LocalUserNum, AccountCredentials);
@@ -497,6 +495,45 @@ bool FOnlineIdentityAccelByte::AuthenticateAccelByteServer(const FOnAuthenticate
 bool FOnlineIdentityAccelByte::IsServerAuthenticated()
 {
 	return bIsServerAuthenticated;
+}
+
+bool FOnlineIdentityAccelByte::ConnectAccelByteLobby(int32 LocalUserNum)
+{
+	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("LocalUserNum: %d"), LocalUserNum);
+
+	// Don't attempt to connect again if we are already reporting as connected
+	if (GetLoginStatus(LocalUserNum) == ELoginStatus::LoggedIn && LocalUserNumToNetIdMap.Contains(LocalUserNum))
+	{
+		const TSharedPtr<const FUniqueNetId> UserIdPtr = GetUniquePlayerId(LocalUserNum);
+		TSharedPtr<FUserOnlineAccount> UserAccount;
+		if (UserIdPtr.IsValid())
+		{
+			const FUniqueNetId& UserId = UserIdPtr.ToSharedRef().Get();
+			UserAccount = GetUserAccount(UserId);
+		}
+
+		const TSharedPtr<FUserOnlineAccountAccelByte> UserAccountAccelByte = StaticCastSharedPtr<FUserOnlineAccountAccelByte>(UserAccount);
+		if (UserAccountAccelByte->IsConnectedToLobby())
+		{
+			const FString ErrorStr = TEXT("connect-failed-already-connected");
+			AB_OSS_INTERFACE_TRACE_END(TEXT("User already connected to lobby at user index '%d'!"), LocalUserNum);
+
+			TriggerOnConnectLobbyCompleteDelegates(LocalUserNum, false, FUniqueNetIdAccelByteUser::Invalid().Get(), ErrorStr);
+			return false;
+		}
+		else
+		{
+			AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteConnectLobby>(AccelByteSubsystem, *GetUniquePlayerId(LocalUserNum).Get());
+			AB_OSS_INTERFACE_TRACE_END(TEXT("Dispatching async task to attempt to connect lobby!"));
+			return true;
+		}
+	}
+
+	const FString ErrorStr = TEXT("connect-failed-not-logged-in");
+	AB_OSS_INTERFACE_TRACE_END(TEXT("User not logged in at user index '%d'!"), LocalUserNum);
+
+	TriggerOnConnectLobbyCompleteDelegates(LocalUserNum, false, FUniqueNetIdAccelByteUser::Invalid().Get(), ErrorStr);
+	return false;
 }
 
 void FOnlineIdentityAccelByte::AddNewAuthenticatedUser(int32 LocalUserNum, const TSharedRef<const FUniqueNetId>& UserId, const TSharedRef<FUserOnlineAccount>& Account)

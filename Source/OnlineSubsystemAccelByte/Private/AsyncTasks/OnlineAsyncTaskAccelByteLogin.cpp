@@ -4,15 +4,13 @@
 
 #include "OnlineAsyncTaskAccelByteLogin.h"
 #include "Core/AccelByteMultiRegistry.h"
+#include "Core/AccelByteUtilities.h"
 #include "OnlineSubsystemAccelByte.h"
 #include "OnlineIdentityInterfaceAccelByte.h"
-#include "OnlineFriendsInterfaceAccelByte.h"
-#include "OnlinePartyInterfaceAccelByte.h"
 #include "OnlineUserInterfaceAccelByte.h"
 #include "Interfaces/OnlineExternalUIInterface.h"
 #include "Interfaces/OnlineIdentityInterface.h"
 #include "OnlineSubsystemAccelByteTypes.h"
-#include "OnlineSessionInterfaceAccelByte.h"
 #include "OnlineSubsystemAccelByteUtils.h"
 
 // According to https://demo.accelbyte.io/basic/apidocs/#/UserProfile/getMyProfileInfo, 11440 is "user profile not found"
@@ -23,7 +21,9 @@
 // in ms
 #define STEAM_LOGIN_DELAY 2000
 
-FOnlineAsyncTaskAccelByteLogin::FOnlineAsyncTaskAccelByteLogin(FOnlineSubsystemAccelByte* const InABSubsystem, int32 InLocalUserNum, const FOnlineAccountCredentials& InAccountCredentials)
+FOnlineAsyncTaskAccelByteLogin::FOnlineAsyncTaskAccelByteLogin(FOnlineSubsystemAccelByte* const InABSubsystem
+	, int32 InLocalUserNum
+	, const FOnlineAccountCredentials& InAccountCredentials)
 	: FOnlineAsyncTaskAccelByte(InABSubsystem)
 	, AccountCredentials(InAccountCredentials)
 {
@@ -47,21 +47,16 @@ void FOnlineAsyncTaskAccelByteLogin::Initialize()
 		return;
 	}
 
-	// Grab the login type enum and attempt to get the enum value by our type string passed in
-	const UEnum* LoginTypeEnum = StaticEnum<EAccelByteLoginType>();
-	const int64 Result = LoginTypeEnum->GetValueByNameString(AccountCredentials.Type, EGetByNameFlags::None);
-
+	LoginType = FAccelByteUtilities::GetUEnumValueFromString<EAccelByteLoginType>(AccountCredentials.Type);
+	
 	// Check whether our enum value search was a valid result and if not, throw an error and fail the task
-	if (Result == INDEX_NONE || Result >= UINT8_MAX)
+	if (LoginType == EAccelByteLoginType::None)
 	{
 		ErrorStr = TEXT("login-failed-invalid-type");
 		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to login with type '%s' as it was invalid!"), *AccountCredentials.Type);
 		CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState);
 		return;
 	}
-
-	// Set our login type to the result we found from searching the enum for the name string
-	LoginType = static_cast<EAccelByteLoginType>(Result);
 
 	// If we have specified an ID and Token but no type, then we want to force this login to be an AccelByte email and
 	// password login
@@ -83,10 +78,6 @@ void FOnlineAsyncTaskAccelByteLogin::Finalize()
 	if (IdentityInt.IsValid())
 	{
 		IdentityInt->SetLocalUserNumCached(LocalUserNum);
-
-		// #NOTE (Wiwing): Overwrite connect Lobby success delegate for reconnection
-		Api::Lobby::FConnectSuccess OnLobbyReconnectionDelegate = Api::Lobby::FConnectSuccess::CreateStatic(FOnlineAsyncTaskAccelByteLogin::OnLobbyReconnected, LocalUserNum);
-		ApiClient->Lobby.SetConnectSuccessDelegate(OnLobbyReconnectionDelegate);
 	}
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
@@ -99,9 +90,17 @@ void FOnlineAsyncTaskAccelByteLogin::TriggerDelegates()
 	const FOnlineIdentityAccelBytePtr IdentityInt = FOnlineIdentityAccelByte::Get();
 	if (IdentityInt.IsValid())
 	{
-		const TSharedRef<const FUniqueNetIdAccelByteUser> ReturnId = (bWasSuccessful) ? UserId.ToSharedRef() : FUniqueNetIdAccelByteUser::Invalid();
-		IdentityInt->TriggerOnLoginCompleteDelegates(LocalUserNum, bWasSuccessful, ReturnId.Get(), ErrorStr);
 		IdentityInt->SetLoginStatus(LocalUserNum, bWasSuccessful ? ELoginStatus::LoggedIn : ELoginStatus::NotLoggedIn);
+		if (bWasSuccessful && !ApiClient->CredentialsRef->IsComply())
+		{
+			const FOnlineAgreementAccelBytePtr AgreementInt = FOnlineAgreementAccelByte::Get();
+			AgreementInt->TriggerOnUserNotCompliedDelegates(LocalUserNum);
+		}
+		else
+		{
+			const TSharedRef<const FUniqueNetIdAccelByteUser> ReturnId = (bWasSuccessful) ? UserId.ToSharedRef() : FUniqueNetIdAccelByteUser::Invalid();
+			IdentityInt->TriggerOnLoginCompleteDelegates(LocalUserNum, bWasSuccessful, ReturnId.Get(), ErrorStr);
+		}
 	}
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
@@ -308,6 +307,10 @@ void FOnlineAsyncTaskAccelByteLogin::PerformLoginWithType(const EAccelByteLoginT
 		ApiClient->User.LoginWithOtherPlatform(EAccelBytePlatformType::Steam, Credentials.Token, OnLoginSuccessDelegate, OnLoginErrorDelegate);
 		AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sending async task to login with Steam auth token from native online subsystem."));
 		break;
+	case EAccelByteLoginType::RefreshToken:
+		ApiClient->User.LoginWithRefreshToken(Credentials.Token, OnLoginSuccessDelegate, OnLoginErrorDelegate);
+		AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sending async task to login with refresh token from native online subsystem."));
+		break;
 	default:
 	case EAccelByteLoginType::None:
 		ErrorStr = TEXT("login-failed-invalid-type");
@@ -343,33 +346,19 @@ void FOnlineAsyncTaskAccelByteLogin::OnLoginSuccess()
 	Account->SetAccessToken(ApiClient->CredentialsRef->GetAccessToken());
 
 	AsyncTask(ENamedThreads::GameThread, [this]() {
-		const FOnlineIdentityAccelBytePtr IdentityInt = StaticCastSharedPtr<FOnlineIdentityAccelByte>(Subsystem->GetIdentityInterface());
-		if (!IdentityInt.IsValid())
-		{
-			return;
-		}
-		
-		IdentityInt->AddNewAuthenticatedUser(LocalUserNum, UserId.ToSharedRef(), Account.ToSharedRef());
-		AccelByte::FMultiRegistry::RemoveApiClient(UserId->GetAccelByteId());
-		AccelByte::FMultiRegistry::RegisterApiClient(UserId->GetAccelByteId(), ApiClient);
-
-		// Create delegates for successfully as well as unsuccessfully connecting to the AccelByte lobby websocket
-		OnLobbyConnectSuccessDelegate = TDelegateUtils<AccelByte::Api::Lobby::FConnectSuccess>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteLogin::OnLobbyConnectSuccess);
-		OnLobbyConnectErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteLogin::OnLobbyConnectError);
-
-		OnLobbyDisconnectedNotifDelegate = TDelegateUtils<AccelByte::Api::Lobby::FDisconnectNotif>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteLogin::OnLobbyDisconnectedNotif);
-		ApiClient->Lobby.SetDisconnectNotifDelegate(OnLobbyDisconnectedNotifDelegate);
-
-		AccelByte::Api::Lobby::FConnectionClosed OnLobbyConnectionClosedDelegate = AccelByte::Api::Lobby::FConnectionClosed::CreateStatic(FOnlineAsyncTaskAccelByteLogin::OnLobbyConnectionClosed, LocalUserNum);
-		ApiClient->Lobby.SetConnectionClosedDelegate(OnLobbyConnectionClosedDelegate);
-
-		// Send off a request to connect to the lobby websocket, as well as connect our delegates for doing so
-		ApiClient->Lobby.SetConnectSuccessDelegate(OnLobbyConnectSuccessDelegate);
-		ApiClient->Lobby.SetConnectFailedDelegate(OnLobbyConnectErrorDelegate);
-		ApiClient->Lobby.Connect();
 	});
+	const FOnlineIdentityAccelBytePtr IdentityInt = StaticCastSharedPtr<FOnlineIdentityAccelByte>(Subsystem->GetIdentityInterface());
+	if (!IdentityInt.IsValid())
+	{
+		return;
+	}
+		
+	IdentityInt->AddNewAuthenticatedUser(LocalUserNum, UserId.ToSharedRef(), Account.ToSharedRef());
+	AccelByte::FMultiRegistry::RemoveApiClient(UserId->GetAccelByteId());
+	AccelByte::FMultiRegistry::RegisterApiClient(UserId->GetAccelByteId(), ApiClient);
 
-	AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Connecting to lobby websocket for user '%s'!"), *UserId->ToDebugString());
+	CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
+	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 
 void FOnlineAsyncTaskAccelByteLogin::OnLoginError(int32 ErrorCode, const FString& ErrorMessage)
@@ -381,144 +370,6 @@ void FOnlineAsyncTaskAccelByteLogin::OnLoginError(int32 ErrorCode, const FString
 		ErrorStr = TEXT("user-banned");
 	}
 	CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
-}
-
-void FOnlineAsyncTaskAccelByteLogin::OnLobbyConnectSuccess()
-{
-	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
-
-	// Update identity interface lobby flag
-	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(Subsystem->GetIdentityInterface());
-	if (IdentityInterface.IsValid())
-	{
-		const TSharedPtr<const FUniqueNetId> UserIdPtr = IdentityInterface->GetUniquePlayerId(LocalUserNum);
-		TSharedPtr<FUserOnlineAccount> UserAccount = IdentityInterface->GetUserAccount(UserId.ToSharedRef().Get());
-		
-		if (UserAccount.IsValid())
-		{
-			const TSharedPtr<FUserOnlineAccountAccelByte> UserAccountAccelByte = StaticCastSharedPtr<FUserOnlineAccountAccelByte>(UserAccount);
-			UserAccountAccelByte->SetConnectedToLobby(true);
-		}
-	}
-
-	// Register all delegates for the friends interface to get real time notifications for friend actions
-	const TSharedPtr<FOnlineFriendsAccelByte, ESPMode::ThreadSafe> FriendsInterface = StaticCastSharedPtr<FOnlineFriendsAccelByte>(Subsystem->GetFriendsInterface());
-	if (FriendsInterface.IsValid())
-	{
-		FriendsInterface->RegisterRealTimeLobbyDelegates(LocalUserNum);
-	}
-
-	// Also register all delegates for the party interface to get notifications for party actions
-	const TSharedPtr<FOnlinePartySystemAccelByte, ESPMode::ThreadSafe> PartyInterface = StaticCastSharedPtr<FOnlinePartySystemAccelByte>(Subsystem->GetPartyInterface());
-	if (PartyInterface.IsValid())
-	{
-		PartyInterface->RegisterRealTimeLobbyDelegates(UserId.ToSharedRef());
-	}
-	
-	// Also register all delegates for the party interface to get notifications for party actions
-	const TSharedPtr<FOnlineSessionAccelByte, ESPMode::ThreadSafe> SessionInterface = StaticCastSharedPtr<FOnlineSessionAccelByte>(Subsystem->GetSessionInterface());
-	if (SessionInterface.IsValid())
-	{
-		SessionInterface->RegisterRealTimeLobbyDelegates(LocalUserNum);
-	}
-
-	CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
-	AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sending request to get or create a default user profile for user '%s'!"), *UserId->ToDebugString());
-}
-
-void FOnlineAsyncTaskAccelByteLogin::OnLobbyConnectError(int32 ErrorCode, const FString& ErrorMessage)
-{
-	ErrorStr = TEXT("login-failed-lobby-connect-error");
-	UE_LOG_AB(Warning, TEXT("Failed to connect to the AccelByte lobby websocket! Error Code: %d; Error Message: %s"), ErrorCode, *ErrorMessage);
-	CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
-}
-
-void FOnlineAsyncTaskAccelByteLogin::OnLobbyDisconnectedNotif(const FAccelByteModelsDisconnectNotif& Result)
-{
-	// Update identity interface lobby flag
-	const TSharedPtr<FOnlineIdentityAccelByte, ESPMode::ThreadSafe> IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(Subsystem->GetIdentityInterface());
-	if (IdentityInterface.IsValid())
-	{
-		const TSharedPtr<const FUniqueNetId> UserIdPtr = IdentityInterface->GetUniquePlayerId(LocalUserNum);
-		TSharedPtr<FUserOnlineAccount> UserAccount = IdentityInterface->GetUserAccount(UserId.ToSharedRef().Get());
-		
-		if (UserAccount.IsValid())
-		{
-			const TSharedPtr<FUserOnlineAccountAccelByte> UserAccountAccelByte = StaticCastSharedPtr<FUserOnlineAccountAccelByte>(UserAccount);
-			UserAccountAccelByte->SetConnectedToLobby(false);
-		}
-	}
-
-	ErrorStr = TEXT("login-failed-lobby-connect-error");
-
-	UnbindDelegates();
-
-	UE_LOG_AB(Warning, TEXT("Lobby disconnected. Reason '%s'"), *Result.Message);
-	CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
-}
-
-void FOnlineAsyncTaskAccelByteLogin::OnLobbyConnectionClosed(int32 StatusCode, const FString& Reason, bool WasClean, int32 InLocalUserNum)
-{
-	UE_LOG_AB(Warning, TEXT("Lobby connection closed. Reason '%s' Code : '%d'"), *Reason, StatusCode);
-
-	const FOnlineIdentityAccelBytePtr IdentityInterface = FOnlineIdentityAccelByte::Get();
-	const FOnlinePartySystemAccelBytePtr PartyInterface = FOnlinePartySystemAccelByte::Get();
-	
-	if (!IdentityInterface.IsValid() && !PartyInterface.IsValid())
-	{
-		UE_LOG_AB(Warning, TEXT("Error due to either IdentityInterface or PartyInterface is invalid"));
-		return;
-	}
-	
-	const TSharedPtr<const FUniqueNetId> UserIdPtr = IdentityInterface->GetUniquePlayerId(InLocalUserNum);
-	TSharedPtr<FUserOnlineAccount> UserAccount;
-		
-	if (UserIdPtr.IsValid())
-	{
-		const FUniqueNetId& UserId = UserIdPtr.ToSharedRef().Get();
-		UserAccount = IdentityInterface->GetUserAccount(UserId);
-	}
-
-	if (UserAccount.IsValid())
-	{
-		const TSharedPtr<FUserOnlineAccountAccelByte> UserAccountAccelByte = StaticCastSharedPtr<FUserOnlineAccountAccelByte>(UserAccount);
-		UserAccountAccelByte->SetConnectedToLobby(false);
-	}
-	
-	FString LogoutReason;
-	if(StatusCode == 1006) // Internet connection is disconnected
-	{
-		LogoutReason = TEXT("socket-disconnected");
-		AccelByte::FApiClientPtr ApiClient = IdentityInterface->GetApiClient(InLocalUserNum);
-		ApiClient->CredentialsRef->ForgetAll();
-
-		TSharedPtr<FUniqueNetIdAccelByteUser const> LocalUserId = StaticCastSharedPtr<FUniqueNetIdAccelByteUser const>(IdentityInterface->GetUniquePlayerId(InLocalUserNum));
-		PartyInterface->RemovePartyFromInterface(LocalUserId.ToSharedRef());
-	}
-	IdentityInterface->Logout(InLocalUserNum, LogoutReason);
-}
-
-void FOnlineAsyncTaskAccelByteLogin::OnLobbyReconnected(int32 InLocalUserNum)
-{
-	UE_LOG_AB(Log, TEXT("Lobby successfully reconnected."));
-
-	const FOnlineIdentityAccelBytePtr IdentityInterface = FOnlineIdentityAccelByte::Get();
-	const FOnlinePartySystemAccelBytePtr PartyInterface = FOnlinePartySystemAccelByte::Get();
-	if (IdentityInterface.IsValid() && PartyInterface.IsValid())
-	{
-		TSharedPtr<FUniqueNetIdAccelByteUser const> LocalUserId = StaticCastSharedPtr<FUniqueNetIdAccelByteUser const>(IdentityInterface->GetUniquePlayerId(InLocalUserNum));
-
-		PartyInterface->RemovePartyFromInterface(LocalUserId.ToSharedRef());
-
-		PartyInterface->RestoreParties(LocalUserId.ToSharedRef().Get(), FOnRestorePartiesComplete());
-	}
-}
-
-void FOnlineAsyncTaskAccelByteLogin::UnbindDelegates()
-{
-	OnLobbyConnectSuccessDelegate.Unbind();
-	OnLobbyConnectErrorDelegate.Unbind();
-	OnLobbyDisconnectedNotifDelegate.Unbind();
 }
 
 FString FOnlineAsyncTaskAccelByteLogin::GetLocalTimeOffsetFromUTC()

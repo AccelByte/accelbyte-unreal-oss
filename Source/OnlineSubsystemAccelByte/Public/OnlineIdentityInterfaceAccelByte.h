@@ -11,8 +11,26 @@
 #include "Interfaces/OnlineIdentityInterface.h"
 #include "OnlineSubsystemAccelByteTypes.h"
 #include "Core/AccelByteMultiRegistry.h"
+#include "Core/AccelByteUtilities.h"
+
+class FOnlineAccelByteAccountCredentials : public FOnlineAccountCredentials
+{
+public:
+	EAccelByteLoginType LoginType;
+	
+	FOnlineAccelByteAccountCredentials(EAccelByteLoginType InType
+		, const FString& InId
+		, const FString& InToken)
+		: FOnlineAccountCredentials(FAccelByteUtilities::GetUEnumValueAsString(InType), InId, InToken)
+		, LoginType{InType}
+	{
+		
+	}
+};
 
 DECLARE_DELEGATE_OneParam(FOnAuthenticateServerComplete, bool /*bWasSuccessful*/)
+DECLARE_MULTICAST_DELEGATE_FourParams(FOnConnectLobbyComplete, int32 /*LocalUserNum*/, bool /*bWasSuccessful*/, const FUniqueNetId& /*UserId*/, const FString& /*Error*/);
+typedef FOnConnectLobbyComplete::FDelegate FOnConnectLobbyCompleteDelegate;
 
 /**
  * AccelByte service implementation of the online identity interface
@@ -93,6 +111,10 @@ public:
 	 * Check whether or not our server is authenticated or not
 	 */
 	bool IsServerAuthenticated();
+
+	DEFINE_ONLINE_PLAYER_DELEGATE_THREE_PARAM(MAX_LOCAL_PLAYERS, OnConnectLobbyComplete, bool /*bWasSuccessful*/, const FUniqueNetId& /*UserId*/, const FString& /*Error*/);
+
+	bool ConnectAccelByteLobby(int32 LocalUserNum);
 
 PACKAGE_SCOPE:
 
