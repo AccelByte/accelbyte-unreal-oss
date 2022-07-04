@@ -13,6 +13,7 @@ FOnlineAsyncTaskAccelByteConnectLobby::FOnlineAsyncTaskAccelByteConnectLobby(FOn
 	: FOnlineAsyncTaskAccelByte(InABInterface)
 {
 	UserId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(InLocalUserId.AsShared());
+	ErrorStr = TEXT("");
 }
 
 void FOnlineAsyncTaskAccelByteConnectLobby::Initialize()
@@ -64,7 +65,7 @@ void FOnlineAsyncTaskAccelByteConnectLobby::TriggerDelegates()
 	const FOnlineIdentityAccelBytePtr IdentityInt = FOnlineIdentityAccelByte::Get();
 	if (IdentityInt.IsValid())
 	{
-		IdentityInt->TriggerOnConnectLobbyCompleteDelegates(LocalUserNum, false, FUniqueNetIdAccelByteUser::Invalid().Get(), ErrorStr);
+		IdentityInt->TriggerOnConnectLobbyCompleteDelegates(LocalUserNum, bWasSuccessful, *UserId.Get(), ErrorStr);
 	}
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
