@@ -17,7 +17,7 @@ class FOnlineAsyncTaskAccelByteAcceptAgreementPolicies : public FOnlineAsyncTask
 {
 public:
 
-	FOnlineAsyncTaskAccelByteAcceptAgreementPolicies(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InLocalUserId, const TArray<FOnlineAgreementAccelByte::FABAcceptAgreementPoliciesRequest>& InDocumentsToAccept);
+	FOnlineAsyncTaskAccelByteAcceptAgreementPolicies(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InLocalUserId, const TArray<FABAcceptAgreementPoliciesRequest>& InDocumentsToAccept);
 
 	virtual void Initialize() override;
 	virtual void TriggerDelegates() override;
@@ -51,5 +51,5 @@ private:
 	bool bRequestResult;
 	bool bIsMandatory;
 
-	TArray<FOnlineAgreementAccelByte::FABAcceptAgreementPoliciesRequest> DocumentsToAccept;
+	TArray<FABAcceptAgreementPoliciesRequest> DocumentsToAccept;
 };

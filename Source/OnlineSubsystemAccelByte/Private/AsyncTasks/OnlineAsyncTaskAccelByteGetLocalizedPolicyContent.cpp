@@ -156,12 +156,12 @@ void FOnlineAsyncTaskAccelByteGetLocalizedPolicyContent::OnGetLocalizedPolicyCon
 		auto ExistingLocalizedPolicies = AgreementInterface->LocalizedContentMap.Find(BasePolicyId);
 		if (ExistingLocalizedPolicies == nullptr)
 		{
-			TArray<FOnlineAgreementAccelByte::FABLocalizedPolicyContent> LocalizedPolicies{ FOnlineAgreementAccelByte::FABLocalizedPolicyContent{LocalizedPolicyContent, LocaleCode} };
+			TArray<FABLocalizedPolicyContent> LocalizedPolicies{ FABLocalizedPolicyContent{LocalizedPolicyContent, LocaleCode} };
 			AgreementInterface->LocalizedContentMap.Emplace(BasePolicyId, LocalizedPolicies);
 		}
 		else
 		{
-			ExistingLocalizedPolicies->Add(FOnlineAgreementAccelByte::FABLocalizedPolicyContent{LocalizedPolicyContent, LocaleCode});
+			ExistingLocalizedPolicies->Add(FABLocalizedPolicyContent{LocalizedPolicyContent, LocaleCode});
 			AgreementInterface->LocalizedContentMap.Emplace(BasePolicyId, *ExistingLocalizedPolicies);
 		}
 	}

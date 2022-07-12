@@ -7,7 +7,7 @@
 #include "OnlineIdentityInterfaceAccelByte.h"
 #include "OnlineAgreementInterfaceAccelByte.h"
 
-FOnlineAsyncTaskAccelByteAcceptAgreementPolicies::FOnlineAsyncTaskAccelByteAcceptAgreementPolicies(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InLocalUserId, const TArray<FOnlineAgreementAccelByte::FABAcceptAgreementPoliciesRequest>& InDocumentsToAccept)
+FOnlineAsyncTaskAccelByteAcceptAgreementPolicies::FOnlineAsyncTaskAccelByteAcceptAgreementPolicies(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InLocalUserId, const TArray<FABAcceptAgreementPoliciesRequest>& InDocumentsToAccept)
 	: FOnlineAsyncTaskAccelByte(InABInterface)
 	, DocumentsToAccept(InDocumentsToAccept)
 {

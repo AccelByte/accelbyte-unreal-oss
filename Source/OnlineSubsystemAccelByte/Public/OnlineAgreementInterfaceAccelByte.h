@@ -22,6 +22,18 @@ typedef FOnGetLocalizedPolicyContentCompleted::FDelegate FOnGetLocalizedPolicyCo
 DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnAcceptAgreementPoliciesCompleted, int32 /*LocalUserNum*/, bool /*bWasSuccessful*/, const FString& /*Error*/);
 typedef FOnAcceptAgreementPoliciesCompleted::FDelegate FOnAcceptAgreementPoliciesCompletedDelegate;
 
+struct ONLINESUBSYSTEMACCELBYTE_API FABLocalizedPolicyContent
+{
+	FString Content{};
+	FString LocaleCode{};
+};
+
+struct ONLINESUBSYSTEMACCELBYTE_API FABAcceptAgreementPoliciesRequest
+{
+	FString BasePolicyId{};
+	FString LocaleCode{};
+};
+
 /**
  * Implementation of Agreement service from AccelByte services
  */
@@ -36,18 +48,6 @@ PACKAGE_SCOPE:
 
 	/*Map of Eligibilities of each user*/
 	TUniqueNetIdMap<TArray<TSharedRef<FAccelByteModelsRetrieveUserEligibilitiesResponse>>> EligibilitiesMap;
-
-	static struct FABLocalizedPolicyContent
-	{
-		FString Content{};
-		FString LocaleCode{};
-	};
-
-	static struct FABAcceptAgreementPoliciesRequest
-	{
-		FString BasePolicyId{};
-		FString LocaleCode{};
-	};
 
 	TMap<FString, TArray<FABLocalizedPolicyContent>> LocalizedContentMap;
 

@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## 0.2.2 (2022-07-12)
+
+### Bug fixes
+
+* **linux build:** fix linux build, move static struct outside the online agreement class
+
+## 0.2.1 (2022-07-05)
+
+### Bug fixes
+
+* **lobby:** fix trigger on connect lobby always return false
+
 ## 0.2.0 (2022-07-04)
 
 ### Features
