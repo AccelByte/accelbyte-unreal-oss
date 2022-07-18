@@ -4,7 +4,6 @@
 
 using UnrealBuildTool;
 using System.IO;
-using Tools.DotNETCommon;
 
 public class OnlineSubsystemAccelByte : ModuleRules
 {
@@ -37,7 +36,7 @@ public class OnlineSubsystemAccelByte : ModuleRules
 			"JsonUtilities",
 			"AccelByteUe4Sdk",
 			"AccelByteNetworkUtilities",
-			"Http"
+			"HTTP"
 		});
 	}
 }

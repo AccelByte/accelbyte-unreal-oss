@@ -284,14 +284,14 @@ void FOnlineFriendsAccelByte::OnCancelFriendRequestNotificationReceived(const FA
 void FOnlineFriendsAccelByte::RegisterRealTimeLobbyDelegates(int32 LocalUserNum)
 {
 	// Get our identity interface to retrieve the API client for this user
-	const FOnlineIdentityAccelBytePtr IdentityInt = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystem->GetIdentityInterface());
-	if (!IdentityInt.IsValid())
+	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystem->GetIdentityInterface());
+	if (!IdentityInterface.IsValid())
 	{
 		UE_LOG_AB(Warning, TEXT("Failed to register real-time lobby as an identity interface instance could not be retrieved!"));
 		return;
 	}
 
-	AccelByte::FApiClientPtr ApiClient = IdentityInt->GetApiClient(LocalUserNum);
+	AccelByte::FApiClientPtr ApiClient = IdentityInterface->GetApiClient(LocalUserNum);
 	if (!ApiClient.IsValid())
 	{
 		UE_LOG_AB(Warning, TEXT("Failed to register real-time lobby as an Api client could not be retrieved for user num %d!"), LocalUserNum);

@@ -250,13 +250,13 @@ protected:
 			return nullptr;
 		}
 
-		const TSharedPtr<FOnlineIdentityAccelByte, ESPMode::ThreadSafe> IdentityInt = StaticCastSharedPtr<FOnlineIdentityAccelByte>(Subsystem->GetIdentityInterface());
-		if (!IdentityInt.IsValid())
+		const TSharedPtr<FOnlineIdentityAccelByte, ESPMode::ThreadSafe> IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(Subsystem->GetIdentityInterface());
+		if (!IdentityInterface.IsValid())
 		{
 			return nullptr;
 		}
 
-		ApiClient = IdentityInt->GetApiClient(InLocalUserNum);
+		ApiClient = IdentityInterface->GetApiClient(InLocalUserNum);
 		return ApiClient;
 	}
 
@@ -270,13 +270,13 @@ protected:
 			return ApiClient;
 		}
 
-		const TSharedPtr<FOnlineIdentityAccelByte, ESPMode::ThreadSafe> IdentityInt = StaticCastSharedPtr<FOnlineIdentityAccelByte>(Subsystem->GetIdentityInterface());
-		if (!IdentityInt.IsValid())
+		const TSharedPtr<FOnlineIdentityAccelByte, ESPMode::ThreadSafe> IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(Subsystem->GetIdentityInterface());
+		if (!IdentityInterface.IsValid())
 		{
 			return nullptr;
 		}
 
-		ApiClient = IdentityInt->GetApiClient(InUserId.Get());
+		ApiClient = IdentityInterface->GetApiClient(InUserId.Get());
 		return ApiClient;
 	}
 
@@ -285,8 +285,8 @@ protected:
 	 */
 	void GetOtherUserIdentifiers()
 	{
-		const TSharedPtr<FOnlineIdentityAccelByte, ESPMode::ThreadSafe> IdentityInt = StaticCastSharedPtr<FOnlineIdentityAccelByte>(Subsystem->GetIdentityInterface());
-		if (!IdentityInt.IsValid())
+		const TSharedPtr<FOnlineIdentityAccelByte, ESPMode::ThreadSafe> IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(Subsystem->GetIdentityInterface());
+		if (!IdentityInterface.IsValid())
 		{
 			return;
 		}
@@ -294,7 +294,7 @@ protected:
 		// If we have a local user num, then we want to get a user ID from that user num
 		if (LocalUserNum != INVALID_CONTROLLERID)
 		{
-			TSharedPtr<const FUniqueNetId> PlayerId = IdentityInt->GetUniquePlayerId(LocalUserNum);
+			TSharedPtr<const FUniqueNetId> PlayerId = IdentityInterface->GetUniquePlayerId(LocalUserNum);
 			if (PlayerId.IsValid())
 			{
 				UserId = StaticCastSharedPtr<const FUniqueNetIdAccelByteUser>(PlayerId);
@@ -304,7 +304,7 @@ protected:
 		else if (UserId.IsValid())
 		{
 			int32 FoundLocalUserNum;
-			if (IdentityInt->GetLocalUserNum(UserId.ToSharedRef().Get(), FoundLocalUserNum))
+			if (IdentityInterface->GetLocalUserNum(UserId.ToSharedRef().Get(), FoundLocalUserNum))
 			{
 				LocalUserNum = FoundLocalUserNum;
 			}

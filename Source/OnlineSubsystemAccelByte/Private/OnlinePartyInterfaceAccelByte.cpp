@@ -63,13 +63,8 @@ FString FOnlinePartyIdAccelByte::ToDebugString() const
 	return IdStr;
 }
 
-bool FOnlinePartyIdAccelByte::operator=(const FOnlinePartyId& PartyId)
-{
-	return IdStr == PartyId.ToString();
-}
-
-FOnlinePartyAccelByte::FOnlinePartyAccelByte(const TSharedRef<FOnlinePartySystemAccelByte, ESPMode::ThreadSafe>& InOwningInterface, const FString& InPartyId, const FString& InInviteToken, const FPartyConfiguration& InPartyConfiguration, const TSharedRef<const FUniqueNetIdAccelByteUser>& InLeaderId, const TSharedRef<FOnlinePartyData>& InPartyData)
-	: FOnlineParty(MakeShared<FOnlinePartyIdAccelByte>(InPartyId), FOnlinePartyTypeId(IOnlinePartySystem::PrimaryPartyTypeIdValue))
+FOnlinePartyAccelByte::FOnlinePartyAccelByte(const TSharedRef<FOnlinePartySystemAccelByte, ESPMode::ThreadSafe>& InOwningInterface, const FString& InPartyId, const FString& InInviteToken, const FPartyConfiguration& InPartyConfiguration, const TSharedRef<const FUniqueNetIdAccelByteUser>& InLeaderId, const TSharedRef<FOnlinePartyData>& InPartyData, const FOnlinePartyTypeId InPartyTypeId)
+	: FOnlineParty(MakeShared<FOnlinePartyIdAccelByte>(InPartyId), InPartyTypeId)
 	, OwningInterface(InOwningInterface)
 	, InviteToken(InInviteToken)
 	, PartyConfiguration(MakeShared<const FPartyConfiguration>(InPartyConfiguration))
@@ -196,6 +191,7 @@ TSharedPtr<const FOnlinePartyMemberAccelByte> FOnlinePartyAccelByte::GetMember(c
 
 bool FOnlinePartyAccelByte::RemoveMember(const TSharedRef<const FUniqueNetIdAccelByteUser>& LocalUserId, const TSharedRef<const FUniqueNetIdAccelByteUser>& RemovedUserId, const EMemberExitedReason& ExitReason)
 {
+	bool bIsMemberFound = false;
 	// First, try and find the party member in the map of members, if we find them then we can remove
 	for (auto UserIdToPartyMemberPair : UserIdToPartyMemberMap)
 	{
@@ -210,11 +206,12 @@ bool FOnlinePartyAccelByte::RemoveMember(const TSharedRef<const FUniqueNetIdAcce
 			}
 
 			UserIdToPartyMemberMap.Remove(UserIdKey);
-			OwningInterface->TriggerOnPartyMemberExitedDelegates(LocalUserId.Get(), PartyId.Get(), RemovedUserId.Get(), ExitReason);
-			return true;
+			bIsMemberFound = true;
+			break;
 		}
 	}
-	return false;
+	OwningInterface->TriggerOnPartyMemberExitedDelegates(LocalUserId.Get(), PartyId.Get(), RemovedUserId.Get(), ExitReason);
+	return bIsMemberFound;
 }
 
 void FOnlinePartyAccelByte::RemoveInvite(const TSharedRef<const FUniqueNetIdAccelByteUser>& LocalUserId, const TSharedRef<const FUniqueNetIdAccelByteUser>& InvitedUserId, const EPartyInvitationRemovedReason& PartyInviteRemoveReason)
@@ -278,14 +275,14 @@ void FOnlinePartyAccelByte::AddPlayerCrossplayPreferenceAndPlatform(const TShare
 		return;
 	}
 
-	IOnlineIdentityPtr IdentityInt = Subsystem->GetIdentityInterface();
-	if (!IdentityInt.IsValid())
+	IOnlineIdentityPtr IdentityInterface = Subsystem->GetIdentityInterface();
+	if (!IdentityInterface.IsValid())
 	{
 		UE_LOG_AB(Warning, TEXT("Cannot associate current player's crossplay preference and platform to their current party as the identity interface is invalid!"));
 		return;
 	}
 
-	TSharedPtr<FUserOnlineAccount> UserAccount = IdentityInt->GetUserAccount(LocalUserId.Get());
+	TSharedPtr<FUserOnlineAccount> UserAccount = IdentityInterface->GetUserAccount(LocalUserId.Get());
 	if (!UserAccount.IsValid())
 	{
 		UE_LOG_AB(Warning, TEXT("Cannot associate current player's crossplay preference and platform to their current party as their user account instance is invalid!"));
@@ -737,26 +734,22 @@ void FOnlinePartySystemAccelByte::OnPartyLeaveNotification(const FAccelByteModel
 
 	UE_LOG(LogAccelByteOSSParty, Verbose, TEXT("User '%s' has left the party!"), *Notification.UserID);
 
-	const FOnlineIdentityAccelBytePtr IdentityInt = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystem->GetIdentityInterface());
+	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystem->GetIdentityInterface());
 
-	if (IdentityInt.IsValid())
+	if (IdentityInterface.IsValid())
 	{
-		TSharedPtr<const FUniqueNetId> LocalPlayerUserId = IdentityInt->GetUniquePlayerId(IdentityInt->GetLocalUserNumCached());
+		TSharedPtr<const FUniqueNetId> LocalPlayerUserId = IdentityInterface->GetUniquePlayerId(IdentityInterface->GetLocalUserNumCached());
 		TSharedRef<const FUniqueNetIdAccelByteUser> LocalAccelByteUserId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(LocalPlayerUserId.ToSharedRef());
 
 		TSharedPtr<FOnlinePartyAccelByte> Party = GetFirstPartyForUser(LocalAccelByteUserId);
 		if (Party.IsValid())
 		{
-			// Call this on game thread since UWidget::SetUserFocus will be called on this notification
-			AsyncTask(ENamedThreads::GameThread, [this, Party, UserId, LocalAccelByteUserId, Notification]()
-				{
-					FAccelByteUniqueIdComposite LeftUserCompositeId;
-					LeftUserCompositeId.Id = Notification.UserID;
+			FAccelByteUniqueIdComposite LeftUserCompositeId;
+			LeftUserCompositeId.Id = Notification.UserID;
 
-					TSharedRef<const FUniqueNetIdAccelByteUser> LeftUserId = FUniqueNetIdAccelByteUser::Create(LeftUserCompositeId).ToSharedRef();
-					Party->RemoveMember(UserId, LeftUserId, EMemberExitedReason::Left);
-					RemovePartyFromInterface(LeftUserId, Party.ToSharedRef());
-				});
+			TSharedRef<const FUniqueNetIdAccelByteUser> LeftUserId = FUniqueNetIdAccelByteUser::Create(LeftUserCompositeId).ToSharedRef();
+			Party->RemoveMember(UserId, LeftUserId, EMemberExitedReason::Left);
+			RemovePartyFromInterface(LeftUserId, Party.ToSharedRef());
 		}
 		else
 		{
@@ -839,9 +832,22 @@ void FOnlinePartySystemAccelByte::OnPartyDataChangeNotification(const FAccelByte
 
 			TSharedPtr<const FUniqueNetIdAccelByteUser> PartyLeaderId = StaticCastSharedPtr<const FUniqueNetIdAccelByteUser>(Party->LeaderId);
 			FString PartyLeaderIdStr = PartyLeaderId->GetAccelByteId();
-			AsyncTask(ENamedThreads::GameThread, [PartyInt = AsShared(), UserId, Party]() {
-				PartyInt->TriggerOnPartyMemberPromotedDelegates(UserId.Get(), Party->PartyId.Get(), *Party->LeaderId.Get());
-			});
+			//Send the notif for all local users that have the same party object
+			for (auto Member : Party->GetAllMembers())
+			{
+				if (Member->GetUserId().Get() != *PreviousLeaderId.Get())
+				{
+					FPartyIDToPartyMap* FoundPartyMap = UserIdToPartiesMap.Find(FUniqueNetIdAccelByteUser::Cast(Member->GetUserId().Get()));
+					if (FoundPartyMap != nullptr)
+					{
+						TSharedRef<FOnlinePartyAccelByte>* FoundPartyRef = FoundPartyMap->Find(MakeShared<const FOnlinePartyIdAccelByte>(Notification.PartyId));
+						if(FoundPartyRef != nullptr && *FoundPartyRef == Party)
+						{
+							TriggerOnPartyMemberPromotedDelegates(Member->GetUserId().Get(), Party->PartyId.Get(), *Party->LeaderId.Get());
+						}
+					}
+				}
+			}
 		}
 		else
 		{
@@ -885,10 +891,7 @@ void FOnlinePartySystemAccelByte::OnPartyDataChangeNotification(const FAccelByte
 	PartyData->FromJson(JSONString);
 	Party->SetPartyData(PartyData);
 
-	// Trigger the party data received delegates
-	AsyncTask(ENamedThreads::GameThread, [PartyInt = AsShared(), UserId, Party, PartyData]() {
-		PartyInt->TriggerOnPartyDataReceivedDelegates(UserId.Get(), *Party->PartyId, NAME_Game, *PartyData);
-	});
+	TriggerOnPartyDataReceivedDelegates(UserId.Get(), *Party->PartyId, NAME_Game, *PartyData);
 
 	AB_OSS_INTERFACE_TRACE_END(TEXT("Finished updating data on party."));
 }
@@ -913,23 +916,19 @@ void FOnlinePartySystemAccelByte::OnPartyJoinedCompleteMemberLeaveParty(const FU
 
 	UE_LOG(LogAccelByteOSSParty, Verbose, TEXT("User '%s' has left the party!"), *Notification.UserID);
 
-	const FOnlineIdentityAccelBytePtr IdentityInt = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystem->GetIdentityInterface());
+	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystem->GetIdentityInterface());
 
-	if (IdentityInt.IsValid())
+	if (IdentityInterface.IsValid())
 	{
 		TSharedPtr<FOnlinePartyAccelByte> Party = GetFirstPartyForUser(LocalAccelByteUserId);
 		if (Party.IsValid())
 		{
-			// Call this on game thread since UWidget::SetUserFocus will be called on this notification
-			AsyncTask(ENamedThreads::GameThread, [this, Party, UserId, LocalAccelByteUserId, Notification]()
-				{
-					FAccelByteUniqueIdComposite LeftUserCompositeId;
-					LeftUserCompositeId.Id = Notification.UserID;
+			FAccelByteUniqueIdComposite LeftUserCompositeId;
+			LeftUserCompositeId.Id = Notification.UserID;
 
-					TSharedRef<const FUniqueNetIdAccelByteUser> LeftUserId = FUniqueNetIdAccelByteUser::Create(LeftUserCompositeId).ToSharedRef();
-					Party->RemoveMember(UserId, LeftUserId, EMemberExitedReason::Left);
-					RemovePartyFromInterface(LeftUserId, Party.ToSharedRef());
-				});
+			TSharedRef<const FUniqueNetIdAccelByteUser> LeftUserId = FUniqueNetIdAccelByteUser::Create(LeftUserCompositeId).ToSharedRef();
+			Party->RemoveMember(UserId, LeftUserId, EMemberExitedReason::Left);
+			RemovePartyFromInterface(LeftUserId, Party.ToSharedRef());
 		}
 	}
 
@@ -938,14 +937,14 @@ void FOnlinePartySystemAccelByte::OnPartyJoinedCompleteMemberLeaveParty(const FU
 
 void FOnlinePartySystemAccelByte::RegisterRealTimeLobbyDelegates(const TSharedRef<const FUniqueNetIdAccelByteUser>& UserId)
 {
-	const TSharedPtr<FOnlineIdentityAccelByte, ESPMode::ThreadSafe> IdentityInt = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystem->GetIdentityInterface());
-	if (!IdentityInt.IsValid())
+	const TSharedPtr<FOnlineIdentityAccelByte, ESPMode::ThreadSafe> IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystem->GetIdentityInterface());
+	if (!IdentityInterface.IsValid())
 	{
 		return;
 	}
 
 	// Get our identity interface to retrieve the API client for this user
-	AccelByte::FApiClientPtr ApiClient = IdentityInt->GetApiClient(UserId.Get());
+	AccelByte::FApiClientPtr ApiClient = IdentityInterface->GetApiClient(UserId.Get());
 	if (!ApiClient.IsValid())
 	{
 		UE_LOG_AB(Warning, TEXT("Failed to register real-time lobby as an API client could not be retrieved for user '%s'"), *(UserId->ToDebugString()))
@@ -1126,6 +1125,10 @@ void FOnlinePartySystemAccelByte::AddPartyInvite(const TSharedRef<const FUniqueN
 	});
 	InvitesArray.Add(Invite);
 	TriggerOnPartyInviteReceivedDelegates(UserId.Get(), Invite->PartyId.Get(), Invite->InviterId.Get());
+#if (ENGINE_MAJOR_VERSION == 5) || (ENGINE_MAJOR_VERSION == 4 && ENGINE_MINOR_VERSION > 26)
+	TSharedRef<FOnlinePartyJoinInfoAccelByte> JoinInfoRef = MakeShared<FOnlinePartyJoinInfoAccelByte>(Invite->PartyId, Invite->InviterId, Invite->InviterDisplayName);
+	TriggerOnPartyInviteReceivedExDelegates(UserId.Get(), JoinInfoRef.Get());
+#endif
 }
 
 bool FOnlinePartySystemAccelByte::RemoveInviteForParty(const TSharedRef<const FUniqueNetIdAccelByteUser>& UserId, const TSharedRef<const FOnlinePartyIdAccelByte>& PartyId, const EPartyInvitationRemovedReason& InvitationRemovalReason)
@@ -1366,6 +1369,28 @@ void FOnlinePartySystemAccelByte::RespondToQueryJoinability(const FUniqueNetId& 
 {
 	UE_LOG_AB(Warning, TEXT("FOnlinePartySystemAccelByte::RespondToQueryJoinability is not supported!"));
 }
+
+#if (ENGINE_MAJOR_VERSION >= 5)
+
+void FOnlinePartySystemAccelByte::RequestToJoinParty(const FUniqueNetId& LocalUserId,
+	const FOnlinePartyTypeId PartyTypeId, const FPartyInvitationRecipient& Recipient,
+	const FOnRequestToJoinPartyComplete& Delegate)
+{
+}
+
+void FOnlinePartySystemAccelByte::ClearRequestToJoinParty(const FUniqueNetId& LocalUserId,
+	const FOnlinePartyId& PartyId, const FUniqueNetId& Sender, EPartyRequestToJoinRemovedReason Reason)
+{
+}
+
+bool FOnlinePartySystemAccelByte::GetPendingRequestsToJoin(const FUniqueNetId& LocalUserId,
+	TArray<IOnlinePartyRequestToJoinInfoConstRef>& OutRequestsToJoin) const
+{
+	return false;
+}
+
+#endif
+
 #endif
 
 bool FOnlinePartySystemAccelByte::SendInvitation(const FUniqueNetId& LocalUserId, const FOnlinePartyId& PartyId, const FPartyInvitationRecipient& Recipient, const FOnSendPartyInvitationComplete& Delegate /*= FOnSendPartyInvitationComplete()*/)
@@ -1379,14 +1404,14 @@ bool FOnlinePartySystemAccelByte::RejectInvitation(const FUniqueNetId& LocalUser
 	TSharedRef<const FUniqueNetIdAccelByteUser> LocalUserIdAccelByte = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(LocalUserId.AsShared());
 	TSharedRef<const FUniqueNetIdAccelByteUser> SenderIdAccelByte = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(SenderId.AsShared());
 	
-	const TSharedPtr<FOnlineIdentityAccelByte, ESPMode::ThreadSafe> IdentityInt = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystem->GetIdentityInterface());
-	if (!IdentityInt.IsValid())
+	const TSharedPtr<FOnlineIdentityAccelByte, ESPMode::ThreadSafe> IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystem->GetIdentityInterface());
+	if (!IdentityInterface.IsValid())
 	{
 		return false;
 	}
 
 	// Get API client for user to reject party invite
-	AccelByte::FApiClientPtr ApiClient = IdentityInt->GetApiClient(LocalUserId);
+	AccelByte::FApiClientPtr ApiClient = IdentityInterface->GetApiClient(LocalUserId);
 	if (!ApiClient.IsValid())
 	{
 		UE_LOG_AB(Warning, TEXT("Failed to reject invitation as an API client could not be retrieved for user '%s'"), *(LocalUserId.ToDebugString()))
@@ -1490,7 +1515,22 @@ FOnlinePartyConstPtr FOnlinePartySystemAccelByte::GetParty(const FUniqueNetId& L
 
 FOnlinePartyConstPtr FOnlinePartySystemAccelByte::GetParty(const FUniqueNetId& LocalUserId, const FOnlinePartyTypeId& PartyTypeId) const
 {
-	UE_LOG_AB(Warning, TEXT("FOnlinePartySystemAccelByte::GetParty by FOnlinePartyTypeId is not supported!"));
+	const TSharedRef<const FUniqueNetIdAccelByteUser> SharedUserId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(LocalUserId.AsShared());
+	const FPartyIDToPartyMap* FoundPartyMap = UserIdToPartiesMap.Find(SharedUserId);
+	if (FoundPartyMap != nullptr)
+	{
+		for (const TPair<TSharedRef<const FOnlinePartyIdAccelByte>, TSharedRef<FOnlinePartyAccelByte>>& Pair : *FoundPartyMap)
+		{
+			FOnlinePartyTypeId TypeId = Pair.Value->PartyTypeId;
+			if (TypeId.GetValue() == PartyTypeId.GetValue())
+			{
+				if (Pair.Value->GetMember(SharedUserId).IsValid())
+				{
+					return Pair.Value;
+				}
+			}
+		}
+	}
 	return nullptr;
 }
 

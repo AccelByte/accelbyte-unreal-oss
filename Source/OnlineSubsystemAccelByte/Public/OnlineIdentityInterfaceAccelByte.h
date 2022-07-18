@@ -5,7 +5,11 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#if ENGINE_MAJOR_VERSION >= 5
+#include "Online/CoreOnline.h"
+#else
 #include "UObject/CoreOnline.h"
+#endif
 #include "OnlineSubsystemTypes.h"
 #include "OnlineSubsystemAccelByte.h"
 #include "Interfaces/OnlineIdentityInterface.h"
@@ -47,6 +51,7 @@ public:
 
 	virtual ~FOnlineIdentityAccelByte() override = default;
 
+	// NOTE @damar, this might not work properly in Editor, not really sure for the reason, it always using different instance.
 	static FOnlineIdentityAccelBytePtr Get() {
 		if (IOnlineSubsystem::DoesInstanceExist(ACCELBYTE_SUBSYSTEM)) {
 			const FOnlineSubsystemAccelByte* AccelByteSubsystem = static_cast<FOnlineSubsystemAccelByte*>(IOnlineSubsystem::Get(ACCELBYTE_SUBSYSTEM));

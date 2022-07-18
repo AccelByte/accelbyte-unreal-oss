@@ -41,6 +41,11 @@ enum class EAccelByteLoginType : uint8
 	RefreshToken
 };
 
+enum class EAccelBytePartyType : uint32
+{
+	PRIMARY_PARTY = 1
+};
+
 /**
  * Simple structure to represent the JSON encoded data for an FUniqueNetIdAccelByte.
  */
@@ -85,6 +90,7 @@ struct FAccelByteUniqueIdComposite
  */
 class ONLINESUBSYSTEMACCELBYTE_API FUniqueNetIdAccelByteResource : public FUniqueNetIdString
 {
+// NOTE @Damar : On UE5, public constructor for FUniqueNetId will be deprecated.
 public:
 	FUniqueNetIdAccelByteResource();
 
@@ -93,7 +99,8 @@ public:
 	explicit FUniqueNetIdAccelByteResource(FString&& InUniqueNetId);
 
 	explicit FUniqueNetIdAccelByteResource(const FUniqueNetId& Src);
-
+	
+public:
 	/**
 	 * Takes a const FUniqueNetId reference and converts it to a TSharedRef<FUniqueNetIdAccelByte> if the type matches.
 	 *
@@ -109,6 +116,13 @@ public:
 	virtual FName GetType() const override;
 
 	virtual bool IsValid() const override;
+	
+protected:
+	FUniqueNetIdAccelByteResource(FString&& InUniqueNetId, const FName InType)
+		: FUniqueNetIdString(MoveTemp(InUniqueNetId), InType)
+	{
+		check(InType == FName(TEXT("ACCELBYTE")));
+	}
 };
 
 /**
@@ -138,6 +152,7 @@ public:
  */
 class ONLINESUBSYSTEMACCELBYTE_API FUniqueNetIdAccelByteUser : public FUniqueNetIdAccelByteResource
 {
+	// NOTE @Damar : On UE5, public constructor for FUniqueNetId will be deprecated.
 public:
 	FUniqueNetIdAccelByteUser();
 
@@ -147,6 +162,7 @@ public:
 
 	explicit FUniqueNetIdAccelByteUser(const FUniqueNetId& Src);
 
+public:
 	/**
 	 * @brief Tries to create a new FUniqueNetIdAccelByte instance from a composite ID
 	 * 
@@ -156,6 +172,16 @@ public:
 	 * @return Shared pointer of UniqueNetId
 	 */
 	static TSharedPtr<const FUniqueNetIdAccelByteUser> Create(const FAccelByteUniqueIdComposite& CompositeId);
+	
+	/**
+	 * @brief Tries to create a new FUniqueNetIdAccelByte instance from a generic UniqueNetId
+	 * 
+	 * @param bBypassValidCheck Bypasses the check to determine if the AccelByte ID passed in is valid. Defaults to false, or to not bypass the check.
+	 * @param CompositeId
+	 *
+	 * @return Shared pointer of UniqueNetId
+	 */
+	static TSharedPtr<const FUniqueNetIdAccelByteUser> Create(const FUniqueNetId& Src);
 
 	/**
 	 * @brief Takes a const FUniqueNetId reference and converts it to a TSharedRef<FUniqueNetIdAccelByte> if the type matches.
@@ -248,6 +274,12 @@ private:
 	 */
 	void DecodeIDElements();
 
+protected:
+	FUniqueNetIdAccelByteUser(FString&& InUniqueNetId, const FName InType)
+		: FUniqueNetIdAccelByteResource(MoveTemp(InUniqueNetId), InType)
+	{
+		DecodeIDElements();
+	}
 };
 
 /**

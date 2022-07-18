@@ -36,6 +36,10 @@ public:
 				OnlineSubPtr->Shutdown();
 				OnlineSubPtr.Reset();
 			}
+			else
+			{
+				UE_LOG_AB(Log, TEXT("AccelByte API initialized!"));
+			}
 		}
 		else
 		{

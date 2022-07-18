@@ -105,21 +105,21 @@ bool FOnlineSubsystemAccelByteUtils::GetDisplayName(int32 LocalUserNum, TSharedP
 		return false;
 	}
 
-	IOnlineIdentityPtr IdentityInt = Online::GetIdentityInterface(ACCELBYTE_SUBSYSTEM);
-	TSharedPtr<const FUniqueNetId> LocalUserId = IdentityInt->GetUniquePlayerId(LocalUserNum);
+	IOnlineIdentityPtr IdentityInterface = Online::GetIdentityInterface(ACCELBYTE_SUBSYSTEM);
+	TSharedPtr<const FUniqueNetId> LocalUserId = IdentityInterface->GetUniquePlayerId(LocalUserNum);
 	if (UniqueId.IsValid() && (LocalUserId.IsValid() && LocalUserId.Get() == UniqueId.Get())) {
-		Delegate.ExecuteIfBound(IdentityInt->GetPlayerNickname(LocalUserId.ToSharedRef().Get()));
+		Delegate.ExecuteIfBound(IdentityInterface->GetPlayerNickname(LocalUserId.ToSharedRef().Get()));
 		return true;
 	}
 	
-	IOnlineUserPtr UserInt = Online::GetUserInterface(ACCELBYTE_SUBSYSTEM);
+	IOnlineUserPtr UserInterface = Online::GetUserInterface(ACCELBYTE_SUBSYSTEM);
 	TArray<TSharedRef<const FUniqueNetId>> IdsToQuery;
 	IdsToQuery.Add(UniqueId.ToSharedRef());
 
 	FOnQueryUserInfoCompleteDelegate OnQueryUserInfoCompleteDelegate = FOnQueryUserInfoCompleteDelegate::CreateStatic(FOnlineSubsystemAccelByteUtils::OnQueryUserInfoComplete, Delegate);
 	QueryUserHandle = OnQueryUserInfoCompleteDelegate.GetHandle();
-	UserInt->AddOnQueryUserInfoCompleteDelegate_Handle(LocalUserNum, OnQueryUserInfoCompleteDelegate);
-	UserInt->QueryUserInfo(LocalUserNum, IdsToQuery);
+	UserInterface->AddOnQueryUserInfoCompleteDelegate_Handle(LocalUserNum, OnQueryUserInfoCompleteDelegate);
+	UserInterface->QueryUserInfo(LocalUserNum, IdsToQuery);
 	return true;
 }
 
@@ -129,13 +129,13 @@ void FOnlineSubsystemAccelByteUtils::OnQueryUserInfoComplete(int32 LocalUserNum,
 	{
 		for (const TSharedRef<const FUniqueNetId>& UniqueId : FoundIds)
 		{
-			IOnlineUserPtr UserInt = Online::GetUserInterface(ACCELBYTE_SUBSYSTEM);
-			TSharedPtr<FOnlineUser> UserInfo = UserInt->GetUserInfo(LocalUserNum, UniqueId.Get());
+			IOnlineUserPtr UserInterface = Online::GetUserInterface(ACCELBYTE_SUBSYSTEM);
+			TSharedPtr<FOnlineUser> UserInfo = UserInterface->GetUserInfo(LocalUserNum, UniqueId.Get());
 			if (UserInfo.IsValid())
 			{
 				Delegate.ExecuteIfBound(UserInfo->GetDisplayName());
 			}
-			UserInt->ClearOnQueryUserInfoCompleteDelegate_Handle(LocalUserNum, QueryUserHandle);
+			UserInterface->ClearOnQueryUserInfoCompleteDelegate_Handle(LocalUserNum, QueryUserHandle);
 			QueryUserHandle.Reset();
 			break;
 		}
@@ -149,9 +149,9 @@ TSharedPtr<const FUniqueNetId> FOnlineSubsystemAccelByteUtils::GetPlatformUnique
 		return nullptr;
 	}
 
-	const IOnlineIdentityPtr PlatformIdentityInt = Subsystem->GetIdentityInterface();
-	if (PlatformIdentityInt.IsValid()) {
-		return PlatformIdentityInt->CreateUniquePlayerId(PlatformUserId);
+	const IOnlineIdentityPtr PlatformIdentityInterface = Subsystem->GetIdentityInterface();
+	if (PlatformIdentityInterface.IsValid()) {
+		return PlatformIdentityInterface->CreateUniquePlayerId(PlatformUserId);
 	}
 
 	return nullptr;

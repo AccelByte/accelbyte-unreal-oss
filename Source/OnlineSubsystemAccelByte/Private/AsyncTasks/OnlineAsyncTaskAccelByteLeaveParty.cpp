@@ -39,8 +39,8 @@ void FOnlineAsyncTaskAccelByteLeaveParty::Initialize()
 		return;
 	}
 
-	const FOnlineSessionAccelBytePtr SessionInt = StaticCastSharedPtr<FOnlineSessionAccelByte>(Subsystem->GetSessionInterface());
-	if (!SessionInt.IsValid())
+	const FOnlineSessionAccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionAccelByte>(Subsystem->GetSessionInterface());
+	if (!SessionInterface.IsValid())
 	{
 		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Could not leave a party as the session interface instance was invalid!"));
 		CompletionResult = ELeavePartyCompletionResult::UnknownParty;
@@ -62,7 +62,7 @@ void FOnlineAsyncTaskAccelByteLeaveParty::Initialize()
 	if (bSynchronizeLeave)
 	{
 		// Cancel matchmaking in the case that the leave party request is made while in matchmaking state
-		SessionInt->CancelMatchmakingNotification();
+		SessionInterface->CancelMatchmakingNotification();
 
 		AccelByte::Api::Lobby::FPartyLeaveResponse OnLeavePartyResponseDelegate = AccelByte::Api::Lobby::FPartyLeaveResponse::CreateRaw(this, &FOnlineAsyncTaskAccelByteLeaveParty::OnLeavePartyResponse);
 		ApiClient->Lobby.SetLeavePartyResponseDelegate(OnLeavePartyResponseDelegate);

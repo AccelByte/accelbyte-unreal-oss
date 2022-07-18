@@ -5,7 +5,11 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#if ENGINE_MAJOR_VERSION >= 5
+#include "Online/CoreOnline.h"
+#else
 #include "UObject/CoreOnline.h"
+#endif
 #include "Misc/ScopeLock.h"
 #include "OnlineSessionSettings.h"
 #include "Interfaces/OnlineSessionInterface.h"
@@ -63,7 +67,8 @@ struct FAccelBytePendingMatchInfo
 
 	bool IsValid() const
 	{
-		return !MatchId.IsEmpty() && !ServerName.IsEmpty() && !Ip.IsEmpty() && !GameMode.IsEmpty() && Port > 0 && MatchedPlayers.Num() > 0;
+		// NOTE(Damar): removing GameMode and MatchedPlayers checking. Joinable session cannot have that data, unless gather it from SessionBrowser.
+		return !MatchId.IsEmpty() && !ServerName.IsEmpty() && !Ip.IsEmpty() && Port > 0;
 	}
 };
 

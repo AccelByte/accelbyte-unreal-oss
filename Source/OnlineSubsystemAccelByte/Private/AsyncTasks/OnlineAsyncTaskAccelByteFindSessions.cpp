@@ -115,7 +115,7 @@ void FOnlineAsyncTaskAccelByteFindSessions::OnSessionBrowserFindSuccess(const FA
 		// End unsupported feature block
 
 		// # AB (Apin) splitgate do differently about player count calculation
-		Session.NumOpenPublicConnections = FoundSession.Game_session_setting.Current_player;
+		Session.NumOpenPublicConnections = FoundSession.Game_session_setting.Max_player - FoundSession.Game_session_setting.Current_player;
 		FDefaultValueHelper::ParseInt(FoundSession.Game_version, Session.SessionSettings.BuildUniqueId);
 		Session.SessionSettings.NumPublicConnections = FoundSession.Game_session_setting.Max_player;
 		Session.SessionSettings.bAllowJoinInProgress = FoundSession.Game_session_setting.Allow_join_in_progress;

@@ -5,8 +5,11 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#if ENGINE_MAJOR_VERSION >= 5
+#include "Online/CoreOnline.h"
+#else
 #include "UObject/CoreOnline.h"
-
+#endif
 #if WITH_DEV_AUTOMATION_TESTS
 
 /** Index of the user that any exec test OSS calls are using for testing */

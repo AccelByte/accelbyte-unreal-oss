@@ -43,10 +43,10 @@ void FOnlinePresenceAccelByte::SetPresence(const FUniqueNetId& User, const FOnli
 
 void FOnlinePresenceAccelByte::QueryPresence(const FUniqueNetId& User, const FOnPresenceTaskCompleteDelegate& Delegate) 
 {
-	const FOnlineIdentityAccelBytePtr IdentityInt = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystem->GetIdentityInterface());
-	if (IdentityInt.IsValid())
+	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystem->GetIdentityInterface());
+	if (IdentityInterface.IsValid())
 	{
-		int32 LocalUserNum = IdentityInt->GetLocalUserNumCached();
+		int32 LocalUserNum = IdentityInterface->GetLocalUserNumCached();
 
 		// Async task to query presence from AccelByte backend
 		AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteQueryUserPresence>(AccelByteSubsystem, User, Delegate, LocalUserNum);
@@ -79,26 +79,26 @@ EOnlineCachedResult::Type FOnlinePresenceAccelByte::GetCachedPresenceForApp(cons
 
 void FOnlinePresenceAccelByte::PlatformQueryPresence(const FUniqueNetId& User, const FOnPresenceTaskCompleteDelegate& Delegate) 
 {
-	IOnlinePresencePtr NativePresenceInt = GetPlatformOnlinePresenceInterface();
-	if (!NativePresenceInt.IsValid())
+	IOnlinePresencePtr NativePresenceInterface = GetPlatformOnlinePresenceInterface();
+	if (!NativePresenceInterface.IsValid())
 	{
 		return;
 	}
 
 	// #NOTE (Maxwell): This should be the native platform ID itself, so just pass this in directly
-	NativePresenceInt->QueryPresence(User, Delegate);
+	NativePresenceInterface->QueryPresence(User, Delegate);
 }
 
 EOnlineCachedResult::Type FOnlinePresenceAccelByte::GetPlatformCachedPresence(const FUniqueNetId& User, TSharedPtr<FOnlineUserPresence>& OutPresence) 
 {
-	IOnlinePresencePtr NativePresenceInt = GetPlatformOnlinePresenceInterface();
-	if (!NativePresenceInt.IsValid())
+	IOnlinePresencePtr NativePresenceInterface = GetPlatformOnlinePresenceInterface();
+	if (!NativePresenceInterface.IsValid())
 	{
 		return EOnlineCachedResult::NotFound;
 	}
 
 	// #NOTE (Maxwell): This should be the native platform ID itself, so just pass this in directly
-	return NativePresenceInt->GetCachedPresence(User, OutPresence);
+	return NativePresenceInterface->GetCachedPresence(User, OutPresence);
 }
 
 TSharedRef<FOnlineUserPresenceAccelByte> FOnlinePresenceAccelByte::FindOrCreatePresence(const TSharedRef<const FUniqueNetIdAccelByteUser>& UserId) 

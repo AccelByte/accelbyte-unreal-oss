@@ -41,8 +41,6 @@ public:
 	virtual FString ToDebugString() const override;
 	//~ End FOnlinePartyId overrides
 
-	bool operator=(const FOnlinePartyId& PartyId);
-
 private:
 
 	/** Party ID as an FString, should be a valid UUID v4 without the hyphens */
@@ -112,7 +110,13 @@ using FUserIdToPartyMemberMap = TMap<TSharedRef<const FUniqueNetIdAccelByteUser>
 class ONLINESUBSYSTEMACCELBYTE_API FOnlinePartyAccelByte : public FOnlineParty
 {
 public:
-	FOnlinePartyAccelByte(const TSharedRef<FOnlinePartySystemAccelByte, ESPMode::ThreadSafe>& InOwningInterface, const FString& InPartyId, const FString& InInviteToken, const FPartyConfiguration& InPartyConfiguration, const TSharedRef<const FUniqueNetIdAccelByteUser>& InLeaderId, const TSharedRef<FOnlinePartyData>& InPartyData=MakeShared<FOnlinePartyData>());
+	FOnlinePartyAccelByte(
+		const TSharedRef<FOnlinePartySystemAccelByte, ESPMode::ThreadSafe>& InOwningInterface, 
+		const FString& InPartyId, const FString& InInviteToken, 
+		const FPartyConfiguration& InPartyConfiguration, 
+		const TSharedRef<const FUniqueNetIdAccelByteUser>& InLeaderId, 
+		const TSharedRef<FOnlinePartyData>& InPartyData = MakeShared<FOnlinePartyData>(),
+		const FOnlinePartyTypeId InPartyTypeId = FOnlinePartyTypeId(static_cast<uint32>(EAccelBytePartyType::PRIMARY_PARTY)));
 
 	//~ Begin FOnlineParty overrides
 	virtual bool CanLocalUserInvite(const FUniqueNetId& LocalUserId) const override;
@@ -466,6 +470,11 @@ public:
 #if (ENGINE_MAJOR_VERSION == 4 && ENGINE_MINOR_VERSION >= 27) || (ENGINE_MAJOR_VERSION >= 5)
 	virtual void QueryPartyJoinability(const FUniqueNetId& LocalUserId, const IOnlinePartyJoinInfo& OnlinePartyJoinInfo, const FOnQueryPartyJoinabilityCompleteEx& Delegate = FOnQueryPartyJoinabilityCompleteEx()) override;
 	virtual void RespondToQueryJoinability(const FUniqueNetId & LocalUserId, const FOnlinePartyId & PartyId, const FUniqueNetId & RecipientId, bool bCanJoin, int32 DeniedResultCode, FOnlinePartyDataConstPtr PartyData) override;
+#if (ENGINE_MAJOR_VERSION >= 5)
+	virtual void RequestToJoinParty(const FUniqueNetId& LocalUserId, const FOnlinePartyTypeId PartyTypeId, const FPartyInvitationRecipient& Recipient, const FOnRequestToJoinPartyComplete& Delegate) override;
+	virtual void ClearRequestToJoinParty(const FUniqueNetId& LocalUserId, const FOnlinePartyId& PartyId, const FUniqueNetId& Sender, EPartyRequestToJoinRemovedReason Reason) override;
+	virtual bool GetPendingRequestsToJoin(const FUniqueNetId& LocalUserId, TArray<IOnlinePartyRequestToJoinInfoConstRef>& OutRequestsToJoin) const override;
+#endif
 #endif
 	
 	//~ End IOnlinePartySystem methods
@@ -491,6 +500,10 @@ public:
 	 * Convenience method to get first party for user.
 	 */
 	TSharedPtr<const FOnlinePartyId> GetFirstPartyIdForUser(const FUniqueNetId & UserId);
+	/**
+	 * @return party type id for the primary party - the primary party is the party that will be addressable via the social panel
+	 */
+	static const FOnlinePartyTypeId GetAccelBytePartyTypeId() { return FOnlinePartyTypeId(static_cast<uint32>(EAccelBytePartyType::PRIMARY_PARTY)); }
 
 protected:
 

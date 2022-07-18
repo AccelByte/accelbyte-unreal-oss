@@ -42,8 +42,8 @@ void FOnlineAsyncTaskAccelByteAddFriendToList::Finalize()
 
 	if (bWasSuccessful)
 	{
-		const TSharedPtr<FOnlineFriendsAccelByte, ESPMode::ThreadSafe> FriendInterface = StaticCastSharedPtr<FOnlineFriendsAccelByte>(Subsystem->GetFriendsInterface());
-		FriendInterface->AddFriendToList(LocalUserNum, FriendObject);
+		const TSharedPtr<FOnlineFriendsAccelByte, ESPMode::ThreadSafe> FriendsInterface = StaticCastSharedPtr<FOnlineFriendsAccelByte>(Subsystem->GetFriendsInterface());
+		FriendsInterface->AddFriendToList(LocalUserNum, FriendObject);
 	}
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

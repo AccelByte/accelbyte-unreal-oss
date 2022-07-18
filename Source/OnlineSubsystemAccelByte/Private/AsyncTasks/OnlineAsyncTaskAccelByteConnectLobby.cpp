@@ -46,8 +46,8 @@ void FOnlineAsyncTaskAccelByteConnectLobby::Finalize()
 
 	if (bWasSuccessful)
 	{
-		const FOnlineIdentityAccelBytePtr IdentityInt = FOnlineIdentityAccelByte::Get();
-		if (IdentityInt.IsValid())
+		const FOnlineIdentityAccelBytePtr IdentityInterface = FOnlineIdentityAccelByte::Get();
+		if (IdentityInterface.IsValid())
 		{
 			// #NOTE (Wiwing): Overwrite connect Lobby success delegate for reconnection
 			Api::Lobby::FConnectSuccess OnLobbyReconnectionDelegate = Api::Lobby::FConnectSuccess::CreateStatic(FOnlineAsyncTaskAccelByteConnectLobby::OnLobbyReconnected, LocalUserNum);
@@ -62,10 +62,10 @@ void FOnlineAsyncTaskAccelByteConnectLobby::TriggerDelegates()
 {
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
-	const FOnlineIdentityAccelBytePtr IdentityInt = FOnlineIdentityAccelByte::Get();
-	if (IdentityInt.IsValid())
+	const FOnlineIdentityAccelBytePtr IdentityInterface = FOnlineIdentityAccelByte::Get();
+	if (IdentityInterface.IsValid())
 	{
-		IdentityInt->TriggerOnConnectLobbyCompleteDelegates(LocalUserNum, bWasSuccessful, *UserId.Get(), ErrorStr);
+		IdentityInterface->TriggerOnConnectLobbyCompleteDelegates(LocalUserNum, bWasSuccessful, *UserId.Get(), ErrorStr);
 	}
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

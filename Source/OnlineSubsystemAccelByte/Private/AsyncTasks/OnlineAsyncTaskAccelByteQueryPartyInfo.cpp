@@ -85,12 +85,7 @@ void FOnlineAsyncTaskAccelByteQueryPartyInfo::TriggerDelegates()
 bool FOnlineAsyncTaskAccelByteQueryPartyInfo::HasFinishedAsyncWork()
 {
 	return bHasRetrievedPartyMemberInfo &&
-		bHasRetrievedPartyStorage &&
-		CustomizationQueriesRemaining.GetValue() <= 0 &&
-		StatsQueriesRemaining.GetValue() <= 0 &&
-		ProgressionQueriesRemaining.GetValue() <= 0 &&
-		DailyPlayStreakQueriesRemaining.GetValue() <= 0 &&
-		RanksQueriesRemaining.GetValue() <= 0;
+		bHasRetrievedPartyStorage;
 }
 
 void FOnlineAsyncTaskAccelByteQueryPartyInfo::OnQueryPartyMembersComplete(bool bIsSuccessful, TArray<TSharedRef<FAccelByteUserInfo>> UsersQueried)

@@ -12,6 +12,8 @@
 #include "OnlinePartyInterfaceAccelByte.h"
 #include "OnlinePresenceInterfaceAccelByte.h"
 #include "OnlineUserCacheAccelByte.h"
+#include "OnlineAgreementInterfaceAccelByte.h"
+#include "OnlineWalletInterfaceAccelByte.h"
 #include "OnlineSubsystemAccelByteModule.h"
 #include "Api/AccelByteLobbyApi.h"
 #include "Models/AccelByteLobbyModels.h"
@@ -42,6 +44,7 @@ bool FOnlineSubsystemAccelByte::Init()
 	PresenceInterface = MakeShared<FOnlinePresenceAccelByte, ESPMode::ThreadSafe>(this);
 	UserCache = MakeShared<FOnlineUserCacheAccelByte, ESPMode::ThreadSafe>(this);
 	AgreementInterface = MakeShared<FOnlineAgreementAccelByte, ESPMode::ThreadSafe>(this);
+	WalletInterface = MakeShared<FOnlineWalletAccelByte, ESPMode::ThreadSafe>(this);
 	
 	// Create an async task manager and a thread for the manager to process tasks on
 	AsyncTaskManager = MakeShared<FOnlineAsyncTaskManagerAccelByte, ESPMode::ThreadSafe>(this);
@@ -50,6 +53,7 @@ bool FOnlineSubsystemAccelByte::Init()
 
 	for(int i = 0; i < MAX_LOCAL_PLAYERS; i++)
 	{
+		// Note @damar disabling this, this should be handled for each user.
 		IdentityInterface->AddOnLoginCompleteDelegate_Handle(i, FOnLoginCompleteDelegate::CreateRaw(this, &FOnlineSubsystemAccelByte::OnLoginCallback));
 	}
 
@@ -89,6 +93,7 @@ bool FOnlineSubsystemAccelByte::Shutdown()
 	SessionInterface.Reset();
 	UserCache.Reset();
 	AgreementInterface.Reset();
+	WalletInterface.Reset();
 
 	return true;
 }
@@ -174,6 +179,11 @@ FOnlineAgreementAccelBytePtr FOnlineSubsystemAccelByte::GetAgreementInterface() 
 	return AgreementInterface;
 }
 
+FOnlineWalletAccelBytePtr FOnlineSubsystemAccelByte::GetWalletInterface() const
+{
+	return WalletInterface;
+}
+
 bool FOnlineSubsystemAccelByte::Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar)
 {
 	bool bWasHandled = false;
@@ -205,10 +215,11 @@ bool FOnlineSubsystemAccelByte::IsEnabled() const
 	// Check the ini for disabling AB
 	bool bEnableAB = FOnlineSubsystemImpl::IsEnabled();
 #if UE_EDITOR
-	if (bEnableAB)
+	// NOTE @damar this line code always disabled when using Editor (?)
+	/*if (bEnableAB)
 	{
 		bEnableAB = IsRunningDedicatedServer() || IsRunningGame();
-	}
+	}*/
 #endif
 	return bEnableAB;
 }
@@ -225,7 +236,10 @@ bool FOnlineSubsystemAccelByte::Tick(float DeltaTime)
 		AsyncTaskManager->GameTick();
 	}
 
-	SessionInterface->Tick(DeltaTime);
+	if(SessionInterface.IsValid())
+	{
+		SessionInterface->Tick(DeltaTime);
+	}
 
 	// If we have automation testing enabled, check if we have any exec tests that are complete and if so, remove them
 #if WITH_DEV_AUTOMATION_TESTS

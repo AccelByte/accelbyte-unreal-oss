@@ -94,10 +94,10 @@ void FOnlineAsyncTaskAccelBytePromotePartyLeader::TriggerDelegates()
 
 	if (bWasSuccessful)
 	{
-		const TSharedPtr<FOnlinePartySystemAccelByte, ESPMode::ThreadSafe> PartyInt = StaticCastSharedPtr<FOnlinePartySystemAccelByte>(Subsystem->GetPartyInterface());
-		if (PartyInt.IsValid())
+		const TSharedPtr<FOnlinePartySystemAccelByte, ESPMode::ThreadSafe> PartyInterface = StaticCastSharedPtr<FOnlinePartySystemAccelByte>(Subsystem->GetPartyInterface());
+		if (PartyInterface.IsValid())
 		{
-			PartyInt->TriggerOnPartyMemberPromotedDelegates(UserId.ToSharedRef().Get(), PartyId.Get(), TargetMemberId.Get());
+			PartyInterface->TriggerOnPartyMemberPromotedDelegates(UserId.ToSharedRef().Get(), PartyId.Get(), TargetMemberId.Get());
 		}
 	}
 

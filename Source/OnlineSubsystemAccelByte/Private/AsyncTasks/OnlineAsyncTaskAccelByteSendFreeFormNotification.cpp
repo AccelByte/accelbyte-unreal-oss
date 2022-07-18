@@ -45,8 +45,8 @@ void FOnlineAsyncTaskAccelByteSendFreeFormNotification::SendFreeFormNotification
 {
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Sending notification!"));
 
-	FOnlineUserAccelBytePtr UserInt = StaticCastSharedPtr<FOnlineUserAccelByte>(Subsystem->GetUserInterface());
-	if (UserInt.IsValid())
+	FOnlineUserAccelBytePtr UserInterface = StaticCastSharedPtr<FOnlineUserAccelByte>(Subsystem->GetUserInterface());
+	if (UserInterface.IsValid())
 	{
 		FAccelByteModelsFreeFormNotificationRequest Request;
 		Request.Topic = Topic;

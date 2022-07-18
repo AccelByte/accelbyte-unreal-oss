@@ -13,6 +13,11 @@ FOnlineAsyncTaskAccelByteUnregisterPlayers::FOnlineAsyncTaskAccelByteUnregisterP
 	, SessionName(InSessionName)
 	, Players(InPlayers)
 {
+	FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(Subsystem->GetIdentityInterface());
+	if (IdentityInterface.IsValid())
+	{
+		LocalUserNum = IdentityInterface->GetLocalUserNumCached();
+	}
 }
 
 void FOnlineAsyncTaskAccelByteUnregisterPlayers::Initialize()
@@ -73,10 +78,21 @@ void FOnlineAsyncTaskAccelByteUnregisterPlayers::Initialize()
 		// Next, signal to session manager that we have unregistered a player from the session
 		THandler<FAccelByteModelsSessionBrowserAddPlayerResponse> OnUnregisterPlayerFromSessionSuccessDelegate = THandler<FAccelByteModelsSessionBrowserAddPlayerResponse>::CreateRaw(this, &FOnlineAsyncTaskAccelByteUnregisterPlayers::OnUnregisterPlayerFromSessionSuccess);
 		FErrorHandler OnUnregisterPlayerFromSessionErrorDelegate = FErrorHandler::CreateRaw(this, &FOnlineAsyncTaskAccelByteUnregisterPlayers::OnUnregisterPlayerFromSessionError, Player->GetAccelByteId());
-		FRegistry::ServerSessionBrowser.UnregisterPlayer(SessionId, Player->GetAccelByteId(), OnUnregisterPlayerFromSessionSuccessDelegate, OnUnregisterPlayerFromSessionErrorDelegate);
-
+		// NOTE(damar): SessionId with dashes is custom match (?)
+		bool bIsCustomMatch = SessionId.Contains(TEXT("-"));
+		if(bIsCustomMatch)
+		{
+#if UE_SERVER
+			FRegistry::ServerSessionBrowser.UnregisterPlayer(SessionId, Player->GetAccelByteId(), OnUnregisterPlayerFromSessionSuccessDelegate, OnUnregisterPlayerFromSessionErrorDelegate);
+#else
+			ApiClient->SessionBrowser.UnregisterPlayer(SessionId, Player->GetAccelByteId(), OnUnregisterPlayerFromSessionSuccessDelegate, OnUnregisterPlayerFromSessionErrorDelegate);
+#endif
+		}
+		else
+		{
+			// TODO(damar): Remove from session using ServerMatchmaking.
+		}
 	}
-
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 

@@ -174,6 +174,11 @@ TSharedPtr<const FUniqueNetIdAccelByteUser> FUniqueNetIdAccelByteUser::Create(co
 	return MakeShared<const FUniqueNetIdAccelByteUser>(CompositeId, EncodedString);
 }
 
+TSharedPtr<const FUniqueNetIdAccelByteUser> FUniqueNetIdAccelByteUser::Create(const FUniqueNetId& Src)
+{
+	return MakeShared<const FUniqueNetIdAccelByteUser>(FUniqueNetIdAccelByteUser(Src.ToString(), Src.GetType()));
+}
+
 TSharedRef<const FUniqueNetIdAccelByteUser> FUniqueNetIdAccelByteUser::Cast(const FUniqueNetId& NetId)
 {
 	if (ensure(NetId.GetType() == ACCELBYTE_SUBSYSTEM))
@@ -280,14 +285,14 @@ TSharedPtr<const FUniqueNetId> FUniqueNetIdAccelByteUser::GetPlatformUniqueId() 
 		return nullptr;
 	}
 
-	const IOnlineIdentityPtr IdentityInt = NativeSubsystem->GetIdentityInterface();
-	if (!IdentityInt.IsValid())
+	const IOnlineIdentityPtr IdentityInterface = NativeSubsystem->GetIdentityInterface();
+	if (!IdentityInterface.IsValid())
 	{
 		UE_LOG_AB(Warning, TEXT("Cannot convert composite platform information for AccelByte ID as the native platform OSS has an invalid identity interface instance!"));
 		return nullptr;
 	}
 
-	TSharedPtr<const FUniqueNetId> NativeUniqueId = IdentityInt->CreateUniquePlayerId(CompositeStructure.PlatformId);
+	TSharedPtr<const FUniqueNetId> NativeUniqueId = IdentityInterface->CreateUniquePlayerId(CompositeStructure.PlatformId);
 	if (!NativeUniqueId.IsValid() || !NativeUniqueId->IsValid())
 	{
 		UE_LOG_AB(Warning, TEXT("Cannot convert composite platform information for AccelByte ID as the resulting unique ID from the subsystem was invalid!"));

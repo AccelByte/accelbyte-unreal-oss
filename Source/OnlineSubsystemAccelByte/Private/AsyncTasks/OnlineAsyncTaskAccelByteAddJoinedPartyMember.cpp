@@ -64,7 +64,7 @@ void FOnlineAsyncTaskAccelByteAddJoinedPartyMember::Finalize()
 
 bool FOnlineAsyncTaskAccelByteAddJoinedPartyMember::HasFinishedAsyncWork()
 {
-	return bHasRetrievedMemberInfo && bHasRetrievedMemberStats && bHasRetrievedMemberCustomizations && bHasRetrievedMemberProgression && bHasRetrievedMemberDailyPlayStreak && bHasRetrievedMemberRanks;
+	return bHasRetrievedMemberInfo /*&& bHasRetrievedMemberStats && bHasRetrievedMemberCustomizations && bHasRetrievedMemberProgression && bHasRetrievedMemberDailyPlayStreak && bHasRetrievedMemberRanks*/;
 }
 
 void FOnlineAsyncTaskAccelByteAddJoinedPartyMember::OnQueryJoinedPartyMemberComplete(bool bIsSuccessful, TArray<TSharedRef<FAccelByteUserInfo>> UsersQueried)

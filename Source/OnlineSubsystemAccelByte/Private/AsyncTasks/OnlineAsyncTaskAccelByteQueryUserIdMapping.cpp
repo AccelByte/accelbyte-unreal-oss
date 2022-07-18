@@ -45,7 +45,14 @@ void FOnlineAsyncTaskAccelByteQueryUserIdMapping::TriggerDelegates()
 {
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("UserId: %s; Is Delegate Bound: %s; bWasSuccessful: %s"), *UserId->ToString(), LOG_BOOL_FORMAT(Delegate.IsBound()), LOG_BOOL_FORMAT(bWasSuccessful));
 
-	Delegate.ExecuteIfBound(bWasSuccessful, UserId.ToSharedRef().Get(), DisplayNameOrEmail, FoundUserId.ToSharedRef().Get(), ErrorString);
+	if (FoundUserId.IsValid())
+	{
+		Delegate.ExecuteIfBound(bWasSuccessful, UserId.ToSharedRef().Get(), DisplayNameOrEmail, FoundUserId.ToSharedRef().Get(), ErrorString);
+	}
+	else
+	{
+		Delegate.ExecuteIfBound(bWasSuccessful, UserId.ToSharedRef().Get(), DisplayNameOrEmail, FUniqueNetIdAccelByteUser::Invalid().Get(), ErrorString);
+	}
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }

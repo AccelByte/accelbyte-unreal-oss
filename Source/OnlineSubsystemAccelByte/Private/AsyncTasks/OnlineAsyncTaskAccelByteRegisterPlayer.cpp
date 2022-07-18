@@ -16,6 +16,11 @@ FOnlineAsyncTaskAccelByteRegisterPlayers::FOnlineAsyncTaskAccelByteRegisterPlaye
 	, bWasInvited(InBWasInvited)
 	, bIsSpectator(InBIsSpectator)
 {
+	FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(Subsystem->GetIdentityInterface());
+	if (IdentityInterface.IsValid())
+	{
+		LocalUserNum = IdentityInterface->GetLocalUserNumCached();
+	}
 }
 
 void FOnlineAsyncTaskAccelByteRegisterPlayers::Initialize()
@@ -152,7 +157,20 @@ void FOnlineAsyncTaskAccelByteRegisterPlayers::RegisterAllPlayers()
 
 		const THandler<FAccelByteModelsSessionBrowserAddPlayerResponse> OnRegisterPlayerSuccessDelegate = THandler<FAccelByteModelsSessionBrowserAddPlayerResponse>::CreateRaw(this, &FOnlineAsyncTaskAccelByteRegisterPlayers::OnRegisterPlayerSuccess);
 		const FErrorHandler OnRegisterPlayerErrorDelegate = FErrorHandler::CreateRaw(this, &FOnlineAsyncTaskAccelByteRegisterPlayers::OnRegisterPlayerError, Player->GetAccelByteId());
-		FRegistry::ServerSessionBrowser.RegisterPlayer(SessionId, Player->GetAccelByteId(), bIsSpectator, OnRegisterPlayerSuccessDelegate, OnRegisterPlayerErrorDelegate);
+		// NOTE(damar): SessionId with dashes is custom match (?)
+		bool bIsCustomMatch = SessionId.Contains(TEXT("-"));
+		if(bIsCustomMatch)
+		{
+#if UE_SERVER
+			FRegistry::ServerSessionBrowser.RegisterPlayer(SessionId, Player->GetAccelByteId(), bIsSpectator, OnRegisterPlayerSuccessDelegate, OnRegisterPlayerErrorDelegate);
+#else
+			ApiClient->SessionBrowser.RegisterPlayer(SessionId, Player->GetAccelByteId(), bIsSpectator, OnRegisterPlayerSuccessDelegate, OnRegisterPlayerErrorDelegate);
+#endif
+		}
+		else
+		{
+			UE_LOG_AB(Warning, TEXT("Attempted to register player '%s' to session '%s', player already added from matchmaking service!"), *Player->ToDebugString(), *SessionId);
+		}
 	}
 }
 
@@ -168,7 +186,7 @@ void FOnlineAsyncTaskAccelByteRegisterPlayers::OnRegisterPlayerSuccess(const FAc
 
 void FOnlineAsyncTaskAccelByteRegisterPlayers::OnRegisterPlayerError(int32 ErrorCode, const FString& ErrorMessage, FString PlayerId)
 {
-	UE_LOG_AB(Warning, TEXT("Failed to unregister player '%s' from session! Error code: %d; Error message: %s"), *PlayerId, ErrorCode, *ErrorMessage);
+	UE_LOG_AB(Warning, TEXT("Failed to register player '%s' from session! Error code: %d; Error message: %s"), *PlayerId, ErrorCode, *ErrorMessage);
 	PendingPlayerRegistrations.Decrement();
 	SetLastUpdateTimeToCurrentTime();
 }

@@ -64,7 +64,8 @@ void FOnlineAsyncTaskAccelByteBlockPlayer::Finalize()
 			const FOnlinePartySystemAccelBytePtr PartyInterface = StaticCastSharedPtr<FOnlinePartySystemAccelByte>(Subsystem->GetPartyInterface());
 			if (PartyInterface.IsValid())
 			{
-				TSharedRef<const FUniqueNetIdAccelByteUser> CompositeId = MakeShared<const FUniqueNetIdAccelByteUser>(FUniqueNetIdAccelByteUser(IdentityInterface->GetUniquePlayerId(LocalUserNum).ToSharedRef().Get()));
+				// NOTE @Damar : FUniqueId public constructor will be deprecated, changed to Create method
+				TSharedRef<const FUniqueNetIdAccelByteUser> CompositeId = FUniqueNetIdAccelByteUser::Create(IdentityInterface->GetUniquePlayerId(LocalUserNum).ToSharedRef().Get()).ToSharedRef();
 				TSharedPtr<FOnlinePartyAccelByte> UserParty = PartyInterface->GetFirstPartyForUser(CompositeId);
 				if (UserParty != nullptr)
 				{

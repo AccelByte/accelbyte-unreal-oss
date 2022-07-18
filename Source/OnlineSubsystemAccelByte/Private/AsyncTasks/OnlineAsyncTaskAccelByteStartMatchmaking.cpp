@@ -159,8 +159,20 @@ void FOnlineAsyncTaskAccelByteStartMatchmaking::CreateMatchmakingSessionAndStart
 	// Also allow for a version override in the command line to specify a specific version to attempt to match to
 	FString ClientVersion;
 	FParse::Value(FCommandLine::Get(), TEXT("ClientVersion="), ClientVersion);
+
+	TMap<FString, FString> PartyAttribute;
+	FString MapName;
+	if(SearchSettings->QuerySettings.Get(SETTING_MAPNAME, MapName))
+	{
+		PartyAttribute.Add(SETTING_MAPNAME.ToString(), MapName);
+	}
+	int32 NumBots = 0;
+	if(SearchSettings->QuerySettings.Get(SETTING_NUMBOTS, NumBots))
+	{
+		PartyAttribute.Add(SETTING_NUMBOTS.ToString(), FString::FromInt(NumBots));
+	}
 	
-	ApiClient->Lobby.SendStartMatchmaking(GameMode, ServerName, ClientVersion, Latencies);
+	ApiClient->Lobby.SendStartMatchmaking(GameMode, ServerName, ClientVersion, Latencies, PartyAttribute);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sent matchmaking request for session '%s' with game mode '%s' and server name of '%s'"), *SessionName.ToString(), *GameMode, *ServerName);
 }

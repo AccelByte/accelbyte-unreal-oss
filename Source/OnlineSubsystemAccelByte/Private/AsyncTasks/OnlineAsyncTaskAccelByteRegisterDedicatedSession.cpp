@@ -26,8 +26,8 @@ void FOnlineAsyncTaskAccelByteRegisterDedicatedSession::Initialize()
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("SessionName: %s"), *SessionName.ToString());
 
-	const FOnlineIdentityAccelBytePtr IdentityInt = StaticCastSharedPtr<FOnlineIdentityAccelByte>(Subsystem->GetIdentityInterface());
-	if (!IdentityInt.IsValid())
+	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(Subsystem->GetIdentityInterface());
+	if (!IdentityInterface.IsValid())
 	{
 		AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Failed to register dedicated session with Armada as our identity interface was invalid!"));
 		CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState);
@@ -38,10 +38,10 @@ void FOnlineAsyncTaskAccelByteRegisterDedicatedSession::Initialize()
 	//
 	// Client authentication is an async process, so we'll have to do that, wait for the delegate result, and
 	// from there register either a local server or a server on Armada.
-	if (!IdentityInt->IsServerAuthenticated())
+	if (!IdentityInterface->IsServerAuthenticated())
 	{		
 		const FOnAuthenticateServerComplete OnAuthenticateServerCompleteDelegate = FOnAuthenticateServerComplete::CreateRaw(this, &FOnlineAsyncTaskAccelByteRegisterDedicatedSession::OnAuthenticateServerComplete);
-		IdentityInt->AuthenticateAccelByteServer(OnAuthenticateServerCompleteDelegate);
+		IdentityInterface->AuthenticateAccelByteServer(OnAuthenticateServerCompleteDelegate);
 
 		AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Authenticating server with client credentials for session '%s'."), *SessionName.ToString());
 		return;

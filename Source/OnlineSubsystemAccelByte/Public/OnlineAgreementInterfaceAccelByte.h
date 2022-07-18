@@ -6,7 +6,7 @@
 #include "CoreMinimal.h"
 #include "OnlineSubsystemTypes.h"
 #include "OnlineDelegateMacros.h"
-#include "OnlineSubsystemAccelByteTypes.h"
+#include "OnlineSubsystemAccelByte.h"
 #include "OnlineUserCacheAccelByte.h"
 #include "Models/AccelByteAgreementModels.h"
 

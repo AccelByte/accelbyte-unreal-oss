@@ -3,7 +3,11 @@
 // and restrictions contact your company contract manager.
 
 #include "OnlineIdentityInterfaceAccelByte.h"
+#if ENGINE_MAJOR_VERSION >= 5
+#include "Online/CoreOnline.h"
+#else
 #include "UObject/CoreOnline.h"
+#endif
 #include "OnlineSubsystemAccelByte.h"
 #include "OnlineError.h"
 #include "Core/AccelByteRegistry.h"
@@ -88,9 +92,9 @@ bool FOnlineIdentityAccelByte::Logout(int32 LocalUserNum, FString Reason)
 	LogoutReason = Reason;
 
 	FVoidHandler OnLogoutSuccessDelegate = FVoidHandler::CreateThreadSafeSP(AsShared(), &FOnlineIdentityAccelByte::OnLogout, LocalUserNum, true);
-	FErrorHandler OnLogoutFailedDelegate = FErrorHandler::CreateLambda([Identity = AsShared(), LocalUserNum](int32 ErrorCode, const FString& ErrorMessage) {
+	FErrorHandler OnLogoutFailedDelegate = FErrorHandler::CreateLambda([IdentityInterface = AsShared(), LocalUserNum](int32 ErrorCode, const FString& ErrorMessage) {
 		UE_LOG_AB(Error, TEXT("Logging out with AccelByte OSS failed! Code: %d; Message: %s"), ErrorCode, *ErrorMessage);
-		Identity->OnLogout(LocalUserNum, false);
+		IdentityInterface->OnLogout(LocalUserNum, false);
 	});
 
 	AccelByte::FApiClientPtr ApiClient = GetApiClient(LocalUserNum);
@@ -361,8 +365,8 @@ void FOnlineIdentityAccelByte::GetUserPrivilege(const FUniqueNetId& UserId, EUse
 		return;
 	}
 
-	const IOnlineIdentityPtr IdentityInt = NativeSubsystem->GetIdentityInterface();
-	if (!IdentityInt.IsValid())
+	const IOnlineIdentityPtr IdentityInterface = NativeSubsystem->GetIdentityInterface();
+	if (!IdentityInterface.IsValid())
 	{
 		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to query privileges for user as the identity interface for native OSS is invalid."));
 		Delegate.ExecuteIfBound(UserId, Privilege, static_cast<uint32>(EPrivilegeResults::GenericFailure));
@@ -373,7 +377,7 @@ void FOnlineIdentityAccelByte::GetUserPrivilege(const FUniqueNetId& UserId, EUse
 
 	// Create an internal delegate so that we can pass back our AccelByte user ID instead of just the platform ID
 	const FOnGetUserPrivilegeCompleteDelegate OnGetNativeUserPrivilegeCompleteDelegate = FOnGetUserPrivilegeCompleteDelegate::CreateThreadSafeSP(AsShared(), &FOnlineIdentityAccelByte::OnGetNativeUserPrivilegeComplete, Delegate, AccelByteCompositeId);
-	return IdentityInt->GetUserPrivilege(NativeUserId.ToSharedRef().Get(), Privilege, OnGetNativeUserPrivilegeCompleteDelegate);
+	return IdentityInterface->GetUserPrivilege(NativeUserId.ToSharedRef().Get(), Privilege, OnGetNativeUserPrivilegeCompleteDelegate);
 }
 
 FPlatformUserId FOnlineIdentityAccelByte::GetPlatformUserIdFromUniqueNetId(const FUniqueNetId& UniqueNetId) const
@@ -387,7 +391,12 @@ FPlatformUserId FOnlineIdentityAccelByte::GetPlatformUserIdFromUniqueNetId(const
 		if (Entry.Value.Get() == UniqueNetId)
 		{
 			AB_OSS_INTERFACE_TRACE_END(TEXT("UserNum found: %d"), Entry.Key);
+#if ENGINE_MAJOR_VERSION >= 5
+			// NOTE @Damar 11/5/2022: conversion from user index is deprecated
+			return FPlatformMisc::GetPlatformUserForUserIndex(Entry.Key);
+#else
 			return Entry.Key;
+#endif
 		}
 	}
 
@@ -466,9 +475,9 @@ bool FOnlineIdentityAccelByte::AuthenticateAccelByteServer(const FOnAuthenticate
 		bIsAuthenticatingServer = true;
 		ServerAuthDelegates.Add(Delegate);
 
-		const TSharedRef<FOnlineIdentityAccelByte, ESPMode::ThreadSafe> IdentityInt = SharedThis(this);
-		const FVoidHandler OnLoginSuccess = FVoidHandler::CreateThreadSafeSP(IdentityInt, &FOnlineIdentityAccelByte::OnAuthenticateAccelByteServerSuccess);
-		const FErrorHandler OnLoginError = FErrorHandler::CreateThreadSafeSP(IdentityInt, &FOnlineIdentityAccelByte::OnAuthenticateAccelByteServerError);
+		const TSharedRef<FOnlineIdentityAccelByte, ESPMode::ThreadSafe> IdentityInterface = SharedThis(this);
+		const FVoidHandler OnLoginSuccess = FVoidHandler::CreateThreadSafeSP(IdentityInterface, &FOnlineIdentityAccelByte::OnAuthenticateAccelByteServerSuccess);
+		const FErrorHandler OnLoginError = FErrorHandler::CreateThreadSafeSP(IdentityInterface, &FOnlineIdentityAccelByte::OnAuthenticateAccelByteServerError);
 		FRegistry::ServerOauth2.LoginWithClientCredentials(OnLoginSuccess, OnLoginError);
 	}
 	else

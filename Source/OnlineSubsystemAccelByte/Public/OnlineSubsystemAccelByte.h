@@ -30,6 +30,7 @@ class FOnlineFriendsAccelByte;
 class FOnlinePartySystemAccelByte;
 class FOnlineUserCacheAccelByte;
 class FOnlineAgreementAccelByte;
+class FOnlineWalletAccelByte;
 class FExecTestBase;
 
 struct FAccelByteModelsNotificationMessage;
@@ -67,6 +68,8 @@ typedef TSharedPtr<FOnlineAsyncTaskManagerAccelByte, ESPMode::ThreadSafe> FOnlin
 /** Shared pointer to the AccelByte agreement */
 typedef TSharedPtr<FOnlineAgreementAccelByte, ESPMode::ThreadSafe> FOnlineAgreementAccelBytePtr;
 
+typedef TSharedPtr<FOnlineWalletAccelByte, ESPMode::ThreadSafe> FOnlineWalletAccelBytePtr;
+
 class ONLINESUBSYSTEMACCELBYTE_API FOnlineSubsystemAccelByte final : public FOnlineSubsystemImpl
 {
 public:
@@ -90,6 +93,7 @@ public:
 	virtual IOnlineEntitlementsPtr GetEntitlementsInterface() const override;
 	virtual IOnlineAchievementsPtr GetAchievementsInterface() const override;
 	virtual FOnlineAgreementAccelBytePtr GetAgreementInterface() const;
+	virtual FOnlineWalletAccelBytePtr GetWalletInterface() const;
 	virtual bool Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar) override;
 	virtual bool IsEnabled() const override;
 	//~ End IOnlineSubsystem Interface
@@ -274,6 +278,9 @@ private:
 
 	/** Shared instance of our agreement interface implementation */
 	FOnlineAgreementAccelBytePtr AgreementInterface;
+
+	/** Shared instance of our wallet interface implementation */
+	FOnlineWalletAccelBytePtr WalletInterface;
 
 	/** Thread spawned to run the FOnlineAsyncTaskManagerAccelBytePtr instance */
 	TUniquePtr<FRunnableThread> AsyncTaskManagerThread;

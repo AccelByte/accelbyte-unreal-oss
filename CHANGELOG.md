@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## 0.3.0 (2022-07-18)
+
+### Features
+
+* **wallet:** implement Online Wallet Interfaces which handle AccelByte Wallet services
+* **oss:** now supports UE5
+* **session:** trigger delegates on failed matchmaking
+
+### Bug fixes
+
+* **session:** fix End Session to support matchmaking and p2p game session
+* **session:** fix Register and Unregister player to session
+* **session:** fix joinable game session
+* **party:** fix Online Party Interfaces implementation
+
 ## 0.2.2 (2022-07-12)
 
 ### Bug fixes

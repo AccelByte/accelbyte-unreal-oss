@@ -277,14 +277,14 @@ void FOnlineAsyncTaskAccelByteQueryUsersByIds::QueryUsersOnNativePlatform(const 
 		return;
 	}
 
-	const IOnlineUserPtr NativeUserInt = NativeSubsystem->GetUserInterface();
-	if (!NativeUserInt.IsValid())
+	const IOnlineUserPtr NativeUserInterface = NativeSubsystem->GetUserInterface();
+	if (!NativeUserInterface.IsValid())
 	{
 		return;
 	}
 
 	// Make a request to the native platform to query all of these IDs that we have retrieved, no need to get the results
 	// of these so this can just be a fire and forget
-	NativeUserInt->QueryUserInfo(LocalUserNum, PlatformUniqueIds);
+	NativeUserInterface->QueryUserInfo(LocalUserNum, PlatformUniqueIds);
 	bHasQueriedUserPlatformInfo = true;
 }
