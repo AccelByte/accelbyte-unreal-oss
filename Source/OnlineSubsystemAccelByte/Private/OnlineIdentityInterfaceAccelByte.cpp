@@ -51,7 +51,9 @@ bool FOnlineIdentityAccelByte::Login(int32 LocalUserNum, const FOnlineAccountCre
 	}
 
 	// Don't attempt to authenticate again if we are already reporting as logged in
-	if (GetLoginStatus(LocalUserNum) == ELoginStatus::LoggedIn && LocalUserNumToNetIdMap.Contains(LocalUserNum) && (AccountCredentials.Type != StaticEnum<EAccelByteLoginType>()->GetValueAsString(EAccelByteLoginType::RefreshToken)))
+	if (GetLoginStatus(LocalUserNum) == ELoginStatus::LoggedIn
+		&& LocalUserNumToNetIdMap.Contains(LocalUserNum)
+		&& (AccountCredentials.Type != FAccelByteUtilities::GetUEnumValueAsString(EAccelByteLoginType::RefreshToken)))
 	{
 		const TSharedPtr<const FUniqueNetId> UserIdPtr = GetUniquePlayerId(LocalUserNum);
 		TSharedPtr<FUserOnlineAccount> UserAccount;
