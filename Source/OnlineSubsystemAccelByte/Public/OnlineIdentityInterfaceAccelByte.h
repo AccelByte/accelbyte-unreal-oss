@@ -1,4 +1,4 @@
-// Copyright (c) 2021 AccelByte Inc. All Rights Reserved.
+// Copyright (c) 2022 AccelByte Inc. All Rights Reserved.
 // This is licensed software from AccelByte Inc, for limitations
 // and restrictions contact your company contract manager.
 
@@ -50,15 +50,6 @@ public:
 	FOnlineIdentityAccelByte(FOnlineSubsystemAccelByte* InSubsystem);
 
 	virtual ~FOnlineIdentityAccelByte() override = default;
-
-	// NOTE @damar, this might not work properly in Editor, not really sure for the reason, it always using different instance.
-	static FOnlineIdentityAccelBytePtr Get() {
-		if (IOnlineSubsystem::DoesInstanceExist(ACCELBYTE_SUBSYSTEM)) {
-			const FOnlineSubsystemAccelByte* AccelByteSubsystem = static_cast<FOnlineSubsystemAccelByte*>(IOnlineSubsystem::Get(ACCELBYTE_SUBSYSTEM));
-			return AccelByteSubsystem ? StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystem->GetIdentityInterface()) : nullptr;
-		}
-		return nullptr;
-	}
 
 	//~ Begin IOnlineIdentity Interface
 	virtual bool Login(int32 LocalUserNum, const FOnlineAccountCredentials& AccountCredentials) override;
@@ -131,6 +122,11 @@ PACKAGE_SCOPE:
 	/** Set login status. */
 	void SetLoginStatus(int32 LocalUserNum, ELoginStatus::Type NewStatus);
 
+	/**
+	 * Add a new authenticated server to the identity interface mappings for V2 session flow
+	 */
+	void AddAuthenticatedServer(int32 LocalUserNum);
+
 private:
 
 	/** Disable the default constructor, as we only want to be able to construct this interface passing in the parent subsystem */
@@ -200,4 +196,5 @@ private:
 	 * Handler for when we fail to authenticate a server to fire off delegates
 	 */
 	void OnAuthenticateAccelByteServerError(int32 ErrorCode, const FString& ErrorMessage);
+
 };

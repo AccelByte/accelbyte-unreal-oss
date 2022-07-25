@@ -7,7 +7,11 @@
 #include "OnlineIdentityInterfaceAccelByte.h"
 #include "OnlineFriendsInterfaceAccelByte.h"
 #include "OnlinePartyInterfaceAccelByte.h"
-#include "OnlineSessionInterfaceAccelByte.h"
+#if AB_USE_V2_SESSIONS
+#include "OnlineSessionInterfaceV2AccelByte.h"
+#else
+#include "OnlineSessionInterfaceV1AccelByte.h"
+#endif
 
 FOnlineAsyncTaskAccelByteConnectLobby::FOnlineAsyncTaskAccelByteConnectLobby(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InLocalUserId)
 	: FOnlineAsyncTaskAccelByte(InABInterface)
@@ -46,13 +50,15 @@ void FOnlineAsyncTaskAccelByteConnectLobby::Finalize()
 
 	if (bWasSuccessful)
 	{
-		const FOnlineIdentityAccelBytePtr IdentityInterface = FOnlineIdentityAccelByte::Get();
-		if (IdentityInterface.IsValid())
+		const FOnlineIdentityAccelBytePtr IdentityInt = StaticCastSharedPtr<FOnlineIdentityAccelByte>(Subsystem->GetIdentityInterface());
+		if (!ensure(IdentityInt.IsValid()))
 		{
-			// #NOTE (Wiwing): Overwrite connect Lobby success delegate for reconnection
-			Api::Lobby::FConnectSuccess OnLobbyReconnectionDelegate = Api::Lobby::FConnectSuccess::CreateStatic(FOnlineAsyncTaskAccelByteConnectLobby::OnLobbyReconnected, LocalUserNum);
-			ApiClient->Lobby.SetConnectSuccessDelegate(OnLobbyReconnectionDelegate);
+			return;
 		}
+
+		// #NOTE (Wiwing): Overwrite connect Lobby success delegate for reconnection
+		Api::Lobby::FConnectSuccess OnLobbyReconnectionDelegate = Api::Lobby::FConnectSuccess::CreateStatic(FOnlineAsyncTaskAccelByteConnectLobby::OnLobbyReconnected, LocalUserNum);
+		ApiClient->Lobby.SetConnectSuccessDelegate(OnLobbyReconnectionDelegate);
 	}
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
@@ -62,10 +68,10 @@ void FOnlineAsyncTaskAccelByteConnectLobby::TriggerDelegates()
 {
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
-	const FOnlineIdentityAccelBytePtr IdentityInterface = FOnlineIdentityAccelByte::Get();
-	if (IdentityInterface.IsValid())
+	const FOnlineIdentityAccelBytePtr IdentityInt = StaticCastSharedPtr<FOnlineIdentityAccelByte>(Subsystem->GetIdentityInterface());
+	if (ensure(IdentityInt.IsValid()))
 	{
-		IdentityInterface->TriggerOnConnectLobbyCompleteDelegates(LocalUserNum, bWasSuccessful, *UserId.Get(), ErrorStr);
+		IdentityInt->TriggerOnConnectLobbyCompleteDelegates(LocalUserNum, bWasSuccessful, *UserId.Get(), ErrorStr);
 	}
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
@@ -96,6 +102,13 @@ void FOnlineAsyncTaskAccelByteConnectLobby::OnLobbyConnectSuccess()
 		FriendsInterface->RegisterRealTimeLobbyDelegates(LocalUserNum);
 	}
 
+#if AB_USE_V2_SESSIONS
+	// Register delegates for the V2 session interface
+	const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(Subsystem->GetSessionInterface());
+	ensure(SessionInterface.IsValid());
+
+	SessionInterface->RegisterSessionNotificationDelegates(UserId.ToSharedRef().Get());
+#else
 	// Also register all delegates for the party interface to get notifications for party actions
 	const TSharedPtr<FOnlinePartySystemAccelByte, ESPMode::ThreadSafe> PartyInterface = StaticCastSharedPtr<FOnlinePartySystemAccelByte>(Subsystem->GetPartyInterface());
 	if (PartyInterface.IsValid())
@@ -103,12 +116,13 @@ void FOnlineAsyncTaskAccelByteConnectLobby::OnLobbyConnectSuccess()
 		PartyInterface->RegisterRealTimeLobbyDelegates(UserId.ToSharedRef());
 	}
 
-	// Also register all delegates for the party interface to get notifications for party actions
-	const TSharedPtr<FOnlineSessionAccelByte, ESPMode::ThreadSafe> SessionInterface = StaticCastSharedPtr<FOnlineSessionAccelByte>(Subsystem->GetSessionInterface());
+	// Also register all delegates for the V1 session interface to get updates for matchmaking
+	const TSharedPtr<FOnlineSessionV1AccelByte, ESPMode::ThreadSafe> SessionInterface = StaticCastSharedPtr<FOnlineSessionV1AccelByte>(Subsystem->GetSessionInterface());
 	if (SessionInterface.IsValid())
 	{
 		SessionInterface->RegisterRealTimeLobbyDelegates(LocalUserNum);
 	}
+#endif
 
 	CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sending request to get or create a default user profile for user '%s'!"), *UserId->ToDebugString());
@@ -149,9 +163,15 @@ void FOnlineAsyncTaskAccelByteConnectLobby::OnLobbyConnectionClosed(int32 Status
 {
 	UE_LOG_AB(Warning, TEXT("Lobby connection closed. Reason '%s' Code : '%d'"), *Reason, StatusCode);
 
-	const FOnlineIdentityAccelBytePtr IdentityInterface = FOnlineIdentityAccelByte::Get();
-	const FOnlinePartySystemAccelBytePtr PartyInterface = FOnlinePartySystemAccelByte::Get();
+	// #TODO This handler shouldn't be a static method in an async task. Being that it is, we have to grab an instance of
+	// our subsystem without knowing which world it is attached to. For PIE, this means that we might be grabbing the
+	// wrong instance of all interfaces, etc. This should most likely be moved to being a handler in a LobbyInterface
+	// or something similar.
+	const FOnlineSubsystemAccelByte* AccelByteSubsystem = static_cast<FOnlineSubsystemAccelByte*>(IOnlineSubsystem::Get(ACCELBYTE_SUBSYSTEM));
+	ensure(AccelByteSubsystem != nullptr);
 
+	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystem->GetIdentityInterface());
+	const FOnlinePartySystemAccelBytePtr PartyInterface = StaticCastSharedPtr<FOnlinePartySystemAccelByte>(AccelByteSubsystem->GetPartyInterface());
 	if (!IdentityInterface.IsValid() && !PartyInterface.IsValid())
 	{
 		UE_LOG_AB(Warning, TEXT("Error due to either IdentityInterface or PartyInterface is invalid"));
@@ -180,8 +200,10 @@ void FOnlineAsyncTaskAccelByteConnectLobby::OnLobbyConnectionClosed(int32 Status
 		AccelByte::FApiClientPtr ApiClient = IdentityInterface->GetApiClient(InLocalUserNum);
 		ApiClient->CredentialsRef->ForgetAll();
 
+#if !AB_USE_V2_SESSIONS
 		TSharedPtr<FUniqueNetIdAccelByteUser const> LocalUserId = StaticCastSharedPtr<FUniqueNetIdAccelByteUser const>(IdentityInterface->GetUniquePlayerId(InLocalUserNum));
 		PartyInterface->RemovePartyFromInterface(LocalUserId.ToSharedRef());
+#endif
 	}
 	IdentityInterface->Logout(InLocalUserNum, LogoutReason);
 }
@@ -190,16 +212,25 @@ void FOnlineAsyncTaskAccelByteConnectLobby::OnLobbyReconnected(int32 InLocalUser
 {
 	UE_LOG_AB(Log, TEXT("Lobby successfully reconnected."));
 
-	const FOnlineIdentityAccelBytePtr IdentityInterface = FOnlineIdentityAccelByte::Get();
-	const FOnlinePartySystemAccelBytePtr PartyInterface = FOnlinePartySystemAccelByte::Get();
+#if !AB_USE_V2_SESSIONS
+	// #TODO This handler shouldn't be a static method in an async task. Being that it is, we have to grab an instance of
+	// our subsystem without knowing which world it is attached to. For PIE, this means that we might be grabbing the
+	// wrong instance of all interfaces, etc. This should most likely be moved to being a handler in a LobbyInterface
+	// or something similar.
+	const FOnlineSubsystemAccelByte* AccelByteSubsystem = static_cast<FOnlineSubsystemAccelByte*>(IOnlineSubsystem::Get(ACCELBYTE_SUBSYSTEM));
+	ensure(AccelByteSubsystem != nullptr);
+
+	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystem->GetIdentityInterface());
+	const FOnlinePartySystemAccelBytePtr PartyInterface = StaticCastSharedPtr<FOnlinePartySystemAccelByte>(AccelByteSubsystem->GetPartyInterface());
+
 	if (IdentityInterface.IsValid() && PartyInterface.IsValid())
 	{
 		TSharedPtr<FUniqueNetIdAccelByteUser const> LocalUserId = StaticCastSharedPtr<FUniqueNetIdAccelByteUser const>(IdentityInterface->GetUniquePlayerId(InLocalUserNum));
 
 		PartyInterface->RemovePartyFromInterface(LocalUserId.ToSharedRef());
-
 		PartyInterface->RestoreParties(LocalUserId.ToSharedRef().Get(), FOnRestorePartiesComplete());
 	}
+#endif
 }
 
 void FOnlineAsyncTaskAccelByteConnectLobby::UnbindDelegates()

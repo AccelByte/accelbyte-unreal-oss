@@ -1,21 +1,22 @@
-// Copyright (c) 2021 AccelByte Inc. All Rights Reserved.
+// Copyright (c) 2022 AccelByte Inc. All Rights Reserved.
 // This is licensed software from AccelByte Inc, for limitations
 // and restrictions contact your company contract manager.
+
 #include "OnlineFriendsInterfaceAccelByte.h"
 #include "OnlineSubsystemAccelByte.h"
 #include "OnlineIdentityInterfaceAccelByte.h"
-#include "AsyncTasks/OnlineAsyncTaskAccelByteReadFriendsList.h"
-#include "AsyncTasks/OnlineAsyncTaskAccelByteSendFriendInvite.h"
-#include "AsyncTasks/OnlineAsyncTaskAccelByteAcceptFriendInvite.h"
-#include "AsyncTasks/OnlineAsyncTaskAccelByteRejectFriendInvite.h"
-#include "AsyncTasks/OnlineAsyncTaskAccelByteDeleteFriend.h"
-#include "AsyncTasks/OnlineAsyncTaskAccelByteAddFriendToList.h"
-#include "AsyncTasks/OnlineAsyncTaskAccelByteQueryBlockedPlayers.h"
-#include "AsyncTasks/OnlineAsyncTaskAccelByteBlockPlayer.h"
-#include "AsyncTasks/OnlineAsyncTaskAccelByteUnblockPlayer.h"
 #include "Core/AccelByteMultiRegistry.h"
 #include "Api/AccelByteLobbyApi.h"
-#include "AsyncTasks/OnlineAsyncTaskAccelByteGetRecentPlayer.h"
+#include "AsyncTasks/Friends/OnlineAsyncTaskAccelByteReadFriendsList.h"
+#include "AsyncTasks/Friends/OnlineAsyncTaskAccelByteSendFriendInvite.h"
+#include "AsyncTasks/Friends/OnlineAsyncTaskAccelByteAcceptFriendInvite.h"
+#include "AsyncTasks/Friends/OnlineAsyncTaskAccelByteRejectFriendInvite.h"
+#include "AsyncTasks/Friends/OnlineAsyncTaskAccelByteDeleteFriend.h"
+#include "AsyncTasks/Friends/OnlineAsyncTaskAccelByteAddFriendToList.h"
+#include "AsyncTasks/Friends/OnlineAsyncTaskAccelByteQueryBlockedPlayers.h"
+#include "AsyncTasks/Friends/OnlineAsyncTaskAccelByteBlockPlayer.h"
+#include "AsyncTasks/Friends/OnlineAsyncTaskAccelByteUnblockPlayer.h"
+#include "AsyncTasks/Friends/OnlineAsyncTaskAccelByteGetRecentPlayer.h"
 
 #define ONLINE_ERROR_NAMESPACE "FOnlineFriendAccelByte"
 
@@ -180,6 +181,7 @@ void FOnlineFriendsAccelByte::OnFriendRequestAcceptedNotificationReceived(const 
 			TSharedPtr<FOnlineFriendAccelByte> AccelByteFriend = StaticCastSharedPtr<FOnlineFriendAccelByte>(*FoundFriend);
 			AccelByteFriend->SetInviteStatus(EInviteStatus::Accepted);
 			TriggerOnInviteAcceptedDelegates(UserId.ToSharedRef().Get(), AccelByteFriend->GetUserId().Get());
+			TriggerOnFriendsChangeDelegates(LocalUserNum);
 		}
 		else
 		{

@@ -6,9 +6,9 @@
 #include "Core/AccelByteMultiRegistry.h"
 #include "OnlineIdentityInterfaceAccelByte.h"
 #include "OnlineSubsystemAccelByteInternalHelpers.h"
-#include "AsyncTasks/OnlineAsyncTaskAccelByteQueryEligibilities.h"
-#include "AsyncTasks/OnlineAsyncTaskAccelByteGetLocalizedPolicyContent.h"
-#include "AsyncTasks/OnlineAsyncTaskAccelByteAcceptAgreementPolicies.h"
+#include "AsyncTasks/Agreement/OnlineAsyncTaskAccelByteQueryEligibilities.h"
+#include "AsyncTasks/Agreement/OnlineAsyncTaskAccelByteGetLocalizedPolicyContent.h"
+#include "AsyncTasks/Agreement/OnlineAsyncTaskAccelByteAcceptAgreementPolicies.h"
 
 bool FOnlineAgreementAccelByte::QueryEligibleAgreements(int32 LocalUserNum, bool bNotAcceptedOnly, bool bAlwaysRequestToService)
 {

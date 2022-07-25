@@ -1,6 +1,7 @@
-// Copyright (c) 2021 AccelByte Inc. All Rights Reserved.
+// Copyright (c) 2022 AccelByte Inc. All Rights Reserved.
 // This is licensed software from AccelByte Inc, for limitations
 // and restrictions contact your company contract manager.
+
 #pragma once
 #include "OnlineSubsystemAccelByteTypes.h"
 
@@ -26,19 +27,9 @@ public:
 	FString DisplayName;
 
 	/**
-	 * @brief URL for the user's Avatar icon on AccelByte platform, or blank if none found
+	 * @brief Public facing ID for this user, usually used as a friend code
 	 */
-	FString AvatarUrl;
-
-	/**
-	 * @brief URL for the user's small Avatar icon on AccelByte platform, or blank if none found
-	 */
-	FString AvatarSmallUrl;
-
-	/**
-	 * @brief URL for the user's large Avatar icon on AccelByte platform, or blank if none found
-	 */
-	FString AvatarLargeUrl;
+	FString PublicId;
 
 	/**
 	 * @brief Custom attributes of the user's profile

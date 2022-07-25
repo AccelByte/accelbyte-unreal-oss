@@ -1,13 +1,14 @@
-// Copyright (c) 2021 AccelByte Inc. All Rights Reserved.
+// Copyright (c) 2022 AccelByte Inc. All Rights Reserved.
 // This is licensed software from AccelByte Inc, for limitations
 // and restrictions contact your company contract manager.
+
 #include "OnlinePresenceInterfaceAccelByte.h"
 #include "OnlineIdentityInterfaceAccelByte.h"
 #include "OnlineSubsystemAccelByte.h"
 #include "Online.h"
 #include "Core/AccelByteMultiRegistry.h"
-#include "AsyncTasks/OnlineAsyncTaskAccelByteQueryUserPresence.h"
-#include "AsyncTasks/OnlineAsyncTaskAccelByteSetUserPresence.h"
+#include "AsyncTasks/User/OnlineAsyncTaskAccelByteQueryUserPresence.h"
+#include "AsyncTasks/User/OnlineAsyncTaskAccelByteSetUserPresence.h"
 
 FOnlinePresenceAccelByte::FOnlinePresenceAccelByte(FOnlineSubsystemAccelByte* InSubsystem) 
 	: AccelByteSubsystem(InSubsystem)

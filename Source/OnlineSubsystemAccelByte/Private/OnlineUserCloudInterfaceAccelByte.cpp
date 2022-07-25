@@ -1,12 +1,12 @@
-// Copyright (c) 2021 AccelByte Inc. All Rights Reserved.
+// Copyright (c) 2022 AccelByte Inc. All Rights Reserved.
 // This is licensed software from AccelByte Inc, for limitations
 // and restrictions contact your company contract manager.
 #include "OnlineUserCloudInterfaceAccelByte.h"
 #include "OnlineSubsystemAccelByte.h"
-#include "AsyncTasks/OnlineAsyncTaskAccelByteEnumerateUserFiles.h"
-#include "AsyncTasks/OnlineAsyncTaskAccelByteReadUserFile.h"
-#include "AsyncTasks/OnlineAsyncTaskAccelByteWriteUserFile.h"
-#include "AsyncTasks/OnlineAsyncTaskAccelByteDeleteUserFile.h"
+#include "AsyncTasks/UserCloud/OnlineAsyncTaskAccelByteEnumerateUserFiles.h"
+#include "AsyncTasks/UserCloud/OnlineAsyncTaskAccelByteReadUserFile.h"
+#include "AsyncTasks/UserCloud/OnlineAsyncTaskAccelByteWriteUserFile.h"
+#include "AsyncTasks/UserCloud/OnlineAsyncTaskAccelByteDeleteUserFile.h"
 
 FOnlineUserCloudAccelByte::FOnlineUserCloudAccelByte(FOnlineSubsystemAccelByte* InSubsystem)
 	: AccelByteSubsystem(InSubsystem)

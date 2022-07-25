@@ -1,4 +1,4 @@
-// Copyright (c) 2021 AccelByte Inc. All Rights Reserved.
+// Copyright (c) 2022 AccelByte Inc. All Rights Reserved.
 // This is licensed software from AccelByte Inc, for limitations
 // and restrictions contact your company contract manager.
 
@@ -10,6 +10,7 @@
 #else
 #include "UObject/CoreOnline.h"
 #endif
+
 #if WITH_DEV_AUTOMATION_TESTS
 
 /** Index of the user that any exec test OSS calls are using for testing */

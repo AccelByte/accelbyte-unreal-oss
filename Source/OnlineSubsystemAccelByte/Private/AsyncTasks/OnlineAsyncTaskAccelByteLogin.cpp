@@ -1,4 +1,4 @@
-// Copyright (c) 2021 AccelByte Inc. All Rights Reserved.
+// Copyright (c) 2022 AccelByte Inc. All Rights Reserved.
 // This is licensed software from AccelByte Inc, for limitations
 // and restrictions contact your company contract manager.
 
@@ -11,6 +11,8 @@
 #include "Interfaces/OnlineExternalUIInterface.h"
 #include "Interfaces/OnlineIdentityInterface.h"
 #include "OnlineSubsystemAccelByteTypes.h"
+#include "OnlineSessionInterfaceV1AccelByte.h"
+#include "OnlineSessionInterfaceV2AccelByte.h"
 #include "OnlineSubsystemAccelByteUtils.h"
 
 // According to https://demo.accelbyte.io/basic/apidocs/#/UserProfile/getMyProfileInfo, 11440 is "user profile not found"
@@ -47,22 +49,28 @@ void FOnlineAsyncTaskAccelByteLogin::Initialize()
 		return;
 	}
 
-	LoginType = FAccelByteUtilities::GetUEnumValueFromString<EAccelByteLoginType>(AccountCredentials.Type);
-	
-	// Check whether our enum value search was a valid result and if not, throw an error and fail the task
-	if (LoginType == EAccelByteLoginType::None)
+	if (!AccountCredentials.Type.IsEmpty())
 	{
-		ErrorStr = TEXT("login-failed-invalid-type");
-		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to login with type '%s' as it was invalid!"), *AccountCredentials.Type);
-		CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState);
-		return;
-	}
+		// If we have something set for our credentials type, then try and parse the type and use that for login
+		const UEnum* LoginTypeEnum = StaticEnum<EAccelByteLoginType>();
+		const int64 Result = LoginTypeEnum->GetValueByNameString(AccountCredentials.Type, EGetByNameFlags::None);
 
-	// If we have specified an ID and Token but no type, then we want to force this login to be an AccelByte email and
-	// password login
-	if (AccountCredentials.Type.IsEmpty() && !AccountCredentials.Id.IsEmpty() && !AccountCredentials.Token.IsEmpty())
+		// Check whether our enum value search was a valid result and if not, throw an error and fail the task
+		if (Result == INDEX_NONE || Result >= UINT8_MAX)
+		{
+			ErrorStr = TEXT("login-failed-invalid-type");
+			AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to login with type '%s' as it was invalid!"), *AccountCredentials.Type);
+			CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState);
+			return;
+		}
+
+		LoginType = static_cast<EAccelByteLoginType>(Result);
+	}
+	else
 	{
+		// Otherwise, if we have a blank type in our credentials, just default to using AccelByte email/password
 		LoginType = EAccelByteLoginType::AccelByte;
+		UE_LOG_AB(Log, TEXT("Login type passed to Login call was blank - using AccelByte email/password type as default!"));
 	}
 
 	PerformLoginWithType(LoginType, AccountCredentials);
@@ -74,7 +82,7 @@ void FOnlineAsyncTaskAccelByteLogin::Finalize()
 {
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
-	const FOnlineIdentityAccelBytePtr IdentityInterface = FOnlineIdentityAccelByte::Get();
+	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(Subsystem->GetIdentityInterface());
 	if (IdentityInterface.IsValid())
 	{
 		IdentityInterface->SetLocalUserNumCached(LocalUserNum);
@@ -87,14 +95,16 @@ void FOnlineAsyncTaskAccelByteLogin::TriggerDelegates()
 {
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
-	const FOnlineIdentityAccelBytePtr IdentityInterface = FOnlineIdentityAccelByte::Get();
+	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(Subsystem->GetIdentityInterface());
 	if (IdentityInterface.IsValid())
 	{
 		IdentityInterface->SetLoginStatus(LocalUserNum, bWasSuccessful ? ELoginStatus::LoggedIn : ELoginStatus::NotLoggedIn);
 		if (bWasSuccessful && !ApiClient->CredentialsRef->IsComply())
 		{
-			const FOnlineAgreementAccelBytePtr AgreementInterface = FOnlineAgreementAccelByte::Get();
-			AgreementInterface->TriggerOnUserNotCompliedDelegates(LocalUserNum);
+			const FOnlineAgreementAccelBytePtr AgreementInt = Subsystem->GetAgreementInterface();
+			ensure(AgreementInt.IsValid());
+
+			AgreementInt->TriggerOnUserNotCompliedDelegates(LocalUserNum);
 		}
 		else
 		{

@@ -1,11 +1,11 @@
-// Copyright (c) 2021 AccelByte Inc. All Rights Reserved.
+// Copyright (c) 2022 AccelByte Inc. All Rights Reserved.
 // This is licensed software from AccelByte Inc, for limitations
 // and restrictions contact your company contract manager.
 #include "OnlineUserCacheAccelByte.h"
 #include "OnlineSubsystemAccelByte.h"
-#include "AsyncTasks/OnlineAsyncTaskAccelByteQueryUsersByIds.h"
 #include "Containers/UnrealString.h"
 #include "OnlineSubsystemAccelByteTypes.h"
+#include "AsyncTasks/User/OnlineAsyncTaskAccelByteQueryUsersByIds.h"
 
 bool IsInvalidAccelByteId(const FString& Id)
 {

@@ -7,8 +7,8 @@
 #else
 #include "UObject/CoreOnline.h"
 #endif
-#include <Delegates/IDelegateInstance.h>
 
+#include "Delegates/IDelegateInstance.h"
 #include "OnlineSubsystemAccelByteTypes.h"
 
 DECLARE_DELEGATE_OneParam(FOnGetDisplayNameComplete, FString /*DisplayName*/);

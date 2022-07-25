@@ -1,4 +1,4 @@
-// Copyright (c) 2021 AccelByte Inc. All Rights Reserved.
+// Copyright (c) 2022 AccelByte Inc. All Rights Reserved.
 // This is licensed software from AccelByte Inc, for limitations
 // and restrictions contact your company contract manager.
 #pragma once
@@ -338,6 +338,9 @@ PACKAGE_SCOPE:
 	/** Constructor that is invoked by the Subsystem instance to create a friend interface instance */
 	FOnlinePartySystemAccelByte(FOnlineSubsystemAccelByte* InSubsystem);
 
+	/** Initialize data relating to party interface */
+	void Init();
+
 	/**
 	 * Method used by the Identity interface to register delegates for friend notifications to this interface to get
 	 * real-time updates from the Lobby websocket.
@@ -418,14 +421,6 @@ public:
 
 	virtual ~FOnlinePartySystemAccelByte() override = default;
 
-	static FOnlinePartySystemAccelBytePtr Get() {
-		if (IOnlineSubsystem::DoesInstanceExist(ACCELBYTE_SUBSYSTEM)) {
-			const FOnlineSubsystemAccelByte* AccelByteSubsystem = static_cast<FOnlineSubsystemAccelByte*>(IOnlineSubsystem::Get(ACCELBYTE_SUBSYSTEM));
-			return AccelByteSubsystem ? StaticCastSharedPtr<FOnlinePartySystemAccelByte>(AccelByteSubsystem->GetPartyInterface()) : nullptr;
-		}
-		return nullptr;
-	}
-
 	//~ Begin IOnlinePartySystem methods
 	virtual void RestoreParties(const FUniqueNetId& LocalUserId, const FOnRestorePartiesComplete& CompletionDelegate) override;
 	virtual void RestoreInvites(const FUniqueNetId& LocalUserId, const FOnRestoreInvitesComplete& CompletionDelegate) override;
@@ -505,6 +500,12 @@ public:
 	 */
 	static const FOnlinePartyTypeId GetAccelBytePartyTypeId() { return FOnlinePartyTypeId(static_cast<uint32>(EAccelBytePartyType::PRIMARY_PARTY)); }
 
+#if ENGINE_MAJOR_VERSION >= 5
+	void RequestToJoinParty(const FUniqueNetId& LocalUserId, const FOnlinePartyTypeId PartyTypeId, const FPartyInvitationRecipient& Recipient, const FOnRequestToJoinPartyComplete& Delegate = FOnRequestToJoinPartyComplete()) override;
+	void ClearRequestToJoinParty(const FUniqueNetId& LocalUserId, const FOnlinePartyId& PartyId, const FUniqueNetId& Sender, EPartyRequestToJoinRemovedReason Reason) override;
+	bool GetPendingRequestsToJoin(const FUniqueNetId& LocalUserId, TArray<IOnlinePartyRequestToJoinInfoConstRef>& OutRequestsToJoin) const override;
+#endif
+
 protected:
 
 	/** Hidden default constructor, the constructor that takes in a subsystem instance should be used instead. */
@@ -527,6 +528,11 @@ protected:
 	bool bIsAcceptingCustomGameInvitation = false;
 
 private:
+	/**
+	 * Whether or not we are using V2 sessions currently in the OSS. If we are, then all methods in this interface will
+	 * warn and short circuit since this is for V1 parties.
+	 */
+	bool bUsingV2Sessions = false;
 
 	/** Delegate handler for when we receive a party invite */
 	void OnReceivedPartyInviteNotification(const FAccelByteModelsPartyGetInvitedNotice& Notification, TSharedRef<const FUniqueNetIdAccelByteUser> UserId);

@@ -55,22 +55,9 @@ public:
 	virtual ~FOnlineAgreementAccelByte() {};
 	
 	DEFINE_ONLINE_PLAYER_DELEGATE(MAX_LOCAL_PLAYERS, OnUserNotComplied);
-
 	DEFINE_ONLINE_PLAYER_DELEGATE_THREE_PARAM(MAX_LOCAL_PLAYERS, OnQueryEligibilitiesCompleted, bool, const TArray<FAccelByteModelsRetrieveUserEligibilitiesResponse>&, const FString&);
-
 	DEFINE_ONLINE_PLAYER_DELEGATE_THREE_PARAM(MAX_LOCAL_PLAYERS, OnGetLocalizedPolicyContentCompleted, bool, const FString&, const FString&);
-
 	DEFINE_ONLINE_PLAYER_DELEGATE_TWO_PARAM(MAX_LOCAL_PLAYERS, OnAcceptAgreementPoliciesCompleted, bool, const FString&);
-
-	static FOnlineAgreementAccelBytePtr Get()
-	{
-		if (IOnlineSubsystem::DoesInstanceExist(ACCELBYTE_SUBSYSTEM))
-		{
-			const FOnlineSubsystemAccelByte* AccelByteSubsystem = static_cast<FOnlineSubsystemAccelByte*>(IOnlineSubsystem::Get(ACCELBYTE_SUBSYSTEM));
-			return AccelByteSubsystem ? StaticCastSharedPtr<FOnlineAgreementAccelByte>(AccelByteSubsystem->GetAgreementInterface()) : nullptr;
-		}
-		return nullptr;
-	}
 
 	/**
 	 * @brief Query user's eligibilities

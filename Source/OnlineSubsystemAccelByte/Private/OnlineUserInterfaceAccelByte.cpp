@@ -1,4 +1,4 @@
-// Copyright (c) 2021 AccelByte Inc. All Rights Reserved.
+// Copyright (c) 2022 AccelByte Inc. All Rights Reserved.
 // This is licensed software from AccelByte Inc, for limitations
 // and restrictions contact your company contract manager.
 
@@ -10,11 +10,11 @@
 #include "Online.h"
 #include "Core/AccelByteError.h"
 #include "Api/AccelByteUserProfileApi.h"
-#include "AsyncTasks/OnlineAsyncTaskAccelByteQueryUserInfo.h"
-#include "AsyncTasks/OnlineAsyncTaskAccelByteQueryUserIdMapping.h"
-#include "AsyncTasks/OnlineAsyncTaskAccelByteQueryExternalIdMappings.h"
 #include "ExecTests/ExecTestQueryExternalIds.h"
 #include "ExecTests/ExecTestQueryUserIdMapping.h"
+#include "AsyncTasks/User/OnlineAsyncTaskAccelByteQueryUserInfo.h"
+#include "AsyncTasks/User/OnlineAsyncTaskAccelByteQueryUserIdMapping.h"
+#include "AsyncTasks/User/OnlineAsyncTaskAccelByteQueryExternalIdMappings.h"
 
 FOnlineUserAccelByte::FOnlineUserAccelByte(FOnlineSubsystemAccelByte* InSubsystem)
 	: AccelByteSubsystem(InSubsystem)
@@ -31,6 +31,9 @@ bool FOnlineUserAccelByte::QueryUserInfo(int32 LocalUserNum, const TArray<TShare
 	if (LocalUserNum < 0 || LocalUserNum >= MAX_LOCAL_PLAYERS)
 	{
 		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("LocalUserNum passed was out of range!"));
+		AccelByteSubsystem->ExecuteNextTick([UserInterface = SharedThis(this), LocalUserNum, UserIds]() {
+			UserInterface->TriggerOnQueryUserInfoCompleteDelegates(LocalUserNum, false, UserIds, TEXT("query-user-local-user-index-out-of-range"));
+		});
 		return false;
 	}
 	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteQueryUserInfo>(AccelByteSubsystem, LocalUserNum, UserIds, OnQueryUserInfoCompleteDelegates[LocalUserNum]);

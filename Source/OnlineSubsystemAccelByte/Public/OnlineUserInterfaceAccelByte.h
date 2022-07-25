@@ -1,4 +1,4 @@
-// Copyright (c) 2021 AccelByte Inc. All Rights Reserved.
+// Copyright (c) 2022 AccelByte Inc. All Rights Reserved.
 // This is licensed software from AccelByte Inc, for limitations
 // and restrictions contact your company contract manager.
 
@@ -9,6 +9,7 @@
 #else
 #include "UObject/CoreOnline.h"
 #endif
+
 #include "Interfaces/OnlineUserInterface.h"
 #include "OnlineSubsystemTypes.h"
 #include "OnlineSubsystemAccelByte.h"
@@ -27,14 +28,6 @@ public:
 	FOnlineUserAccelByte(FOnlineSubsystemAccelByte* InSubsystem);
 
 	virtual ~FOnlineUserAccelByte() override = default;
-
-	static FOnlineUserAccelBytePtr Get() {
-		if (IOnlineSubsystem::DoesInstanceExist(ACCELBYTE_SUBSYSTEM)) {
-			const FOnlineSubsystemAccelByte* AccelByteSubsystem = static_cast<FOnlineSubsystemAccelByte*>(IOnlineSubsystem::Get(ACCELBYTE_SUBSYSTEM));
-			return AccelByteSubsystem ? StaticCastSharedPtr<FOnlineUserAccelByte>(AccelByteSubsystem->GetUserInterface()) : nullptr;
-		}
-		return nullptr;
-	}
 
 	//~ Begin IOnlineUser overrides
 	virtual bool QueryUserInfo(int32 LocalUserNum, const TArray<TSharedRef<const FUniqueNetId>>& UserIds) override;
