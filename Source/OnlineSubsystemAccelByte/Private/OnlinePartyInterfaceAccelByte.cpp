@@ -738,7 +738,7 @@ void FOnlinePartySystemAccelByte::OnPartyLeaveNotification(const FAccelByteModel
 
 	if (IdentityInterface.IsValid())
 	{
-		TSharedPtr<const FUniqueNetId> LocalPlayerUserId = IdentityInterface->GetUniquePlayerId(IdentityInterface->GetLocalUserNumCached());
+		TSharedPtr<const FUniqueNetId> LocalPlayerUserId = IdentityInterface->GetUniquePlayerId(AccelByteSubsystem->GetLocalUserNumCached());
 		TSharedRef<const FUniqueNetIdAccelByteUser> LocalAccelByteUserId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(LocalPlayerUserId.ToSharedRef());
 
 		TSharedPtr<FOnlinePartyAccelByte> Party = GetFirstPartyForUser(LocalAccelByteUserId);

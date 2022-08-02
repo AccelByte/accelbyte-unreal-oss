@@ -22,7 +22,7 @@ void FOnlineAsyncTaskAccelByteGetLocalizedPolicyContent::Initialize()
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("UserId: %s, BasePolicyId: %s"), *UserId->ToDebugString(), *BasePolicyId);
 
-	const FOnlineAgreementAccelBytePtr AgreementInterface = FOnlineAgreementAccelByte::Get();
+	const FOnlineAgreementAccelBytePtr AgreementInterface = StaticCastSharedPtr<FOnlineAgreementAccelByte>(Subsystem->GetAgreementInterface());
 	if (AgreementInterface.IsValid())
 	{
 		FString InLocalizedPolicyContent;
@@ -128,7 +128,7 @@ void FOnlineAsyncTaskAccelByteGetLocalizedPolicyContent::TriggerDelegates()
 {
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
-	const FOnlineAgreementAccelBytePtr AgreementInterface = FOnlineAgreementAccelByte::Get();
+	const FOnlineAgreementAccelBytePtr AgreementInterface = StaticCastSharedPtr<FOnlineAgreementAccelByte>(Subsystem->GetAgreementInterface());
 	if (AgreementInterface.IsValid())
 	{
 		if (bWasSuccessful)
@@ -148,7 +148,7 @@ void FOnlineAsyncTaskAccelByteGetLocalizedPolicyContent::OnGetLocalizedPolicyCon
 {
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 
-	const FOnlineAgreementAccelBytePtr AgreementInterface = FOnlineAgreementAccelByte::Get();
+	const FOnlineAgreementAccelBytePtr AgreementInterface = StaticCastSharedPtr<FOnlineAgreementAccelByte>(Subsystem->GetAgreementInterface());
 	LocalizedPolicyContent = Result;
 
 	if (AgreementInterface.IsValid())

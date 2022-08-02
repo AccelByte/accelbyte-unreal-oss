@@ -20,7 +20,7 @@ void FOnlineAsyncTaskAccelByteGetCurrencyList::Initialize()
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Getting currency list, UserId: %s"), *UserId->ToDebugString());
 
-	const FOnlineWalletAccelBytePtr WalletInterface = FOnlineWalletAccelByte::Get();
+	const FOnlineWalletAccelBytePtr WalletInterface = StaticCastSharedPtr<FOnlineWalletAccelByte>(Subsystem->GetWalletInterface());
 	if (WalletInterface.IsValid())
 	{
 		if (WalletInterface->CurrencyCodeToCurrencyListMap.Num() == 0 || bAlwaysRequestToService)
@@ -60,7 +60,7 @@ void FOnlineAsyncTaskAccelByteGetCurrencyList::TriggerDelegates()
 {
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
-	const FOnlineWalletAccelBytePtr WalletInterface = FOnlineWalletAccelByte::Get();
+	const FOnlineWalletAccelBytePtr WalletInterface = StaticCastSharedPtr<FOnlineWalletAccelByte>(Subsystem->GetWalletInterface());
 	if (WalletInterface.IsValid())
 	{
 		if (bWasSuccessful)
@@ -80,7 +80,7 @@ void FOnlineAsyncTaskAccelByteGetCurrencyList::OnGetCurrencyListSuccess(const TA
 {
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 
-	const FOnlineWalletAccelBytePtr WalletInterface = FOnlineWalletAccelByte::Get();
+	const FOnlineWalletAccelBytePtr WalletInterface = StaticCastSharedPtr<FOnlineWalletAccelByte>(Subsystem->GetWalletInterface());
 	if (WalletInterface.IsValid())
 	{
 		for (auto Currency : Result)

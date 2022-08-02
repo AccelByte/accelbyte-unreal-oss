@@ -28,14 +28,6 @@ public:
 
 	virtual ~FOnlineUserAccelByte() override = default;
 
-	static FOnlineUserAccelBytePtr Get() {
-		if (IOnlineSubsystem::DoesInstanceExist(ACCELBYTE_SUBSYSTEM)) {
-			const FOnlineSubsystemAccelByte* AccelByteSubsystem = static_cast<FOnlineSubsystemAccelByte*>(IOnlineSubsystem::Get(ACCELBYTE_SUBSYSTEM));
-			return AccelByteSubsystem ? StaticCastSharedPtr<FOnlineUserAccelByte>(AccelByteSubsystem->GetUserInterface()) : nullptr;
-		}
-		return nullptr;
-	}
-
 	//~ Begin IOnlineUser overrides
 	virtual bool QueryUserInfo(int32 LocalUserNum, const TArray<TSharedRef<const FUniqueNetId>>& UserIds) override;
 	virtual bool GetAllUserInfo(int32 LocalUserNum, TArray<TSharedRef<class FOnlineUser>>& OutUsers) override;

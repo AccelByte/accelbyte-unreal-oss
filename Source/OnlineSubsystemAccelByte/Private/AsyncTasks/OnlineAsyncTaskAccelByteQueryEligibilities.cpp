@@ -20,7 +20,7 @@ void FOnlineAsyncTaskAccelByteQueryEligibilities::Initialize()
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("UserId: %s"), *UserId->ToDebugString());
 
-	const FOnlineAgreementAccelBytePtr AgreementInterface = FOnlineAgreementAccelByte::Get();
+	const FOnlineAgreementAccelBytePtr AgreementInterface = StaticCastSharedPtr<FOnlineAgreementAccelByte>(Subsystem->GetAgreementInterface());
 	if (AgreementInterface.IsValid())
 	{
 		TArray<TSharedRef<FAccelByteModelsRetrieveUserEligibilitiesResponse>> EligibilitiesRef;
@@ -57,7 +57,7 @@ void FOnlineAsyncTaskAccelByteQueryEligibilities::TriggerDelegates()
 {
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
-	const FOnlineAgreementAccelBytePtr AgreementInterface = FOnlineAgreementAccelByte::Get();
+	const FOnlineAgreementAccelBytePtr AgreementInterface = StaticCastSharedPtr<FOnlineAgreementAccelByte>(Subsystem->GetAgreementInterface());
 	if (AgreementInterface.IsValid())
 	{
 		if (bWasSuccessful)
@@ -86,7 +86,7 @@ void FOnlineAsyncTaskAccelByteQueryEligibilities::OnQueryEligibilitiesSuccess(co
 {
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 
-	const FOnlineAgreementAccelBytePtr AgreementInterface = FOnlineAgreementAccelByte::Get();
+	const FOnlineAgreementAccelBytePtr AgreementInterface = StaticCastSharedPtr<FOnlineAgreementAccelByte>(Subsystem->GetAgreementInterface());
 	
 	Eligibilities = Result;
 	

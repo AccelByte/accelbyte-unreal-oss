@@ -21,7 +21,7 @@ void FOnlineAsyncTaskAccelByteAcceptAgreementPolicies::Initialize()
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Accepting agreement policies, UserId: %s"), *UserId->ToDebugString());
 
-	const FOnlineAgreementAccelBytePtr AgreementInterface = FOnlineAgreementAccelByte::Get();
+	const FOnlineAgreementAccelBytePtr AgreementInterface = StaticCastSharedPtr<FOnlineAgreementAccelByte>(Subsystem->GetAgreementInterface());
 	if (AgreementInterface.IsValid())
 	{
 		TArray<TSharedRef<FAccelByteModelsRetrieveUserEligibilitiesResponse>> EligibilitiesRef;
@@ -108,14 +108,14 @@ void FOnlineAsyncTaskAccelByteAcceptAgreementPolicies::TriggerDelegates()
 {
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
-	const FOnlineAgreementAccelBytePtr AgreementInterface = FOnlineAgreementAccelByte::Get();
+	const FOnlineAgreementAccelBytePtr AgreementInterface = StaticCastSharedPtr<FOnlineAgreementAccelByte>(Subsystem->GetAgreementInterface());
 	if (AgreementInterface.IsValid())
 	{
 		if (bWasSuccessful)
 		{
 			if (bIsMandatory)
 			{
-				const FOnlineIdentityAccelBytePtr IdentityInterface = FOnlineIdentityAccelByte::Get();
+				const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(Subsystem->GetIdentityInterface());
 				if (IdentityInterface.IsValid())
 				{
 					EAccelByteLoginType Type = EAccelByteLoginType::RefreshToken;

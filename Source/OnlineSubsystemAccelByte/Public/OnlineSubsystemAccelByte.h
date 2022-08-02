@@ -8,6 +8,7 @@
 #include "OnlineSubsystemImpl.h"
 #include "OnlineSubsystemAccelByteDefines.h"
 #include "OnlineAsyncTaskManagerAccelByte.h"
+#include "Core/AccelByteApiClient.h"
 #include "Models/AccelByteUserModels.h"
 
 /** Log category for any AccelByte OSS logs, including traces */
@@ -130,6 +131,23 @@ public:
 	 */
 	FString GetNativeAppId();
 	
+	void SetLocalUserNumCached(int32 InLocalUserNum);
+	int32 GetLocalUserNumCached();
+
+	/**
+	 * Get the FApiClient that is used for a particular user by their net ID.
+	 *
+	 * Used to make raw SDK calls for user if needed.
+	 */
+	AccelByte::FApiClientPtr GetApiClient(const FUniqueNetId& UserId);
+
+	/**
+	 * Get the FApiClient that is used for a particular user by their net ID.
+	 *
+	 * Used to make raw SDK calls for user if needed.
+	 */
+	AccelByte::FApiClientPtr GetApiClient(int32 LocalUserNum);
+	
 PACKAGE_SCOPE:
 	/** Disable the default constructor, instances of the OSS are only to be managed by the factory spawned by the module */
 	FOnlineSubsystemAccelByte() = delete;
@@ -242,9 +260,16 @@ PACKAGE_SCOPE:
 	 */
 	FString GetSimplifiedNativePlatformName(const FString& PlatformName);
 
-	bool bAutoLobbyConnectAfterLoginSuccess;
+	bool IsAutoConnectLobby() const;
+	
+	bool IsMultipleLocalUsersEnabled() const;
 
 private:
+	bool bIsAutoLobbyConnectAfterLoginSuccess = false;
+	bool bIsMultipleLocalUsersEnabled = false;
+	
+	/** Used to store the currently logged in account's LocalUserNum value */
+	int32 LocalUserNumCached;
 
 	/** Shared instance of our session implementation */
 	FOnlineSessionAccelBytePtr SessionInterface;

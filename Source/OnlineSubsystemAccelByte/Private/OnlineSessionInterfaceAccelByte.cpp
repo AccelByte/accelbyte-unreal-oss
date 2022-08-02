@@ -242,16 +242,8 @@ void FOnlineSessionAccelByte::GetSessionInformation(const FString& SessionId)
 {
 	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("SessionId: %s"), *SessionId);
 
-	// Need to use a user's ID for this call, so just use the cached first user
-	FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystem->GetIdentityInterface());
-	if (!IdentityInterface.IsValid())
-	{
-		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to get session information as we could not get the identity interface for an API client!"));
-		return;
-	}
-
-	int32 LocalUserNum = IdentityInterface->GetLocalUserNumCached();
-	AccelByte::FApiClientPtr ApiClient = IdentityInterface->GetApiClient(LocalUserNum);
+	const int32 LocalUserNum = AccelByteSubsystem->GetLocalUserNumCached();
+	const AccelByte::FApiClientPtr ApiClient = AccelByteSubsystem->GetApiClient(LocalUserNum);
 	if (!ApiClient.IsValid())
 	{
 		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to get session information as we could not get an API client instance!"));
@@ -306,7 +298,7 @@ FOnlineSessionSearchResult FOnlineSessionAccelByte::ConstructSessionResultForMat
 	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystem->GetIdentityInterface());
 	if (IdentityInterface.IsValid())
 	{
-		int32 LocalUserNum = IdentityInterface->GetLocalUserNumCached();
+		int32 LocalUserNum = AccelByteSubsystem->GetLocalUserNumCached();
 
 		Session.OwningUserName = IdentityInterface->GetPlayerNickname(LocalUserNum);
 		Session.OwningUserId = IdentityInterface->GetUniquePlayerId(LocalUserNum);

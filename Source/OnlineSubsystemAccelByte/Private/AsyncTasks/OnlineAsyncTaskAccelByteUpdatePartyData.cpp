@@ -86,16 +86,6 @@ void FOnlineAsyncTaskAccelByteUpdatePartyData::Finalize()
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 
-void FOnlineAsyncTaskAccelByteUpdatePartyData::TriggerDelegates()
-{
-	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
-
-	const IOnlinePartyPtr PartyInterface = Subsystem->GetPartyInterface();
-	PartyInterface->TriggerOnPartyDataReceivedDelegates(UserId.ToSharedRef().Get(), PartyId.Get(), Namespace, PartyData.Get());
-
-	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
-}
-
 void FOnlineAsyncTaskAccelByteUpdatePartyData::OnWritePartyStorageSuccess(const FAccelByteModelsPartyDataNotif& Result)
 {
 	// There's not really much we want to do here besides complete the task, we will pass the new party data to the party

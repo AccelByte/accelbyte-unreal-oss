@@ -43,14 +43,10 @@ void FOnlinePresenceAccelByte::SetPresence(const FUniqueNetId& User, const FOnli
 
 void FOnlinePresenceAccelByte::QueryPresence(const FUniqueNetId& User, const FOnPresenceTaskCompleteDelegate& Delegate) 
 {
-	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystem->GetIdentityInterface());
-	if (IdentityInterface.IsValid())
-	{
-		int32 LocalUserNum = IdentityInterface->GetLocalUserNumCached();
+	int32 LocalUserNum = AccelByteSubsystem->GetLocalUserNumCached();
 
-		// Async task to query presence from AccelByte backend
-		AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteQueryUserPresence>(AccelByteSubsystem, User, Delegate, LocalUserNum);
-	}
+	// Async task to query presence from AccelByte backend
+	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteQueryUserPresence>(AccelByteSubsystem, User, Delegate, LocalUserNum);
 }
 
 EOnlineCachedResult::Type FOnlinePresenceAccelByte::GetCachedPresence(const FUniqueNetId& User, TSharedPtr<FOnlineUserPresence>& OutPresence) 

@@ -411,16 +411,6 @@ FString FOnlineIdentityAccelByte::GetAuthType() const
 	return TEXT("AccelByte");
 }
 
-void FOnlineIdentityAccelByte::SetLocalUserNumCached(int32 InLocalUserNum)
-{
-	LocalUserNumCached = InLocalUserNum;
-}
-
-int32 FOnlineIdentityAccelByte::GetLocalUserNumCached()
-{
-	return LocalUserNumCached;
-}
-
 bool FOnlineIdentityAccelByte::GetLocalUserNum(const FUniqueNetId& NetId, int32& OutLocalUserNum) const
 {
 	const int32* FoundLocalUserNum = NetIdToLocalUserNumMap.Find(NetId.AsShared());
@@ -434,39 +424,12 @@ bool FOnlineIdentityAccelByte::GetLocalUserNum(const FUniqueNetId& NetId, int32&
 
 AccelByte::FApiClientPtr FOnlineIdentityAccelByte::GetApiClient(const FUniqueNetId& NetId)
 {
-	if (NetId.GetType() != ACCELBYTE_SUBSYSTEM)
-	{
-		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to retrieve an API client for user '%s'!"), *NetId.ToDebugString());
-		return nullptr;
-	}
-
-	// Grab the AccelByte composite user ID passed in to make sure that we're getting the right client
-	TSharedRef<const FUniqueNetIdAccelByteUser> AccelByteCompositeId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(NetId.AsShared());
-	AccelByte::FApiClientPtr ApiClient = AccelByte::FMultiRegistry::GetApiClient(AccelByteCompositeId->GetAccelByteId());
-	if (!ApiClient.IsValid())
-	{
-		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to retrieve an API client for user '%s'!"), *AccelByteCompositeId->ToDebugString());
-		return nullptr;
-	}
-
-	return ApiClient;
+	return AccelByteSubsystem->GetApiClient(NetId);
 }
 
 AccelByte::FApiClientPtr FOnlineIdentityAccelByte::GetApiClient(int32 LocalUserNum)
 {
-	TSharedPtr<const FUniqueNetId> PlayerId = GetUniquePlayerId(LocalUserNum);
-	AccelByte::FApiClientPtr ApiClient;
-
-	if (PlayerId.IsValid())
-	{
-		ApiClient = GetApiClient(PlayerId.ToSharedRef().Get());
-	}
-	else
-	{
-		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to retrieve an API client because local user num %d is not found!"), LocalUserNum);
-	}
-
-	return ApiClient;
+	return AccelByteSubsystem->GetApiClient(LocalUserNum);
 }
 
 bool FOnlineIdentityAccelByte::AuthenticateAccelByteServer(const FOnAuthenticateServerComplete& Delegate)

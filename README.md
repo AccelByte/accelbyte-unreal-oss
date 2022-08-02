@@ -58,6 +58,8 @@ NativePlatformService=
 
 [OnlineSubsystemAccelByte]
 bEnabled=true
+; Enable/Disable multiple local users support
+bMultipleLocalUsersEnabled=false
 ; Specifies to automatically connect to Lobby WebSocket
 bAutoLobbyConnectAfterLoginSuccess=true
 ```

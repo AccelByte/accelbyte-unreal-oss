@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## 0.4.0 (2022-08-02)
+
+### ⚠ BREAKING CHANGES
+
+* **oss:** remove singleton instance for several Online Interfaces to run in PIE mode
+* **oss:** move SetLocalUserNumCached, GetLocalUserNumCached and GetApiClient from Online Identity interface to the Subsystem class 
+
+### Features
+
+* **identity:** add new config bMultipleLocalUsersEnabled to enable or disable multiple local users support
+
 ## 0.3.1 (2022-07-21)
 
 ### Bug fixes

@@ -418,14 +418,6 @@ public:
 
 	virtual ~FOnlinePartySystemAccelByte() override = default;
 
-	static FOnlinePartySystemAccelBytePtr Get() {
-		if (IOnlineSubsystem::DoesInstanceExist(ACCELBYTE_SUBSYSTEM)) {
-			const FOnlineSubsystemAccelByte* AccelByteSubsystem = static_cast<FOnlineSubsystemAccelByte*>(IOnlineSubsystem::Get(ACCELBYTE_SUBSYSTEM));
-			return AccelByteSubsystem ? StaticCastSharedPtr<FOnlinePartySystemAccelByte>(AccelByteSubsystem->GetPartyInterface()) : nullptr;
-		}
-		return nullptr;
-	}
-
 	//~ Begin IOnlinePartySystem methods
 	virtual void RestoreParties(const FUniqueNetId& LocalUserId, const FOnRestorePartiesComplete& CompletionDelegate) override;
 	virtual void RestoreInvites(const FUniqueNetId& LocalUserId, const FOnRestoreInvitesComplete& CompletionDelegate) override;

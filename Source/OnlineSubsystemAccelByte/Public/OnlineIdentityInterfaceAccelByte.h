@@ -51,15 +51,6 @@ public:
 
 	virtual ~FOnlineIdentityAccelByte() override = default;
 
-	// NOTE @damar, this might not work properly in Editor, not really sure for the reason, it always using different instance.
-	static FOnlineIdentityAccelBytePtr Get() {
-		if (IOnlineSubsystem::DoesInstanceExist(ACCELBYTE_SUBSYSTEM)) {
-			const FOnlineSubsystemAccelByte* AccelByteSubsystem = static_cast<FOnlineSubsystemAccelByte*>(IOnlineSubsystem::Get(ACCELBYTE_SUBSYSTEM));
-			return AccelByteSubsystem ? StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystem->GetIdentityInterface()) : nullptr;
-		}
-		return nullptr;
-	}
-
 	//~ Begin IOnlineIdentity Interface
 	virtual bool Login(int32 LocalUserNum, const FOnlineAccountCredentials& AccountCredentials) override;
 	virtual bool Logout(int32 LocalUserNum) override;
@@ -79,9 +70,6 @@ public:
 	virtual FPlatformUserId GetPlatformUserIdFromUniqueNetId(const FUniqueNetId& UniqueNetId) const override;
 	virtual FString GetAuthType() const override;
 	//~ End IOnlineIdentity Interface
-
-	void SetLocalUserNumCached(int32 InLocalUserNum);
-	int32 GetLocalUserNumCached();
 
 	/** Extra method to try and get a LocalUserNum from a FUniqueNetId instance */
 	bool GetLocalUserNum(const FUniqueNetId& NetId, int32& OutLocalUserNum) const;
@@ -138,9 +126,6 @@ private:
 
 	/** Parent subsystem that spawned this instance */
 	FOnlineSubsystemAccelByte* AccelByteSubsystem;
-	
-	/** Used to store the currently logged in account's LocalUserNum value */
-	int32 LocalUserNumCached;
 
 	/** Simple mapping for LocalUserNum to FUniqueNetIdAccelByte for users. Filled when users log in. */
 	TMap<int32, TSharedRef<const FUniqueNetId>> LocalUserNumToNetIdMap;

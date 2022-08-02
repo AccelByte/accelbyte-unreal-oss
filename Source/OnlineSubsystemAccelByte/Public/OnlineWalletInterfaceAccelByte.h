@@ -49,16 +49,6 @@ public:
 
 	DEFINE_ONLINE_PLAYER_DELEGATE_THREE_PARAM(MAX_LOCAL_PLAYERS, OnGetWalletTransactionsCompleted, bool /*bWasSuccessful*/, const TArray<FAccelByteModelsWalletTransactionInfo>& /*Response*/, const FString& /*Error*/);
 
-	static FOnlineWalletAccelBytePtr Get()
-	{
-		if (IOnlineSubsystem::DoesInstanceExist(ACCELBYTE_SUBSYSTEM))
-		{
-			const FOnlineSubsystemAccelByte* AccelByteSubsystem = static_cast<FOnlineSubsystemAccelByte*>(IOnlineSubsystem::Get(ACCELBYTE_SUBSYSTEM));
-			return AccelByteSubsystem ? StaticCastSharedPtr<FOnlineWalletAccelByte>(AccelByteSubsystem->GetWalletInterface()) : nullptr;
-		}
-		return nullptr;
-	}
-
 	bool GetCurrencyList(int32 LocalUserNum, bool bAlwaysRequestToService = false);
 
 	bool GetCurrencyFromCache(const FString& CurrencyCode, FAccelByteModelsCurrencyList& OutCurrency);

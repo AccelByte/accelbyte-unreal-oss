@@ -50,9 +50,9 @@ private:
 	AccelByte::Api::Lobby::FDisconnectNotif OnLobbyDisconnectedNotifDelegate;
 
 	/** Delegate handler for when a lobby connection is disconnected. */
-	static void OnLobbyConnectionClosed(int32 StatusCode, const FString& Reason, bool WasClean, int32 InLocalUserNum);
+	static void OnLobbyConnectionClosed(int32 StatusCode, const FString& Reason, bool WasClean, FOnlineSubsystemAccelByte* const Subsystem, int32 InLocalUserNum);
 
-	static void OnLobbyReconnected(int32 InLocalUserNum);
+	static void OnLobbyReconnected(FOnlineSubsystemAccelByte* const Subsystem, int32 InLocalUserNum);
 
 	void UnbindDelegates();
 
