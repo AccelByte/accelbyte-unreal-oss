@@ -152,7 +152,7 @@ void FOnlineAsyncTaskAccelByteConnectLobby::OnLobbyConnectionClosed(int32 Status
 	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(Subsystem->GetIdentityInterface());
 	const FOnlinePartySystemAccelBytePtr PartyInterface = StaticCastSharedPtr<FOnlinePartySystemAccelByte>(Subsystem->GetPartyInterface());
 
-	if (!IdentityInterface.IsValid() && !PartyInterface.IsValid())
+	if (!IdentityInterface.IsValid() || !PartyInterface.IsValid())
 	{
 		UE_LOG_AB(Warning, TEXT("Error due to either IdentityInterface or PartyInterface is invalid"));
 		return;
