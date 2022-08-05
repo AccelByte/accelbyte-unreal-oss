@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## 0.3.2 (2022-08-05)
+
+### Bug fixes
+
+* **oss:** fix racing condition when the same user is logging in and out consecutively in short period of time
+
 ## 0.3.1 (2022-07-21)
 
 ### Bug fixes
