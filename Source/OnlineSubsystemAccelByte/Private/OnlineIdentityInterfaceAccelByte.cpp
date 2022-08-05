@@ -563,6 +563,8 @@ void FOnlineIdentityAccelByte::RemoveUserFromMappings(const int32 LocalUserNum)
 	if (UniqueId != nullptr)
 	{
 		// Remove the account map first, and then remove the unique ID by local user num
+		const TSharedRef<const FUniqueNetIdAccelByteUser> AccelByteUser = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(*UniqueId);
+		AccelByte::FMultiRegistry::RemoveApiClient(AccelByteUser->GetAccelByteId());
 		NetIdToLocalUserNumMap.Remove(*UniqueId);
 		NetIdToOnlineAccountMap.Remove(*UniqueId);
 		LocalUserNumToNetIdMap.Remove(LocalUserNum);
