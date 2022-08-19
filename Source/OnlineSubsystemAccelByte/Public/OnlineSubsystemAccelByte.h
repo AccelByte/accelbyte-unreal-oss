@@ -8,6 +8,10 @@
 #include "OnlineSubsystemImpl.h"
 #include "OnlineSubsystemAccelByteDefines.h"
 #include "OnlineAsyncTaskManagerAccelByte.h"
+#include "OnlineEntitlementsInterfaceAccelByte.h"
+#include "OnlinePurchaseInterfaceAccelByte.h"
+#include "OnlineStoreInterfaceV2AccelByte.h"
+#include "Core/AccelByteApiClient.h"
 #include "Models/AccelByteUserModels.h"
 
 /** Log category for any AccelByte OSS logs, including traces */
@@ -32,6 +36,9 @@ class FOnlinePresenceAccelByte;
 class FOnlineFriendsAccelByte;
 class FOnlinePartySystemAccelByte;
 class FOnlineUserCacheAccelByte;
+class FOnlineEntitlementsAccelByte;
+class FOnlineStoreV2AccelByte;
+class FOnlinePurchaseAccelByte;
 class FOnlineAgreementAccelByte;
 class FOnlineWalletAccelByte;
 class FExecTestBase;
@@ -75,9 +82,19 @@ typedef TSharedPtr<FOnlineUserCacheAccelByte, ESPMode::ThreadSafe> FOnlineUserCa
 /** Shared pointer to the AccelByte async task manager for this OSS */
 typedef TSharedPtr<FOnlineAsyncTaskManagerAccelByte, ESPMode::ThreadSafe> FOnlineAsyncTaskManagerAccelBytePtr;
 
-/** Shared pointer to the AccelByte agreement */
+/** Shared pointer to the AccelByte entitlements */
+typedef TSharedPtr<FOnlineEntitlementsAccelByte, ESPMode::ThreadSafe> FOnlineEntitlementsAccelBytePtr;
+
+/** Shared pointer to the AccelByte store */
+typedef TSharedPtr<FOnlineStoreV2AccelByte, ESPMode::ThreadSafe> FOnlineStoreV2AccelBytePtr;
+
+/** Shared pointer to the AccelByte Purchasing */
+typedef TSharedPtr<FOnlinePurchaseAccelByte, ESPMode::ThreadSafe> FOnlinePurchaseAccelBytePtr;
+
+/** Shared pointer to the AccelByte Agreement */
 typedef TSharedPtr<FOnlineAgreementAccelByte, ESPMode::ThreadSafe> FOnlineAgreementAccelBytePtr;
 
+/** Shared pointer to the AccelByte Wallet */
 typedef TSharedPtr<FOnlineWalletAccelByte, ESPMode::ThreadSafe> FOnlineWalletAccelBytePtr;
 
 class ONLINESUBSYSTEMACCELBYTE_API FOnlineSubsystemAccelByte final : public FOnlineSubsystemImpl
@@ -104,6 +121,12 @@ public:
 	virtual IOnlineAchievementsPtr GetAchievementsInterface() const override;
 	virtual FOnlineAgreementAccelBytePtr GetAgreementInterface() const;
 	virtual FOnlineWalletAccelBytePtr GetWalletInterface() const;
+
+#if (ENGINE_MAJOR_VERSION == 4 && ENGINE_MINOR_VERSION <= 25)
+	IOnlineTurnBasedPtr GetTurnBasedInterface() const override;
+	IOnlineTournamentPtr GetTournamentInterface() const override;
+#endif
+
 	virtual bool Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar) override;
 	virtual bool IsEnabled() const override;
 	//~ End IOnlineSubsystem Interface
@@ -140,6 +163,27 @@ public:
 	 */
 	FString GetNativeAppId();
 	
+	void SetLocalUserNumCached(int32 InLocalUserNum);
+	int32 GetLocalUserNumCached();
+
+	/**
+	 * Get the FApiClient that is used for a particular user by their net ID.
+	 *
+	 * Used to make raw SDK calls for user if needed.
+	 */
+	AccelByte::FApiClientPtr GetApiClient(const FUniqueNetId& UserId);
+
+	/**
+	 * Get the FApiClient that is used for a particular user by their net ID.
+	 *
+	 * Used to make raw SDK calls for user if needed.
+	 */
+	AccelByte::FApiClientPtr GetApiClient(int32 LocalUserNum);
+
+	FString GetLanguage();
+
+	void SetLanguage(const FString & InLanguage);
+	
 PACKAGE_SCOPE:
 	/** Disable the default constructor, instances of the OSS are only to be managed by the factory spawned by the module */
 	FOnlineSubsystemAccelByte() = delete;
@@ -160,6 +204,7 @@ PACKAGE_SCOPE:
 		, PresenceInterface(nullptr)
 		, UserCache(nullptr)
 		, AsyncTaskManager(nullptr)
+		, Language(FGenericPlatformMisc::GetDefaultLanguage())
 	{
 	}
 
@@ -252,9 +297,16 @@ PACKAGE_SCOPE:
 	 */
 	FString GetSimplifiedNativePlatformName(const FString& PlatformName);
 
-	bool bAutoLobbyConnectAfterLoginSuccess;
+	bool IsAutoConnectLobby() const;
+	
+	bool IsMultipleLocalUsersEnabled() const;
 
 private:
+	bool bIsAutoLobbyConnectAfterLoginSuccess = false;
+	bool bIsMultipleLocalUsersEnabled = false;
+	
+	/** Used to store the currently logged in account's LocalUserNum value */
+	int32 LocalUserNumCached;
 
 	/** Shared instance of our session implementation */
 	FOnlineSessionAccelBytePtr SessionInterface;
@@ -288,12 +340,24 @@ private:
 
 	/** Shared instance of our agreement interface implementation */
 	FOnlineAgreementAccelBytePtr AgreementInterface;
+	
+	/** Shared instance of our entitlement interface implementation */
+	FOnlineEntitlementsAccelBytePtr EntitlementsInterface;
+
+	/** Shared instance of our storev2 interface implementation */
+	FOnlineStoreV2AccelBytePtr StoreV2Interface;
+
+	/** Shared instance of our purchase interface implementation */
+	FOnlinePurchaseAccelBytePtr PurchaseInterface;
 
 	/** Shared instance of our wallet interface implementation */
 	FOnlineWalletAccelBytePtr WalletInterface;
 
 	/** Thread spawned to run the FOnlineAsyncTaskManagerAccelBytePtr instance */
 	TUniquePtr<FRunnableThread> AsyncTaskManagerThread;
+
+	/** Language to be used on AccelByte Service Requests*/
+	FString Language;
 
 #if WITH_DEV_AUTOMATION_TESTS
 	/** An array of console command exec tests that are marked as incomplete. Completed tests will be removed on each tick. */
@@ -306,6 +370,7 @@ private:
 	void OnLoginCallback(int32 LocalUserNum, bool bWasSuccessful, const FUniqueNetId& UserId, const FString& Error);
 
 	void OnMessageNotif(const FAccelByteModelsNotificationMessage &InMessage, int32 LocalUserNum);
+
 };
 
 /** Shared pointer to the AccelByte implementation of the OnlineSubsystem */

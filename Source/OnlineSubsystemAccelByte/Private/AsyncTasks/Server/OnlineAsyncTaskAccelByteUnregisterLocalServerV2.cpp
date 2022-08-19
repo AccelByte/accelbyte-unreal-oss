@@ -5,7 +5,7 @@
 #include "OnlineAsyncTaskAccelByteUnregisterLocalServerV2.h"
 
 FOnlineAsyncTaskAccelByteUnregisterLocalServerV2::FOnlineAsyncTaskAccelByteUnregisterLocalServerV2(FOnlineSubsystemAccelByte* const InABInterface, const FOnUnregisterServerComplete& InDelegate)
-    : FOnlineAsyncTaskAccelByte(InABInterface)
+    : FOnlineAsyncTaskAccelByte(InABInterface, ASYNC_TASK_FLAG_BIT(EAccelByteAsyncTaskFlags::ServerTask))
     , Delegate(InDelegate)
 {
 }
@@ -27,7 +27,7 @@ void FOnlineAsyncTaskAccelByteUnregisterLocalServerV2::Initialize()
 		return;
 	}
 
-	AB_ASYNC_TASK_DECLARE_SDK_DELEGATES(FOnlineAsyncTaskAccelByteUnregisterLocalServerV2, UnregisterServer, FVoidHandler);
+	AB_ASYNC_TASK_DEFINE_SDK_DELEGATES(FOnlineAsyncTaskAccelByteUnregisterLocalServerV2, UnregisterServer, FVoidHandler);
 	FRegistry::ServerDSM.DeregisterLocalServerFromDSM(ServerName, OnUnregisterServerSuccessDelegate, OnUnregisterServerErrorDelegate);
 
     AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

@@ -20,6 +20,7 @@
 #include "Models/AccelByteMatchmakingModels.h"
 
 class FInternetAddr;
+class FNamedOnlineSession;
 
 class ONLINESUBSYSTEMACCELBYTE_API FOnlineSessionInfoAccelByteV2 : public FOnlineSessionInfo
 {
@@ -62,11 +63,20 @@ public:
 	/** Returns the ID of the leader of this session. Only valid for party sessions, will be nullptr otherwise. */
 	FUniqueNetIdPtr GetLeaderId() const;
 
+	/** Get ID of the peer we would be joining in a P2P session, will be blank if server type is not P2P */
+	FString GetPeerId() const;
+
+	/** Get the type of server that this session is using */
+	EAccelByteV2SessionConfigurationServerType GetServerType() const;
+
+	/** Get an array of user IDs representing players that are marked as joined to this session */
+	TArray<FUniqueNetIdRef> GetJoinedMembers() const;
+
 PACKAGE_SCOPE:
 	/**
 	 * Update the list of invited players on this session from the backend session data.
 	 */
-	void UpdateInvitedPlayers();
+	void UpdatePlayerLists();
 
 	/**
 	 * Update the stored leader ID for this session. Intended only for use with party sessions.
@@ -90,14 +100,24 @@ private:
 	TSharedRef<const FUniqueNetIdAccelByteResource> SessionId;
 
 	/**
-	 * IP address for this session
+	 * IP address for this session, if session type is not P2P
 	 */
 	TSharedPtr<FInternetAddr> HostAddress{nullptr};
+
+	/**
+	 * Remote ID of the P2P player hosting this session
+	 */
+	FString PeerId{};
 
 	/**
 	 * Team assignments for this session, only used for game session
 	 */
 	TArray<FAccelByteModelsV2GameSessionTeam> Teams{};
+
+	/**
+	 * Array of user IDs corresponding to players that are joined to this session
+	 */
+	TArray<FUniqueNetIdRef> JoinedMembers{};
 
 	/**
 	 * Players that have been invited to this session
@@ -187,6 +207,48 @@ PACKAGE_SCOPE:
 
 };
 
+#if (ENGINE_MAJOR_VERSION == 4 && ENGINE_MINOR_VERSION < 26)
+/**
+ * Delegate from UE 4.26+ that is used to signal if the members in a session change. Bringing back to 4.25 or lower
+ * for back compat reasons. Callers will have to instead register this delegate in our session interface rather than
+ * the base session interface.
+ *
+ * @param SessionName The name of the session that changed
+ * @param UniqueId The ID of the user whose join state has changed
+ * @param bJoined If true this is a join event, (if false it is a leave event)
+ */
+DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnSessionParticipantsChange, FName, const FUniqueNetId&, bool);
+typedef FOnSessionParticipantsChange::FDelegate FOnSessionParticipantsChangeDelegate;
+
+/**
+ * Structure from UE 4.26+ for matchmaking results on start matchmaking. Just a stub for back compat with lower versions.
+ */
+struct FSessionMatchmakingResults
+{
+};
+
+/**
+ * Delegate from UE 4.26+ that is used to signal that a call to start matchmaking has completed. Bringing back to 4.25
+ * or lower for back compat reasons.
+ *
+ * @param SessionName the name of the session that was passed to StartMatchmaking
+ * @param ErrorDetails extended details of the failure (if failed)
+ * @param Results results of matchmaking (if succeeded)
+ */
+DECLARE_DELEGATE_ThreeParams(FOnStartMatchmakingComplete, FName /*SessionName*/, const struct FOnlineError& /*ErrorDetails*/, const struct FSessionMatchmakingResults& /*Results*/);
+
+/**
+ * Structure for a matchmaking user from UE 4.26+. Defined here for back compat reasons with 4.25 or lower.
+ */
+struct FSessionMatchmakingUser
+{
+	/** Id of the user */
+	TSharedRef<const FUniqueNetId> UserId;
+	/** Attributes for the user */
+	FOnlineKeyValuePairs<FString, FVariantData> Attributes;
+};
+#endif
+
 /**
  * Convenience method to convert a single user ID for a start matchmaking request into a array of matchmaking users,
  * containing the single user.
@@ -199,6 +261,8 @@ DECLARE_DELEGATE_TwoParams(FOnRestoreActiveSessionsComplete, const FUniqueNetId&
 DECLARE_DELEGATE_OneParam(FOnRegisterServerComplete, bool /*bWasSuccessful*/);
 DECLARE_DELEGATE_OneParam(FOnUnregisterServerComplete, bool /*bWasSuccessful*/);
 DECLARE_DELEGATE_TwoParams(FOnLeaveSessionComplete, bool /*bWasSuccessful*/, FString /*SessionId*/);
+DECLARE_DELEGATE_OneParam(FOnRefreshSessionComplete, bool /*bWasSuccessful*/);
+DECLARE_DELEGATE_OneParam(FOnRejectSessionInviteComplete, bool /*bWasSuccessful*/);
 
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnGetServerAssociatedSessionComplete, FName /*SessionName*/);
 typedef FOnGetServerAssociatedSessionComplete::FDelegate FOnGetServerAssociatedSessionCompleteDelegate;
@@ -216,13 +280,34 @@ DECLARE_MULTICAST_DELEGATE_OneParam(FOnSessionServerUpdate, FName /*SessionName*
 typedef FOnSessionServerUpdate::FDelegate FOnSessionServerUpdateDelegate;
 
 DECLARE_MULTICAST_DELEGATE(FOnMatchmakingStarted)
-typedef  FOnMatchmakingStarted::FDelegate FOnMatchmakingStartedDelegate;
+typedef FOnMatchmakingStarted::FDelegate FOnMatchmakingStartedDelegate;
+
+DECLARE_MULTICAST_DELEGATE(FOnMatchmakingExpired)
+typedef FOnMatchmakingExpired::FDelegate FOnMatchmakingExpiredDelegate;
 //~ End custom delegates
 
 class ONLINESUBSYSTEMACCELBYTE_API FOnlineSessionV2AccelByte : public IOnlineSession, public TSharedFromThis<FOnlineSessionV2AccelByte, ESPMode::ThreadSafe>
 {
 public:
 	virtual ~FOnlineSessionV2AccelByte() {}
+
+	/**
+	 * Convenience method to get an instance of this interface from the subsystem passed in.
+	 *
+	 * @param Subsystem Subsystem instance that we wish to get this interface from
+	 * @param OutInterfaceInstance Instance of the interface that we got from the subsystem, or nullptr if not found
+	 * @returns boolean that is true if we could get an instance of the interface, false otherwise
+	 */
+	static bool GetFromSubsystem(const IOnlineSubsystem* Subsystem, TSharedPtr<FOnlineSessionV2AccelByte, ESPMode::ThreadSafe>& OutInterfaceInstance);
+
+	/**
+	 * Convenience method to get an instance of this interface from the subsystem associated with the world passed in.
+	 *
+	 * @param World World instance that we wish to get the interface from
+	 * @param OutInterfaceInstance Instance of the interface that we got from the subsystem, or nullptr if not found
+	 * @returns boolean that is true if we could get an instance of the interface, false otherwise
+	 */
+	static bool GetFromWorld(const UWorld* World, TSharedPtr<FOnlineSessionV2AccelByte, ESPMode::ThreadSafe>& OutInterfaceInstance);
 
 	// Begin IOnlineSession overrides
 	TSharedPtr<const FUniqueNetId> CreateSessionIdFromString(const FString& SessionIdStr) override;
@@ -238,7 +323,11 @@ public:
 	bool DestroySession(FName SessionName, const FOnDestroySessionCompleteDelegate& CompletionDelegate = FOnDestroySessionCompleteDelegate()) override;
 	bool IsPlayerInSession(FName SessionName, const FUniqueNetId& UniqueId) override;
 	bool StartMatchmaking(const TArray<TSharedRef<const FUniqueNetId>>& LocalPlayers, FName SessionName, const FOnlineSessionSettings& NewSessionSettings, TSharedRef<FOnlineSessionSearch>& SearchSettings) override;
+#if (ENGINE_MAJOR_VERSION == 4 && ENGINE_MINOR_VERSION <= 25)
+	bool StartMatchmaking(const TArray<FSessionMatchmakingUser>& LocalPlayers, FName SessionName, const FOnlineSessionSettings& NewSessionSettings, TSharedRef<FOnlineSessionSearch>& SearchSettings, const FOnStartMatchmakingComplete& CompletionDelegate);
+#else
 	bool StartMatchmaking(const TArray<FSessionMatchmakingUser>& LocalPlayers, FName SessionName, const FOnlineSessionSettings& NewSessionSettings, TSharedRef<FOnlineSessionSearch>& SearchSettings, const FOnStartMatchmakingComplete& CompletionDelegate) override;
+#endif
 	bool CancelMatchmaking(int32 SearchingPlayerNum, FName SessionName) override;
 	bool CancelMatchmaking(const FUniqueNetId& SearchingPlayerId, FName SessionName) override;
 	bool FindSessions(int32 SearchingPlayerNum, const TSharedRef<FOnlineSessionSearch>& SearchSettings) override;
@@ -291,7 +380,7 @@ public:
 	/**
 	 * Rejects any invite that was sent to the player passed in.
 	 */
-	bool RejectInvite(const FUniqueNetId& PlayerId, const FOnlineSessionInviteAccelByte& InvitedSession);
+	bool RejectInvite(const FUniqueNetId& PlayerId, const FOnlineSessionInviteAccelByte& InvitedSession, const FOnRejectSessionInviteComplete& Delegate= FOnRejectSessionInviteComplete());
 
 	/**
 	 * Query the backend for any session that the player is marked as active in. This is intended to be used to reconcile
@@ -392,6 +481,60 @@ public:
 	TSharedPtr<FOnlineSessionSearchAccelByte> GetCurrentMatchmakingSearchHandle() const;
 
 	/**
+	 * Get the current amount of players in the session specified.
+	 */
+	int32 GetSessionPlayerCount(const FName& SessionName) const;
+
+	/**
+	 * Get the current amount of players in the session specified.
+	 */
+	int32 GetSessionPlayerCount(const FOnlineSession& Session) const;
+
+	/**
+	 * Get the maximum amount of players allowed in the session specified.
+	 */
+	int32 GetSessionMaxPlayerCount(const FName& SessionName) const;
+
+	/**
+	 * Get the maximum amount of players allowed in the session specified.
+	 */
+	int32 GetSessionMaxPlayerCount(const FOnlineSession& Session) const;
+
+	/**
+	 * Set the maximum amount of players allowed in the session specified. After calling this, UpdateSession must be called
+	 * for this to take effect on backend.
+	 */
+	bool SetSessionMaxPlayerCount(const FName& SessionName, int32 NewMaxPlayerCount) const;
+
+	/**
+	 * Set the maximum amount of players allowed in the session specified. After calling this, UpdateSession must be called
+	 * for this to take effect on backend.
+	 */
+	bool SetSessionMaxPlayerCount(FOnlineSession* Session, int32 NewMaxPlayerCount) const;
+
+	/**
+	 * Converts an array of string or double values into a comma-separated string value. Specifically this is for the
+	 * SearchSettings of the FindSession call to make queries with In and NotIn operators.
+	 */
+	FString FormatToInNotInSearchParameter(const TArray<FString>& QueryStrings) const;
+
+	/**
+	 * Converts an array of string or double values into a comma-separated string value. Specifically this is for the
+	 * SearchSettings of the FindSession call to make queries with In and NotIn operators.
+	 */
+	FString FormatToInNotInSearchParameter(const TArray<double>& QueryNumbers) const;
+
+	/**
+	 * Method to manually refresh a session's data from the backend. Use to reconcile state between client and backend if
+	 * notifications are missed or other issues arise.
+	 * 
+	 * @param SessionName Name of the session that we want to refresh data for
+	 * @param Delegate Delegate fired when we finish refreshing data for this session
+	 * @returns true if call was made to refresh session, false otherwise
+	 */
+	bool RefreshSession(const FName& SessionName, const FOnRefreshSessionComplete& Delegate);
+
+	/**
 	 * Delegate fired when we have retrieved information on the session that our server is associated with on the backend.
 	 *
 	 * @param SessionName the name that our server session is stored under
@@ -432,6 +575,23 @@ public:
 	 * Delegate fired when matchmaking has started
 	 */
 	DEFINE_ONLINE_DELEGATE(OnMatchmakingStarted);
+
+	/**
+	 * Delegate fired when matchmaking ticket has expired.
+	 */
+	DEFINE_ONLINE_DELEGATE(OnMatchmakingExpired);
+
+#if (ENGINE_MAJOR_VERSION == 4 && ENGINE_MINOR_VERSION <= 25)
+	/**
+	 * Delegate fired when the members in a session have changed. From the UE 4.26+ base session interface delegates.
+	 * Brought back to 4.25 or lower for back compat reasons.
+	 * 
+	 * @param SessionName The name of the session that changed
+	 * @param UniqueId The ID of the user whose join state has changed
+	 * @param bJoined if true this is a join event, (if false it is a leave event)
+	 */
+	DEFINE_ONLINE_DELEGATE_THREE_PARAM(OnSessionParticipantsChange, FName, const FUniqueNetId&, bool);
+#endif
 
 PACKAGE_SCOPE:
 	/** Restored sessions stored in this interface */
@@ -486,15 +646,10 @@ PACKAGE_SCOPE:
 	EAccelByteV2SessionJoinability GetJoinabiltyFromSessionSettings(const FOnlineSessionSettings& Settings) const;
 
 	/**
-	 * Figure out the AccelByte joinability status of a party session from its settings
+	 * Get a string representation of the joinability enum passed in
 	 */
-	EAccelByteV2SessionJoinability GetPartyJoinabiltyFromSessionSettings(const FOnlineSessionSettings& Settings);
+	FString GetJoinabilityAsString(const EAccelByteV2SessionJoinability& Joinability);
 	
-	/**
-	 * Convenience method to return the string version of the joinability status
-	*/
-	FString V2SessionJoinabilityToString(const EAccelByteV2SessionJoinability& JoinType);
-
 	/**
 	 * Create a new named game session instance based on the passed in settings and backend session structure
 	 */
@@ -577,11 +732,26 @@ PACKAGE_SCOPE:
 	 * Read a JSON object into a session settings instance
 	 */
 	FOnlineSessionSettings ReadSessionSettingsFromJsonObject(const TSharedRef<FJsonObject>& Object) const;
-
+	
 	/**
-	 *	Convert a session search parameters into a json object that can be used to fill match ticket attributes
+	 * Convert a session search parameters into a json object that can be used to fill match ticket attributes
 	 */
 	TSharedRef<FJsonObject> ConvertSearchParamsToJsonObject(const FSearchParams& Params) const;
+
+	/**
+	 * Attempt to connect to a P2P session
+	 */
+	void ConnectToJoinedP2PSession(FName SessionName);
+
+	/**
+	 * Update game session data from a backend model. Used for update notifications and refreshing a game session manually.
+	 */
+	void UpdateInternalGameSession(const FName& SessionName, const FAccelByteModelsV2GameSession& UpdatedGameSession);
+
+	/**
+	 * Update party session data from a backend model. Used for update notifications and refreshing a game session manually.
+	 */
+	void UpdateInternalPartySession(const FName& SessionName, const FAccelByteModelsV2PartySession& UpdatedPartySession);
 
 private:
 	/** Parent subsystem of this interface instance */
@@ -646,6 +816,7 @@ private:
 	//~ Begin Matchmaking Notification Handlers
 	void OnMatchmakingStartedNotification(FAccelByteModelsV2StartMatchmakingNotif MatchmakingStartedNotif, int32 LocalUserNum);
 	void OnMatchmakingMatchFoundNotification(FAccelByteModelsV2MatchFoundNotif MatchFoundEvent, int32 LocalUserNum);
+	void OnMatchmakingExpiredNotification(FAccelByteModelsV2MatchmakingExpiredNotif MatchmakingExpiredNotif, int32 LocalUserNum);
 	void OnFindMatchmakingGameSessionByIdComplete(int32 LocalUserNum, bool bWasSuccessful, const FOnlineSessionSearchResult& Result);
 	//~ End Matchmaking Notification Handlers
 
@@ -658,6 +829,26 @@ private:
 	void UnregisterLeftSessionMember(FNamedOnlineSession* Session, const FAccelByteModelsV2SessionUser& LeftMember);
 
 	void OnGetServerAssociatedSessionComplete_Internal(FName SessionName);
+
+	/**
+	 * Sets up socket subsystem for a P2P connection and runs set up on the subsystem level
+	 */
+	void SetupAccelByteP2PConnection(const FUniqueNetId& LocalPlayerId);
+
+	/**
+	 * Tears down the socket subsystem for a P2P connection, called on destroy session
+	 */
+	void TeardownAccelByteP2PConnection();
+
+	/**
+	 * Delegate handler when we finish connecting to a P2P ICE session
+	 */
+	void OnICEConnectionComplete(const FString& PeerId, bool bStatus, FName SessionName);
+
+	/**
+	 * Internal method to get a named session as a const pointer.
+	 */
+	FNamedOnlineSession* GetNamedSession(FName SessionName) const;
 
 protected:
 	FNamedOnlineSession* AddNamedSession(FName SessionName, const FOnlineSessionSettings& SessionSettings) override;

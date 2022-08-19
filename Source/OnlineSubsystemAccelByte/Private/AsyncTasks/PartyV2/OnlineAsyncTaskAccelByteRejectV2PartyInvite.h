@@ -7,6 +7,7 @@
 #include "Models/AccelByteSessionModels.h"
 #include "OnlineSubsystemAccelByteTypes.h"
 #include "OnlineSessionSettings.h"
+#include "OnlineSessionInterfaceV2AccelByte.h"
 
 /**
  * Async Task to reject a party session invite
@@ -14,7 +15,7 @@
 class FOnlineAsyncTaskAccelByteRejectV2PartyInvite : public FOnlineAsyncTaskAccelByte
 {
 public:
-	FOnlineAsyncTaskAccelByteRejectV2PartyInvite(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InLocalUserId, const FOnlineSessionSearchResult& InInvitedSession);
+	FOnlineAsyncTaskAccelByteRejectV2PartyInvite(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InLocalUserId, const FOnlineSessionSearchResult& InInvitedSession, const FOnRejectSessionInviteComplete& InDelegate);
 
 	virtual void Initialize() override;
 	virtual void Finalize() override;
@@ -24,14 +25,16 @@ protected:
 
 	virtual const FString GetTaskName() const override
 	{
-		return TEXT("FOnlineAsyncTaskAccelByteRejectPartyInvite");
+		return TEXT("FOnlineAsyncTaskAccelByteRejectV2PartyInvite");
 	}
 
 private:
 	/** Session that we were invited to that we want to reject the invite of */
-	FOnlineSessionSearchResult InvitedSession;
+	FOnlineSessionSearchResult InvitedSession{};
 
-	void OnRejectPartyInviteSuccess();
-	void OnRejectPartyInviteError(int32 ErrorCode, const FString& ErrorMessage);
+	/** Delegate fired when we finish rejecting an invite */
+	FOnRejectSessionInviteComplete Delegate{};
+
+	AB_ASYNC_TASK_DECLARE_SDK_DELEGATES(RejectPartyInvite);
 };
 

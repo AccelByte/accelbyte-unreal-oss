@@ -16,11 +16,7 @@ FOnlineAsyncTaskAccelByteRegisterPlayersV1::FOnlineAsyncTaskAccelByteRegisterPla
 	, bWasInvited(InBWasInvited)
 	, bIsSpectator(InBIsSpectator)
 {
-	FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(Subsystem->GetIdentityInterface());
-	if (IdentityInterface.IsValid())
-	{
-		LocalUserNum = IdentityInterface->GetLocalUserNumCached();
-	}
+	LocalUserNum = Subsystem->GetLocalUserNumCached();
 }
 
 void FOnlineAsyncTaskAccelByteRegisterPlayersV1::Initialize()

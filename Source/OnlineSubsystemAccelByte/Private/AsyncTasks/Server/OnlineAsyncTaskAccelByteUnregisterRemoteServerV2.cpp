@@ -5,7 +5,7 @@
 #include "OnlineAsyncTaskAccelByteUnregisterRemoteServerV2.h"
 
 FOnlineAsyncTaskAccelByteUnregisterRemoteServerV2::FOnlineAsyncTaskAccelByteUnregisterRemoteServerV2(FOnlineSubsystemAccelByte* const InABInterface, const FName& InSessionName, const FOnUnregisterServerComplete& InDelegate)
-    : FOnlineAsyncTaskAccelByte(InABInterface)
+    : FOnlineAsyncTaskAccelByte(InABInterface, ASYNC_TASK_FLAG_BIT(EAccelByteAsyncTaskFlags::ServerTask))
     , SessionName(InSessionName)
     , Delegate(InDelegate)
 {
@@ -28,7 +28,7 @@ void FOnlineAsyncTaskAccelByteUnregisterRemoteServerV2::Initialize()
         return;
     }
 
-    AB_ASYNC_TASK_DECLARE_SDK_DELEGATES(FOnlineAsyncTaskAccelByteUnregisterRemoteServerV2, UnregisterServer, FVoidHandler);
+    AB_ASYNC_TASK_DEFINE_SDK_DELEGATES(FOnlineAsyncTaskAccelByteUnregisterRemoteServerV2, UnregisterServer, FVoidHandler);
 	FRegistry::ServerDSM.SendShutdownToDSM(false, Session->GetSessionIdStr(), OnUnregisterServerSuccessDelegate, OnUnregisterServerErrorDelegate);
 
     AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

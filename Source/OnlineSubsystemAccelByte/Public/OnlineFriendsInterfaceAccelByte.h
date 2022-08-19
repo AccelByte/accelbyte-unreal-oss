@@ -12,6 +12,7 @@
 
 class FOnlineSubsystemAccelByte;
 struct FAccelByteModelsSessionBrowserRecentPlayerData;
+class IOnlineSubsystem;
 
 /**
  * Implementation of a friend represented in the AccelByte backend
@@ -152,7 +153,9 @@ PACKAGE_SCOPE:
 class ONLINESUBSYSTEMACCELBYTE_API FOnlineFriendsAccelByte : public IOnlineFriends, public TSharedFromThis<FOnlineFriendsAccelByte, ESPMode::ThreadSafe>
 {
 PACKAGE_SCOPE:
-	
+	/** Map of UniqueId -> Recent Players List */
+	TUniqueNetIdMap<TArray<TSharedRef<FOnlineRecentPlayerAccelByte>>> RecentPlayersMap;
+
 	/** Constructor that is invoked by the Subsystem instance to create a friend interface instance */
 	FOnlineFriendsAccelByte(FOnlineSubsystemAccelByte* InSubsystem);
 
@@ -181,8 +184,25 @@ PACKAGE_SCOPE:
 	void RemoveBlockedPlayerFromList(int32 LocalUserNum, const TSharedRef<const FUniqueNetIdAccelByteUser>& PlayerId);
 
 public:
-
 	virtual ~FOnlineFriendsAccelByte() override = default;
+
+	/**
+	 * Convenience method to get an instance of this interface from the subsystem passed in.
+	 *
+	 * @param Subsystem Subsystem instance that we wish to get this interface from
+	 * @param OutInterfaceInstance Instance of the interface that we got from the subsystem, or nullptr if not found
+	 * @returns boolean that is true if we could get an instance of the interface, false otherwise
+	 */
+	static bool GetFromSubsystem(const IOnlineSubsystem* Subsystem, TSharedPtr<FOnlineFriendsAccelByte, ESPMode::ThreadSafe>& OutInterfaceInstance);
+
+	/**
+	 * Convenience method to get an instance of this interface from the subsystem associated with the world passed in.
+	 *
+	 * @param World World instance that we wish to get the interface from
+	 * @param OutInterfaceInstance Instance of the interface that we got from the subsystem, or nullptr if not found
+	 * @returns boolean that is true if we could get an instance of the interface, false otherwise
+	 */
+	static bool GetFromWorld(const UWorld* World, TSharedPtr<FOnlineFriendsAccelByte, ESPMode::ThreadSafe>& OutInterfaceInstance);
 
 	//~ Begin IOnlineFriends async methods
 	virtual bool ReadFriendsList(int32 LocalUserNum, const FString& ListName, const FOnReadFriendsListComplete& Delegate = FOnReadFriendsListComplete()) override;
@@ -209,10 +229,6 @@ public:
 	virtual void DumpRecentPlayers() const override;
 	virtual void DumpBlockedPlayers() const override;
 	//~ End IOnlineFriends cached methods
-
-PACKAGE_SCOPE:
-	/** Map of UniqueId -> Recent Players List */
-	TUniqueNetIdMap<TArray<TSharedRef<FOnlineRecentPlayerAccelByte>>> RecentPlayersMap;
 
 protected:
 

@@ -37,6 +37,9 @@ private:
 	/** Updated session info for the backend, used in Finalize to update session info with new data */
 	FAccelByteModelsV2GameSession UpdatedBackendSessionInfo;
 
+	/** Whether or not we are trying to connect to a P2P socket for this session */
+	bool bJoiningP2P{false};
+
 	void OnJoinGameSessionSuccess(const FAccelByteModelsV2GameSession& InUpdatedBackendSessionInfo);
 	void OnJoinGameSessionError(int32 ErrorCode, const FString& ErrorMessage);
 };

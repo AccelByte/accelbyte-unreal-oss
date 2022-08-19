@@ -52,12 +52,35 @@ void FOnlineAsyncTaskAccelByteJoinV2GameSession::Finalize()
 		SessionInfo->SetBackendSessionData(MakeShared<FAccelByteModelsV2GameSession>(UpdatedBackendSessionInfo));
 		JoinedSession->SessionState = EOnlineSessionState::Pending;
 
+		// This will seem pretty silly, but take the open slots for the session and set them to the max number of slots. This
+		// way registering and unregistering throughout the lifetime of the session will show proper counts.
+		if (UpdatedBackendSessionInfo.Configuration.Joinability == EAccelByteV2SessionJoinability::INVITE_ONLY || UpdatedBackendSessionInfo.Configuration.Joinability == EAccelByteV2SessionJoinability::CLOSED)
+		{
+			JoinedSession->NumOpenPrivateConnections = JoinedSession->SessionSettings.NumPrivateConnections;
+		}
+		else
+		{
+			JoinedSession->NumOpenPublicConnections = JoinedSession->SessionSettings.NumPublicConnections;
+		}
+
+		// Register all members marked as joined to the session
+		SessionInterface->RegisterPlayers(SessionName, SessionInfo->GetJoinedMembers(), false);
+
 		// Additionally, pass to the session interface to remove any restored session instance that we were tracking for this
 		// session, if any exists.
 		SessionInterface->RemoveRestoreSessionById(JoinedSession->GetSessionIdStr());
 
 		// Also, remove any invite we may have for this game session
 		SessionInterface->RemoveInviteById(JoinedSession->GetSessionIdStr());
+
+		// Check whether or not the session we just joined is a P2P session, if so then we need to call into the session
+		// interface to finalize joining, by connecting to the peer. Flag that we are doing this so that we don't trigger
+		// join session delegate too early.
+		if (SessionInfo->GetServerType() == EAccelByteV2SessionConfigurationServerType::P2P)
+		{
+			bJoiningP2P = true;
+			SessionInterface->ConnectToJoinedP2PSession(SessionName);
+		}
 	}
 	else
 	{
@@ -72,10 +95,13 @@ void FOnlineAsyncTaskAccelByteJoinV2GameSession::TriggerDelegates()
 {
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
-	const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(Subsystem->GetSessionInterface());
-	ensure(SessionInterface.IsValid());
+	if (!bJoiningP2P)
+	{
+		const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(Subsystem->GetSessionInterface());
+		ensure(SessionInterface.IsValid());
 
-	SessionInterface->TriggerOnJoinSessionCompleteDelegates(SessionName, JoinSessionResult);
+		SessionInterface->TriggerOnJoinSessionCompleteDelegates(SessionName, JoinSessionResult);
+	}
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }

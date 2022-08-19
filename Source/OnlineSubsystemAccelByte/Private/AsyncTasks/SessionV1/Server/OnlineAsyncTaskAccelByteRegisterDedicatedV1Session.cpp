@@ -197,6 +197,7 @@ void FOnlineAsyncTaskAccelByteRegisterDedicatedV1Session::GetRegisterIpAddress(F
 {
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 
+#if (ENGINE_MAJOR_VERSION >= 5) || (ENGINE_MAJOR_VERSION == 4 && ENGINE_MINOR_VERSION >= 26)
 	// First grab our current port, as we will always need to grab that from the World URL. Wish there was a better way to
 	// grab current port for a server, but this is the best we have...
 	UWorld* World = GEngine->GetCurrentPlayWorld();
@@ -207,6 +208,9 @@ void FOnlineAsyncTaskAccelByteRegisterDedicatedV1Session::GetRegisterIpAddress(F
 	}
 
 	Port = World->URL.Port;
+#else
+	Port = 7777; // #TODO(Maxwell): Find a better way to get currently bound port in <4.26...
+#endif
 
 	// Check if we are a local server first, if we aren't then it's as simple as using our IP environment variable and the
 	// port from the current play world URL
@@ -264,8 +268,10 @@ void FOnlineAsyncTaskAccelByteRegisterDedicatedV1Session::CreateGameSession()
 	Setting.Get(SETTING_GAMEMODE, GameMode);
 	Setting.Get(SETTING_MAPNAME, GameMapName);
 	Setting.Get(SETTING_NUMBOTS, GameNumBot);
-	Setting.Get(SETTING_MAXSPECTATORS, MaxSpectator);
 
+#if (ENGINE_MAJOR_VERSION >= 5) || (ENGINE_MAJOR_VERSION == 4 && ENGINE_MINOR_VERSION >= 26)
+	Setting.Get(SETTING_MAXSPECTATORS, MaxSpectator);
+#endif
 	
 	if(GameMode.IsEmpty())
 	{

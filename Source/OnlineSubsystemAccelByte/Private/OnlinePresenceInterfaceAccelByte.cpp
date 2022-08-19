@@ -9,10 +9,29 @@
 #include "Core/AccelByteMultiRegistry.h"
 #include "AsyncTasks/User/OnlineAsyncTaskAccelByteQueryUserPresence.h"
 #include "AsyncTasks/User/OnlineAsyncTaskAccelByteSetUserPresence.h"
+#include "OnlineSubsystemUtils.h"
 
 FOnlinePresenceAccelByte::FOnlinePresenceAccelByte(FOnlineSubsystemAccelByte* InSubsystem) 
 	: AccelByteSubsystem(InSubsystem)
 {
+}
+
+bool FOnlinePresenceAccelByte::GetFromSubsystem(const IOnlineSubsystem* Subsystem, FOnlinePresenceAccelBytePtr& OutInterfaceInstance)
+{
+	OutInterfaceInstance = StaticCastSharedPtr<FOnlinePresenceAccelByte>(Subsystem->GetPresenceInterface());
+	return OutInterfaceInstance.IsValid();
+}
+
+bool FOnlinePresenceAccelByte::GetFromWorld(const UWorld* World, FOnlinePresenceAccelBytePtr& OutInterfaceInstance)
+{
+	const IOnlineSubsystem* Subsystem = Online::GetSubsystem(World);
+	if (Subsystem == nullptr)
+	{
+		OutInterfaceInstance = nullptr;
+		return false;
+	}
+
+	return GetFromSubsystem(Subsystem, OutInterfaceInstance);
 }
 
 IOnlinePresencePtr FOnlinePresenceAccelByte::GetPlatformOnlinePresenceInterface() const 
@@ -44,14 +63,10 @@ void FOnlinePresenceAccelByte::SetPresence(const FUniqueNetId& User, const FOnli
 
 void FOnlinePresenceAccelByte::QueryPresence(const FUniqueNetId& User, const FOnPresenceTaskCompleteDelegate& Delegate) 
 {
-	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystem->GetIdentityInterface());
-	if (IdentityInterface.IsValid())
-	{
-		int32 LocalUserNum = IdentityInterface->GetLocalUserNumCached();
+	int32 LocalUserNum = AccelByteSubsystem->GetLocalUserNumCached();
 
-		// Async task to query presence from AccelByte backend
-		AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteQueryUserPresence>(AccelByteSubsystem, User, Delegate, LocalUserNum);
-	}
+	// Async task to query presence from AccelByte backend
+	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteQueryUserPresence>(AccelByteSubsystem, User, Delegate, LocalUserNum);
 }
 
 EOnlineCachedResult::Type FOnlinePresenceAccelByte::GetCachedPresence(const FUniqueNetId& User, TSharedPtr<FOnlineUserPresence>& OutPresence) 

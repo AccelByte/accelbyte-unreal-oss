@@ -8,12 +8,30 @@
 #include "OnlineSubsystemAccelBytePackage.h"
 
 class FOnlineSubsystemAccelByte;
+class IOnlineSubsystem;
 
 class ONLINESUBSYSTEMACCELBYTE_API FOnlineExternalUIAccelByte : public IOnlineExternalUI
 {
 public:
-
 	virtual ~FOnlineExternalUIAccelByte() = default;
+
+	/**
+	 * Convenience method to get an instance of this interface from the subsystem passed in.
+	 *
+	 * @param Subsystem Subsystem instance that we wish to get this interface from
+	 * @param OutInterfaceInstance Instance of the interface that we got from the subsystem, or nullptr if not found
+	 * @returns boolean that is true if we could get an instance of the interface, false otherwise
+	 */
+	static bool GetFromSubsystem(const IOnlineSubsystem* Subsystem, TSharedPtr<FOnlineExternalUIAccelByte, ESPMode::ThreadSafe>& OutInterfaceInstance);
+
+	/**
+	 * Convenience method to get an instance of this interface from the subsystem associated with the world passed in.
+	 *
+	 * @param World World instance that we wish to get the interface from
+	 * @param OutInterfaceInstance Instance of the interface that we got from the subsystem, or nullptr if not found
+	 * @returns boolean that is true if we could get an instance of the interface, false otherwise
+	 */
+	static bool GetFromWorld(const UWorld* World, TSharedPtr<FOnlineExternalUIAccelByte, ESPMode::ThreadSafe>& OutInterfaceInstance);
 
 	//~ Begin Override IOnlineExternalUI
 	virtual bool ShowLoginUI(const int ControllerIndex, bool bShowOnlineOnly, bool bShowSkipButton, const FOnLoginUIClosedDelegate& Delegate = FOnLoginUIClosedDelegate()) override;

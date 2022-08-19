@@ -37,8 +37,14 @@ void FOnlineAsyncTaskAccelByteLogin::Initialize()
 	Super::Initialize();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("LocalUserNum: %d"), LocalUserNum);
-
-	ApiClient = MakeShared<AccelByte::FApiClient, ESPMode::ThreadSafe>();
+	if (Subsystem->IsMultipleLocalUsersEnabled())
+	{
+		ApiClient = MakeShared<AccelByte::FApiClient, ESPMode::ThreadSafe>();
+	}
+	else
+	{
+		ApiClient = FMultiRegistry::GetApiClient();
+	}
 	ApiClient->CredentialsRef->SetClientCredentials(FRegistry::Settings.ClientId, FRegistry::Settings.ClientSecret);
 
 	// If all members of the AccountCredentials struct are blank, then this should be treated as a pass through login to
@@ -82,11 +88,7 @@ void FOnlineAsyncTaskAccelByteLogin::Finalize()
 {
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
-	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(Subsystem->GetIdentityInterface());
-	if (IdentityInterface.IsValid())
-	{
-		IdentityInterface->SetLocalUserNumCached(LocalUserNum);
-	}
+	Subsystem->SetLocalUserNumCached(LocalUserNum);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }

@@ -6,6 +6,7 @@
 #include "Containers/UnrealString.h"
 #include "OnlineSubsystemAccelByteTypes.h"
 #include "AsyncTasks/User/OnlineAsyncTaskAccelByteQueryUsersByIds.h"
+#include "OnlineSubsystemUtils.h"
 
 bool IsInvalidAccelByteId(const FString& Id)
 {
@@ -15,6 +16,31 @@ bool IsInvalidAccelByteId(const FString& Id)
 FOnlineUserCacheAccelByte::FOnlineUserCacheAccelByte(FOnlineSubsystemAccelByte* InSubsystem)
 	: Subsystem(InSubsystem)
 {
+}
+
+bool FOnlineUserCacheAccelByte::GetFromSubsystem(const IOnlineSubsystem* Subsystem, FOnlineUserCacheAccelBytePtr& OutInterfaceInstance)
+{
+	const FOnlineSubsystemAccelByte* ABSubsystem = static_cast<const FOnlineSubsystemAccelByte*>(Subsystem);
+	if (ABSubsystem == nullptr)
+	{
+		OutInterfaceInstance = nullptr;
+		return false;
+	}
+
+	OutInterfaceInstance = ABSubsystem->GetUserCache();
+	return OutInterfaceInstance.IsValid();
+}
+
+bool FOnlineUserCacheAccelByte::GetFromWorld(const UWorld* World, FOnlineUserCacheAccelBytePtr& OutInterfaceInstance)
+{
+	const IOnlineSubsystem* Subsystem = Online::GetSubsystem(World);
+	if (Subsystem == nullptr)
+	{
+		OutInterfaceInstance = nullptr;
+		return false;
+	}
+
+	return GetFromSubsystem(Subsystem, OutInterfaceInstance);
 }
 
 int32 FOnlineUserCacheAccelByte::Purge()

@@ -17,6 +17,7 @@
 #include "AsyncTasks/Friends/OnlineAsyncTaskAccelByteBlockPlayer.h"
 #include "AsyncTasks/Friends/OnlineAsyncTaskAccelByteUnblockPlayer.h"
 #include "AsyncTasks/Friends/OnlineAsyncTaskAccelByteGetRecentPlayer.h"
+#include "OnlineSubsystemUtils.h"
 
 #define ONLINE_ERROR_NAMESPACE "FOnlineFriendAccelByte"
 
@@ -486,6 +487,25 @@ void FOnlineFriendsAccelByte::RemoveBlockedPlayerFromList(int32 LocalUserNum, co
 		}
 	}
 	TriggerOnBlockListChangeDelegates(LocalUserNum, EFriendsLists::ToString(EFriendsLists::Default));
+}
+
+
+bool FOnlineFriendsAccelByte::GetFromSubsystem(const IOnlineSubsystem* Subsystem, FOnlineFriendsAccelBytePtr& OutInterfaceInstance)
+{
+	OutInterfaceInstance = StaticCastSharedPtr<FOnlineFriendsAccelByte>(Subsystem->GetFriendsInterface());
+	return OutInterfaceInstance.IsValid();
+}
+
+bool FOnlineFriendsAccelByte::GetFromWorld(const UWorld* World, FOnlineFriendsAccelBytePtr& OutInterfaceInstance)
+{
+	const IOnlineSubsystem* Subsystem = Online::GetSubsystem(World);
+	if (Subsystem == nullptr)
+	{
+		OutInterfaceInstance = nullptr;
+		return false;
+	}
+
+	return GetFromSubsystem(Subsystem, OutInterfaceInstance);
 }
 
 bool FOnlineFriendsAccelByte::ReadFriendsList(int32 LocalUserNum, const FString& ListName, const FOnReadFriendsListComplete& Delegate)

@@ -97,7 +97,9 @@ PRAGMA_ENABLE_DEPRECATION_WARNINGS
 }
 
 FUniqueNetIdAccelByteResource::FUniqueNetIdAccelByteResource(const FUniqueNetId& Src)
+PRAGMA_DISABLE_DEPRECATION_WARNINGS
 	: FUniqueNetIdString(Src)
+PRAGMA_ENABLE_DEPRECATION_WARNINGS
 {
 	check(GetType() == ACCELBYTE_SUBSYSTEM);
 }

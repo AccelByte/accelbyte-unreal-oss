@@ -20,7 +20,6 @@ public:
 
 	virtual void Initialize() override;
 	virtual void Finalize() override;
-	virtual void TriggerDelegates() override;
 
 protected:
 

@@ -7,9 +7,10 @@
 #include "Core/AccelByteRegistry.h"
 #include "OnlineSessionInterfaceV2AccelByte.h"
 
-FOnlineAsyncTaskAccelByteRejectV2PartyInvite::FOnlineAsyncTaskAccelByteRejectV2PartyInvite(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InLocalUserId, const FOnlineSessionSearchResult& InInvitedSession)
+FOnlineAsyncTaskAccelByteRejectV2PartyInvite::FOnlineAsyncTaskAccelByteRejectV2PartyInvite(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InLocalUserId, const FOnlineSessionSearchResult& InInvitedSession, const FOnRejectSessionInviteComplete& InDelegate)
 	: FOnlineAsyncTaskAccelByte(InABInterface)
 	, InvitedSession(InInvitedSession)
+	, Delegate(InDelegate)
 {
 	UserId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(InLocalUserId.AsShared());
 }
@@ -20,9 +21,11 @@ void FOnlineAsyncTaskAccelByteRejectV2PartyInvite::Initialize()
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("UserId: %s; PartyId: %s"), *UserId->GetAccelByteId(), *InvitedSession.GetSessionIdStr());
 
-	const FVoidHandler OnRejectPartyInviteSuccessDelegate = FVoidHandler::CreateRaw(this, &FOnlineAsyncTaskAccelByteRejectV2PartyInvite::OnRejectPartyInviteSuccess);
-	const FErrorHandler OnRejectPartyInviteErrorDelegate = FErrorHandler::CreateRaw(this, &FOnlineAsyncTaskAccelByteRejectV2PartyInvite::OnRejectPartyInviteError);
-	ApiClient->Session.RejectPartyInvite(InvitedSession.GetSessionIdStr(), OnRejectPartyInviteSuccessDelegate, OnRejectPartyInviteErrorDelegate);
+	const FString SessionId = InvitedSession.GetSessionIdStr();
+	AB_ASYNC_TASK_ENSURE(!SessionId.Equals(TEXT("InvalidSession")), "Failed to reject party session invite as the session ID provided is not valid!");
+
+	AB_ASYNC_TASK_DEFINE_SDK_DELEGATES(FOnlineAsyncTaskAccelByteRejectV2PartyInvite, RejectPartyInvite, FVoidHandler);
+	ApiClient->Session.RejectPartyInvite(SessionId, OnRejectPartyInviteSuccessDelegate, OnRejectPartyInviteErrorDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
@@ -46,6 +49,8 @@ void FOnlineAsyncTaskAccelByteRejectV2PartyInvite::TriggerDelegates()
 {
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
+	Delegate.ExecuteIfBound(bWasSuccessful);
+
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 
@@ -60,6 +65,5 @@ void FOnlineAsyncTaskAccelByteRejectV2PartyInvite::OnRejectPartyInviteSuccess()
 
 void FOnlineAsyncTaskAccelByteRejectV2PartyInvite::OnRejectPartyInviteError(int32 ErrorCode, const FString& ErrorMessage)
 {
-	UE_LOG_AB(Warning, TEXT("Failed to reject party session invite as the request failed on the backend! Error code: %d; Error message: %s"), ErrorCode, *ErrorMessage);
-	CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
+	AB_ASYNC_TASK_REQUEST_FAILED("Failed to reject party session invite as the request failed on the backend!", ErrorCode, ErrorMessage);
 }

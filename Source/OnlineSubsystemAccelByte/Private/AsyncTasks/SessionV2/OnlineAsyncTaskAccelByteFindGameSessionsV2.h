@@ -18,7 +18,7 @@ public:
 
 	FOnlineAsyncTaskAccelByteFindGameSessionsV2(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InSearchingPlayerId, const TSharedRef<FOnlineSessionSearch>& InSearchSettings);
 
-    virtual void Initialize() override;
+	virtual void Initialize() override;
 	virtual void Tick() override;
 	virtual void Finalize() override;
 	virtual void TriggerDelegates() override;
@@ -50,6 +50,10 @@ private:
 
 	void OnQueryGameSessionsSuccess(const FAccelByteModelsV2PaginatedGameSessionQueryResult& Result, int32 LastOffset);
 	void OnQueryGameSessionsError(int32 ErrorCode, const FString& ErrorMessage);
+
+	bool AddVariantDataToQuery(FAccelByteModelsV2GameSessionQuery& Query, const FString& FieldName, const EAccelByteV2SessionQueryComparisonOp& Comparison, const FVariantData& Data) const;
+	bool AddInNotInParameterToQuery(FAccelByteModelsV2GameSessionQuery& Query, const FString& FieldName, const EAccelByteV2SessionQueryComparisonOp& Operation, const FVariantData& Data) const;
+
 
 };
 

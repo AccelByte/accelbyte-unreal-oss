@@ -61,6 +61,34 @@ FOnlineSessionV1AccelByte::FOnlineSessionV1AccelByte(FOnlineSubsystemAccelByte* 
 {
 }
 
+bool FOnlineSessionV1AccelByte::GetFromSubsystem(const IOnlineSubsystem* Subsystem, FOnlineSessionV1AccelBytePtr& OutInterfaceInstance)
+{
+#if !AB_USE_V2_SESSIONS
+	OutInterfaceInstance = StaticCastSharedPtr<FOnlineSessionV1AccelByte>(Subsystem->GetSessionInterface());
+	return OutInterfaceInstance.IsValid();
+#else
+	OutInterfaceInstance = nullptr;
+	return false;
+#endif
+}
+
+bool FOnlineSessionV1AccelByte::GetFromWorld(const UWorld* World, FOnlineSessionV1AccelBytePtr& OutInterfaceInstance)
+{
+#if !AB_USE_V2_SESSIONS
+	const IOnlineSubsystem* Subsystem = Online::GetSubsystem(World);
+	if (Subsystem == nullptr)
+	{
+		OutInterfaceInstance = nullptr;
+		return false;
+	}
+
+	return GetFromSubsystem(Subsystem, OutInterfaceInstance);
+#else
+	OutInterfaceInstance = nullptr;
+	return false;
+#endif
+}
+
 void FOnlineSessionV1AccelByte::OnMatchmakingNotificationReceived(const FAccelByteModelsMatchmakingNotice& Notification)
 {
 	const UEnum* StatusEnum = StaticEnum<EAccelByteMatchmakingStatus>();
@@ -242,16 +270,8 @@ void FOnlineSessionV1AccelByte::GetSessionInformation(const FString& SessionId)
 {
 	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("SessionId: %s"), *SessionId);
 
-	// Need to use a user's ID for this call, so just use the cached first user
-	FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystem->GetIdentityInterface());
-	if (!IdentityInterface.IsValid())
-	{
-		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to get session information as we could not get the identity interface for an API client!"));
-		return;
-	}
-
-	int32 LocalUserNum = IdentityInterface->GetLocalUserNumCached();
-	AccelByte::FApiClientPtr ApiClient = IdentityInterface->GetApiClient(LocalUserNum);
+	const int32 LocalUserNum = AccelByteSubsystem->GetLocalUserNumCached();
+	const AccelByte::FApiClientPtr ApiClient = AccelByteSubsystem->GetApiClient(LocalUserNum);
 	if (!ApiClient.IsValid())
 	{
 		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to get session information as we could not get an API client instance!"));
@@ -306,7 +326,7 @@ FOnlineSessionSearchResult FOnlineSessionV1AccelByte::ConstructSessionResultForM
 	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystem->GetIdentityInterface());
 	if (IdentityInterface.IsValid())
 	{
-		int32 LocalUserNum = IdentityInterface->GetLocalUserNumCached();
+		int32 LocalUserNum = AccelByteSubsystem->GetLocalUserNumCached();
 
 		Session.OwningUserName = IdentityInterface->GetPlayerNickname(LocalUserNum);
 		Session.OwningUserId = IdentityInterface->GetUniquePlayerId(LocalUserNum);
@@ -1026,7 +1046,7 @@ bool FOnlineSessionV1AccelByte::JoinSession(int32 PlayerNum, FName SessionName, 
 			FAccelByteNetworkUtilitiesModule::Get().RequestConnect(SessionInfo->GetRemoteId());
 
 			// Register a delegate that will notify that we've joined the session once we've connected to the WebRTC socket
-			const TDelegate<void(const FString&, bool)> OnICEConnectionCompleteDelegate = TDelegate<void(const FString&, bool)>::CreateRaw(this, &FOnlineSessionV1AccelByte::OnRTCConnected, SessionName);
+			const FAccelByteNetworkUtilitiesModule::OnICEConnected OnICEConnectionCompleteDelegate = FAccelByteNetworkUtilitiesModule::OnICEConnected::CreateRaw(this, &FOnlineSessionV1AccelByte::OnRTCConnected, SessionName);
 			FAccelByteNetworkUtilitiesModule::Get().RegisterICEConnectedDelegate(OnICEConnectionCompleteDelegate);
 			return true;
 		}

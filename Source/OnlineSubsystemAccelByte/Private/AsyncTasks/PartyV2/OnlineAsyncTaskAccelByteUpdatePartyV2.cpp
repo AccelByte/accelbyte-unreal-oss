@@ -17,7 +17,7 @@ FOnlineAsyncTaskAccelByteUpdatePartyV2::FOnlineAsyncTaskAccelByteUpdatePartyV2(F
 	FNamedOnlineSession* Session = SessionInterface->GetNamedSession(SessionName);
 	ensure(Session != nullptr);
 
-	UserId = StaticCastSharedPtr<const FUniqueNetIdAccelByteUser>(Session->OwningUserId);
+	UserId = StaticCastSharedPtr<const FUniqueNetIdAccelByteUser>(Session->LocalOwnerId);
 }
 
 void FOnlineAsyncTaskAccelByteUpdatePartyV2::Initialize()
@@ -50,10 +50,28 @@ void FOnlineAsyncTaskAccelByteUpdatePartyV2::Initialize()
 	FString JoinTypeString;
 	NewSessionSettings.Get(SETTING_SESSION_JOIN_TYPE, JoinTypeString);
 	
-	EAccelByteV2SessionJoinability JoinType = SessionInterface->GetJoinabilityFromString(JoinTypeString);
-	if (JoinType != PartySessionBackendData->JoinType)
+	const EAccelByteV2SessionJoinability JoinType = SessionInterface->GetJoinabilityFromString(JoinTypeString);
+	if (JoinType != PartySessionBackendData->Configuration.Joinability && JoinType != EAccelByteV2SessionJoinability::EMPTY)
 	{
-		UpdateRequest.JoinType = JoinType;
+		UpdateRequest.Joinability = JoinType;
+	}
+
+	int32 MinimumPlayers = 0;
+	if (NewSessionSettings.Get(SETTING_SESSION_MINIMUM_PLAYERS, MinimumPlayers) && MinimumPlayers != PartySessionBackendData->Configuration.MinPlayers)
+	{
+		UpdateRequest.MinPlayers = MinimumPlayers;
+	}
+
+	int32 InactiveTimeout = 0;
+	if (NewSessionSettings.Get(SETTING_SESSION_INACTIVE_TIMEOUT, InactiveTimeout) && MinimumPlayers != PartySessionBackendData->Configuration.InactiveTimeout)
+	{
+		UpdateRequest.InactiveTimeout = InactiveTimeout;
+	}
+
+	int32 InviteTimeout = 0;
+	if (NewSessionSettings.Get(SETTING_SESSION_INVITE_TIMEOUT, InviteTimeout) && InviteTimeout > MinimumPlayers != PartySessionBackendData->Configuration.InviteTimeout)
+	{
+		UpdateRequest.InviteTimeout = InviteTimeout;
 	}
 
 	const THandler<FAccelByteModelsV2PartySession> OnUpdatePartySessionSuccessDelegate = THandler<FAccelByteModelsV2PartySession>::CreateRaw(this, &FOnlineAsyncTaskAccelByteUpdatePartyV2::OnUpdatePartySessionSuccess);
@@ -72,13 +90,7 @@ void FOnlineAsyncTaskAccelByteUpdatePartyV2::Finalize()
 		const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(Subsystem->GetSessionInterface());
 		ensure(SessionInterface.IsValid());
 
-		FNamedOnlineSession* Session = SessionInterface->GetNamedSession(SessionName);
-		ensure(Session != nullptr);
-
-		TSharedPtr<FOnlineSessionInfoAccelByteV2> SessionInfo = StaticCastSharedPtr<FOnlineSessionInfoAccelByteV2>(Session->SessionInfo);
-		ensure(SessionInfo.IsValid());
-
-		SessionInfo->SetBackendSessionData(MakeShared<FAccelByteModelsV2PartySession>(NewSessionData));
+		SessionInterface->UpdateInternalPartySession(SessionName, NewSessionData);
 	}
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

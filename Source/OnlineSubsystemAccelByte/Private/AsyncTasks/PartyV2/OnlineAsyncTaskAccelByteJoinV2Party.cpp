@@ -53,28 +53,14 @@ void FOnlineAsyncTaskAccelByteJoinV2Party::Finalize()
 		SessionInfo->SetBackendSessionData(MakeShared<FAccelByteModelsV2PartySession>(PartyInfo));
 		JoinedSession->SessionState = EOnlineSessionState::Pending;
 
-		// Since we've joined the party, we want to go through each member that is marked as joined to the party and make calls
-		// to register them to the session
-		TArray<FUniqueNetIdRef> PlayersToRegister{};
-		for (const FAccelByteModelsV2SessionUser& Member : PartyInfo.Members)
-		{
-			if (Member.Status != EAccelByteV2SessionMemberStatus::JOINED)
-			{
-				continue;
-			}
+		// This will seem pretty silly, but take the open slots for the session and set them to the max number of slots. This
+		// way registering and unregistering throughout the lifetime of the session will show proper counts.
+		//
+		// #NOTE Party sessions only have closed slots, so just use the private connection count
+		JoinedSession->NumOpenPrivateConnections = JoinedSession->SessionSettings.NumPrivateConnections;
 
-			FAccelByteUniqueIdComposite CompositeId;
-			CompositeId.Id = Member.ID;
-			CompositeId.PlatformType = Member.PlatformID;
-			CompositeId.PlatformId = Member.PlatformUserID;
-
-			TSharedPtr<const FUniqueNetIdAccelByteUser> PlayerId = FUniqueNetIdAccelByteUser::Create(CompositeId);
-			ensure(PlayerId.IsValid());
-
-			PlayersToRegister.Emplace(PlayerId.ToSharedRef());
-		}
-
-		SessionInterface->RegisterPlayers(SessionName, PlayersToRegister, false);
+		// Register all members marked as joined to the session
+		SessionInterface->RegisterPlayers(SessionName, SessionInfo->GetJoinedMembers(), false);
 
 		// Additionally, pass to the session interface to remove any restored session instance that we were tracking for this
 		// session, if any exists.

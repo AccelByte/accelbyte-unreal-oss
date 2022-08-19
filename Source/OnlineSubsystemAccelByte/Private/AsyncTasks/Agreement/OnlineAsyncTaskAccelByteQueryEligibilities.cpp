@@ -86,8 +86,7 @@ void FOnlineAsyncTaskAccelByteQueryEligibilities::OnQueryEligibilitiesSuccess(co
 {
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 
-	const FOnlineAgreementAccelBytePtr AgreementInterface = Subsystem->GetAgreementInterface();
-	
+	const FOnlineAgreementAccelBytePtr AgreementInterface = Subsystem->GetAgreementInterface();	
 	Eligibilities = Result;
 	
 	if (AgreementInterface.IsValid())

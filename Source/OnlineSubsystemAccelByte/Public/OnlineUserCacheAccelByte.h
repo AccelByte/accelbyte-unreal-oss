@@ -6,6 +6,7 @@
 #include "OnlineSubsystemAccelByteTypes.h"
 
 class FOnlineSubsystemAccelByte;
+class IOnlineSubsystem;
 
 /**
  * @brief Plain data structure representing an AccelByte user that is cached locally.
@@ -87,6 +88,23 @@ DECLARE_DELEGATE_TwoParams(FOnQueryUsersComplete, bool /*bIsSuccessful*/, TArray
 class ONLINESUBSYSTEMACCELBYTE_API FOnlineUserCacheAccelByte
 {
 public:
+	/**
+	 * Convenience method to get an instance of this interface from the subsystem passed in.
+	 *
+	 * @param Subsystem Subsystem instance that we wish to get this interface from
+	 * @param OutInterfaceInstance Instance of the interface that we got from the subsystem, or nullptr if not found
+	 * @returns boolean that is true if we could get an instance of the interface, false otherwise
+	 */
+	static bool GetFromSubsystem(const IOnlineSubsystem* Subsystem, TSharedPtr<FOnlineUserCacheAccelByte, ESPMode::ThreadSafe>& OutInterfaceInstance);
+
+	/**
+	 * Convenience method to get an instance of this interface from the subsystem associated with the world passed in.
+	 *
+	 * @param World World instance that we wish to get the interface from
+	 * @param OutInterfaceInstance Instance of the interface that we got from the subsystem, or nullptr if not found
+	 * @returns boolean that is true if we could get an instance of the interface, false otherwise
+	 */
+	static bool GetFromWorld(const UWorld* World, TSharedPtr<FOnlineUserCacheAccelByte, ESPMode::ThreadSafe>& OutInterfaceInstance);
 
 	/**
 	 * Queries all of the IDs listed in the array on the AccelByte backend for user information, including platform IDs.

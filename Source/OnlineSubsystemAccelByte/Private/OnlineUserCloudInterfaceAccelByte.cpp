@@ -7,10 +7,29 @@
 #include "AsyncTasks/UserCloud/OnlineAsyncTaskAccelByteReadUserFile.h"
 #include "AsyncTasks/UserCloud/OnlineAsyncTaskAccelByteWriteUserFile.h"
 #include "AsyncTasks/UserCloud/OnlineAsyncTaskAccelByteDeleteUserFile.h"
+#include "OnlineSubsystemUtils.h"
 
 FOnlineUserCloudAccelByte::FOnlineUserCloudAccelByte(FOnlineSubsystemAccelByte* InSubsystem)
 	: AccelByteSubsystem(InSubsystem)
 {
+}
+
+bool FOnlineUserCloudAccelByte::GetFromSubsystem(const IOnlineSubsystem* Subsystem, FOnlineUserCloudAccelBytePtr& OutInterfaceInstance)
+{
+	OutInterfaceInstance = StaticCastSharedPtr<FOnlineUserCloudAccelByte>(Subsystem->GetUserCloudInterface());
+	return OutInterfaceInstance.IsValid();
+}
+
+bool FOnlineUserCloudAccelByte::GetFromWorld(const UWorld* World, FOnlineUserCloudAccelBytePtr& OutInterfaceInstance)
+{
+	const IOnlineSubsystem* Subsystem = Online::GetSubsystem(World);
+	if (Subsystem == nullptr)
+	{
+		OutInterfaceInstance = nullptr;
+		return false;
+	}
+
+	return GetFromSubsystem(Subsystem, OutInterfaceInstance);
 }
 
 void FOnlineUserCloudAccelByte::EnumerateUserFiles(const FUniqueNetId& UserId)

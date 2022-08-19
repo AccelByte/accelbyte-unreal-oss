@@ -23,14 +23,18 @@ void FOnlineAsyncTaskAccelByteSendV2PartyInvite::Initialize()
 
 	// First, check if the player is currently in a party session of given SessionName, if we're not, then we shouldn't do this
 	const TSharedPtr<FOnlineSessionV2AccelByte, ESPMode::ThreadSafe> SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(Subsystem->GetSessionInterface());
-	ensure(SessionInterface.IsValid());
+	check(SessionInterface.IsValid());
 
 	FNamedOnlineSession* Session = SessionInterface->GetNamedSession(SessionName);
-	ensure(Session != nullptr);
+	if (!ensure(Session != nullptr))
+	{
+		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Could not send invite to party session named '%s' to user with ID '%s' as the session does not exist locally!"), *SessionName.ToString(), *RecipientId->ToDebugString());
+		CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState);
+		return;
+	}
 
 	// Now, once we know we are in this party, we want to send a request to invite the player to the party
-	const FVoidHandler OnSendPartyInviteSuccessDelegate = FVoidHandler::CreateRaw(this, &FOnlineAsyncTaskAccelByteSendV2PartyInvite::OnSendPartyInviteSuccess);
-	const FErrorHandler OnSendPartyInviteErrorDelegate = FErrorHandler::CreateRaw(this, &FOnlineAsyncTaskAccelByteSendV2PartyInvite::OnSendPartyInviteError);
+	AB_ASYNC_TASK_DEFINE_SDK_DELEGATES(FOnlineAsyncTaskAccelByteSendV2PartyInvite, SendPartyInvite, FVoidHandler);
 	ApiClient->Session.SendPartyInvite(Session->GetSessionIdStr(), RecipientId->GetAccelByteId(), OnSendPartyInviteSuccessDelegate, OnSendPartyInviteErrorDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

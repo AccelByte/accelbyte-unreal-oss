@@ -7,7 +7,7 @@
 #include "OnlineSessionInterfaceV1AccelByte.h"
 
 FOnlineAsyncTaskAccelByteBanUser::FOnlineAsyncTaskAccelByteBanUser(FOnlineSubsystemAccelByte* const InABInterface, const FString &InUserId, int32 InActionId, const FString &InMessage)
-	: FOnlineAsyncTaskAccelByte(InABInterface, true)
+	: FOnlineAsyncTaskAccelByte(InABInterface, ASYNC_TASK_FLAG_BIT(EAccelByteAsyncTaskFlags::ServerTask))
 	, UserId(InUserId)
 	, ActionId(InActionId)
 	, Message(InMessage)
@@ -17,6 +17,7 @@ FOnlineAsyncTaskAccelByteBanUser::FOnlineAsyncTaskAccelByteBanUser(FOnlineSubsys
 void FOnlineAsyncTaskAccelByteBanUser::Initialize()
 {
 	Super::Initialize();
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("UserID: %s"), *UserId);
 
 	const IOnlineSessionPtr SessionInterface = Subsystem->GetSessionInterface();
@@ -28,9 +29,10 @@ void FOnlineAsyncTaskAccelByteBanUser::Initialize()
 	TArray<FString> UserIds;
 	UserIds.Add(UserId);
 
-	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
-
+	// #NOTE (Maxwell): Why is this just failing the task? No longer implemented?
 	CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
+
+	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 
 void FOnlineAsyncTaskAccelByteBanUser::Finalize()

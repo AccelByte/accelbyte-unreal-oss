@@ -4,9 +4,10 @@
 
 #include "OnlineAsyncTaskAccelByteGetServerAssociatedSessionV2.h"
 #include "OnlineSessionInterfaceV2AccelByte.h"
+#include "GameServerApi/AccelByteServerSessionApi.h"
 
 FOnlineAsyncTaskAccelByteGetServerAssociatedSessionV2::FOnlineAsyncTaskAccelByteGetServerAssociatedSessionV2(FOnlineSubsystemAccelByte* const InABInterface, const FName& InSessionName)
-    : FOnlineAsyncTaskAccelByte(InABInterface)
+    : FOnlineAsyncTaskAccelByte(InABInterface, ASYNC_TASK_FLAG_BIT(EAccelByteAsyncTaskFlags::ServerTask))
     , SessionName(InSessionName)
 {
 }
@@ -105,7 +106,7 @@ void FOnlineAsyncTaskAccelByteGetServerAssociatedSessionV2::RequestSessionData()
 
 	const THandler<FAccelByteModelsV2GameSession> OnGetGameSessionDetailsSuccessDelegate = THandler<FAccelByteModelsV2GameSession>::CreateRaw(this, &FOnlineAsyncTaskAccelByteGetServerAssociatedSessionV2::OnGetGameSessionDetailsSuccess);
 	const FErrorHandler OnGetGameSessionDetailsErrorDelegate = FErrorHandler::CreateRaw(this, &FOnlineAsyncTaskAccelByteGetServerAssociatedSessionV2::OnGetGameSessionDetailsError);
-    FRegistry::Session.GetGameSessionDetails(SessionId, OnGetGameSessionDetailsSuccessDelegate, OnGetGameSessionDetailsErrorDelegate);
+    FRegistry::ServerSession.GetGameSessionDetails(SessionId, OnGetGameSessionDetailsSuccessDelegate, OnGetGameSessionDetailsErrorDelegate);
 
     AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }

@@ -24,7 +24,7 @@ void FOnlineAsyncTaskAccelByteGetWalletTransactions::Initialize()
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Getting wallet transaction list, UserId: %s"), *UserId->ToDebugString());
 
-	const FOnlineWalletAccelBytePtr WalletInterface = FOnlineWalletAccelByte::Get();
+	const FOnlineWalletAccelBytePtr WalletInterface = StaticCastSharedPtr<FOnlineWalletAccelByte>(Subsystem->GetWalletInterface());
 	if (WalletInterface.IsValid())
 	{
 		// Create delegates for successfully as well as unsuccessfully requesting to get wallet transaction list
@@ -48,7 +48,7 @@ void FOnlineAsyncTaskAccelByteGetWalletTransactions::TriggerDelegates()
 {
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
-	const FOnlineWalletAccelBytePtr WalletInterface = FOnlineWalletAccelByte::Get();
+	const FOnlineWalletAccelBytePtr WalletInterface = StaticCastSharedPtr<FOnlineWalletAccelByte>(Subsystem->GetWalletInterface());
 	if (WalletInterface.IsValid())
 	{
 		WalletInterface->TriggerOnGetWalletTransactionsCompletedDelegates(LocalUserNum, bWasSuccessful, CachedWalletTransactions, ErrorStr);
@@ -61,7 +61,7 @@ void FOnlineAsyncTaskAccelByteGetWalletTransactions::OnGetWalletTransactionsSucc
 {
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 
-	const FOnlineWalletAccelBytePtr WalletInterface = FOnlineWalletAccelByte::Get();
+	const FOnlineWalletAccelBytePtr WalletInterface = StaticCastSharedPtr<FOnlineWalletAccelByte>(Subsystem->GetWalletInterface());
 	if (WalletInterface.IsValid())
 	{
 		CachedWalletTransactions = Result.Data;

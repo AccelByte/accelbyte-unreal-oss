@@ -27,12 +27,6 @@ void FOnlineAsyncTaskAccelByteCreateGameSessionV2::Initialize()
 
 	FAccelByteModelsV2GameSessionCreateRequest CreateRequest;
 	
-	FString JoinTypeString;
-	NewSessionSettings.Get(SETTING_SESSION_JOIN_TYPE, JoinTypeString);
-	CreateRequest.JoinType = SessionInterface->GetJoinabilityFromString(JoinTypeString);
-
-	NewSessionSettings.Get(SETTING_SESSION_MATCHPOOL, CreateRequest.MatchPool);
-
 	// Try and get session template name for creating the session, and error out if not found
 	if (!NewSessionSettings.Get(SETTING_SESSION_TEMPLATE_NAME, CreateRequest.ConfigurationName))
 	{
@@ -41,32 +35,73 @@ void FOnlineAsyncTaskAccelByteCreateGameSessionV2::Initialize()
 		return;
 	}
 
+	FString JoinTypeString;
+	if (NewSessionSettings.Get(SETTING_SESSION_JOIN_TYPE, JoinTypeString) && !JoinTypeString.IsEmpty())
+	{
+		const EAccelByteV2SessionJoinability Joinability = SessionInterface->GetJoinabilityFromString(JoinTypeString);
+		if (Joinability != EAccelByteV2SessionJoinability::EMPTY)
+		{
+			CreateRequest.Joinability = Joinability;
+		}
+	}
+
+	FString MatchPool{};
+	if (NewSessionSettings.Get(SETTING_SESSION_MATCHPOOL, MatchPool) && !MatchPool.IsEmpty())
+	{
+		CreateRequest.MatchPool = MatchPool;
+	}
+
 	// If this is a dedicated session, then we need to request a DS as well
 	if (NewSessionSettings.bIsDedicated)
 	{
-		FAccelByteModelsV2DSRequest DsRequest;
-		NewSessionSettings.Get(SETTING_GAMESESSION_CLIENTVERSION, DsRequest.ClientVersion);
-		NewSessionSettings.Get(SETTING_GAMESESSION_DEPLOYMENT, DsRequest.Deployment);
-		NewSessionSettings.Get(SETTING_GAMEMODE, DsRequest.GameMode);
+		FString ClientVersion{};
+		if (NewSessionSettings.Get(SETTING_GAMESESSION_CLIENTVERSION, ClientVersion) && !ClientVersion.IsEmpty())
+		{
+			CreateRequest.ClientVersion = ClientVersion;
+		}
+
+		FString Deployment;
+		if (NewSessionSettings.Get(SETTING_GAMESESSION_DEPLOYMENT, Deployment) && !Deployment.IsEmpty())
+		{
+			CreateRequest.Deployment = Deployment;
+		}
+
+		FString ServerName{};
+		if (NewSessionSettings.Get(SETTING_GAMESESSION_SERVERNAME, ServerName) && !ServerName.IsEmpty())
+		{
+			CreateRequest.ServerName = ServerName;
+		}
 
 		FString RegionListString{};
 		NewSessionSettings.Get(SETTING_GAMESESSION_REQUESTEDREGIONS, RegionListString);
-		DsRequest.RequestedRegions = SessionInterface->ConvertToRegionArray(RegionListString);
-
-		CreateRequest.DSRequest = DsRequest;
+		CreateRequest.RequestedRegions = SessionInterface->ConvertToRegionArray(RegionListString);
 	}
 
-	// Add the number of public and private connections for this session to the session settings key/value set so that it
-	// serializes to the session
-	NewSessionSettings.Set(SETTING_SESSION_NUM_PUBLIC_CONNECTIONS, NewSessionSettings.NumPublicConnections);
-	NewSessionSettings.Set(SETTING_SESSION_NUM_PRIVATE_CONNECTIONS, NewSessionSettings.NumPrivateConnections);
+	int32 MinimumPlayers = 0;
+	if (NewSessionSettings.Get(SETTING_SESSION_MINIMUM_PLAYERS, MinimumPlayers) && MinimumPlayers > 0)
+	{
+		CreateRequest.MinPlayers = MinimumPlayers;
+	}
+
+	int32 MaximumPlayers = SessionInterface->GetSessionMaxPlayerCount(SessionName);
+	if (MinimumPlayers > 0)
+	{
+		CreateRequest.MaxPlayers = MaximumPlayers;
+	}
+
+	int32 InactiveTimeout = 0;
+	if (NewSessionSettings.Get(SETTING_SESSION_INACTIVE_TIMEOUT, InactiveTimeout) && InactiveTimeout > 0)
+	{
+		CreateRequest.InactiveTimeout = InactiveTimeout;
+	}
+
+	int32 InviteTimeout = 0;
+	if (NewSessionSettings.Get(SETTING_SESSION_INVITE_TIMEOUT, InviteTimeout) && InviteTimeout > 0)
+	{
+		CreateRequest.InviteTimeout = InviteTimeout;
+	}
 
 	CreateRequest.Attributes.JsonObject = SessionInterface->ConvertSessionSettingsToJsonObject(NewSessionSettings);
-
-	// Add the hosting player to a team object in the request
-	FAccelByteModelsV2GameSessionTeam NewTeam;
-	NewTeam.UserIDs.Add(UserId->GetAccelByteId());
-	CreateRequest.Teams.Add(NewTeam);
 
 	const THandler<FAccelByteModelsV2GameSession> OnCreateGameSessionSuccessDelegate = THandler<FAccelByteModelsV2GameSession>::CreateRaw(this, &FOnlineAsyncTaskAccelByteCreateGameSessionV2::OnCreateGameSessionSuccess);
 	const FErrorHandler OnCreateGameSessionErrorDelegate = FErrorHandler::CreateRaw(this, &FOnlineAsyncTaskAccelByteCreateGameSessionV2::OnCreateGameSessionError);

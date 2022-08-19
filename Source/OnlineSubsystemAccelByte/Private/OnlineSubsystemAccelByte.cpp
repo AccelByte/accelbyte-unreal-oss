@@ -53,6 +53,9 @@ bool FOnlineSubsystemAccelByte::Init()
 	UserCache = MakeShared<FOnlineUserCacheAccelByte, ESPMode::ThreadSafe>(this);
 	AgreementInterface = MakeShared<FOnlineAgreementAccelByte, ESPMode::ThreadSafe>(this);
 	WalletInterface = MakeShared<FOnlineWalletAccelByte, ESPMode::ThreadSafe>(this);
+	EntitlementsInterface = MakeShared<FOnlineEntitlementsAccelByte, ESPMode::ThreadSafe>(this);
+	StoreV2Interface = MakeShared<FOnlineStoreV2AccelByte, ESPMode::ThreadSafe>(this);
+	PurchaseInterface = MakeShared<FOnlinePurchaseAccelByte, ESPMode::ThreadSafe>(this);
 	
 	// Create an async task manager and a thread for the manager to process tasks on
 	AsyncTaskManager = MakeShared<FOnlineAsyncTaskManagerAccelByte, ESPMode::ThreadSafe>(this);
@@ -65,8 +68,9 @@ bool FOnlineSubsystemAccelByte::Init()
 		IdentityInterface->AddOnLoginCompleteDelegate_Handle(i, FOnLoginCompleteDelegate::CreateRaw(this, &FOnlineSubsystemAccelByte::OnLoginCallback));
 	}
 
-	GConfig->GetBool(TEXT("OnlineSubsystemAccelByte"), TEXT("bAutoLobbyConnectAfterLoginSuccess"), bAutoLobbyConnectAfterLoginSuccess, GEngineIni);
-
+	GConfig->GetBool(TEXT("OnlineSubsystemAccelByte"), TEXT("bAutoLobbyConnectAfterLoginSuccess"), bIsAutoLobbyConnectAfterLoginSuccess, GEngineIni);
+	GConfig->GetBool(TEXT("OnlineSubsystemAccelByte"), TEXT("bMultipleLocalUsersEnabled"), bIsMultipleLocalUsersEnabled, GEngineIni);
+	
 	return true;
 }
 
@@ -102,7 +106,9 @@ bool FOnlineSubsystemAccelByte::Shutdown()
 	UserCache.Reset();
 	AgreementInterface.Reset();
 	WalletInterface.Reset();
-
+	EntitlementsInterface.Reset();
+	StoreV2Interface.Reset();
+	PurchaseInterface.Reset();
 	return true;
 }
 
@@ -159,12 +165,12 @@ IOnlinePresencePtr FOnlineSubsystemAccelByte::GetPresenceInterface() const
 
 IOnlineStoreV2Ptr FOnlineSubsystemAccelByte::GetStoreV2Interface() const 
 {
-	return nullptr;
+	return StoreV2Interface;
 }
 
 IOnlinePurchasePtr FOnlineSubsystemAccelByte::GetPurchaseInterface() const 
 {
-	return nullptr;
+	return PurchaseInterface;
 }
 
 FOnlineUserCacheAccelBytePtr FOnlineSubsystemAccelByte::GetUserCache() const
@@ -174,7 +180,7 @@ FOnlineUserCacheAccelBytePtr FOnlineSubsystemAccelByte::GetUserCache() const
 
 IOnlineEntitlementsPtr FOnlineSubsystemAccelByte::GetEntitlementsInterface() const
 {
-	return nullptr;
+	return EntitlementsInterface;
 }
 
 IOnlineAchievementsPtr FOnlineSubsystemAccelByte::GetAchievementsInterface() const
@@ -190,6 +196,28 @@ FOnlineAgreementAccelBytePtr FOnlineSubsystemAccelByte::GetAgreementInterface() 
 FOnlineWalletAccelBytePtr FOnlineSubsystemAccelByte::GetWalletInterface() const
 {
 	return WalletInterface;
+}
+
+#if (ENGINE_MAJOR_VERSION == 4 && ENGINE_MINOR_VERSION <= 25)
+IOnlineTurnBasedPtr FOnlineSubsystemAccelByte::GetTurnBasedInterface() const
+{
+	return nullptr;
+}
+
+IOnlineTournamentPtr FOnlineSubsystemAccelByte::GetTournamentInterface() const
+{
+	return nullptr;
+}
+#endif
+
+bool FOnlineSubsystemAccelByte::IsAutoConnectLobby() const
+{
+	return bIsAutoLobbyConnectAfterLoginSuccess;
+}
+
+bool FOnlineSubsystemAccelByte::IsMultipleLocalUsersEnabled() const
+{
+	return bIsMultipleLocalUsersEnabled;
 }
 
 bool FOnlineSubsystemAccelByte::Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar)
@@ -393,21 +421,17 @@ void FOnlineSubsystemAccelByte::OnLoginCallback(int32 LocalUserNum, bool bWasSuc
 	{
 		return;
 	}
-	
-	// Grab the API client instance for this player that just logged in
-	const AccelByte::FApiClientPtr ApiClient = IdentityInterface->GetApiClient(LocalUserNum);
+
+	// listen to Message Notif Lobby
+	const AccelByte::FApiClientPtr ApiClient = IdentityInterface->GetApiClient(LocalUserNum); 
+	const AccelByte::Api::Lobby::FMessageNotif Delegate = AccelByte::Api::Lobby::FMessageNotif::CreateRaw(this, &FOnlineSubsystemAccelByte::OnMessageNotif, LocalUserNum);		
 	if (!ApiClient.IsValid())
 	{
 		return;
 	}
-
-	// Register the player to the freeform message notification handler
-	const AccelByte::Api::Lobby::FMessageNotif Delegate = AccelByte::Api::Lobby::FMessageNotif::CreateRaw(this, &FOnlineSubsystemAccelByte::OnMessageNotif, LocalUserNum);		
+	
 	ApiClient->Lobby.SetMessageNotifDelegate(Delegate);
-
-	// If we are configured to auto connect to lobby after login, and our identity interface is valid, then try to connect
-	// to lobby
-	if (bAutoLobbyConnectAfterLoginSuccess && ensure(IdentityInterface.IsValid()))
+	if (bIsAutoLobbyConnectAfterLoginSuccess && IdentityInterface.IsValid())
 	{
 		IdentityInterface->ConnectAccelByteLobby(LocalUserNum);
 	}
@@ -416,6 +440,63 @@ void FOnlineSubsystemAccelByte::OnLoginCallback(int32 LocalUserNum, bool bWasSuc
 void FOnlineSubsystemAccelByte::OnMessageNotif(const FAccelByteModelsNotificationMessage& InMessage, int32 LocalUserNum)
 {
 	UE_LOG_AB(Verbose, TEXT("Got freeform notification from backend at %s!\nTopic: %s\nPayload: %s"), *InMessage.SentAt.ToString(), *InMessage.Topic, *InMessage.Payload);
+}
+
+void FOnlineSubsystemAccelByte::SetLocalUserNumCached(int32 InLocalUserNum)
+{
+	LocalUserNumCached = InLocalUserNum;
+}
+
+int32 FOnlineSubsystemAccelByte::GetLocalUserNumCached()
+{
+	return LocalUserNumCached;
+}
+
+AccelByte::FApiClientPtr FOnlineSubsystemAccelByte::GetApiClient(const FUniqueNetId& NetId)
+{
+	if (NetId.GetType() != ACCELBYTE_SUBSYSTEM)
+	{
+		UE_LOG_AB(Warning, TEXT("Failed to retrieve an API client for user '%s'!"), *NetId.ToDebugString());
+		return nullptr;
+	}
+
+	// Grab the AccelByte composite user ID passed in to make sure that we're getting the right client
+	TSharedRef<const FUniqueNetIdAccelByteUser> AccelByteCompositeId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(NetId.AsShared());
+	AccelByte::FApiClientPtr ApiClient = AccelByte::FMultiRegistry::GetApiClient(AccelByteCompositeId->GetAccelByteId());
+	if (!ApiClient.IsValid())
+	{
+		UE_LOG_AB(Warning, TEXT("Failed to retrieve an API client for user '%s'!"), *AccelByteCompositeId->ToDebugString());
+		return nullptr;
+	}
+
+	return ApiClient;
+}
+
+AccelByte::FApiClientPtr FOnlineSubsystemAccelByte::GetApiClient(int32 LocalUserNum)
+{
+	TSharedPtr<const FUniqueNetId> PlayerId = IdentityInterface->GetUniquePlayerId(LocalUserNum);
+	AccelByte::FApiClientPtr ApiClient;
+
+	if (PlayerId.IsValid())
+	{
+		ApiClient = GetApiClient(PlayerId.ToSharedRef().Get());
+	}
+	else
+	{
+		UE_LOG_AB(Warning, TEXT("Failed to retrieve an API client because local user num %d is not found!"), LocalUserNum);
+	}
+
+	return ApiClient;
+}
+
+FString FOnlineSubsystemAccelByte::GetLanguage()
+{
+	return Language;
+}
+
+void FOnlineSubsystemAccelByte::SetLanguage(const FString& InLanguage)
+{
+	Language = InLanguage;
 }
 
 #undef LOCTEXT_NAMESPACE

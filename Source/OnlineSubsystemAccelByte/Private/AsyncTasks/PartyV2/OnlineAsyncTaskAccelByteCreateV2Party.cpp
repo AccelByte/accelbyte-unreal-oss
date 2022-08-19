@@ -7,6 +7,7 @@
 #include "Interfaces/OnlineIdentityInterface.h"
 #include "Core/AccelByteRegistry.h"
 #include "OnlineSubsystemSessionSettings.h"
+#include "OnlineSubsystemAccelByteSessionSettings.h"
 
 FOnlineAsyncTaskAccelByteCreateV2Party::FOnlineAsyncTaskAccelByteCreateV2Party(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InLocalUserId, const FName& InSessionName, const FOnlineSessionSettings& InNewSessionSettings)
 	: FOnlineAsyncTaskAccelByte(InABInterface)
@@ -26,10 +27,10 @@ void FOnlineAsyncTaskAccelByteCreateV2Party::Initialize()
 	const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(Subsystem->GetSessionInterface());
 	ensure(SessionInterface.IsValid());
 
-	JoinType = SessionInterface->GetPartyJoinabiltyFromSessionSettings(NewSessionSettings);
-	if (JoinType == EAccelByteV2SessionJoinability::EMPTY)
+	JoinType = SessionInterface->GetJoinabiltyFromSessionSettings(NewSessionSettings);
+	if (JoinType != EAccelByteV2SessionJoinability::EMPTY && JoinType != EAccelByteV2SessionJoinability::INVITE_ONLY)
 	{
-		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Inbound JoinType of value EMPTY. Please check the that a SETTING_SESSION_JOIN_TYPE was set in SessionSettings. Abandoning call to create party session!"));
+		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Attempted to override party joinability with a value other than INVITE_ONLY! Parties are only able to be invite only!"));
 		CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState);
 		return;
 	}
@@ -105,7 +106,11 @@ void FOnlineAsyncTaskAccelByteCreateV2Party::OnGetMyPartiesSuccess(const FAccelB
 
 	// Since we are not in a party, we can send the request to create one
 	FAccelByteModelsV2PartyCreateRequest CreatePartyRequest;
-	CreatePartyRequest.JoinType = JoinType;
+
+	if (JoinType != EAccelByteV2SessionJoinability::EMPTY)
+	{
+		CreatePartyRequest.Joinability = JoinType;
+	}
 		
 	// Ensure that we have a session template set and associate it with the create party request
 	if (!NewSessionSettings.Get(SETTING_SESSION_TEMPLATE_NAME, CreatePartyRequest.ConfigurationName))
@@ -119,6 +124,30 @@ void FOnlineAsyncTaskAccelByteCreateV2Party::OnGetMyPartiesSuccess(const FAccelB
 	ensure(SessionInterface.IsValid());
 
 	CreatePartyRequest.Attributes.JsonObject = SessionInterface->ConvertSessionSettingsToJsonObject(NewSessionSettings);
+
+	int32 MinimumPlayers = 0;
+	if (NewSessionSettings.Get(SETTING_SESSION_MINIMUM_PLAYERS, MinimumPlayers) && MinimumPlayers > 0)
+	{
+		CreatePartyRequest.MinPlayers = MinimumPlayers;
+	}
+
+	int32 MaximumPlayers = SessionInterface->GetSessionMaxPlayerCount(SessionName);
+	if (MinimumPlayers > 0)
+	{
+		CreatePartyRequest.MaxPlayers = MaximumPlayers;
+	}
+
+	int32 InactiveTimeout = 0;
+	if (NewSessionSettings.Get(SETTING_SESSION_INACTIVE_TIMEOUT, InactiveTimeout) && InactiveTimeout > 0)
+	{
+		CreatePartyRequest.InactiveTimeout = InactiveTimeout;
+	}
+
+	int32 InviteTimeout = 0;
+	if (NewSessionSettings.Get(SETTING_SESSION_INVITE_TIMEOUT, InviteTimeout) && InviteTimeout > 0)
+	{
+		CreatePartyRequest.InviteTimeout = InviteTimeout;
+	}
 
 	// Add self to members array
 	FAccelByteModelsV2SessionUser SelfMember;

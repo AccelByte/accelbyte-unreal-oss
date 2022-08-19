@@ -5,7 +5,7 @@
 #include "OnlineAsyncTaskAccelByteRegisterLocalServerV2.h"
 
 FOnlineAsyncTaskAccelByteRegisterLocalServerV2::FOnlineAsyncTaskAccelByteRegisterLocalServerV2(FOnlineSubsystemAccelByte* const InABInterface, const FOnRegisterServerComplete& InDelegate)
-    : FOnlineAsyncTaskAccelByte(InABInterface)
+    : FOnlineAsyncTaskAccelByte(InABInterface, ASYNC_TASK_FLAG_BIT(EAccelByteAsyncTaskFlags::ServerTask))
     , Delegate(InDelegate)
 {
 }
@@ -43,7 +43,7 @@ void FOnlineAsyncTaskAccelByteRegisterLocalServerV2::Initialize()
 		return;
 	}
 
-	AB_ASYNC_TASK_DECLARE_SDK_DELEGATES(FOnlineAsyncTaskAccelByteRegisterLocalServerV2, RegisterServer, FVoidHandler);
+	AB_ASYNC_TASK_DEFINE_SDK_DELEGATES(FOnlineAsyncTaskAccelByteRegisterLocalServerV2, RegisterServer, FVoidHandler);
 	FRegistry::ServerDSM.RegisterLocalServerToDSM(LocalServerIp, RegisterPort, ServerName, OnRegisterServerSuccessDelegate, OnRegisterServerErrorDelegate);
 
     AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

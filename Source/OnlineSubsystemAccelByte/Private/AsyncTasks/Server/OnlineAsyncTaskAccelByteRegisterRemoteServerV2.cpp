@@ -6,7 +6,7 @@
 #include "Engine/Engine.h"
 
 FOnlineAsyncTaskAccelByteRegisterRemoteServerV2::FOnlineAsyncTaskAccelByteRegisterRemoteServerV2(FOnlineSubsystemAccelByte* const InABInterface, const FName& InSessionName, const FOnRegisterServerComplete& InDelegate)
-    : FOnlineAsyncTaskAccelByte(InABInterface)
+    : FOnlineAsyncTaskAccelByte(InABInterface, ASYNC_TASK_FLAG_BIT(EAccelByteAsyncTaskFlags::ServerTask))
     , SessionName(InSessionName)
     , Delegate(InDelegate)
 {
@@ -29,7 +29,7 @@ void FOnlineAsyncTaskAccelByteRegisterRemoteServerV2::Initialize()
         return;
     }
 
-	AB_ASYNC_TASK_DECLARE_SDK_DELEGATES(FOnlineAsyncTaskAccelByteRegisterRemoteServerV2, RegisterServer, FVoidHandler);
+	AB_ASYNC_TASK_DEFINE_SDK_DELEGATES(FOnlineAsyncTaskAccelByteRegisterRemoteServerV2, RegisterServer, FVoidHandler);
 	FRegistry::ServerDSM.RegisterServerToDSM(RegisterPort, OnRegisterServerSuccessDelegate, OnRegisterServerErrorDelegate);
 
     AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

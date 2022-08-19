@@ -123,7 +123,7 @@ void FOnlineAsyncTaskAccelByteStartV2Matchmaking::CreateMatchTicket()
 	
 	// PartySessionId will be filled with "InvalidSession" if user party session not valid.
 	// we want to create a matchmaking ticket without session Id in that case.
-	Optionals.SessionId = PartySessionId.Equals("InvalidSession") ? "" : PartySessionId;
+	Optionals.SessionId = PartySessionId.Equals(TEXT("InvalidSession"), ESearchCase::IgnoreCase) ? TEXT("") : PartySessionId;
 
 	const TSharedRef<FJsonObject> AttributesJsonObject = SessionInterface->ConvertSearchParamsToJsonObject(SearchHandle->QuerySettings.SearchParams);
 	Optionals.Attributes.JsonObject = AttributesJsonObject;

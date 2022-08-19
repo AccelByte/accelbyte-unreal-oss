@@ -13,11 +13,7 @@ FOnlineAsyncTaskAccelByteUnregisterPlayersV1::FOnlineAsyncTaskAccelByteUnregiste
 	, SessionName(InSessionName)
 	, Players(InPlayers)
 {
-	FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(Subsystem->GetIdentityInterface());
-	if (IdentityInterface.IsValid())
-	{
-		LocalUserNum = IdentityInterface->GetLocalUserNumCached();
-	}
+	LocalUserNum = Subsystem->GetLocalUserNumCached();
 }
 
 void FOnlineAsyncTaskAccelByteUnregisterPlayersV1::Initialize()

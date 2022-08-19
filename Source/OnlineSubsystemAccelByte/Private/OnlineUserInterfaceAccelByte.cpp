@@ -15,12 +15,31 @@
 #include "AsyncTasks/User/OnlineAsyncTaskAccelByteQueryUserInfo.h"
 #include "AsyncTasks/User/OnlineAsyncTaskAccelByteQueryUserIdMapping.h"
 #include "AsyncTasks/User/OnlineAsyncTaskAccelByteQueryExternalIdMappings.h"
+#include "OnlineSubsystemUtils.h"
 
 FOnlineUserAccelByte::FOnlineUserAccelByte(FOnlineSubsystemAccelByte* InSubsystem)
 	: AccelByteSubsystem(InSubsystem)
 {
 	// this should never trigger, as the subsystem itself has to instantiate this, but just in case...
 	check(AccelByteSubsystem != nullptr);
+}
+
+bool FOnlineUserAccelByte::GetFromWorld(const UWorld* World, FOnlineUserAccelBytePtr& OutInterfaceInstance)
+{
+	const IOnlineSubsystem* Subsystem = Online::GetSubsystem(World);
+	if (Subsystem == nullptr)
+	{
+		OutInterfaceInstance = nullptr;
+		return false;
+	}
+
+	return GetFromSubsystem(Subsystem, OutInterfaceInstance);
+}
+
+bool FOnlineUserAccelByte::GetFromSubsystem(const IOnlineSubsystem* Subsystem, FOnlineUserAccelBytePtr& OutInterfaceInstance)
+{
+	OutInterfaceInstance = StaticCastSharedPtr<FOnlineUserAccelByte>(Subsystem->GetUserInterface());
+	return OutInterfaceInstance.IsValid();
 }
 
 bool FOnlineUserAccelByte::QueryUserInfo(int32 LocalUserNum, const TArray<TSharedRef<const FUniqueNetId>>& UserIds)
