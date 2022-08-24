@@ -29,31 +29,10 @@ void FOnlineAsyncTaskAccelByteConnectLobby::Initialize()
 	OnLobbyDisconnectedNotifDelegate = TDelegateUtils<AccelByte::Api::Lobby::FDisconnectNotif>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteConnectLobby::OnLobbyDisconnectedNotif);
 	ApiClient->Lobby.SetDisconnectNotifDelegate(OnLobbyDisconnectedNotifDelegate);
 
-	AccelByte::Api::Lobby::FConnectionClosed OnLobbyConnectionClosedDelegate = AccelByte::Api::Lobby::FConnectionClosed::CreateStatic(FOnlineAsyncTaskAccelByteConnectLobby::OnLobbyConnectionClosed, Subsystem, LocalUserNum);
-	ApiClient->Lobby.SetConnectionClosedDelegate(OnLobbyConnectionClosedDelegate);
-
 	// Send off a request to connect to the lobby websocket, as well as connect our delegates for doing so
 	ApiClient->Lobby.SetConnectSuccessDelegate(OnLobbyConnectSuccessDelegate);
 	ApiClient->Lobby.SetConnectFailedDelegate(OnLobbyConnectErrorDelegate);
 	ApiClient->Lobby.Connect();
-
-	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
-}
-
-void FOnlineAsyncTaskAccelByteConnectLobby::Finalize()
-{
-	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
-
-	if (bWasSuccessful)
-	{
-		const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(Subsystem->GetIdentityInterface());
-		if (IdentityInterface.IsValid())
-		{
-			// #NOTE (Wiwing): Overwrite connect Lobby success delegate for reconnection
-			Api::Lobby::FConnectSuccess OnLobbyReconnectionDelegate = Api::Lobby::FConnectSuccess::CreateStatic(FOnlineAsyncTaskAccelByteConnectLobby::OnLobbyReconnected, Subsystem, LocalUserNum);
-			ApiClient->Lobby.SetConnectSuccessDelegate(OnLobbyReconnectionDelegate);
-		}
-	}
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
@@ -110,6 +89,16 @@ void FOnlineAsyncTaskAccelByteConnectLobby::OnLobbyConnectSuccess()
 		SessionInterface->RegisterRealTimeLobbyDelegates(LocalUserNum);
 	}
 
+	if (IdentityInterface.IsValid() && PartyInterface.IsValid())
+	{
+		AccelByte::Api::Lobby::FConnectionClosed OnLobbyConnectionClosedDelegate = AccelByte::Api::Lobby::FConnectionClosed::CreateStatic(FOnlineAsyncTaskAccelByteConnectLobby::OnLobbyConnectionClosed, LocalUserNum, IdentityInterface, PartyInterface);
+		ApiClient->Lobby.SetConnectionClosedDelegate(OnLobbyConnectionClosedDelegate);
+		
+		// #NOTE (Wiwing): Overwrite connect Lobby success delegate for reconnection
+		Api::Lobby::FConnectSuccess OnLobbyReconnectionDelegate = Api::Lobby::FConnectSuccess::CreateStatic(FOnlineAsyncTaskAccelByteConnectLobby::OnLobbyReconnected, LocalUserNum, IdentityInterface, PartyInterface);
+		ApiClient->Lobby.SetConnectSuccessDelegate(OnLobbyReconnectionDelegate);
+	}
+
 	CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sending request to get or create a default user profile for user '%s'!"), *UserId->ToDebugString());
 }
@@ -145,13 +134,10 @@ void FOnlineAsyncTaskAccelByteConnectLobby::OnLobbyDisconnectedNotif(const FAcce
 	CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
 }
 
-void FOnlineAsyncTaskAccelByteConnectLobby::OnLobbyConnectionClosed(int32 StatusCode, const FString& Reason, bool WasClean, FOnlineSubsystemAccelByte* const Subsystem, int32 InLocalUserNum)
+void FOnlineAsyncTaskAccelByteConnectLobby::OnLobbyConnectionClosed(int32 StatusCode, const FString& Reason, bool WasClean, int32 InLocalUserNum, const FOnlineIdentityAccelBytePtr IdentityInterface, const FOnlinePartySystemAccelBytePtr PartyInterface)
 {
 	UE_LOG_AB(Warning, TEXT("Lobby connection closed. Reason '%s' Code : '%d'"), *Reason, StatusCode);
-
-	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(Subsystem->GetIdentityInterface());
-	const FOnlinePartySystemAccelBytePtr PartyInterface = StaticCastSharedPtr<FOnlinePartySystemAccelByte>(Subsystem->GetPartyInterface());
-
+	
 	if (!IdentityInterface.IsValid() || !PartyInterface.IsValid())
 	{
 		UE_LOG_AB(Warning, TEXT("Error due to either IdentityInterface or PartyInterface is invalid"));
@@ -176,7 +162,7 @@ void FOnlineAsyncTaskAccelByteConnectLobby::OnLobbyConnectionClosed(int32 Status
 	FString LogoutReason;
 	if (StatusCode == 1006) // Internet connection is disconnected
 	{
-		LogoutReason = TEXT("socket-disconnected");
+		LogoutReason = TEXT("network-disconnection");
 		AccelByte::FApiClientPtr ApiClient = IdentityInterface->GetApiClient(InLocalUserNum);
 		ApiClient->CredentialsRef->ForgetAll();
 
@@ -186,12 +172,10 @@ void FOnlineAsyncTaskAccelByteConnectLobby::OnLobbyConnectionClosed(int32 Status
 	IdentityInterface->Logout(InLocalUserNum, LogoutReason);
 }
 
-void FOnlineAsyncTaskAccelByteConnectLobby::OnLobbyReconnected(FOnlineSubsystemAccelByte* const Subsystem, int32 InLocalUserNum)
+void FOnlineAsyncTaskAccelByteConnectLobby::OnLobbyReconnected(int32 InLocalUserNum, const FOnlineIdentityAccelBytePtr IdentityInterface, const FOnlinePartySystemAccelBytePtr PartyInterface)
 {
 	UE_LOG_AB(Log, TEXT("Lobby successfully reconnected."));
 
-	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(Subsystem->GetIdentityInterface());
-	const FOnlinePartySystemAccelBytePtr PartyInterface = StaticCastSharedPtr<FOnlinePartySystemAccelByte>(Subsystem->GetPartyInterface());
 	if (IdentityInterface.IsValid() && PartyInterface.IsValid())
 	{
 		TSharedPtr<FUniqueNetIdAccelByteUser const> LocalUserId = StaticCastSharedPtr<FUniqueNetIdAccelByteUser const>(IdentityInterface->GetUniquePlayerId(InLocalUserNum));

@@ -98,6 +98,7 @@ void FOnlineAsyncTaskAccelByteRetrieveDedicatedSessionInfo::Finalize()
 		{
 			SessionInfo->SetTeams(Teams);
 			SessionInfo->SetParties(Parties);
+			SessionInfo->SetSessionResult(SessionResult);
 		}
 
 		Session->RegisteredPlayers.Append(CurrentPlayers);
@@ -145,20 +146,57 @@ void FOnlineAsyncTaskAccelByteRetrieveDedicatedSessionInfo::OnAuthenticateServer
 void FOnlineAsyncTaskAccelByteRetrieveDedicatedSessionInfo::TryQueryDedicatedSessionInfo()
 {
 	// Query session status for this dedicated server to get information such as parties and teams, as well as joinable status
-	// #SG We only can query session status for non custom games, so check for that before making a query
-	if (!bIsCustomGame)
-	{
-		THandler<FAccelByteModelsServerSessionResponse> OnGetSessionIdSuccess = THandler<FAccelByteModelsServerSessionResponse>::CreateRaw(this, &FOnlineAsyncTaskAccelByteRetrieveDedicatedSessionInfo::OnGetSessionIdSuccess);
-		FErrorHandler OnGetSessionIdError = FErrorHandler::CreateRaw(this, &FOnlineAsyncTaskAccelByteRetrieveDedicatedSessionInfo::OnGetSessionIdError);
-		FRegistry::ServerDSM.GetSessionId(OnGetSessionIdSuccess, OnGetSessionIdError);
-	}
-	else
-	{
-		CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
-	}
+	THandler<FAccelByteModelsServerSessionResponse> OnGetSessionIdSuccess = THandler<FAccelByteModelsServerSessionResponse>::CreateRaw(this, &FOnlineAsyncTaskAccelByteRetrieveDedicatedSessionInfo::OnGetSessionIdSuccess);
+	FErrorHandler OnGetSessionIdError = FErrorHandler::CreateRaw(this, &FOnlineAsyncTaskAccelByteRetrieveDedicatedSessionInfo::OnGetSessionIdError);
+	FRegistry::ServerDSM.GetSessionId(OnGetSessionIdSuccess, OnGetSessionIdError);
 }
 
-void FOnlineAsyncTaskAccelByteRetrieveDedicatedSessionInfo::OnQueryMatchSessionSuccess(const FAccelByteModelsSessionBrowserData& Result)
+void FOnlineAsyncTaskAccelByteRetrieveDedicatedSessionInfo::OnQueryMatchSessionSuccess(const FAccelByteModelsMatchmakingResult& Result)
+{
+	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("SessionName: %s; Channel: %s"), *SessionName.ToString(), *Result.Channel);
+
+	Channel = Result.Channel;
+
+	// Channel gets returned from the backend with the format "{namespace}:{channel}", need to substring this to only get channel
+	int32 SeparatorIndex;
+	if (Channel.FindChar(':', SeparatorIndex))
+	{
+		Channel = Channel.Mid(SeparatorIndex + 1);
+	}
+
+	// Check whether the current session is marked joinable or not, affects player registration
+	bIsSessionJoinable = Result.Joinable;
+
+	// Get all initial users that are in this session query so that we can add them to the session
+	int32 TeamIndex = 0;
+	for (const FAccelByteModelsMatchingAlly& Ally : Result.Matching_allies)
+	{
+		for (const FAccelByteModelsMatchingParty& Party : Ally.Matching_parties)
+		{
+			TPartyMemberArray UsersInParty;
+			for (const FAccelByteModelsUser& User : Party.Party_members)
+			{
+				FAccelByteUniqueIdComposite CompositeId;
+				CompositeId.Id = User.User_id;
+				TSharedRef<const FUniqueNetIdAccelByteUser> MatchedUserId = FUniqueNetIdAccelByteUser::Create(CompositeId).ToSharedRef();
+				CurrentPlayers.AddUnique(MatchedUserId);
+
+				Teams.Add(MatchedUserId, TeamIndex);
+				UsersInParty.AddUnique(MatchedUserId);
+			}
+			Parties.Add(UsersInParty);
+		}
+		TeamIndex++;
+	}
+
+	SessionResult = Result;
+
+	CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
+
+	AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Successfully queried match session information for session '%s'!"), *SessionId);
+}
+
+void FOnlineAsyncTaskAccelByteRetrieveDedicatedSessionInfo::OnQueryCustomMatchSessionSuccess(const FAccelByteModelsSessionBrowserData& Result)
 {
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("SessionName: %s; Channel: %s"), *SessionName.ToString(), *Result.Match.Channel);
 
@@ -196,6 +234,8 @@ void FOnlineAsyncTaskAccelByteRetrieveDedicatedSessionInfo::OnQueryMatchSessionS
 		TeamIndex++;
 	}
 
+	SessionResult = Result.Match;
+
 	CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Successfully queried match session information for session '%s'!"), *SessionId);
@@ -216,12 +256,27 @@ void FOnlineAsyncTaskAccelByteRetrieveDedicatedSessionInfo::OnGetSessionIdSucces
 
 	SessionId = Result.Session_id;
 
-	// We also want to query the session information itself to get matchmaking channel, so that we can perform operations
-	// that require this channel to be passed in
-	THandler<FAccelByteModelsSessionBrowserData> OnQuerySessionStatusSuccess = THandler<FAccelByteModelsSessionBrowserData>::CreateRaw(this, &FOnlineAsyncTaskAccelByteRetrieveDedicatedSessionInfo::OnQueryMatchSessionSuccess);
-	FErrorHandler OnQuerySessionStatusError = FErrorHandler::CreateRaw(this, &FOnlineAsyncTaskAccelByteRetrieveDedicatedSessionInfo::OnQueryMatchSessionError);
-	FRegistry::ServerSessionBrowser.GetGameSessionBySessionId(SessionId, OnQuerySessionStatusSuccess, OnQuerySessionStatusError);
+	if (SessionId.IsEmpty())
+	{
+		AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Failed to get session ID from backend for session '%s'! SessionId is empty"), *SessionName.ToString());
+		CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
+		return;
+	}
 
+	if (!bIsCustomGame) 
+	{
+		THandler<FAccelByteModelsMatchmakingResult> OnQuerySessionStatusSuccess = THandler<FAccelByteModelsMatchmakingResult>::CreateRaw(this, &FOnlineAsyncTaskAccelByteRetrieveDedicatedSessionInfo::OnQueryMatchSessionSuccess);
+		FErrorHandler OnQuerySessionStatusError = FErrorHandler::CreateRaw(this, &FOnlineAsyncTaskAccelByteRetrieveDedicatedSessionInfo::OnQueryMatchSessionError);
+		FRegistry::ServerMatchmaking.QuerySessionStatus(SessionId, OnQuerySessionStatusSuccess, OnQuerySessionStatusError);
+	}
+	else
+	{
+		// We also want to query the session information itself to get matchmaking channel, so that we can perform operations
+		// that require this channel to be passed in
+		THandler<FAccelByteModelsSessionBrowserData> OnQuerySessionStatusSuccess = THandler<FAccelByteModelsSessionBrowserData>::CreateRaw(this, &FOnlineAsyncTaskAccelByteRetrieveDedicatedSessionInfo::OnQueryCustomMatchSessionSuccess);
+		FErrorHandler OnQuerySessionStatusError = FErrorHandler::CreateRaw(this, &FOnlineAsyncTaskAccelByteRetrieveDedicatedSessionInfo::OnQueryMatchSessionError);
+		FRegistry::ServerSessionBrowser.GetGameSessionBySessionId(SessionId, OnQuerySessionStatusSuccess, OnQuerySessionStatusError);
+	}
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Found session ID '%s'! Querying status of this session from backend!"), *SessionId);
 }
 

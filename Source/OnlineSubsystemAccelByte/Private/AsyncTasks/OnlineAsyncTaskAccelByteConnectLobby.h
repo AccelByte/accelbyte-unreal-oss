@@ -6,7 +6,8 @@
 #include "OnlineAsyncTaskAccelByte.h"
 #include "OnlineAsyncTaskAccelByteUtils.h"
 #include "OnlineSubsystemAccelByteTypes.h"
-#include <OnlineIdentityInterfaceAccelByte.h>
+#include "OnlineIdentityInterfaceAccelByte.h"
+#include "OnlinePartyInterfaceAccelByte.h"
 
 /**
  * Task for connect AccelByte Lobby
@@ -18,7 +19,6 @@ public:
 	FOnlineAsyncTaskAccelByteConnectLobby(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InLocalUserId);
 
 	virtual void Initialize() override;
-	virtual void Finalize() override;
 	virtual void TriggerDelegates() override;
 
 protected:
@@ -50,9 +50,9 @@ private:
 	AccelByte::Api::Lobby::FDisconnectNotif OnLobbyDisconnectedNotifDelegate;
 
 	/** Delegate handler for when a lobby connection is disconnected. */
-	static void OnLobbyConnectionClosed(int32 StatusCode, const FString& Reason, bool WasClean, FOnlineSubsystemAccelByte* const Subsystem, int32 InLocalUserNum);
+	static void OnLobbyConnectionClosed(int32 StatusCode, const FString& Reason, bool WasClean, int32 InLocalUserNum, const FOnlineIdentityAccelBytePtr IdentityInterface, const FOnlinePartySystemAccelBytePtr PartyInterface);
 
-	static void OnLobbyReconnected(FOnlineSubsystemAccelByte* const Subsystem, int32 InLocalUserNum);
+	static void OnLobbyReconnected(int32 InLocalUserNum, const FOnlineIdentityAccelBytePtr IdentityInterface, const FOnlinePartySystemAccelBytePtr PartyInterface);
 
 	void UnbindDelegates();
 

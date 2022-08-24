@@ -61,6 +61,8 @@ private:
 
 	/** Nested array of user IDs that associate to a party, gets stored on session info */
 	TSessionPartyArray Parties;
+
+	FAccelByteModelsMatchmakingResult SessionResult;
 	
 	/** Attempt to authenticate the dedicated server with client credentials */
 	void OnAuthenticateServerComplete(bool bAuthenticationSuccessful);
@@ -69,7 +71,10 @@ private:
 	void TryQueryDedicatedSessionInfo();
 
 	/** Delegate handler for when we successfully get session status from the backend */
-	void OnQueryMatchSessionSuccess(const FAccelByteModelsSessionBrowserData& Result);
+	void OnQueryMatchSessionSuccess(const FAccelByteModelsMatchmakingResult& Result);
+
+	/** Delegate handler for when we successfully get custom session status from the backend */
+	void OnQueryCustomMatchSessionSuccess(const FAccelByteModelsSessionBrowserData& Result);
 
 	/** Delegate handler for when we fail to get session status from the backend */
 	void OnQueryMatchSessionError(int32 ErrorCode, const FString& ErrorMessage);

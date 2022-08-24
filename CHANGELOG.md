@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## 0.5.0 (2022-08-22)
+
+### Bug fixes
+
+* **session:** joinable session not working due to enqueue session is not implemented
+* **identity:** lobby websocket not disconnected during logout
+
 ## 0.4.1 (2022-08-05)
 
 ### Bug fixes

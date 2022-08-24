@@ -545,6 +545,16 @@ void FOnlineSessionInfoAccelByte::SetParties(const TSessionPartyArray& InParties
 	OnPartyInformationReceivedDelegate.ExecuteIfBound(Parties);
 }
 
+const FAccelByteModelsMatchmakingResult& FOnlineSessionInfoAccelByte::GetSessionResult() const
+{
+	return SessionResult;
+}
+
+void FOnlineSessionInfoAccelByte::SetSessionResult(const FAccelByteModelsMatchmakingResult& InSessionResult)
+{
+	SessionResult = InSessionResult;
+}
+
 #pragma endregion // FOnlineSessionInfoAccelByte
 
 #pragma region FUserOnlineAccountAccelByte

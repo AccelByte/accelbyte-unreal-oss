@@ -100,15 +100,26 @@ bool FOnlineIdentityAccelByte::Logout(int32 LocalUserNum, FString Reason)
 	});
 
 	AccelByte::FApiClientPtr ApiClient = GetApiClient(LocalUserNum);
-	if (!ApiClient.IsValid() || !ApiClient->CredentialsRef->IsSessionValid())
+	if (!ApiClient.IsValid())
 	{
 		UE_LOG_AB(Warning, TEXT("Failed to log out user %d as an API client could not be found for them!"), LocalUserNum);
 		OnLogout(LocalUserNum, false);
 		return false;
 	}
 
+	if (!ApiClient->CredentialsRef->IsSessionValid())
+	{
+		UE_LOG_AB(Warning, TEXT("Force log out user %d as the login session is not valid!"), LocalUserNum);
+		OnLogout(LocalUserNum, true);
+		return false;
+	}
+
 	// @todo multiuser Change this to logout the user based on LocalUserNum when SDK supports multiple user login
 	// NOTE(Maxwell, 4/8/2021): Logout automatically signals to the credential store to forget all credentials, so this is all we need to call
+	if (ApiClient->Lobby.IsConnected())
+	{
+		ApiClient->Lobby.Disconnect(true);
+	}
 	ApiClient->User.Logout(OnLogoutSuccessDelegate, OnLogoutFailedDelegate);
 
 	return true;
@@ -495,12 +506,10 @@ bool FOnlineIdentityAccelByte::ConnectAccelByteLobby(int32 LocalUserNum)
 			TriggerOnConnectLobbyCompleteDelegates(LocalUserNum, false, FUniqueNetIdAccelByteUser::Invalid().Get(), ErrorStr);
 			return false;
 		}
-		else
-		{
-			AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteConnectLobby>(AccelByteSubsystem, *GetUniquePlayerId(LocalUserNum).Get());
-			AB_OSS_INTERFACE_TRACE_END(TEXT("Dispatching async task to attempt to connect lobby!"));
-			return true;
-		}
+		
+		AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteConnectLobby>(AccelByteSubsystem, *GetUniquePlayerId(LocalUserNum).Get());
+		AB_OSS_INTERFACE_TRACE_END(TEXT("Dispatching async task to attempt to connect lobby!"));
+		return true;
 	}
 
 	const FString ErrorStr = TEXT("connect-failed-not-logged-in");

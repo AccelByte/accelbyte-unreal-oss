@@ -8,6 +8,7 @@
 #include "OnlineSubsystemTypes.h"
 #include "IPAddress.h"
 #include "OnlineSubsystemAccelBytePackage.h"
+#include "Models/AccelByteMatchmakingModels.h"
 #include "OnlineSubsystemAccelByteTypes.generated.h"
 
 class FOnlineSubsystemAccelByte;
@@ -405,6 +406,9 @@ public:
 
 	void SetParties(const TSessionPartyArray& InParties);
 
+	const FAccelByteModelsMatchmakingResult& GetSessionResult() const;
+
+	void SetSessionResult(const FAccelByteModelsMatchmakingResult& InSessionResult);
 PACKAGE_SCOPE:
 
 	// #AB #TODO (Afif) : make it accessible from game
@@ -441,6 +445,8 @@ private:
 
 	/** Delegate for when we get party information for a session, should be subscribed to on the game server side */
 	FOnPartyInformationReceived OnPartyInformationReceivedDelegate;
+
+	FAccelByteModelsMatchmakingResult SessionResult;
 };
 
 /**

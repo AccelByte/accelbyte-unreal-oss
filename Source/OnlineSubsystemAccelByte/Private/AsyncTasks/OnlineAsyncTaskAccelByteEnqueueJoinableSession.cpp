@@ -45,13 +45,8 @@ void FOnlineAsyncTaskAccelByteEnqueueJoinableSession::Initialize()
 
 	FVoidHandler OnEnqueueJoinableSessionSuccessDelegate = FVoidHandler::CreateRaw(this, &FOnlineAsyncTaskAccelByteEnqueueJoinableSession::OnEnqueueJoinableSessionSuccess);
 	FErrorHandler OnEnqueueJoinableSessionErrorDelegate = FErrorHandler::CreateRaw(this, &FOnlineAsyncTaskAccelByteEnqueueJoinableSession::OnEnqueueJoinableSessionError);
-	// #NOTE(Maxwell): Enqueuing joinable session still requires using matchmaking APIs, however we are now querying session manager.
-	// Splitgate doesn't need this so I am commenting it out, but maybe we'll need to figure out a way to have session manager enqueue?
-	//FRegistry::ServerMatchmaking.EnqueueJoinableSession(ABSessionInfo->SessionResult, OnEnqueueJoinableSessionSuccessDelegate, OnEnqueueJoinableSessionErrorDelegate);
-
-	// #TODO(Maxwell): Remove when we solve the above issue...
-	UE_LOG_AB(Warning, TEXT("Skipping joinable session enqueue as session manager doesn't support enqueuing joinable."));
-	CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
+	
+	FRegistry::ServerMatchmaking.EnqueueJoinableSession(ABSessionInfo->GetSessionResult(), OnEnqueueJoinableSessionSuccessDelegate, OnEnqueueJoinableSessionErrorDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sent request to enqueue joinable session on backend."));
 }
