@@ -161,7 +161,7 @@ void FOnlineFriendsAccelByte::OnFriendRequestAcceptedNotificationReceived(const 
 	// Create a basic composite ID for this user without platform info, we will get platform info later
 	FAccelByteUniqueIdComposite FriendCompositeId;
 	FriendCompositeId.Id = Notification.friendId;
-	TSharedRef<const FUniqueNetIdAccelByteUser> FriendId = FUniqueNetIdAccelByteUser::Create(FriendCompositeId).ToSharedRef();
+	TSharedRef<const FUniqueNetIdAccelByteUser> FriendId = FUniqueNetIdAccelByteUser::Create(FriendCompositeId);
 
 	// Next we want to check if the invite is already in our friends list, if it is, just update that invited user
 	// otherwise, we need to send off an async task to get info about the friend and update the friends list from there
@@ -213,7 +213,7 @@ void FOnlineFriendsAccelByte::OnFriendRequestReceivedNotificationReceived(const 
 	// create an async task to get data about that friend and then add them to the list afterwards, and fire off the delegates
 	FAccelByteUniqueIdComposite FriendCompositeId;
 	FriendCompositeId.Id = Notification.friendId;
-	TSharedRef<const FUniqueNetIdAccelByteUser> FriendId = FUniqueNetIdAccelByteUser::Create(FriendCompositeId).ToSharedRef();
+	TSharedRef<const FUniqueNetIdAccelByteUser> FriendId = FUniqueNetIdAccelByteUser::Create(FriendCompositeId);
 
 	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteAddFriendToList>(AccelByteSubsystem, LocalUserNum, UserId.ToSharedRef().Get(), FriendId.Get(), EInviteStatus::PendingInbound);
 }
@@ -222,7 +222,7 @@ void FOnlineFriendsAccelByte::OnUnfriendNotificationReceived(const FAccelByteMod
 {
 	FAccelByteUniqueIdComposite FriendCompositeId;
 	FriendCompositeId.Id = Notification.friendId;
-	const TSharedRef<const FUniqueNetIdAccelByteUser> FriendId = FUniqueNetIdAccelByteUser::Create(FriendCompositeId).ToSharedRef();
+	const TSharedRef<const FUniqueNetIdAccelByteUser> FriendId = FUniqueNetIdAccelByteUser::Create(FriendCompositeId);
 
 	// RemoveFriendFromList will check if the friend is already in the list, so it is safe to call with just the friend ID
 	RemoveFriendFromList(LocalUserNum, FriendId);
@@ -243,7 +243,7 @@ void FOnlineFriendsAccelByte::OnRejectFriendRequestNotificationReceived(const FA
 {
 	FAccelByteUniqueIdComposite InviteCompositeId;
 	InviteCompositeId.Id = Notification.userId;
-	const TSharedRef<const FUniqueNetIdAccelByteUser> InviteeId = FUniqueNetIdAccelByteUser::Create(InviteCompositeId).ToSharedRef();
+	const TSharedRef<const FUniqueNetIdAccelByteUser> InviteeId = FUniqueNetIdAccelByteUser::Create(InviteCompositeId);
 
 	// RemoveFriendFromList will check if the invited user is already in the list, so it is safe to call with just the invitee ID
 	RemoveFriendFromList(LocalUserNum, InviteeId);
@@ -264,7 +264,7 @@ void FOnlineFriendsAccelByte::OnCancelFriendRequestNotificationReceived(const FA
 {
 	FAccelByteUniqueIdComposite InviteCompositeId;
 	InviteCompositeId.Id = Notification.userId;
-	const TSharedRef<const FUniqueNetIdAccelByteUser> InviterId = FUniqueNetIdAccelByteUser::Create(InviteCompositeId).ToSharedRef();
+	const TSharedRef<const FUniqueNetIdAccelByteUser> InviterId = FUniqueNetIdAccelByteUser::Create(InviteCompositeId);
 
 	// RemoveFriendFromList will check if the invite we received is already in the list, so it is safe to call with just the inviter ID
 	RemoveFriendFromList(LocalUserNum, InviterId);

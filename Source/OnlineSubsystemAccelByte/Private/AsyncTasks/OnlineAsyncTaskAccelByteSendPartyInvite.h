@@ -42,7 +42,7 @@ private:
 	ESendPartyInvitationCompletionResult CompletionResult;
 
 	/** ID of the user that will receive the invite as an AccelByte ID */
-	TSharedRef<const FUniqueNetIdAccelByteUser> RecipientId;
+	FUniqueNetIdAccelByteUserRef RecipientId;
 	
 	/** Delegate handler for when the request to send a party invite has received a response */
 	void OnPartyInviteResponse(const FAccelByteModelsPartyInviteResponse& Result);

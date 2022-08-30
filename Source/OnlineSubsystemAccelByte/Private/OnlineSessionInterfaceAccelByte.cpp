@@ -347,7 +347,7 @@ TSharedPtr<const FUniqueNetId> FOnlineSessionAccelByte::CreateSessionIdFromStrin
 {
 	if (!SessionIdStr.IsEmpty())
 	{
-		return MakeShared<FUniqueNetIdAccelByteResource>(SessionIdStr);
+		return FUniqueNetIdAccelByteResource::Create(SessionIdStr);
 	}
 	return nullptr;
 }
@@ -1484,7 +1484,7 @@ void FOnlineSessionAccelByte::AppendSessionSettingsToPacket(FNboSerializeToBuffe
 
 void FOnlineSessionAccelByte::ReadSessionFromPacket(FNboSerializeFromBufferAccelByte& Packet, FOnlineSession* Session)
 {
-	TSharedRef<FUniqueNetIdAccelByteUser> UniqueId = MakeShared<FUniqueNetIdAccelByteUser>();
+	TSharedRef<FUniqueNetIdAccelByteUser> UniqueId = ConstCastSharedRef<FUniqueNetIdAccelByteUser>(FUniqueNetIdAccelByteUser::Invalid());
 	Packet >> *UniqueId
 		>> Session->OwningUserName
 		>> Session->NumOpenPrivateConnections

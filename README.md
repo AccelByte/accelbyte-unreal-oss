@@ -108,7 +108,7 @@ const FOnlineIdentityAccelBytePtr IdentityInterface = FOnlineIdentityAccelByte::
  
 if (IdentityInterface.IsValid())
 {
-   FOnlineAccelByteAccountCredentials Credentials{ EAccelByteLoginType::AccelByte
+   FOnlineAccountCredentialsAccelByte Credentials{ EAccelByteLoginType::AccelByte
          , Username, Password };
    // Login
    IdentityInterface->AddOnLoginCompleteDelegate_Handle(LocalUserNum

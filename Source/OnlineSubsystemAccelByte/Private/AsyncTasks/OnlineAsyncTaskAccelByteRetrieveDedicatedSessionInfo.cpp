@@ -178,7 +178,7 @@ void FOnlineAsyncTaskAccelByteRetrieveDedicatedSessionInfo::OnQueryMatchSessionS
 			{
 				FAccelByteUniqueIdComposite CompositeId;
 				CompositeId.Id = User.User_id;
-				TSharedRef<const FUniqueNetIdAccelByteUser> MatchedUserId = FUniqueNetIdAccelByteUser::Create(CompositeId).ToSharedRef();
+				TSharedRef<const FUniqueNetIdAccelByteUser> MatchedUserId = FUniqueNetIdAccelByteUser::Create(CompositeId);
 				CurrentPlayers.AddUnique(MatchedUserId);
 
 				Teams.Add(MatchedUserId, TeamIndex);
@@ -223,7 +223,7 @@ void FOnlineAsyncTaskAccelByteRetrieveDedicatedSessionInfo::OnQueryCustomMatchSe
 			{
 				FAccelByteUniqueIdComposite CompositeId;
 				CompositeId.Id = User.User_id;
-				TSharedRef<const FUniqueNetIdAccelByteUser> MatchedUserId = FUniqueNetIdAccelByteUser::Create(CompositeId).ToSharedRef();
+				TSharedRef<const FUniqueNetIdAccelByteUser> MatchedUserId = FUniqueNetIdAccelByteUser::Create(CompositeId);
 				CurrentPlayers.AddUnique(MatchedUserId);
 
 				Teams.Add(MatchedUserId, TeamIndex);

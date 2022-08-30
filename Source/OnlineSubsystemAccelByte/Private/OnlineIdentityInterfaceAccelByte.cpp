@@ -232,7 +232,7 @@ TSharedPtr<const FUniqueNetId> FOnlineIdentityAccelByte::CreateUniquePlayerId(co
 		return FUniqueNetIdAccelByteUser::Create(FAccelByteUniqueIdComposite(Str));
 	}
 
-	return MakeShared<FUniqueNetIdAccelByteUser>(Str);
+	return FUniqueNetIdAccelByteUser::Create(Str);
 }
 
 ELoginStatus::Type FOnlineIdentityAccelByte::GetLoginStatus(int32 LocalUserNum) const

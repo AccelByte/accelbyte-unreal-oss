@@ -121,12 +121,12 @@ TSharedRef<FOnlinePartyAccelByte> FOnlinePartyAccelByte::CreatePartyFromPartyInf
 		return Member->Id->GetAccelByteId() == PartyInfo.LeaderId;
 	});
 
-	TSharedRef<const FUniqueNetIdAccelByteUser> LeaderCompositeId = MakeShared<const FUniqueNetIdAccelByteUser>();
+	FUniqueNetIdAccelByteUserRef LeaderCompositeId = FUniqueNetIdAccelByteUser::Invalid();
 	if (FoundPartyLeader == nullptr)
 	{
 		FAccelByteUniqueIdComposite CompositeId;
 		CompositeId.Id = PartyInfo.LeaderId;
-		LeaderCompositeId = FUniqueNetIdAccelByteUser::Create(CompositeId).ToSharedRef();
+		LeaderCompositeId = FUniqueNetIdAccelByteUser::Create(CompositeId);
 	}
 	else
 	{
@@ -151,7 +151,7 @@ TSharedRef<FOnlinePartyAccelByte> FOnlinePartyAccelByte::CreatePartyFromPartyInf
 		// Create composite ID for the invited user, we don't need to have a full composite here
 		FAccelByteUniqueIdComposite CompositeId;
 		CompositeId.Id = InviteeId;
-		TSharedRef<const FUniqueNetIdAccelByteUser> InviteeNetId = FUniqueNetIdAccelByteUser::Create(CompositeId).ToSharedRef();
+		TSharedRef<const FUniqueNetIdAccelByteUser> InviteeNetId = FUniqueNetIdAccelByteUser::Create(CompositeId);
 
 		// NOTE(Maxwell, 7/27/2021): Backend does not return the ID of the player that invited the user, only the IDs of the
 		// users invited. As a temporary measure, use the ID of the current user as the inviter ID.
@@ -677,7 +677,8 @@ void FOnlinePartySystemAccelByte::OnPartyInviteSentNotification(const FAccelByte
 		FAccelByteUniqueIdComposite InviteeCompositeId;
 		InviteeCompositeId.Id = Notification.InviteeID;
 
-		Party->AddUserToInvitedPlayers(UserId, FUniqueNetIdAccelByteUser::Create(InviterCompositeId).ToSharedRef(), FUniqueNetIdAccelByteUser::Create(InviteeCompositeId).ToSharedRef());
+		Party->AddUserToInvitedPlayers(UserId, FUniqueNetIdAccelByteUser::Create(InviterCompositeId)
+			, FUniqueNetIdAccelByteUser::Create(InviteeCompositeId));
 	}
 
 	AB_OSS_INTERFACE_TRACE_END(TEXT("Added invited user to invited players."));
@@ -728,7 +729,7 @@ void FOnlinePartySystemAccelByte::OnPartyJoinNotification(const FAccelByteModels
 	AB_OSS_INTERFACE_TRACE_END(TEXT("Dispatched async task to add new joined party member to local party."));
 }
 
-void FOnlinePartySystemAccelByte::OnPartyLeaveNotification(const FAccelByteModelsLeavePartyNotice& Notification, TSharedRef<const FUniqueNetIdAccelByteUser> UserId)
+void FOnlinePartySystemAccelByte::OnPartyMemberLeaveNotification(const FAccelByteModelsLeavePartyNotice& Notification, TSharedRef<const FUniqueNetIdAccelByteUser> UserId)
 {
 	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("UserId: %s; LeavingUser: %s"), *UserId->ToDebugString(), *Notification.UserID);
 
@@ -747,7 +748,7 @@ void FOnlinePartySystemAccelByte::OnPartyLeaveNotification(const FAccelByteModel
 			FAccelByteUniqueIdComposite LeftUserCompositeId;
 			LeftUserCompositeId.Id = Notification.UserID;
 
-			TSharedRef<const FUniqueNetIdAccelByteUser> LeftUserId = FUniqueNetIdAccelByteUser::Create(LeftUserCompositeId).ToSharedRef();
+			TSharedRef<const FUniqueNetIdAccelByteUser> LeftUserId = FUniqueNetIdAccelByteUser::Create(LeftUserCompositeId);
 			Party->RemoveMember(UserId, LeftUserId, EMemberExitedReason::Left);
 			RemovePartyFromInterface(LeftUserId, Party.ToSharedRef());
 		}
@@ -788,7 +789,7 @@ void FOnlinePartySystemAccelByte::OnPartyKickNotification(const FAccelByteModels
 		{
 			FAccelByteUniqueIdComposite KickedUserCompositeId;
 			KickedUserCompositeId.Id = Notification.UserId;
-			Party->RemoveMember(UserId, FUniqueNetIdAccelByteUser::Create(KickedUserCompositeId).ToSharedRef(), EMemberExitedReason::Kicked);
+			Party->RemoveMember(UserId, FUniqueNetIdAccelByteUser::Create(KickedUserCompositeId), EMemberExitedReason::Kicked);
 		}
 
 		AB_OSS_INTERFACE_TRACE_END(TEXT("Removing remote user from party as they have been kicked."));
@@ -926,7 +927,7 @@ void FOnlinePartySystemAccelByte::OnPartyJoinedCompleteMemberLeaveParty(const FU
 			FAccelByteUniqueIdComposite LeftUserCompositeId;
 			LeftUserCompositeId.Id = Notification.UserID;
 
-			TSharedRef<const FUniqueNetIdAccelByteUser> LeftUserId = FUniqueNetIdAccelByteUser::Create(LeftUserCompositeId).ToSharedRef();
+			TSharedRef<const FUniqueNetIdAccelByteUser> LeftUserId = FUniqueNetIdAccelByteUser::Create(LeftUserCompositeId);
 			Party->RemoveMember(UserId, LeftUserId, EMemberExitedReason::Left);
 			RemovePartyFromInterface(LeftUserId, Party.ToSharedRef());
 		}
@@ -960,8 +961,8 @@ void FOnlinePartySystemAccelByte::RegisterRealTimeLobbyDelegates(const TSharedRe
 	AccelByte::Api::Lobby::FPartyJoinNotif OnPartyJoinNotificationDelegate = AccelByte::Api::Lobby::FPartyJoinNotif::CreateThreadSafeSP(AsShared(), &FOnlinePartySystemAccelByte::OnPartyJoinNotification, UserId);
 	ApiClient->Lobby.SetPartyJoinNotifDelegate(OnPartyJoinNotificationDelegate);
 
-	AccelByte::Api::Lobby::FPartyLeaveNotif OnPartyLeaveNotificationDelegate = AccelByte::Api::Lobby::FPartyLeaveNotif::CreateThreadSafeSP(AsShared(), &FOnlinePartySystemAccelByte::OnPartyLeaveNotification, UserId);
-	ApiClient->Lobby.SetPartyLeaveNotifDelegate(OnPartyLeaveNotificationDelegate);
+	AccelByte::Api::Lobby::FPartyMemberLeaveNotif OnPartyMemberLeaveNotificationDelegate = AccelByte::Api::Lobby::FPartyMemberLeaveNotif::CreateThreadSafeSP(AsShared(), &FOnlinePartySystemAccelByte::OnPartyMemberLeaveNotification, UserId);
+	ApiClient->Lobby.SetPartyMemberLeaveNotifDelegate(OnPartyMemberLeaveNotificationDelegate);
 
 	AccelByte::Api::Lobby::FPartyKickNotif OnPartyKickNotificationDelegate = AccelByte::Api::Lobby::FPartyKickNotif::CreateThreadSafeSP(AsShared(), &FOnlinePartySystemAccelByte::OnPartyKickNotification, UserId);
 	ApiClient->Lobby.SetPartyKickNotifDelegate(OnPartyKickNotificationDelegate);

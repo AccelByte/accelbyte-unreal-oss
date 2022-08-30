@@ -13,7 +13,7 @@ FOnlineAsyncTaskAccelByteSendPartyInvite::FOnlineAsyncTaskAccelByteSendPartyInvi
 	, PartyId(StaticCastSharedRef<const FOnlinePartyIdAccelByte>(InPartyId.AsShared()))
 	, Recipient(InRecipient)
 	, Delegate(InDelegate)
-	, RecipientId(MakeShared<const FUniqueNetIdAccelByteUser>())
+	, RecipientId(FUniqueNetIdAccelByteUser::Invalid())
 {
 	UserId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(InLocalUserId.AsShared());
 }

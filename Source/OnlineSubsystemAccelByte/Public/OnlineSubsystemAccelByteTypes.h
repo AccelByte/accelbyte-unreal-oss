@@ -89,41 +89,50 @@ struct FAccelByteUniqueIdComposite
  * FUniqueNetIdAccelByteUser as they have extra composite components that are useful for identifying a
  * user on their specific platform.
  */
+using FUniqueNetIdAccelByteResourcePtr = TSharedPtr<const class FUniqueNetIdAccelByteResource>;
+using FUniqueNetIdAccelByteResourceRef = TSharedRef<const class FUniqueNetIdAccelByteResource>;
 class ONLINESUBSYSTEMACCELBYTE_API FUniqueNetIdAccelByteResource : public FUniqueNetIdString
 {
-// NOTE @Damar : On UE5, public constructor for FUniqueNetId will be deprecated.
 public:
+	UE_DEPRECATED(5.0, "Public constructors of FUniqueNetId types are deprecated. Please use the ::Create(Args) method instead to create a FUniqueNetIdRef")
 	FUniqueNetIdAccelByteResource();
 
+	UE_DEPRECATED(5.0, "Public constructors of FUniqueNetId types are deprecated. Please use the ::Create(Args) method instead to create a FUniqueNetIdRef")
 	explicit FUniqueNetIdAccelByteResource(const FString& InUniqueNetId);
 
+	UE_DEPRECATED(5.0, "Public constructors of FUniqueNetId types are deprecated. Please use the ::Create(Args) method instead to create a FUniqueNetIdRef")
 	explicit FUniqueNetIdAccelByteResource(FString&& InUniqueNetId);
 
+	UE_DEPRECATED(5.0, "Public constructors of FUniqueNetId types are deprecated. Please use the ::Create(Args) method instead to create a FUniqueNetIdRef")
 	explicit FUniqueNetIdAccelByteResource(const FUniqueNetId& Src);
 	
-public:
+	template<typename... TArgs>
+	static FUniqueNetIdAccelByteResourceRef Create(TArgs&&... Args)
+	{
+		PRAGMA_DISABLE_DEPRECATION_WARNINGS
+		return MakeShareable(new FUniqueNetIdAccelByteResource(Forward<TArgs>(Args)...));
+		PRAGMA_ENABLE_DEPRECATION_WARNINGS
+	}
+	
 	/**
 	 * Takes a const FUniqueNetId reference and converts it to a TSharedRef<FUniqueNetIdAccelByte> if the type matches.
 	 *
 	 * @param NetId The NetId to attempt to convert to an FUniqueNetIdAccelByte reference.
 	 */
-	static TSharedRef<const FUniqueNetIdAccelByteResource> Cast(const FUniqueNetId& NetId);
+	static FUniqueNetIdAccelByteResourceRef Cast(const FUniqueNetId& NetId);
 
 	/**
 	 * @brief Convenience method to construct an invalid instance of a AccelByte net ID
 	 */
-	static const TSharedRef<const FUniqueNetIdAccelByteResource> Invalid();
+	static const FUniqueNetIdAccelByteResourceRef Invalid();
 
 	virtual FName GetType() const override;
 
 	virtual bool IsValid() const override;
 	
 protected:
-	FUniqueNetIdAccelByteResource(FString&& InUniqueNetId, const FName InType)
-		: FUniqueNetIdString(MoveTemp(InUniqueNetId), InType)
-	{
-		check(InType == FName(TEXT("ACCELBYTE")));
-	}
+	UE_DEPRECATED(5.0, "Public constructors of FUniqueNetId types are deprecated. Please use the ::Create(Args) method instead to create a FUniqueNetIdRef")
+	FUniqueNetIdAccelByteResource(FString&& InUniqueNetId, const FName InType);
 };
 
 /**
@@ -151,28 +160,31 @@ protected:
  * However, most of the ID manipulation is handled for you by the OSS, so there shouldn't be a need to crack open these
  * IDs unless you need to make SDK calls yourself.
  */
+using FUniqueNetIdAccelByteUserPtr = TSharedPtr<const class FUniqueNetIdAccelByteUser>;
+using FUniqueNetIdAccelByteUserRef = TSharedRef<const class FUniqueNetIdAccelByteUser>;
 class ONLINESUBSYSTEMACCELBYTE_API FUniqueNetIdAccelByteUser : public FUniqueNetIdAccelByteResource
 {
-	// NOTE @Damar : On UE5, public constructor for FUniqueNetId will be deprecated.
 public:
+	UE_DEPRECATED(5.0, "Public constructors of FUniqueNetId types are deprecated. Please use the ::Create(Args) method instead to create a FUniqueNetIdRef")
 	FUniqueNetIdAccelByteUser();
 
+	UE_DEPRECATED(5.0, "Public constructors of FUniqueNetId types are deprecated. Please use the ::Create(Args) method instead to create a FUniqueNetIdRef")
 	explicit FUniqueNetIdAccelByteUser(const FString& InUniqueNetId);
 
+	UE_DEPRECATED(5.0, "Public constructors of FUniqueNetId types are deprecated. Please use the ::Create(Args) method instead to create a FUniqueNetIdRef")
 	explicit FUniqueNetIdAccelByteUser(FString&& InUniqueNetId);
 
+	UE_DEPRECATED(5.0, "Public constructors of FUniqueNetId types are deprecated. Please use the ::Create(Args) method instead to create a FUniqueNetIdRef")
 	explicit FUniqueNetIdAccelByteUser(const FUniqueNetId& Src);
-
-public:
+	
 	/**
 	 * @brief Tries to create a new FUniqueNetIdAccelByte instance from a composite ID
 	 * 
-	 * @param bBypassValidCheck Bypasses the check to determine if the AccelByte ID passed in is valid. Defaults to false, or to not bypass the check.
 	 * @param CompositeId
 	 *
-	 * @return Shared pointer of UniqueNetId
+	 * @return Shared ref of UniqueNetId
 	 */
-	static TSharedPtr<const FUniqueNetIdAccelByteUser> Create(const FAccelByteUniqueIdComposite& CompositeId);
+	static FUniqueNetIdAccelByteUserRef Create(const FAccelByteUniqueIdComposite& CompositeId);
 	
 	/**
 	 * @brief Tries to create a new FUniqueNetIdAccelByte instance from a generic UniqueNetId
@@ -182,19 +194,19 @@ public:
 	 *
 	 * @return Shared pointer of UniqueNetId
 	 */
-	static TSharedPtr<const FUniqueNetIdAccelByteUser> Create(const FUniqueNetId& Src);
+	static FUniqueNetIdAccelByteUserRef Create(const FUniqueNetId& Src);
 
 	/**
 	 * @brief Takes a const FUniqueNetId reference and converts it to a TSharedRef<FUniqueNetIdAccelByte> if the type matches.
 	 *
 	 * @param NetId The NetId to attempt to convert to an FUniqueNetIdAccelByte reference.
 	 */
-	static TSharedRef<const FUniqueNetIdAccelByteUser> Cast(const FUniqueNetId& NetId);
+	static FUniqueNetIdAccelByteUserRef Cast(const FUniqueNetId& NetId);
 
 	/**
 	 * @brief Convenience method to construct an invalid instance of a AccelByte net ID
 	 */
-	static TSharedRef<const FUniqueNetIdAccelByteUser> Invalid();
+	static FUniqueNetIdAccelByteUserRef Invalid();
 
 	virtual FName GetType() const override;
 
@@ -251,6 +263,7 @@ PACKAGE_SCOPE:
 	/**
 	 * @brief Internal constructor to set both composite elements and the encoded string at once without extra processing.
 	 */
+	UE_DEPRECATED(5.0, "Public constructors of FUniqueNetId types are deprecated. Please use the ::Create(Args) method instead to create a FUniqueNetIdRef")
 	explicit FUniqueNetIdAccelByteUser(const FAccelByteUniqueIdComposite& CompositeId, const FString& EncodedComposite);
 
 private:
@@ -276,11 +289,8 @@ private:
 	void DecodeIDElements();
 
 protected:
-	FUniqueNetIdAccelByteUser(FString&& InUniqueNetId, const FName InType)
-		: FUniqueNetIdAccelByteResource(MoveTemp(InUniqueNetId), InType)
-	{
-		DecodeIDElements();
-	}
+	UE_DEPRECATED(5.0, "Public constructors of FUniqueNetId types are deprecated. Please use the ::Create(Args) method instead to create a FUniqueNetIdRef")
+	FUniqueNetIdAccelByteUser(FString&& InUniqueNetId, const FName InType);
 };
 
 /**
@@ -466,7 +476,7 @@ public:
 	virtual ~FUserOnlineAccountAccelByte() override = default;
 	
 	//~ Begin FOnlineUser Interface
-	virtual TSharedRef<const FUniqueNetId> GetUserId() const override { return UserIdPtr; }
+	virtual TSharedRef<const FUniqueNetId> GetUserId() const override { return UserIdRef; }
 	virtual FString GetRealName() const override;
 	virtual FString GetDisplayName(const FString& Platform = FString()) const override;
 	virtual bool GetUserAttribute(const FString& AttrName, FString& OutAttrValue) const override;
@@ -511,7 +521,7 @@ public:
 
 private:
 	/** User Id represented as a FUniqueNetId */
-	TSharedRef<const FUniqueNetIdAccelByteUser> UserIdPtr;
+	FUniqueNetIdAccelByteUserRef UserIdRef;
 	
 	/** Display name for the AccelByte user associated with this account */
 	FString DisplayName;

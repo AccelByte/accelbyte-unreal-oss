@@ -530,7 +530,7 @@ private:
 	void OnPartyJoinNotification(const FAccelByteModelsPartyJoinNotice& Notification, TSharedRef<const FUniqueNetIdAccelByteUser> UserId);
 
 	/** Delegate handler for when a remote user leaves our party */
-	void OnPartyLeaveNotification(const FAccelByteModelsLeavePartyNotice& Notification, TSharedRef<const FUniqueNetIdAccelByteUser> UserId);
+	void OnPartyMemberLeaveNotification(const FAccelByteModelsLeavePartyNotice& Notification, TSharedRef<const FUniqueNetIdAccelByteUser> UserId);
 
 	/** Delegate handler for when a remote user is kicked from our party */
 	void OnPartyKickNotification(const FAccelByteModelsGotKickedFromPartyNotice& Notification, TSharedRef<const FUniqueNetIdAccelByteUser> UserId);

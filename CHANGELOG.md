@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## 0.6.0 (2022-08-30)
+
+### Features
+
+* **store v2:** implement Online Store V2 Interfaces which handle store categories and items that can be purchased using in-game currency
+* **entitlements:** implement Online Entitlements Interfaces which handle entitlement and IAP purchases
+* **purchase:** implement Online Purchase Interfaces which handle purchase items using in-game currency
+
+### Bug fixes
+
+* **ue5:** remove deprecation warnings with FUniqueNetId derived class
+
 ## 0.5.0 (2022-08-22)
 
 ### Bug fixes

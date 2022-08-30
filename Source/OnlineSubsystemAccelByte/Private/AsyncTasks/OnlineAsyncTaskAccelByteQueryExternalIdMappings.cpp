@@ -102,7 +102,7 @@ void FOnlineAsyncTaskAccelByteQueryExternalIdMappings::OnBulkGetUserByOtherPlatf
 			CompositeId.PlatformId = Mapping.PlatformUserId;
 		}
 
-		TSharedRef<const FUniqueNetIdAccelByteUser> AccelByteID = FUniqueNetIdAccelByteUser::Create(CompositeId).ToSharedRef();
+		FUniqueNetIdAccelByteUserRef AccelByteID = FUniqueNetIdAccelByteUser::Create(CompositeId);
 		ExternalIdToFoundAccelByteIdMap.Add(Mapping.PlatformUserId, AccelByteID);
 	}
 

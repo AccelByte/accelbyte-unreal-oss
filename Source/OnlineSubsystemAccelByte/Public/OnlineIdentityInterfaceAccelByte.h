@@ -17,12 +17,12 @@
 #include "Core/AccelByteMultiRegistry.h"
 #include "Core/AccelByteUtilities.h"
 
-class FOnlineAccelByteAccountCredentials : public FOnlineAccountCredentials
+class FOnlineAccountCredentialsAccelByte : public FOnlineAccountCredentials
 {
 public:
 	EAccelByteLoginType LoginType;
 	
-	FOnlineAccelByteAccountCredentials(EAccelByteLoginType InType
+	FOnlineAccountCredentialsAccelByte(EAccelByteLoginType InType
 		, const FString& InId
 		, const FString& InToken)
 		: FOnlineAccountCredentials(FAccelByteUtilities::GetUEnumValueAsString(InType), InId, InToken)
@@ -31,6 +31,8 @@ public:
 		
 	}
 };
+
+typedef FOnlineAccountCredentialsAccelByte FOnlineAccelByteAccountCredentials;
 
 DECLARE_DELEGATE_OneParam(FOnAuthenticateServerComplete, bool /*bWasSuccessful*/)
 DECLARE_MULTICAST_DELEGATE_FourParams(FOnConnectLobbyComplete, int32 /*LocalUserNum*/, bool /*bWasSuccessful*/, const FUniqueNetId& /*UserId*/, const FString& /*Error*/);

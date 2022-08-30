@@ -173,7 +173,7 @@ void FOnlineAsyncTaskAccelByteFindSessions::OnSessionBrowserFindSuccess(const FA
 			CompositeId.Id = FoundSession.User_id;
 
 			// Create a shared ref for the user composite ID and set the session info
-			TSharedRef<const FUniqueNetIdAccelByteUser> OwnerId = FUniqueNetIdAccelByteUser::Create(CompositeId).ToSharedRef();
+			TSharedRef<const FUniqueNetIdAccelByteUser> OwnerId = FUniqueNetIdAccelByteUser::Create(CompositeId);
 			Session.OwningUserId = OwnerId;
 			
 			Session.OwningUserName = FoundSession.Username;

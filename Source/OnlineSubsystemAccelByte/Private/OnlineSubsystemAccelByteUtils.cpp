@@ -10,7 +10,7 @@
 
 FDelegateHandle FOnlineSubsystemAccelByteUtils::QueryUserHandle = FDelegateHandle();
 
-TSharedRef<const FUniqueNetId> FOnlineSubsystemAccelByteUtils::GetUniqueIdFromString(FString UniqueIdString, bool bIsEncoded /*= true*/) {
+FUniqueNetIdRef FOnlineSubsystemAccelByteUtils::GetUniqueIdFromString(FString UniqueIdString, bool bIsEncoded /*= true*/) {
 	if (UniqueIdString.IsEmpty()) {
 		return FUniqueNetIdAccelByteUser::Invalid();
 	}
@@ -18,20 +18,20 @@ TSharedRef<const FUniqueNetId> FOnlineSubsystemAccelByteUtils::GetUniqueIdFromSt
 	if (!bIsEncoded) {
 		FAccelByteUniqueIdComposite CompositeId;
 		CompositeId.Id = UniqueIdString;
-		return FUniqueNetIdAccelByteUser::Create(CompositeId).ToSharedRef();
+		return FUniqueNetIdAccelByteUser::Create(CompositeId);
 	}
 
-	return MakeShared<const FUniqueNetIdAccelByteUser>(UniqueIdString);
+	return FUniqueNetIdAccelByteUser::Create(UniqueIdString);
 }
 
-TSharedPtr<const FUniqueNetId> FOnlineSubsystemAccelByteUtils::GetPlatformUniqueIdFromUniqueId(const FUniqueNetId& UniqueId)
+FUniqueNetIdPtr FOnlineSubsystemAccelByteUtils::GetPlatformUniqueIdFromUniqueId(const FUniqueNetId& UniqueId)
 {
 	// Can't get a valid platform id if the unique id belongs to a different platform
 	if (!IsPlayerOnSamePlatform(UniqueId)) return nullptr;
 
 	if (UniqueId.GetType() == ACCELBYTE_SUBSYSTEM)
 	{
-		TSharedRef<const FUniqueNetIdAccelByteUser> AccelByteId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(UniqueId.AsShared());
+		FUniqueNetIdAccelByteUserRef AccelByteId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(UniqueId.AsShared());
 		return AccelByteId->GetPlatformUniqueId();
 	}
 
@@ -46,13 +46,13 @@ bool FOnlineSubsystemAccelByteUtils::IsPlayerOnSamePlatform(const FUniqueNetId& 
 
 bool FOnlineSubsystemAccelByteUtils::IsPlayerOnSamePlatform(FString UniqueIdString) 
 {
-	TSharedRef<const FUniqueNetIdAccelByteUser> UniqueId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(GetUniqueIdFromString(UniqueIdString));
+	FUniqueNetIdAccelByteUserRef UniqueId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(GetUniqueIdFromString(UniqueIdString));
 	return IsPlayerOnSamePlatform(UniqueId.Get());
 }
 
 FString FOnlineSubsystemAccelByteUtils::GetAccelByteIdFromUniqueId(const FUniqueNetId& UniqueId) {
 	if (UniqueId.GetType() == ACCELBYTE_SUBSYSTEM) {
-		TSharedRef<const FUniqueNetIdAccelByteUser> CompositeId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(UniqueId.AsShared());
+		FUniqueNetIdAccelByteUserRef CompositeId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(UniqueId.AsShared());
 		return CompositeId->GetAccelByteId();
 	}
 
@@ -63,7 +63,7 @@ FString FOnlineSubsystemAccelByteUtils::GetPlatformNameFromUniqueId(const FUniqu
 {
 	if (UniqueId.GetType() == ACCELBYTE_SUBSYSTEM)
 	{
-		TSharedRef<const FUniqueNetIdAccelByteUser> AccelByteId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(UniqueId.AsShared());
+		FUniqueNetIdAccelByteUserRef AccelByteId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(UniqueId.AsShared());
 		return AccelByteId->GetPlatformType();
 	}
 
@@ -74,7 +74,7 @@ FString FOnlineSubsystemAccelByteUtils::GetPlatformIdStringFromUniqueId(const FU
 {
 	if (UniqueId.GetType() == ACCELBYTE_SUBSYSTEM) 
 	{
-		TSharedRef<const FUniqueNetIdAccelByteUser> AccelByteId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(UniqueId.AsShared());
+		FUniqueNetIdAccelByteUserRef AccelByteId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(UniqueId.AsShared());
 		return AccelByteId->GetPlatformId();
 	}
 	
@@ -93,7 +93,7 @@ FString FOnlineSubsystemAccelByteUtils::GetPlatformName()
 
 bool FOnlineSubsystemAccelByteUtils::GetDisplayName(int32 LocalUserNum, FString UniqueId, FOnGetDisplayNameComplete Delegate, FString DisplayName /*= TEXT("")*/)
 {
-	TSharedRef<const FUniqueNetIdAccelByteUser> UniqueIdObj = MakeShared<const FUniqueNetIdAccelByteUser>(UniqueId);
+	FUniqueNetIdAccelByteUserRef UniqueIdObj = FUniqueNetIdAccelByteUser::Create(UniqueId);
 	return GetDisplayName(LocalUserNum, UniqueIdObj, Delegate, DisplayName);
 }
 
@@ -106,14 +106,14 @@ bool FOnlineSubsystemAccelByteUtils::GetDisplayName(int32 LocalUserNum, TSharedP
 	}
 
 	IOnlineIdentityPtr IdentityInterface = Online::GetIdentityInterface(ACCELBYTE_SUBSYSTEM);
-	TSharedPtr<const FUniqueNetId> LocalUserId = IdentityInterface->GetUniquePlayerId(LocalUserNum);
+	FUniqueNetIdPtr LocalUserId = IdentityInterface->GetUniquePlayerId(LocalUserNum);
 	if (UniqueId.IsValid() && (LocalUserId.IsValid() && LocalUserId.Get() == UniqueId.Get())) {
 		Delegate.ExecuteIfBound(IdentityInterface->GetPlayerNickname(LocalUserId.ToSharedRef().Get()));
 		return true;
 	}
 	
 	IOnlineUserPtr UserInterface = Online::GetUserInterface(ACCELBYTE_SUBSYSTEM);
-	TArray<TSharedRef<const FUniqueNetId>> IdsToQuery;
+	TArray<FUniqueNetIdRef> IdsToQuery;
 	IdsToQuery.Add(UniqueId.ToSharedRef());
 
 	FOnQueryUserInfoCompleteDelegate OnQueryUserInfoCompleteDelegate = FOnQueryUserInfoCompleteDelegate::CreateStatic(FOnlineSubsystemAccelByteUtils::OnQueryUserInfoComplete, Delegate);
@@ -127,7 +127,7 @@ void FOnlineSubsystemAccelByteUtils::OnQueryUserInfoComplete(int32 LocalUserNum,
 {
 	if (bWasSuccessful)
 	{
-		for (const TSharedRef<const FUniqueNetId>& UniqueId : FoundIds)
+		for (const FUniqueNetIdRef& UniqueId : FoundIds)
 		{
 			IOnlineUserPtr UserInterface = Online::GetUserInterface(ACCELBYTE_SUBSYSTEM);
 			TSharedPtr<FOnlineUser> UserInfo = UserInterface->GetUserInfo(LocalUserNum, UniqueId.Get());
@@ -142,7 +142,7 @@ void FOnlineSubsystemAccelByteUtils::OnQueryUserInfoComplete(int32 LocalUserNum,
 	}
 }
 
-TSharedPtr<const FUniqueNetId> FOnlineSubsystemAccelByteUtils::GetPlatformUniqueIdFromPlatformUserId(const FString& PlatformUserId)
+FUniqueNetIdPtr FOnlineSubsystemAccelByteUtils::GetPlatformUniqueIdFromPlatformUserId(const FString& PlatformUserId)
 {
 	IOnlineSubsystem* Subsystem = IOnlineSubsystem::GetByPlatform();
 	if (Subsystem == nullptr) {
@@ -157,7 +157,7 @@ TSharedPtr<const FUniqueNetId> FOnlineSubsystemAccelByteUtils::GetPlatformUnique
 	return nullptr;
 }
 
-TSharedRef<const FUniqueNetId> FOnlineSubsystemAccelByteUtils::GetAccelByteUserIdFromUniqueId(const FUniqueNetId& UniqueId)
+FUniqueNetIdRef FOnlineSubsystemAccelByteUtils::GetAccelByteUserIdFromUniqueId(const FUniqueNetId& UniqueId)
 {
 	if (!UniqueId.IsValid())
 	{

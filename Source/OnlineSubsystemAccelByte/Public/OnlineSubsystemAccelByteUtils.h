@@ -13,15 +13,17 @@
 
 DECLARE_DELEGATE_OneParam(FOnGetDisplayNameComplete, FString /*DisplayName*/);
 
+DECLARE_DELEGATE_TwoParams(FOnRequestCompleted, bool /*bWasSuccessful*/, const FString& /*Error*/);
+
 class ONLINESUBSYSTEMACCELBYTE_API FOnlineSubsystemAccelByteUtils
 {
 public:
-	static TSharedRef<const FUniqueNetId> GetUniqueIdFromString(FString UniqueIdString, bool bIsEncoded = true);
+	static FUniqueNetIdRef GetUniqueIdFromString(FString UniqueIdString, bool bIsEncoded = true);
 
 	/**
 	* Gets UniqueId for the specific platform (used to properly call platform functions)
 	*/
-	static TSharedPtr<const FUniqueNetId> GetPlatformUniqueIdFromUniqueId(const FUniqueNetId& UniqueId);
+	static FUniqueNetIdPtr GetPlatformUniqueIdFromUniqueId(const FUniqueNetId& UniqueId);
 
 	// ~Begin AccelByte Util 
 	static bool IsPlayerOnSamePlatform(const FUniqueNetId& UniqueId);
@@ -46,12 +48,12 @@ public:
 	/**
 	 * Convert Platform User Id string into UniqueNetId
 	 */
-	static TSharedPtr<const FUniqueNetId> GetPlatformUniqueIdFromPlatformUserId(const FString& PlatformUserId);
+	static FUniqueNetIdPtr GetPlatformUniqueIdFromPlatformUserId(const FString& PlatformUserId);
 	
 	/**
 	 * Return AccelByte userId, decode if it's composite userId
 	 */
-	static TSharedRef<const FUniqueNetId> GetAccelByteUserIdFromUniqueId(const FUniqueNetId& UniqueId);
+	static FUniqueNetIdRef GetAccelByteUserIdFromUniqueId(const FUniqueNetId& UniqueId);
 
 	/**
 	 * Convert a native subsystem name to a login type enum value. Used to determine which path the token from the native OSS

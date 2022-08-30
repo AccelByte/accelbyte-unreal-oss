@@ -45,6 +45,9 @@ bool FOnlineSubsystemAccelByte::Init()
 	UserCache = MakeShared<FOnlineUserCacheAccelByte, ESPMode::ThreadSafe>(this);
 	AgreementInterface = MakeShared<FOnlineAgreementAccelByte, ESPMode::ThreadSafe>(this);
 	WalletInterface = MakeShared<FOnlineWalletAccelByte, ESPMode::ThreadSafe>(this);
+	EntitlementsInterface = MakeShared<FOnlineEntitlementsAccelByte, ESPMode::ThreadSafe>(this);
+	StoreV2Interface = MakeShared<FOnlineStoreV2AccelByte, ESPMode::ThreadSafe>(this);
+	PurchaseInterface = MakeShared<FOnlinePurchaseAccelByte, ESPMode::ThreadSafe>(this);
 	
 	// Create an async task manager and a thread for the manager to process tasks on
 	AsyncTaskManager = MakeShared<FOnlineAsyncTaskManagerAccelByte, ESPMode::ThreadSafe>(this);
@@ -95,7 +98,9 @@ bool FOnlineSubsystemAccelByte::Shutdown()
 	UserCache.Reset();
 	AgreementInterface.Reset();
 	WalletInterface.Reset();
-
+	EntitlementsInterface.Reset();
+	StoreV2Interface.Reset();
+	PurchaseInterface.Reset();
 	return true;
 }
 
@@ -152,12 +157,12 @@ IOnlinePresencePtr FOnlineSubsystemAccelByte::GetPresenceInterface() const
 
 IOnlineStoreV2Ptr FOnlineSubsystemAccelByte::GetStoreV2Interface() const 
 {
-	return nullptr;
+	return StoreV2Interface;
 }
 
 IOnlinePurchasePtr FOnlineSubsystemAccelByte::GetPurchaseInterface() const 
 {
-	return nullptr;
+	return PurchaseInterface;
 }
 
 FOnlineUserCacheAccelBytePtr FOnlineSubsystemAccelByte::GetUserCache() const
@@ -167,7 +172,7 @@ FOnlineUserCacheAccelBytePtr FOnlineSubsystemAccelByte::GetUserCache() const
 
 IOnlineEntitlementsPtr FOnlineSubsystemAccelByte::GetEntitlementsInterface() const
 {
-	return nullptr;
+	return EntitlementsInterface;
 }
 
 IOnlineAchievementsPtr FOnlineSubsystemAccelByte::GetAchievementsInterface() const
@@ -471,6 +476,16 @@ AccelByte::FApiClientPtr FOnlineSubsystemAccelByte::GetApiClient(int32 LocalUser
 	}
 
 	return ApiClient;
+}
+
+FString FOnlineSubsystemAccelByte::GetLanguage()
+{
+	return Language;
+}
+
+void FOnlineSubsystemAccelByte::SetLanguage(const FString& InLanguage)
+{
+	Language = InLanguage;
 }
 
 #undef LOCTEXT_NAMESPACE
