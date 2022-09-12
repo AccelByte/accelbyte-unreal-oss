@@ -1,9 +1,10 @@
-// Copyright (c) 2021 AccelByte Inc. All Rights Reserved.
+// Copyright (c) 2022 AccelByte Inc. All Rights Reserved.
 // This is licensed software from AccelByte Inc, for limitations
 // and restrictions contact your company contract manager.
 
 #include "OnlineSubsystemAccelByte.h"
-#include "OnlineSessionInterfaceAccelByte.h"
+#include "OnlineSessionInterfaceV1AccelByte.h"
+#include "OnlineSessionInterfaceV2AccelByte.h"
 #include "OnlineIdentityInterfaceAccelByte.h"
 #include "OnlineExternalUIInterfaceAccelByte.h"
 #include "OnlineUserInterfaceAccelByte.h"
@@ -27,6 +28,7 @@
 #if WITH_DEV_AUTOMATION_TESTS
 #include "ExecTests/ExecTestBase.h"
 #endif
+#include "OnlineAgreementInterfaceAccelByte.h"
 
 #define LOCTEXT_NAMESPACE "FOnlineSubsystemAccelByte"
 #define PARTY_SESSION_TYPE "party"
@@ -34,7 +36,13 @@
 bool FOnlineSubsystemAccelByte::Init()
 {
 	// Create each shared instance of our interface implementations, passing in ourselves as the parent
-	SessionInterface = MakeShared<FOnlineSessionAccelByte, ESPMode::ThreadSafe>(this);
+#if AB_USE_V2_SESSIONS
+	SessionInterface = MakeShared<FOnlineSessionV2AccelByte, ESPMode::ThreadSafe>(this);
+	StaticCastSharedPtr<FOnlineSessionV2AccelByte>(SessionInterface)->Init();
+#else
+	SessionInterface = MakeShared<FOnlineSessionV1AccelByte, ESPMode::ThreadSafe>(this);
+#endif
+
 	IdentityInterface = MakeShared<FOnlineIdentityAccelByte, ESPMode::ThreadSafe>(this);
 	ExternalUIInterface = MakeShared<FOnlineExternalUIAccelByte, ESPMode::ThreadSafe>(this);
 	UserInterface = MakeShared<FOnlineUserAccelByte, ESPMode::ThreadSafe>(this);
@@ -190,6 +198,18 @@ FOnlineWalletAccelBytePtr FOnlineSubsystemAccelByte::GetWalletInterface() const
 	return WalletInterface;
 }
 
+#if (ENGINE_MAJOR_VERSION == 4 && ENGINE_MINOR_VERSION <= 25)
+IOnlineTurnBasedPtr FOnlineSubsystemAccelByte::GetTurnBasedInterface() const
+{
+	return nullptr;
+}
+
+IOnlineTournamentPtr FOnlineSubsystemAccelByte::GetTournamentInterface() const
+{
+	return nullptr;
+}
+#endif
+
 bool FOnlineSubsystemAccelByte::IsAutoConnectLobby() const
 {
 	return bIsAutoLobbyConnectAfterLoginSuccess;
@@ -199,7 +219,6 @@ bool FOnlineSubsystemAccelByte::IsMultipleLocalUsersEnabled() const
 {
 	return bIsMultipleLocalUsersEnabled;
 }
-
 
 bool FOnlineSubsystemAccelByte::Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar)
 {
@@ -229,16 +248,7 @@ bool FOnlineSubsystemAccelByte::Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputD
 
 bool FOnlineSubsystemAccelByte::IsEnabled() const
 {
-	// Check the ini for disabling AB
-	bool bEnableAB = FOnlineSubsystemImpl::IsEnabled();
-#if UE_EDITOR
-	// NOTE @damar this line code always disabled when using Editor (?)
-	/*if (bEnableAB)
-	{
-		bEnableAB = IsRunningDedicatedServer() || IsRunningGame();
-	}*/
-#endif
-	return bEnableAB;
+	return FOnlineSubsystemImpl::IsEnabled();
 }
 
 bool FOnlineSubsystemAccelByte::Tick(float DeltaTime) 
@@ -253,7 +263,7 @@ bool FOnlineSubsystemAccelByte::Tick(float DeltaTime)
 		AsyncTaskManager->GameTick();
 	}
 
-	if(SessionInterface.IsValid())
+	if (SessionInterface.IsValid())
 	{
 		SessionInterface->Tick(DeltaTime);
 	}
@@ -405,24 +415,25 @@ FString FOnlineSubsystemAccelByte::GetSimplifiedNativePlatformName(const FString
 	return PlatformName;
 }
 
-void FOnlineSubsystemAccelByte::OnLoginCallback(int LocalUserNum, bool bWasSuccessful, const FUniqueNetId& UserId, const FString& Error)
+void FOnlineSubsystemAccelByte::OnLoginCallback(int32 LocalUserNum, bool bWasSuccessful, const FUniqueNetId& UserId, const FString& Error)
 {
-	if (bWasSuccessful)
+	if (!bWasSuccessful)
 	{
-		// listen to Message Notif Lobby
-		const AccelByte::FApiClientPtr ApiClient = IdentityInterface->GetApiClient(LocalUserNum); 
-		const AccelByte::Api::Lobby::FMessageNotif Delegate = AccelByte::Api::Lobby::FMessageNotif::CreateRaw(this, &FOnlineSubsystemAccelByte::OnMessageNotif, LocalUserNum);		
-		if (ApiClient.IsValid())
-		{
-			ApiClient->Lobby.SetMessageNotifDelegate(Delegate);
-			if (bIsAutoLobbyConnectAfterLoginSuccess)
-			{
-				if (IdentityInterface.IsValid())
-				{
-					IdentityInterface->ConnectAccelByteLobby(LocalUserNum);
-				}
-			}
-		}
+		return;
+	}
+
+	// listen to Message Notif Lobby
+	const AccelByte::FApiClientPtr ApiClient = IdentityInterface->GetApiClient(LocalUserNum); 
+	const AccelByte::Api::Lobby::FMessageNotif Delegate = AccelByte::Api::Lobby::FMessageNotif::CreateRaw(this, &FOnlineSubsystemAccelByte::OnMessageNotif, LocalUserNum);		
+	if (!ApiClient.IsValid())
+	{
+		return;
+	}
+	
+	ApiClient->Lobby.SetMessageNotifDelegate(Delegate);
+	if (bIsAutoLobbyConnectAfterLoginSuccess && IdentityInterface.IsValid())
+	{
+		IdentityInterface->ConnectAccelByteLobby(LocalUserNum);
 	}
 }
 

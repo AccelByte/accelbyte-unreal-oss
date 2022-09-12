@@ -1,4 +1,4 @@
-// Copyright (c) 2021 AccelByte Inc. All Rights Reserved.
+// Copyright (c) 2022 AccelByte Inc. All Rights Reserved.
 // This is licensed software from AccelByte Inc, for limitations
 // and restrictions contact your company contract manager.
 
@@ -19,7 +19,7 @@ public:
 	{
 	}
 
-	friend inline FNboSerializeToBufferAccelByte& operator<<(FNboSerializeToBufferAccelByte& Ar, const FOnlineSessionInfoAccelByte& SessionInfo)
+	friend inline FNboSerializeToBufferAccelByte& operator<<(FNboSerializeToBufferAccelByte& Ar, const FOnlineSessionInfoAccelByteV1& SessionInfo)
 	{
 		check(SessionInfo.GetHostAddr().IsValid());
 		Ar << *SessionInfo.GetSessionId().ToString();
@@ -47,7 +47,7 @@ public:
 	{
 	}
 	
-	friend inline FNboSerializeFromBufferAccelByte& operator>>(FNboSerializeFromBufferAccelByte& Ar, FOnlineSessionInfoAccelByte& SessionInfo)
+	friend inline FNboSerializeFromBufferAccelByte& operator>>(FNboSerializeFromBufferAccelByte& Ar, FOnlineSessionInfoAccelByteV1& SessionInfo)
 	{
 		check(SessionInfo.GetHostAddr().IsValid());
 		Ar >> *SessionInfo.GetSessionIdRef();

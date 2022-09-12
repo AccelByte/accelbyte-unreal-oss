@@ -1,7 +1,6 @@
-// Copyright (c) 2021 AccelByte Inc. All Rights Reserved.
+// Copyright (c) 2022 AccelByte Inc. All Rights Reserved.
 // This is licensed software from AccelByte Inc, for limitations
 // and restrictions contact your company contract manager.
-
 #pragma once
 
 #include "OnlineAsyncTaskManager.h"
@@ -16,6 +15,63 @@
 #define AB_OSS_ASYNC_TASK_TRACE_BEGIN(Format, ...) AB_OSS_ASYNC_TASK_TRACE_BEGIN_VERBOSITY(Verbose, Format, ##__VA_ARGS__)
 #define AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Verbosity, Format, ...) UE_LOG_AB(Verbosity, TEXT("<<< %s::%s (AsyncTask method) has finished execution. ") Format, *GetTaskName(), *FString(__func__), ##__VA_ARGS__)
 #define AB_OSS_ASYNC_TASK_TRACE_END(Format, ...) AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Verbose, Format, ##__VA_ARGS__)
+
+/**
+ * Declares two methods for SDK delegate handlers. Use in a header file to define these for the task, and then use
+ * AB_ASYNC_TASK_DEFINE_SDK_DELEGATES to define the bindings to these delegates in the async task logic.
+ *
+ * @param Verb Action that this delegate is handling
+ */
+#define AB_ASYNC_TASK_DECLARE_SDK_DELEGATES(Verb) void On##Verb##Success(); \
+	void On##Verb##Error(int32 ErrorCode, const FString& ErrorMessage);
+
+/**
+ * Declares two methods for SDK delegate handlers. Use in a header file to define these for the task, and then use
+ * AB_ASYNC_TASK_DEFINE_SDK_DELEGATES to define the bindings to these delegates in the async task logic.
+ * 
+ * @param Verb Action that this delegate is handling
+ * @param SuccessType Type that the success delegate will recieve
+ */
+#define AB_ASYNC_TASK_DECLARE_SDK_DELEGATES_WITH_RESULT(Verb, SuccessType) void On##Verb##Success(const SuccessType& Result); \
+	void On##Verb##Error(int32 ErrorCode, const FString& ErrorMessage);
+
+/**
+ * Defines two delegates for use in an SDK call wrapped in an async task. Success delegate will have the name
+ * On{Verb}SuccessDelegate, and be bound to the On{Verb}Success method of the class. Error delegate will have
+ * the name On{Verb}ErrorDelegate, and be bound to the On{Verb}Error method of the class.
+ * 
+ * @param AsyncTaskClass Name of the class that we are binding delegate methods to
+ * @param Verb Name of the action that is being handled by the two delegates, effects the name of the final delegates
+ * @param SuccessType Delegate type for the success delegate
+ */
+#define AB_ASYNC_TASK_DEFINE_SDK_DELEGATES(AsyncTaskClass, Verb, SuccessType) \
+	const SuccessType On##Verb##SuccessDelegate = SuccessType::CreateRaw(this, &AsyncTaskClass::On##Verb##Success); \
+	const FErrorHandler On##Verb##ErrorDelegate = FErrorHandler::CreateRaw(this, &AsyncTaskClass::On##Verb##Error);
+
+/**
+ * Convenience macro for async tasks to ensure that a expression evaluates to true, otherwise throwing an InvalidState error in the task.
+ * This will also stop execution of the task by returning out.
+ * 
+ * @param Expression Expression that you want to evaluate to true, or fail the task
+ * @param Message Message to log in a trace if the expression is false. This will automatically be wrapped in TEXT macro, so no need to do that manually.
+ */
+#define AB_ASYNC_TASK_ENSURE(Expression, Message, ...) if (!ensure(Expression))   \
+{                                                                                 \
+	AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT(Message), ##__VA_ARGS__); \
+	CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState);                 \
+	return;                                                                       \
+}
+
+/**
+ * Convenience macro to log a request error and fail a task.
+ * 
+ * @param Message Message to log for the request that failed
+ * @param ErrorCode Error code for the request that failed
+ * @param ErrorMessage Error message for the request that failed
+ */
+#define AB_ASYNC_TASK_REQUEST_FAILED(Message, ErrorCode, ErrorMessage, ...) const FString LogString = FString::Printf(TEXT(Message), ##__VA_ARGS__); \
+	UE_LOG_AB(Warning, TEXT("%s. Error code: %s; Error message: %s"), *LogString, ErrorCode, *ErrorMessage); \
+	CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
 
 /**
  * Enum to describe what state an async task is in currently
@@ -57,6 +113,15 @@ const static inline FString AsyncTaskCompleteStateToString(const EAccelByteAsync
 	return TEXT("Unknown");
 }
 
+enum class EAccelByteAsyncTaskFlags : uint8
+{
+	None = 0, // Special state for having no flags set on the task
+	UseTimeout = 1, // Whether to track the task with a timeout that will automaticlaly end once the time limit is reached
+	ServerTask = 2 // Whether this is a server async task, meaning that we won't have API clients to retrieve
+};
+
+#define ASYNC_TASK_FLAG_BIT(Flag) static_cast<uint8>(Flag)
+
 /**
  * Base class for any async tasks created by the AccelByte OSS.
  * 
@@ -78,10 +143,24 @@ public:
 	 * 
 	 * @param InBShouldUseTimeout Whether any child of this task will by default use a timeout mechanism on Tick
 	 */
-	explicit FOnlineAsyncTaskAccelByte(FOnlineSubsystemAccelByte* const InABSubsystem, bool InBShouldUseTimeout=false)
-		: FOnlineAsyncTaskBasic(InABSubsystem)
-		, bShouldUseTimeout(InBShouldUseTimeout)
+	explicit FOnlineAsyncTaskAccelByte(FOnlineSubsystemAccelByte* const InABSubsystem, bool bInShouldUseTimeout=false)
+		: FOnlineAsyncTaskAccelByte(InABSubsystem, (bInShouldUseTimeout) ? ASYNC_TASK_FLAG_BIT(EAccelByteAsyncTaskFlags::UseTimeout) : ASYNC_TASK_FLAG_BIT(EAccelByteAsyncTaskFlags::None))
 	{
+	}
+
+	/**
+	 * Breaking const placement here as parent class has the InSubsystem defined as 'T* const'. Trying to define as 'const T*' gives error C2664.
+	 *
+	 * Child classes that use this constructor will also need to use this convention.
+	 *
+	 * @param InBShouldUseTimeout Whether any child of this task will by default use a timeout mechanism on Tick
+	 */
+	explicit FOnlineAsyncTaskAccelByte(FOnlineSubsystemAccelByte* const InABSubsystem, uint8 InFlags)
+		: FOnlineAsyncTaskBasic(InABSubsystem)
+		, Flags(InFlags)
+	{
+		bShouldUseTimeout = HasFlag(EAccelByteAsyncTaskFlags::UseTimeout);
+
 		// NOTE(Maxwell, 7/8/2021): Due to a bug where we cannot cancel requests on the SDK side, as well as cancel the delegates
 		// that are supposed to run with these requests, if a timeout is quicker than a request could be received from the backend
 		// we may get a crash from that. To combat this for now, we want to set our default timeout to always be one second higher
@@ -123,17 +202,22 @@ public:
 			SetLastUpdateTimeToCurrentTime();
 		}
 
-		if (LocalUserNum != INVALID_CONTROLLERID)
+		// Do not attempt to get API clients for server async tasks, as servers do not have API client support.
+		// We also don't need to get the corresponding user ID for the server, as server's don't have user IDs.
+		if (!HasFlag(EAccelByteAsyncTaskFlags::ServerTask))
 		{
-			GetApiClient(LocalUserNum);
-		}
-		else if (UserId.IsValid())
-		{
-			GetApiClient(UserId.ToSharedRef());
-		}
+			if (LocalUserNum != INVALID_CONTROLLERID)
+			{
+				GetApiClient(LocalUserNum);
+			}
+			else if (UserId.IsValid())
+			{
+				GetApiClient(UserId.ToSharedRef());
+			}
 
-		// Get corresponding UserId or LocalUserNum for player that started this task
-		GetOtherUserIdentifiers();
+			// Get corresponding UserId or LocalUserNum for player that started this task
+			GetOtherUserIdentifiers();
+		}
 	}
 
 	virtual FString ToString() const override
@@ -176,6 +260,9 @@ protected:
 
 	/** API client that should be used for this task, use GetApiClient to get a valid instance */
 	AccelByte::FApiClientPtr ApiClient;
+
+	/** Flags associated with this async task */
+	uint8 Flags = 0;
 
 	/**
 	 * Basic method to get the current name of the task, used for ToString on tasks as well as trace logs.
@@ -315,5 +402,14 @@ protected:
 	 * Handler for when the async task has officially kicked off work (i.e. when we have moved off the game thread)
 	 */
 	virtual void OnTaskStartWorking() {}
+
+	/**
+	 * Whether or not this task has the flag specified.
+	 */
+	bool HasFlag(const EAccelByteAsyncTaskFlags& Flag) const
+	{
+		uint8 FlagBit = static_cast<uint8>(Flag);
+		return (Flags & FlagBit) == FlagBit;
+	}
 
 };

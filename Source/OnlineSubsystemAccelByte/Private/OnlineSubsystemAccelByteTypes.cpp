@@ -82,18 +82,25 @@ FUniqueNetIdAccelByteResource::FUniqueNetIdAccelByteResource()
 	Type = ACCELBYTE_SUBSYSTEM;
 }
 
+// #NOTE (Maxwell): EOS is also currently just disabling deprecation warnings for FUniqueNetIdString constructors
 FUniqueNetIdAccelByteResource::FUniqueNetIdAccelByteResource(const FString& InUniqueNetId)
+PRAGMA_DISABLE_DEPRECATION_WARNINGS
 	: FUniqueNetIdString(InUniqueNetId, ACCELBYTE_SUBSYSTEM)
+PRAGMA_ENABLE_DEPRECATION_WARNINGS
 {
 }
 
 FUniqueNetIdAccelByteResource::FUniqueNetIdAccelByteResource(FString&& InUniqueNetId)
+PRAGMA_DISABLE_DEPRECATION_WARNINGS
 	: FUniqueNetIdString(MoveTemp(InUniqueNetId), ACCELBYTE_SUBSYSTEM)
+PRAGMA_ENABLE_DEPRECATION_WARNINGS
 {
 }
 
 FUniqueNetIdAccelByteResource::FUniqueNetIdAccelByteResource(const FUniqueNetId& Src)
+PRAGMA_DISABLE_DEPRECATION_WARNINGS
 	: FUniqueNetIdString(Src)
+PRAGMA_ENABLE_DEPRECATION_WARNINGS
 {
 	check(GetType() == ACCELBYTE_SUBSYSTEM);
 }
@@ -401,7 +408,7 @@ void FUniqueNetIdAccelByteUser::DecodeIDElements()
 
 #pragma region FOnlineSessionInfoAccelByte
 
-FOnlineSessionInfoAccelByte::FOnlineSessionInfoAccelByte()
+FOnlineSessionInfoAccelByteV1::FOnlineSessionInfoAccelByteV1()
 	: FOnlineSessionInfo()
 	, HostAddr(ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM)->CreateInternetAddr())
 	, RemoteId(TEXT(""))
@@ -409,7 +416,7 @@ FOnlineSessionInfoAccelByte::FOnlineSessionInfoAccelByte()
 {
 }
 
-FOnlineSessionInfoAccelByte::FOnlineSessionInfoAccelByte(const FOnlineSessionInfoAccelByte& Other)
+FOnlineSessionInfoAccelByteV1::FOnlineSessionInfoAccelByteV1(const FOnlineSessionInfoAccelByteV1& Other)
 	: FOnlineSessionInfo(Other)
 	, HostAddr(Other.HostAddr->Clone())
 	, RemoteId(Other.RemoteId)
@@ -419,39 +426,39 @@ FOnlineSessionInfoAccelByte::FOnlineSessionInfoAccelByte(const FOnlineSessionInf
 {
 }
 
-bool FOnlineSessionInfoAccelByte::operator==(const FOnlineSessionInfoAccelByte& Other) const
+bool FOnlineSessionInfoAccelByteV1::operator==(const FOnlineSessionInfoAccelByteV1& Other) const
 {
 	return false;
 }
 
-FOnlineSessionInfoAccelByte& FOnlineSessionInfoAccelByte::operator=(const FOnlineSessionInfoAccelByte& Src)
+FOnlineSessionInfoAccelByteV1& FOnlineSessionInfoAccelByteV1::operator=(const FOnlineSessionInfoAccelByteV1& Src)
 {
 	return *this;
 }
 
-const uint8* FOnlineSessionInfoAccelByte::GetBytes() const
+const uint8* FOnlineSessionInfoAccelByteV1::GetBytes() const
 {
 	return nullptr;
 }
 
-int32 FOnlineSessionInfoAccelByte::GetSize() const
+int32 FOnlineSessionInfoAccelByteV1::GetSize() const
 {
 	return sizeof(uint64) + sizeof(TSharedPtr<class FInternetAddr>);
 }
 
-bool FOnlineSessionInfoAccelByte::IsValid() const
+bool FOnlineSessionInfoAccelByteV1::IsValid() const
 {
 	const bool bIsValidDedicatedSession = (SessionId->IsValid() && (HostAddr.IsValid() && HostAddr->IsValid()));
 	const bool bIsValidP2PSession = !RemoteId.IsEmpty();
 	return bIsValidDedicatedSession || bIsValidP2PSession;
 }
 
-FString FOnlineSessionInfoAccelByte::ToString() const
+FString FOnlineSessionInfoAccelByteV1::ToString() const
 {
 	return SessionId->ToString();
 }
 
-void FOnlineSessionInfoAccelByte::SetupP2PRelaySessionInfo(const FOnlineSubsystemAccelByte& Subsystem)
+void FOnlineSessionInfoAccelByteV1::SetupP2PRelaySessionInfo(const FOnlineSubsystemAccelByte& Subsystem)
 {
 	// Read the IP from the system
 	bool bCanBindAll;
@@ -477,7 +484,7 @@ void FOnlineSessionInfoAccelByte::SetupP2PRelaySessionInfo(const FOnlineSubsyste
 	SessionId = MakeShared<FUniqueNetIdAccelByteResource>(OwnerGuid.ToString());
 }
 
-FString FOnlineSessionInfoAccelByte::ToDebugString() const
+FString FOnlineSessionInfoAccelByteV1::ToDebugString() const
 {
 	if (!RemoteId.IsEmpty())
 	{
@@ -490,47 +497,47 @@ FString FOnlineSessionInfoAccelByte::ToDebugString() const
 		*SessionId->ToDebugString());
 }
 
-const FString& FOnlineSessionInfoAccelByte::GetRemoteId() const
+const FString& FOnlineSessionInfoAccelByteV1::GetRemoteId() const
 {
 	return RemoteId;
 }
 
-void FOnlineSessionInfoAccelByte::SetRemoteId(const FString& InRemoteId)
+void FOnlineSessionInfoAccelByteV1::SetRemoteId(const FString& InRemoteId)
 {
 	RemoteId = InRemoteId;
 }
 
-TSharedRef<FUniqueNetIdAccelByteResource> FOnlineSessionInfoAccelByte::GetSessionIdRef() const
+TSharedRef<FUniqueNetIdAccelByteResource> FOnlineSessionInfoAccelByteV1::GetSessionIdRef() const
 {
 	return SessionId;
 }
 
-const FUniqueNetId& FOnlineSessionInfoAccelByte::GetSessionId() const
+const FUniqueNetId& FOnlineSessionInfoAccelByteV1::GetSessionId() const
 {
 	return SessionId.Get();
 }
 
-void FOnlineSessionInfoAccelByte::SetSessionId(const FString& InSessionId)
+void FOnlineSessionInfoAccelByteV1::SetSessionId(const FString& InSessionId)
 {
 	SessionId = MakeShared<FUniqueNetIdAccelByteResource>(InSessionId);
 }
 
-TSharedPtr<FInternetAddr> FOnlineSessionInfoAccelByte::GetHostAddr() const
+TSharedPtr<FInternetAddr> FOnlineSessionInfoAccelByteV1::GetHostAddr() const
 {
 	return HostAddr;
 }
 
-void FOnlineSessionInfoAccelByte::SetHostAddr(const TSharedRef<FInternetAddr>& InHostAddr)
+void FOnlineSessionInfoAccelByteV1::SetHostAddr(const TSharedRef<FInternetAddr>& InHostAddr)
 {
 	HostAddr = InHostAddr;
 }
 
-bool FOnlineSessionInfoAccelByte::HasTeamInfo() const
+bool FOnlineSessionInfoAccelByteV1::HasTeamInfo() const
 {
 	return Teams.Num() > 0;
 }
 
-int32 FOnlineSessionInfoAccelByte::GetTeamIndex(const FUniqueNetId& UserId) const
+int32 FOnlineSessionInfoAccelByteV1::GetTeamIndex(const FUniqueNetId& UserId) const
 {
 	const int32* FoundTeamIndex = Teams.Find(UserId.AsShared());
 	if (FoundTeamIndex != nullptr)
@@ -541,40 +548,40 @@ int32 FOnlineSessionInfoAccelByte::GetTeamIndex(const FUniqueNetId& UserId) cons
 	return INDEX_NONE;
 }
 
-const TUniqueNetIdMap<int32>& FOnlineSessionInfoAccelByte::GetTeams() const
+const TUniqueNetIdMap<int32>& FOnlineSessionInfoAccelByteV1::GetTeams() const
 {
 	return Teams;
 }
 
-void FOnlineSessionInfoAccelByte::SetTeams(const TUniqueNetIdMap<int32>& InTeams)
+void FOnlineSessionInfoAccelByteV1::SetTeams(const TUniqueNetIdMap<int32>& InTeams)
 {
 	Teams = InTeams;
 	OnTeamInformationReceivedDelegate.ExecuteIfBound(Teams);
 }
 
-bool FOnlineSessionInfoAccelByte::HasPartyInfo() const
+bool FOnlineSessionInfoAccelByteV1::HasPartyInfo() const
 {
 	return Parties.Num() > 0;
 }
 
-const TSessionPartyArray& FOnlineSessionInfoAccelByte::GetParties() const
+const TSessionPartyArray& FOnlineSessionInfoAccelByteV1::GetParties() const
 {
 	return Parties;
 }
 
 
-void FOnlineSessionInfoAccelByte::SetParties(const TSessionPartyArray& InParties)
+void FOnlineSessionInfoAccelByteV1::SetParties(const TSessionPartyArray& InParties)
 {
 	Parties = InParties;
 	OnPartyInformationReceivedDelegate.ExecuteIfBound(Parties);
 }
 
-const FAccelByteModelsMatchmakingResult& FOnlineSessionInfoAccelByte::GetSessionResult() const
+const FAccelByteModelsMatchmakingResult& FOnlineSessionInfoAccelByteV1::GetSessionResult() const
 {
 	return SessionResult;
 }
 
-void FOnlineSessionInfoAccelByte::SetSessionResult(const FAccelByteModelsMatchmakingResult& InSessionResult)
+void FOnlineSessionInfoAccelByteV1::SetSessionResult(const FAccelByteModelsMatchmakingResult& InSessionResult)
 {
 	SessionResult = InSessionResult;
 }

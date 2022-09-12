@@ -1,10 +1,12 @@
-// Copyright (c) 2021 AccelByte Inc. All Rights Reserved.
+// Copyright (c) 2022 AccelByte Inc. All Rights Reserved.
 // This is licensed software from AccelByte Inc, for limitations
 // and restrictions contact your company contract manager.
+
 #pragma once
 #include "OnlineSubsystemAccelByteTypes.h"
 
 class FOnlineSubsystemAccelByte;
+class IOnlineSubsystem;
 
 /**
  * @brief Plain data structure representing an AccelByte user that is cached locally.
@@ -26,19 +28,9 @@ public:
 	FString DisplayName;
 
 	/**
-	 * @brief URL for the user's Avatar icon on AccelByte platform, or blank if none found
+	 * @brief Public facing ID for this user, usually used as a friend code
 	 */
-	FString AvatarUrl;
-
-	/**
-	 * @brief URL for the user's small Avatar icon on AccelByte platform, or blank if none found
-	 */
-	FString AvatarSmallUrl;
-
-	/**
-	 * @brief URL for the user's large Avatar icon on AccelByte platform, or blank if none found
-	 */
-	FString AvatarLargeUrl;
+	FString PublicId;
 
 	/**
 	 * @brief Custom attributes of the user's profile
@@ -96,6 +88,23 @@ DECLARE_DELEGATE_TwoParams(FOnQueryUsersComplete, bool /*bIsSuccessful*/, TArray
 class ONLINESUBSYSTEMACCELBYTE_API FOnlineUserCacheAccelByte
 {
 public:
+	/**
+	 * Convenience method to get an instance of this interface from the subsystem passed in.
+	 *
+	 * @param Subsystem Subsystem instance that we wish to get this interface from
+	 * @param OutInterfaceInstance Instance of the interface that we got from the subsystem, or nullptr if not found
+	 * @returns boolean that is true if we could get an instance of the interface, false otherwise
+	 */
+	static bool GetFromSubsystem(const IOnlineSubsystem* Subsystem, TSharedPtr<FOnlineUserCacheAccelByte, ESPMode::ThreadSafe>& OutInterfaceInstance);
+
+	/**
+	 * Convenience method to get an instance of this interface from the subsystem associated with the world passed in.
+	 *
+	 * @param World World instance that we wish to get the interface from
+	 * @param OutInterfaceInstance Instance of the interface that we got from the subsystem, or nullptr if not found
+	 * @returns boolean that is true if we could get an instance of the interface, false otherwise
+	 */
+	static bool GetFromWorld(const UWorld* World, TSharedPtr<FOnlineUserCacheAccelByte, ESPMode::ThreadSafe>& OutInterfaceInstance);
 
 	/**
 	 * Queries all of the IDs listed in the array on the AccelByte backend for user information, including platform IDs.

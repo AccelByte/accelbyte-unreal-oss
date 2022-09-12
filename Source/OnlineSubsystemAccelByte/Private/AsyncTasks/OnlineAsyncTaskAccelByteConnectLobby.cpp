@@ -7,7 +7,11 @@
 #include "OnlineIdentityInterfaceAccelByte.h"
 #include "OnlineFriendsInterfaceAccelByte.h"
 #include "OnlinePartyInterfaceAccelByte.h"
-#include "OnlineSessionInterfaceAccelByte.h"
+#if AB_USE_V2_SESSIONS
+#include "OnlineSessionInterfaceV2AccelByte.h"
+#else
+#include "OnlineSessionInterfaceV1AccelByte.h"
+#endif
 
 FOnlineAsyncTaskAccelByteConnectLobby::FOnlineAsyncTaskAccelByteConnectLobby(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InLocalUserId)
 	: FOnlineAsyncTaskAccelByte(InABInterface)
@@ -75,19 +79,32 @@ void FOnlineAsyncTaskAccelByteConnectLobby::OnLobbyConnectSuccess()
 		FriendsInterface->RegisterRealTimeLobbyDelegates(LocalUserNum);
 	}
 
-	// Also register all delegates for the party interface to get notifications for party actions
+	// Grab party interface for lobby delegates and to register realtime notification handlers.
+	// #NOTE Not guarded in V2 as the lobby close and reconnect delegates rely on a valid interface instance. Any
+	// functionality is guarded by an if preprocessor in those delegates anyway.
 	const TSharedPtr<FOnlinePartySystemAccelByte, ESPMode::ThreadSafe> PartyInterface = StaticCastSharedPtr<FOnlinePartySystemAccelByte>(Subsystem->GetPartyInterface());
-	if (PartyInterface.IsValid())
-	{
-		PartyInterface->RegisterRealTimeLobbyDelegates(UserId.ToSharedRef());
-	}
 
-	// Also register all delegates for the party interface to get notifications for party actions
-	const TSharedPtr<FOnlineSessionAccelByte, ESPMode::ThreadSafe> SessionInterface = StaticCastSharedPtr<FOnlineSessionAccelByte>(Subsystem->GetSessionInterface());
+#if AB_USE_V2_SESSIONS
+	// Register delegates for the V2 session interface
+	const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(Subsystem->GetSessionInterface());
+	if (ensure(SessionInterface.IsValid()))
+	{
+		SessionInterface->RegisterSessionNotificationDelegates(UserId.ToSharedRef().Get());
+	}
+#else
+	// Also register all delegates for the V1 session interface to get updates for matchmaking
+	const TSharedPtr<FOnlineSessionV1AccelByte, ESPMode::ThreadSafe> SessionInterface = StaticCastSharedPtr<FOnlineSessionV1AccelByte>(Subsystem->GetSessionInterface());
 	if (SessionInterface.IsValid())
 	{
 		SessionInterface->RegisterRealTimeLobbyDelegates(LocalUserNum);
 	}
+
+	// Also register all delegates for the party interface to get notifications for party actions
+	if (PartyInterface.IsValid())
+	{
+		PartyInterface->RegisterRealTimeLobbyDelegates(UserId.ToSharedRef());
+	}
+#endif
 
 	if (IdentityInterface.IsValid() && PartyInterface.IsValid())
 	{
@@ -137,7 +154,7 @@ void FOnlineAsyncTaskAccelByteConnectLobby::OnLobbyDisconnectedNotif(const FAcce
 void FOnlineAsyncTaskAccelByteConnectLobby::OnLobbyConnectionClosed(int32 StatusCode, const FString& Reason, bool WasClean, int32 InLocalUserNum, const FOnlineIdentityAccelBytePtr IdentityInterface, const FOnlinePartySystemAccelBytePtr PartyInterface)
 {
 	UE_LOG_AB(Warning, TEXT("Lobby connection closed. Reason '%s' Code : '%d'"), *Reason, StatusCode);
-	
+
 	if (!IdentityInterface.IsValid() || !PartyInterface.IsValid())
 	{
 		UE_LOG_AB(Warning, TEXT("Error due to either IdentityInterface or PartyInterface is invalid"));
@@ -166,8 +183,10 @@ void FOnlineAsyncTaskAccelByteConnectLobby::OnLobbyConnectionClosed(int32 Status
 		AccelByte::FApiClientPtr ApiClient = IdentityInterface->GetApiClient(InLocalUserNum);
 		ApiClient->CredentialsRef->ForgetAll();
 
+#if !AB_USE_V2_SESSIONS
 		TSharedPtr<FUniqueNetIdAccelByteUser const> LocalUserId = StaticCastSharedPtr<FUniqueNetIdAccelByteUser const>(IdentityInterface->GetUniquePlayerId(InLocalUserNum));
 		PartyInterface->RemovePartyFromInterface(LocalUserId.ToSharedRef());
+#endif
 	}
 	IdentityInterface->Logout(InLocalUserNum, LogoutReason);
 }
@@ -176,14 +195,15 @@ void FOnlineAsyncTaskAccelByteConnectLobby::OnLobbyReconnected(int32 InLocalUser
 {
 	UE_LOG_AB(Log, TEXT("Lobby successfully reconnected."));
 
+#if !AB_USE_V2_SESSIONS
 	if (IdentityInterface.IsValid() && PartyInterface.IsValid())
 	{
 		TSharedPtr<FUniqueNetIdAccelByteUser const> LocalUserId = StaticCastSharedPtr<FUniqueNetIdAccelByteUser const>(IdentityInterface->GetUniquePlayerId(InLocalUserNum));
 
 		PartyInterface->RemovePartyFromInterface(LocalUserId.ToSharedRef());
-
 		PartyInterface->RestoreParties(LocalUserId.ToSharedRef().Get(), FOnRestorePartiesComplete());
 	}
+#endif
 }
 
 void FOnlineAsyncTaskAccelByteConnectLobby::UnbindDelegates()

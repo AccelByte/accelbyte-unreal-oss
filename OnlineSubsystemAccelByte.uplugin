@@ -1,7 +1,7 @@
 {
 	"FileVersion": 3,
-	"Version": 6,
-	"VersionName": "0.6.0",
+	"Version": 7,
+	"VersionName": "0.6.1",
 	"FriendlyName": "Online Subsystem AccelByte",
 	"Description": "Online Subsystem implementation for AccelByte Cloud services",
 	"Category": "Online Platform",
@@ -41,17 +41,25 @@
 		{
 			"Name": "OnlineSubsystemSteam",
 			"Enabled": true,
-			"WhitelistPlatforms": [ "Win32", "Win64", "Linux" ]
+			"WhitelistPlatforms": [
+				"Win32",
+				"Win64",
+				"Linux"
+			]
 		},
 		{
 			"Name": "OnlineSubsystemGDK",
 			"Enabled": true,
-			"WhitelistPlatforms": [ "XboxOne" ]
+			"WhitelistPlatforms": [
+				"XboxOne"
+			]
 		},
 		{
 			"Name": "OnlineSubsystemPS4",
 			"Enabled": true,
-			"WhitelistPlatforms": [ "PS4" ]
+			"WhitelistPlatforms": [
+				"PS4"
+			]
 		}
 	]
 }

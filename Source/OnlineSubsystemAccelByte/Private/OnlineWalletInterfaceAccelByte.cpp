@@ -9,6 +9,33 @@
 #include "AsyncTasks/OnlineAsyncTaskAccelByteGetCurrencyList.h"
 #include "AsyncTasks/OnlineAsyncTaskAccelByteGetWalletInfo.h"
 #include "AsyncTasks/OnlineAsyncTaskAccelByteGetWalletTransactions.h"
+#include "OnlineSubsystemUtils.h"
+#include "Engine/World.h"
+
+bool FOnlineWalletAccelByte::GetFromWorld(const UWorld* World, FOnlineWalletAccelBytePtr& OutInterfaceInstance)
+{
+	const IOnlineSubsystem* Subsystem = Online::GetSubsystem(World);
+	if (Subsystem == nullptr)
+	{
+		OutInterfaceInstance = nullptr;
+		return false;
+	}
+
+	return GetFromSubsystem(Subsystem, OutInterfaceInstance);
+}
+
+bool FOnlineWalletAccelByte::GetFromSubsystem(const IOnlineSubsystem* Subsystem, FOnlineWalletAccelBytePtr& OutInterfaceInstance)
+{
+	const FOnlineSubsystemAccelByte* ABSubsystem = static_cast<const FOnlineSubsystemAccelByte*>(Subsystem);
+	if (ABSubsystem == nullptr)
+	{
+		OutInterfaceInstance = nullptr;
+		return false;
+	}
+
+	OutInterfaceInstance = ABSubsystem->GetWalletInterface();
+	return OutInterfaceInstance.IsValid();
+}
 
 bool FOnlineWalletAccelByte::GetCurrencyList(int32 LocalUserNum, bool bAlwaysRequestToService)
 {

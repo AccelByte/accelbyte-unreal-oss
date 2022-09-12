@@ -3,11 +3,10 @@
 // and restrictions contact your company contract manager.
 
 #include "OnlineStoreInterfaceV2AccelByte.h"
-
 #include "AsyncTasks/OnlineAsyncTaskAccelByteQueryCategories.h"
 #include "AsyncTasks/OnlineAsyncTaskAccelByteQueryOfferByFilter.h"
 #include "AsyncTasks/OnlineAsyncTaskAccelByteQueryOfferById.h"
-#include "..\Public\OnlineStoreInterfaceV2AccelByte.h"
+#include "OnlineSubsystemUtils.h"
 
 FOnlineStoreV2AccelByte::FOnlineStoreV2AccelByte(FOnlineSubsystemAccelByte* InSubsystem) 
 	: AccelByteSubsystem(InSubsystem)
@@ -39,6 +38,24 @@ void FOnlineStoreV2AccelByte::ResetOffers()
 {
 	FScopeLock ScopeLock(&OffersLock);
 	StoreOffers.Reset();
+}
+
+bool FOnlineStoreV2AccelByte::GetFromSubsystem(const IOnlineSubsystem* Subsystem, FOnlineStoreV2AccelBytePtr& OutInterfaceInstance)
+{
+	OutInterfaceInstance = StaticCastSharedPtr<FOnlineStoreV2AccelByte>(Subsystem->GetStoreV2Interface());
+	return OutInterfaceInstance.IsValid();
+}
+
+bool FOnlineStoreV2AccelByte::GetFromWorld(const UWorld* World, FOnlineStoreV2AccelBytePtr& OutInterfaceInstance)
+{
+	const IOnlineSubsystem* Subsystem = Online::GetSubsystem(World);
+	if (Subsystem == nullptr)
+	{
+		OutInterfaceInstance = nullptr;
+		return false;
+	}
+
+	return GetFromSubsystem(Subsystem, OutInterfaceInstance);
 }
 
 int32 FOnlineStoreV2AccelByte::GetServiceLabel()

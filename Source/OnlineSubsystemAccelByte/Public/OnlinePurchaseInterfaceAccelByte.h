@@ -19,6 +19,24 @@ PACKAGE_SCOPE:
 	void AddReceipt(const TSharedRef<const FUniqueNetIdAccelByteUser>& UserId, FPurchaseReceipt Receipt);
 	
 public:
+	/**
+	 * Convenience method to get an instance of this interface from the subsystem passed in.
+	 *
+	 * @param Subsystem Subsystem instance that we wish to get this interface from
+	 * @param OutInterfaceInstance Instance of the interface that we got from the subsystem, or nullptr if not found
+	 * @returns boolean that is true if we could get an instance of the interface, false otherwise
+	 */
+	static bool GetFromSubsystem(const IOnlineSubsystem* Subsystem, TSharedPtr<FOnlinePurchaseAccelByte, ESPMode::ThreadSafe>& OutInterfaceInstance);
+
+	/**
+	 * Convenience method to get an instance of this interface from the subsystem associated with the world passed in.
+	 *
+	 * @param World World instance that we wish to get the interface from
+	 * @param OutInterfaceInstance Instance of the interface that we got from the subsystem, or nullptr if not found
+	 * @returns boolean that is true if we could get an instance of the interface, false otherwise
+	 */
+	static bool GetFromWorld(const UWorld* World, TSharedPtr<FOnlinePurchaseAccelByte, ESPMode::ThreadSafe>& OutInterfaceInstance);
+
 	virtual bool IsAllowedToPurchase(const FUniqueNetId& UserId) override;
 	virtual void Checkout(const FUniqueNetId& UserId, const FPurchaseCheckoutRequest& CheckoutRequest, const FOnPurchaseCheckoutComplete& Delegate) override;
 	virtual void FinalizePurchase(const FUniqueNetId& UserId, const FString& ReceiptId) override;

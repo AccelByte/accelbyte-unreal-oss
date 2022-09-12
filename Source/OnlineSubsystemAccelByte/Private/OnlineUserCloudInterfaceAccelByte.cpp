@@ -1,16 +1,35 @@
-// Copyright (c) 2021 AccelByte Inc. All Rights Reserved.
+// Copyright (c) 2022 AccelByte Inc. All Rights Reserved.
 // This is licensed software from AccelByte Inc, for limitations
 // and restrictions contact your company contract manager.
 #include "OnlineUserCloudInterfaceAccelByte.h"
 #include "OnlineSubsystemAccelByte.h"
-#include "AsyncTasks/OnlineAsyncTaskAccelByteEnumerateUserFiles.h"
-#include "AsyncTasks/OnlineAsyncTaskAccelByteReadUserFile.h"
-#include "AsyncTasks/OnlineAsyncTaskAccelByteWriteUserFile.h"
-#include "AsyncTasks/OnlineAsyncTaskAccelByteDeleteUserFile.h"
+#include "AsyncTasks/UserCloud/OnlineAsyncTaskAccelByteEnumerateUserFiles.h"
+#include "AsyncTasks/UserCloud/OnlineAsyncTaskAccelByteReadUserFile.h"
+#include "AsyncTasks/UserCloud/OnlineAsyncTaskAccelByteWriteUserFile.h"
+#include "AsyncTasks/UserCloud/OnlineAsyncTaskAccelByteDeleteUserFile.h"
+#include "OnlineSubsystemUtils.h"
 
 FOnlineUserCloudAccelByte::FOnlineUserCloudAccelByte(FOnlineSubsystemAccelByte* InSubsystem)
 	: AccelByteSubsystem(InSubsystem)
 {
+}
+
+bool FOnlineUserCloudAccelByte::GetFromSubsystem(const IOnlineSubsystem* Subsystem, FOnlineUserCloudAccelBytePtr& OutInterfaceInstance)
+{
+	OutInterfaceInstance = StaticCastSharedPtr<FOnlineUserCloudAccelByte>(Subsystem->GetUserCloudInterface());
+	return OutInterfaceInstance.IsValid();
+}
+
+bool FOnlineUserCloudAccelByte::GetFromWorld(const UWorld* World, FOnlineUserCloudAccelBytePtr& OutInterfaceInstance)
+{
+	const IOnlineSubsystem* Subsystem = Online::GetSubsystem(World);
+	if (Subsystem == nullptr)
+	{
+		OutInterfaceInstance = nullptr;
+		return false;
+	}
+
+	return GetFromSubsystem(Subsystem, OutInterfaceInstance);
 }
 
 void FOnlineUserCloudAccelByte::EnumerateUserFiles(const FUniqueNetId& UserId)

@@ -1,4 +1,4 @@
-// Copyright (c) 2021 AccelByte Inc. All Rights Reserved.
+// Copyright (c) 2022 AccelByte Inc. All Rights Reserved.
 // This is licensed software from AccelByte Inc, for limitations
 // and restrictions contact your company contract manager.
 
@@ -25,6 +25,8 @@
 #include "Misc/Base64.h"
 #include "OnlineSubsystemAccelByteTypes.h"
 #include "GameServerApi/AccelByteServerOauth2Api.h"
+#include "AsyncTasks/Server/OnlineAsyncTaskAccelByteLoginServer.h"
+#include "OnlineSubsystemUtils.h"
 
 /** Begin FOnlineIdentityAccelByte */
 FOnlineIdentityAccelByte::FOnlineIdentityAccelByte(FOnlineSubsystemAccelByte* InSubsystem)
@@ -32,6 +34,24 @@ FOnlineIdentityAccelByte::FOnlineIdentityAccelByte(FOnlineSubsystemAccelByte* In
 {
 	// this should never trigger, as the subsystem itself has to instantiate this, but just in case...
 	check(AccelByteSubsystem != nullptr);
+}
+
+bool FOnlineIdentityAccelByte::GetFromSubsystem(const IOnlineSubsystem* Subsystem, FOnlineIdentityAccelBytePtr& OutInterfaceInstance)
+{
+	OutInterfaceInstance = StaticCastSharedPtr<FOnlineIdentityAccelByte>(Subsystem->GetIdentityInterface());
+	return OutInterfaceInstance.IsValid();
+}
+
+bool FOnlineIdentityAccelByte::GetFromWorld(const UWorld* World, FOnlineIdentityAccelBytePtr& OutInterfaceInstance)
+{
+	const IOnlineSubsystem* Subsystem = Online::GetSubsystem(World);
+	if (Subsystem == nullptr)
+	{
+		OutInterfaceInstance = nullptr;
+		return false;
+	}
+
+	return GetFromSubsystem(Subsystem, OutInterfaceInstance);
 }
 
 bool FOnlineIdentityAccelByte::Login(int32 LocalUserNum, const FOnlineAccountCredentials& AccountCredentials)
@@ -129,14 +149,20 @@ bool FOnlineIdentityAccelByte::AutoLogin(int32 LocalUserNum)
 {
 	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("LocalUserNum: %d"), LocalUserNum);
 
-	// While we do have to authenticate as a server, we do this alongside registration of dedicated servers to the dedicated
-	// server manager. Server authentication doesn't have a user ID or any such information to associate with, it only gives
-	// an access token and a list of permissions that the server client has. With this in mind, supporting server auth through
-	// the identity interface would feel very shoehorned in and require workarounds to match the limitations of server auth.
 	if (IsRunningDedicatedServer())
 	{
+#if AB_USE_V2_SESSIONS
+		// Servers have a custom authentication flow where we just associate them with user index zero. Async task code for
+		// servers should not access the identity interface, this is basically just implemented to fit the flow of a dedicated
+		// server on Unreal closely.
+		AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteLoginServer>(AccelByteSubsystem, LocalUserNum);
+		return true;
+#else
+		// #NOTE For compatibility reasons, V1 sessions still won't support auto login, since those tasks already have a way
+		// to authenticate a server.
 		AB_OSS_INTERFACE_TRACE_END(TEXT("AutoLogin does not work with AccelByte servers, server login is done automatically during registration."));
 		return false;
+#endif
 	}
 
 	FOnlineAccountCredentials Credentials;
@@ -283,6 +309,13 @@ void FOnlineIdentityAccelByte::SetLoginStatus(const int32 LocalUserNum, const EL
 	TriggerOnLoginStatusChangedDelegates(LocalUserNum, OldStatus, NewStatus, (UserId.IsValid() ? UserId.ToSharedRef().Get() : FUniqueNetIdAccelByteUser::Invalid().Get()));
 }
 
+void FOnlineIdentityAccelByte::AddAuthenticatedServer(int32 LocalUserNum)
+{
+	SetLoginStatus(LocalUserNum, ELoginStatus::LoggedIn);
+
+	// #NOTE Not adding net IDs here as servers have no user IDs, keep that in mind when making server calls
+}
+
 FString FOnlineIdentityAccelByte::GetPlayerNickname(int32 LocalUserNum) const
 {
 	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("LocalUserNum: %d"), LocalUserNum);
@@ -405,7 +438,6 @@ FPlatformUserId FOnlineIdentityAccelByte::GetPlatformUserIdFromUniqueNetId(const
 		{
 			AB_OSS_INTERFACE_TRACE_END(TEXT("UserNum found: %d"), Entry.Key);
 #if ENGINE_MAJOR_VERSION >= 5
-			// NOTE @Damar 11/5/2022: conversion from user index is deprecated
 			return FPlatformMisc::GetPlatformUserForUserIndex(Entry.Key);
 #else
 			return Entry.Key;
@@ -445,6 +477,14 @@ AccelByte::FApiClientPtr FOnlineIdentityAccelByte::GetApiClient(int32 LocalUserN
 
 bool FOnlineIdentityAccelByte::AuthenticateAccelByteServer(const FOnAuthenticateServerComplete& Delegate)
 {
+#if AB_USE_V2_SESSIONS
+	UE_LOG_AB(Warning, TEXT("FOnlineIdentityAccelByte::AuthenticateAccelByteServer is deprecated with V2 sessions. Servers should be authenticated through AutoLogin!"));
+	AccelByteSubsystem->ExecuteNextTick([Delegate]() {
+		Delegate.ExecuteIfBound(false);
+	});
+	return false;
+#endif
+
 #if UE_SERVER || UE_EDITOR
 	if (!bIsServerAuthenticated && !bIsAuthenticatingServer)
 	{
@@ -479,6 +519,11 @@ bool FOnlineIdentityAccelByte::AuthenticateAccelByteServer(const FOnAuthenticate
 
 bool FOnlineIdentityAccelByte::IsServerAuthenticated()
 {
+#if AB_USE_V2_SESSIONS
+	UE_LOG_AB(Warning, TEXT("FOnlineIdentityAccelByte::IsServerAuthenticated is deprecated with V2 sessions. Servers should check authentication through GetLoginStatus!"));
+	return false;
+#endif
+
 	return bIsServerAuthenticated;
 }
 

@@ -1,4 +1,4 @@
-// Copyright (c) 2021 AccelByte Inc. All Rights Reserved.
+// Copyright (c) 2022 AccelByte Inc. All Rights Reserved.
 // This is licensed software from AccelByte Inc, for limitations
 // and restrictions contact your company contract manager.
 
@@ -8,8 +8,27 @@
 #include "OnlineSubsystemAccelByte.h"
 #include "OnlineSubsystemAccelByteModule.h"
 #include "Interfaces/OnlineIdentityInterface.h"
+#include "OnlineSubsystemUtils.h"
 
 #define ONLINE_ERROR_NAMESPACE "FOnlineExternalUIAccelByte"
+
+bool FOnlineExternalUIAccelByte::GetFromSubsystem(const IOnlineSubsystem* Subsystem, FOnlineExternalUIAccelBytePtr& OutInterfaceInstance)
+{
+	OutInterfaceInstance = StaticCastSharedPtr<FOnlineExternalUIAccelByte>(Subsystem->GetExternalUIInterface());
+	return OutInterfaceInstance.IsValid();
+}
+
+bool FOnlineExternalUIAccelByte::GetFromWorld(const UWorld* World, FOnlineExternalUIAccelBytePtr& OutInterfaceInstance)
+{
+	const IOnlineSubsystem* Subsystem = Online::GetSubsystem(World);
+	if (Subsystem == nullptr)
+	{
+		OutInterfaceInstance = nullptr;
+		return false;
+	}
+
+	return GetFromSubsystem(Subsystem, OutInterfaceInstance);
+}
 
 bool FOnlineExternalUIAccelByte::ShowLoginUI(const int ControllerIndex, bool bShowOnlineOnly, bool bShowSkipButton, const FOnLoginUIClosedDelegate& Delegate)
 {

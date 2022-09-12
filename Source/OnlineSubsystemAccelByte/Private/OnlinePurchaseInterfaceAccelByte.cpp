@@ -3,9 +3,9 @@
 // and restrictions contact your company contract manager.
 
 #include "OnlinePurchaseInterfaceAccelByte.h"
-
 #include "AsyncTasks/OnlineAsyncTaskAccelByteCheckout.h"
 #include "AsyncTasks/OnlineAsyncTaskAccelByteRedeemCode.h"
+#include "OnlineSubsystemUtils.h"
 
 FOnlinePurchaseAccelByte::FOnlinePurchaseAccelByte(FOnlineSubsystemAccelByte* InSubsystem) : AccelByteSubsystem(InSubsystem)
 {
@@ -16,6 +16,24 @@ void FOnlinePurchaseAccelByte::AddReceipt(const TSharedRef<const FUniqueNetIdAcc
 	FScopeLock ScopeLock(&ReceiptMapLock);
 	FReceiptMap& ReceiptMap = PurchaseReceipts.FindOrAdd(UserId);
 	ReceiptMap.Emplace(Receipt.TransactionId, Receipt);
+}
+
+bool FOnlinePurchaseAccelByte::GetFromSubsystem(const IOnlineSubsystem* Subsystem, FOnlinePurchaseAccelBytePtr& OutInterfaceInstance)
+{
+	OutInterfaceInstance = StaticCastSharedPtr<FOnlinePurchaseAccelByte>(Subsystem->GetPurchaseInterface());
+	return OutInterfaceInstance.IsValid();
+}
+
+bool FOnlinePurchaseAccelByte::GetFromWorld(const UWorld* World, FOnlinePurchaseAccelBytePtr& OutInterfaceInstance)
+{
+	const IOnlineSubsystem* Subsystem = Online::GetSubsystem(World);
+	if (Subsystem == nullptr)
+	{
+		OutInterfaceInstance = nullptr;
+		return false;
+	}
+
+	return GetFromSubsystem(Subsystem, OutInterfaceInstance);
 }
 
 bool FOnlinePurchaseAccelByte::IsAllowedToPurchase(const FUniqueNetId& UserId)

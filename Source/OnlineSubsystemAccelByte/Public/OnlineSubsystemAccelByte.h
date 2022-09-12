@@ -1,4 +1,4 @@
-// Copyright (c) 2021 AccelByte Inc. All Rights Reserved.
+// Copyright (c) 2022 AccelByte Inc. All Rights Reserved.
 // This is licensed software from AccelByte Inc, for limitations
 // and restrictions contact your company contract manager.
 
@@ -23,8 +23,11 @@ DECLARE_LOG_CATEGORY_EXTERN(LogAccelByteOSSParty, Warning, All);
 /** Convenience UE_LOG macro that will automatically log to LogAccelByteOSS with the specified Verbosity and Format. See UE_LOG for usage. */
 #define UE_LOG_AB(Verbosity, Format, ...) UE_LOG(LogAccelByteOSS, Verbosity, Format, ##__VA_ARGS__)
 
+#define AB_USE_V2_SESSIONS_CONFIG_KEY TEXT("bEnableV2Sessions")
+
 class FOnlineIdentityAccelByte;
-class FOnlineSessionAccelByte;
+class FOnlineSessionV1AccelByte;
+class FOnlineSessionV2AccelByte;
 class FOnlineIdentityAccelByte;
 class FOnlineExternalUIAccelByte;
 class FOnlineUserAccelByte;
@@ -42,8 +45,15 @@ class FExecTestBase;
 
 struct FAccelByteModelsNotificationMessage;
 
+/** Shared pointer to the AccelByte implementation of the Session interface */
+#if AB_USE_V2_SESSIONS
+typedef TSharedPtr<FOnlineSessionV2AccelByte, ESPMode::ThreadSafe> FOnlineSessionAccelBytePtr;
+#else
+typedef TSharedPtr<FOnlineSessionV1AccelByte, ESPMode::ThreadSafe> FOnlineSessionAccelBytePtr;
+#endif
+
 /** Shared pointer to the AccelByte implementation of the Identity interface */
-typedef TSharedPtr<FOnlineSessionAccelByte, ESPMode::ThreadSafe> FOnlineSessionAccelBytePtr;
+typedef TSharedPtr<FOnlineSessionV2AccelByte, ESPMode::ThreadSafe> FOnlineSessionV2AccelBytePtr;
 
 /** Shared pointer to the AccelByte implementation of the Identity interface */
 typedef TSharedPtr<FOnlineIdentityAccelByte, ESPMode::ThreadSafe> FOnlineIdentityAccelBytePtr;
@@ -111,6 +121,12 @@ public:
 	virtual IOnlineAchievementsPtr GetAchievementsInterface() const override;
 	virtual FOnlineAgreementAccelBytePtr GetAgreementInterface() const;
 	virtual FOnlineWalletAccelBytePtr GetWalletInterface() const;
+
+#if (ENGINE_MAJOR_VERSION == 4 && ENGINE_MINOR_VERSION <= 25)
+	IOnlineTurnBasedPtr GetTurnBasedInterface() const override;
+	IOnlineTournamentPtr GetTournamentInterface() const override;
+#endif
+
 	virtual bool Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar) override;
 	virtual bool IsEnabled() const override;
 	//~ End IOnlineSubsystem Interface
@@ -351,9 +367,10 @@ private:
 	/**
 	 * @p2p Delegate handler fired when we get a successful login from the OSS on the first user. Used to initialize our network manager.
 	 */
-	void OnLoginCallback(int LocalUserNum, bool bWasSuccessful, const FUniqueNetId& UserId, const FString& Error);
+	void OnLoginCallback(int32 LocalUserNum, bool bWasSuccessful, const FUniqueNetId& UserId, const FString& Error);
 
 	void OnMessageNotif(const FAccelByteModelsNotificationMessage &InMessage, int32 LocalUserNum);
+
 };
 
 /** Shared pointer to the AccelByte implementation of the OnlineSubsystem */

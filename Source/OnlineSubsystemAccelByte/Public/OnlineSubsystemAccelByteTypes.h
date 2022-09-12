@@ -335,18 +335,18 @@ DECLARE_DELEGATE_OneParam(FOnTeamInformationReceived, const TUniqueNetIdMap<int3
  */
 DECLARE_DELEGATE_OneParam(FOnPartyInformationReceived, const TSessionPartyArray&);
 
-class ONLINESUBSYSTEMACCELBYTE_API FOnlineSessionInfoAccelByte : public FOnlineSessionInfo
+class ONLINESUBSYSTEMACCELBYTE_API FOnlineSessionInfoAccelByteV1 : public FOnlineSessionInfo
 {
 public:
-	FOnlineSessionInfoAccelByte();
+	FOnlineSessionInfoAccelByteV1();
 
-	FOnlineSessionInfoAccelByte(const FOnlineSessionInfoAccelByte& Other);
+	FOnlineSessionInfoAccelByteV1(const FOnlineSessionInfoAccelByteV1& Other);
 
-	virtual ~FOnlineSessionInfoAccelByte() override = default;
+	virtual ~FOnlineSessionInfoAccelByteV1() override = default;
 
-	bool operator==(const FOnlineSessionInfoAccelByte& Other) const;
+	bool operator==(const FOnlineSessionInfoAccelByteV1& Other) const;
 
-	FOnlineSessionInfoAccelByte& operator=(const FOnlineSessionInfoAccelByte& Src);
+	FOnlineSessionInfoAccelByteV1& operator=(const FOnlineSessionInfoAccelByteV1& Src);
 
 	virtual const uint8* GetBytes() const override;
 
@@ -537,3 +537,14 @@ private:
 	
 	bool bIsConnectedToLobby{false};
 };
+
+// 4.27 feature (https://docs.unrealengine.com/4.27/en-US/WhatsNew/Builds/ReleaseNotes/4_27/)
+#if (ENGINE_MAJOR_VERSION == 4 && ENGINE_MINOR_VERSION < 27)
+
+// FUniqueNetId Thread Safety: It is now possible to use ESPMode's class method ThreadSafe with FUniqueNetId shared pointers and references 
+// Do this by changing the UNIQUENETID_ESPMODE definition from ESPMode::Fast to ESPMode::ThreadSafe
+#define UNIQUENETID_ESPMODE ESPMode::Fast
+typedef TSharedRef<const FUniqueNetId, UNIQUENETID_ESPMODE> FUniqueNetIdRef;
+typedef TSharedPtr<const FUniqueNetId, UNIQUENETID_ESPMODE> FUniqueNetIdPtr;
+typedef TWeakPtr<const FUniqueNetId, UNIQUENETID_ESPMODE> FUniqueNetIdWeakPtr;
+#endif 

@@ -40,26 +40,40 @@ struct ONLINESUBSYSTEMACCELBYTE_API FABAcceptAgreementPoliciesRequest
 class ONLINESUBSYSTEMACCELBYTE_API FOnlineAgreementAccelByte : public TSharedFromThis<FOnlineAgreementAccelByte, ESPMode::ThreadSafe>
 {
 PACKAGE_SCOPE:
-
-	/** Constructor that is invoked by the Subsystem instance to create a user cloud instance */
-	FOnlineAgreementAccelByte(FOnlineSubsystemAccelByte* InSubsystem)
-		: AccelByteSubsystem(InSubsystem)
-	{};
-
 	/*Map of Eligibilities of each user*/
 	TUniqueNetIdMap<TArray<TSharedRef<FAccelByteModelsRetrieveUserEligibilitiesResponse>>> EligibilitiesMap;
 
 	TMap<FString, TArray<FABLocalizedPolicyContent>> LocalizedContentMap;
 
+	/** Constructor that is invoked by the Subsystem instance to create a user cloud instance */
+	FOnlineAgreementAccelByte(FOnlineSubsystemAccelByte* InSubsystem)
+		: AccelByteSubsystem(InSubsystem)
+	{}
+
 public:
 	virtual ~FOnlineAgreementAccelByte() {};
 	
+	/**
+	 * Convenience method to get an instance of this interface from the subsystem passed in.
+	 *
+	 * @param Subsystem Subsystem instance that we wish to get this interface from
+	 * @param OutInterfaceInstance Instance of the interface that we got from the subsystem, or nullptr if not found
+	 * @returns boolean that is true if we could get an instance of the interface, false otherwise
+	 */
+	static bool GetFromSubsystem(const IOnlineSubsystem* Subsystem, TSharedPtr<FOnlineAgreementAccelByte, ESPMode::ThreadSafe>& OutInterfaceInstance);
+
+	/**
+	 * Convenience method to get an instance of this interface from the subsystem associated with the world passed in.
+	 *
+	 * @param World World instance that we wish to get the interface from
+	 * @param OutInterfaceInstance Instance of the interface that we got from the subsystem, or nullptr if not found
+	 * @returns boolean that is true if we could get an instance of the interface, false otherwise
+	 */
+	static bool GetFromWorld(const UWorld* World, TSharedPtr<FOnlineAgreementAccelByte, ESPMode::ThreadSafe>& OutInterfaceInstance);
+
 	DEFINE_ONLINE_PLAYER_DELEGATE(MAX_LOCAL_PLAYERS, OnUserNotComplied);
-
 	DEFINE_ONLINE_PLAYER_DELEGATE_THREE_PARAM(MAX_LOCAL_PLAYERS, OnQueryEligibilitiesCompleted, bool, const TArray<FAccelByteModelsRetrieveUserEligibilitiesResponse>&, const FString&);
-
 	DEFINE_ONLINE_PLAYER_DELEGATE_THREE_PARAM(MAX_LOCAL_PLAYERS, OnGetLocalizedPolicyContentCompleted, bool, const FString&, const FString&);
-
 	DEFINE_ONLINE_PLAYER_DELEGATE_TWO_PARAM(MAX_LOCAL_PLAYERS, OnAcceptAgreementPoliciesCompleted, bool, const FString&);
 
 	/**

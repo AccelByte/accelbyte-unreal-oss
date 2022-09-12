@@ -22,7 +22,26 @@ PACKAGE_SCOPE:
 	FOnlineEntitlementsAccelByte(FOnlineSubsystemAccelByte* InSubsystem);
 
 	virtual void AddEntitlementToMap(const TSharedRef<const FUniqueNetIdAccelByteUser>& UserId, TSharedRef<FOnlineEntitlement> Entitlement);
+
 public:
+	/**
+	 * Convenience method to get an instance of this interface from the subsystem passed in.
+	 *
+	 * @param Subsystem Subsystem instance that we wish to get this interface from
+	 * @param OutInterfaceInstance Instance of the interface that we got from the subsystem, or nullptr if not found
+	 * @returns boolean that is true if we could get an instance of the interface, false otherwise
+	 */
+	static bool GetFromSubsystem(const IOnlineSubsystem* Subsystem, TSharedPtr<FOnlineEntitlementsAccelByte, ESPMode::ThreadSafe>& OutInterfaceInstance);
+
+	/**
+	 * Convenience method to get an instance of this interface from the subsystem associated with the world passed in.
+	 *
+	 * @param World World instance that we wish to get the interface from
+	 * @param OutInterfaceInstance Instance of the interface that we got from the subsystem, or nullptr if not found
+	 * @returns boolean that is true if we could get an instance of the interface, false otherwise
+	 */
+	static bool GetFromWorld(const UWorld* World, TSharedPtr<FOnlineEntitlementsAccelByte, ESPMode::ThreadSafe>& OutInterfaceInstance);
+
 	virtual TSharedPtr<FOnlineEntitlement> GetEntitlement(const FUniqueNetId& UserId, const FUniqueEntitlementId& EntitlementId) override;
 	virtual TSharedPtr<FOnlineEntitlement> GetItemEntitlement(const FUniqueNetId& UserId, const FString& ItemId) override;
 	virtual void GetAllEntitlements(const FUniqueNetId& UserId, const FString& Namespace, TArray<TSharedRef<FOnlineEntitlement>>& OutUserEntitlements) override;
@@ -37,6 +56,8 @@ protected:
 private:
 	FUserIDToEntitlementMap EntitlementMap;
 	FUserIDToItemEntitlementMap ItemEntitlementMap;
+	
 	/** Critical sections for thread safe operation of EntitlementMap */
 	mutable FCriticalSection EntitlementMapLock;
+
 };

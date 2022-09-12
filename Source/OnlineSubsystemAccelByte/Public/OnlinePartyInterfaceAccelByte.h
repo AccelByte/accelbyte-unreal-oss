@@ -1,4 +1,4 @@
-// Copyright (c) 2021 AccelByte Inc. All Rights Reserved.
+// Copyright (c) 2022 AccelByte Inc. All Rights Reserved.
 // This is licensed software from AccelByte Inc, for limitations
 // and restrictions contact your company contract manager.
 #pragma once
@@ -252,7 +252,9 @@ public:
 	virtual TSharedRef<const FUniqueNetId> GetSourceUserId() const override;
 	virtual const FString& GetSourceDisplayName() const override;
 	virtual const FString& GetSourcePlatform() const override;
+#if (ENGINE_MAJOR_VERSION >= 5) || (ENGINE_MAJOR_VERSION == 4 && ENGINE_MINOR_VERSION >= 26)
 	virtual const FString& GetPlatformData() const override;
+#endif
 	virtual bool HasKey() const override;
 	virtual bool HasPassword() const override;
 	virtual bool IsAcceptingMembers() const override;
@@ -337,6 +339,27 @@ class ONLINESUBSYSTEMACCELBYTE_API FOnlinePartySystemAccelByte : public IOnlineP
 PACKAGE_SCOPE:
 	/** Constructor that is invoked by the Subsystem instance to create a friend interface instance */
 	FOnlinePartySystemAccelByte(FOnlineSubsystemAccelByte* InSubsystem);
+
+	/**
+	 * Convenience method to get an instance of this interface from the subsystem passed in.
+	 *
+	 * @param Subsystem Subsystem instance that we wish to get this interface from
+	 * @param OutInterfaceInstance Instance of the interface that we got from the subsystem, or nullptr if not found
+	 * @returns boolean that is true if we could get an instance of the interface, false otherwise
+	 */
+	static bool GetFromSubsystem(const IOnlineSubsystem* Subsystem, TSharedPtr<FOnlinePartySystemAccelByte, ESPMode::ThreadSafe>& OutInterfaceInstance);
+
+	/**
+	 * Convenience method to get an instance of this interface from the subsystem associated with the world passed in.
+	 *
+	 * @param World World instance that we wish to get the interface from
+	 * @param OutInterfaceInstance Instance of the interface that we got from the subsystem, or nullptr if not found
+	 * @returns boolean that is true if we could get an instance of the interface, false otherwise
+	 */
+	static bool GetFromWorld(const UWorld* World, TSharedPtr<FOnlinePartySystemAccelByte, ESPMode::ThreadSafe>& OutInterfaceInstance);
+
+	/** Initialize data relating to party interface */
+	void Init();
 
 	/**
 	 * Method used by the Identity interface to register delegates for friend notifications to this interface to get
@@ -438,15 +461,11 @@ public:
 	virtual void ClearInvitations(const FUniqueNetId& LocalUserId, const FUniqueNetId& SenderId, const FOnlinePartyId* PartyId = nullptr) override;
 	virtual bool KickMember(const FUniqueNetId& LocalUserId, const FOnlinePartyId& PartyId, const FUniqueNetId& TargetMemberId, const FOnKickPartyMemberComplete& Delegate = FOnKickPartyMemberComplete()) override;
 	virtual bool PromoteMember(const FUniqueNetId& LocalUserId, const FOnlinePartyId& PartyId, const FUniqueNetId& TargetMemberId, const FOnPromotePartyMemberComplete& Delegate = FOnPromotePartyMemberComplete()) override;
-	virtual bool UpdatePartyData(const FUniqueNetId& LocalUserId, const FOnlinePartyId& PartyId, const FName& Namespace, const FOnlinePartyData& PartyData) override;
-	virtual bool UpdatePartyMemberData(const FUniqueNetId& LocalUserId, const FOnlinePartyId& PartyId, const FName& Namespace, const FOnlinePartyData& PartyMemberData) override;
 	virtual bool IsMemberLeader(const FUniqueNetId& LocalUserId, const FOnlinePartyId& PartyId, const FUniqueNetId& MemberId) const override;
 	virtual uint32 GetPartyMemberCount(const FUniqueNetId& LocalUserId, const FOnlinePartyId& PartyId) const override;
 	virtual FOnlinePartyConstPtr GetParty(const FUniqueNetId& LocalUserId, const FOnlinePartyId& PartyId) const override;
 	virtual FOnlinePartyConstPtr GetParty(const FUniqueNetId& LocalUserId, const FOnlinePartyTypeId& PartyTypeId) const override;
 	virtual FOnlinePartyMemberConstPtr GetPartyMember(const FUniqueNetId& LocalUserId, const FOnlinePartyId& PartyId, const FUniqueNetId& MemberId) const override;
-	virtual FOnlinePartyDataConstPtr GetPartyData(const FUniqueNetId& LocalUserId, const FOnlinePartyId& PartyId, const FName& Namespace) const override;
-	virtual FOnlinePartyDataConstPtr GetPartyMemberData(const FUniqueNetId& LocalUserId, const FOnlinePartyId& PartyId, const FUniqueNetId& MemberId, const FName& Namespace) const override;
 	virtual IOnlinePartyJoinInfoConstPtr GetAdvertisedParty(const FUniqueNetId& LocalUserId, const FUniqueNetId& UserId, const FOnlinePartyTypeId PartyTypeId) const override;
 	virtual bool GetJoinedParties(const FUniqueNetId& LocalUserId, TArray<TSharedRef<const FOnlinePartyId>>& OutPartyIdArray) const override;
 	virtual bool GetPartyMembers(const FUniqueNetId & LocalUserId, const FOnlinePartyId & PartyId, TArray<FOnlinePartyMemberConstRef>&OutPartyMembersArray) const override;
@@ -459,14 +478,28 @@ public:
 	virtual IOnlinePartyJoinInfoConstPtr MakeJoinInfoFromToken(const FString& Token) const override;
 	virtual IOnlinePartyJoinInfoConstPtr ConsumePendingCommandLineInvite() override;
 	virtual void DumpPartyState() override;
+
+#if (ENGINE_MAJOR_VERSION >= 5) || (ENGINE_MAJOR_VERSION == 4 && ENGINE_MINOR_VERSION >= 26)
+	virtual bool UpdatePartyData(const FUniqueNetId& LocalUserId, const FOnlinePartyId& PartyId, const FName& Namespace, const FOnlinePartyData& PartyData) override;
+	virtual FOnlinePartyDataConstPtr GetPartyData(const FUniqueNetId& LocalUserId, const FOnlinePartyId& PartyId, const FName& Namespace) const override;
+	virtual FOnlinePartyDataConstPtr GetPartyMemberData(const FUniqueNetId& LocalUserId, const FOnlinePartyId& PartyId, const FUniqueNetId& MemberId, const FName& Namespace) const override;
+	virtual bool UpdatePartyMemberData(const FUniqueNetId& LocalUserId, const FOnlinePartyId& PartyId, const FName& Namespace, const FOnlinePartyData& PartyMemberData) override;
+#else
+	virtual bool UpdatePartyData(const FUniqueNetId& LocalUserId, const FOnlinePartyId& PartyId, const FOnlinePartyData& PartyData) override;
+	virtual FOnlinePartyDataConstPtr GetPartyData(const FUniqueNetId& LocalUserId, const FOnlinePartyId& PartyId) const override;
+	virtual FOnlinePartyDataConstPtr GetPartyMemberData(const FUniqueNetId& LocalUserId, const FOnlinePartyId& PartyId, const FUniqueNetId& MemberId) const override;
+	virtual bool UpdatePartyMemberData(const FUniqueNetId& LocalUserId, const FOnlinePartyId& PartyId, const FOnlinePartyData& PartyMemberData) override;
+#endif
+
 #if (ENGINE_MAJOR_VERSION == 4 && ENGINE_MINOR_VERSION >= 27) || (ENGINE_MAJOR_VERSION >= 5)
 	virtual void QueryPartyJoinability(const FUniqueNetId& LocalUserId, const IOnlinePartyJoinInfo& OnlinePartyJoinInfo, const FOnQueryPartyJoinabilityCompleteEx& Delegate = FOnQueryPartyJoinabilityCompleteEx()) override;
 	virtual void RespondToQueryJoinability(const FUniqueNetId & LocalUserId, const FOnlinePartyId & PartyId, const FUniqueNetId & RecipientId, bool bCanJoin, int32 DeniedResultCode, FOnlinePartyDataConstPtr PartyData) override;
-#if (ENGINE_MAJOR_VERSION >= 5)
-	virtual void RequestToJoinParty(const FUniqueNetId& LocalUserId, const FOnlinePartyTypeId PartyTypeId, const FPartyInvitationRecipient& Recipient, const FOnRequestToJoinPartyComplete& Delegate) override;
-	virtual void ClearRequestToJoinParty(const FUniqueNetId& LocalUserId, const FOnlinePartyId& PartyId, const FUniqueNetId& Sender, EPartyRequestToJoinRemovedReason Reason) override;
-	virtual bool GetPendingRequestsToJoin(const FUniqueNetId& LocalUserId, TArray<IOnlinePartyRequestToJoinInfoConstRef>& OutRequestsToJoin) const override;
 #endif
+
+#if ENGINE_MAJOR_VERSION >= 5
+	void RequestToJoinParty(const FUniqueNetId& LocalUserId, const FOnlinePartyTypeId PartyTypeId, const FPartyInvitationRecipient& Recipient, const FOnRequestToJoinPartyComplete& Delegate = FOnRequestToJoinPartyComplete()) override;
+	void ClearRequestToJoinParty(const FUniqueNetId& LocalUserId, const FOnlinePartyId& PartyId, const FUniqueNetId& Sender, EPartyRequestToJoinRemovedReason Reason) override;
+	bool GetPendingRequestsToJoin(const FUniqueNetId& LocalUserId, TArray<IOnlinePartyRequestToJoinInfoConstRef>& OutRequestsToJoin) const override;
 #endif
 	
 	//~ End IOnlinePartySystem methods
@@ -519,6 +552,11 @@ protected:
 	bool bIsAcceptingCustomGameInvitation = false;
 
 private:
+	/**
+	 * Whether or not we are using V2 sessions currently in the OSS. If we are, then all methods in this interface will
+	 * warn and short circuit since this is for V1 parties.
+	 */
+	bool bUsingV2Sessions = false;
 
 	/** Delegate handler for when we receive a party invite */
 	void OnReceivedPartyInviteNotification(const FAccelByteModelsPartyGetInvitedNotice& Notification, TSharedRef<const FUniqueNetIdAccelByteUser> UserId);

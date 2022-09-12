@@ -10,6 +10,8 @@
 #include "OnlineUserCacheAccelByte.h"
 #include "Models/AccelByteEcommerceModels.h"
 
+class UWorld;
+
 DECLARE_MULTICAST_DELEGATE_FourParams(FOnGetCurrencyListCompleted, int32 /*LocalUserNum*/, bool /*bWasSuccessful*/, const TArray<FAccelByteModelsCurrencyList>& /*Response*/, const FString& /*Error*/);
 typedef FOnGetCurrencyListCompleted::FDelegate FOnGetCurrencyListCompletedDelegate;
 
@@ -42,6 +44,24 @@ PACKAGE_SCOPE:
 
 public:
 	virtual ~FOnlineWalletAccelByte() {};
+
+	/**
+	 * Convenience method to get an instance of this interface from the subsystem associated with the world passed in.
+	 *
+	 * @param World World instance that we wish to get the interface from
+	 * @param OutInterfaceInstance Instance of the interface that we got from the subsystem, or nullptr if not found
+	 * @returns boolean that is true if we could get an instance of the interface, false otherwise
+	 */
+	static bool GetFromWorld(const UWorld* World, TSharedPtr<FOnlineWalletAccelByte, ESPMode::ThreadSafe>& OutInterfaceInstance);
+
+	/**
+	 * Convenience method to get an instance of this interface from the subsystem passed in.
+	 *
+	 * @param Subsystem Subsystem instance that we wish to get this interface from
+	 * @param OutInterfaceInstance Instance of the interface that we got from the subsystem, or nullptr if not found
+	 * @returns boolean that is true if we could get an instance of the interface, false otherwise
+	 */
+	static bool GetFromSubsystem(const IOnlineSubsystem* Subsystem, TSharedPtr<FOnlineWalletAccelByte, ESPMode::ThreadSafe>& OutInterfaceInstance);
 
 	DEFINE_ONLINE_PLAYER_DELEGATE_THREE_PARAM(MAX_LOCAL_PLAYERS, OnGetCurrencyListCompleted, bool /*bWasSuccessful*/, const TArray<FAccelByteModelsCurrencyList>& /*Response*/, const FString& /*Error*/);
 

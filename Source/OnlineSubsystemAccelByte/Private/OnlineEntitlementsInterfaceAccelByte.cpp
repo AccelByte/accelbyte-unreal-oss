@@ -3,8 +3,8 @@
 // and restrictions contact your company contract manager.
 
 #include "OnlineEntitlementsInterfaceAccelByte.h"
-
 #include "AsyncTasks/OnlineAsyncTaskAccelByteQueryEntitlements.h"
+#include "OnlineSubsystemUtils.h"
 #include "AsyncTasks/OnlineAsyncTaskAccelByteSyncPlatformPurchase.h"
 #include "AsyncTasks/OnlineAsyncTaskAccelByteSyncDLC.h"
 
@@ -21,6 +21,24 @@ void FOnlineEntitlementsAccelByte::AddEntitlementToMap(const TSharedRef<const FU
 	
 	EntMap.Emplace(Entitlement->Id, Entitlement);
 	ItemEntMap.Emplace(Entitlement->ItemId, Entitlement);
+}
+
+bool FOnlineEntitlementsAccelByte::GetFromSubsystem(const IOnlineSubsystem* Subsystem, FOnlineEntitlementsAccelBytePtr& OutInterfaceInstance)
+{
+	OutInterfaceInstance = StaticCastSharedPtr<FOnlineEntitlementsAccelByte>(Subsystem->GetEntitlementsInterface());
+	return OutInterfaceInstance.IsValid();
+}
+
+bool FOnlineEntitlementsAccelByte::GetFromWorld(const UWorld* World, FOnlineEntitlementsAccelBytePtr& OutInterfaceInstance)
+{
+	const IOnlineSubsystem* Subsystem = Online::GetSubsystem(World);
+	if (Subsystem == nullptr)
+	{
+		OutInterfaceInstance = nullptr;
+		return false;
+	}
+
+	return GetFromSubsystem(Subsystem, OutInterfaceInstance);
 }
 
 TSharedPtr<FOnlineEntitlement> FOnlineEntitlementsAccelByte::GetEntitlement(const FUniqueNetId& UserId, const FUniqueEntitlementId& EntitlementId)

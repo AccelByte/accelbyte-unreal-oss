@@ -1,4 +1,4 @@
-// Copyright (c) 2021 AccelByte Inc. All Rights Reserved.
+// Copyright (c) 2022 AccelByte Inc. All Rights Reserved.
 // This is licensed software from AccelByte Inc, for limitations
 // and restrictions contact your company contract manager.
 
@@ -50,8 +50,25 @@ public:
 	 * @param InSubsystem Subsystem that owns this identity interface
 	 */
 	FOnlineIdentityAccelByte(FOnlineSubsystemAccelByte* InSubsystem);
-
 	virtual ~FOnlineIdentityAccelByte() override = default;
+
+	/**
+	 * Convenience method to get an instance of this interface from the subsystem passed in.
+	 *
+	 * @param Subsystem Subsystem instance that we wish to get this interface from
+	 * @param OutInterfaceInstance Instance of the interface that we got from the subsystem, or nullptr if not found
+	 * @returns boolean that is true if we could get an instance of the interface, false otherwise
+	 */
+	static bool GetFromSubsystem(const IOnlineSubsystem* Subsystem, TSharedPtr<FOnlineIdentityAccelByte, ESPMode::ThreadSafe>& OutInterfaceInstance);
+
+	/**
+	 * Convenience method to get an instance of this interface from the subsystem associated with the world passed in.
+	 *
+	 * @param World World instance that we wish to get the interface from
+	 * @param OutInterfaceInstance Instance of the interface that we got from the subsystem, or nullptr if not found
+	 * @returns boolean that is true if we could get an instance of the interface, false otherwise
+	 */
+	static bool GetFromWorld(const UWorld* World, TSharedPtr<FOnlineIdentityAccelByte, ESPMode::ThreadSafe>& OutInterfaceInstance);
 
 	//~ Begin IOnlineIdentity Interface
 	virtual bool Login(int32 LocalUserNum, const FOnlineAccountCredentials& AccountCredentials) override;
@@ -112,7 +129,6 @@ public:
 	bool ConnectAccelByteLobby(int32 LocalUserNum);
 
 PACKAGE_SCOPE:
-
 	/**
 	 * Used by the login async task to move data for the newly authenticated user to this identity instance.
 	 */
@@ -121,8 +137,12 @@ PACKAGE_SCOPE:
 	/** Set login status. */
 	void SetLoginStatus(int32 LocalUserNum, ELoginStatus::Type NewStatus);
 
-private:
+	/**
+	 * Add a new authenticated server to the identity interface mappings for V2 session flow
+	 */
+	void AddAuthenticatedServer(int32 LocalUserNum);
 
+private:
 	/** Disable the default constructor, as we only want to be able to construct this interface passing in the parent subsystem */
 	FOnlineIdentityAccelByte() = delete;
 
@@ -187,4 +207,5 @@ private:
 	 * Handler for when we fail to authenticate a server to fire off delegates
 	 */
 	void OnAuthenticateAccelByteServerError(int32 ErrorCode, const FString& ErrorMessage);
+
 };

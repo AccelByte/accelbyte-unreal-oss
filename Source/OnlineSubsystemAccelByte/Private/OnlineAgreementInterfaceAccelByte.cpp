@@ -6,9 +6,35 @@
 #include "Core/AccelByteMultiRegistry.h"
 #include "OnlineIdentityInterfaceAccelByte.h"
 #include "OnlineSubsystemAccelByteInternalHelpers.h"
-#include "AsyncTasks/OnlineAsyncTaskAccelByteQueryEligibilities.h"
-#include "AsyncTasks/OnlineAsyncTaskAccelByteGetLocalizedPolicyContent.h"
-#include "AsyncTasks/OnlineAsyncTaskAccelByteAcceptAgreementPolicies.h"
+#include "AsyncTasks/Agreement/OnlineAsyncTaskAccelByteQueryEligibilities.h"
+#include "AsyncTasks/Agreement/OnlineAsyncTaskAccelByteGetLocalizedPolicyContent.h"
+#include "AsyncTasks/Agreement/OnlineAsyncTaskAccelByteAcceptAgreementPolicies.h"
+#include "OnlineSubsystemUtils.h"
+
+bool FOnlineAgreementAccelByte::GetFromSubsystem(const IOnlineSubsystem* Subsystem, FOnlineAgreementAccelBytePtr& OutInterfaceInstance)
+{
+	const FOnlineSubsystemAccelByte* ABSubsystem = static_cast<const FOnlineSubsystemAccelByte*>(Subsystem);
+	if (ABSubsystem == nullptr)
+	{
+		OutInterfaceInstance = nullptr;
+		return false;
+	}
+
+	OutInterfaceInstance = ABSubsystem->GetAgreementInterface();
+	return OutInterfaceInstance.IsValid();
+}
+
+bool FOnlineAgreementAccelByte::GetFromWorld(const UWorld* World, FOnlineAgreementAccelBytePtr& OutInterfaceInstance)
+{
+	const IOnlineSubsystem* Subsystem = Online::GetSubsystem(World);
+	if (Subsystem == nullptr)
+	{
+		OutInterfaceInstance = nullptr;
+		return false;
+	}
+
+	return GetFromSubsystem(Subsystem, OutInterfaceInstance);
+}
 
 bool FOnlineAgreementAccelByte::QueryEligibleAgreements(int32 LocalUserNum, bool bNotAcceptedOnly, bool bAlwaysRequestToService)
 {
