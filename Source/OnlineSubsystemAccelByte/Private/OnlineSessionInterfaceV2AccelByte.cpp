@@ -253,14 +253,8 @@ void FOnlineSessionInfoAccelByteV2::UpdateLeaderId()
 		return;
 	}
 
-	TSharedPtr<FAccelByteModelsV2PartySession> PartyBackendSessionData = StaticCastSharedPtr<FAccelByteModelsV2PartySession>(BackendSessionData);
-	if (!PartyBackendSessionData.IsValid())
-	{
-		return;
-	}
-
-	FAccelByteModelsV2SessionUser* FoundLeaderMember = PartyBackendSessionData->Members.FindByPredicate([&PartyBackendSessionData](const FAccelByteModelsV2SessionUser& Member) {
-		return Member.ID.Equals(PartyBackendSessionData->LeaderID);
+	FAccelByteModelsV2SessionUser* FoundLeaderMember = BackendSessionData->Members.FindByPredicate([this](const FAccelByteModelsV2SessionUser& Member) {
+		return Member.ID.Equals(BackendSessionData->LeaderID);
 	});
 
 	if (FoundLeaderMember != nullptr)
@@ -2855,13 +2849,13 @@ void FOnlineSessionV2AccelByte::OnInvitedToGameSessionNotification(FAccelByteMod
 		return;
 	}
 
-	const FOnSingleSessionResultCompleteDelegate OnFindGameSessionForInviteCompleteDelegate = FOnSingleSessionResultCompleteDelegate::CreateThreadSafeSP(SharedThis(this), &FOnlineSessionV2AccelByte::OnFindGameSessionForInviteComplete);
+	const FOnSingleSessionResultCompleteDelegate OnFindGameSessionForInviteCompleteDelegate = FOnSingleSessionResultCompleteDelegate::CreateThreadSafeSP(SharedThis(this), &FOnlineSessionV2AccelByte::OnFindGameSessionForInviteComplete, InviteEvent);
 	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteFindV2GameSessionById>(AccelByteSubsystem, PlayerId.ToSharedRef().Get(), SessionUniqueId.ToSharedRef().Get(), OnFindGameSessionForInviteCompleteDelegate);
 
 	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
 }
 
-void FOnlineSessionV2AccelByte::OnFindGameSessionForInviteComplete(int32 LocalUserNum, bool bWasSuccessful, const FOnlineSessionSearchResult& Result)
+void FOnlineSessionV2AccelByte::OnFindGameSessionForInviteComplete(int32 LocalUserNum, bool bWasSuccessful, const FOnlineSessionSearchResult& Result, FAccelByteModelsV2GameSessionUserInvitedEvent InviteEvent)
 {
 	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("LocalUserNum: %d; bWasSuccessful: %s; SessionId: %s"), LocalUserNum, LOG_BOOL_FORMAT(bWasSuccessful), *Result.GetSessionIdStr());
 
@@ -2885,19 +2879,48 @@ void FOnlineSessionV2AccelByte::OnFindGameSessionForInviteComplete(int32 LocalUs
 		return;
 	}
 
-	FOnlineSessionInviteAccelByte NewInvite;
-	NewInvite.SessionType = EOnlineSessionTypeAccelByte::GameSession;
-	NewInvite.Session = Result;
-	NewInvite.SenderId = nullptr; // #NOTE Null for now until we get sender ID for game session invites
-	SessionInvites.Emplace(NewInvite);
+	// Find sender ID in the backend session data so that we can get their platform info for the ID
+	const TSharedPtr<FOnlineSessionInfoAccelByteV2> SessionInfo = StaticCastSharedPtr<FOnlineSessionInfoAccelByteV2>(Result.Session.SessionInfo);
+	if (!ensure(SessionInfo.IsValid()))
+	{
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to handle game session invite notification as our session's information instance is invalid!"));
+		return;
+	}
 
-	// #NOTE #SESSIONv2 Currently game session invites do not contain sender IDs, I assume because these are currently
-	// meant to be system invites. Such as if matchmaking creates you a session and thus invites you to it. However,
-	// if we do support player to player invites, then we'd need a sender ID here.
-	const FUniqueNetIdRef FromId = FUniqueNetIdAccelByteUser::Invalid();
-	TriggerOnSessionInviteReceivedDelegates(PlayerId.ToSharedRef().Get(), FromId.Get(), AccelByteSubsystem->GetAppId(), Result);
-	TriggerOnV2SessionInviteReceivedDelegates(PlayerId.ToSharedRef().Get(), FromId.Get(), NewInvite);
-	TriggerOnInviteListUpdatedDelegates();
+	const TSharedPtr<FAccelByteModelsV2GameSession> GameSessionData = StaticCastSharedPtr<FAccelByteModelsV2GameSession>(SessionInfo->GetBackendSessionData());
+	if (!ensure(GameSessionData.IsValid()))
+	{
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to handle game session invite notification as our local copy of the backend session data is invalid!"));
+		return;
+	}
+
+	FAccelByteModelsV2SessionUser* FoundSender = GameSessionData->Members.FindByPredicate([&InviteEvent](const FAccelByteModelsV2SessionUser& User) {
+		return User.ID == InviteEvent.SenderID;
+	});
+
+	if (FoundSender != nullptr)
+	{
+		// Create a new unique ID instance for the leaving member, complete with their platform info
+		FAccelByteUniqueIdComposite IdComponents;
+		IdComponents.Id = FoundSender->ID;
+		IdComponents.PlatformType = FoundSender->PlatformID;
+		IdComponents.PlatformId = FoundSender->PlatformUserID;
+
+		TSharedPtr<const FUniqueNetIdAccelByteUser> SenderId = FUniqueNetIdAccelByteUser::Create(IdComponents);
+
+		FOnlineSessionInviteAccelByte NewInvite;
+		NewInvite.SessionType = EOnlineSessionTypeAccelByte::GameSession;
+		NewInvite.Session = Result;
+		if (ensure(SenderId.IsValid()))
+		{
+			NewInvite.SenderId = SenderId;
+		}
+		SessionInvites.Emplace(NewInvite);
+
+		TriggerOnSessionInviteReceivedDelegates(PlayerId.ToSharedRef().Get(), SenderId.ToSharedRef().Get(), AccelByteSubsystem->GetAppId(), Result);
+		TriggerOnV2SessionInviteReceivedDelegates(PlayerId.ToSharedRef().Get(), SenderId.ToSharedRef().Get(), NewInvite);
+		TriggerOnInviteListUpdatedDelegates();
+	}
 
 	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
 }
@@ -3092,7 +3115,7 @@ void FOnlineSessionV2AccelByte::OnFindPartySessionForInviteComplete(int32 LocalU
 		FOnlineSessionInviteAccelByte NewInvite;
 		NewInvite.SessionType = EOnlineSessionTypeAccelByte::PartySession;
 		NewInvite.Session = Result;
-		if (!ensure(SenderId.IsValid()))
+		if (ensure(SenderId.IsValid()))
 		{
 			NewInvite.SenderId = SenderId;
 		}
