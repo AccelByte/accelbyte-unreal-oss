@@ -250,14 +250,6 @@ TSharedPtr<const FUniqueNetId> FOnlineIdentityAccelByte::CreateUniquePlayerId(ui
 
 TSharedPtr<const FUniqueNetId> FOnlineIdentityAccelByte::CreateUniquePlayerId(const FString& Str)
 {
-	// Check if this is a Base64 encoded string, meaning that it _most likely_ is a full composite ID. If it is, just pass
-	// the string straight to MakeShared, as it will decode the components for you. Otherwise, treat it as just the AccelByte ID.
-	FString DecodedString;
-	if (!FBase64::Decode(Str, DecodedString))
-	{
-		return FUniqueNetIdAccelByteUser::Create(FAccelByteUniqueIdComposite(Str));
-	}
-
 	return FUniqueNetIdAccelByteUser::Create(Str);
 }
 

@@ -213,6 +213,21 @@ FUniqueNetIdAccelByteUserRef FUniqueNetIdAccelByteUser::Create(const FAccelByteU
 	PRAGMA_ENABLE_DEPRECATION_WARNINGS
 }
 
+FUniqueNetIdAccelByteUserRef FUniqueNetIdAccelByteUser::Create(const FString& InUniqueNetId)
+{
+	// Check if this is a Base64 encoded string, meaning that it _most likely_ is a full composite ID. If it is, just pass
+	// the string straight to MakeShared, as it will decode the components for you. Otherwise, treat it as just the AccelByte ID.
+	FString DecodedString;
+	if (!FBase64::Decode(InUniqueNetId, DecodedString))
+	{
+		return Create(FAccelByteUniqueIdComposite(InUniqueNetId));
+	}
+
+	PRAGMA_DISABLE_DEPRECATION_WARNINGS
+	return MakeShared<const FUniqueNetIdAccelByteUser>(InUniqueNetId);
+	PRAGMA_ENABLE_DEPRECATION_WARNINGS
+}
+
 FUniqueNetIdAccelByteUserRef FUniqueNetIdAccelByteUser::Create(const FUniqueNetId& Src)
 {
 	PRAGMA_DISABLE_DEPRECATION_WARNINGS

@@ -75,7 +75,7 @@ struct FAccelByteUniqueIdComposite
 
 	FAccelByteUniqueIdComposite() = default;
 
-	FAccelByteUniqueIdComposite(const FString& InId, const FString& InPlatformType = TEXT(""), const FString& InPlatformId = TEXT(""));
+	explicit FAccelByteUniqueIdComposite(const FString& InId, const FString& InPlatformType = TEXT(""), const FString& InPlatformId = TEXT(""));
 
 	bool operator==(const FAccelByteUniqueIdComposite& OtherComposite) const;
 
@@ -185,6 +185,15 @@ public:
 	 * @return Shared ref of UniqueNetId
 	 */
 	static FUniqueNetIdAccelByteUserRef Create(const FAccelByteUniqueIdComposite& CompositeId);
+
+	/**
+	 * @brief Tries to create a new FUniqueNetIdAccelByte instance from a composite ID
+	 * 
+	 * @param InUniqueNetId
+	 *
+	 * @return Shared ref of UniqueNetId
+	 */
+	static FUniqueNetIdAccelByteUserRef Create(const FString& InUniqueNetId);
 	
 	/**
 	 * @brief Tries to create a new FUniqueNetIdAccelByte instance from a generic UniqueNetId
