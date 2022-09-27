@@ -258,7 +258,9 @@ private:
 
 	void CreateP2PSession(FNamedOnlineSession* Session);
 	void OnRTCConnected(const FString& NetId, bool bWasSuccessful, FName SessionName);
+	void OnRTCClosed(const FString & NetId, FName SessionName);
 	void OnSessionCreateSuccess(const FAccelByteModelsSessionBrowserData& Data, FName SessionName);
+	void UpdateSessionSettings(FName SessionName, FSessionSettings Settings);
 	
 PACKAGE_SCOPE:
 

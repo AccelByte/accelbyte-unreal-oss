@@ -4,8 +4,12 @@
 
 #include "OnlineStoreInterfaceV2AccelByte.h"
 #include "AsyncTasks/OnlineAsyncTaskAccelByteQueryCategories.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteQueryChildCategories.h"
 #include "AsyncTasks/OnlineAsyncTaskAccelByteQueryOfferByFilter.h"
 #include "AsyncTasks/OnlineAsyncTaskAccelByteQueryOfferById.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteQueryOfferBySku.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteQueryOfferDynamicData.h"
+#include "..\Public\OnlineStoreInterfaceV2AccelByte.h"
 #include "OnlineSubsystemUtils.h"
 
 FOnlineStoreV2AccelByte::FOnlineStoreV2AccelByte(FOnlineSubsystemAccelByte* InSubsystem) 
@@ -16,7 +20,20 @@ FOnlineStoreV2AccelByte::FOnlineStoreV2AccelByte(FOnlineSubsystemAccelByte* InSu
 void FOnlineStoreV2AccelByte::ReplaceCategories(TArray<FOnlineStoreCategory> InCategories)
 {
 	FScopeLock ScopeLock(&CategoriesLock);
-	StoreCategories = InCategories;
+	StoreCategories.Reset();
+	for (const auto& Category : InCategories)
+	{
+		StoreCategories.Add(Category.Id, Category);
+	}
+}
+
+void FOnlineStoreV2AccelByte::EmplaceCategories(TArray<FOnlineStoreCategory> InCategories)
+{
+	FScopeLock ScopeLock(&CategoriesLock);
+	for (const auto& Category : InCategories)
+	{
+		StoreCategories.Emplace(Category.Id, Category);
+	}
 }
 
 void FOnlineStoreV2AccelByte::ReplaceOffers(TMap<FUniqueOfferId, FOnlineStoreOfferRef> InOffer)
@@ -38,6 +55,14 @@ void FOnlineStoreV2AccelByte::ResetOffers()
 {
 	FScopeLock ScopeLock(&OffersLock);
 	StoreOffers.Reset();
+}
+
+void FOnlineStoreV2AccelByte::EmplaceOfferDynamicData(const FUniqueNetId& InUserId, TSharedRef<FAccelByteModelsItemDynamicData> InDynamicData)
+{
+	FScopeLock ScopeLock(&DynamicDataLock);
+	const TSharedRef<const FUniqueNetIdAccelByteUser> SharedUserId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(InUserId.AsShared());
+	FOfferToDynamicDataMap& FoundDynamicDataMap = OffersDynamicData.FindOrAdd(SharedUserId);
+	FoundDynamicDataMap.Emplace(InDynamicData->ItemId, InDynamicData);
 }
 
 bool FOnlineStoreV2AccelByte::GetFromSubsystem(const IOnlineSubsystem* Subsystem, FOnlineStoreV2AccelBytePtr& OutInterfaceInstance)
@@ -73,10 +98,21 @@ void FOnlineStoreV2AccelByte::QueryCategories(const FUniqueNetId& UserId, const 
 	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteQueryCategories>(AccelByteSubsystem, UserId, Delegate);
 }
 
+void FOnlineStoreV2AccelByte::QueryChildCategories(const FUniqueNetId& UserId, const FString& CategoryPath, const FOnQueryOnlineStoreCategoriesComplete& Delegate)
+{
+	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteQueryChildCategories>(AccelByteSubsystem, UserId, CategoryPath, Delegate);
+}
+
 void FOnlineStoreV2AccelByte::GetCategories(TArray<FOnlineStoreCategory>& OutCategories) const
 {
 	FScopeLock ScopeLock(&CategoriesLock);
-	OutCategories = StoreCategories;
+	StoreCategories.GenerateValueArray(OutCategories);
+}
+
+void FOnlineStoreV2AccelByte::GetCategory(const FString& CategoryPath, FOnlineStoreCategory& OutCategory) const
+{
+	FScopeLock ScopeLock(&CategoriesLock);
+	OutCategory = *StoreCategories.Find(CategoryPath);
 }
 
 void FOnlineStoreV2AccelByte::QueryOffersByFilter(const FUniqueNetId& UserId, const FOnlineStoreFilter& Filter, const FOnQueryOnlineStoreOffersComplete& Delegate)
@@ -88,6 +124,16 @@ void FOnlineStoreV2AccelByte::QueryOffersById(const FUniqueNetId& UserId, const 
 	const FOnQueryOnlineStoreOffersComplete& Delegate)
 {
 	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteQueryOfferById>(AccelByteSubsystem, UserId, OfferIds, Delegate);
+}
+
+void FOnlineStoreV2AccelByte::QueryOfferBySku(const FUniqueNetId& UserId, const FString& Sku, const FOnQueryOnlineStoreOffersComplete& Delegate)
+{
+	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteQueryOfferBySku>(AccelByteSubsystem, UserId, Sku, Delegate);
+}
+
+void FOnlineStoreV2AccelByte::QueryOfferDynamicData(const FUniqueNetId& UserId, const FUniqueOfferId& OfferId, const FOnQueryOnlineStoreOffersComplete& Delegate)
+{
+	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteQueryOfferDynamicData>(AccelByteSubsystem, UserId, OfferId, Delegate);
 }
 
 void FOnlineStoreV2AccelByte::GetOffers(TArray<FOnlineStoreOfferRef>& OutOffers) const
@@ -103,6 +149,35 @@ TSharedPtr<FOnlineStoreOffer> FOnlineStoreV2AccelByte::GetOffer(const FUniqueOff
 	if(Result)
 	{
 		return *Result;
+	}
+	return nullptr;
+}
+
+TSharedPtr<FOnlineStoreOffer> FOnlineStoreV2AccelByte::GetOfferBySku(const FString& Sku) const
+{
+	FScopeLock ScopeLock(&OffersLock);
+	for (const auto& Offer : StoreOffers)
+	{
+		if (Offer.Value->DynamicFields.Find(TEXT("Sku"))->Equals(Sku))
+		{
+			return Offer.Value;
+		}
+	}
+	return nullptr;
+}
+
+TSharedPtr<FAccelByteModelsItemDynamicData> FOnlineStoreV2AccelByte::GetOfferDynamicData(const FUniqueNetId& UserId, const FUniqueOfferId& OfferId) const
+{
+	FScopeLock ScopeLock(&DynamicDataLock);
+	const TSharedRef<const FUniqueNetIdAccelByteUser> SharedUserId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(UserId.AsShared());
+	const FOfferToDynamicDataMap* FoundDynamicDataMap = OffersDynamicData.Find(SharedUserId);
+	if (FoundDynamicDataMap != nullptr)
+	{
+		const TSharedRef<FAccelByteModelsItemDynamicData>* FoundDynamicData = FoundDynamicDataMap->Find(OfferId);
+		if (FoundDynamicData != nullptr)
+		{
+			return *FoundDynamicData;
+		}
 	}
 	return nullptr;
 }

@@ -183,7 +183,8 @@ void FOnlineAsyncTaskAccelByteQueryOfferByFilter::FilterAndAddResults(const FAcc
 		Offer->DynamicFields.Add(TEXT("IsConsumable"), Item.EntitlementType == EAccelByteEntitlementType::CONSUMABLE ? TEXT("true") : TEXT("false"));
 		Offer->DynamicFields.Add(TEXT("Category"), Item.CategoryPath);
 		Offer->DynamicFields.Add(TEXT("Name"), Item.Name);
-		Offer->DynamicFields.Add(TEXT("ItemType"), FString::Printf(TEXT("%d"), (int32)Item.ItemType));
+		Offer->DynamicFields.Add(TEXT("ItemType"), FAccelByteUtilities::GetUEnumValueAsString(Item.ItemType));
+		Offer->DynamicFields.Add(TEXT("Sku"), Item.Sku);
 		if (Item.ItemType == EAccelByteItemType::COINS)
 		{
 			Offer->DynamicFields.Add(TEXT("TargetCurrencyCode"), Item.TargetCurrencyCode);

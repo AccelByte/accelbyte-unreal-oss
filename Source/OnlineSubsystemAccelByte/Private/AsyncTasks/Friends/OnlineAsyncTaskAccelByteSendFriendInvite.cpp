@@ -65,7 +65,11 @@ void FOnlineAsyncTaskAccelByteSendFriendInvite::TriggerDelegates()
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
 	Delegate.ExecuteIfBound(LocalUserNum, bWasSuccessful, ((bWasSuccessful) ? InvitedFriend->GetUserId().Get() : FriendId.Get()), ListName, ErrorStr);
-
+	if (bWasSuccessful)
+	{
+		const TSharedPtr<FOnlineFriendsAccelByte, ESPMode::ThreadSafe> FriendInterface = StaticCastSharedPtr<FOnlineFriendsAccelByte>(Subsystem->GetFriendsInterface());
+		FriendInterface->TriggerOnOutgoingInviteSentDelegates(LocalUserNum);
+	}
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 

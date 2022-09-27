@@ -58,7 +58,8 @@ void FOnlineAsyncTaskAccelByteUnregisterPlayersV1::Initialize()
 		const TSharedRef<const FUniqueNetIdAccelByteUser> Player = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(Players[PlayerIndex]);
 
 		FUniqueNetIdMatcher PlayerMatch(Player.Get());
-		if (Session->RegisteredPlayers.IndexOfByPredicate(PlayerMatch) == INDEX_NONE)
+		int IndexOfPlayer = Session->RegisteredPlayers.IndexOfByPredicate(PlayerMatch);
+		if (IndexOfPlayer == INDEX_NONE)
 		{
 			PendingPlayerUnregistrations.Decrement();
 			UE_LOG_AB(Warning, TEXT("Cannot unregister player '%s' from session '%s' as the player is not included in the registered players of the session!"), *Player->GetAccelByteId(), *SessionId);
@@ -68,7 +69,7 @@ void FOnlineAsyncTaskAccelByteUnregisterPlayersV1::Initialize()
 		FOnlineSubsystemAccelByteUtils::AddUserDisconnectedTime(Player->GetAccelByteId(), FDateTime::Now().ToIso8601());
 
 		// First, remove the player from the registered player array on the session and update open connection slots
-		Session->RegisteredPlayers.RemoveAtSwap(PlayerIndex);
+		Session->RegisteredPlayers.RemoveAtSwap(IndexOfPlayer);
 		Session->NumOpenPublicConnections++;
 
 		// Next, signal to session manager that we have unregistered a player from the session

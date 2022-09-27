@@ -27,6 +27,8 @@
 #include "AsyncTasks/SessionV1/OnlineAsyncTaskAccelByteRegisterPlayerV1.h"
 #include "AsyncTasks/SessionV1/OnlineAsyncTaskAccelByteUnregisterPlayerV1.h"
 #include "AsyncTasks/SessionV1/OnlineAsyncTaskAccelByteFindV1Sessions.h"
+#include "AsyncTasks/SessionV1/OnlineAsyncTaskAccelByteUpdateV1GameSession.h"
+#include "AsyncTasks/SessionV1//OnlineAsyncTaskAccelByteUpdateV1GameSettings.h"
 #include "AsyncTasks/SessionV1/Server/OnlineAsyncTaskAccelByteRegisterDedicatedV1Session.h"
 #include "AsyncTasks/SessionV1/Server/OnlineAsyncTaskAccelByteRetrieveDedicatedV1SessionInfo.h"
 #include "AsyncTasks/SessionV1/Server/OnlineAsyncTaskAccelByteGetDedicatedV1SessionId.h"
@@ -471,11 +473,6 @@ bool FOnlineSessionV1AccelByte::CreateSession(int32 HostingPlayerNum, FName Sess
 	Session->NumOpenPublicConnections = NewSessionSettings.NumPublicConnections;
 	Session->HostingPlayerNum = HostingPlayerNum;
 	Session->bHosting = true;
-	TSharedPtr<const FUniqueNetId> UniqueNetId = AccelByteSubsystem->GetIdentityInterface()->GetUniquePlayerId(HostingPlayerNum);
-	if(UniqueNetId.IsValid())
-	{
-		Session->RegisteredPlayers.Add(UniqueNetId->AsShared());
-	}
 
 	// Give a owning user ID and owning user name only if we are not running a dedicated server
 	//
@@ -668,12 +665,23 @@ bool FOnlineSessionV1AccelByte::StartSession(FName SessionName)
 
 bool FOnlineSessionV1AccelByte::UpdateSession(FName SessionName, FOnlineSessionSettings& UpdatedSessionSettings, bool bShouldRefreshOnlineData)
 {
-	// Currently we do not support updating a session through the backend, aside from registering and unregistering players
-	UE_LOG_AB(Warning, TEXT("FOnlineSessionAccelByte::UpdateSession is currently unsupported!"));
-	AccelByteSubsystem->ExecuteNextTick([SessionInterface = AsShared(), SessionName]() {
-		SessionInterface->TriggerOnUpdateSessionCompleteDelegates(SessionName, false);
-	});
-	return false;
+	// Currently we do support updating a session through the backend, only for current player, max player and session settings
+	UE_LOG_AB(Warning, TEXT("FOnlineSessionAccelByte::UpdateSession is currently only support changing current player, max player and session settings!"));
+
+	FNamedOnlineSession* Session = GetNamedSession(SessionName);
+	if (Session == nullptr)
+	{
+		AB_OSS_INTERFACE_TRACE_END(TEXT("Could not update session as a session with the name '%s' does not exists!"), *SessionName.ToString());
+		TriggerOnUpdateSessionCompleteDelegates(SessionName, false);
+		return false;
+	}
+
+	auto CurrentPlayer = SessionBrowserData.Game_session_setting.Current_player > Session->RegisteredPlayers.Num() ?
+		SessionBrowserData.Game_session_setting.Current_player > Session->RegisteredPlayers.Num() : Session->RegisteredPlayers.Num();
+
+	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteUpdateV1GameSession>(AccelByteSubsystem, SessionName, UpdatedSessionSettings, CurrentPlayer, bShouldRefreshOnlineData);
+	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteUpdateV1GameSettings>(AccelByteSubsystem, SessionName, UpdatedSessionSettings, bShouldRefreshOnlineData);
+	return true;
 }
 
 bool FOnlineSessionV1AccelByte::EndSession(FName SessionName)
@@ -1048,6 +1056,10 @@ bool FOnlineSessionV1AccelByte::JoinSession(int32 PlayerNum, FName SessionName, 
 			// Register a delegate that will notify that we've joined the session once we've connected to the WebRTC socket
 			const FAccelByteNetworkUtilitiesModule::OnICEConnected OnICEConnectionCompleteDelegate = FAccelByteNetworkUtilitiesModule::OnICEConnected::CreateRaw(this, &FOnlineSessionV1AccelByte::OnRTCConnected, SessionName);
 			FAccelByteNetworkUtilitiesModule::Get().RegisterICEConnectedDelegate(OnICEConnectionCompleteDelegate);
+
+			// Register a delegate that will notify if WebRTC socket closed
+			const TDelegate<void(const FString&)> OnICEConnectionCloseDelegate = TDelegate<void(const FString&)>::CreateRaw(this, &FOnlineSessionV1AccelByte::OnRTCClosed, SessionName);
+			FAccelByteNetworkUtilitiesModule::Get().RegisterICEClosedDelegate(OnICEConnectionCloseDelegate);
 			return true;
 		}
 		else
@@ -1062,6 +1074,11 @@ bool FOnlineSessionV1AccelByte::JoinSession(int32 PlayerNum, FName SessionName, 
 void FOnlineSessionV1AccelByte::OnRTCConnected(const FString& NetId, bool bWasSuccessful, FName SessionName)
 {
 	TriggerOnJoinSessionCompleteDelegates(SessionName, EOnJoinSessionCompleteResult::Success);
+}
+
+void FOnlineSessionV1AccelByte::OnRTCClosed(const FString& NetId, FName SessionName)
+{
+	DestroySession(SessionName);
 }
 
 bool FOnlineSessionV1AccelByte::FindFriendSession(int32 LocalUserNum, const FUniqueNetId& Friend)
@@ -1186,7 +1203,7 @@ bool FOnlineSessionV1AccelByte::RegisterPlayers(FName SessionName, const TArray<
 
 	// If we do not have a session ID yet for this session and we are the host, then we want to query for the session ID
 	// We add both the session ID query and the register player task as serial so that we get the ID first, and then register a player
-	if (Session->bHosting && !Session->SessionInfo->GetSessionId().IsValid())
+	if (Session->bHosting && Session->SessionSettings.bIsDedicated && !Session->SessionInfo->GetSessionId().IsValid())
 	{
 		AccelByteSubsystem->CreateAndDispatchAsyncTaskSerial<FOnlineAsyncTaskAccelByteGetDedicatedV1SessionId>(AccelByteSubsystem, SessionName);
 	}
@@ -1217,9 +1234,11 @@ bool FOnlineSessionV1AccelByte::RegisterPlayers(FName SessionName, const TArray<
 		}
 	}
 
-	// Get information about the session after the player has joined, used to get the latest session status for sending to the server
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskSerial<FOnlineAsyncTaskAccelByteRetrieveDedicatedV1SessionInfo>(AccelByteSubsystem, SessionName);
-	
+	if (Session->bHosting && Session->SessionSettings.bIsDedicated) 
+	{
+		// Get information about the session after the player has joined, used to get the latest session status for sending to the server
+		AccelByteSubsystem->CreateAndDispatchAsyncTaskSerial<FOnlineAsyncTaskAccelByteRetrieveDedicatedV1SessionInfo>(AccelByteSubsystem, SessionName);
+	}
 	AB_OSS_INTERFACE_TRACE_END(TEXT("Spawned async tasks for registering %d players to '%s' session!"), Players.Num(), *SessionName.ToString());
 	return true;
 }
@@ -1245,7 +1264,7 @@ bool FOnlineSessionV1AccelByte::UnregisterPlayers(FName SessionName, const TArra
 
 	// If we do not have a session ID yet for this session and we are the host, then we want to query for the session ID
 	// We add both the session ID query and the unregister player task as serial so that we get the ID first, and then unregister a player
-	if (Session->bHosting && !Session->SessionInfo->GetSessionId().IsValid())
+	if (Session->bHosting && Session->SessionSettings.bIsDedicated && !Session->SessionInfo->GetSessionId().IsValid())
 	{
 		AccelByteSubsystem->CreateAndDispatchAsyncTaskSerial<FOnlineAsyncTaskAccelByteGetDedicatedV1SessionId>(AccelByteSubsystem, SessionName);
 	}
@@ -1273,9 +1292,11 @@ bool FOnlineSessionV1AccelByte::UnregisterPlayers(FName SessionName, const TArra
 			AB_OSS_INTERFACE_TRACE_END(TEXT("Player not in the current session, skip!"));
 		}
 	}
-	
-	// Queue task to get updated session information after we removed a player from the queue
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskSerial<FOnlineAsyncTaskAccelByteRetrieveDedicatedV1SessionInfo>(AccelByteSubsystem, SessionName);
+	if (Session->bHosting && Session->SessionSettings.bIsDedicated)
+	{
+		// Queue task to get updated session information after we removed a player from the queue
+		AccelByteSubsystem->CreateAndDispatchAsyncTaskSerial<FOnlineAsyncTaskAccelByteRetrieveDedicatedV1SessionInfo>(AccelByteSubsystem, SessionName);
+	}
 
 	AB_OSS_INTERFACE_TRACE_END(TEXT("Spawned async tasks for unregistering %d players from '%s' session!"), Players.Num(), *SessionName.ToString());
 	return true;

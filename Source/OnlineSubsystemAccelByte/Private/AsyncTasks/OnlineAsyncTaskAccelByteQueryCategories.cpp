@@ -68,6 +68,9 @@ void FOnlineAsyncTaskAccelByteQueryCategories::HandleGetRootCategorySuccess(cons
 	TaskLeft = AccelByteModelsCategoryInfos.Num();
 	for(const FAccelByteModelsCategoryInfo& CategoryInfo : AccelByteModelsCategoryInfos)
 	{
+		FOnlineStoreCategory& Category = CategoryMap.FindOrAdd(CategoryInfo.CategoryPath);
+		Category.Id = CategoryInfo.CategoryPath;
+		Category.Description = FText::FromString(CategoryInfo.DisplayName);
 		OnGetDescendantCategoriesSuccess = TDelegateUtils<THandler<TArray<FAccelByteModelsCategoryInfo>>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryCategories::HandleGetDescendantCategoriesSuccess);
 		ApiClient->Category.GetDescendantCategories(Language, CategoryInfo.CategoryPath, OnGetDescendantCategoriesSuccess, OnError);
 	}
@@ -83,6 +86,7 @@ void FOnlineAsyncTaskAccelByteQueryCategories::HandleGetDescendantCategoriesSucc
 		Category.Id = CategoryInfo.ParentCategoryPath;
 		FOnlineStoreCategory Descendant;
 		Descendant.Id = CategoryInfo.CategoryPath;
+		Descendant.Description = FText::FromString(CategoryInfo.DisplayName);
 		Category.SubCategories.Add(Descendant);
 		CategoryMap.Add(Descendant.Id, Descendant);
 	}
