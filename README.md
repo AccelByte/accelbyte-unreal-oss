@@ -89,6 +89,32 @@ the interfaces which game developers can integrate it to their games. These inte
 asynchronous calls so the game can still run as usual.
 ### Online Identity Interface
 Online Identity Interface is used for player registration/authentication
+#### Try this first
+When initially adding the AccelByte OSS to your game, try registering/authentication a headless account via DeviceId.
+This is the simplest and most reliable* method of registration/authentication.
+"Reliable" here meaning "fewest remote/moving pieces, and most likely to work".
+Your system's device ID can change, such as by a change in what hardware is installed, so it should not be relied upon for real player accounts.
+```
+// TODO: Description of _when_ this should be done in Unreal's flow.
+void TestAbRegistrationAuthentication()
+{
+   // Note that FRegistry is also in your global namespace.
+   // The AccelByte namespace is added here for clarity.
+   AccelByte::FRegistry::User.LoginWithDeviceId(
+      FVoidHandler::CreateLambda([&]()
+      {
+         // This copy-paste example uses a generally-present log category in Unreal.
+         // See Unreal's "DECLARE_LOG_CATEGORY_EXTERN()" to make a new log category.
+         // In lieu of one, the message here is prefixed with "[AB]".
+         UE_LOG(LogInit, Log, TEXT("[AB] DEVICE ID LOGIN SUCCESS!"));
+      }),
+      FErrorHandler::CreateLambda([](int32 ErrorCode, const FString& ErrorMessage)
+      {
+         UE_LOG(LogInit, Log, TEXT("[AB] Error [%d] while logging in: %s"), ErrorCode, *ErrorMessage);
+      })
+   );
+}
+```
 #### Login
 The AccelByte Cloud OSS offers several different login types based on the native platform or with other platforms
 by providing the type and credentials in th **FOnlineAccountCrdentialsAccelByte** class.
