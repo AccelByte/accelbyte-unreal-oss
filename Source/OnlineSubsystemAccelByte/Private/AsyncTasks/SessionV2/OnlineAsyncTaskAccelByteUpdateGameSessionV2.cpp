@@ -95,7 +95,7 @@ void FOnlineAsyncTaskAccelByteUpdateGameSessionV2::Initialize()
 	}
 
 	FString Deployment{};
-	if (NewSessionSettings.Get(SETTING_GAMESESSION_CLIENTVERSION, Deployment) && Deployment != GameSessionBackendData->Configuration.Deployment)
+	if (NewSessionSettings.Get(SETTING_GAMESESSION_DEPLOYMENT, Deployment) && Deployment != GameSessionBackendData->Configuration.Deployment)
 	{
 		UpdateRequest.Deployment = Deployment;
 	}

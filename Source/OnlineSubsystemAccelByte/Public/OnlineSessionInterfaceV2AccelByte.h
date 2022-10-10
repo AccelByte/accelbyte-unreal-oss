@@ -73,11 +73,17 @@ public:
 	/** Get an array of user IDs representing players that are marked as joined to this session */
 	TArray<FUniqueNetIdRef> GetJoinedMembers() const;
 
+	/** Get an array of user IDs representing players that are marked as invited to this session*/
+	TArray<FUniqueNetIdRef> GetInvitedPlayers() const;
+
 PACKAGE_SCOPE:
 	/**
 	 * Update the list of invited players on this session from the backend session data.
+	 * 
+	 * @param bOutJoinedMembersChanged Boolean denoting whether the array of joined members has changed
+	 * @param bOutInvitedPlayersChanged Boolean denoting whether the array of invited players has changed
 	 */
-	void UpdatePlayerLists();
+	void UpdatePlayerLists(bool& bOutJoinedMembersChanged, bool& bOutInvitedPlayersChanged);
 
 	/**
 	 * Update the stored leader ID for this session. Intended only for use with party sessions.
@@ -291,6 +297,9 @@ typedef FOnMatchmakingExpired::FDelegate FOnMatchmakingExpiredDelegate;
 
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnBackfillProposalReceived, FAccelByteModelsV2MatchmakingBackfillProposalNotif /*Proposal*/);
 typedef FOnBackfillProposalReceived::FDelegate FOnBackfillProposalReceivedDelegate;
+
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnSessionInvitesChanged, FName /*SessionName*/);
+typedef FOnSessionInvitesChanged::FDelegate FOnSessionInvitesChangedDelegate;
 //~ End custom delegates
 
 class ONLINESUBSYSTEMACCELBYTE_API FOnlineSessionV2AccelByte : public IOnlineSession, public TSharedFromThis<FOnlineSessionV2AccelByte, ESPMode::ThreadSafe>
@@ -590,6 +599,11 @@ public:
 	 * RejectBackfillProposal to act on the proposal.
 	 */
 	DEFINE_ONLINE_DELEGATE_ONE_PARAM(OnBackfillProposalReceived, FAccelByteModelsV2MatchmakingBackfillProposalNotif /*Proposal*/);
+
+	/**
+	 * Delegate fired when a session's invited members list changes.
+	 */
+	DEFINE_ONLINE_DELEGATE_ONE_PARAM(OnSessionInvitesChanged, FName /*SessionName*/);
 
 #if (ENGINE_MAJOR_VERSION == 4 && ENGINE_MINOR_VERSION <= 25)
 	/**
@@ -899,7 +913,7 @@ private:
 	/**
 	 * Generically handle members change events for party and game sessions.
 	 */
-	void HandleSessionMembersChangedNotification(const FString& SessionId, const TArray<FAccelByteModelsV2SessionUser>& NewMembers, const FString& JoinerId);
+	void HandleSessionMembersChangedNotification(const FString& SessionId, const TArray<FAccelByteModelsV2SessionUser>& NewMembers, const FString& JoinerId, const FString& LeaderId);
 
 	void RegisterJoinedSessionMember(FNamedOnlineSession* Session, const FAccelByteModelsV2SessionUser& JoinedMember);
 	void UnregisterLeftSessionMember(FNamedOnlineSession* Session, const FAccelByteModelsV2SessionUser& LeftMember);

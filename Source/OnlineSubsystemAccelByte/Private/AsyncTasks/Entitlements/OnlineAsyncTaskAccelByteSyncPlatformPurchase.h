@@ -3,7 +3,7 @@
 // and restrictions contact your company contract manager.
 #pragma once
 
-#include "OnlineAsyncTaskAccelByte.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByte.h"
 #include "OnlineEntitlementsInterfaceAccelByte.h"
 #include "Models/AccelByteEcommerceModels.h"
 

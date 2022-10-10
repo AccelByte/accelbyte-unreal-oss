@@ -3,8 +3,8 @@
 // and restrictions contact your company contract manager.
 
 #include "OnlinePurchaseInterfaceAccelByte.h"
-#include "AsyncTasks/OnlineAsyncTaskAccelByteCheckout.h"
-#include "AsyncTasks/OnlineAsyncTaskAccelByteRedeemCode.h"
+#include "AsyncTasks/Purchase/OnlineAsyncTaskAccelByteCheckout.h"
+#include "AsyncTasks/Purchase/OnlineAsyncTaskAccelByteRedeemCode.h"
 #include "OnlineSubsystemUtils.h"
 
 FOnlinePurchaseAccelByte::FOnlinePurchaseAccelByte(FOnlineSubsystemAccelByte* InSubsystem) : AccelByteSubsystem(InSubsystem)

@@ -3,12 +3,12 @@
 // and restrictions contact your company contract manager.
 
 #include "OnlineStoreInterfaceV2AccelByte.h"
-#include "AsyncTasks/OnlineAsyncTaskAccelByteQueryCategories.h"
-#include "AsyncTasks/OnlineAsyncTaskAccelByteQueryChildCategories.h"
-#include "AsyncTasks/OnlineAsyncTaskAccelByteQueryOfferByFilter.h"
-#include "AsyncTasks/OnlineAsyncTaskAccelByteQueryOfferById.h"
-#include "AsyncTasks/OnlineAsyncTaskAccelByteQueryOfferBySku.h"
-#include "AsyncTasks/OnlineAsyncTaskAccelByteQueryOfferDynamicData.h"
+#include "AsyncTasks/Store/OnlineAsyncTaskAccelByteQueryCategories.h"
+#include "AsyncTasks/Store/OnlineAsyncTaskAccelByteQueryChildCategories.h"
+#include "AsyncTasks/Store/OnlineAsyncTaskAccelByteQueryOfferByFilter.h"
+#include "AsyncTasks/Store/OnlineAsyncTaskAccelByteQueryOfferById.h"
+#include "AsyncTasks/Store/OnlineAsyncTaskAccelByteQueryOfferBySku.h"
+#include "AsyncTasks/Store/OnlineAsyncTaskAccelByteQueryOfferDynamicData.h"
 #include "..\Public\OnlineStoreInterfaceV2AccelByte.h"
 #include "OnlineSubsystemUtils.h"
 

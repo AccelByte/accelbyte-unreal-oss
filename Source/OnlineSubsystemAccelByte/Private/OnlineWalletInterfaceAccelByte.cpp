@@ -6,9 +6,9 @@
 #include "Core/AccelByteMultiRegistry.h"
 #include "OnlineIdentityInterfaceAccelByte.h"
 #include "OnlineSubsystemAccelByteInternalHelpers.h"
-#include "AsyncTasks/OnlineAsyncTaskAccelByteGetCurrencyList.h"
-#include "AsyncTasks/OnlineAsyncTaskAccelByteGetWalletInfo.h"
-#include "AsyncTasks/OnlineAsyncTaskAccelByteGetWalletTransactions.h"
+#include "AsyncTasks/Wallet/OnlineAsyncTaskAccelByteGetCurrencyList.h"
+#include "AsyncTasks/Wallet/OnlineAsyncTaskAccelByteGetWalletInfo.h"
+#include "AsyncTasks/Wallet/OnlineAsyncTaskAccelByteGetWalletTransactions.h"
 #include "OnlineSubsystemUtils.h"
 #include "Engine/World.h"
 

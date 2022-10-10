@@ -24,6 +24,7 @@ void FOnlineAsyncTaskAccelByteStartV2Matchmaking::Initialize()
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("LocalPlayerId: %s; SessionName: %s; MatchPool: %s"), *UserId->ToDebugString(), *SessionName.ToString(), *MatchPool);
 
+	SearchHandle->SearchState = EOnlineAsyncTaskState::InProgress;
 	const bool bHasCachedLatencies = ApiClient->Qos.GetCachedLatencies().Num() > 0;
 	if (!bHasCachedLatencies)
 	{
@@ -84,7 +85,10 @@ void FOnlineAsyncTaskAccelByteStartV2Matchmaking::TriggerDelegates()
 		return;
 	}
 
-	SessionInterface->TriggerOnMatchmakingStartedDelegates();
+	if (bWasSuccessful)
+	{
+		SessionInterface->TriggerOnMatchmakingStartedDelegates();
+	}
 
 	FSessionMatchmakingResults EmptyResults; // Results will always be empty as this is just us creating the ticket. Actual results will be filled in the search handle.
 	Delegate.ExecuteIfBound(SessionName, ((bWasSuccessful) ? ONLINE_ERROR(EOnlineErrorResult::Success) : ONLINE_ERROR(EOnlineErrorResult::RequestFailure)), EmptyResults);

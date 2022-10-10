@@ -70,7 +70,7 @@
  * @param ErrorMessage Error message for the request that failed
  */
 #define AB_ASYNC_TASK_REQUEST_FAILED(Message, ErrorCode, ErrorMessage, ...) const FString LogString = FString::Printf(TEXT(Message), ##__VA_ARGS__); \
-	UE_LOG_AB(Warning, TEXT("%s. Error code: %s; Error message: %s"), *LogString, ErrorCode, *ErrorMessage); \
+	UE_LOG_AB(Warning, TEXT("%s. Error code: %d; Error message: %s"), *LogString, ErrorCode, *ErrorMessage); \
 	CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
 
 /**

@@ -44,6 +44,7 @@
 #include "AccelByteNetworkUtilities.h"
 #include "OnlineSessionSettingsAccelByte.h"
 #include "OnlineSubsystemUtils.h"
+#include <algorithm>
 
 #define ONLINE_ERROR_NAMESPACE "FOnlineSessionV2AccelByte"
 #define ACCELBYTE_P2P_TRAVEL_URL_FORMAT TEXT("accelbyte.%s:11223")
@@ -104,7 +105,12 @@ void FOnlineSessionInfoAccelByteV2::SetBackendSessionData(const TSharedPtr<FAcce
 
 	// If we have valid session data, then we want to fill out some of the convenience info members in this class such as
 	// the invited players array for developers.
-	UpdatePlayerLists();
+	// 
+	// #NOTE Deliberately not using either of these bool return values as we only call this method during create, join, or
+	// refresh. Since these are just used to fire notification delegates, we won't need those for these manual actions.
+	bool bWasJoinedMembersChanged = false;
+	bool bWasInvitedPlayersChanged = false;
+	UpdatePlayerLists(bWasJoinedMembersChanged, bWasInvitedPlayersChanged);
 
 	// Also try and update the leader ID for this session. Method will bail if this is not a party session.
 	UpdateLeaderId();
@@ -199,12 +205,21 @@ TArray<FUniqueNetIdRef> FOnlineSessionInfoAccelByteV2::GetJoinedMembers() const
 	return JoinedMembers;
 }
 
-void FOnlineSessionInfoAccelByteV2::UpdatePlayerLists()
+TArray<FUniqueNetIdRef> FOnlineSessionInfoAccelByteV2::GetInvitedPlayers() const
+{
+	return InvitedPlayers;
+}
+
+void FOnlineSessionInfoAccelByteV2::UpdatePlayerLists(bool& bOutJoinedMembersChanged, bool& bOutInvitedPlayersChanged)
 {
 	if (!BackendSessionData.IsValid())
 	{
 		return;
 	}
+
+	// Save previous lengths of invited and joined player arrays to determine if either have changed
+	const int32 PreviousInvitedPlayersNum = InvitedPlayers.Num();
+	const int32 PreviousJoinedMembersNum = JoinedMembers.Num();
 
 	// Clear both the invited player and joined player arrays, will be refilled as we iterate through the new backend member array
 	InvitedPlayers.Empty();
@@ -243,6 +258,16 @@ void FOnlineSessionInfoAccelByteV2::UpdatePlayerLists()
 		{
 			JoinedMembers.Emplace(MemberId.ToSharedRef());
 		}
+	}
+
+	if (PreviousInvitedPlayersNum != InvitedPlayers.Num())
+	{
+		bOutInvitedPlayersChanged = true;
+	}
+
+	if (PreviousJoinedMembersNum != JoinedMembers.Num())
+	{
+		bOutJoinedMembersChanged = true;
 	}
 }
 
@@ -1457,6 +1482,7 @@ void FOnlineSessionV2AccelByte::UpdateInternalGameSession(const FName& SessionNa
 
 	// First update the session data associated with the session info structure
 	SessionInfo->SetBackendSessionData(MakeShared<FAccelByteModelsV2GameSession>(UpdatedGameSession));
+	SessionInfo->SetTeamAssignments(UpdatedGameSession.Teams);
 
 	// First, read all attributes from the session, as that will overwrite all of the reserved/built-in settings
 	if (UpdatedGameSession.Attributes.JsonObject.IsValid())
@@ -2929,7 +2955,7 @@ void FOnlineSessionV2AccelByte::OnGameSessionMembersChangedNotification(FAccelBy
 {
 	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("SessionId: %s; JoinerId: %s"), *MembersChangedEvent.SessionID, *MembersChangedEvent.JoinerID);
 
-	HandleSessionMembersChangedNotification(MembersChangedEvent.SessionID, MembersChangedEvent.Members, MembersChangedEvent.JoinerID);
+	HandleSessionMembersChangedNotification(MembersChangedEvent.SessionID, MembersChangedEvent.Members, MembersChangedEvent.JoinerID, MembersChangedEvent.LeaderID);
 
 	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
 }
@@ -3133,7 +3159,7 @@ void FOnlineSessionV2AccelByte::OnPartySessionMembersChangedNotification(FAccelB
 {
 	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("SessionId: %s; JoinerId: %s"), *MemberChangeEvent.PartyID, *MemberChangeEvent.JoinerID);
 
-	HandleSessionMembersChangedNotification(MemberChangeEvent.PartyID, MemberChangeEvent.Members, MemberChangeEvent.JoinerID);
+	HandleSessionMembersChangedNotification(MemberChangeEvent.PartyID, MemberChangeEvent.Members, MemberChangeEvent.JoinerID, MemberChangeEvent.LeaderID);
 
 	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
 }
@@ -3189,7 +3215,16 @@ void FOnlineSessionV2AccelByte::OnPartySessionInviteRejectedNotification(FAccelB
 	}
 
 	SessionData->Members = RejectEvent.Members;
-	SessionInfo->UpdatePlayerLists();
+
+	bool bHasInvitedPlayersChanged = false;
+	bool bHasJoinedMembersChanged = false;
+	SessionInfo->UpdatePlayerLists(bHasJoinedMembersChanged, bHasInvitedPlayersChanged);
+	
+	if (bHasInvitedPlayersChanged)
+	{
+		TriggerOnSessionInvitesChangedDelegates(Session->SessionName);
+	}
+
 	SessionInfo->UpdateLeaderId();
 
 	TriggerOnUpdateSessionCompleteDelegates(Session->SessionName, true);
@@ -3197,7 +3232,7 @@ void FOnlineSessionV2AccelByte::OnPartySessionInviteRejectedNotification(FAccelB
 	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
 }
 
-void FOnlineSessionV2AccelByte::HandleSessionMembersChangedNotification(const FString& SessionId, const TArray<FAccelByteModelsV2SessionUser>& NewMembers, const FString& JoinerId)
+void FOnlineSessionV2AccelByte::HandleSessionMembersChangedNotification(const FString& SessionId, const TArray<FAccelByteModelsV2SessionUser>& NewMembers, const FString& JoinerId, const FString& LeaderId)
 {
 	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("SessionId: %s; JoinerId: %s"), *SessionId, *JoinerId);
 
@@ -3223,13 +3258,24 @@ void FOnlineSessionV2AccelByte::HandleSessionMembersChangedNotification(const FS
 		return;
 	}
 
+	SessionData->LeaderID = LeaderId;
+
 	// Grab the old members array in case we need to diff it
 	const TArray<FAccelByteModelsV2SessionUser> PreviousMembers = SessionData->Members;
 
 	// Set new members array and update the invite list on session info
 	SessionData->Members = NewMembers;
 	SessionData->Version++;
-	SessionInfo->UpdatePlayerLists();
+	
+	bool bHasInvitedPlayersChanged = false;
+	bool bHasJoinedMembersChanged = false;
+	SessionInfo->UpdatePlayerLists(bHasJoinedMembersChanged, bHasInvitedPlayersChanged);
+
+	if (bHasInvitedPlayersChanged)
+	{
+		TriggerOnSessionInvitesChangedDelegates(Session->SessionName);
+	}
+
 	SessionInfo->UpdateLeaderId();
 
 	// If the JoinerId for the event is not blank, then we just have to register this player and update session info
@@ -3271,7 +3317,7 @@ void FOnlineSessionV2AccelByte::HandleSessionMembersChangedNotification(const FS
 		{
 			RegisterJoinedSessionMember(Session, NewMember);
 		}
-		else
+		else if (bIsLeaveStatus)
 		{
 			UnregisterLeftSessionMember(Session, NewMember);
 		}
@@ -3359,6 +3405,8 @@ void FOnlineSessionV2AccelByte::OnMatchmakingStartedNotification(FAccelByteModel
 	// #TODO (Maxwell) Revisit this to somehow give developers a way to choose what session name they are matching for if a party
 	// member receives a matchmaking notification. Since matchmaking shouldn't just be limited to game sessions.
 	CurrentMatchmakingSearchHandle->SearchingSessionName = NAME_GameSession;
+
+	TriggerOnMatchmakingStartedDelegates();
 
 	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
 }

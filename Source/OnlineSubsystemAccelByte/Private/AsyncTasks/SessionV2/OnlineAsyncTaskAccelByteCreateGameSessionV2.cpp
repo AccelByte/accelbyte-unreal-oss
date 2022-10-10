@@ -51,29 +51,25 @@ void FOnlineAsyncTaskAccelByteCreateGameSessionV2::Initialize()
 		}
 	}
 
-	// If this is a dedicated session, then we need to request a DS as well
-	if (NewSessionSettings.bIsDedicated)
+	FString ClientVersion{};
+	if (NewSessionSettings.Get(SETTING_GAMESESSION_CLIENTVERSION, ClientVersion) && !ClientVersion.IsEmpty())
 	{
-		FString ClientVersion{};
-		if (NewSessionSettings.Get(SETTING_GAMESESSION_CLIENTVERSION, ClientVersion) && !ClientVersion.IsEmpty())
-		{
-			CreateRequest.ClientVersion = ClientVersion;
-		}
-
-		FString Deployment;
-		if (NewSessionSettings.Get(SETTING_GAMESESSION_DEPLOYMENT, Deployment) && !Deployment.IsEmpty())
-		{
-			CreateRequest.Deployment = Deployment;
-		}
-
-		FString ServerName{};
-		if (NewSessionSettings.Get(SETTING_GAMESESSION_SERVERNAME, ServerName) && !ServerName.IsEmpty())
-		{
-			CreateRequest.ServerName = ServerName;
-		}
-
-		FOnlineSessionSettingsAccelByte::Get(NewSessionSettings, SETTING_GAMESESSION_REQUESTEDREGIONS, CreateRequest.RequestedRegions);
+		CreateRequest.ClientVersion = ClientVersion;
 	}
+
+	FString Deployment;
+	if (NewSessionSettings.Get(SETTING_GAMESESSION_DEPLOYMENT, Deployment) && !Deployment.IsEmpty())
+	{
+		CreateRequest.Deployment = Deployment;
+	}
+
+	FString ServerName{};
+	if (NewSessionSettings.Get(SETTING_GAMESESSION_SERVERNAME, ServerName) && !ServerName.IsEmpty())
+	{
+		CreateRequest.ServerName = ServerName;
+	}
+
+	FOnlineSessionSettingsAccelByte::Get(NewSessionSettings, SETTING_GAMESESSION_REQUESTEDREGIONS, CreateRequest.RequestedRegions);
 
 	int32 MinimumPlayers = 0;
 	if (NewSessionSettings.Get(SETTING_SESSION_MINIMUM_PLAYERS, MinimumPlayers) && MinimumPlayers > 0)

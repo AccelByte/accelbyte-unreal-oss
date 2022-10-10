@@ -8,6 +8,7 @@
 #include "OnlineSubsystemAccelByteDefines.h"
 #include "Modules/ModuleManager.h"
 #include "Interfaces/IPluginManager.h"
+#include "Core/AccelByteHttpRetryScheduler.h"
 
 DEFINE_LOG_CATEGORY(LogAccelByteOSS);
 DEFINE_LOG_CATEGORY(LogAccelByteOSSParty);
@@ -61,6 +62,14 @@ void FOnlineSubsystemAccelByteModule::StartupModule()
 	AccelByteFactory = MakeUnique<FOnlineFactoryAccelByte>();
 	FOnlineSubsystemModule& OSS = FModuleManager::GetModuleChecked<FOnlineSubsystemModule>("OnlineSubsystem");
 	OSS.RegisterPlatformService(ACCELBYTE_SUBSYSTEM, AccelByteFactory.Get());
+
+	FString const OSSPluginName = "OnlineSubsystemAccelByte";
+	TSharedPtr<IPlugin> const Plugin = IPluginManager::Get().FindPlugin(OSSPluginName);
+	if (Plugin.IsValid())
+	{
+		const FPluginDescriptor& Descriptor = Plugin->GetDescriptor();
+		AccelByte::FHttpRetryScheduler::SetHeaderOSSVersion(Descriptor.VersionName);
+	}
 }
 
 void FOnlineSubsystemAccelByteModule::ShutdownModule()

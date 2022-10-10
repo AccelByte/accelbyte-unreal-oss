@@ -3,10 +3,10 @@
 // and restrictions contact your company contract manager.
 
 #include "OnlineEntitlementsInterfaceAccelByte.h"
-#include "AsyncTasks/OnlineAsyncTaskAccelByteQueryEntitlements.h"
 #include "OnlineSubsystemUtils.h"
-#include "AsyncTasks/OnlineAsyncTaskAccelByteSyncPlatformPurchase.h"
-#include "AsyncTasks/OnlineAsyncTaskAccelByteSyncDLC.h"
+#include "AsyncTasks/Entitlements/OnlineAsyncTaskAccelByteQueryEntitlements.h"
+#include "AsyncTasks/Entitlements/OnlineAsyncTaskAccelByteSyncPlatformPurchase.h"
+#include "AsyncTasks/Entitlements/OnlineAsyncTaskAccelByteSyncDLC.h"
 
 FOnlineEntitlementsAccelByte::FOnlineEntitlementsAccelByte(FOnlineSubsystemAccelByte* InSubsystem)
 	: AccelByteSubsystem(InSubsystem)

@@ -3,13 +3,13 @@
 // and restrictions contact your company contract manager.
 
 #pragma once
-#include "OnlineAsyncTaskAccelByte.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByte.h"
 #include "Models/AccelByteEcommerceModels.h"
 
-class FOnlineAsyncTaskAccelByteQueryOfferBySku : public FOnlineAsyncTaskAccelByte
+class FOnlineAsyncTaskAccelByteQueryOfferDynamicData : public FOnlineAsyncTaskAccelByte
 {
 public:
-	FOnlineAsyncTaskAccelByteQueryOfferBySku(FOnlineSubsystemAccelByte* const InABSubsystem, const FUniqueNetId& InUserId, const FString& InSku,
+	FOnlineAsyncTaskAccelByteQueryOfferDynamicData(FOnlineSubsystemAccelByte* const InABSubsystem, const FUniqueNetId& InUserId, const FUniqueOfferId& InOfferId,
 		const FOnQueryOnlineStoreOffersComplete& InDelegate);
 
 	virtual void Initialize() override;
@@ -20,18 +20,17 @@ protected:
 
 	virtual const FString GetTaskName() const override
 	{
-		return TEXT("FOnlineAsyncTaskAccelByteQueryOfferBySku");
+		return TEXT("FOnlineAsyncTaskAccelByteQueryOfferDynamicData");
 	}
 
 private:
-	void HandleGetItemBySku(const FAccelByteModelsItemInfo& Result);
+	void HandleGetItemDynamicData(const FAccelByteModelsItemDynamicData& Result);
 	void HandleAsyncTaskError(int32 Code, FString const& ErrMsg);
 
 	FString ErrorMsg;
-	FString Language;
-	FString Sku;
-	THandler<FAccelByteModelsItemInfo> OnSuccess;
+	FUniqueOfferId OfferId;
+	THandler<FAccelByteModelsItemDynamicData> OnSuccess;
 	FErrorHandler OnError;
 	FOnQueryOnlineStoreOffersComplete Delegate;
-	FOnlineStoreOfferRef Offer;
+	FAccelByteModelsItemDynamicData DynamicData;
 };
