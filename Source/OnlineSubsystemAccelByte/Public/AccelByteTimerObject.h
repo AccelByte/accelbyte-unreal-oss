@@ -5,6 +5,7 @@
 #pragma once
 
 #include "Tickable.h"
+#include "TimerManager.h"
 
 /**
 * This class will automatically register to gamethread tickable objects. 

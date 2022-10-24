@@ -19,6 +19,7 @@
 #include "AsyncTasks/PartyV1/OnlineAsyncTaskAccelByteRestoreV1Parties.h"
 #include "AsyncTasks/PartyV1/OnlineAsyncTaskAccelByteGetV1PartyInviteInfo.h"
 #include "AsyncTasks/PartyV1/OnlineAsyncTaskAccelByteAddJoinedV1PartyMember.h"
+#include "AsyncTasks/PartyV1/OnlineAsyncTaskAccelByteGetV1PartyCode.h"
 #include "OnlineSubsystemUtils.h"
 
 // Some delegates require reasons as to why the delegate might have failed, for this case, this is a constant for when
@@ -408,6 +409,7 @@ void FOnlinePartyAccelByte::SetPartyCode(const FString& PartyCode)
 {
 	// Create a copy of the old party data instance, and append our party code to it, then set it
 	TSharedRef<FOnlinePartyData> NewPartyData = MakeShared<FOnlinePartyData>(PartyData.Get());
+	NewPartyData->SetAttribute(PARTYDATA_PARTYCODE_ATTR, PartyCode);
 	SetPartyData(NewPartyData);
 }
 
@@ -867,7 +869,7 @@ void FOnlinePartySystemAccelByte::OnPartyDataChangeNotification(const FAccelByte
 	{
 		AB_OSS_INTERFACE_TRACE_END(TEXT("Failed to update party data as we could not find a party with the ID specified. Probably need to call RestoreParties first."));
 		return;
-	}
+	} 
 	
 	TSharedPtr<const FUniqueNetIdAccelByteUser> PreviousLeaderId = StaticCastSharedPtr<const FUniqueNetIdAccelByteUser>(Party->LeaderId);
 	if (!Notification.Leader.IsEmpty() && Notification.Leader != PreviousLeaderId->GetAccelByteId())
@@ -902,6 +904,17 @@ void FOnlinePartySystemAccelByte::OnPartyDataChangeNotification(const FAccelByte
 						{
 							TriggerOnPartyMemberPromotedDelegates(Member->GetUserId().Get(), Party->PartyId.Get(), *Party->LeaderId.Get());
 						}
+					}
+				}
+
+				// If the Leader Change, then the leader should request for PartyCode
+				const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystem->GetIdentityInterface());
+				if (IdentityInterface.IsValid())
+				{
+					if (Member->GetUserId() == LeaderMember->GetUserId() && IdentityInterface->GetApiClient(LeaderMemberId.Get()).IsValid())
+					{
+						FOnPartyCodeGenerated Delegate = FOnPartyCodeGenerated::CreateRaw(this, &FOnlinePartySystemAccelByte::OnPromotedLeaderGetPartyCode);
+						AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGetV1PartyCode>(AccelByteSubsystem, LeaderMemberId, Notification.PartyId, Delegate);
 					}
 				}
 			}
@@ -994,6 +1007,30 @@ void FOnlinePartySystemAccelByte::OnPartyJoinedCompleteMemberLeaveParty(const FU
 	}
 
 	AB_OSS_INTERFACE_TRACE_END(TEXT("Removed user from party as they left."));
+}
+
+void FOnlinePartySystemAccelByte::OnPromotedLeaderGetPartyCode(bool bWasSuccessful, const FString& PartyCode, const TSharedRef<const FUniqueNetIdAccelByteUser>& UserId, const FString& PartyId)
+{
+	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("UserId: %s; PartyId: %s; PartyCode: %s"), *UserId->ToDebugString(), *PartyId, *PartyCode);
+	UE_LOG(LogAccelByteOSSParty, Verbose, TEXT("User '%s' request for PartyCode was responded!"), *UserId->ToDebugString());
+
+	if (bWasSuccessful == false)
+	{
+		return;
+	}
+	auto FoundUser = UserIdToPartiesMap.Find(UserId);
+	if (FoundUser == nullptr)
+	{
+		return;
+	}
+	auto FoundParty = FoundUser->Find(MakeShared<const FOnlinePartyIdAccelByte>(PartyId));
+	if (FoundParty == nullptr)
+	{
+		return;
+	}
+	FoundParty->Get().SetPartyCode(PartyCode);
+
+	AB_OSS_INTERFACE_TRACE_END(TEXT("Successfully obtaining PartyCode."));
 }
 
 void FOnlinePartySystemAccelByte::RegisterRealTimeLobbyDelegates(const TSharedRef<const FUniqueNetIdAccelByteUser>& UserId)
@@ -1379,6 +1416,45 @@ bool FOnlinePartySystemAccelByte::JoinParty(const FUniqueNetId& LocalUserId, con
 	}
 
 	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteJoinV1Party>(AccelByteSubsystem, LocalUserId, OnlinePartyJoinInfo, Delegate);
+	return true;
+}
+
+bool FOnlinePartySystemAccelByte::JoinParty(const FUniqueNetId& LocalUserId, const FString& InPartyCode, const FOnJoinPartyComplete& Delegate)
+{
+	if (WarnForUsingV1PartyWithV2Sessions())
+	{
+		return false;
+	}
+
+	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteJoinV1Party>(AccelByteSubsystem, LocalUserId, InPartyCode, Delegate);
+	return true;
+}
+
+bool FOnlinePartySystemAccelByte::GetPartyCode(FString& Output, const FUniqueNetId& LocalUserId, const FOnlinePartyId& PartyId)
+{
+#if (ENGINE_MAJOR_VERSION >= 5) || (ENGINE_MAJOR_VERSION == 4 && ENGINE_MINOR_VERSION >= 26)
+	auto PartyInfo = GetPartyData(LocalUserId, PartyId, FName(""));
+#else
+	auto PartyInfo = GetPartyData(LocalUserId, PartyId);
+#endif
+	if (PartyInfo.IsValid() == false)
+	{
+		return false;
+	}
+
+	FVariantData Result;
+	if (PartyInfo->GetAttribute(PARTYDATA_PARTYCODE_ATTR, Result) == false)
+	{
+		return false;
+	}
+	
+	FString ResultString = Result.ToString();
+	if (ResultString.IsEmpty())
+	{
+		return false;
+	}
+
+	Output = ResultString;
 	return true;
 }
 

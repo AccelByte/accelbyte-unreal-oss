@@ -102,7 +102,7 @@ void FOnlineAsyncTaskAccelByteSyncDLC::Initialize()
 
 		int32 ServiceLabel = 0;
 		const FOnlineStoreV2AccelBytePtr StoreInt = StaticCastSharedPtr<FOnlineStoreV2AccelByte>(Subsystem->GetStoreV2Interface());
-		if (StoreInt.IsValid());
+		if (StoreInt.IsValid())
 		{
 			ServiceLabel = StoreInt->GetServiceLabel();
 		}

@@ -7,6 +7,7 @@
 #include "CoreMinimal.h"
 #include "OnlineSubsystemTypes.h"
 #include "IPAddress.h"
+#include "Runtime/Launch/Resources/Version.h"
 #include "OnlineSubsystemAccelBytePackage.h"
 #include "Models/AccelByteMatchmakingModels.h"
 #include "OnlineSubsystemAccelByteTypes.generated.h"

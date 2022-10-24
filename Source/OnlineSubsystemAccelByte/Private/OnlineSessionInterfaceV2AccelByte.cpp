@@ -44,6 +44,7 @@
 #include "AccelByteNetworkUtilities.h"
 #include "OnlineSessionSettingsAccelByte.h"
 #include "OnlineSubsystemUtils.h"
+#include "Core/AccelByteUtilities.h"
 #include <algorithm>
 
 #define ONLINE_ERROR_NAMESPACE "FOnlineSessionV2AccelByte"
@@ -451,12 +452,14 @@ void FOnlineSessionV2AccelByte::RegisterSessionNotificationDelegates(const FUniq
 	BIND_LOBBY_NOTIFICATION(PartyInvited, InvitedToPartySession);
 	BIND_LOBBY_NOTIFICATION(PartyMembersChanged, PartySessionMembersChanged);
 	BIND_LOBBY_NOTIFICATION(PartyUpdated, PartySessionUpdated);
+	BIND_LOBBY_NOTIFICATION(PartyKicked, KickedFromPartySession);
 	//~ End Party Session Notifications
 
 	// Begin Matchmaking Notifications
 	BIND_LOBBY_NOTIFICATION(MatchmakingStart, MatchmakingStarted);
 	BIND_LOBBY_NOTIFICATION(MatchmakingMatchFound, MatchmakingMatchFound);
 	BIND_LOBBY_NOTIFICATION(MatchmakingExpired, MatchmakingExpired);
+	BIND_LOBBY_NOTIFICATION(MatchmakingCanceled, MatchmakingCanceled)
 	//~ End Matchmaking Notifications
 
 	#undef BIND_LOBBY_NOTIFICATION
@@ -1006,6 +1009,11 @@ bool FOnlineSessionV2AccelByte::GetServerLocalIp(FString& OutIp) const
 	}
 
 	OutIp = LocalIP->ToString(false);
+
+	// To handle a specified serverIP provided through localds commandline argument
+	// i.e. "-serverip=192.168.x.x" 
+	// If args not found, then the value won't be modified
+	FAccelByteUtilities::GetValueFromCommandLineSwitch(ACCELBYTE_ARGS_SERVERIP, OutIp);
 
 	AB_OSS_INTERFACE_TRACE_END(TEXT("OutIp: %s"), *OutIp);
 	return true;
@@ -3085,6 +3093,38 @@ void FOnlineSessionV2AccelByte::OnInvitedToPartySessionNotification(FAccelByteMo
 	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteFindV2PartyById>(AccelByteSubsystem, PlayerId.ToSharedRef().Get(), SessionUniqueId.ToSharedRef().Get(), OnFindPartySessionForInviteCompleteDelegate);
 }
 
+void FOnlineSessionV2AccelByte::OnKickedFromPartySessionNotification(FAccelByteModelsV2PartyUserKickedEvent KickedEvent, int32 LocalUserNum)
+{
+	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("SessionId: %s"), *KickedEvent.PartyID);
+
+	// First check if the inbound party ID matches one stored locally
+	FNamedOnlineSession* Session = GetNamedSessionById(*KickedEvent.PartyID);
+	if (Session == nullptr)
+	{
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to handle party session kicked notification as we do not have the session stored locally!"));
+		return;
+	}
+
+	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystem->GetIdentityInterface());
+	if (!ensure(IdentityInterface.IsValid()))
+	{
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to handle party session kicked notification as our identity interface is invalid!"));
+		return;
+	}
+
+	const FUniqueNetIdPtr PlayerId = IdentityInterface->GetUniquePlayerId(LocalUserNum);
+	if (!ensure(PlayerId.IsValid()))
+	{
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to handle party session kicked notification as we could not get a unique ID for player at index %d!"), LocalUserNum);
+		return;
+	}
+
+	// If so then leave the party session
+	LeaveSession(PlayerId.ToSharedRef().Get(), EOnlineSessionTypeAccelByte::PartySession, *KickedEvent.PartyID);
+
+	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+}
+
 void FOnlineSessionV2AccelByte::OnFindPartySessionForInviteComplete(int32 LocalUserNum, bool bWasSuccessful, const FOnlineSessionSearchResult& Result, FAccelByteModelsV2PartyInvitedEvent InviteEvent)
 {
 	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("LocalUserNum: %d; bWasSuccessful: %s; SessionId: %s; SenderId: %s"), LocalUserNum, LOG_BOOL_FORMAT(bWasSuccessful), *Result.GetSessionIdStr(), *InviteEvent.SenderID);
@@ -3465,6 +3505,30 @@ void FOnlineSessionV2AccelByte::OnMatchmakingExpiredNotification(FAccelByteModel
 
 	AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Matchmaking ticket expired!"));
 	TriggerOnMatchmakingCompleteDelegates(SessionName, false);
+}
+
+void FOnlineSessionV2AccelByte::OnMatchmakingCanceledNotification(FAccelByteModelsV2MatchmakingCanceledNotif MatchmakingCanceledNotif, int32 LocalUserNum)
+{
+	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT(""));
+
+	// Make sure we're matchmaking first
+	if (!CurrentMatchmakingSearchHandle.IsValid())
+	{
+		AB_OSS_INTERFACE_TRACE_END(TEXT("Failed to handle matchmaking canceled notification as no matchmaking search handle was found!"));
+		return;
+	}
+
+	// Clear current matchmaking handle, and mark as failed
+	FName SessionName = CurrentMatchmakingSearchHandle->SearchingSessionName;
+	CurrentMatchmakingSearchHandle->SearchState = EOnlineAsyncTaskState::Failed;
+	CurrentMatchmakingSearchHandle.Reset();
+	CurrentMatchmakingSessionSettings = {};
+
+	AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Matchmaking ticket canceled!"));
+	TriggerOnMatchmakingCompleteDelegates(SessionName, false);
+	TriggerOnMatchmakingCanceledDelegates();
+
+	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
 }
 
 void FOnlineSessionV2AccelByte::OnFindMatchmakingGameSessionByIdComplete(int32 LocalUserNum, bool bWasSuccessful, const FOnlineSessionSearchResult& Result)

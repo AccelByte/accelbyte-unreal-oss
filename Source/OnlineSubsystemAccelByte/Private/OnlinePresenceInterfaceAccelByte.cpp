@@ -40,6 +40,43 @@ IOnlinePresencePtr FOnlinePresenceAccelByte::GetPlatformOnlinePresenceInterface(
 	return (NativeSubsystem != nullptr) ? NativeSubsystem->GetPresenceInterface() : nullptr;
 }
 
+void FOnlinePresenceAccelByte::OnFriendStatusChangedNotificationReceived(const FAccelByteModelsUsersPresenceNotice& Notification, int32 LocalUserNum)
+{
+	// First, we want to get our own net ID, as delegates will require it
+	const IOnlineIdentityPtr IdentityInterface = AccelByteSubsystem->GetIdentityInterface();
+	if (!IdentityInterface.IsValid())
+	{
+		UE_LOG_AB(Warning, TEXT("Received a notification for a friend status changed, but cannot act on it as the identity interface is not valid!"));
+		return;
+	}
+
+	TSharedPtr<const FUniqueNetId> UserId = IdentityInterface->GetUniquePlayerId(LocalUserNum);
+	if (!UserId.IsValid())
+	{
+		UE_LOG_AB(Warning, TEXT("Received a notification for a friend status changed, but cannot act on it as the current user's ID is not valid!"));
+		return;
+	}
+
+	// Next, we assume that we don't have this user in our friends list already as they just sent us an invite, so just
+	// create an async task to get data about that friend and then add them to the list afterwards, and fire off the delegates
+	FAccelByteUniqueIdComposite FriendCompositeId;
+	FriendCompositeId.Id = Notification.UserID;
+	TSharedRef<const FUniqueNetIdAccelByteUser> FriendId = FUniqueNetIdAccelByteUser::Create(FriendCompositeId);
+
+	TSharedPtr<FOnlineUserPresenceAccelByte> FriendPresence = FindOrCreatePresence(FriendId);
+	
+	FOnlineUserPresenceStatusAccelByte PresenceStatus;
+
+	PresenceStatus.StatusStr = Notification.Activity;
+	PresenceStatus.SetPresenceStatus(Notification.Availability);
+
+	FriendPresence->Status = PresenceStatus;
+	FriendPresence->bIsOnline = Notification.Availability == EAvailability::Online ? true : false;
+	FriendPresence->bIsPlayingThisGame = Notification.Availability == EAvailability::Online ? true : false;
+
+	TriggerOnPresenceReceivedDelegates(FriendId.Get(), FriendPresence.ToSharedRef());
+}
+
 void FOnlinePresenceAccelByte::SetPresence(const FUniqueNetId& User, const FOnlineUserPresenceStatus& Status, const FOnPresenceTaskCompleteDelegate& Delegate) 
 {
 	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystem->GetIdentityInterface());
@@ -116,6 +153,29 @@ EOnlineCachedResult::Type FOnlinePresenceAccelByte::GetPlatformCachedPresence(co
 	// #NOTE (Maxwell): This should be the native platform ID itself, so just pass this in directly
 	return NativePresenceInterface->GetCachedPresence(User, OutPresence);
 }
+
+void FOnlinePresenceAccelByte::RegisterRealTimeLobbyDelegates(int32 LocalUserNum)
+{
+	// Get our identity interface to retrieve the API client for this user
+	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystem->GetIdentityInterface());
+	if (!IdentityInterface.IsValid())
+	{
+		UE_LOG_AB(Warning, TEXT("Failed to register real-time lobby as an identity interface instance could not be retrieved!"));
+		return;
+	}
+
+	AccelByte::FApiClientPtr ApiClient = IdentityInterface->GetApiClient(LocalUserNum);
+	if (!ApiClient.IsValid())
+	{
+		UE_LOG_AB(Warning, TEXT("Failed to register real-time lobby as an Api client could not be retrieved for user num %d!"), LocalUserNum);
+		return;
+	}
+
+	// Set each delegate for the corresponding API client to be a new realtime delegate
+	AccelByte::Api::Lobby::FFriendStatusNotif OnFriendStatusChangedNotificationReceivedDelegate = AccelByte::Api::Lobby::FFriendStatusNotif::CreateThreadSafeSP(AsShared(), &FOnlinePresenceAccelByte::OnFriendStatusChangedNotificationReceived, LocalUserNum);
+	ApiClient->Lobby.SetUserPresenceNotifDelegate(OnFriendStatusChangedNotificationReceivedDelegate);
+}
+
 
 TSharedRef<FOnlineUserPresenceAccelByte> FOnlinePresenceAccelByte::FindOrCreatePresence(const TSharedRef<const FUniqueNetIdAccelByteUser>& UserId) 
 {

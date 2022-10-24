@@ -93,6 +93,12 @@ public:
 
 PACKAGE_SCOPE:
 
+	/**
+	 * Method used by the Identity interface to register delegates for presence notifications to this interface to get
+	 * real-time updates from the Lobby websocket.
+	 */
+	virtual void RegisterRealTimeLobbyDelegates(int32 LocalUserNum);
+
 	/** Used to update cached Presence */
 	TSharedRef<FOnlineUserPresenceAccelByte> FindOrCreatePresence(const TSharedRef<const FUniqueNetIdAccelByteUser>& UserId);
 
@@ -106,6 +112,9 @@ protected:
 		: AccelByteSubsystem(nullptr) {}
 
 	IOnlinePresencePtr GetPlatformOnlinePresenceInterface() const;
+
+	/** Delegate handler for when a friend change their presence status */
+	void OnFriendStatusChangedNotificationReceived(const FAccelByteModelsUsersPresenceNotice& Notification, int32 LocalUserNum);
 
 private: 
 

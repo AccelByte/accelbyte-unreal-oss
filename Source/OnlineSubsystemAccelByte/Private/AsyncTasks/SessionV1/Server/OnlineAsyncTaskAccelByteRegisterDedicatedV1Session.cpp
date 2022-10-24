@@ -9,6 +9,7 @@
 #include "GameServerApi/AccelByteServerDSMApi.h"
 #include "GameServerApi/AccelByteServerSessionBrowserApi.h"
 #include "SocketSubsystem.h"
+#include "Core/AccelByteUtilities.h"
 
 FOnlineAsyncTaskAccelByteRegisterDedicatedV1Session::FOnlineAsyncTaskAccelByteRegisterDedicatedV1Session(FOnlineSubsystemAccelByte* const InABInterface, int32 InHostingPlayerNum, FName InSessionName, const FOnlineSessionSettings& InNewSessionSettings, bool InRegisterToSessionBrowser)
 	: FOnlineAsyncTaskAccelByte(InABInterface)
@@ -236,6 +237,11 @@ void FOnlineAsyncTaskAccelByteRegisterDedicatedV1Session::GetRegisterIpAddress(F
 		}
 
 		IpString = LocalIP->ToString(false);
+
+		// To handle a specified serverIP provided through localds commandline argument
+		// i.e. "-serverip=192.168.x.x" 
+		// If args not found, then the value won't be modified
+		FAccelByteUtilities::GetValueFromCommandLineSwitch(ACCELBYTE_ARGS_SERVERIP, IpString);
 	}
 	else
 	{

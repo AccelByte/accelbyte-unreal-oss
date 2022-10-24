@@ -20,6 +20,7 @@
 #include "LANBeacon.h"
 #include "FNboSerializeToBufferAccelByte.h"
 #include "OnlineDelegateMacros.h"
+#include "Runtime/Launch/Resources/Version.h"
 
 class FOnlineSubsystemAccelByte;
 class FOnlineSessionV1AccelByte;

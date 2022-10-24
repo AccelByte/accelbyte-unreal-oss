@@ -6,6 +6,7 @@
 #include "OnlineAsyncTaskManager.h"
 #include "OnlineSubsystemAccelByteModule.h"
 #include "OnlineSubsystemAccelByteInternalHelpers.h"
+#include "Engine/LocalPlayer.h"
 #include <Core/AccelByteMultiRegistry.h>
 #include <OnlineSubsystemAccelByteTypes.h>
 #include <OnlineIdentityInterfaceAccelByte.h>

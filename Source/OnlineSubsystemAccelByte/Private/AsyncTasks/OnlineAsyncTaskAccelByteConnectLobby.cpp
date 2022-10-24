@@ -5,6 +5,7 @@
 #include "OnlineAsyncTaskAccelByteConnectLobby.h"
 #include "OnlineSubsystemAccelByte.h"
 #include "OnlineIdentityInterfaceAccelByte.h"
+#include "OnlinePresenceInterfaceAccelByte.h"
 #include "OnlineFriendsInterfaceAccelByte.h"
 #include "OnlinePartyInterfaceAccelByte.h"
 #if AB_USE_V2_SESSIONS
@@ -70,6 +71,13 @@ void FOnlineAsyncTaskAccelByteConnectLobby::OnLobbyConnectSuccess()
 			const TSharedPtr<FUserOnlineAccountAccelByte> UserAccountAccelByte = StaticCastSharedPtr<FUserOnlineAccountAccelByte>(UserAccount);
 			UserAccountAccelByte->SetConnectedToLobby(true);
 		}
+	}
+
+	// Register all delegates for the presence interface to get real time notifications for presence actions
+	const TSharedPtr<FOnlinePresenceAccelByte, ESPMode::ThreadSafe> PresenceInterface = StaticCastSharedPtr<FOnlinePresenceAccelByte>(Subsystem->GetPresenceInterface());
+	if (PresenceInterface.IsValid())
+	{
+		PresenceInterface->RegisterRealTimeLobbyDelegates(LocalUserNum);
 	}
 
 	// Register all delegates for the friends interface to get real time notifications for friend actions

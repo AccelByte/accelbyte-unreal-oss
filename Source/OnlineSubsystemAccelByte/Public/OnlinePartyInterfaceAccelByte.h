@@ -21,6 +21,8 @@
 #define CROSSPLAY_OBJECT_PLAYER_PLATFORM_FIELD TEXT("platform")
 #define CROSSPLAY_OBJECT_PLAYER_CROSSPLAY_FIELD TEXT("crossplay")
 
+#define PARTYDATA_PARTYCODE_ATTR TEXT("partyCode")
+
 class FOnlineSubsystemAccelByte;
 class FOnlinePartySystemAccelByte;
 
@@ -437,6 +439,14 @@ PACKAGE_SCOPE:
 	/** Internal method to get a non-const AccelByte party object for operating on */
 	TSharedPtr<FOnlinePartyAccelByte> GetPartyForUser(const TSharedRef<const FUniqueNetIdAccelByteUser>& UserId, const TSharedRef<const FOnlinePartyIdAccelByte>& PartyId);
 
+	/**
+	 * Another method to join party using the shared party code
+	 * 
+	 * @param InPartyCode The party invitation code that is required to join a party.
+	 * @return boolean that is true if the removal was successful, or false if not
+	*/
+	bool JoinParty(const FUniqueNetId& LocalUserId, const FString& InPartyCode, const FOnJoinPartyComplete& Delegate = FOnJoinPartyComplete());
+
 public:
 
 	virtual ~FOnlinePartySystemAccelByte() override = default;
@@ -530,6 +540,17 @@ public:
 	 */
 	static const FOnlinePartyTypeId GetAccelBytePartyTypeId() { return FOnlinePartyTypeId(static_cast<uint32>(EAccelBytePartyType::PRIMARY_PARTY)); }
 
+	/**
+	* Get a PartyCode from the created party for invitation and joining purpose 
+	* Related to JoinParty function that requires const FString& InPartyCode
+	* @param Output Reference to the returned result if operation is success/true.
+	* @param LocalUserId
+	* @param PartyId
+	* 
+	* @return if the operation is success.
+	*/
+	bool GetPartyCode(FString& Output, const FUniqueNetId& LocalUserId, const FOnlinePartyId& PartyId);
+
 protected:
 
 	/** Hidden default constructor, the constructor that takes in a subsystem instance should be used instead. */
@@ -584,4 +605,8 @@ private:
 
 	/** Delegate handler for when the local user joins a party. Used for cases to successfully retrieve the party for the local user where local user is still joining a party */
 	void OnPartyJoinedCompleteMemberLeaveParty(const FUniqueNetId& LocalUserId, const FOnlinePartyId& PartyId, const FAccelByteModelsLeavePartyNotice Notification, TSharedRef<const FUniqueNetIdAccelByteUser> UserId, TSharedRef<const FUniqueNetIdAccelByteUser> LocalAccelByteUserId);
+
+	/** Delegate handler to handle new leader's requests for the PartyCode from an AsyncTask. Therefore, it can set PartyCode to the Party */
+	void OnPromotedLeaderGetPartyCode(bool bWasSuccessful, const FString& PartyCode, const TSharedRef<const FUniqueNetIdAccelByteUser>& UserId, const FString& PartyId);
+
 };

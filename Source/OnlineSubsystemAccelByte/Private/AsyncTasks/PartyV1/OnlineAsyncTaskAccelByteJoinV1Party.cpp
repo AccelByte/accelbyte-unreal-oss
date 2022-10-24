@@ -54,10 +54,10 @@ void FOnlineAsyncTaskAccelByteJoinV1Party::Initialize()
 		return;
 	}
 
-	// If we have no valid join info or valid party code, then bail out
-	if (!OnlinePartyJoinInfo.IsValid())
+	// If we have no valid join info or valid party code and we have no PartyCode for join, then bail out
+	if (!OnlinePartyJoinInfo.IsValid() && PartyCode.IsEmpty())
 	{
-		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Could not join a party as join info is invalid!"));
+		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Could not join a party as join info or PartyCode is invalid!"));
 		CompletionResult = EJoinPartyCompletionResult::JoinInfoInvalid;
 		CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState);
 		return;

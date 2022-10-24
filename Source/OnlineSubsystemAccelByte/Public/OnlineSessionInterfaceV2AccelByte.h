@@ -12,11 +12,12 @@
 #endif
 #include "Interfaces/OnlineSessionInterface.h"
 #include "OnlineSessionSettings.h"
-#include "Models/AccelByteSessionModels.h"
-#include "Models/AccelByteMatchmakingModels.h"
 #include "OnlineSubsystemAccelByte.h"
 #include "OnlineSubsystem.h"
 #include "OnlineSubsystemAccelByteTypes.h"
+#include "Runtime/Launch/Resources/Version.h"
+#include "Models/AccelByteSessionModels.h"
+#include "Models/AccelByteMatchmakingModels.h"
 #include "Models/AccelByteMatchmakingModels.h"
 #include "Models/AccelByteDSHubModels.h"
 
@@ -294,6 +295,9 @@ typedef FOnMatchmakingStarted::FDelegate FOnMatchmakingStartedDelegate;
 
 DECLARE_MULTICAST_DELEGATE(FOnMatchmakingExpired)
 typedef FOnMatchmakingExpired::FDelegate FOnMatchmakingExpiredDelegate;
+
+DECLARE_MULTICAST_DELEGATE(FOnMatchmakingCanceled)
+typedef FOnMatchmakingCanceled::FDelegate FOnMatchmakingCanceledDelegate;
 
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnBackfillProposalReceived, FAccelByteModelsV2MatchmakingBackfillProposalNotif /*Proposal*/);
 typedef FOnBackfillProposalReceived::FDelegate FOnBackfillProposalReceivedDelegate;
@@ -595,6 +599,11 @@ public:
 	DEFINE_ONLINE_DELEGATE(OnMatchmakingExpired);
 
 	/**
+	 * Delegate fired when matchmaking ticket has been canceled.
+	 */
+	DEFINE_ONLINE_DELEGATE(OnMatchmakingCanceled);
+
+	/**
 	 * Delegate fired when the game server receives a backfill proposal from matchmaking. Use AcceptBackfillProposal and
 	 * RejectBackfillProposal to act on the proposal.
 	 */
@@ -892,6 +901,7 @@ private:
 
 	//~ Begin Party Session Notification Handlers
 	void OnInvitedToPartySessionNotification(FAccelByteModelsV2PartyInvitedEvent InviteEvent, int32 LocalUserNum);
+	void OnKickedFromPartySessionNotification(FAccelByteModelsV2PartyUserKickedEvent KickedEvent, int32 LocalUserNum);
 	void OnFindPartySessionForInviteComplete(int32 LocalUserNum, bool bWasSuccessful, const FOnlineSessionSearchResult& Result, FAccelByteModelsV2PartyInvitedEvent InviteEvent);
 	void OnPartySessionMembersChangedNotification(FAccelByteModelsV2PartyMembersChangedEvent MemberChangeEvent, int32 LocalUserNum);
 	void OnPartySessionUpdatedNotification(FAccelByteModelsV2PartySession UpdatedPartySession, int32 LocalUserNum);
@@ -902,6 +912,7 @@ private:
 	void OnMatchmakingStartedNotification(FAccelByteModelsV2StartMatchmakingNotif MatchmakingStartedNotif, int32 LocalUserNum);
 	void OnMatchmakingMatchFoundNotification(FAccelByteModelsV2MatchFoundNotif MatchFoundEvent, int32 LocalUserNum);
 	void OnMatchmakingExpiredNotification(FAccelByteModelsV2MatchmakingExpiredNotif MatchmakingExpiredNotif, int32 LocalUserNum);
+	void OnMatchmakingCanceledNotification(FAccelByteModelsV2MatchmakingCanceledNotif MatchmakingCanceledNotif, int32 LocalUserNum);
 	void OnFindMatchmakingGameSessionByIdComplete(int32 LocalUserNum, bool bWasSuccessful, const FOnlineSessionSearchResult& Result);
 	//~ End Matchmaking Notification Handlers
 
