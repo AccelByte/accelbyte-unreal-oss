@@ -49,6 +49,7 @@
 
 #define ONLINE_ERROR_NAMESPACE "FOnlineSessionV2AccelByte"
 #define ACCELBYTE_P2P_TRAVEL_URL_FORMAT TEXT("accelbyte.%s:11223")
+const FString ClientIdPrefix = FString(TEXT("client-"));
 
 FOnlineSessionInfoAccelByteV2::FOnlineSessionInfoAccelByteV2(const FString& SessionIdStr)
 	: SessionId(FUniqueNetIdAccelByteResource::Create(SessionIdStr))
@@ -113,16 +114,57 @@ void FOnlineSessionInfoAccelByteV2::SetBackendSessionData(const TSharedPtr<FAcce
 	bool bWasInvitedPlayersChanged = false;
 	UpdatePlayerLists(bWasJoinedMembersChanged, bWasInvitedPlayersChanged);
 
-	// Also try and update the leader ID for this session. Method will bail if this is not a party session.
 	UpdateLeaderId();
 
 	// Finally, try and update connection information for game sessions
 	UpdateConnectionInfo();
 }
 
+void FOnlineSessionInfoAccelByteV2::SetLatestBackendSessionDataUpdate(const TSharedPtr<FAccelByteModelsV2BaseSession>& InBackendSessionData)
+{
+	LatestBackendSessionDataUpdate = InBackendSessionData;
+}
+
+void FOnlineSessionInfoAccelByteV2::SetBackendSessionData(const TSharedPtr<FAccelByteModelsV2BaseSession>& InBackendSessionData, bool& bWasInvitedPlayersChanged)
+{
+	BackendSessionData = InBackendSessionData;
+
+	// We don't care about whether joined members changed in this case, so this out param is unused
+	bool bWasJoinedMembersChanged = false;
+	UpdatePlayerLists(bWasJoinedMembersChanged, bWasInvitedPlayersChanged);
+
+	UpdateLeaderId();
+	UpdateConnectionInfo();
+}
+
 TSharedPtr<FAccelByteModelsV2BaseSession> FOnlineSessionInfoAccelByteV2::GetBackendSessionData() const
 {
 	return BackendSessionData;
+}
+
+TSharedPtr<FAccelByteModelsV2GameSession> FOnlineSessionInfoAccelByteV2::GetBackendSessionDataAsGameSession() const
+{
+	return StaticCastAsGameSession(BackendSessionData);
+}
+
+TSharedPtr<FAccelByteModelsV2BaseSession> FOnlineSessionInfoAccelByteV2::GetLatestBackendSessionDataUpdate() const
+{
+	return LatestBackendSessionDataUpdate;
+}
+
+TSharedPtr<FAccelByteModelsV2GameSession> FOnlineSessionInfoAccelByteV2::GetLatestBackendSessionDataUpdateAsGameSession() const
+{
+	return StaticCastAsGameSession(LatestBackendSessionDataUpdate);
+}
+
+void FOnlineSessionInfoAccelByteV2::SetDSReadyUpdateReceived(const bool& bInIsDSReady)
+{
+	bDSReadyUpdateReceived = bInIsDSReady;
+}
+
+bool FOnlineSessionInfoAccelByteV2::GetDSReadyUpdateReceived() const
+{
+	return bDSReadyUpdateReceived;
 }
 
 TArray<FAccelByteModelsV2GameSessionTeam> FOnlineSessionInfoAccelByteV2::GetTeamAssignments() const
@@ -137,7 +179,7 @@ void FOnlineSessionInfoAccelByteV2::SetTeamAssignments(const TArray<FAccelByteMo
 
 bool FOnlineSessionInfoAccelByteV2::HasConnectionInfo() const
 {
-	TSharedPtr<FAccelByteModelsV2GameSession> GameSessionBackendData = StaticCastSharedPtr<FAccelByteModelsV2GameSession>(BackendSessionData);
+	TSharedPtr<FAccelByteModelsV2GameSession> GameSessionBackendData = StaticCastAsGameSession(BackendSessionData);
 	if (!GameSessionBackendData.IsValid())
 	{
 		return false;
@@ -157,7 +199,7 @@ bool FOnlineSessionInfoAccelByteV2::HasConnectionInfo() const
 
 FString FOnlineSessionInfoAccelByteV2::GetConnectionString() const
 {
-	TSharedPtr<FAccelByteModelsV2GameSession> GameSessionBackendData = StaticCastSharedPtr<FAccelByteModelsV2GameSession>(BackendSessionData);
+	TSharedPtr<FAccelByteModelsV2GameSession> GameSessionBackendData = StaticCastAsGameSession(BackendSessionData);
 	if (!GameSessionBackendData.IsValid())
 	{
 		return TEXT("");
@@ -192,7 +234,7 @@ FString FOnlineSessionInfoAccelByteV2::GetPeerId() const
 
 EAccelByteV2SessionConfigurationServerType FOnlineSessionInfoAccelByteV2::GetServerType() const
 {
-	TSharedPtr<FAccelByteModelsV2GameSession> GameSessionBackendData = StaticCastSharedPtr<FAccelByteModelsV2GameSession>(BackendSessionData);
+	TSharedPtr<FAccelByteModelsV2GameSession> GameSessionBackendData = StaticCastAsGameSession(BackendSessionData);
 	if (!GameSessionBackendData.IsValid())
 	{
 		return EAccelByteV2SessionConfigurationServerType::NONE;
@@ -303,7 +345,7 @@ void FOnlineSessionInfoAccelByteV2::UpdateConnectionInfo()
 	}
 
 	// If this is a dedicated session and our server is ready, grab server address info so that we can join
-	TSharedPtr<FAccelByteModelsV2GameSession> GameBackendSessionData = StaticCastSharedPtr<FAccelByteModelsV2GameSession>(BackendSessionData);
+	TSharedPtr<FAccelByteModelsV2GameSession> GameBackendSessionData = StaticCastAsGameSession(BackendSessionData);
 	if (!GameBackendSessionData.IsValid())
 	{
 		return;
@@ -333,6 +375,15 @@ void FOnlineSessionInfoAccelByteV2::UpdateConnectionInfo()
 		// #TODO This doesn't account for if a player drops and we need a new ID for them, may need to figure something out for this...
 		PeerId = GameBackendSessionData->CreatedBy;
 	}
+}
+
+TSharedPtr<FAccelByteModelsV2GameSession> FOnlineSessionInfoAccelByteV2::StaticCastAsGameSession(const TSharedPtr<FAccelByteModelsV2BaseSession>& InBaseSession) const
+{
+	if (InBaseSession->SessionType != EAccelByteV2SessionType::GameSession)
+	{
+		return nullptr;
+	}
+	return StaticCastSharedPtr<FAccelByteModelsV2GameSession>(InBaseSession);
 }
 
 FOnlineSessionSearchAccelByte::FOnlineSessionSearchAccelByte(const TSharedRef<FOnlineSessionSearch>& InBaseSearch)
@@ -408,7 +459,93 @@ void FOnlineSessionV2AccelByte::Init()
 
 void FOnlineSessionV2AccelByte::Tick(float DeltaTime)
 {
-	// #NOTE (Voltaire) Method was added to satisfy session interface pairity in FOnlineSubsystemAccelByte::Tick
+	// If this flag has not been set, we don't need to do anything
+	if (!bReceivedSessionUpdate)
+	{
+		return;
+	}
+
+	FScopeLock ScopeLock(&SessionLock);
+
+	// Check for updates and apply them to each stored session
+	for (TPair<FName, TSharedPtr<FNamedOnlineSession>>& SessionEntry : Sessions)
+	{
+		if (!ensure(SessionEntry.Value.IsValid()))
+		{
+			UE_LOG_AB(Warning, TEXT("Could not check session for updates as the session is invalid!"));
+			continue;
+		}
+
+		TSharedPtr<FOnlineSessionInfoAccelByteV2> SessionInfo = StaticCastSharedPtr<FOnlineSessionInfoAccelByteV2>(SessionEntry.Value->SessionInfo);
+		if (!ensure(SessionInfo.IsValid()))
+		{
+			UE_LOG_AB(Warning, TEXT("Could not check session for updates as the session doesn't have a valid session info object!"));
+			continue;
+		}
+
+		const TSharedPtr<FAccelByteModelsV2BaseSession> ExistingBackendData = SessionInfo->GetBackendSessionData();
+		if (!ensure(ExistingBackendData.IsValid()))
+		{
+			UE_LOG_AB(Warning, TEXT("Could not check session for updates as the session info doesn't have a valid backend session data object!"));
+			continue;
+		}
+
+		// If there is no latest update, or the latest update's version is not greater than the current data's version, we skip this session
+		const TSharedPtr<FAccelByteModelsV2BaseSession> LatestUpdate = SessionInfo->GetLatestBackendSessionDataUpdate();
+		const bool bHasUpdateToApply = LatestUpdate.IsValid() && LatestUpdate->Version > ExistingBackendData->Version;
+		if (!bHasUpdateToApply)
+		{
+			SessionInfo->SetLatestBackendSessionDataUpdate(nullptr);
+			continue;
+		}
+
+		bool bIsConnectingToP2P = false;
+
+		const EAccelByteV2SessionType SessionType = GetSessionTypeFromSettings(SessionEntry.Value->SessionSettings);
+		if (SessionType == EAccelByteV2SessionType::PartySession)
+		{
+			const TSharedPtr<FAccelByteModelsV2PartySession> PartySessionData = StaticCastSharedPtr<FAccelByteModelsV2PartySession>(LatestUpdate);
+			if (!ensure(PartySessionData.IsValid()))
+			{
+				UE_LOG_AB(Warning, TEXT("Could not update session as the new session data is invalid!"));
+				continue;
+			}
+
+			UpdateInternalPartySession(SessionEntry.Key, PartySessionData.ToSharedRef().Get());
+		}
+		else if (SessionType == EAccelByteV2SessionType::GameSession)
+		{
+			const TSharedPtr<FAccelByteModelsV2GameSession> GameSessionData = SessionInfo->GetLatestBackendSessionDataUpdateAsGameSession();
+			if (!ensure(GameSessionData.IsValid()))
+			{
+				UE_LOG_AB(Warning, TEXT("Could not update session as the new session data is invalid!"));
+				continue;
+			}
+
+			UpdateInternalGameSession(SessionEntry.Key, GameSessionData.ToSharedRef().Get(), bIsConnectingToP2P);
+		}
+		else
+		{
+			UE_LOG_AB(Warning, TEXT("Could not update session as the session's type is neither Game nor Party!"));
+			continue;
+		}
+
+		if (SessionInfo->GetDSReadyUpdateReceived())
+		{
+			SessionInfo->SetDSReadyUpdateReceived(false);
+			TriggerOnSessionServerUpdateDelegates(SessionEntry.Value->SessionName);
+		}
+
+		SessionInfo->SetLatestBackendSessionDataUpdate(nullptr);
+
+		// If the client is connecting to P2P, the connecting finished delegate will fire the session update complete delegate
+		if (!bIsConnectingToP2P)
+		{
+			TriggerOnUpdateSessionCompleteDelegates(SessionEntry.Value->SessionName, true);
+		}
+	}
+
+	bReceivedSessionUpdate = false;
 }
 
 void FOnlineSessionV2AccelByte::RegisterSessionNotificationDelegates(const FUniqueNetId& PlayerId)
@@ -485,22 +622,22 @@ EAccelByteV2SessionJoinability FOnlineSessionV2AccelByte::GetJoinabilityFromStri
 	return EAccelByteV2SessionJoinability::EMPTY;
 }
 
-EOnlineSessionTypeAccelByte FOnlineSessionV2AccelByte::GetSessionTypeFromString(const FString& SessionTypeStr) const
+EAccelByteV2SessionType FOnlineSessionV2AccelByte::GetSessionTypeFromString(const FString& SessionTypeStr) const
 {
-	UEnum* SessionTypeEnum = StaticEnum<EOnlineSessionTypeAccelByte>();
+	UEnum* SessionTypeEnum = StaticEnum<EAccelByteV2SessionType>();
 	if (!ensure(SessionTypeEnum != nullptr))
 	{
-		return EOnlineSessionTypeAccelByte::Unknown;
+		return EAccelByteV2SessionType::Unknown;
 	}
 
 	int64 FoundSessionTypeEnumValue = SessionTypeEnum->GetValueByNameString(SessionTypeStr);
 	if (FoundSessionTypeEnumValue != INDEX_NONE)
 	{
-		return static_cast<EOnlineSessionTypeAccelByte>(FoundSessionTypeEnumValue);
+		return static_cast<EAccelByteV2SessionType>(FoundSessionTypeEnumValue);
 	}
 
 	// By default, return session type as unknown if not found
-	return EOnlineSessionTypeAccelByte::Unknown;
+	return EAccelByteV2SessionType::Unknown;
 }
 
 EAccelByteV2SessionJoinability FOnlineSessionV2AccelByte::GetJoinabiltyFromSessionSettings(const FOnlineSessionSettings& Settings) const
@@ -665,18 +802,18 @@ bool FOnlineSessionV2AccelByte::CreateSession(const FUniqueNetId& HostingPlayerI
 		return false;
 	}
 
-	EOnlineSessionTypeAccelByte SessionType = GetSessionTypeFromSettings(NewSessionSettings);
-	if (SessionType == EOnlineSessionTypeAccelByte::Unknown)
+	EAccelByteV2SessionType SessionType = GetSessionTypeFromSettings(NewSessionSettings);
+	if (SessionType == EAccelByteV2SessionType::Unknown)
 	{
 		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to create new session as the SETTING_SESSION_TYPE was blank or set to an unsupported value! Needs to be either SETTING_SESSION_TYPE_PARTY_SESSION or SETTING_SESSION_TYPE_GAME_SESSION!"));
 		return false;
 	}
 
-	if (SessionType == EOnlineSessionTypeAccelByte::PartySession)
+	if (SessionType == EAccelByteV2SessionType::PartySession)
 	{
 		return CreatePartySession(HostingPlayerId, SessionName, NewSessionSettings);
 	}
-	else if (SessionType == EOnlineSessionTypeAccelByte::GameSession)
+	else if (SessionType == EAccelByteV2SessionType::GameSession)
 	{
 		return CreateGameSession(HostingPlayerId, SessionName, NewSessionSettings);
 	}
@@ -1149,18 +1286,18 @@ bool FOnlineSessionV2AccelByte::RemoveInviteById(const FString& SessionIdStr)
 	return true;
 }
 
-bool FOnlineSessionV2AccelByte::LeaveSession(const FUniqueNetId& LocalUserId, const EOnlineSessionTypeAccelByte& SessionType, const FString& SessionId, const FOnLeaveSessionComplete& Delegate)
+bool FOnlineSessionV2AccelByte::LeaveSession(const FUniqueNetId& LocalUserId, const EAccelByteV2SessionType& SessionType, const FString& SessionId, const FOnLeaveSessionComplete& Delegate)
 {
 	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("LocalUserId: %s; SessionId: %s"), *LocalUserId.ToDebugString(), *SessionId);
 
-	if (SessionType == EOnlineSessionTypeAccelByte::GameSession)
+	if (SessionType == EAccelByteV2SessionType::GameSession)
 	{
 		AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteLeaveV2GameSession>(AccelByteSubsystem, LocalUserId, SessionId, Delegate);
 	
 		AB_OSS_INTERFACE_TRACE_END(TEXT("Sending request to leave game session!"));
 		return true;
 	}
-	else if (SessionType == EOnlineSessionTypeAccelByte::PartySession)
+	else if (SessionType == EAccelByteV2SessionType::PartySession)
 	{
 		AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteLeaveV2Party>(AccelByteSubsystem, LocalUserId, SessionId, Delegate);
 		
@@ -1409,7 +1546,7 @@ TSharedRef<FJsonObject> FOnlineSessionV2AccelByte::ConvertSearchParamsToJsonObje
 	return OutObject;
 }
 
-void FOnlineSessionV2AccelByte::ConnectToJoinedP2PSession(FName SessionName)
+void FOnlineSessionV2AccelByte::ConnectToJoinedP2PSession(FName SessionName, EOnlineSessionP2PConnectedAction Action)
 {
 	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("SessionName: %s"), *SessionName.ToString());
 
@@ -1447,7 +1584,8 @@ void FOnlineSessionV2AccelByte::ConnectToJoinedP2PSession(FName SessionName)
 	FAccelByteNetworkUtilitiesModule::Get().Setup(ApiClient);
 
 	// Register a delegate so that we can fire our join session complete delegate when connection finishes
-	const FAccelByteNetworkUtilitiesModule::OnICEConnected OnICEConnectionCompleteDelegate = FAccelByteNetworkUtilitiesModule::OnICEConnected::CreateThreadSafeSP(SharedThis(this), &FOnlineSessionV2AccelByte::OnICEConnectionComplete, SessionName);
+	const FAccelByteNetworkUtilitiesModule::OnICEConnected OnICEConnectionCompleteDelegate =
+		FAccelByteNetworkUtilitiesModule::OnICEConnected::CreateThreadSafeSP(SharedThis(this), &FOnlineSessionV2AccelByte::OnICEConnectionComplete, SessionName, Action);
 	FAccelByteNetworkUtilitiesModule::Get().RegisterICEConnectedDelegate(OnICEConnectionCompleteDelegate);
 
 	// Request connection to the peer
@@ -1463,7 +1601,7 @@ void FOnlineSessionV2AccelByte::ConnectToJoinedP2PSession(FName SessionName)
 	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
 }
 
-void FOnlineSessionV2AccelByte::UpdateInternalGameSession(const FName& SessionName, const FAccelByteModelsV2GameSession& UpdatedGameSession)
+void FOnlineSessionV2AccelByte::UpdateInternalGameSession(const FName& SessionName, const FAccelByteModelsV2GameSession& UpdatedGameSession, bool& bIsConnectingToP2P)
 {
 	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("SessionName: %s"), *SessionName.ToString());
 
@@ -1474,8 +1612,8 @@ void FOnlineSessionV2AccelByte::UpdateInternalGameSession(const FName& SessionNa
 		return;
 	}
 
-	const EOnlineSessionTypeAccelByte SessionType = GetSessionTypeFromSettings(Session->SessionSettings);
-	if (SessionType != EOnlineSessionTypeAccelByte::GameSession)
+	const EAccelByteV2SessionType SessionType = GetSessionTypeFromSettings(Session->SessionSettings);
+	if (SessionType != EAccelByteV2SessionType::GameSession)
 	{
 		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed update internal data for game session as the session named '%s' locally is not a game session!"), *SessionName.ToString());
 		return;
@@ -1488,9 +1626,54 @@ void FOnlineSessionV2AccelByte::UpdateInternalGameSession(const FName& SessionNa
 		return;
 	}
 
+	TSharedPtr<FAccelByteModelsV2BaseSession> SessionData = SessionInfo->GetBackendSessionData();
+	if (!SessionData.IsValid())
+	{
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed update internal data for game session as the session named '%s' locally does not have valid session backend data!"), *SessionName.ToString());
+		return;
+	}
+
+	if (!ensure(Session->LocalOwnerId.IsValid()))
+	{
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed update internal data for game session as the session has no local owner ID!"));
+		return;
+	}
+
+	const TArray<FAccelByteModelsV2SessionUser> OldMembers = SessionData->Members;	
+	const EAccelByteV2SessionConfigurationServerType OldServerType = SessionInfo->GetServerType();
+
 	// First update the session data associated with the session info structure
-	SessionInfo->SetBackendSessionData(MakeShared<FAccelByteModelsV2GameSession>(UpdatedGameSession));
+	// TODO: Potentially unnecessary memory allocation
+	bool bHasInvitedPlayersChanged = false;
+	SessionInfo->SetBackendSessionData(MakeShared<FAccelByteModelsV2GameSession>(UpdatedGameSession), bHasInvitedPlayersChanged);
 	SessionInfo->SetTeamAssignments(UpdatedGameSession.Teams);
+
+	UpdateSessionMembers(Session, OldMembers, bHasInvitedPlayersChanged);
+
+	const EAccelByteV2SessionConfigurationServerType NewServerType = SessionInfo->GetServerType();	
+
+	bIsConnectingToP2P = false;
+
+	const bool bSwitchingToP2P = OldServerType != EAccelByteV2SessionConfigurationServerType::P2P && NewServerType == EAccelByteV2SessionConfigurationServerType::P2P;
+	const bool bSwitchingFromP2P = OldServerType == EAccelByteV2SessionConfigurationServerType::P2P && NewServerType != EAccelByteV2SessionConfigurationServerType::P2P;
+
+	if(bSwitchingToP2P)
+	{
+		// If the session's local owner is also its leader, they'll be the P2P host
+		if(Session->LocalOwnerId.ToSharedRef().Get() == SessionInfo->GetLeaderId().ToSharedRef().Get())
+		{
+			SetupAccelByteP2PConnection(Session->LocalOwnerId.ToSharedRef().Get());
+		}
+		else
+		{
+			bIsConnectingToP2P = true;
+			ConnectToJoinedP2PSession(SessionName, EOnlineSessionP2PConnectedAction::Update);
+		}
+	}
+	else if(bSwitchingFromP2P)
+	{
+		TeardownAccelByteP2PConnection();
+	}
 
 	// First, read all attributes from the session, as that will overwrite all of the reserved/built-in settings
 	if (UpdatedGameSession.Attributes.JsonObject.IsValid())
@@ -1527,8 +1710,8 @@ void FOnlineSessionV2AccelByte::UpdateInternalPartySession(const FName& SessionN
 		return;
 	}
 
-	const EOnlineSessionTypeAccelByte SessionType = GetSessionTypeFromSettings(Session->SessionSettings);
-	if (SessionType != EOnlineSessionTypeAccelByte::PartySession)
+	const EAccelByteV2SessionType SessionType = GetSessionTypeFromSettings(Session->SessionSettings);
+	if (SessionType != EAccelByteV2SessionType::PartySession)
 	{
 		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed update internal data for party session as the session named '%s' locally is not a party session!"), *SessionName.ToString());
 		return;
@@ -1541,8 +1724,21 @@ void FOnlineSessionV2AccelByte::UpdateInternalPartySession(const FName& SessionN
 		return;
 	}
 
+	TSharedPtr<FAccelByteModelsV2BaseSession> SessionData = SessionInfo->GetBackendSessionData();
+	if (!SessionData.IsValid())
+	{
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed update internal data for game session as the session named '%s' locally does not have valid session backend data!"), *SessionName.ToString());
+		return;
+	}
+
+	const TArray<FAccelByteModelsV2SessionUser> OldMembers = SessionData->Members;
+
 	// First update the session data associated with the session info structure
-	SessionInfo->SetBackendSessionData(MakeShared<FAccelByteModelsV2PartySession>(UpdatedPartySession));
+	bool bHasInvitedPlayersChanged = false;
+	// TODO: Potentially unnecessary memory allocation
+	SessionInfo->SetBackendSessionData(MakeShared<FAccelByteModelsV2PartySession>(UpdatedPartySession), bHasInvitedPlayersChanged);
+
+	UpdateSessionMembers(Session, OldMembers, bHasInvitedPlayersChanged);
 
 	// First, read all attributes from the session, as that will overwrite all of the reserved/built-in settings
 	if (UpdatedPartySession.Attributes.JsonObject.IsValid())
@@ -1628,12 +1824,12 @@ bool FOnlineSessionV2AccelByte::UpdateSession(FName SessionName, FOnlineSessionS
 		return false;
 	}
 
-	EOnlineSessionTypeAccelByte SessionType = GetSessionTypeFromSettings(Session->SessionSettings);
-	if (SessionType == EOnlineSessionTypeAccelByte::GameSession)
+	EAccelByteV2SessionType SessionType = GetSessionTypeFromSettings(Session->SessionSettings);
+	if (SessionType == EAccelByteV2SessionType::GameSession)
 	{
 		AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteUpdateGameSessionV2>(AccelByteSubsystem, SessionName, UpdatedSessionSettings);
 	}
-	else if (SessionType == EOnlineSessionTypeAccelByte::PartySession)
+	else if (SessionType == EAccelByteV2SessionType::PartySession)
 	{
 		if (IsRunningDedicatedServer())
 		{
@@ -1743,7 +1939,7 @@ bool FOnlineSessionV2AccelByte::DestroySession(FName SessionName, const FOnDestr
 		const FUniqueNetIdRef SessionOwnerId = Session->LocalOwnerId.ToSharedRef();
 
 		// Fire off call to leave session. Appropriate delegates will be fired by this method, along with clean up of sessions.
-		EOnlineSessionTypeAccelByte SessionType = GetSessionTypeFromSettings(Session->SessionSettings);
+		EAccelByteV2SessionType SessionType = GetSessionTypeFromSettings(Session->SessionSettings);
 
 		const FOnLeaveSessionComplete OnLeaveSessionCompleteDelegate = FOnLeaveSessionComplete::CreateLambda([CompletionDelegate, SessionName](bool bWasSuccessful, FString SessionId) {
 			CompletionDelegate.ExecuteIfBound(SessionName, bWasSuccessful);
@@ -2011,14 +2207,14 @@ bool FOnlineSessionV2AccelByte::JoinSession(const FUniqueNetId& LocalUserId, FNa
 		}
 	}
 
-	EOnlineSessionTypeAccelByte SessionType = GetSessionTypeFromSettings(NewSession->SessionSettings);
-	if (SessionType == EOnlineSessionTypeAccelByte::GameSession)
+	EAccelByteV2SessionType SessionType = GetSessionTypeFromSettings(NewSession->SessionSettings);
+	if (SessionType == EAccelByteV2SessionType::GameSession)
 	{
 		AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteJoinV2GameSession>(AccelByteSubsystem, LocalUserId, SessionName, bIsRestoreSession);
 		AB_OSS_INTERFACE_TRACE_END(TEXT("Spawning async task to join game session on backend!"));
 		return true;
 	}
-	else if (SessionType == EOnlineSessionTypeAccelByte::PartySession)
+	else if (SessionType == EAccelByteV2SessionType::PartySession)
 	{
 		AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteJoinV2Party>(AccelByteSubsystem, LocalUserId, SessionName, bIsRestoreSession);
 		AB_OSS_INTERFACE_TRACE_END(TEXT("Spawning async task to join party session on backend!"));
@@ -2093,14 +2289,14 @@ bool FOnlineSessionV2AccelByte::SendSessionInviteToFriend(const FUniqueNetId& Lo
 		return false;
 	}
 
-	EOnlineSessionTypeAccelByte SessionType = GetSessionTypeFromSettings(Session->SessionSettings);
-	if (SessionType == EOnlineSessionTypeAccelByte::GameSession)
+	EAccelByteV2SessionType SessionType = GetSessionTypeFromSettings(Session->SessionSettings);
+	if (SessionType == EAccelByteV2SessionType::GameSession)
 	{
 		AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteSendV2GameSessionInvite>(AccelByteSubsystem, LocalUserId, SessionName, Friend);
 		AB_OSS_INTERFACE_TRACE_END(TEXT("Sending invite to player for game session!"));
 		return true;
 	}
-	else if (SessionType == EOnlineSessionTypeAccelByte::PartySession)
+	else if (SessionType == EAccelByteV2SessionType::PartySession)
 	{
 		AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteSendV2PartyInvite>(AccelByteSubsystem, LocalUserId, SessionName, Friend);
 		AB_OSS_INTERFACE_TRACE_END(TEXT("Sending invite to player for party session!"));
@@ -2380,14 +2576,14 @@ TArray<FOnlineSessionInviteAccelByte> FOnlineSessionV2AccelByte::GetAllInvites()
 TArray<FOnlineSessionInviteAccelByte> FOnlineSessionV2AccelByte::GetAllGameInvites() const
 {
 	return SessionInvites.FilterByPredicate([](const FOnlineSessionInviteAccelByte& Invite) {
-		return Invite.SessionType == EOnlineSessionTypeAccelByte::GameSession;
+		return Invite.SessionType == EAccelByteV2SessionType::GameSession;
 	});
 }
 
 TArray<FOnlineSessionInviteAccelByte> FOnlineSessionV2AccelByte::GetAllPartyInvites() const
 {
 	return SessionInvites.FilterByPredicate([](const FOnlineSessionInviteAccelByte& Invite) {
-		return Invite.SessionType == EOnlineSessionTypeAccelByte::PartySession;
+		return Invite.SessionType == EAccelByteV2SessionType::PartySession;
 	});
 }
 
@@ -2395,14 +2591,14 @@ bool FOnlineSessionV2AccelByte::RejectInvite(const FUniqueNetId& PlayerId, const
 {
 	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("PlayerId: %s; InvitedSessionId: %s"), *PlayerId.ToDebugString(), *InvitedSession.Session.GetSessionIdStr());
 
-	EOnlineSessionTypeAccelByte SessionType = GetSessionTypeFromSettings(InvitedSession.Session.Session.SessionSettings);
-	if (SessionType == EOnlineSessionTypeAccelByte::GameSession)
+	EAccelByteV2SessionType SessionType = GetSessionTypeFromSettings(InvitedSession.Session.Session.SessionSettings);
+	if (SessionType == EAccelByteV2SessionType::GameSession)
 	{
 		AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteRejectV2GameSessionInvite>(AccelByteSubsystem, PlayerId, InvitedSession.Session, Delegate);
 		AB_OSS_INTERFACE_TRACE_END(TEXT("Sending rejection for game session invite!"));
 		return true;
 	}
-	else if (SessionType == EOnlineSessionTypeAccelByte::PartySession)
+	else if (SessionType == EAccelByteV2SessionType::PartySession)
 	{
 		AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteRejectV2PartyInvite>(AccelByteSubsystem, PlayerId, InvitedSession.Session, Delegate);
 		AB_OSS_INTERFACE_TRACE_END(TEXT("Sending rejection for party session invite!"));
@@ -2431,14 +2627,14 @@ TArray<FOnlineRestoredSessionAccelByte> FOnlineSessionV2AccelByte::GetAllRestore
 TArray<FOnlineRestoredSessionAccelByte> FOnlineSessionV2AccelByte::GetAllRestoredPartySessions() const
 {
 	return RestoredSessions.FilterByPredicate([](const FOnlineRestoredSessionAccelByte& RestoredSession) {
-		return RestoredSession.SessionType == EOnlineSessionTypeAccelByte::PartySession;
+		return RestoredSession.SessionType == EAccelByteV2SessionType::PartySession;
 	});
 }
 
 TArray<FOnlineRestoredSessionAccelByte> FOnlineSessionV2AccelByte::GetAllRestoredGameSessions() const
 {
 	return RestoredSessions.FilterByPredicate([](const FOnlineRestoredSessionAccelByte& RestoredSession) {
-		return RestoredSession.SessionType == EOnlineSessionTypeAccelByte::GameSession;
+		return RestoredSession.SessionType == EAccelByteV2SessionType::GameSession;
 	});
 }
 
@@ -2519,23 +2715,23 @@ void FOnlineSessionV2AccelByte::UnregisterServer(FName SessionName, const FOnUnr
 	}
 }
 
-EOnlineSessionTypeAccelByte FOnlineSessionV2AccelByte::GetSessionTypeByName(const FName& SessionName)
+EAccelByteV2SessionType FOnlineSessionV2AccelByte::GetSessionTypeByName(const FName& SessionName)
 {
 	FNamedOnlineSession* Session = GetNamedSession(SessionName);
 	if (Session == nullptr)
 	{
-		return EOnlineSessionTypeAccelByte::Unknown;
+		return EAccelByteV2SessionType::Unknown;
 	}
 
 	return GetSessionTypeFromSettings(Session->SessionSettings);
 }
 
-EOnlineSessionTypeAccelByte FOnlineSessionV2AccelByte::GetSessionTypeFromSettings(const FOnlineSessionSettings& Settings) const
+EAccelByteV2SessionType FOnlineSessionV2AccelByte::GetSessionTypeFromSettings(const FOnlineSessionSettings& Settings) const
 {
 	FString SessionTypeString = TEXT("");
 	if (!Settings.Get(SETTING_SESSION_TYPE, SessionTypeString))
 	{
-		return EOnlineSessionTypeAccelByte::Unknown;
+		return EAccelByteV2SessionType::Unknown;
 	}
 
 	return GetSessionTypeFromString(SessionTypeString);
@@ -2543,8 +2739,8 @@ EOnlineSessionTypeAccelByte FOnlineSessionV2AccelByte::GetSessionTypeFromSetting
 
 FUniqueNetIdPtr FOnlineSessionV2AccelByte::GetSessionLeaderId(const FNamedOnlineSession* Session) const
 {
-	const EOnlineSessionTypeAccelByte SessionType = GetSessionTypeFromSettings(Session->SessionSettings);
-	if (SessionType != EOnlineSessionTypeAccelByte::PartySession)
+	const EAccelByteV2SessionType SessionType = GetSessionTypeFromSettings(Session->SessionSettings);
+	if (SessionType != EAccelByteV2SessionType::PartySession)
 	{
 		return nullptr;
 	}
@@ -2569,12 +2765,12 @@ bool FOnlineSessionV2AccelByte::KickPlayer(const FUniqueNetId& LocalUserId, cons
 		return false;
 	}
 
-	EOnlineSessionTypeAccelByte SessionType = GetSessionTypeFromSettings(Session->SessionSettings);
-	if (SessionType == EOnlineSessionTypeAccelByte::GameSession)
+	EAccelByteV2SessionType SessionType = GetSessionTypeFromSettings(Session->SessionSettings);
+	if (SessionType == EAccelByteV2SessionType::GameSession)
 	{
 		// #TODO Revisit - not sure if game sessions will have kick functionality, but for player owned sessions they *probably* should
 	}
-	else if (SessionType == EOnlineSessionTypeAccelByte::PartySession)
+	else if (SessionType == EAccelByteV2SessionType::PartySession)
 	{
 		AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteKickV2Party>(AccelByteSubsystem, LocalUserId, SessionName, PlayerIdToKick);
 		AB_OSS_INTERFACE_TRACE_END(TEXT("Sent off request to kick player from party session!"));
@@ -2596,13 +2792,13 @@ bool FOnlineSessionV2AccelByte::PromotePartySessionLeader(const FUniqueNetId& Lo
 		return false;
 	}
 
-	EOnlineSessionTypeAccelByte SessionType = GetSessionTypeFromSettings(Session->SessionSettings);
-	if (SessionType == EOnlineSessionTypeAccelByte::GameSession)
+	EAccelByteV2SessionType SessionType = GetSessionTypeFromSettings(Session->SessionSettings);
+	if (SessionType == EAccelByteV2SessionType::GameSession)
 	{
 		AB_OSS_INTERFACE_TRACE_END(TEXT("Unable to promote party leader of SessionName: %s as the session is of type GameSession!"), *SessionName.ToString());
 		return false;
 	}
-	else if (SessionType == EOnlineSessionTypeAccelByte::PartySession)
+	else if (SessionType == EAccelByteV2SessionType::PartySession)
 	{
 		AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelBytePromoteV2PartyLeader>(AccelByteSubsystem, LocalUserId, SessionName, Session->GetSessionIdStr(), PlayerIdToPromote, Delegate);
 		AB_OSS_INTERFACE_TRACE_END(TEXT("Sent off request to promote player to leader of party session!"));
@@ -2803,13 +2999,13 @@ bool FOnlineSessionV2AccelByte::RefreshSession(const FName& SessionName, const F
 		return false;
 	}
 
-	EOnlineSessionTypeAccelByte SessionType = GetSessionTypeFromSettings(Session->SessionSettings);
-	if (SessionType == EOnlineSessionTypeAccelByte::GameSession)
+	EAccelByteV2SessionType SessionType = GetSessionTypeFromSettings(Session->SessionSettings);
+	if (SessionType == EAccelByteV2SessionType::GameSession)
 	{
 		AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteRefreshV2GameSession>(AccelByteSubsystem, SessionName, Delegate);
 		AB_OSS_INTERFACE_TRACE_END(TEXT("Sent off request to refresh local game session with backend data!"));
 	}
-	else if (SessionType == EOnlineSessionTypeAccelByte::PartySession)
+	else if (SessionType == EAccelByteV2SessionType::PartySession)
 	{
 		if (IsRunningDedicatedServer())
 		{
@@ -2856,6 +3052,54 @@ bool FOnlineSessionV2AccelByte::RejectBackfillProposal(const FName& SessionName,
 
 	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
 	return true;
+}
+
+void FOnlineSessionV2AccelByte::EnqueueBackendDataUpdate(const FName& SessionName, const TSharedPtr<FAccelByteModelsV2BaseSession>& NewSessionData, const bool bIsDSReadyUpdate/*=false*/)
+{
+	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("SessionName: %s"), *SessionName.ToString());
+
+	FNamedOnlineSession* Session = GetNamedSession(SessionName);
+	if (Session == nullptr)
+	{
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Could not enqueue session backend data update as there is no session with the provided name!"));
+		return;
+	}
+
+	TSharedPtr<FOnlineSessionInfoAccelByteV2> SessionInfo = StaticCastSharedPtr<FOnlineSessionInfoAccelByteV2>(Session->SessionInfo);
+	if (!SessionInfo.IsValid())
+	{
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Could not enqueue session backend data update as session does not have a valid session info instance!"));
+		return;
+	}
+
+	const TSharedPtr<FAccelByteModelsV2BaseSession> ExistingSessionData = SessionInfo->GetBackendSessionData();
+	if (!NewSessionData.IsValid())
+	{
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Could not enqueue session backend data update as session does not have a valid existing backend data instance!"));
+		return;
+	}
+
+	const TSharedPtr<FAccelByteModelsV2BaseSession> LastUpdate = SessionInfo->GetLatestBackendSessionDataUpdate();
+
+	const bool bIsUpdateNewerThanLast = !LastUpdate.IsValid() || NewSessionData->Version > LastUpdate->Version;
+	const bool bShouldUpdate = ExistingSessionData->Version < NewSessionData->Version && bIsUpdateNewerThanLast;
+
+	if (bShouldUpdate)
+	{
+		SessionInfo->SetLatestBackendSessionDataUpdate(NewSessionData);
+	}
+
+	if (bIsDSReadyUpdate)
+	{
+		SessionInfo->SetDSReadyUpdateReceived(true);
+	}
+
+	if (!bReceivedSessionUpdate)
+	{
+		bReceivedSessionUpdate = bShouldUpdate || bIsDSReadyUpdate;
+	}
+
+	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
 }
 
 void FOnlineSessionV2AccelByte::OnInvitedToGameSessionNotification(FAccelByteModelsV2GameSessionUserInvitedEvent InviteEvent, int32 LocalUserNum)
@@ -2921,49 +3165,73 @@ void FOnlineSessionV2AccelByte::OnFindGameSessionForInviteComplete(int32 LocalUs
 		return;
 	}
 
-	const TSharedPtr<FAccelByteModelsV2GameSession> GameSessionData = StaticCastSharedPtr<FAccelByteModelsV2GameSession>(SessionInfo->GetBackendSessionData());
+	const TSharedPtr<FAccelByteModelsV2GameSession> GameSessionData = SessionInfo->GetBackendSessionDataAsGameSession();
 	if (!ensure(GameSessionData.IsValid()))
 	{
 		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to handle game session invite notification as our local copy of the backend session data is invalid!"));
 		return;
 	}
 
-	FAccelByteModelsV2SessionUser* FoundSender = GameSessionData->Members.FindByPredicate([&InviteEvent](const FAccelByteModelsV2SessionUser& User) {
-		return User.ID == InviteEvent.SenderID;
-	});
-
-	if (FoundSender != nullptr)
+	FUniqueNetIdPtr SenderId = nullptr;
+	if (InviteEvent.SenderID.StartsWith(ClientIdPrefix))
 	{
-		// Create a new unique ID instance for the leaving member, complete with their platform info
-		FAccelByteUniqueIdComposite IdComponents;
-		IdComponents.Id = FoundSender->ID;
-		IdComponents.PlatformType = FoundSender->PlatformID;
-		IdComponents.PlatformId = FoundSender->PlatformUserID;
-
-		TSharedPtr<const FUniqueNetIdAccelByteUser> SenderId = FUniqueNetIdAccelByteUser::Create(IdComponents);
-
-		FOnlineSessionInviteAccelByte NewInvite;
-		NewInvite.SessionType = EOnlineSessionTypeAccelByte::GameSession;
-		NewInvite.Session = Result;
-		if (ensure(SenderId.IsValid()))
-		{
-			NewInvite.SenderId = SenderId;
-		}
-		SessionInvites.Emplace(NewInvite);
-
-		TriggerOnSessionInviteReceivedDelegates(PlayerId.ToSharedRef().Get(), SenderId.ToSharedRef().Get(), AccelByteSubsystem->GetAppId(), Result);
-		TriggerOnV2SessionInviteReceivedDelegates(PlayerId.ToSharedRef().Get(), SenderId.ToSharedRef().Get(), NewInvite);
-		TriggerOnInviteListUpdatedDelegates();
+		// If the sender ID from the notification starts with a 'client-' prefix, then we just want to convert the sender ID
+		// to a FUniqueNetIdAccelByteResource and pass it through the delegate.
+		const FString ClientSenderId = InviteEvent.SenderID.Mid(ClientIdPrefix.Len(), InviteEvent.SenderID.Len() - ClientIdPrefix.Len());
+		SenderId = FUniqueNetIdAccelByteResource::Create(ClientSenderId);
 	}
+	else
+	{
+		// Otherwise, the sender is a user and we should get their platform identifiers from the members array to construct
+		// a FUniqueNetIdAccelByteUser ID instance.
+		FAccelByteModelsV2SessionUser* FoundSender = GameSessionData->Members.FindByPredicate([&InviteEvent](const FAccelByteModelsV2SessionUser& User) {
+			return User.ID == InviteEvent.SenderID;
+		});
+
+		if (FoundSender != nullptr)
+		{
+			// Create a new unique ID instance for the user that sent the invite, complete with their platform info
+			FAccelByteUniqueIdComposite IdComponents;
+			IdComponents.Id = FoundSender->ID;
+			IdComponents.PlatformType = FoundSender->PlatformID;
+			IdComponents.PlatformId = FoundSender->PlatformUserID;
+
+			SenderId = FUniqueNetIdAccelByteUser::Create(IdComponents);
+		}
+	}
+
+	if (!ensure(SenderId.IsValid()))
+	{
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to handle game session invite notification as the ID of the sender of the invite is invalid!"));
+		return;
+	}
+
+	FOnlineSessionInviteAccelByte NewInvite;
+	NewInvite.SessionType = EAccelByteV2SessionType::GameSession;
+	NewInvite.Session = Result;
+	NewInvite.SenderId = SenderId;
+	SessionInvites.Emplace(NewInvite);
+
+	TriggerOnSessionInviteReceivedDelegates(PlayerId.ToSharedRef().Get(), SenderId.ToSharedRef().Get(), AccelByteSubsystem->GetAppId(), Result);
+	TriggerOnV2SessionInviteReceivedDelegates(PlayerId.ToSharedRef().Get(), SenderId.ToSharedRef().Get(), NewInvite);
+	TriggerOnInviteListUpdatedDelegates();
 
 	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
 }
 
 void FOnlineSessionV2AccelByte::OnGameSessionMembersChangedNotification(FAccelByteModelsV2GameSessionMembersChangedEvent MembersChangedEvent, int32 LocalUserNum)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("SessionId: %s; JoinerId: %s"), *MembersChangedEvent.SessionID, *MembersChangedEvent.JoinerID);
+	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("SessionId: %s; JoinerId: %s"), *MembersChangedEvent.Session.ID, *MembersChangedEvent.JoinerID);
 
-	HandleSessionMembersChangedNotification(MembersChangedEvent.SessionID, MembersChangedEvent.Members, MembersChangedEvent.JoinerID, MembersChangedEvent.LeaderID);
+	FNamedOnlineSession* Session = GetNamedSessionById(MembersChangedEvent.Session.ID);
+	if (Session == nullptr)
+	{
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Could not update session with members changed event as we do not have the session stored locally!"));
+		return;
+	}
+
+	// TODO: Potentially unnecessary memory allocation
+	EnqueueBackendDataUpdate(Session->SessionName, MakeShared<FAccelByteModelsV2GameSession>(MembersChangedEvent.Session));
 
 	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
 }
@@ -2979,15 +3247,7 @@ void FOnlineSessionV2AccelByte::OnGameSessionUpdatedNotification(FAccelByteModel
 		return;
 	}
 
-	TSharedPtr<FOnlineSessionInfoAccelByteV2> SessionInfo = StaticCastSharedPtr<FOnlineSessionInfoAccelByteV2>(Session->SessionInfo);
-	if (!SessionInfo.IsValid())
-	{
-		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Could not update session with new attributes as session does not have a valid session info instance!"));
-		return;
-	}
-
-	UpdateInternalGameSession(Session->SessionName, UpdatedGameSession);
-	TriggerOnUpdateSessionCompleteDelegates(Session->SessionName, true);
+	EnqueueBackendDataUpdate(Session->SessionName, MakeShared<FAccelByteModelsV2GameSession>(UpdatedGameSession));
 
 	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
 }
@@ -2996,46 +3256,33 @@ void FOnlineSessionV2AccelByte::OnDsStatusChangedNotification(FAccelByteModelsV2
 {
 	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("SessionId: %s"), *DsStatusChangeEvent.SessionID);
 
-	if (!DsStatusChangeEvent.Error.IsEmpty())
-	{
-		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("DS status changed with an error message attached! Error message: %s"), *DsStatusChangeEvent.Error);
-		return;
-	}
-
-	// If the new status is not ready, then we cannot do anything, so just bail
-	if (!DsStatusChangeEvent.GameServer.Status.Equals(TEXT("READY"), ESearchCase::IgnoreCase) && !DsStatusChangeEvent.GameServer.Status.Equals(TEXT("BUSY"), ESearchCase::IgnoreCase))
-	{
-		// #NOTE No warning here as technically nothing bad happened
-		return;
-	}
-
 	FNamedOnlineSession* Session = GetNamedSessionById(DsStatusChangeEvent.SessionID);
 	if (Session == nullptr)
 	{
 		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Could not update session with new DS status as session does not exist locally!"));
 		return;
 	}
-
-	TSharedPtr<FOnlineSessionInfoAccelByteV2> SessionInfo = StaticCastSharedPtr<FOnlineSessionInfoAccelByteV2>(Session->SessionInfo);
-	if (!SessionInfo.IsValid())
+	
+	if (!DsStatusChangeEvent.Error.IsEmpty())
 	{
-		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Could not update session with new DS status as session does not have a valid session info instance!"));
+		TriggerOnSessionServerErrorDelegates(Session->SessionName, DsStatusChangeEvent.Error);
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("DS status changed with an error message attached! Error message: %s"), *DsStatusChangeEvent.Error);
 		return;
 	}
 
-	TSharedPtr<FAccelByteModelsV2GameSession> GameSessionBackendData = StaticCastSharedPtr<FAccelByteModelsV2GameSession>(SessionInfo->GetBackendSessionData());
-	if (!GameSessionBackendData.IsValid())
+	const FString ServerStatus = DsStatusChangeEvent.Session.DSInformation.Server.Status;
+	const bool bStatusIsReady = ServerStatus.Equals(TEXT("READY"), ESearchCase::IgnoreCase) || ServerStatus.Equals(TEXT("BUSY"), ESearchCase::IgnoreCase);
+
+	// If the new status is not ready, then we cannot do anything, so just bail
+	if (!bStatusIsReady)
 	{
-		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Could not update session with new DS status as session does not have valid game session data!"));
+		// #NOTE No warning here as technically nothing bad happened
+		AB_OSS_INTERFACE_TRACE_END(TEXT(""));
 		return;
 	}
 
-	// Just update the server object on the backend data and make call to update connection info
-	GameSessionBackendData->DSInformation.Server = DsStatusChangeEvent.GameServer;
-	GameSessionBackendData->Version++; // Increment version of the backend model for future updates
-	SessionInfo->UpdateConnectionInfo();
-
-	TriggerOnSessionServerUpdateDelegates(Session->SessionName);
+	// TODO: Potentially unnecessary memory allocation
+	EnqueueBackendDataUpdate(Session->SessionName, MakeShared<FAccelByteModelsV2GameSession>(DsStatusChangeEvent.Session), true);
 
 	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
 }
@@ -3056,8 +3303,8 @@ FNamedOnlineSession* FOnlineSessionV2AccelByte::GetPartySession() const
 			continue;
 		}
 
-		const EOnlineSessionTypeAccelByte SessionType = GetSessionTypeFromSettings(Session->SessionSettings);
-		if (SessionType == EOnlineSessionTypeAccelByte::PartySession)
+		const EAccelByteV2SessionType SessionType = GetSessionTypeFromSettings(Session->SessionSettings);
+		if (SessionType == EAccelByteV2SessionType::PartySession)
 		{
 			return Session.Get();
 		}
@@ -3120,7 +3367,7 @@ void FOnlineSessionV2AccelByte::OnKickedFromPartySessionNotification(FAccelByteM
 	}
 
 	// If so then leave the party session
-	LeaveSession(PlayerId.ToSharedRef().Get(), EOnlineSessionTypeAccelByte::PartySession, *KickedEvent.PartyID);
+	LeaveSession(PlayerId.ToSharedRef().Get(), EAccelByteV2SessionType::PartySession, *KickedEvent.PartyID);
 
 	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
 }
@@ -3164,42 +3411,66 @@ void FOnlineSessionV2AccelByte::OnFindPartySessionForInviteComplete(int32 LocalU
 		return;
 	}
 
-	FAccelByteModelsV2SessionUser* FoundSender = PartySessionData->Members.FindByPredicate([&InviteEvent](const FAccelByteModelsV2SessionUser& User) {
-		return User.ID == InviteEvent.SenderID;
-	});
-
-	if (FoundSender != nullptr)
+	FUniqueNetIdPtr SenderId = nullptr;
+	if (InviteEvent.SenderID.StartsWith(ClientIdPrefix))
 	{
-		// Create a new unique ID instance for the leaving member, complete with their platform info
-		FAccelByteUniqueIdComposite IdComponents;
-		IdComponents.Id = FoundSender->ID;
-		IdComponents.PlatformType = FoundSender->PlatformID;
-		IdComponents.PlatformId = FoundSender->PlatformUserID;
-
-		TSharedPtr<const FUniqueNetIdAccelByteUser> SenderId = FUniqueNetIdAccelByteUser::Create(IdComponents);
-	
-		FOnlineSessionInviteAccelByte NewInvite;
-		NewInvite.SessionType = EOnlineSessionTypeAccelByte::PartySession;
-		NewInvite.Session = Result;
-		if (ensure(SenderId.IsValid()))
-		{
-			NewInvite.SenderId = SenderId;
-		}
-		SessionInvites.Emplace(NewInvite);
-
-		TriggerOnSessionInviteReceivedDelegates(PlayerId.ToSharedRef().Get(), SenderId.ToSharedRef().Get(), AccelByteSubsystem->GetAppId(), Result);
-		TriggerOnV2SessionInviteReceivedDelegates(PlayerId.ToSharedRef().Get(), SenderId.ToSharedRef().Get(), NewInvite);
-		TriggerOnInviteListUpdatedDelegates();
+		// If the sender ID from the notification starts with a 'client-' prefix, then we just want to convert the sender ID
+		// to a FUniqueNetIdAccelByteResource and pass it through the delegate.
+		const FString ClientSenderId = InviteEvent.SenderID.Mid(ClientIdPrefix.Len(), InviteEvent.SenderID.Len() - ClientIdPrefix.Len());
+		SenderId = FUniqueNetIdAccelByteResource::Create(ClientSenderId);
 	}
+	else
+	{
+		// Otherwise, the sender is a user and we should get their platform identifiers from the members array to construct
+		// a FUniqueNetIdAccelByteUser ID instance.
+		FAccelByteModelsV2SessionUser* FoundSender = PartySessionData->Members.FindByPredicate([&InviteEvent](const FAccelByteModelsV2SessionUser& User) {
+			return User.ID == InviteEvent.SenderID;
+			});
+
+		if (FoundSender != nullptr)
+		{
+			// Create a new unique ID instance for the user that sent the invite, complete with their platform info
+			FAccelByteUniqueIdComposite IdComponents;
+			IdComponents.Id = FoundSender->ID;
+			IdComponents.PlatformType = FoundSender->PlatformID;
+			IdComponents.PlatformId = FoundSender->PlatformUserID;
+
+			SenderId = FUniqueNetIdAccelByteUser::Create(IdComponents);
+		}
+	}
+
+	if (!ensure(SenderId.IsValid()))
+	{
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to handle party session invite notification as the ID of the sender of the invite is invalid!"));
+		return;
+	}
+
+	FOnlineSessionInviteAccelByte NewInvite;
+	NewInvite.SessionType = EAccelByteV2SessionType::PartySession;
+	NewInvite.Session = Result;
+	NewInvite.SenderId = SenderId;
+	SessionInvites.Emplace(NewInvite);
+
+	TriggerOnSessionInviteReceivedDelegates(PlayerId.ToSharedRef().Get(), SenderId.ToSharedRef().Get(), AccelByteSubsystem->GetAppId(), Result);
+	TriggerOnV2SessionInviteReceivedDelegates(PlayerId.ToSharedRef().Get(), SenderId.ToSharedRef().Get(), NewInvite);
+	TriggerOnInviteListUpdatedDelegates();
 	
 	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
 }
 
-void FOnlineSessionV2AccelByte::OnPartySessionMembersChangedNotification(FAccelByteModelsV2PartyMembersChangedEvent MemberChangeEvent, int32 LocalUserNum)
+void FOnlineSessionV2AccelByte::OnPartySessionMembersChangedNotification(FAccelByteModelsV2PartyMembersChangedEvent MembersChangedEvent, int32 LocalUserNum)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("SessionId: %s; JoinerId: %s"), *MemberChangeEvent.PartyID, *MemberChangeEvent.JoinerID);
+	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("SessionId: %s; JoinerId: %s"), *MembersChangedEvent.Session.ID, *MembersChangedEvent.JoinerID);
 
-	HandleSessionMembersChangedNotification(MemberChangeEvent.PartyID, MemberChangeEvent.Members, MemberChangeEvent.JoinerID, MemberChangeEvent.LeaderID);
+	FNamedOnlineSession* Session = GetNamedSessionById(MembersChangedEvent.Session.ID);
+	if (Session == nullptr)
+	{
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Could not update session with with members changed event as we do not have the session stored locally!"));
+		return;
+	}
+
+	// TODO: Potentially unnecessary memory allocation
+	EnqueueBackendDataUpdate(Session->SessionName, MakeShared<FAccelByteModelsV2PartySession>(MembersChangedEvent.Session));
 
 	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
 }
@@ -3215,15 +3486,8 @@ void FOnlineSessionV2AccelByte::OnPartySessionUpdatedNotification(FAccelByteMode
 		return;
 	}
 
-	TSharedPtr<FOnlineSessionInfoAccelByteV2> SessionInfo = StaticCastSharedPtr<FOnlineSessionInfoAccelByteV2>(Session->SessionInfo);
-	if (!SessionInfo.IsValid())
-	{
-		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Could not update session with new attributes as session does not have a valid session info instance!"));
-		return;
-	}
-
-	UpdateInternalPartySession(Session->SessionName, UpdatedPartySession);
-	TriggerOnUpdateSessionCompleteDelegates(Session->SessionName, true);
+	// TODO: Potentially unnecessary memory allocation
+	EnqueueBackendDataUpdate(Session->SessionName, MakeShared<FAccelByteModelsV2PartySession>(UpdatedPartySession));
 
 	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
 }
@@ -3272,72 +3536,33 @@ void FOnlineSessionV2AccelByte::OnPartySessionInviteRejectedNotification(FAccelB
 	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
 }
 
-void FOnlineSessionV2AccelByte::HandleSessionMembersChangedNotification(const FString& SessionId, const TArray<FAccelByteModelsV2SessionUser>& NewMembers, const FString& JoinerId, const FString& LeaderId)
+void FOnlineSessionV2AccelByte::UpdateSessionMembers(FNamedOnlineSession* Session, const TArray<FAccelByteModelsV2SessionUser>& PreviousMembers, const bool bHasInvitedPlayersChanged)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("SessionId: %s; JoinerId: %s"), *SessionId, *JoinerId);
+	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("SessionId: %s"), *Session->GetSessionIdStr());
 
-	FNamedOnlineSession* Session = GetNamedSessionById(SessionId);
-	if (Session == nullptr)
-	{
-		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Could not update members for session '%s' as we do not have that session stored locally!"), *SessionId);
-		return;
-	}
-
-	// Grab session data to update members there
 	TSharedPtr<FOnlineSessionInfoAccelByteV2> SessionInfo = StaticCastSharedPtr<FOnlineSessionInfoAccelByteV2>(Session->SessionInfo);
 	if (!ensure(SessionInfo.IsValid()))
 	{
-		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Could not update members for session '%s' as the local session has invalid session info!"));
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Could not diff members for session '%s' as the local session has invalid session info!"), *Session->GetSessionIdStr());
 		return;
 	}
 
-	TSharedPtr<FAccelByteModelsV2BaseSession> SessionData = SessionInfo->GetBackendSessionData();
+	const TSharedPtr<FAccelByteModelsV2BaseSession> SessionData = SessionInfo->GetBackendSessionData();
 	if (!ensure(SessionData.IsValid()))
 	{
-		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Could not update members for session '%s' as the local session has invalid backend session data!"));
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Could not diff members for session '%s' as its session info has invalid backend data!"), *Session->GetSessionIdStr());
 		return;
 	}
-
-	SessionData->LeaderID = LeaderId;
-
-	// Grab the old members array in case we need to diff it
-	const TArray<FAccelByteModelsV2SessionUser> PreviousMembers = SessionData->Members;
-
-	// Set new members array and update the invite list on session info
-	SessionData->Members = NewMembers;
-	SessionData->Version++;
-	
-	bool bHasInvitedPlayersChanged = false;
-	bool bHasJoinedMembersChanged = false;
-	SessionInfo->UpdatePlayerLists(bHasJoinedMembersChanged, bHasInvitedPlayersChanged);
 
 	if (bHasInvitedPlayersChanged)
 	{
 		TriggerOnSessionInvitesChangedDelegates(Session->SessionName);
 	}
 
-	SessionInfo->UpdateLeaderId();
-
-	// If the JoinerId for the event is not blank, then we just have to register this player and update session info
-	if (!JoinerId.IsEmpty())
-	{
-		// Find the member object for the player so that we can construct a proper ID for them, with platform information
-		const FAccelByteModelsV2SessionUser* FoundUser = NewMembers.FindByPredicate([&JoinerId](const FAccelByteModelsV2SessionUser& User) {
-			return User.ID == JoinerId;
-		});
-		
-		if (ensure(FoundUser != nullptr))
-		{
-			RegisterJoinedSessionMember(Session, *FoundUser);
-		}
-
-		return;
-	}
-
-	// If we do not have an ID for a user that has joined this session, then we need to diff the previous members array
-	// and the new members array to figure out what changed. If the status changes to Leave or Disconnect, we need to
-	// unregister that player. If it changes to join or connect we need to register them.
-	for (const FAccelByteModelsV2SessionUser& NewMember : NewMembers)
+	// We need to diff the previous members array and the new members array to figure out what changed.
+	// If the status changes to Leave or Disconnect, we need to unregister that player. If it changes
+	// to join or connect we need to register them.
+	for (const FAccelByteModelsV2SessionUser& NewMember : SessionData->Members)
 	{
 		const FAccelByteModelsV2SessionUser* PreviousMember = PreviousMembers.FindByPredicate([&NewMember](const FAccelByteModelsV2SessionUser& Member) {
 			return Member.ID == NewMember.ID;
@@ -3352,7 +3577,6 @@ void FOnlineSessionV2AccelByte::HandleSessionMembersChangedNotification(const FS
 		const bool bIsJoinStatus = NewMember.Status == EAccelByteV2SessionMemberStatus::JOINED || NewMember.Status == EAccelByteV2SessionMemberStatus::CONNECTED;
 		const bool bIsLeaveStatus = NewMember.Status == EAccelByteV2SessionMemberStatus::LEFT || NewMember.Status == EAccelByteV2SessionMemberStatus::KICKED || NewMember.Status == EAccelByteV2SessionMemberStatus::DROPPED;
 
-		// If this player is joining the session, then we want to register them and fire delegates
 		if (bIsJoinStatus)
 		{
 			RegisterJoinedSessionMember(Session, NewMember);
@@ -3362,7 +3586,7 @@ void FOnlineSessionV2AccelByte::HandleSessionMembersChangedNotification(const FS
 			UnregisterLeftSessionMember(Session, NewMember);
 		}
 	}
-	
+
 	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
 }
 
@@ -3564,6 +3788,9 @@ void FOnlineSessionV2AccelByte::OnFindMatchmakingGameSessionByIdComplete(int32 L
 
 	TriggerOnMatchmakingCompleteDelegates(CurrentMatchmakingSearchHandle->SearchingSessionName, true);
 
+	// After triggering this delegate, we will want to reset the current matchmaking search handle so that we're able to re-enter matchmaking at a later time
+	CurrentMatchmakingSearchHandle.Reset();
+
 	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
 }
 
@@ -3608,9 +3835,18 @@ void FOnlineSessionV2AccelByte::TeardownAccelByteP2PConnection()
 	FAccelByteNetworkUtilitiesModule::Get().UnregisterDefaultSocketSubsystem();
 }
 
-void FOnlineSessionV2AccelByte::OnICEConnectionComplete(const FString& PeerId, bool bStatus, FName SessionName)
+void FOnlineSessionV2AccelByte::OnICEConnectionComplete(const FString& PeerId, bool bStatus, FName SessionName, EOnlineSessionP2PConnectedAction Action)
 {
-	TriggerOnJoinSessionCompleteDelegates(SessionName, EOnJoinSessionCompleteResult::Success);
+	AsyncTask(ENamedThreads::GameThread, [this, Action, SessionName, bStatus] {
+		if(Action == EOnlineSessionP2PConnectedAction::Join)
+        {
+			TriggerOnJoinSessionCompleteDelegates(SessionName, bStatus ? EOnJoinSessionCompleteResult::Success : EOnJoinSessionCompleteResult::CouldNotRetrieveAddress);
+        }
+		else if (Action == EOnlineSessionP2PConnectedAction::Update)
+		{
+			TriggerOnUpdateSessionCompleteDelegates(SessionName, true);
+		}
+	});
 }
 
 void FOnlineSessionV2AccelByte::ConnectToDSHub(const FString& ServerName)

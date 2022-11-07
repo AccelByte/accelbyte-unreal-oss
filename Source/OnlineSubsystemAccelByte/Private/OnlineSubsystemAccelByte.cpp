@@ -15,6 +15,7 @@
 #include "OnlineUserCacheAccelByte.h"
 #include "OnlineAgreementInterfaceAccelByte.h"
 #include "OnlineWalletInterfaceAccelByte.h"
+#include "OnlineCloudSaveInterfaceAccelByte.h"
 #include "OnlineSubsystemAccelByteModule.h"
 #include "Api/AccelByteLobbyApi.h"
 #include "Models/AccelByteLobbyModels.h"
@@ -53,6 +54,7 @@ bool FOnlineSubsystemAccelByte::Init()
 	UserCache = MakeShared<FOnlineUserCacheAccelByte, ESPMode::ThreadSafe>(this);
 	AgreementInterface = MakeShared<FOnlineAgreementAccelByte, ESPMode::ThreadSafe>(this);
 	WalletInterface = MakeShared<FOnlineWalletAccelByte, ESPMode::ThreadSafe>(this);
+	CloudSaveInterface = MakeShared<FOnlineCloudSaveAccelByte, ESPMode::ThreadSafe>(this);
 	EntitlementsInterface = MakeShared<FOnlineEntitlementsAccelByte, ESPMode::ThreadSafe>(this);
 	StoreV2Interface = MakeShared<FOnlineStoreV2AccelByte, ESPMode::ThreadSafe>(this);
 	PurchaseInterface = MakeShared<FOnlinePurchaseAccelByte, ESPMode::ThreadSafe>(this);
@@ -196,6 +198,11 @@ FOnlineAgreementAccelBytePtr FOnlineSubsystemAccelByte::GetAgreementInterface() 
 FOnlineWalletAccelBytePtr FOnlineSubsystemAccelByte::GetWalletInterface() const
 {
 	return WalletInterface;
+}
+
+FOnlineCloudSaveAccelBytePtr FOnlineSubsystemAccelByte::GetCloudSaveInterface() const
+{
+	return CloudSaveInterface;
 }
 
 #if (ENGINE_MAJOR_VERSION == 4 && ENGINE_MINOR_VERSION <= 25)

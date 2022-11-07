@@ -47,8 +47,14 @@ public:
 	/** Set the current backend session data associated with this session */
 	void SetBackendSessionData(const TSharedPtr<FAccelByteModelsV2BaseSession>& InBackendSessionData);
 
+	/** Set the current backend session data associated with this session */
+	void SetBackendSessionData(const TSharedPtr<FAccelByteModelsV2BaseSession>& InBackendSessionData, bool& bWasInvitedPlayersChanged);
+
 	/** Get the locally stored backend session data for this session */
 	TSharedPtr<FAccelByteModelsV2BaseSession> GetBackendSessionData() const;
+
+	/** Get the locally stored backend session data for this session as game session*/
+	TSharedPtr<FAccelByteModelsV2GameSession> GetBackendSessionDataAsGameSession() const;
 
 	/** Get the locally stored team assignments for this session */
 	TArray<FAccelByteModelsV2GameSessionTeam> GetTeamAssignments() const;
@@ -96,11 +102,39 @@ PACKAGE_SCOPE:
 	 */
 	void UpdateConnectionInfo();
 
+	/** Set the most recent locally stored backend session data update for this session */
+	void SetLatestBackendSessionDataUpdate(const TSharedPtr<FAccelByteModelsV2BaseSession>& InBackendSessionData);
+
+	/** Get the most recent locally stored backend session data update for this session */
+	TSharedPtr<FAccelByteModelsV2BaseSession> GetLatestBackendSessionDataUpdate() const;
+
+	/** Get the most recent locally stored backend session data update for this session as game session */
+	TSharedPtr<FAccelByteModelsV2GameSession> GetLatestBackendSessionDataUpdateAsGameSession() const;
+
+	/** Set the value for the "is latest update a DS ready update" flag */
+	void SetDSReadyUpdateReceived(const bool& bInDSReadyUpdateReceived);
+
+	/** Get the value for the "is latest update a DS ready update" flag */
+	bool GetDSReadyUpdateReceived() const;
+
 private:
+	TSharedPtr<FAccelByteModelsV2GameSession> StaticCastAsGameSession(const TSharedPtr<FAccelByteModelsV2BaseSession>& InBaseSession) const;
+
 	/**
 	 * Structure representing the session data on the backend, used for updating session data.
 	 */
 	TSharedPtr<FAccelByteModelsV2BaseSession> BackendSessionData{nullptr};
+
+	/**
+	 * Structure representing the session data update from the backend
+	 */
+	TSharedPtr<FAccelByteModelsV2BaseSession> LatestBackendSessionDataUpdate{nullptr};
+
+	/**
+	 * Flag indicating whether the session has recieved a DS update and should trigger the
+	 * server update delegate
+	 */
+	bool bDSReadyUpdateReceived{false};
 
 	/**
 	 * ID of the session that this information is for
@@ -139,12 +173,14 @@ private:
 
 };
 
+/**
+ * Enum used to tell the P2P connection finished delegate what action to trigger
+ */
 UENUM(BlueprintType)
-enum class EOnlineSessionTypeAccelByte : uint8
+enum class EOnlineSessionP2PConnectedAction : uint8
 {
-	Unknown = 0,
-	GameSession,
-	PartySession
+	Join,
+	Update
 };
 
 /**
@@ -156,14 +192,14 @@ struct ONLINESUBSYSTEMACCELBYTE_API FOnlineRestoredSessionAccelByte
 	{
 	}
 
-	FOnlineRestoredSessionAccelByte(const EOnlineSessionTypeAccelByte& InSessionType, const FOnlineSessionSearchResult& InSession)
+	FOnlineRestoredSessionAccelByte(const EAccelByteV2SessionType& InSessionType, const FOnlineSessionSearchResult& InSession)
 		: SessionType(InSessionType)
 		, Session(InSession)
 	{
 	}
 
 	/** Session type of the restored session */
-	EOnlineSessionTypeAccelByte SessionType{EOnlineSessionTypeAccelByte::Unknown};
+	EAccelByteV2SessionType SessionType{EAccelByteV2SessionType::Unknown};
 
 	/** Search result of the restored session */
 	FOnlineSessionSearchResult Session{};
@@ -175,7 +211,7 @@ struct ONLINESUBSYSTEMACCELBYTE_API FOnlineRestoredSessionAccelByte
 struct ONLINESUBSYSTEMACCELBYTE_API FOnlineSessionInviteAccelByte
 {
 	/** Type of session that this invite is for */
-	EOnlineSessionTypeAccelByte SessionType{EOnlineSessionTypeAccelByte::Unknown};
+	EAccelByteV2SessionType SessionType{EAccelByteV2SessionType::Unknown};
 
 	/** ID of the user that sent this invite, could be nullptr */
 	FUniqueNetIdPtr SenderId{nullptr};
@@ -289,6 +325,9 @@ typedef FOnV2SessionInviteReceived::FDelegate FOnV2SessionInviteReceivedDelegate
 
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnSessionServerUpdate, FName /*SessionName*/);
 typedef FOnSessionServerUpdate::FDelegate FOnSessionServerUpdateDelegate;
+
+DECLARE_MULTICAST_DELEGATE_TwoParams(FOnSessionServerError, FName /*SessionName*/, const FString& /*ErrorMessage*/);
+typedef FOnSessionServerError::FDelegate FOnSessionServerErrorDelegate;
 
 DECLARE_MULTICAST_DELEGATE(FOnMatchmakingStarted)
 typedef FOnMatchmakingStarted::FDelegate FOnMatchmakingStartedDelegate;
@@ -464,12 +503,12 @@ public:
 	/**
 	 * Get session type from session by its name
 	 */
-	EOnlineSessionTypeAccelByte GetSessionTypeByName(const FName& SessionName);
+	EAccelByteV2SessionType GetSessionTypeByName(const FName& SessionName);
 
 	/**
 	 * Get an AccelByte session type from a session settings object
 	 */
-	EOnlineSessionTypeAccelByte GetSessionTypeFromSettings(const FOnlineSessionSettings& Settings) const;
+	EAccelByteV2SessionType GetSessionTypeFromSettings(const FOnlineSessionSettings& Settings) const;
 
 	/**
 	 * Try and get the ID of the user that is leader of this particular session. Only works with party sessions.
@@ -589,6 +628,14 @@ public:
 	DEFINE_ONLINE_DELEGATE_ONE_PARAM(OnSessionServerUpdate, FName /*SessionName*/);
 
 	/**
+	 * Delegate fired when session failed to get a server.
+	 * 
+	 * @param SessionName Name of the session.
+	 * @param ErrorMessage Message of the error
+	 */
+	DEFINE_ONLINE_DELEGATE_TWO_PARAM(OnSessionServerError, FName /*SessionName*/, const FString& /*ErrorMessage*/);
+
+	/**
 	 * Delegate fired when matchmaking has started
 	 */
 	DEFINE_ONLINE_DELEGATE(OnMatchmakingStarted);
@@ -676,7 +723,7 @@ PACKAGE_SCOPE:
 	/**
 	 * Get an AccelByte session type from a string value
 	 */
-	EOnlineSessionTypeAccelByte GetSessionTypeFromString(const FString& SessionTypeStr) const;
+	EAccelByteV2SessionType GetSessionTypeFromString(const FString& SessionTypeStr) const;
 
 	/**
 	 * Figure out the AccelByte joinability status of a session from its settings
@@ -769,7 +816,7 @@ PACKAGE_SCOPE:
 	 * @param Delegate Delegate fired once the leave session call completes
 	 * @return bool true if leave session task was spawned, false otherwise
 	 */
-	bool LeaveSession(const FUniqueNetId& LocalUserId, const EOnlineSessionTypeAccelByte& SessionType, const FString& SessionId, const FOnLeaveSessionComplete& Delegate=FOnLeaveSessionComplete());
+	bool LeaveSession(const FUniqueNetId& LocalUserId, const EAccelByteV2SessionType& SessionType, const FString& SessionId, const FOnLeaveSessionComplete& Delegate=FOnLeaveSessionComplete());
 
 	/**
 	 * Convert an array of doubles to an array of FJsonValues
@@ -823,12 +870,12 @@ PACKAGE_SCOPE:
 	/**
 	 * Attempt to connect to a P2P session
 	 */
-	void ConnectToJoinedP2PSession(FName SessionName);
+	void ConnectToJoinedP2PSession(FName SessionName, EOnlineSessionP2PConnectedAction Action);
 
 	/**
 	 * Update game session data from a backend model. Used for update notifications and refreshing a game session manually.
 	 */
-	void UpdateInternalGameSession(const FName& SessionName, const FAccelByteModelsV2GameSession& UpdatedGameSession);
+	void UpdateInternalGameSession(const FName& SessionName, const FAccelByteModelsV2GameSession& UpdatedGameSession, bool& bIsConnectingToP2P);
 
 	/**
 	 * Update party session data from a backend model. Used for update notifications and refreshing a game session manually.
@@ -859,6 +906,9 @@ private:
 
 	/** Flag denoting whether there is already a task in progress to get a session associated with a server */
 	bool bIsGettingServerClaimedSession{ false };
+
+	/** Flag denoting whether there has been an update to any of the sessions in the interface */
+	bool bReceivedSessionUpdate{ false };
 
 	/** Array of delegates that are awaiting server session retrieval before executing */
 	TArray<TFunction<void()>> SessionCallsAwaitingServerSession;
@@ -921,10 +971,7 @@ private:
 	void OnV2BackfillProposalNotification(const FAccelByteModelsV2MatchmakingBackfillProposalNotif& Notification);
 	//~ End Server Notification Handlers
 
-	/**
-	 * Generically handle members change events for party and game sessions.
-	 */
-	void HandleSessionMembersChangedNotification(const FString& SessionId, const TArray<FAccelByteModelsV2SessionUser>& NewMembers, const FString& JoinerId, const FString& LeaderId);
+	void UpdateSessionMembers(FNamedOnlineSession* Session, const TArray<FAccelByteModelsV2SessionUser>& PreviousMembers, const bool bHasInvitedPlayersChanged);
 
 	void RegisterJoinedSessionMember(FNamedOnlineSession* Session, const FAccelByteModelsV2SessionUser& JoinedMember);
 	void UnregisterLeftSessionMember(FNamedOnlineSession* Session, const FAccelByteModelsV2SessionUser& LeftMember);
@@ -944,12 +991,17 @@ private:
 	/**
 	 * Delegate handler when we finish connecting to a P2P ICE session
 	 */
-	void OnICEConnectionComplete(const FString& PeerId, bool bStatus, FName SessionName);
+	void OnICEConnectionComplete(const FString& PeerId, bool bStatus, FName SessionName, EOnlineSessionP2PConnectedAction Action);
 
 	/**
 	 * Internal method to get a named session as a const pointer.
 	 */
 	FNamedOnlineSession* GetNamedSession(FName SessionName) const;
+
+	/**
+	 * Enqueue a session data update for the next tick if its version is more up-to-date than existing data
+	 */
+	void EnqueueBackendDataUpdate(const FName& SessionName, const TSharedPtr<FAccelByteModelsV2BaseSession>& SessionData, const bool bIsDSReadyUpdate=false);
 
 protected:
 	FNamedOnlineSession* AddNamedSession(FName SessionName, const FOnlineSessionSettings& SessionSettings) override;

@@ -334,7 +334,7 @@ FString FOnlineIdentityAccelByte::GetPlayerNickname(const FUniqueNetId& UserId) 
 		return AccelByteAccount->GetDisplayName();
 	}
 
-	AB_OSS_INTERFACE_TRACE_END(TEXT("Nickname not found for User '%s'. Returning 'NullUser'."), *AccelByteAccount->GetDisplayName());
+	AB_OSS_INTERFACE_TRACE_END(TEXT("FUserOnlineAccountAccelByte not found for user with NetID of '%s'!. Returning 'NullUser'."), *UserId.ToDebugString());
 	return TEXT("NullUser");
 }
 

@@ -9,7 +9,6 @@
 #include "AsyncTasks/Store/OnlineAsyncTaskAccelByteQueryOfferById.h"
 #include "AsyncTasks/Store/OnlineAsyncTaskAccelByteQueryOfferBySku.h"
 #include "AsyncTasks/Store/OnlineAsyncTaskAccelByteQueryOfferDynamicData.h"
-#include "..\Public\OnlineStoreInterfaceV2AccelByte.h"
 #include "OnlineSubsystemUtils.h"
 
 FOnlineStoreV2AccelByte::FOnlineStoreV2AccelByte(FOnlineSubsystemAccelByte* InSubsystem) 

@@ -47,5 +47,5 @@ void FOnlineAsyncTaskAccelByteAcceptBackfillProposal::OnAcceptBackfillProposalSu
 
 void FOnlineAsyncTaskAccelByteAcceptBackfillProposal::OnAcceptBackfillProposalError(int32 ErrorCode, const FString& ErrorMessage)
 {
-	AB_ASYNC_TASK_REQUEST_FAILED("Request to accept backfill proposal failed on backend!", ErrorCode, *ErrorMessage);
+	AB_ASYNC_TASK_REQUEST_FAILED("Request to accept backfill proposal failed on backend!", ErrorCode, ErrorMessage);
 }

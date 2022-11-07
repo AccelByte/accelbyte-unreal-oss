@@ -44,6 +44,7 @@ void FOnlineAsyncTaskAccelByteUpdateGameSessionV2::Initialize()
 	TSharedPtr<FOnlineSessionInfoAccelByteV2> SessionInfo = StaticCastSharedPtr<FOnlineSessionInfoAccelByteV2>(Session->SessionInfo);
 	AB_ASYNC_TASK_ENSURE(SessionInfo.IsValid(), "Failed to update game session as our local session info instance is invalid!");
 
+	AB_ASYNC_TASK_ENSURE(SessionInfo->GetBackendSessionData()->SessionType == EAccelByteV2SessionType::GameSession, "Failed to update game session as our local backend session info is invalid!");
 	TSharedPtr<FAccelByteModelsV2GameSession> GameSessionBackendData = StaticCastSharedPtr<FAccelByteModelsV2GameSession>(SessionInfo->GetBackendSessionData());
 	AB_ASYNC_TASK_ENSURE(GameSessionBackendData.IsValid(), "Failed to update game session as our local backend session info is invalid!");
 
@@ -124,6 +125,12 @@ void FOnlineAsyncTaskAccelByteUpdateGameSessionV2::Initialize()
 		UpdateRequest.InviteTimeout = InviteTimeout;
 	}
 
+	FString MatchPool{};
+	if (NewSessionSettings.Get(SETTING_SESSION_MATCHPOOL, MatchPool) && MatchPool != GameSessionBackendData->MatchPool)
+	{
+		UpdateRequest.MatchPool = MatchPool;
+	}
+
 	FString ServerTypeString{};
 	NewSessionSettings.Get(SETTING_SESSION_SERVER_TYPE, ServerTypeString);
 	const EAccelByteV2SessionConfigurationServerType ServerType = SessionInterface->GetServerTypeFromString(ServerTypeString);
@@ -163,7 +170,9 @@ void FOnlineAsyncTaskAccelByteUpdateGameSessionV2::Finalize()
 			return;
 		}
 
-		SessionInterface->UpdateInternalGameSession(SessionName, NewSessionData);
+		// We don't care about this out flag in this case
+		bool bIsConnectingToP2P = false;
+		SessionInterface->UpdateInternalGameSession(SessionName, NewSessionData, bIsConnectingToP2P);
 	}
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

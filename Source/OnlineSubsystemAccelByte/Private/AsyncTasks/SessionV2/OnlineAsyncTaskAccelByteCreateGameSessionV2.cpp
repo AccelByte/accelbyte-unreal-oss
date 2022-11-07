@@ -78,7 +78,7 @@ void FOnlineAsyncTaskAccelByteCreateGameSessionV2::Initialize()
 	}
 
 	int32 MaximumPlayers = SessionInterface->GetSessionMaxPlayerCount(SessionName);
-	if (MinimumPlayers > 0)
+	if (MaximumPlayers > 0)
 	{
 		CreateRequest.MaxPlayers = MaximumPlayers;
 	}
@@ -93,6 +93,12 @@ void FOnlineAsyncTaskAccelByteCreateGameSessionV2::Initialize()
 	if (NewSessionSettings.Get(SETTING_SESSION_INVITE_TIMEOUT, InviteTimeout) && InviteTimeout > 0)
 	{
 		CreateRequest.InviteTimeout = InviteTimeout;
+	}
+
+	FString MatchPool{};
+	if (NewSessionSettings.Get(SETTING_SESSION_MATCHPOOL, MatchPool) && !MatchPool.IsEmpty())
+	{
+		CreateRequest.MatchPool = MatchPool;
 	}
 
 	CreateRequest.Attributes.JsonObject = SessionInterface->ConvertSessionSettingsToJsonObject(NewSessionSettings);

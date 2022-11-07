@@ -1011,16 +1011,8 @@ bool FOnlineSessionV1AccelByte::JoinSession(int32 PlayerNum, FName SessionName, 
 
 	if (DesiredSession.Session.SessionSettings.bIsDedicated && !bIsIceEnabled)
 	{
-#if PLATFORM_XBOXONE
-		TDelegate<void()> Delegate = TDelegate<void()>::CreateLambda([this, SessionName]()
-		{
-			TriggerOnJoinSessionCompleteDelegates(SessionName, EOnJoinSessionCompleteResult::Success);
-		});
-		AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<OnlineAsyncTaskAccelByteGetEncryptionKeyClient>(AccelByteSubsystem, SessionName, PlayerNum, Delegate);
-#else
 		// Currently, no extra work is needed to join a dedicated session besides triggering delegates
 		TriggerOnJoinSessionCompleteDelegates(SessionName, EOnJoinSessionCompleteResult::Success);
-#endif
 		return true;
 	}
 	else if (DesiredSession.Session.SessionSettings.bIsLANMatch)

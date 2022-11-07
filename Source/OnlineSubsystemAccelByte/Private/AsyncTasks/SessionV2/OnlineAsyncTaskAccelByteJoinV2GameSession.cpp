@@ -104,7 +104,7 @@ void FOnlineAsyncTaskAccelByteJoinV2GameSession::Finalize()
 		if (SessionInfo->GetServerType() == EAccelByteV2SessionConfigurationServerType::P2P)
 		{
 			bJoiningP2P = true;
-			SessionInterface->ConnectToJoinedP2PSession(SessionName);
+			SessionInterface->ConnectToJoinedP2PSession(SessionName, EOnlineSessionP2PConnectedAction::Join);
 		}
 	}
 	else
@@ -130,6 +130,25 @@ void FOnlineAsyncTaskAccelByteJoinV2GameSession::TriggerDelegates()
 		}
 
 		SessionInterface->TriggerOnJoinSessionCompleteDelegates(SessionName, JoinSessionResult);
+
+		FNamedOnlineSession* JoinedSession = SessionInterface->GetNamedSession(SessionName);
+		if (!ensure(JoinedSession != nullptr))
+		{
+			AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to trigger delegates to joining a game session as our local session instance is invalid!"));
+			return;
+		}
+
+		TSharedPtr<FOnlineSessionInfoAccelByteV2> SessionInfo = StaticCastSharedPtr<FOnlineSessionInfoAccelByteV2>(JoinedSession->SessionInfo);
+		if (!ensure(SessionInfo.IsValid()))
+		{
+			AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to trigger delegates to joining a game session as our local session information instance is invalid!"));
+			return;
+		}
+
+		if(SessionInfo->HasConnectionInfo())
+		{
+			SessionInterface->TriggerOnSessionServerUpdateDelegates(SessionName);
+		}
 	}
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
@@ -149,7 +168,7 @@ void FOnlineAsyncTaskAccelByteJoinV2GameSession::OnJoinGameSessionSuccess(const 
 void FOnlineAsyncTaskAccelByteJoinV2GameSession::OnJoinGameSessionError(int32 ErrorCode, const FString& ErrorMessage)
 {
 	JoinSessionResult = EOnJoinSessionCompleteResult::UnknownError; // #TODO #SESSIONv2 Maybe expand this to use a better error later?
-	AB_ASYNC_TASK_REQUEST_FAILED("Failed to join game session on backend!", ErrorCode, *ErrorMessage);
+	AB_ASYNC_TASK_REQUEST_FAILED("Failed to join game session on backend!", ErrorCode, ErrorMessage);
 }
 
 void FOnlineAsyncTaskAccelByteJoinV2GameSession::OnGetGameSessionDetailsSuccess(const FAccelByteModelsV2GameSession& InUpdatedBackendSessionInfo)
@@ -166,6 +185,6 @@ void FOnlineAsyncTaskAccelByteJoinV2GameSession::OnGetGameSessionDetailsSuccess(
 void FOnlineAsyncTaskAccelByteJoinV2GameSession::OnGetGameSessionDetailsError(int32 ErrorCode, const FString& ErrorMessage)
 {
 	JoinSessionResult = EOnJoinSessionCompleteResult::UnknownError; // #TODO #SESSIONv2 Maybe expand this to use a better error later?
-	AB_ASYNC_TASK_REQUEST_FAILED("Failed to restore game session on backend!", ErrorCode, *ErrorMessage);
+	AB_ASYNC_TASK_REQUEST_FAILED("Failed to restore game session on backend!", ErrorCode, ErrorMessage);
 }
 

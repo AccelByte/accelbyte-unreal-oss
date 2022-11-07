@@ -41,6 +41,7 @@ class FOnlineStoreV2AccelByte;
 class FOnlinePurchaseAccelByte;
 class FOnlineAgreementAccelByte;
 class FOnlineWalletAccelByte;
+class FOnlineCloudSaveAccelByte;
 class FExecTestBase;
 
 struct FAccelByteModelsNotificationMessage;
@@ -97,6 +98,9 @@ typedef TSharedPtr<FOnlineAgreementAccelByte, ESPMode::ThreadSafe> FOnlineAgreem
 /** Shared pointer to the AccelByte Wallet */
 typedef TSharedPtr<FOnlineWalletAccelByte, ESPMode::ThreadSafe> FOnlineWalletAccelBytePtr;
 
+/** Shared pointer to the AccelByte Cloud Save */
+typedef TSharedPtr<FOnlineCloudSaveAccelByte, ESPMode::ThreadSafe> FOnlineCloudSaveAccelBytePtr;
+
 class ONLINESUBSYSTEMACCELBYTE_API FOnlineSubsystemAccelByte final : public FOnlineSubsystemImpl
 {
 public:
@@ -121,6 +125,7 @@ public:
 	virtual IOnlineAchievementsPtr GetAchievementsInterface() const override;
 	virtual FOnlineAgreementAccelBytePtr GetAgreementInterface() const;
 	virtual FOnlineWalletAccelBytePtr GetWalletInterface() const;
+	virtual FOnlineCloudSaveAccelBytePtr GetCloudSaveInterface() const;
 
 #if (ENGINE_MAJOR_VERSION == 4 && ENGINE_MINOR_VERSION <= 25)
 	IOnlineTurnBasedPtr GetTurnBasedInterface() const override;
@@ -352,6 +357,9 @@ private:
 
 	/** Shared instance of our wallet interface implementation */
 	FOnlineWalletAccelBytePtr WalletInterface;
+
+	/** Shared instance of our cloud save interface implementation */
+	FOnlineCloudSaveAccelBytePtr CloudSaveInterface;
 
 	/** Thread spawned to run the FOnlineAsyncTaskManagerAccelBytePtr instance */
 	TUniquePtr<FRunnableThread> AsyncTaskManagerThread;

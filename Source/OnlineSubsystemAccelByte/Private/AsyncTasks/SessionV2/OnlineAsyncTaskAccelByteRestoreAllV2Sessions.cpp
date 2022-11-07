@@ -111,7 +111,7 @@ void FOnlineAsyncTaskAccelByteRestoreAllV2Sessions::OnGetMyGameSessionsSuccess(c
 		}
 
 		FOnlineRestoredSessionAccelByte RestoredSession;
-		RestoredSession.SessionType = EOnlineSessionTypeAccelByte::GameSession;
+		RestoredSession.SessionType = EAccelByteV2SessionType::GameSession;
 
 		if (!SessionInterface->ConstructGameSessionFromBackendSessionModel(Session, RestoredSession.Session.Session))
 		{
@@ -163,7 +163,7 @@ void FOnlineAsyncTaskAccelByteRestoreAllV2Sessions::OnGetMyPartiesSuccess(const 
 		}
 
 		FOnlineRestoredSessionAccelByte RestoredSession;
-		RestoredSession.SessionType = EOnlineSessionTypeAccelByte::PartySession;
+		RestoredSession.SessionType = EAccelByteV2SessionType::PartySession;
 
 		if (!SessionInterface->ConstructPartySessionFromBackendSessionModel(Session, RestoredSession.Session.Session))
 		{

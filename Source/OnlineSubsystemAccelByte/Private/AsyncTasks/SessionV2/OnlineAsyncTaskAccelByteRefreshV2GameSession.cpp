@@ -64,7 +64,9 @@ void FOnlineAsyncTaskAccelByteRefreshV2GameSession::Finalize()
 	const TSharedPtr<FOnlineSessionV2AccelByte, ESPMode::ThreadSafe> SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(Subsystem->GetSessionInterface());
 	if (SessionInterface.IsValid())
 	{
-		SessionInterface->UpdateInternalGameSession(SessionName, RefreshedGameSession);
+		// We don't care about this out flag in this case
+		bool bIsConnectingToP2P = false;
+		SessionInterface->UpdateInternalGameSession(SessionName, RefreshedGameSession, bIsConnectingToP2P);
 	}
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

@@ -135,7 +135,7 @@ void FOnlineAsyncTaskAccelByteJoinV2Party::OnJoinPartySuccess(const FAccelByteMo
 void FOnlineAsyncTaskAccelByteJoinV2Party::OnJoinPartyError(int32 ErrorCode, const FString& ErrorMessage)
 {
 	JoinSessionResult = EOnJoinSessionCompleteResult::UnknownError; // #TODO #SESSIONv2 Maybe expand this to use a better error later?
-	AB_ASYNC_TASK_REQUEST_FAILED("Failed to join party on backend!", ErrorCode, *ErrorMessage);
+	AB_ASYNC_TASK_REQUEST_FAILED("Failed to join party on backend!", ErrorCode, ErrorMessage);
 }
 
 void FOnlineAsyncTaskAccelByteJoinV2Party::OnGetPartyDetailsSuccess(const FAccelByteModelsV2PartySession& Result)
@@ -152,5 +152,5 @@ void FOnlineAsyncTaskAccelByteJoinV2Party::OnGetPartyDetailsSuccess(const FAccel
 void FOnlineAsyncTaskAccelByteJoinV2Party::OnGetPartyDetailsError(int32 ErrorCode, const FString& ErrorMessage)
 {
 	JoinSessionResult = EOnJoinSessionCompleteResult::UnknownError; // #TODO #SESSIONv2 Maybe expand this to use a better error later?
-	AB_ASYNC_TASK_REQUEST_FAILED("Failed to restored joined party on backend!", ErrorCode, *ErrorMessage);
+	AB_ASYNC_TASK_REQUEST_FAILED("Failed to restored joined party on backend!", ErrorCode, ErrorMessage);
 }
