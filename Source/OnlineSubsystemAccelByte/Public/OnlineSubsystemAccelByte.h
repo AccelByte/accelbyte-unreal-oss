@@ -11,6 +11,7 @@
 #include "OnlineEntitlementsInterfaceAccelByte.h"
 #include "OnlinePurchaseInterfaceAccelByte.h"
 #include "OnlineStoreInterfaceV2AccelByte.h"
+#include "OnlineAnalyticsInterfaceAccelByte.h"
 #include "Core/AccelByteApiClient.h"
 #include "Models/AccelByteUserModels.h"
 
@@ -42,6 +43,9 @@ class FOnlinePurchaseAccelByte;
 class FOnlineAgreementAccelByte;
 class FOnlineWalletAccelByte;
 class FOnlineCloudSaveAccelByte;
+class FOnlineTimeAccelByte;
+class FOnlineAnalyticsInterfaceAccelByte;
+class FOnlineStatisticAccelByte;
 class FExecTestBase;
 
 struct FAccelByteModelsNotificationMessage;
@@ -101,6 +105,15 @@ typedef TSharedPtr<FOnlineWalletAccelByte, ESPMode::ThreadSafe> FOnlineWalletAcc
 /** Shared pointer to the AccelByte Cloud Save */
 typedef TSharedPtr<FOnlineCloudSaveAccelByte, ESPMode::ThreadSafe> FOnlineCloudSaveAccelBytePtr;
 
+/** Shared pointer to the AccelByte Time */
+typedef TSharedPtr<FOnlineTimeAccelByte, ESPMode::ThreadSafe> FOnlineTimeAccelBytePtr;
+
+/** Shared pointer to the AccelByte Analytics */
+typedef TSharedPtr<FOnlineAnalyticsInterfaceAccelByte, ESPMode::ThreadSafe> FOnlineAnalyticsInterfaceAccelBytePtr;
+
+/** Shared pointer to the AccelByte Statistic */
+typedef TSharedPtr<FOnlineStatisticAccelByte, ESPMode::ThreadSafe> FOnlineStatisticAccelBytePtr;
+
 class ONLINESUBSYSTEMACCELBYTE_API FOnlineSubsystemAccelByte final : public FOnlineSubsystemImpl
 {
 public:
@@ -125,7 +138,10 @@ public:
 	virtual IOnlineAchievementsPtr GetAchievementsInterface() const override;
 	virtual FOnlineAgreementAccelBytePtr GetAgreementInterface() const;
 	virtual FOnlineWalletAccelBytePtr GetWalletInterface() const;
-	virtual FOnlineCloudSaveAccelBytePtr GetCloudSaveInterface() const;
+	virtual FOnlineCloudSaveAccelBytePtr GetCloudSaveInterface() const; 
+	virtual IOnlineStatsPtr GetStatsInterface() const override;
+	virtual IOnlineTimePtr GetTimeInterface() const override;
+	virtual FOnlineAnalyticsInterfaceAccelBytePtr GetAnalyticsInterface() const;
 
 #if (ENGINE_MAJOR_VERSION == 4 && ENGINE_MINOR_VERSION <= 25)
 	IOnlineTurnBasedPtr GetTurnBasedInterface() const override;
@@ -209,6 +225,7 @@ PACKAGE_SCOPE:
 		, PresenceInterface(nullptr)
 		, UserCache(nullptr)
 		, AsyncTaskManager(nullptr)
+		, TimeInterface(nullptr)
 		, Language(FGenericPlatformMisc::GetDefaultLanguage())
 	{
 	}
@@ -360,6 +377,15 @@ private:
 
 	/** Shared instance of our cloud save interface implementation */
 	FOnlineCloudSaveAccelBytePtr CloudSaveInterface;
+
+	/** Shared instance of our time interface implementation */
+	FOnlineTimeAccelBytePtr TimeInterface;
+	
+	/** Shared instance of our analytics interface implementation */
+	FOnlineAnalyticsInterfaceAccelBytePtr AnalyticsInterface;
+
+	/** Shared instance of our statistic interface implementation */
+	FOnlineStatisticAccelBytePtr StatisticInterface;
 
 	/** Thread spawned to run the FOnlineAsyncTaskManagerAccelBytePtr instance */
 	TUniquePtr<FRunnableThread> AsyncTaskManagerThread;

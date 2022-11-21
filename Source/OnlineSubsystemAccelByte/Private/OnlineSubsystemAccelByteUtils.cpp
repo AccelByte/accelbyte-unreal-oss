@@ -182,7 +182,11 @@ EAccelByteLoginType FOnlineSubsystemAccelByteUtils::GetAccelByteLoginTypeFromNat
 	}
 	else if (SubsystemStr.Equals(TEXT("PS4"), ESearchCase::IgnoreCase))
 	{
+#if defined(WITH_CROSSGENSDK) && WITH_CROSSGENSDK
 		return EAccelByteLoginType::PS5;
+#else
+		return EAccelByteLoginType::PS4;
+#endif
 	}
 	else if (SubsystemStr.Equals(TEXT("PS5"), ESearchCase::IgnoreCase))
 	{

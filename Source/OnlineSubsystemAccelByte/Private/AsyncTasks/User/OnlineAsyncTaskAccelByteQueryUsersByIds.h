@@ -124,4 +124,10 @@ private:
 	 */
 	void QueryUsersOnNativePlatform(const TArray<TSharedRef<const FUniqueNetId>>& PlatformUniqueIds);
 
+	/**
+	 * Method to attempt to extract platform type and ID that matches current platform OSS from basic info structure into
+	 * a composite ID structure that we are creating.
+	 */
+	void ExtractPlatformDataFromBasicUserInfo(const FBaseUserInfo& BasicInfo, FAccelByteUniqueIdComposite& CompositeId);
+
 };

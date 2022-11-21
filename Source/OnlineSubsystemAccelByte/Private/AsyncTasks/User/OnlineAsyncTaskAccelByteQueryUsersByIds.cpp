@@ -232,6 +232,8 @@ void FOnlineAsyncTaskAccelByteQueryUsersByIds::OnGetBasicUserInfoSuccess(const F
 		// Construct a composite ID for this user
 		FAccelByteUniqueIdComposite CompositeId;
 		CompositeId.Id = BasicInfo.UserId;
+
+		ExtractPlatformDataFromBasicUserInfo(BasicInfo, CompositeId);
 		
 		// Create the final user ID for the queried user
 		User->Id = FUniqueNetIdAccelByteUser::Create(CompositeId);
@@ -273,12 +275,16 @@ void FOnlineAsyncTaskAccelByteQueryUsersByIds::QueryUsersOnNativePlatform(const 
 	const IOnlineSubsystem* NativeSubsystem = IOnlineSubsystem::GetByPlatform();
 	if (NativeSubsystem == nullptr)
 	{
+		UE_LOG_AB(Warning, TEXT("Unable to retrieve the native online subsystem! Skipping native platform query."));
+		bHasQueriedUserPlatformInfo = true;
 		return;
 	}
 
 	const IOnlineUserPtr NativeUserInterface = NativeSubsystem->GetUserInterface();
 	if (!NativeUserInterface.IsValid())
 	{
+		UE_LOG_AB(Warning, TEXT("The native platform either does not have UserInterface implemented or is not supported! Skipping native platform query."));
+		bHasQueriedUserPlatformInfo = true;
 		return;
 	}
 
@@ -286,4 +292,41 @@ void FOnlineAsyncTaskAccelByteQueryUsersByIds::QueryUsersOnNativePlatform(const 
 	// of these so this can just be a fire and forget
 	NativeUserInterface->QueryUserInfo(LocalUserNum, PlatformUniqueIds);
 	bHasQueriedUserPlatformInfo = true;
+}
+
+void FOnlineAsyncTaskAccelByteQueryUsersByIds::ExtractPlatformDataFromBasicUserInfo(const FBaseUserInfo& BasicInfo, FAccelByteUniqueIdComposite& CompositeId)
+{
+	const IOnlineSubsystem* NativeSubsystem = IOnlineSubsystem::GetByPlatform();
+	if (NativeSubsystem == nullptr)
+	{
+		return;
+	}
+
+	const FName SubsystemType = NativeSubsystem->GetSubsystemName();
+	const FString PlatformTypeStr = Subsystem->GetAccelBytePlatformStringFromAuthType(SubsystemType.ToString());
+	if (PlatformTypeStr.IsEmpty())
+	{
+		return;
+	}
+
+	FString FoundPlatformType;
+	FString FoundPlatformId;
+	for (const TPair<FString, FString> &KV : BasicInfo.PlatformUserIds)
+	{
+		if (!KV.Value.IsEmpty() && KV.Key == PlatformTypeStr)
+		{
+			FoundPlatformId = KV.Value;
+			FoundPlatformType = Subsystem->GetNativeSubsystemNameFromAccelBytePlatformString(KV.Key);
+			break;
+		}
+	}
+
+	// Just return if either are empty, otherwise we may have an ID with no type or vice versa
+	if (FoundPlatformType.IsEmpty() || FoundPlatformId.IsEmpty())
+	{
+		return;
+	}
+
+	CompositeId.PlatformType = FoundPlatformType;
+	CompositeId.PlatformId = FoundPlatformId;
 }

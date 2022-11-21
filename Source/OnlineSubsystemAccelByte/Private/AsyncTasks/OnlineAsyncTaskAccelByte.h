@@ -11,6 +11,7 @@
 #include <OnlineSubsystemAccelByteTypes.h>
 #include <OnlineIdentityInterfaceAccelByte.h>
 #include <OnlineSubsystemAccelByte.h>
+#include <Interfaces/OnlineStatsInterface.h>
 
 #define AB_OSS_ASYNC_TASK_TRACE_BEGIN_VERBOSITY(Verbosity, Format, ...) UE_LOG_AB(Verbosity, TEXT(">>> %s::%s (AsyncTask method) was called. Args: ") Format, *GetTaskName(), *FString(__func__), ##__VA_ARGS__)
 #define AB_OSS_ASYNC_TASK_TRACE_BEGIN(Format, ...) AB_OSS_ASYNC_TASK_TRACE_BEGIN_VERBOSITY(Verbose, Format, ##__VA_ARGS__)

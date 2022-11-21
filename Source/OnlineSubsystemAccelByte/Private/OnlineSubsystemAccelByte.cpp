@@ -16,6 +16,8 @@
 #include "OnlineAgreementInterfaceAccelByte.h"
 #include "OnlineWalletInterfaceAccelByte.h"
 #include "OnlineCloudSaveInterfaceAccelByte.h"
+#include "OnlineTimeInterfaceAccelByte.h"
+#include "OnlineStatisticInterfaceAccelByte.h"
 #include "OnlineSubsystemAccelByteModule.h"
 #include "Api/AccelByteLobbyApi.h"
 #include "Models/AccelByteLobbyModels.h"
@@ -58,6 +60,9 @@ bool FOnlineSubsystemAccelByte::Init()
 	EntitlementsInterface = MakeShared<FOnlineEntitlementsAccelByte, ESPMode::ThreadSafe>(this);
 	StoreV2Interface = MakeShared<FOnlineStoreV2AccelByte, ESPMode::ThreadSafe>(this);
 	PurchaseInterface = MakeShared<FOnlinePurchaseAccelByte, ESPMode::ThreadSafe>(this);
+	TimeInterface = MakeShared<FOnlineTimeAccelByte, ESPMode::ThreadSafe>(this);
+	AnalyticsInterface = MakeShared<FOnlineAnalyticsInterfaceAccelByte, ESPMode::ThreadSafe>(this);
+	StatisticInterface = MakeShared<FOnlineStatisticAccelByte, ESPMode::ThreadSafe>(this);
 	
 	// Create an async task manager and a thread for the manager to process tasks on
 	AsyncTaskManager = MakeShared<FOnlineAsyncTaskManagerAccelByte, ESPMode::ThreadSafe>(this);
@@ -111,6 +116,9 @@ bool FOnlineSubsystemAccelByte::Shutdown()
 	EntitlementsInterface.Reset();
 	StoreV2Interface.Reset();
 	PurchaseInterface.Reset();
+	TimeInterface.Reset();
+	AnalyticsInterface.Reset();
+	
 	return true;
 }
 
@@ -203,6 +211,21 @@ FOnlineWalletAccelBytePtr FOnlineSubsystemAccelByte::GetWalletInterface() const
 FOnlineCloudSaveAccelBytePtr FOnlineSubsystemAccelByte::GetCloudSaveInterface() const
 {
 	return CloudSaveInterface;
+}
+
+IOnlineTimePtr FOnlineSubsystemAccelByte::GetTimeInterface() const
+{
+	return TimeInterface;
+}
+
+FOnlineAnalyticsInterfaceAccelBytePtr FOnlineSubsystemAccelByte::GetAnalyticsInterface() const
+{
+	return AnalyticsInterface;
+}
+
+IOnlineStatsPtr FOnlineSubsystemAccelByte::GetStatsInterface() const
+{
+	return StatisticInterface;
 }
 
 #if (ENGINE_MAJOR_VERSION == 4 && ENGINE_MINOR_VERSION <= 25)

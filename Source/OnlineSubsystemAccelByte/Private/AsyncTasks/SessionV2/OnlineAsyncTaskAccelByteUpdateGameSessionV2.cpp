@@ -101,15 +101,23 @@ void FOnlineAsyncTaskAccelByteUpdateGameSessionV2::Initialize()
 		UpdateRequest.Deployment = Deployment;
 	}
 
+	bool bUpdatePlayerCounts = false;
+
 	int32 MinimumPlayers = 0;
 	if (NewSessionSettings.Get(SETTING_SESSION_MINIMUM_PLAYERS, MinimumPlayers) && MinimumPlayers != GameSessionBackendData->Configuration.MinPlayers)
 	{
-		UpdateRequest.MinPlayers = MinimumPlayers;
+		bUpdatePlayerCounts = true;
 	}
 
 	int32 StoredMaximumPlayers = SessionInterface->GetSessionMaxPlayerCount(SessionName);
 	if (StoredMaximumPlayers != GameSessionBackendData->Configuration.MaxPlayers)
 	{
+		bUpdatePlayerCounts = true;
+	}
+
+	if (bUpdatePlayerCounts)
+	{
+		UpdateRequest.MinPlayers = MinimumPlayers;
 		UpdateRequest.MaxPlayers = StoredMaximumPlayers;
 	}
 
