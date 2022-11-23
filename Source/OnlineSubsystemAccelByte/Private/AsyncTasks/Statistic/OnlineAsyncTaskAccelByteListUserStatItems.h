@@ -57,10 +57,12 @@ private:
 	 */
 	FString ErrorStr;
 
+	TArray<FString> StatCodes;
+
+	TArray<FString> Tags;
+
+	FString AdditionalKey;
+
 	bool bRequestResult;
 	bool bAlwaysRequestToService;
-
-	TArray<FString> StatCodes;
-	TArray<FString> Tags;
-	FString AdditionalKey;
 };

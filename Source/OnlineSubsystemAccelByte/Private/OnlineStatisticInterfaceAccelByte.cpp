@@ -111,8 +111,10 @@ void FOnlineStatisticAccelByte::UpdateStats(const FUniqueNetIdRef LocalUserId, c
 		});
 }
 
+#if !UE_BUILD_SHIPPING
 void FOnlineStatisticAccelByte::ResetStats(const FUniqueNetIdRef StatsUserId)
 {
 	UE_LOG_ONLINE_STATS(Display, TEXT("FOnlineStatisticAccelByte::ResetStats not implemented")); 
 }
+#endif
 

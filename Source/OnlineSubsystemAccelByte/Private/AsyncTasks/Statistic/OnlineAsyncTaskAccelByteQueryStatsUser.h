@@ -30,7 +30,6 @@ private:
 
 	THandler<TArray<FAccelByteModelsStatItemValueResponse>> OnBulkFetchStatItemsValueSuccess;
 	void HandleAsyncTaskError(int32 Code, FString const& ErrMsg);
-	FOnlineStatsQueryUserStatsComplete Delegate;	
 	FErrorHandler OnError;	
 	FOnlineError OnlineError;
 	TSharedPtr<const FOnlineStatsUserStats> OnlineUserStatsPair;
@@ -41,6 +40,7 @@ private:
 	TMap<FString, FVariantData> Stats;
 	TArray<FString> StatCodes{};
 	TArray<FString> StatNames{};
-	int32 Count; 
+	FOnlineStatsQueryUserStatsComplete Delegate;
+	int32 Count;
 
 };
