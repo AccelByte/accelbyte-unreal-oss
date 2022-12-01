@@ -27,6 +27,7 @@
 #include "GameServerApi/AccelByteServerOauth2Api.h"
 #include "AsyncTasks/Server/OnlineAsyncTaskAccelByteLoginServer.h"
 #include "OnlineSubsystemUtils.h"
+#include "AsyncTasks/Chat/OnlineAsyncTaskAccelByteConnectChat.h"
 
 /** Begin FOnlineIdentityAccelByte */
 FOnlineIdentityAccelByte::FOnlineIdentityAccelByte(FOnlineSubsystemAccelByte* InSubsystem)

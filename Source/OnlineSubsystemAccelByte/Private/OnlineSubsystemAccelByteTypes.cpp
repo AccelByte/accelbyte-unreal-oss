@@ -706,4 +706,14 @@ void FUserOnlineAccountAccelByte::SetConnectedToLobby(bool bIsConnected)
 	bIsConnectedToLobby = bIsConnected;
 }
 
+bool FUserOnlineAccountAccelByte::IsConnectedToChat() const
+{
+	return bIsConnectedToChat;
+}
+
+void FUserOnlineAccountAccelByte::SetConnectedToChat(bool bIsConnected)
+{
+	bIsConnectedToChat = bIsConnected;
+}
+
 #pragma endregion // FUserOnlineAccountAccelByte

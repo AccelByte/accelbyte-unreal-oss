@@ -49,6 +49,19 @@ enum class EAccelBytePartyType : uint32
 };
 
 /**
+ * @brief Enum representing the types of chat room
+ */
+UENUM(BlueprintType)
+enum class EAccelByteChatRoomType : uint8
+{
+	NORMAL,
+	PERSONAL,
+	PARTY_V2, // Party from session service
+	PARTY_V1, // Party form lobby service
+	SESSION_V2,
+};
+
+/**
  * Simple structure to represent the JSON encoded data for an FUniqueNetIdAccelByte.
  */
 USTRUCT()
@@ -527,6 +540,20 @@ public:
 	 * @param bIsConnected connected status, true for connected and false for not connected
 	 */
 	void SetConnectedToLobby(bool bIsConnected);
+
+	/**
+	 * @brief A flag that indicates whether the user is connected to AccelByte Chat or not
+	 *
+	 * @return bool Return connected status, true for connected and false for not connected
+	 */
+	bool IsConnectedToChat() const;
+
+	/**
+	 * @brief Set user's connected status to AccelByte Chat
+	 *
+	 * @param bIsConnected connected status, true for connected and false for not connected
+	 */
+	void SetConnectedToChat(bool bIsConnected);
 	//~ End AccelByte-specific implementation
 
 private:
@@ -546,6 +573,8 @@ private:
 	TMap<FString, FString> UserAttributes;
 	
 	bool bIsConnectedToLobby{false};
+
+	bool bIsConnectedToChat{false};
 };
 
 // 4.27 feature (https://docs.unrealengine.com/4.27/en-US/WhatsNew/Builds/ReleaseNotes/4_27/)

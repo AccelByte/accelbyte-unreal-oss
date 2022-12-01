@@ -101,6 +101,12 @@ void FOnlineAsyncTaskAccelByteCreateGameSessionV2::Initialize()
 		CreateRequest.MatchPool = MatchPool;
 	}
 
+	bool TextChat{};
+	if (NewSessionSettings.Get(SETTING_SESSION_TEXTCHAT, TextChat))
+	{
+		CreateRequest.TextChat = TextChat;
+	}
+
 	CreateRequest.Attributes.JsonObject = SessionInterface->ConvertSessionSettingsToJsonObject(NewSessionSettings);
 
 	const THandler<FAccelByteModelsV2GameSession> OnCreateGameSessionSuccessDelegate = THandler<FAccelByteModelsV2GameSession>::CreateRaw(this, &FOnlineAsyncTaskAccelByteCreateGameSessionV2::OnCreateGameSessionSuccess);

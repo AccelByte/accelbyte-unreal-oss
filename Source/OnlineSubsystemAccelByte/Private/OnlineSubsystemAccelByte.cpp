@@ -32,6 +32,7 @@
 #include "ExecTests/ExecTestBase.h"
 #endif
 #include "OnlineAgreementInterfaceAccelByte.h"
+#include "OnlineChatInterfaceAccelByte.h"
 
 #define LOCTEXT_NAMESPACE "FOnlineSubsystemAccelByte"
 #define PARTY_SESSION_TYPE "party"
@@ -63,6 +64,7 @@ bool FOnlineSubsystemAccelByte::Init()
 	TimeInterface = MakeShared<FOnlineTimeAccelByte, ESPMode::ThreadSafe>(this);
 	AnalyticsInterface = MakeShared<FOnlineAnalyticsInterfaceAccelByte, ESPMode::ThreadSafe>(this);
 	StatisticInterface = MakeShared<FOnlineStatisticAccelByte, ESPMode::ThreadSafe>(this);
+	ChatInterface = MakeShared<FOnlineChatAccelByte, ESPMode::ThreadSafe>(this);
 	
 	// Create an async task manager and a thread for the manager to process tasks on
 	AsyncTaskManager = MakeShared<FOnlineAsyncTaskManagerAccelByte, ESPMode::ThreadSafe>(this);
@@ -76,6 +78,8 @@ bool FOnlineSubsystemAccelByte::Init()
 	}
 
 	GConfig->GetBool(TEXT("OnlineSubsystemAccelByte"), TEXT("bAutoLobbyConnectAfterLoginSuccess"), bIsAutoLobbyConnectAfterLoginSuccess, GEngineIni);
+	GConfig->GetBool(TEXT("OnlineSubsystemAccelByte"), TEXT("bAutoChatConnectAfterLoginSuccess"), bIsAutoChatConnectAfterLoginSuccess, GEngineIni);
+
 	GConfig->GetBool(TEXT("OnlineSubsystemAccelByte"), TEXT("bMultipleLocalUsersEnabled"), bIsMultipleLocalUsersEnabled, GEngineIni);
 	
 	return true;
@@ -218,6 +222,11 @@ IOnlineTimePtr FOnlineSubsystemAccelByte::GetTimeInterface() const
 	return TimeInterface;
 }
 
+IOnlineChatPtr FOnlineSubsystemAccelByte::GetChatInterface() const
+{
+	return ChatInterface;
+}
+
 FOnlineAnalyticsInterfaceAccelBytePtr FOnlineSubsystemAccelByte::GetAnalyticsInterface() const
 {
 	return AnalyticsInterface;
@@ -243,6 +252,11 @@ IOnlineTournamentPtr FOnlineSubsystemAccelByte::GetTournamentInterface() const
 bool FOnlineSubsystemAccelByte::IsAutoConnectLobby() const
 {
 	return bIsAutoLobbyConnectAfterLoginSuccess;
+}
+
+bool FOnlineSubsystemAccelByte::IsAutoConnectChat() const
+{
+	return bIsAutoChatConnectAfterLoginSuccess;
 }
 
 bool FOnlineSubsystemAccelByte::IsMultipleLocalUsersEnabled() const
@@ -464,6 +478,11 @@ void FOnlineSubsystemAccelByte::OnLoginCallback(int32 LocalUserNum, bool bWasSuc
 	if (bIsAutoLobbyConnectAfterLoginSuccess && IdentityInterface.IsValid())
 	{
 		IdentityInterface->ConnectAccelByteLobby(LocalUserNum);
+	}
+
+	if(bIsAutoChatConnectAfterLoginSuccess && ChatInterface.IsValid())
+	{
+		ChatInterface->Connect(LocalUserNum);
 	}
 }
 

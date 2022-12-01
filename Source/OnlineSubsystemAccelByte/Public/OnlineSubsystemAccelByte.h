@@ -12,6 +12,7 @@
 #include "OnlinePurchaseInterfaceAccelByte.h"
 #include "OnlineStoreInterfaceV2AccelByte.h"
 #include "OnlineAnalyticsInterfaceAccelByte.h"
+#include "OnlineChatInterfaceAccelByte.h"
 #include "Core/AccelByteApiClient.h"
 #include "Models/AccelByteUserModels.h"
 
@@ -46,6 +47,7 @@ class FOnlineCloudSaveAccelByte;
 class FOnlineTimeAccelByte;
 class FOnlineAnalyticsInterfaceAccelByte;
 class FOnlineStatisticAccelByte;
+class FOnlineChatAccelByte;
 class FExecTestBase;
 
 struct FAccelByteModelsNotificationMessage;
@@ -114,6 +116,9 @@ typedef TSharedPtr<FOnlineAnalyticsInterfaceAccelByte, ESPMode::ThreadSafe> FOnl
 /** Shared pointer to the AccelByte Statistic */
 typedef TSharedPtr<FOnlineStatisticAccelByte, ESPMode::ThreadSafe> FOnlineStatisticAccelBytePtr;
 
+/** Shared pointer to the AccelByte Statistic */
+typedef TSharedPtr<FOnlineChatAccelByte, ESPMode::ThreadSafe> FOnlineChatAccelBytePtr;
+
 class ONLINESUBSYSTEMACCELBYTE_API FOnlineSubsystemAccelByte final : public FOnlineSubsystemImpl
 {
 public:
@@ -142,6 +147,8 @@ public:
 	virtual IOnlineStatsPtr GetStatsInterface() const override;
 	virtual IOnlineTimePtr GetTimeInterface() const override;
 	virtual FOnlineAnalyticsInterfaceAccelBytePtr GetAnalyticsInterface() const;
+	virtual IOnlineChatPtr GetChatInterface() const override;
+
 
 #if (ENGINE_MAJOR_VERSION == 4 && ENGINE_MINOR_VERSION <= 25)
 	IOnlineTurnBasedPtr GetTurnBasedInterface() const override;
@@ -320,11 +327,14 @@ PACKAGE_SCOPE:
 	FString GetSimplifiedNativePlatformName(const FString& PlatformName);
 
 	bool IsAutoConnectLobby() const;
+
+	bool IsAutoConnectChat() const;
 	
 	bool IsMultipleLocalUsersEnabled() const;
 
 private:
 	bool bIsAutoLobbyConnectAfterLoginSuccess = false;
+	bool bIsAutoChatConnectAfterLoginSuccess = false;
 	bool bIsMultipleLocalUsersEnabled = false;
 	
 	/** Used to store the currently logged in account's LocalUserNum value */
@@ -386,6 +396,9 @@ private:
 
 	/** Shared instance of our statistic interface implementation */
 	FOnlineStatisticAccelBytePtr StatisticInterface;
+
+	/** Shared instance of our statistic interface implementation */
+	FOnlineChatAccelBytePtr ChatInterface;
 
 	/** Thread spawned to run the FOnlineAsyncTaskManagerAccelBytePtr instance */
 	TUniquePtr<FRunnableThread> AsyncTaskManagerThread;

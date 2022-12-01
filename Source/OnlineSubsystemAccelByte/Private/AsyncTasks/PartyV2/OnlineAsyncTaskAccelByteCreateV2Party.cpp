@@ -153,6 +153,12 @@ void FOnlineAsyncTaskAccelByteCreateV2Party::OnGetMyPartiesSuccess(const FAccelB
 		CreatePartyRequest.InviteTimeout = InviteTimeout;
 	}
 
+	bool TextChat{};
+	if (NewSessionSettings.Get(SETTING_SESSION_TEXTCHAT, TextChat))
+	{
+		CreatePartyRequest.TextChat = TextChat;
+	}
+
 	// Add self to members array
 	FAccelByteModelsV2SessionUser SelfMember;
 	SelfMember.ID = UserId->GetAccelByteId();

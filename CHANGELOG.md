@@ -2,6 +2,33 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.7.3](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.7.3%0D0.7.2) (2022-12-01)
+
+
+### Features
+
+* add chat interface and connect chat on login ([ac170dc](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/ac170dc7ec1831869ff1c18039c59b554537258a))
+* add GetFromSubsystem and GetFromWorld in FOnlineChatAccelByte ([18659a7](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/18659a7f4545db9fe2b71563bd0237ff86811e90))
+* add TextChat option on session ([1362a54](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/1362a548f7d26323c573cfc903bed4bb9510af80))
+* chat interface functions and events ([1c337dc](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/1c337dc97183eb4afe018e8d4220914e5af4710b))
+* load last message for private message ([8699e1e](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/8699e1ee78719ddb8672be859946a3d652750c3f))
+
+
+### Bug Fixes
+
+* add query room data after user successfully join a chat room ([7304822](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/730482274a18f561328fc04939ac7e975d3cad73))
+* chat interface include ([01acb89](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/01acb89acedc4766bbad6baa9e89263c3454d7be))
+* **chat:** fix fstring initialization compile failure with ue5 ([1e2e888](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/1e2e88897c3d81e008b50eeaa9b060adbc169d2d))
+* implement GetChatInterface override method in OnlineSubsystemAccelByte ([4073e57](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/4073e572c430f54291bf3b23be8352167b18b6c7))
+* room cache race condition ([b6b4017](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/b6b4017c3f094c4003f338bb58aaf91a951ef398))
+
+
+### Refactors
+
+* Add UniqueNetId param in FOnlineChatAccelByte::RegisterChatDelegates and change accessablility it to PACKAGE_SCOPE ([a03c038](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/a03c0381ff08ccc21a4656e3989b21ec1bda9906))
+* move chat connect to chat interface ([b4bca6e](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/b4bca6e19ff3947b285f72efed20f7ed5ed945b0))
+* rename ConnectAccelByteChat to Connect ([8f8c3b5](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/8f8c3b5bec52698077072d734cd8949f878d7435))
+
 ### [0.7.2](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.7.2%0D0.7.1) (2022-11-23)
 
 ### [0.7.1](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.7.1%0D0.7.0) (2022-11-21)
