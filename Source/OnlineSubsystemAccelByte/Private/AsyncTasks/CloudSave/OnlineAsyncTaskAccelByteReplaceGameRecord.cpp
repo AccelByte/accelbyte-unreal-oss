@@ -50,7 +50,7 @@ void FOnlineAsyncTaskAccelByteReplaceGameRecord::Initialize()
 		return;
 	}
 
-	FServerApiClientPtr ServerApiClient = FMultiRegistry::GetServerApiClient(UserId.Get()->GetAccelByteId());
+	FServerApiClientPtr ServerApiClient = FMultiRegistry::GetServerApiClient();
 	ServerApiClient->ServerCloudSave.ReplaceGameRecord(Key, GameRecordObj, OnReplaceGameRecordSuccessDelegate, OnReplaceGameRecordErrorDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

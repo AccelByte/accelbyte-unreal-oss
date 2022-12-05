@@ -1475,10 +1475,10 @@ uint32 FOnlineSessionV1AccelByte::FinalizeLANSearch()
 
 void FOnlineSessionV1AccelByte::AppendSessionToPacket(FNboSerializeToBufferAccelByte& Packet, FOnlineSession* Session)
 {
-	Packet << *StaticCastSharedPtr<const FUniqueNetIdAccelByteUser>(Session->OwningUserId)
-		<< Session->OwningUserName
-		<< Session->NumOpenPrivateConnections
-		<< Session->NumOpenPublicConnections;
+	Packet << *StaticCastSharedPtr<const FUniqueNetIdAccelByteUser>(Session->OwningUserId);
+	((FNboSerializeToBuffer&)Packet) << Session->OwningUserName;
+	((FNboSerializeToBuffer&)Packet) << Session->NumOpenPrivateConnections;
+	((FNboSerializeToBuffer&)Packet) << Session->NumOpenPublicConnections;
 	SetPortFromNetDriver(*AccelByteSubsystem, Session->SessionInfo);
 	Packet << *StaticCastSharedPtr<FOnlineSessionInfoAccelByteV1>(Session->SessionInfo);
 	AppendSessionSettingsToPacket(Packet, &Session->SessionSettings);
@@ -1487,7 +1487,7 @@ void FOnlineSessionV1AccelByte::AppendSessionToPacket(FNboSerializeToBufferAccel
 void FOnlineSessionV1AccelByte::AppendSessionSettingsToPacket(FNboSerializeToBufferAccelByte& Packet,
 	FOnlineSessionSettings* SessionSettings)
 {
-	Packet << SessionSettings->NumPublicConnections
+	((FNboSerializeToBuffer&)Packet) << SessionSettings->NumPublicConnections
 		<< SessionSettings->NumPrivateConnections
 		<< static_cast<uint8>(SessionSettings->bShouldAdvertise)
 		<< static_cast<uint8>(SessionSettings->bIsLANMatch)
@@ -1511,14 +1511,18 @@ void FOnlineSessionV1AccelByte::AppendSessionSettingsToPacket(FNboSerializeToBuf
 		}
 	}
 
-	Packet << Num;
+	((FNboSerializeToBuffer&)Packet) << Num;
 	for (FSessionSettings::TConstIterator It(SessionSettings->Settings); It; ++It)
 	{
 		const auto& Setting = It.Value();
 		if (Setting.AdvertisementType >= EOnlineDataAdvertisementType::ViaOnlineService)
 		{
-			Packet << It.Key();
-			Packet << Setting;
+			((FNboSerializeToBuffer&)Packet) << It.Key();
+#if !(ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 1)
+			((FNboSerializeToBuffer&)Packet) << Setting;
+#else
+			((FNboSerializeToBufferOSS&)Packet) << Setting;
+#endif
 		}
 	}
 }

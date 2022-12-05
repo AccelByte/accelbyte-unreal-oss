@@ -39,7 +39,7 @@ void FOnlineAsyncTaskAccelByteReplaceUserRecord::Initialize()
 			return;
 		}
 
-		FServerApiClientPtr ServerApiClient = FMultiRegistry::GetServerApiClient(UserId.Get()->GetAccelByteId());
+		FServerApiClientPtr ServerApiClient = FMultiRegistry::GetServerApiClient();
 		ServerApiClient->ServerCloudSave.ReplaceUserRecord(Key, ESetByMetadataRecord::SERVER, IsPublicRecord, UserId.Get()->GetAccelByteId(), UserRecordObj, OnReplaceUserRecordSuccessDelegate, OnReplaceUserRecordErrorDelegate);
 	}
 	else

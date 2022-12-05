@@ -6,44 +6,70 @@
 
 #include "CoreMinimal.h"
 #include "OnlineSubsystemAccelByteTypes.h"
+#if !(ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 1)
 #include "NboSerializer.h"
+#else
+#include "Online/NboSerializer.h"
+#include "NboSerializerOSS.h"
+#endif
 
-class FNboSerializeToBufferAccelByte : public FNboSerializeToBuffer
+class FNboSerializeToBufferAccelByte
+#if !(ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 1) 
+	: public FNboSerializeToBuffer
+#else
+	: public FNboSerializeToBufferOSS
+#endif
 {
 public:
-	FNboSerializeToBufferAccelByte() : FNboSerializeToBuffer(512) 
+	FNboSerializeToBufferAccelByte() 
+		: FNboSerializeToBufferAccelByte(512)
 	{
 	}
 	
-	FNboSerializeToBufferAccelByte(uint32 Size) : FNboSerializeToBuffer(Size) 
+	FNboSerializeToBufferAccelByte(uint32 Size) 
+#if !(ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 1) 
+		: FNboSerializeToBuffer(Size) 
+#else
+		: FNboSerializeToBufferOSS(Size)
+#endif
 	{
 	}
 
 	friend inline FNboSerializeToBufferAccelByte& operator<<(FNboSerializeToBufferAccelByte& Ar, const FOnlineSessionInfoAccelByteV1& SessionInfo)
 	{
 		check(SessionInfo.GetHostAddr().IsValid());
-		Ar << *SessionInfo.GetSessionId().ToString();
-		Ar << *SessionInfo.GetHostAddr();
+		((FNboSerializeToBuffer&)Ar) << *SessionInfo.GetSessionId().ToString();
+		((FNboSerializeToBuffer&)Ar) << *SessionInfo.GetHostAddr();
 		return Ar;
 	}
 
 	friend inline FNboSerializeToBufferAccelByte& operator<<(FNboSerializeToBufferAccelByte& Ar, const FUniqueNetIdAccelByteUser& UniqueId)
 	{
-		Ar << UniqueId.UniqueNetIdStr;
+		((FNboSerializeToBuffer&)Ar) << UniqueId.UniqueNetIdStr;
 		return Ar;
 	}
 
 	friend inline FNboSerializeToBufferAccelByte& operator<<(FNboSerializeToBufferAccelByte& Ar, const FUniqueNetIdAccelByteResource& UniqueId)
 	{
-		Ar << UniqueId.UniqueNetIdStr;
+		((FNboSerializeToBuffer&)Ar) << UniqueId.UniqueNetIdStr;
 		return Ar;
 	}
 };
 
-class FNboSerializeFromBufferAccelByte : public FNboSerializeFromBuffer
+class FNboSerializeFromBufferAccelByte 
+#if !(ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 1) 
+	: public FNboSerializeFromBuffer
+#else
+	: public FNboSerializeFromBufferOSS
+#endif
 {
 public:
-	FNboSerializeFromBufferAccelByte(uint8* Packet,int32 Length) : FNboSerializeFromBuffer(Packet,Length) 
+	FNboSerializeFromBufferAccelByte(uint8* Packet,int32 Length) 
+#if !(ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 1) 
+		: FNboSerializeFromBuffer(Packet, Length)
+#else
+		: FNboSerializeFromBufferOSS(Packet, Length)
+#endif
 	{
 	}
 	

@@ -18,7 +18,6 @@
 #include "Runtime/Launch/Resources/Version.h"
 #include "Models/AccelByteSessionModels.h"
 #include "Models/AccelByteMatchmakingModels.h"
-#include "Models/AccelByteMatchmakingModels.h"
 #include "Models/AccelByteDSHubModels.h"
 
 class FInternetAddr;
@@ -116,6 +115,16 @@ PACKAGE_SCOPE:
 
 	/** Get the value for the "is latest update a DS ready update" flag */
 	bool GetDSReadyUpdateReceived() const;
+
+	/**
+	 * Attempt to find a member of this session by their ID
+	 */
+	bool FindMember(const FUniqueNetId& MemberId, FAccelByteModelsV2SessionUser*& OutMember);
+
+	/**
+	 * Check if this session contains a member with the provided ID at all
+	 */
+	bool ContainsMember(const FUniqueNetId& MemberId);
 
 private:
 	TSharedPtr<FAccelByteModelsV2GameSession> StaticCastAsGameSession(const TSharedPtr<FAccelByteModelsV2BaseSession>& InBaseSession) const;
@@ -310,6 +319,7 @@ DECLARE_DELEGATE_OneParam(FOnRefreshSessionComplete, bool /*bWasSuccessful*/);
 DECLARE_DELEGATE_OneParam(FOnRejectSessionInviteComplete, bool /*bWasSuccessful*/);
 DECLARE_DELEGATE_OneParam(FOnAcceptBackfillProposalComplete, bool /*bWasSuccessful*/);
 DECLARE_DELEGATE_OneParam(FOnRejectBackfillProposalComplete, bool /*bWasSuccessful*/);
+DECLARE_DELEGATE_OneParam(FOnSessionMemberStatusUpdateComplete, bool /*bWasSuccessful*/);
 
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnServerReceivedSession, FName /*SessionName*/);
 typedef FOnServerReceivedSession::FDelegate FOnServerReceivedSessionDelegate;
@@ -343,6 +353,9 @@ typedef FOnBackfillProposalReceived::FDelegate FOnBackfillProposalReceivedDelega
 
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnSessionInvitesChanged, FName /*SessionName*/);
 typedef FOnSessionInvitesChanged::FDelegate FOnSessionInvitesChangedDelegate;
+
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnKickedFromSession, FName /*SessionName*/);
+typedef FOnKickedFromSession::FDelegate FOnKickedFromSessionDelegate;
 //~ End custom delegates
 
 class ONLINESUBSYSTEMACCELBYTE_API FOnlineSessionV2AccelByte : public IOnlineSession, public TSharedFromThis<FOnlineSessionV2AccelByte, ESPMode::ThreadSafe>
@@ -414,6 +427,9 @@ public:
 	void UnregisterLocalPlayer(const FUniqueNetId& PlayerId, FName SessionName, const FOnUnregisterLocalPlayerCompleteDelegate& Delegate) override;
 	int32 GetNumSessions() override;
 	void DumpSessionState() override;
+#if !(ENGINE_MAJOR_VERSION == 4 && ENGINE_MINOR_VERSION < 27)
+	void RemovePlayerFromSession(int32 LocalUserNum, FName SessionName, const FUniqueNetId& TargetPlayerId) override;
+#endif
 	//~ End IOnlineSession overrides
 
 	/**
@@ -586,9 +602,16 @@ public:
 	bool AcceptBackfillProposal(const FName& SessionName, const FAccelByteModelsV2MatchmakingBackfillProposalNotif& Proposal, bool bStopBackfilling, const FOnAcceptBackfillProposalComplete& Delegate);
 
 	/**
-	 * Accept a backfill proposal from matchmaking. Which will then invite the players backfilled to your session.
+	 * Reject a backfill proposal from received from matchmaker. Players included in the proposal will not be added to the session.
 	 */
 	bool RejectBackfillProposal(const FName& SessionName, const FAccelByteModelsV2MatchmakingBackfillProposalNotif& Proposal, bool bStopBackfilling, const FOnRejectBackfillProposalComplete& Delegate);
+
+	/**
+	 * Update the status of a member in a session. Intended to be used by the server to mark a player as connected or left.
+	 * 
+	 * Requires permission 'ADMIN:NAMESPACE:{namespace}:SESSION:GAME' to be set with action 'UPDATE'.
+	 */
+	bool UpdateMemberStatus(FName SessionName, const FUniqueNetId& PlayerId, const EAccelByteV2SessionMemberStatus& Status, const FOnSessionMemberStatusUpdateComplete& Delegate=FOnSessionMemberStatusUpdateComplete());
 
 	/**
 	 * Delegate fired when we have retrieved information on the session that our server is claimed by on the backend.
@@ -660,6 +683,12 @@ public:
 	 * Delegate fired when a session's invited members list changes.
 	 */
 	DEFINE_ONLINE_DELEGATE_ONE_PARAM(OnSessionInvitesChanged, FName /*SessionName*/);
+
+	/**
+	 * Delegate fired when a local player has been kicked from a session. Fired before session is destroyed in case there
+	 * is a need to do any extra clean up.
+	 */
+	DEFINE_ONLINE_DELEGATE_ONE_PARAM(OnKickedFromSession, FName /*SessionName*/);
 
 #if (ENGINE_MAJOR_VERSION == 4 && ENGINE_MINOR_VERSION <= 25)
 	/**
@@ -946,6 +975,7 @@ private:
 	void OnFindGameSessionForInviteComplete(int32 LocalUserNum, bool bWasSuccessful, const FOnlineSessionSearchResult& Result, FAccelByteModelsV2GameSessionUserInvitedEvent InviteEvent);
 	void OnGameSessionMembersChangedNotification(FAccelByteModelsV2GameSessionMembersChangedEvent MembersChangedEvent, int32 LocalUserNum);
 	void OnGameSessionUpdatedNotification(FAccelByteModelsV2GameSession UpdatedGameSession, int32 LocalUserNum);
+	void OnKickedFromGameSessionNotification(FAccelByteModelsV2GameSessionUserKickedEvent KickedEvent, int32 LocalUserNum);
 	void OnDsStatusChangedNotification(FAccelByteModelsV2DSStatusChangedNotif DsStatusChangeEvent, int32 LocalUserNum);
 	//~ End Game Session Notification Handlers
 

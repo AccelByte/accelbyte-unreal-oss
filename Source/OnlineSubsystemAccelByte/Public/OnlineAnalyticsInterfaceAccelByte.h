@@ -12,15 +12,15 @@
 /**
  * Implementation of Analytics service from AccelByte services
  */
-class ONLINESUBSYSTEMACCELBYTE_API FOnlineAnalyticsInterfaceAccelByte : public TSharedFromThis<FOnlineAnalyticsInterfaceAccelByte, ESPMode::ThreadSafe>
+class ONLINESUBSYSTEMACCELBYTE_API FOnlineAnalyticsAccelByte : public TSharedFromThis<FOnlineAnalyticsAccelByte, ESPMode::ThreadSafe>
 {
 PACKAGE_SCOPE:
-	FOnlineAnalyticsInterfaceAccelByte(FOnlineSubsystemAccelByte* InSubsystem)
+	FOnlineAnalyticsAccelByte(FOnlineSubsystemAccelByte* InSubsystem)
 		: AccelByteSubsystem(InSubsystem)
 	{}
 
 public:
-	virtual ~FOnlineAnalyticsInterfaceAccelByte() {};
+	virtual ~FOnlineAnalyticsAccelByte() {};
 
 	/**
 	 * Convenience method to get an instance of this interface from the subsystem associated with the world passed in.
@@ -29,7 +29,7 @@ public:
 	 * @param OutInterfaceInstance Instance of the interface that we got from the subsystem, or nullptr if not found
 	 * @returns boolean that is true if we could get an instance of the interface, false otherwise
 	 */
-	static bool GetFromWorld(const UWorld* World, TSharedPtr<FOnlineAnalyticsInterfaceAccelByte, ESPMode::ThreadSafe>& OutInterfaceInstance);
+	static bool GetFromWorld(const UWorld* World, TSharedPtr<FOnlineAnalyticsAccelByte, ESPMode::ThreadSafe>& OutInterfaceInstance);
 
 	/**
 	 * Convenience method to get an instance of this interface from the subsystem passed in.
@@ -38,7 +38,7 @@ public:
 	 * @param OutInterfaceInstance Instance of the interface that we got from the subsystem, or nullptr if not found
 	 * @returns boolean that is true if we could get an instance of the interface, false otherwise
 	 */
-	static bool GetFromSubsystem(const IOnlineSubsystem* Subsystem, TSharedPtr<FOnlineAnalyticsInterfaceAccelByte, ESPMode::ThreadSafe>& OutInterfaceInstance);
+	static bool GetFromSubsystem(const IOnlineSubsystem* Subsystem, TSharedPtr<FOnlineAnalyticsAccelByte, ESPMode::ThreadSafe>& OutInterfaceInstance);
 
 	/**
 	 * Set GameTelemetry or ServerGameTelemetry send event interval from DefaultEngine.ini
@@ -72,7 +72,7 @@ public:
 
 protected:
 	/** Hidden default constructor, the constructor that takes in a subsystem instance should be used instead. */
-	FOnlineAnalyticsInterfaceAccelByte()
+	FOnlineAnalyticsAccelByte()
 		: AccelByteSubsystem(nullptr)
 	{}
 	

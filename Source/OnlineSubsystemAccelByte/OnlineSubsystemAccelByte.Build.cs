@@ -47,6 +47,12 @@ public class OnlineSubsystemAccelByte : ModuleRules
 			"AccelByteNetworkUtilities",
 			"HTTP"
 		});
+		
+#if UE_5_1_OR_LATER
+		PrivateDependencyModuleNames.AddRange(new string[] {
+			"OnlineBase"
+		});
+#endif
 
 		bool bEnableV2Sessions = false;
 		GetBoolFromEngineConfig("OnlineSubsystemAccelByte", "bEnableV2Sessions", out bEnableV2Sessions);

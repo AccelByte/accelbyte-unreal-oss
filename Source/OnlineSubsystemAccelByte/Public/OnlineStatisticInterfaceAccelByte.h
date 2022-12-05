@@ -38,6 +38,7 @@ public:
 	/* Get the list users stat items */
 	// TODO : make this method as implementation from GetStats
 	bool GetListUserStatItems(int32 LocalUserNum, TArray<TSharedRef<FAccelByteModelsFetchUser>>& OutUsers);
+	TSharedPtr<const FOnlineStatsUserStats>  GetAllListUserStatItemFromCache(const FUniqueNetIdRef StatsUserId) const;
 
 	void QueryStats(const FUniqueNetIdRef LocalUserId, const FUniqueNetIdRef StatsUser, const TArray<FString>& StatNames, const FOnlineStatsQueryUserStatsComplete& Delegate);
 
@@ -62,4 +63,5 @@ protected:
 
 private : 
 	TSharedPtr<const FOnlineStatsUserStats> UserStats;
+	TArray<TSharedRef<const FOnlineStatsUserStats>> UsersStats;
 };

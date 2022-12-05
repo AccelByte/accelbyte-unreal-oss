@@ -88,6 +88,17 @@ TSharedPtr<FOnlineUser> FOnlineUserAccelByte::GetUserInfo(int32 LocalUserNum, co
 		return (*UserInfo);
 	}
 
+	// As a fallback, attempt to find a matching user in the cache with the same AccelByte Id
+	for (const TPair<TSharedRef<const FUniqueNetId>, TSharedRef<FUserOnlineAccountAccelByte>>& KeyValue : IDToUserInfoMap)
+	{
+		const TSharedRef<const FUniqueNetIdAccelByteUser> UserAccelByteID = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(KeyValue.Key);
+		if (UserAccelByteID->GetAccelByteId() == AccelByteID->GetAccelByteId())
+		{
+			AB_OSS_INTERFACE_TRACE_END(TEXT("Found user info by comparing AccelByteId for user with ID of '%s'"), *UserId.ToDebugString());
+			return KeyValue.Value;
+		}
+	}
+
 	AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to find user info for user with ID of '%s'"), *UserId.ToDebugString());
 	return nullptr;
 }

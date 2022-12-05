@@ -8,6 +8,7 @@
 #include "OnlineSubsystemAccelByteInternalHelpers.h"
 #include "AsyncTasks/Statistic/OnlineAsyncTaskAccelByteListUserStatItems.h"
 #include "AsyncTasks/Statistic/OnlineAsyncTaskAccelByteQueryStatsUser.h"
+#include "AsyncTasks/Statistic/OnlineAsyncTaskAccelByteQueryStatsUsers.h"
 #include "OnlineSubsystemUtils.h"
  
 
@@ -89,11 +90,15 @@ void FOnlineStatisticAccelByte::QueryStats(const FUniqueNetIdRef LocalUserId, co
 void FOnlineStatisticAccelByte::QueryStats(const FUniqueNetIdRef LocalUserId, const TArray<FUniqueNetIdRef>& StatUsers, const TArray<FString>& StatNames, const FOnlineStatsQueryUsersStatsComplete& Delegate)
 {
 	UE_LOG_ONLINE_STATS(Display, TEXT("FOnlineStatisticAccelByte::QueryStats"));
-	const TArray<TSharedRef<const FOnlineStatsUserStats>> UsersStats;
-	AccelByteSubsystem->ExecuteNextTick([UsersStats, Delegate]()
+ 
+	auto OnComplete = FOnlineStatsQueryUsersStatsComplete::CreateLambda([&]
+	(const FOnlineError& Error, const  TArray<TSharedRef<const FOnlineStatsUserStats>>& Result)
 		{
-			Delegate.ExecuteIfBound(FOnlineError(FString(TEXT("RevokeAuthToken not implemented"))), UsersStats);
+			UsersStats = Result;
+			Delegate.ExecuteIfBound(Error, Result);
 		});
+	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteQueryStatsUsers>
+		(AccelByteSubsystem, LocalUserId, StatUsers, StatNames, OnComplete);
 }
 
 TSharedPtr<const FOnlineStatsUserStats> FOnlineStatisticAccelByte::GetStats(const FUniqueNetIdRef StatsUserId) const
@@ -109,6 +114,21 @@ void FOnlineStatisticAccelByte::UpdateStats(const FUniqueNetIdRef LocalUserId, c
 		{
 			Delegate.ExecuteIfBound(FOnlineError(FString(TEXT("RevokeAuthToken not implemented"))));
 		});
+}
+
+TSharedPtr<const FOnlineStatsUserStats> FOnlineStatisticAccelByte::GetAllListUserStatItemFromCache(const FUniqueNetIdRef StatsUserId) const
+{
+	UE_LOG_ONLINE_STATS(Display, TEXT("FOnlineStatisticAccelByte::GetAllListUserStatItemFromCache"));
+	if (!UserStats.IsValid())
+	{
+		return nullptr;
+	}
+	TSharedPtr<const FOnlineStatsUserStats> Value = nullptr;
+	if (UserStats->Account == StatsUserId)
+	{
+		Value = UserStats;
+	}
+	return Value;
 }
 
 #if !UE_BUILD_SHIPPING

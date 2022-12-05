@@ -2,6 +2,31 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [0.8.0](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.8.0%0D0.7.3) (2022-12-05)
+
+
+### ⚠ BREAKING CHANGES
+
+* some methods are removed from the OSS Interfaces in Unreal Engine 5.1
+
+### Features
+
+* Bulk query specified stats from specified users ([5eeffe2](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/5eeffe239f618a677653d428fc267dd9c1cfc984))
+* Get cached stats from a specified user ([bce2fca](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/bce2fca364acc3f171bdcb791c67b7aba4caf035))
+
+
+### Bug Fixes
+
+* fix analytics renaming post merge ([0282205](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/02822056d4a19d2fa307723a0b0baa8ce4d65ead))
+
+
+### Refactors
+
+* change naming convention in analytics interface ([0d6f3ea](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/0d6f3ea5f5e7d913671a429566974df182aa640c))
+
+
+* ﻿feat: update implementation to support Unreal Engine 5.1 ([b970957](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/b970957bfe2fb3647bda2342704f34d72c8779d2))
+
 ### [0.7.3](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.7.3%0D0.7.2) (2022-12-01)
 
 

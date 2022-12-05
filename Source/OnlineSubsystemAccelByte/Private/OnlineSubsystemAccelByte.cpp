@@ -62,7 +62,7 @@ bool FOnlineSubsystemAccelByte::Init()
 	StoreV2Interface = MakeShared<FOnlineStoreV2AccelByte, ESPMode::ThreadSafe>(this);
 	PurchaseInterface = MakeShared<FOnlinePurchaseAccelByte, ESPMode::ThreadSafe>(this);
 	TimeInterface = MakeShared<FOnlineTimeAccelByte, ESPMode::ThreadSafe>(this);
-	AnalyticsInterface = MakeShared<FOnlineAnalyticsInterfaceAccelByte, ESPMode::ThreadSafe>(this);
+	AnalyticsInterface = MakeShared<FOnlineAnalyticsAccelByte, ESPMode::ThreadSafe>(this);
 	StatisticInterface = MakeShared<FOnlineStatisticAccelByte, ESPMode::ThreadSafe>(this);
 	ChatInterface = MakeShared<FOnlineChatAccelByte, ESPMode::ThreadSafe>(this);
 	
@@ -227,7 +227,7 @@ IOnlineChatPtr FOnlineSubsystemAccelByte::GetChatInterface() const
 	return ChatInterface;
 }
 
-FOnlineAnalyticsInterfaceAccelBytePtr FOnlineSubsystemAccelByte::GetAnalyticsInterface() const
+FOnlineAnalyticsAccelBytePtr FOnlineSubsystemAccelByte::GetAnalyticsInterface() const
 {
 	return AnalyticsInterface;
 }

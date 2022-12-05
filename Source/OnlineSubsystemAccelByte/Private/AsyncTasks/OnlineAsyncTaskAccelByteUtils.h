@@ -9,7 +9,7 @@
 namespace AccelByte
 {
 	
-#if (ENGINE_MAJOR_VERSION >= 5) || (ENGINE_MAJOR_VERSION == 4 && ENGINE_MINOR_VERSION > 25)
+#if !(ENGINE_MAJOR_VERSION == 4 && ENGINE_MINOR_VERSION < 26)
 template <typename DelegateSignature, typename UserPolicy = FDefaultDelegateUserPolicy>
 #else
 template <typename DelegateSignature>
@@ -22,7 +22,7 @@ class TDelegateUtils
 template <class ObjectType, ESPMode Mode>
 class TSelfPtr;
 
-#if (ENGINE_MAJOR_VERSION >= 5) || (ENGINE_MAJOR_VERSION == 4 && ENGINE_MINOR_VERSION > 25)
+#if !(ENGINE_MAJOR_VERSION == 4 && ENGINE_MINOR_VERSION < 26)
 #define DELEGATE_TEMPLATE_TYPE TDelegate<InRetValType(ParamTypes...), UserPolicy>
 template <typename InRetValType, typename... ParamTypes, typename UserPolicy>
 class TDelegateUtils<DELEGATE_TEMPLATE_TYPE>
@@ -42,7 +42,7 @@ public:
 		static_assert(!TIsConst<UserClass>::Value, "Attempting to bind a delegate with a const object pointer and non-const member function.");
 
 		DELEGATE_TEMPLATE_TYPE Result;
-#if (ENGINE_MAJOR_VERSION >= 5) || (ENGINE_MAJOR_VERSION == 4 && ENGINE_MINOR_VERSION > 25)
+#if !(ENGINE_MAJOR_VERSION == 4 && ENGINE_MINOR_VERSION < 26)
 		TBaseSPMethodDelegateInstance<false, UserClass, ESPMode::ThreadSafe, FuncType, UserPolicy, VarTypes...>::Create(Result, InUserObjectRef->GetInternalSP(), InFunc, Vars...);
 #else
 		TBaseSPMethodDelegateInstance<false, UserClass, ESPMode::ThreadSafe, FuncType, VarTypes...>::Create(Result, InUserObjectRef->GetInternalSP(), InFunc, Vars...);
@@ -53,7 +53,7 @@ public:
 	UE_NODISCARD inline static DELEGATE_TEMPLATE_TYPE CreateThreadSafeSelfPtr(TSelfPtr<UserClass, ESPMode::ThreadSafe> *InUserObjectRef, typename TMemFunPtrType<true, UserClass, RetValType(ParamTypes..., VarTypes...)>::Type InFunc, VarTypes... Vars)
 	{
 		DELEGATE_TEMPLATE_TYPE Result;
-#if (ENGINE_MAJOR_VERSION >= 5) || (ENGINE_MAJOR_VERSION == 4 && ENGINE_MINOR_VERSION > 25)
+#if !(ENGINE_MAJOR_VERSION == 4 && ENGINE_MINOR_VERSION < 26)
 		TBaseSPMethodDelegateInstance<true, const UserClass, ESPMode::ThreadSafe, FuncType, UserPolicy, VarTypes...>::Create(Result, InUserObjectRef->GetInternalSP(), InFunc, Vars...);
 #else
 		TBaseSPMethodDelegateInstance<true, const UserClass, ESPMode::ThreadSafe, FuncType, VarTypes...>::Create(Result, InUserObjectRef->GetInternalSP(), InFunc, Vars...);
@@ -83,7 +83,7 @@ public:
 		checkf(!bHasReference, TEXT("the shared pointer still has reference to this"));
 	}
 
-#if (ENGINE_MAJOR_VERSION >= 5) || (ENGINE_MAJOR_VERSION == 4 && ENGINE_MINOR_VERSION > 25)
+#if !(ENGINE_MAJOR_VERSION == 4 && ENGINE_MINOR_VERSION < 26)
 	template<typename,typename> friend class TDelegateUtils;
 #else
 	template<typename> friend class TDelegateUtils;

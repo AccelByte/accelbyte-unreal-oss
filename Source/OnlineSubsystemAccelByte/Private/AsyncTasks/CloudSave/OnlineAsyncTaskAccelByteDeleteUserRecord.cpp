@@ -41,7 +41,7 @@ void FOnlineAsyncTaskAccelByteDeleteUserRecord::Initialize()
 			return;
 		}
 
-		FServerApiClientPtr ServerApiClient = FMultiRegistry::GetServerApiClient(UserId.Get()->GetAccelByteId());
+		FServerApiClientPtr ServerApiClient = FMultiRegistry::GetServerApiClient();
 		ServerApiClient->ServerCloudSave.DeleteUserRecord(Key, *UserId.Get()->GetAccelByteId(), false, OnDeleteUserRecordSuccessDelegate, OnDeleteUserRecordErrorDelegate);
 	}
 	else

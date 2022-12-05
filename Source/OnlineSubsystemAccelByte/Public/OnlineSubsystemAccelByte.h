@@ -45,7 +45,7 @@ class FOnlineAgreementAccelByte;
 class FOnlineWalletAccelByte;
 class FOnlineCloudSaveAccelByte;
 class FOnlineTimeAccelByte;
-class FOnlineAnalyticsInterfaceAccelByte;
+class FOnlineAnalyticsAccelByte;
 class FOnlineStatisticAccelByte;
 class FOnlineChatAccelByte;
 class FExecTestBase;
@@ -111,7 +111,7 @@ typedef TSharedPtr<FOnlineCloudSaveAccelByte, ESPMode::ThreadSafe> FOnlineCloudS
 typedef TSharedPtr<FOnlineTimeAccelByte, ESPMode::ThreadSafe> FOnlineTimeAccelBytePtr;
 
 /** Shared pointer to the AccelByte Analytics */
-typedef TSharedPtr<FOnlineAnalyticsInterfaceAccelByte, ESPMode::ThreadSafe> FOnlineAnalyticsInterfaceAccelBytePtr;
+typedef TSharedPtr<FOnlineAnalyticsAccelByte, ESPMode::ThreadSafe> FOnlineAnalyticsAccelBytePtr;
 
 /** Shared pointer to the AccelByte Statistic */
 typedef TSharedPtr<FOnlineStatisticAccelByte, ESPMode::ThreadSafe> FOnlineStatisticAccelBytePtr;
@@ -146,7 +146,7 @@ public:
 	virtual FOnlineCloudSaveAccelBytePtr GetCloudSaveInterface() const; 
 	virtual IOnlineStatsPtr GetStatsInterface() const override;
 	virtual IOnlineTimePtr GetTimeInterface() const override;
-	virtual FOnlineAnalyticsInterfaceAccelBytePtr GetAnalyticsInterface() const;
+	virtual FOnlineAnalyticsAccelBytePtr GetAnalyticsInterface() const;
 	virtual IOnlineChatPtr GetChatInterface() const override;
 
 
@@ -392,7 +392,7 @@ private:
 	FOnlineTimeAccelBytePtr TimeInterface;
 	
 	/** Shared instance of our analytics interface implementation */
-	FOnlineAnalyticsInterfaceAccelBytePtr AnalyticsInterface;
+	FOnlineAnalyticsAccelBytePtr AnalyticsInterface;
 
 	/** Shared instance of our statistic interface implementation */
 	FOnlineStatisticAccelBytePtr StatisticInterface;

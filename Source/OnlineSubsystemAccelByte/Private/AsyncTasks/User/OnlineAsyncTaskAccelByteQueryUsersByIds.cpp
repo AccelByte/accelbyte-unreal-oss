@@ -296,24 +296,11 @@ void FOnlineAsyncTaskAccelByteQueryUsersByIds::QueryUsersOnNativePlatform(const 
 
 void FOnlineAsyncTaskAccelByteQueryUsersByIds::ExtractPlatformDataFromBasicUserInfo(const FBaseUserInfo& BasicInfo, FAccelByteUniqueIdComposite& CompositeId)
 {
-	const IOnlineSubsystem* NativeSubsystem = IOnlineSubsystem::GetByPlatform();
-	if (NativeSubsystem == nullptr)
-	{
-		return;
-	}
-
-	const FName SubsystemType = NativeSubsystem->GetSubsystemName();
-	const FString PlatformTypeStr = Subsystem->GetAccelBytePlatformStringFromAuthType(SubsystemType.ToString());
-	if (PlatformTypeStr.IsEmpty())
-	{
-		return;
-	}
-
 	FString FoundPlatformType;
 	FString FoundPlatformId;
 	for (const TPair<FString, FString> &KV : BasicInfo.PlatformUserIds)
 	{
-		if (!KV.Value.IsEmpty() && KV.Key == PlatformTypeStr)
+		if (!KV.Value.IsEmpty())
 		{
 			FoundPlatformId = KV.Value;
 			FoundPlatformType = Subsystem->GetNativeSubsystemNameFromAccelBytePlatformString(KV.Key);

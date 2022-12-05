@@ -53,7 +53,7 @@ void FOnlineAsyncTaskAccelByteGetGameRecord::Initialize()
 				return;
 			}
 
-			FServerApiClientPtr ServerApiClient = FMultiRegistry::GetServerApiClient(UserId.Get()->GetAccelByteId());
+			FServerApiClientPtr ServerApiClient = FMultiRegistry::GetServerApiClient();
 			ServerApiClient->ServerCloudSave.GetGameRecord(Key, OnGetGameRecordSuccessDelegate, OnGetGameRecordErrorDelegate);
 		}
 		else

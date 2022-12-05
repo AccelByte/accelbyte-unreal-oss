@@ -9,7 +9,7 @@
 #include "AsyncTasks/Analytics/OnlineAsyncTaskAccelByteSetImmediateEventList.h"
 #include "AsyncTasks/Analytics/OnlineAsyncTaskAccelByteSetTelemetryInterval.h"
 
-bool FOnlineAnalyticsInterfaceAccelByte::GetFromSubsystem(const IOnlineSubsystem* Subsystem, TSharedPtr<FOnlineAnalyticsInterfaceAccelByte, ESPMode::ThreadSafe>& OutInterfaceInstance)
+bool FOnlineAnalyticsAccelByte::GetFromSubsystem(const IOnlineSubsystem* Subsystem, TSharedPtr<FOnlineAnalyticsAccelByte, ESPMode::ThreadSafe>& OutInterfaceInstance)
 {
 	const FOnlineSubsystemAccelByte* ABSubsystem = static_cast<const FOnlineSubsystemAccelByte*>(Subsystem);
 	if (ABSubsystem == nullptr)
@@ -22,7 +22,7 @@ bool FOnlineAnalyticsInterfaceAccelByte::GetFromSubsystem(const IOnlineSubsystem
 	return OutInterfaceInstance.IsValid();
 }
 
-bool FOnlineAnalyticsInterfaceAccelByte::GetFromWorld(const UWorld* World, TSharedPtr<FOnlineAnalyticsInterfaceAccelByte, ESPMode::ThreadSafe>& OutInterfaceInstance)
+bool FOnlineAnalyticsAccelByte::GetFromWorld(const UWorld* World, TSharedPtr<FOnlineAnalyticsAccelByte, ESPMode::ThreadSafe>& OutInterfaceInstance)
 {
 	const IOnlineSubsystem* Subsystem = Online::GetSubsystem(World);
 	if (Subsystem == nullptr)
@@ -34,7 +34,7 @@ bool FOnlineAnalyticsInterfaceAccelByte::GetFromWorld(const UWorld* World, TShar
 	return GetFromSubsystem(Subsystem, OutInterfaceInstance);
 }
 
-bool FOnlineAnalyticsInterfaceAccelByte::SetTelemetrySendInterval(int32 InLocalUserNum)
+bool FOnlineAnalyticsAccelByte::SetTelemetrySendInterval(int32 InLocalUserNum)
 {
 	int32 SendTelemetryEventIntervalInSeconds;
 	if(GConfig->GetInt(TEXT("OnlineSubsystemAccelByte"), TEXT("SendTelemetryEventIntervalInSeconds"), SendTelemetryEventIntervalInSeconds, GEngineIni))
@@ -50,7 +50,7 @@ bool FOnlineAnalyticsInterfaceAccelByte::SetTelemetrySendInterval(int32 InLocalU
 	return false;
 }
 
-bool FOnlineAnalyticsInterfaceAccelByte::SetTelemetryImmediateEventList(int32 InLocalUserNum, TArray<FString> const& EventNames)
+bool FOnlineAnalyticsAccelByte::SetTelemetryImmediateEventList(int32 InLocalUserNum, TArray<FString> const& EventNames)
 {
 	if (IsUserLoggedIn(InLocalUserNum))
 	{
@@ -62,7 +62,7 @@ bool FOnlineAnalyticsInterfaceAccelByte::SetTelemetryImmediateEventList(int32 In
 	return false;
 }
 
-bool FOnlineAnalyticsInterfaceAccelByte::SendTelemetryEvent(
+bool FOnlineAnalyticsAccelByte::SendTelemetryEvent(
 	int32 InLocalUserNum, FAccelByteModelsTelemetryBody const& TelemetryBody,
 	FVoidHandler const& OnSuccess, FErrorHandler const& OnError)
 {
@@ -77,7 +77,7 @@ bool FOnlineAnalyticsInterfaceAccelByte::SendTelemetryEvent(
 	return false;
 }
 
-bool FOnlineAnalyticsInterfaceAccelByte::IsUserLoggedIn(const int32 InLocalUserNum) const
+bool FOnlineAnalyticsAccelByte::IsUserLoggedIn(const int32 InLocalUserNum) const
 {
 	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystem->GetIdentityInterface());
 	
@@ -98,7 +98,7 @@ bool FOnlineAnalyticsInterfaceAccelByte::IsUserLoggedIn(const int32 InLocalUserN
 	return false;
 }
 
-bool FOnlineAnalyticsInterfaceAccelByte::IsValidTelemetry(FAccelByteModelsTelemetryBody const& TelemetryBody)
+bool FOnlineAnalyticsAccelByte::IsValidTelemetry(FAccelByteModelsTelemetryBody const& TelemetryBody)
 {
 	return TelemetryBody.Payload.IsValid() && !TelemetryBody.EventName.IsEmpty() && !TelemetryBody.EventNamespace.IsEmpty();
 }

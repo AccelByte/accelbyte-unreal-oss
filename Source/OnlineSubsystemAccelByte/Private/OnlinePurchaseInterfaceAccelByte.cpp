@@ -74,3 +74,11 @@ void FOnlinePurchaseAccelByte::FinalizeReceiptValidationInfo(const FUniqueNetId&
 	FString& InReceiptValidationInfo, const FOnFinalizeReceiptValidationInfoComplete& Delegate)
 {
 }
+
+#if (ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 1)
+void FOnlinePurchaseAccelByte::Checkout(const FUniqueNetId& UserId, const FPurchaseCheckoutRequest& CheckoutRequest, const FOnPurchaseReceiptlessCheckoutComplete& Delegate)
+{
+	// @TODO: Implement checkout without receipt
+	UE_LOG_AB(Warning, TEXT("FOnlinePurchaseAccelByte::Checkout without receipt is not currently supported."));
+}
+#endif

@@ -27,16 +27,17 @@ FOnlineAsyncTaskAccelByteLogin::FOnlineAsyncTaskAccelByteLogin(FOnlineSubsystemA
 	, int32 InLocalUserNum
 	, const FOnlineAccountCredentials& InAccountCredentials)
 	: FOnlineAsyncTaskAccelByte(InABSubsystem)
+	, LoginUserNum(InLocalUserNum)
 	, AccountCredentials(InAccountCredentials)
 {
-	LocalUserNum = InLocalUserNum;
+	LocalUserNum = INVALID_CONTROLLERID;
 }
 
 void FOnlineAsyncTaskAccelByteLogin::Initialize()
 {
 	Super::Initialize();
 
-	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("LocalUserNum: %d"), LocalUserNum);
+	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("LocalUserNum: %d"), LoginUserNum);
 	if (Subsystem->IsMultipleLocalUsersEnabled())
 	{
 		ApiClient = MakeShared<AccelByte::FApiClient, ESPMode::ThreadSafe>();
@@ -88,7 +89,7 @@ void FOnlineAsyncTaskAccelByteLogin::Finalize()
 {
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
-	Subsystem->SetLocalUserNumCached(LocalUserNum);
+	Subsystem->SetLocalUserNumCached(LoginUserNum);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
@@ -101,13 +102,13 @@ void FOnlineAsyncTaskAccelByteLogin::TriggerDelegates()
 	const TSharedRef<const FUniqueNetIdAccelByteUser> ReturnId = (bWasSuccessful) ? UserId.ToSharedRef() : FUniqueNetIdAccelByteUser::Invalid();
 	if (IdentityInterface.IsValid())
 	{
-		IdentityInterface->SetLoginStatus(LocalUserNum, bWasSuccessful ? ELoginStatus::LoggedIn : ELoginStatus::NotLoggedIn);
+		IdentityInterface->SetLoginStatus(LoginUserNum, bWasSuccessful ? ELoginStatus::LoggedIn : ELoginStatus::NotLoggedIn);
 		if (bWasSuccessful && !ApiClient->CredentialsRef->IsComply())
 		{
 			const FOnlineAgreementAccelBytePtr AgreementInt = Subsystem->GetAgreementInterface();
 			if (ensure(AgreementInt.IsValid()))
 			{
-				AgreementInt->TriggerOnUserNotCompliedDelegates(LocalUserNum);
+				AgreementInt->TriggerOnUserNotCompliedDelegates(LoginUserNum);
 			}
 			else
 			{
@@ -115,12 +116,12 @@ void FOnlineAsyncTaskAccelByteLogin::TriggerDelegates()
 				// Normally, this would not be a failure, but because the agreement interface is invalid and the player thus cannot
 				// ever accept the agreement, we want to at least gracefully error out.
 				ErrorStr = TEXT("login-failed-agreement-not-accepted");
-				IdentityInterface->TriggerOnLoginCompleteDelegates(LocalUserNum, false, ReturnId.Get(), ErrorStr);
+				IdentityInterface->TriggerOnLoginCompleteDelegates(LoginUserNum, false, ReturnId.Get(), ErrorStr);
 			}
 		}
 		else
 		{
-			IdentityInterface->TriggerOnLoginCompleteDelegates(LocalUserNum, bWasSuccessful, ReturnId.Get(), ErrorStr);
+			IdentityInterface->TriggerOnLoginCompleteDelegates(LoginUserNum, bWasSuccessful, ReturnId.Get(), ErrorStr);
 		}
 	}
 
@@ -158,14 +159,14 @@ void FOnlineAsyncTaskAccelByteLogin::LoginWithNativeSubsystem()
 	// If the native subsystem reports not logged in, try and open the native login UI first. Native OSSes for platforms
 	// like GDK will report NotLoggedIn if there is not a user logged in on the particular controller index.
 	bool bLoginUIOpened = false;
-	const ELoginStatus::Type NativeLoginStatus = NativeIdentityInterface->GetLoginStatus(LocalUserNum);
+	const ELoginStatus::Type NativeLoginStatus = NativeIdentityInterface->GetLoginStatus(LoginUserNum);
 	if (NativeLoginStatus != ELoginStatus::LoggedIn)
 	{
 		const IOnlineExternalUIPtr NativeExternalUI = NativeSubsystem->GetExternalUIInterface();
 		if (NativeExternalUI.IsValid())
 		{
 			FOnLoginUIClosedDelegate LoginUIClosed = TDelegateUtils<FOnLoginUIClosedDelegate>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteLogin::OnNativeLoginUIClosed);
-			bLoginUIOpened = NativeExternalUI->ShowLoginUI(LocalUserNum, true, false, LoginUIClosed);
+			bLoginUIOpened = NativeExternalUI->ShowLoginUI(LoginUserNum, true, false, LoginUIClosed);
 		}
 	}
 
@@ -179,8 +180,8 @@ void FOnlineAsyncTaskAccelByteLogin::LoginWithNativeSubsystem()
 
 	// If we don't have a log in UI, then just send off a request to log in with blank credentials (default native account)
 	FOnLoginCompleteDelegate NativeLoginComplete = TDelegateUtils<FOnLoginCompleteDelegate>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteLogin::OnNativeLoginComplete);
-	NativeIdentityInterface->AddOnLoginCompleteDelegate_Handle(LocalUserNum, NativeLoginComplete);
-	NativeIdentityInterface->Login(LocalUserNum, FOnlineAccountCredentials());
+	NativeIdentityInterface->AddOnLoginCompleteDelegate_Handle(LoginUserNum, NativeLoginComplete);
+	NativeIdentityInterface->Login(LoginUserNum, FOnlineAccountCredentials());
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sending login request to native subsystem!"));
 }
@@ -254,7 +255,7 @@ void FOnlineAsyncTaskAccelByteLogin::OnNativeLoginComplete(int32 NativeLocalUser
 	}
 
 	// Clear the delegate for our login as it will be invalid once this task ends
-	NativeIdentityInterface->ClearOnLoginCompleteDelegates(LocalUserNum, this);
+	NativeIdentityInterface->ClearOnLoginCompleteDelegates(LoginUserNum, this);
 
 	// Set the login type for this request to be the login type corresponding to the native subsystem
 	const UEnum* LoginTypeEnum = StaticEnum<EAccelByteLoginType>();
@@ -273,7 +274,7 @@ void FOnlineAsyncTaskAccelByteLogin::OnNativeLoginComplete(int32 NativeLocalUser
 	// Construct credentials for the login type from the native subsystem, complete with the type set correctly to its name
 	FOnlineAccountCredentials Credentials;
 	Credentials.Type = LoginTypeEnum->GetNameStringByValue(static_cast<int64>(LoginType));
-	Credentials.Token = FGenericPlatformHttp::UrlEncode(NativeIdentityInterface->GetAuthToken(LocalUserNum));
+	Credentials.Token = FGenericPlatformHttp::UrlEncode(NativeIdentityInterface->GetAuthToken(LoginUserNum));
 
 	FTimerDelegate TimerDelegate = FTimerDelegate::CreateLambda([this, Credentials, NativeIdentityInterface]()
 	{
@@ -374,7 +375,7 @@ void FOnlineAsyncTaskAccelByteLogin::OnLoginSuccess()
 		return;
 	}
 		
-	IdentityInterface->AddNewAuthenticatedUser(LocalUserNum, UserId.ToSharedRef(), Account.ToSharedRef());
+	IdentityInterface->AddNewAuthenticatedUser(LoginUserNum, UserId.ToSharedRef(), Account.ToSharedRef());
 	AccelByte::FMultiRegistry::RemoveApiClient(UserId->GetAccelByteId());
 	AccelByte::FMultiRegistry::RegisterApiClient(UserId->GetAccelByteId(), ApiClient);
 

@@ -198,7 +198,7 @@ void FOnlineAsyncTaskAccelByteRegisterDedicatedV1Session::GetRegisterIpAddress(F
 {
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 
-#if (ENGINE_MAJOR_VERSION >= 5) || (ENGINE_MAJOR_VERSION == 4 && ENGINE_MINOR_VERSION >= 26)
+#if !(ENGINE_MAJOR_VERSION == 4 && ENGINE_MINOR_VERSION < 26)
 	// First grab our current port, as we will always need to grab that from the World URL. Wish there was a better way to
 	// grab current port for a server, but this is the best we have...
 	UWorld* World = GEngine->GetCurrentPlayWorld();
@@ -275,7 +275,7 @@ void FOnlineAsyncTaskAccelByteRegisterDedicatedV1Session::CreateGameSession()
 	Setting.Get(SETTING_MAPNAME, GameMapName);
 	Setting.Get(SETTING_NUMBOTS, GameNumBot);
 
-#if (ENGINE_MAJOR_VERSION >= 5) || (ENGINE_MAJOR_VERSION == 4 && ENGINE_MINOR_VERSION >= 26)
+#if !(ENGINE_MAJOR_VERSION == 4 && ENGINE_MINOR_VERSION < 26)
 	Setting.Get(SETTING_MAXSPECTATORS, MaxSpectator);
 #endif
 	

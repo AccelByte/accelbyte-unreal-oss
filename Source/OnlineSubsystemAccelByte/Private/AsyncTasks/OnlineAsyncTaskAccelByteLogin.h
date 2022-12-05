@@ -39,12 +39,17 @@ protected:
 private:
 
 	/**
+	 * User number or the controller index of the player
+	 */
+	int32 LoginUserNum;
+	
+	/**
 	 * Credentials of the account that we wish to login with
 	 */
 	FOnlineAccountCredentials AccountCredentials;
 
 	/**
-	 * String representing the error code that occurredx
+	 * String representing the error code that occurred
 	 */
 	FString ErrorStr;
 

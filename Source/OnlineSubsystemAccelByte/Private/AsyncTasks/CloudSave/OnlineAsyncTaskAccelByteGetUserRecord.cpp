@@ -42,7 +42,7 @@ void FOnlineAsyncTaskAccelByteGetUserRecord::Initialize()
 			return;
 		}
 
-		FServerApiClientPtr ServerApiClient = FMultiRegistry::GetServerApiClient(UserId.Get()->GetAccelByteId());
+		FServerApiClientPtr ServerApiClient = FMultiRegistry::GetServerApiClient();
 		if (IsPublicRecord)
 		{
 			ServerApiClient->ServerCloudSave.GetPublicUserRecord(Key, UserId.Get()->GetAccelByteId(), OnGetUserRecordsSuccessDelegate, OnGetUserRecordsErrorDelegate);

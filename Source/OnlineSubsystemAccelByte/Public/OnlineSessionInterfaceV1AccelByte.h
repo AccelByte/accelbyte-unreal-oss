@@ -17,7 +17,11 @@
 #include "Core/AccelByteError.h"
 #include "Models/AccelByteSessionBrowserModels.h"
 #include "Models/AccelByteLobbyModels.h"
+#if !(ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 1)
 #include "LANBeacon.h"
+#else
+#include "Online/LANBeacon.h"
+#endif
 #include "FNboSerializeToBufferAccelByte.h"
 #include "OnlineDelegateMacros.h"
 #include "Runtime/Launch/Resources/Version.h"

@@ -240,7 +240,24 @@ void FOnlinePartyAccelByte::RemoveInvite(const TSharedRef<const FUniqueNetIdAcce
 		{
 			const FInvitedPlayerPair& InvitedPlayer = InvitedPlayers[FoundInvitedUserIndex];
 			InvitedPlayers.RemoveAt(FoundInvitedUserIndex);
+			
+#if !(ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 1)
 			OwningInterface->TriggerOnPartyInviteRemovedDelegates(LocalUserId.Get(), PartyId.Get(), InvitedPlayer.Key.Get(), PartyInviteRemoveReason);
+#endif
+
+#if !(ENGINE_MAJOR_VERSION == 4 && ENGINE_MINOR_VERSION < 27)
+			TArray<IOnlinePartyJoinInfoConstRef> Invites;
+			FOnlinePartyJoinInfoAccelByte JoinInfo;
+			OwningInterface->GetPendingInvites(InvitedUserId.Get(), Invites);
+			for (const auto& Invite : Invites)
+			{
+				if (Invite->GetSourceUserId().Get() == LocalUserId.Get())
+				{
+					JoinInfo = Invite.Get();
+				}
+			}
+			OwningInterface->TriggerOnPartyInviteRemovedExDelegates(LocalUserId.Get(), JoinInfo, PartyInviteRemoveReason);
+#endif
 		}
 	}
 	while (FoundInvitedUserIndex != INDEX_NONE);
@@ -338,7 +355,7 @@ void FOnlinePartyAccelByte::AddPlayerCrossplayPreferenceAndPlatform(const TShare
 	SetPartyData(NewPartyData);
 
 	// Finally, send a request to update the party data on the backend
-#if (ENGINE_MAJOR_VERSION >= 5) || (ENGINE_MAJOR_VERSION == 4 && ENGINE_MINOR_VERSION >= 26)
+#if !(ENGINE_MAJOR_VERSION == 4 && ENGINE_MINOR_VERSION < 26)
 	OwningInterface->UpdatePartyData(LocalUserId.Get(), PartyId.Get(), NAME_Game, PartyData.Get());
 #else
 	OwningInterface->UpdatePartyData(LocalUserId.Get(), PartyId.Get(), PartyData.Get());
@@ -372,7 +389,7 @@ void FOnlinePartyAccelByte::RemovePlayerCrossplayPreferenceAndPlatform(const TSh
 	SetPartyData(NewPartyData);
 
 	// Finally, send a request to update the party data on the backend
-#if (ENGINE_MAJOR_VERSION >= 5) || (ENGINE_MAJOR_VERSION == 4 && ENGINE_MINOR_VERSION >= 26)
+#if !(ENGINE_MAJOR_VERSION == 4 && ENGINE_MINOR_VERSION < 26)
 	OwningInterface->UpdatePartyData(LocalUserId.Get(), PartyId.Get(), NAME_Game, PartyData.Get());
 #else
 	OwningInterface->UpdatePartyData(LocalUserId.Get(), PartyId.Get(), PartyData.Get());
@@ -385,7 +402,7 @@ void FOnlinePartyAccelByte::AddPlayerAcceptedTicketId(const TSharedRef<const FUn
 	TSharedRef<FOnlinePartyData> NewPartyData = MakeShared<FOnlinePartyData>(CurrentPartyData.Get());
 	SetPartyData(NewPartyData);
 
-#if (ENGINE_MAJOR_VERSION >= 5) || (ENGINE_MAJOR_VERSION == 4 && ENGINE_MINOR_VERSION >= 26)
+#if !(ENGINE_MAJOR_VERSION == 4 && ENGINE_MINOR_VERSION < 26)
 	OwningInterface->UpdatePartyData(LocalUserId.Get(), PartyId.Get(), NAME_Game, PartyData.Get());
 #else
 	OwningInterface->UpdatePartyData(LocalUserId.Get(), PartyId.Get(), PartyData.Get());
@@ -398,7 +415,7 @@ void FOnlinePartyAccelByte::RemovePlayerAcceptedTicketId(const TSharedRef<const 
 	TSharedRef<FOnlinePartyData> NewPartyData = MakeShared<FOnlinePartyData>(CurrentPartyData.Get());
 	SetPartyData(NewPartyData);
 
-#if (ENGINE_MAJOR_VERSION >= 5) || (ENGINE_MAJOR_VERSION == 4 && ENGINE_MINOR_VERSION >= 26)
+#if !(ENGINE_MAJOR_VERSION == 4 && ENGINE_MINOR_VERSION < 26)
 	OwningInterface->UpdatePartyData(LocalUserId.Get(), PartyId.Get(), NAME_Game, PartyData.Get());
 #else
 	OwningInterface->UpdatePartyData(LocalUserId.Get(), PartyId.Get(), PartyData.Get());
@@ -532,7 +549,7 @@ FOnlinePartyJoinInfoAccelByte::FOnlinePartyJoinInfoAccelByte(const IOnlinePartyJ
 	, SourceUserId(StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(BaseInfo.GetSourceUserId()))
 	, SourceUserDisplayName(BaseInfo.GetSourceDisplayName())
 	, SourcePlatform(BaseInfo.GetSourcePlatform())
-#if (ENGINE_MAJOR_VERSION >= 5) || (ENGINE_MAJOR_VERSION == 4 && ENGINE_MINOR_VERSION >= 26)
+#if !(ENGINE_MAJOR_VERSION == 4 && ENGINE_MINOR_VERSION < 26)
 	, PlatformData(BaseInfo.GetPlatformData())
 #endif
 	, AppId(BaseInfo.GetAppId())
@@ -581,7 +598,7 @@ const FString& FOnlinePartyJoinInfoAccelByte::GetSourcePlatform() const
 	return SourcePlatform;
 }
 
-#if (ENGINE_MAJOR_VERSION >= 5) || (ENGINE_MAJOR_VERSION == 4 && ENGINE_MINOR_VERSION >= 26)
+#if !(ENGINE_MAJOR_VERSION == 4 && ENGINE_MINOR_VERSION < 26)
 const FString& FOnlinePartyJoinInfoAccelByte::GetPlatformData() const
 {
 	// We currently don't have a way to attach platform specific data to a party invite
@@ -961,7 +978,7 @@ void FOnlinePartySystemAccelByte::OnPartyDataChangeNotification(const FAccelByte
 	PartyData->FromJson(JSONString);
 	Party->SetPartyData(PartyData);
 
-#if (ENGINE_MAJOR_VERSION >= 5) || (ENGINE_MAJOR_VERSION == 4 && ENGINE_MINOR_VERSION >= 26)
+#if !(ENGINE_MAJOR_VERSION == 4 && ENGINE_MINOR_VERSION < 26)
 	TriggerOnPartyDataReceivedDelegates(UserId.Get(), *Party->PartyId, NAME_Game, *PartyData);
 #else
 	TriggerOnPartyDataReceivedDelegates(UserId.Get(), *Party->PartyId, *PartyData);
@@ -1222,8 +1239,10 @@ void FOnlinePartySystemAccelByte::AddPartyInvite(const TSharedRef<const FUniqueN
 			|| Invite->InviterId->ToString() == ExistingInvite->InviterId->ToString();
 	});
 	InvitesArray.Add(Invite);
+#if !(ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 1)
 	TriggerOnPartyInviteReceivedDelegates(UserId.Get(), Invite->PartyId.Get(), Invite->InviterId.Get());
-#if (ENGINE_MAJOR_VERSION == 5) || (ENGINE_MAJOR_VERSION == 4 && ENGINE_MINOR_VERSION > 26)
+#endif
+#if !(ENGINE_MAJOR_VERSION == 4 && ENGINE_MINOR_VERSION < 27)
 	TSharedRef<FOnlinePartyJoinInfoAccelByte> JoinInfoRef = MakeShared<FOnlinePartyJoinInfoAccelByte>(Invite->PartyId, Invite->InviterId, Invite->InviterDisplayName);
 	TriggerOnPartyInviteReceivedExDelegates(UserId.Get(), JoinInfoRef.Get());
 #endif
@@ -1240,9 +1259,17 @@ bool FOnlinePartySystemAccelByte::RemoveInviteForParty(const TSharedRef<const FU
 
 		if (FoundInviteIndex != INDEX_NONE)
 		{
+			FOnlinePartyJoinInfoAccelByte JoinInfo = (*FoundInvitesArray)[FoundInviteIndex]->JoinInfo.Get();
 			const TSharedRef<const FUniqueNetIdAccelByteUser> SenderId = (*FoundInvitesArray)[FoundInviteIndex]->InviterId;
+			
 			FoundInvitesArray->RemoveAt(FoundInviteIndex);
+#if !(ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 1)
 			TriggerOnPartyInviteRemovedDelegates(UserId.Get(), PartyId.Get(), SenderId.Get(), InvitationRemovalReason);
+#endif
+
+#if !(ENGINE_MAJOR_VERSION == 4 && ENGINE_MINOR_VERSION < 27)
+			TriggerOnPartyInviteRemovedExDelegates(UserId.Get(), JoinInfo,InvitationRemovalReason);
+#endif
 			TriggerOnPartyInvitesChangedDelegates(UserId.Get());
 			return true;
 		}
@@ -1262,7 +1289,9 @@ bool FOnlinePartySystemAccelByte::RemoveInviteForParty(const TSharedRef<const FU
 		if (FoundInviteIndex != INDEX_NONE)
 		{
 			TSharedRef<const FAccelBytePartyInvite> Invite = (*FoundInvitesArray)[FoundInviteIndex];
+#if !(ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 1)
 			TriggerOnPartyInviteRemovedDelegates(UserId.Get(), Invite->PartyId.Get(), Invite->InviterId.Get(), InvitationRemovalReason);
+#endif
 			FoundInvitesArray->RemoveAt(FoundInviteIndex);
 			return true;
 		}
@@ -1432,7 +1461,7 @@ bool FOnlinePartySystemAccelByte::JoinParty(const FUniqueNetId& LocalUserId, con
 
 bool FOnlinePartySystemAccelByte::GetPartyCode(FString& Output, const FUniqueNetId& LocalUserId, const FOnlinePartyId& PartyId)
 {
-#if (ENGINE_MAJOR_VERSION >= 5) || (ENGINE_MAJOR_VERSION == 4 && ENGINE_MINOR_VERSION >= 26)
+#if !(ENGINE_MAJOR_VERSION == 4 && ENGINE_MINOR_VERSION < 26)
 	auto PartyInfo = GetPartyData(LocalUserId, PartyId, FName(""));
 #else
 	auto PartyInfo = GetPartyData(LocalUserId, PartyId);
@@ -1467,19 +1496,6 @@ bool FOnlinePartySystemAccelByte::JIPFromWithinParty(const FUniqueNetId& LocalUs
 
 	UE_LOG_AB(Warning, TEXT("FOnlinePartySystemAccelByte::JIPFromWithinParty is not supported!"));
 	return false;
-}
-
-void FOnlinePartySystemAccelByte::QueryPartyJoinability(const FUniqueNetId& LocalUserId, const IOnlinePartyJoinInfo& OnlinePartyJoinInfo, const FOnQueryPartyJoinabilityComplete& Delegate /*= FOnQueryPartyJoinabilityComplete()*/)
-{
-	if (WarnForUsingV1PartyWithV2Sessions())
-	{
-		return;
-	}
-
-	UE_LOG_AB(Warning, TEXT("FOnlinePartySystemAccelByte::QueryPartyJoinabilty is not supported as the only way to join a party is through an invite!"));
-	AccelByteSubsystem->ExecuteNextTick([UserId = LocalUserId.AsShared(), Delegate]() {
-		Delegate.ExecuteIfBound(UserId.Get(), MakeShared<FOnlinePartyIdAccelByte>().Get(), EJoinPartyCompletionResult::IncompatiblePlatform, 0);
-	});
 }
 
 bool FOnlinePartySystemAccelByte::RejoinParty(const FUniqueNetId& LocalUserId, const FOnlinePartyId& PartyId, const FOnlinePartyTypeId& PartyTypeId, const TArray<TSharedRef<const FUniqueNetId>>& FormerMembers, const FOnJoinPartyComplete& Delegate /*= FOnJoinPartyComplete()*/)
@@ -1548,6 +1564,20 @@ bool FOnlinePartySystemAccelByte::ApproveJIPRequest(const FUniqueNetId& LocalUse
 	return false;
 }
 
+#if !(ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 1)
+void FOnlinePartySystemAccelByte::QueryPartyJoinability(const FUniqueNetId& LocalUserId, const IOnlinePartyJoinInfo& OnlinePartyJoinInfo, const FOnQueryPartyJoinabilityComplete& Delegate /*= FOnQueryPartyJoinabilityComplete()*/)
+{
+	if (WarnForUsingV1PartyWithV2Sessions())
+	{
+		return;
+	}
+
+	UE_LOG_AB(Warning, TEXT("FOnlinePartySystemAccelByte::QueryPartyJoinabilty is not supported as the only way to join a party is through an invite!"));
+	AccelByteSubsystem->ExecuteNextTick([UserId = LocalUserId.AsShared(), Delegate]() {
+		Delegate.ExecuteIfBound(UserId.Get(), MakeShared<FOnlinePartyIdAccelByte>().Get(), EJoinPartyCompletionResult::IncompatiblePlatform, 0);
+	});
+}
+
 void FOnlinePartySystemAccelByte::RespondToQueryJoinability(const FUniqueNetId& LocalUserId, const FOnlinePartyId& PartyId, const FUniqueNetId& RecipientId, bool bCanJoin, int32 DeniedResultCode /*= 0*/)
 {
 	if (WarnForUsingV1PartyWithV2Sessions())
@@ -1558,8 +1588,9 @@ void FOnlinePartySystemAccelByte::RespondToQueryJoinability(const FUniqueNetId& 
 	// Just like ApproveJoinRequest, parties don't have the ability to be joined without invite or have join requests, so we cannot support this
 	UE_LOG_AB(Warning, TEXT("FOnlinePartySystemAccelByte::RespondToQueryJoinability is not supported!"));
 }
+#endif
 
-#if (ENGINE_MAJOR_VERSION == 4 && ENGINE_MINOR_VERSION >= 27) || (ENGINE_MAJOR_VERSION >= 5)
+#if !(ENGINE_MAJOR_VERSION == 4 && ENGINE_MINOR_VERSION < 27)
 void FOnlinePartySystemAccelByte::QueryPartyJoinability(const FUniqueNetId& LocalUserId, const IOnlinePartyJoinInfo& OnlinePartyJoinInfo, const FOnQueryPartyJoinabilityCompleteEx& Delegate /*= FOnQueryPartyJoinabilityCompleteEx()*/)
 {
 	if (WarnForUsingV1PartyWithV2Sessions())
@@ -1587,7 +1618,7 @@ void FOnlinePartySystemAccelByte::RespondToQueryJoinability(const FUniqueNetId& 
 }
 #endif
 
-#if ENGINE_MAJOR_VERSION >= 5
+#if ENGINE_MAJOR_VERSION == 5
 void FOnlinePartySystemAccelByte::RequestToJoinParty(const FUniqueNetId& LocalUserId, const FOnlinePartyTypeId PartyTypeId, const FPartyInvitationRecipient& Recipient, const FOnRequestToJoinPartyComplete& Delegate /*= FOnRequestToJoinPartyComplete()*/)
 {
 }
@@ -1600,6 +1631,20 @@ bool FOnlinePartySystemAccelByte::GetPendingRequestsToJoin(const FUniqueNetId& L
 {
 	return false;
 }
+
+#if ENGINE_MINOR_VERSION >= 1
+void FOnlinePartySystemAccelByte::CancelInvitation(const FUniqueNetId& LocalUserId, const FUniqueNetId& TargetUserId, const FOnlinePartyId& PartyId, const FOnCancelPartyInvitationComplete& Delegate /*= FOnCancelPartyInvitationComplete()*/)
+{
+	if (WarnForUsingV1PartyWithV2Sessions())
+	{
+		return;
+	}
+
+	// Just like ApproveJoinRequest, parties don't have the ability to be joined without invite or have join requests, so we cannot support this
+	UE_LOG_AB(Warning, TEXT("FOnlinePartySystemAccelByte::CancelInvitation is not implemented yet!"));
+}
+#endif
+
 #endif
 
 bool FOnlinePartySystemAccelByte::SendInvitation(const FUniqueNetId& LocalUserId, const FOnlinePartyId& PartyId, const FPartyInvitationRecipient& Recipient, const FOnSendPartyInvitationComplete& Delegate /*= FOnSendPartyInvitationComplete()*/)
@@ -1682,7 +1727,7 @@ bool FOnlinePartySystemAccelByte::PromoteMember(const FUniqueNetId& LocalUserId,
 	return true;
 }
 
-#if (ENGINE_MAJOR_VERSION >= 5) || (ENGINE_MAJOR_VERSION == 4 && ENGINE_MINOR_VERSION >= 26)
+#if !(ENGINE_MAJOR_VERSION == 4 && ENGINE_MINOR_VERSION < 26)
 bool FOnlinePartySystemAccelByte::UpdatePartyData(const FUniqueNetId& LocalUserId, const FOnlinePartyId& PartyId, const FName& Namespace, const FOnlinePartyData& PartyData)
 #else
 bool FOnlinePartySystemAccelByte::UpdatePartyData(const FUniqueNetId& LocalUserId, const FOnlinePartyId& PartyId, const FOnlinePartyData& PartyData)
@@ -1693,14 +1738,14 @@ bool FOnlinePartySystemAccelByte::UpdatePartyData(const FUniqueNetId& LocalUserI
 		return false;
 	}
 
-	#if (ENGINE_MAJOR_VERSION == 4 && ENGINE_MINOR_VERSION <= 25)
+#if (ENGINE_MAJOR_VERSION == 4 && ENGINE_MINOR_VERSION <= 25)
 	FName Namespace{};
-	#endif
+#endif
 	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteUpdateV1PartyData>(AccelByteSubsystem, LocalUserId, PartyId, Namespace, PartyData);
 	return true;
 }
 
-#if (ENGINE_MAJOR_VERSION >= 5) || (ENGINE_MAJOR_VERSION == 4 && ENGINE_MINOR_VERSION >= 26)
+#if !(ENGINE_MAJOR_VERSION == 4 && ENGINE_MINOR_VERSION < 26)
 bool FOnlinePartySystemAccelByte::UpdatePartyMemberData(const FUniqueNetId& LocalUserId, const FOnlinePartyId& PartyId, const FName& Namespace, const FOnlinePartyData& PartyMemberData)
 #else
 bool FOnlinePartySystemAccelByte::UpdatePartyMemberData(const FUniqueNetId& LocalUserId, const FOnlinePartyId& PartyId, const FOnlinePartyData& PartyMemberData)
@@ -1830,7 +1875,7 @@ FOnlinePartyMemberConstPtr FOnlinePartySystemAccelByte::GetPartyMember(const FUn
 	return nullptr;
 }
 
-#if (ENGINE_MAJOR_VERSION >= 5) || (ENGINE_MAJOR_VERSION == 4 && ENGINE_MINOR_VERSION >= 26)
+#if !(ENGINE_MAJOR_VERSION == 4 && ENGINE_MINOR_VERSION < 26)
 FOnlinePartyDataConstPtr FOnlinePartySystemAccelByte::GetPartyData(const FUniqueNetId& LocalUserId, const FOnlinePartyId& PartyId, const FName& Namespace) const
 #else
 FOnlinePartyDataConstPtr FOnlinePartySystemAccelByte::GetPartyData(const FUniqueNetId& LocalUserId, const FOnlinePartyId& PartyId) const
@@ -1854,7 +1899,7 @@ FOnlinePartyDataConstPtr FOnlinePartySystemAccelByte::GetPartyData(const FUnique
 	return nullptr;
 }
 
-#if (ENGINE_MAJOR_VERSION >= 5) || (ENGINE_MAJOR_VERSION == 4 && ENGINE_MINOR_VERSION >= 26)
+#if !(ENGINE_MAJOR_VERSION == 4 && ENGINE_MINOR_VERSION < 26)
 FOnlinePartyDataConstPtr FOnlinePartySystemAccelByte::GetPartyMemberData(const FUniqueNetId& LocalUserId, const FOnlinePartyId& PartyId, const FUniqueNetId& MemberId, const FName& Namespace) const
 #else
 FOnlinePartyDataConstPtr FOnlinePartySystemAccelByte::GetPartyMemberData(const FUniqueNetId& LocalUserId, const FOnlinePartyId& PartyId, const FUniqueNetId& MemberId) const

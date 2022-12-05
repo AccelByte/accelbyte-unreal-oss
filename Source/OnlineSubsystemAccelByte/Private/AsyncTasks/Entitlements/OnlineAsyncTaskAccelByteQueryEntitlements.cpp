@@ -54,7 +54,7 @@ void FOnlineAsyncTaskAccelByteQueryEntitlements::HandleQueryEntitlementSuccess(F
 		Entitlement->Id = EntInfo.Id;
 		Entitlement->Name = EntInfo.Name;
 		Entitlement->Namespace = EntInfo.Namespace;
-		Entitlement->Status = *FindObject<UEnum>(ANY_PACKAGE, TEXT("EAccelByteEntitlementStatus"), true)->GetNameStringByValue((int32)EntInfo.Status);
+		Entitlement->Status = FAccelByteUtilities::GetUEnumValueAsString<EAccelByteEntitlementStatus>(EntInfo.Status);
 		Entitlement->bIsConsumable = EntInfo.Type == EAccelByteEntitlementType::CONSUMABLE;
 		// Note(Damar), should read from history, currently not available from sdk
 		//Entitlement->ConsumedCount = EntInfo.UseCount;
