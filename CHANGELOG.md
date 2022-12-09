@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.8.1](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.8.1%0D0.8.0) (2022-12-09)
+
+
+### Bug Fixes
+
+* **MPv2:** update create session and send game session invite calls to allow servers to make them ([29b8408](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/29b84085923b4bfc2fa3631d52403a06ec6f4be6))
+
 ## [0.8.0](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.8.0%0D0.7.3) (2022-12-05)
 
 

@@ -800,6 +800,14 @@ bool FOnlineSessionV2AccelByte::CreateSession(int32 HostingPlayerNum, FName Sess
 {
 	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("SearchingPlayerNum: %d; SessionName: %s"), HostingPlayerNum, *SessionName.ToString());
 
+	if (IsRunningDedicatedServer())
+	{
+		// If we are trying to create a new session as a server, just pass an invalid user ID and continue. Server clients
+		// do not have user IDs.
+		AB_OSS_INTERFACE_TRACE_END(TEXT("Passing to create session!"));
+		return CreateSession(FUniqueNetIdAccelByteUser::Invalid().Get(), SessionName, NewSessionSettings);
+	}
+
 	const IOnlineIdentityPtr IdentityInterface = AccelByteSubsystem->GetIdentityInterface();
 	if (!ensure(IdentityInterface.IsValid()))
 	{
@@ -820,7 +828,14 @@ bool FOnlineSessionV2AccelByte::CreateSession(int32 HostingPlayerNum, FName Sess
 
 bool FOnlineSessionV2AccelByte::CreateSession(const FUniqueNetId& HostingPlayerId, FName SessionName, const FOnlineSessionSettings& NewSessionSettings)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("HostingPlayerId: %s; SessionName: %s"), *HostingPlayerId.ToString(), *SessionName.ToString());
+	if (!IsRunningDedicatedServer())
+	{
+		AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("HostingPlayerId: %s; SessionName: %s"), *HostingPlayerId.ToString(), *SessionName.ToString());
+	}
+	else
+	{
+		AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("SessionName: %s"), *SessionName.ToString());
+	}
 
 	// Check if we already have a session with this name, and if so bail with warning
 	if (GetNamedSession(SessionName) != nullptr)
@@ -845,10 +860,12 @@ bool FOnlineSessionV2AccelByte::CreateSession(const FUniqueNetId& HostingPlayerI
 
 	if (SessionType == EAccelByteV2SessionType::PartySession)
 	{
+		AB_OSS_INTERFACE_TRACE_END(TEXT("Creating a new party session!"));
 		return CreatePartySession(HostingPlayerId, SessionName, NewSessionSettings);
 	}
 	else if (SessionType == EAccelByteV2SessionType::GameSession)
 	{
+		AB_OSS_INTERFACE_TRACE_END(TEXT("Creating a new game session!"));
 		return CreateGameSession(HostingPlayerId, SessionName, NewSessionSettings);
 	}
 
@@ -857,7 +874,14 @@ bool FOnlineSessionV2AccelByte::CreateSession(const FUniqueNetId& HostingPlayerI
 
 bool FOnlineSessionV2AccelByte::CreatePartySession(const FUniqueNetId& HostingPlayerId, const FName& SessionName, const FOnlineSessionSettings& NewSessionSettings)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("HostingPlayerId: %s; SessionName: %s"), *HostingPlayerId.ToDebugString(), *SessionName.ToString());
+	if (!IsRunningDedicatedServer())
+	{
+		AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("HostingPlayerId: %s; SessionName: %s"), *HostingPlayerId.ToDebugString(), *SessionName.ToString());
+	}
+	else
+	{
+		AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("SessionName: %s"), *SessionName.ToString());
+	}
 
 	// Check whether or not our join type is set to something other than invite only, if so throw a warning and kill the task
 	FString SessionJoinTypeString = TEXT("");
@@ -886,9 +910,14 @@ bool FOnlineSessionV2AccelByte::CreatePartySession(const FUniqueNetId& HostingPl
 		return false;
 	}
 
-	NewSession->OwningUserId = HostingPlayerId.AsShared();
-	NewSession->OwningUserName = IdentityInterface->GetPlayerNickname(HostingPlayerId);
-	NewSession->LocalOwnerId = HostingPlayerId.AsShared();
+	// Only set local and remote owner information if we are not running a dedicated server. Servers do not have a user
+	// associated with them, so we have no owning user ID, local or otherwise.
+	if (!IsRunningDedicatedServer())
+	{
+		NewSession->OwningUserId = HostingPlayerId.AsShared();
+		NewSession->OwningUserName = IdentityInterface->GetPlayerNickname(HostingPlayerId);
+		NewSession->LocalOwnerId = HostingPlayerId.AsShared();
+	}
 	
 	NewSession->NumOpenPublicConnections = NewSessionSettings.NumPublicConnections;
 	NewSession->NumOpenPrivateConnections = NewSessionSettings.NumPrivateConnections;
@@ -904,7 +933,14 @@ bool FOnlineSessionV2AccelByte::CreatePartySession(const FUniqueNetId& HostingPl
 
 bool FOnlineSessionV2AccelByte::CreateGameSession(const FUniqueNetId& HostingPlayerId, const FName& SessionName, const FOnlineSessionSettings& NewSessionSettings, bool bSendCreateRequest)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("HostingPlayerId: %s; SessionName: %s"), *HostingPlayerId.ToDebugString(), *SessionName.ToString());
+	if (!IsRunningDedicatedServer())
+	{
+		AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("HostingPlayerId: %s; SessionName: %s"), *HostingPlayerId.ToDebugString(), *SessionName.ToString());
+	}
+	else
+	{
+		AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("SessionName: %s"), *SessionName.ToString());
+	}
 
 	// Create new session and update state
 	FNamedOnlineSession* NewSession = AddNamedSession(SessionName, NewSessionSettings);
@@ -915,9 +951,9 @@ bool FOnlineSessionV2AccelByte::CreateGameSession(const FUniqueNetId& HostingPla
 	NewSession->NumOpenPrivateConnections = NewSessionSettings.NumPrivateConnections;
 	
 	// If we are sending a create request for this session, then that means that we know who is hosting already.
-	// For servers, when this flag will be false, we will fill out the owner information once we get the backend
-	// session data.
-	if (bSendCreateRequest)
+	// For servers, we want to disable this functionality even if we are sending a create request. This is because a server
+	// client does not have a user ID, and thus cannot be set as the local owner or remote owner.
+	if (bSendCreateRequest && !IsRunningDedicatedServer())
 	{
 		const IOnlineIdentityPtr IdentityInterface = AccelByteSubsystem->GetIdentityInterface();
 		if (!ensure(IdentityInterface.IsValid()))
@@ -2308,6 +2344,16 @@ bool FOnlineSessionV2AccelByte::FindFriendSession(const FUniqueNetId& LocalUserI
 
 bool FOnlineSessionV2AccelByte::SendSessionInviteToFriend(int32 LocalUserNum, FName SessionName, const FUniqueNetId& Friend)
 {
+	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("LocalUserNum: %d; SessionName: %s; Friend: %s"), LocalUserNum, *SessionName.ToString(), *Friend.ToDebugString());
+
+	if (IsRunningDedicatedServer())
+	{
+		// If we are running a dedicated server, then we just want to continue sending the invite with an invalid local user ID.
+		// Servers do not have user IDs for the authenticated client, so just fake it with the invalid ID.
+		AB_OSS_INTERFACE_TRACE_END(TEXT("Sending invite to user '%s'!"), *Friend.ToDebugString());
+		return SendSessionInviteToFriend(FUniqueNetIdAccelByteUser::Invalid().Get(), SessionName, Friend);
+	}
+
 	IOnlineIdentityPtr IdentityInterface = AccelByteSubsystem->GetIdentityInterface();
 	if (!ensure(IdentityInterface.IsValid()))
 	{
@@ -2322,6 +2368,7 @@ bool FOnlineSessionV2AccelByte::SendSessionInviteToFriend(int32 LocalUserNum, FN
 		return false;
 	}
 
+	AB_OSS_INTERFACE_TRACE_END(TEXT("Sending invite to user '%s'!"), *Friend.ToDebugString());
 	return SendSessionInviteToFriend(PlayerId.ToSharedRef().Get(), SessionName, Friend);
 }
 

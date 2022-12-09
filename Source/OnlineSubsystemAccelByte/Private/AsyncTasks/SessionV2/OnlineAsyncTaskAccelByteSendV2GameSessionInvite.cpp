@@ -8,18 +8,30 @@
 #include "OnlineSessionInterfaceV2AccelByte.h"
 
 FOnlineAsyncTaskAccelByteSendV2GameSessionInvite::FOnlineAsyncTaskAccelByteSendV2GameSessionInvite(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InLocalUserId, const FName& InSessionName, const FUniqueNetId& InRecipientId)
-	: FOnlineAsyncTaskAccelByte(InABInterface)
+	// Initialize as a server task if we are running a dedicated server, as this doubles as a server task. Otherwise, use
+	// no flags to indicate that it's a client task.
+	: FOnlineAsyncTaskAccelByte(InABInterface, (IsRunningDedicatedServer()) ? ASYNC_TASK_FLAG_BIT(EAccelByteAsyncTaskFlags::ServerTask) : ASYNC_TASK_FLAG_BIT(EAccelByteAsyncTaskFlags::None))
 	, SessionName(InSessionName)
 	, RecipientId(StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(InRecipientId.AsShared()))
 {
-	UserId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(InLocalUserId.AsShared());
+	if (!IsRunningDedicatedServer())
+	{
+		UserId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(InLocalUserId.AsShared());
+	}
 }
 
 void FOnlineAsyncTaskAccelByteSendV2GameSessionInvite::Initialize()
 {
 	Super::Initialize();
 
-	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("UserId: %s; Recipient ID: %s"), *UserId->ToString(), *RecipientId->GetAccelByteId());
+	if (!IsRunningDedicatedServer())
+	{
+		AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("UserId: %s; Recipient ID: %s"), *UserId->ToString(), *RecipientId->GetAccelByteId());
+	}
+	else
+	{
+		AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Recipient ID: %s"), *RecipientId->GetAccelByteId());
+	}
 
 	// First, check if the player is currently in a game session of given SessionName, if we're not, then we shouldn't do this
 	const TSharedPtr<FOnlineSessionV2AccelByte, ESPMode::ThreadSafe> SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(Subsystem->GetSessionInterface());
@@ -28,9 +40,17 @@ void FOnlineAsyncTaskAccelByteSendV2GameSessionInvite::Initialize()
 	FNamedOnlineSession* Session = SessionInterface->GetNamedSession(SessionName);
 	AB_ASYNC_TASK_ENSURE(Session != nullptr, "Failed to send game session invite as our local session instance is invalid!");
 
-	// Now, once we know we are in this party, we want to send a request to invite the player to the party
+	// Now, once we know we are in this game session, we want to send a request to invite the player to the session
 	AB_ASYNC_TASK_DEFINE_SDK_DELEGATES(FOnlineAsyncTaskAccelByteSendV2GameSessionInvite, SendGameSessionInvite, FVoidHandler);
-	ApiClient->Session.SendGameSessionInvite(Session->GetSessionIdStr(), RecipientId->GetAccelByteId(), OnSendGameSessionInviteSuccessDelegate, OnSendGameSessionInviteErrorDelegate);
+	
+	if (!IsRunningDedicatedServer())
+	{
+		ApiClient->Session.SendGameSessionInvite(Session->GetSessionIdStr(), RecipientId->GetAccelByteId(), OnSendGameSessionInviteSuccessDelegate, OnSendGameSessionInviteErrorDelegate);
+	}
+	else
+	{
+		FRegistry::ServerSession.SendGameSessionInvite(Session->GetSessionIdStr(), RecipientId->GetAccelByteId(), OnSendGameSessionInviteSuccessDelegate, OnSendGameSessionInviteErrorDelegate);
+	}
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }

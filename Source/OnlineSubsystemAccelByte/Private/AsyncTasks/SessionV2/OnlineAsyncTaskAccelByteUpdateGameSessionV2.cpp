@@ -10,7 +10,8 @@
 #include "Api/AccelByteSessionApi.h"
 
 FOnlineAsyncTaskAccelByteUpdateGameSessionV2::FOnlineAsyncTaskAccelByteUpdateGameSessionV2(FOnlineSubsystemAccelByte* const InABInterface, const FName& InSessionName, const FOnlineSessionSettings& InNewSessionSettings)
-	// Initialize as a server task if we are running a server task, as this doubles as a server task. Otherwise, use no flags
+	// Initialize as a server task if we are running a dedicated server, as this doubles as a server task. Otherwise, use
+	// no flags to indicate that it's a client task.
 	: FOnlineAsyncTaskAccelByte(InABInterface, (IsRunningDedicatedServer()) ? ASYNC_TASK_FLAG_BIT(EAccelByteAsyncTaskFlags::ServerTask) : ASYNC_TASK_FLAG_BIT(EAccelByteAsyncTaskFlags::None))
 	, SessionName(InSessionName)
 	, NewSessionSettings(InNewSessionSettings)

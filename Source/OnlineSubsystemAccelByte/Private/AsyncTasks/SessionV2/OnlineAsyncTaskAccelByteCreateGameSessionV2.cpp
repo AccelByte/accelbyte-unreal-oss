@@ -10,18 +10,34 @@
 #include "OnlineSubsystemSessionSettings.h"
 
 FOnlineAsyncTaskAccelByteCreateGameSessionV2::FOnlineAsyncTaskAccelByteCreateGameSessionV2(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InHostingPlayerId, const FName& InSessionName, const FOnlineSessionSettings& InNewSessionSettings)
-	: FOnlineAsyncTaskAccelByte(InABInterface, false)
+	// Initialize as a server task if we are running a dedicated server, as this doubles as a server task. Otherwise, use
+	// no flags to indicate that it's a client task.
+	: FOnlineAsyncTaskAccelByte(InABInterface, (IsRunningDedicatedServer()) ? ASYNC_TASK_FLAG_BIT(EAccelByteAsyncTaskFlags::ServerTask) : ASYNC_TASK_FLAG_BIT(EAccelByteAsyncTaskFlags::None))
 	, SessionName(InSessionName)
 	, NewSessionSettings(InNewSessionSettings)
 {
-	UserId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(InHostingPlayerId.AsShared());
+	if (!IsRunningDedicatedServer())
+	{
+		// If we are not running a DS, then we would need a valid user ID before making the call
+		UserId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(InHostingPlayerId.AsShared());
+	}
 }
 
 void FOnlineAsyncTaskAccelByteCreateGameSessionV2::Initialize()
 {
 	Super::Initialize();
 
-	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("HostingPlayerId: %s; SessionName: %s"), *UserId->ToDebugString(), *SessionName.ToString());
+	if (!IsRunningDedicatedServer())
+	{
+		// If we are not running a DS, then we should log the ID of the user requesting a session be created, as well as the
+		// local name of the session that will be stored in the interface.
+		AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("HostingPlayerId: %s; SessionName: %s"), *UserId->ToDebugString(), *SessionName.ToString());
+	}
+	else
+	{
+		// If we are running a DS, then just log the local name of the session that will be stored in the interface.
+		AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("SessionName: %s"), *SessionName.ToString());
+	}
 
 	const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(Subsystem->GetSessionInterface());
 	AB_ASYNC_TASK_ENSURE(SessionInterface.IsValid(), "Failed to create game session as our session interface is invalid!");
@@ -109,10 +125,16 @@ void FOnlineAsyncTaskAccelByteCreateGameSessionV2::Initialize()
 
 	CreateRequest.Attributes.JsonObject = SessionInterface->ConvertSessionSettingsToJsonObject(NewSessionSettings);
 
-	const THandler<FAccelByteModelsV2GameSession> OnCreateGameSessionSuccessDelegate = THandler<FAccelByteModelsV2GameSession>::CreateRaw(this, &FOnlineAsyncTaskAccelByteCreateGameSessionV2::OnCreateGameSessionSuccess);
-	const FErrorHandler OnCreateGameSessionErrorDelegate = FErrorHandler::CreateRaw(this, &FOnlineAsyncTaskAccelByteCreateGameSessionV2::OnCreateGameSessionError);
-	ApiClient->Session.CreateGameSession(CreateRequest, OnCreateGameSessionSuccessDelegate, OnCreateGameSessionErrorDelegate);
-	
+	AB_ASYNC_TASK_DEFINE_SDK_DELEGATES(FOnlineAsyncTaskAccelByteCreateGameSessionV2, CreateGameSession, THandler<FAccelByteModelsV2GameSession>);
+	if (!IsRunningDedicatedServer())
+	{
+		ApiClient->Session.CreateGameSession(CreateRequest, OnCreateGameSessionSuccessDelegate, OnCreateGameSessionErrorDelegate);
+	}
+	else
+	{
+		FRegistry::ServerSession.CreateGameSession(CreateRequest, OnCreateGameSessionSuccessDelegate, OnCreateGameSessionErrorDelegate);
+	}
+
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 
