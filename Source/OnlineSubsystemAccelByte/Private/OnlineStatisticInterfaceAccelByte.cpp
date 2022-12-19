@@ -9,8 +9,9 @@
 #include "AsyncTasks/Statistic/OnlineAsyncTaskAccelByteListUserStatItems.h"
 #include "AsyncTasks/Statistic/OnlineAsyncTaskAccelByteQueryStatsUser.h"
 #include "AsyncTasks/Statistic/OnlineAsyncTaskAccelByteQueryStatsUsers.h"
+#include "AsyncTasks/Statistic/OnlineAsyncTaskAccelByteUpdateStats.h"
+#include "AsyncTasks/Statistic/OnlineAsyncTaskAccelByteResetUserStats.h"
 #include "OnlineSubsystemUtils.h"
- 
 
 bool FOnlineStatisticAccelByte::ListUserStatItems(int32 LocalUserNum, const TArray<FString>& StatCodes, const TArray<FString>& Tags, const FString& AdditionalKey, bool bAlwaysRequestToService)
 {
@@ -103,17 +104,32 @@ void FOnlineStatisticAccelByte::QueryStats(const FUniqueNetIdRef LocalUserId, co
 
 TSharedPtr<const FOnlineStatsUserStats> FOnlineStatisticAccelByte::GetStats(const FUniqueNetIdRef StatsUserId) const
 {
-	UE_LOG_ONLINE_STATS(Display, TEXT("FOnlineStatisticAccelByte::GetStats not implemented")); 
-	return TSharedPtr<const FOnlineStatsUserStats>{};
+	UE_LOG_ONLINE_STATS(Display, TEXT("FOnlineStatisticAccelByte::GetStats")); 
+
+	TSharedPtr<const FOnlineStatsUserStats> Value = nullptr;
+	for (auto const& UserStat : UsersStats)
+	{
+		if (UserStat.Get().Account == StatsUserId)
+		{
+			Value = UserStat;
+			break;
+		}
+	}
+
+	return Value;
 }
 
 void FOnlineStatisticAccelByte::UpdateStats(const FUniqueNetIdRef LocalUserId, const TArray<FOnlineStatsUserUpdatedStats>& UpdatedUserStats, const FOnlineStatsUpdateStatsComplete& Delegate)
 {
 	UE_LOG_ONLINE_STATS(Display, TEXT("FOnlineStatisticAccelByte::UpdateStats"));
-	AccelByteSubsystem->ExecuteNextTick([Delegate]()
-		{
-			Delegate.ExecuteIfBound(FOnlineError(FString(TEXT("RevokeAuthToken not implemented"))));
-		});
+	
+	auto OnComplete = FOnlineStatsUpdateStatsComplete::CreateLambda([&](const FOnlineError& Error)
+	{   
+		Delegate.ExecuteIfBound(Error);
+	});
+	TArray<FString> StatCodes{};
+	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteUpdateStats>
+		(AccelByteSubsystem, LocalUserId, UpdatedUserStats, OnComplete);
 }
 
 TSharedPtr<const FOnlineStatsUserStats> FOnlineStatisticAccelByte::GetAllListUserStatItemFromCache(const FUniqueNetIdRef StatsUserId) const
@@ -134,7 +150,9 @@ TSharedPtr<const FOnlineStatsUserStats> FOnlineStatisticAccelByte::GetAllListUse
 #if !UE_BUILD_SHIPPING
 void FOnlineStatisticAccelByte::ResetStats(const FUniqueNetIdRef StatsUserId)
 {
-	UE_LOG_ONLINE_STATS(Display, TEXT("FOnlineStatisticAccelByte::ResetStats not implemented")); 
+	UE_LOG_ONLINE_STATS(Display, TEXT("FOnlineStatisticAccelByte::ResetStats"));
+	
+	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteResetUserStats>(AccelByteSubsystem, StatsUserId);
 }
 #endif
 

@@ -119,23 +119,13 @@ void FOnlineAsyncTaskAccelByteStartV2Matchmaking::CreateMatchTicket()
 	const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(Subsystem->GetSessionInterface());
 	AB_ASYNC_TASK_ENSURE(SessionInterface.IsValid(), "Failed to create match ticket as our session interface is invalid!");
 
-	FString PartySessionId{};
-	FNamedOnlineSession* PartySession = SessionInterface->GetPartySession();
-	if (PartySession != nullptr)
-	{
-		PartySessionId = PartySession->GetSessionIdStr();
-	}
-
 	// Now, create the match ticket on the backend
 	const THandler<FAccelByteModelsV2MatchmakingCreateTicketResponse> OnStartMatchmakingSuccessDelegate = THandler<FAccelByteModelsV2MatchmakingCreateTicketResponse>::CreateRaw(this, &FOnlineAsyncTaskAccelByteStartV2Matchmaking::OnStartMatchmakingSuccess);
 	const FErrorHandler OnStartMatchmakingErrorDelegate = FErrorHandler::CreateRaw(this, &FOnlineAsyncTaskAccelByteStartV2Matchmaking::OnStartMatchmakingError);
 	
 	FAccelByteModelsV2MatchTicketOptionalParams Optionals;
-	Optionals.Latencies = ApiClient->Qos.GetCachedLatencies();
-	
-	// PartySessionId will be filled with "InvalidSession" if user party session not valid.
-	// we want to create a matchmaking ticket without session Id in that case.
-	Optionals.SessionId = PartySessionId.Equals(TEXT("InvalidSession"), ESearchCase::IgnoreCase) ? TEXT("") : PartySessionId;
+	Optionals.Latencies = ApiClient->Qos.GetCachedLatencies();	
+	Optionals.SessionId = GetTicketSessionId();
 
 	const TSharedRef<FJsonObject> AttributesJsonObject = SessionInterface->ConvertSearchParamsToJsonObject(SearchHandle->QuerySettings.SearchParams);
 	Optionals.Attributes.JsonObject = AttributesJsonObject;
@@ -143,6 +133,33 @@ void FOnlineAsyncTaskAccelByteStartV2Matchmaking::CreateMatchTicket()
 	ApiClient->MatchmakingV2.CreateMatchTicket(MatchPool, OnStartMatchmakingSuccessDelegate, OnStartMatchmakingErrorDelegate, Optionals);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
+}
+
+FString FOnlineAsyncTaskAccelByteStartV2Matchmaking::GetTicketSessionId() const
+{
+	// First check if we have a session ID explicitly set in the matchmaking handle
+	FString MatchmakingHandleSessionId;
+	if (SearchHandle->QuerySettings.Get(SETTING_MATCHMAKING_SESSION_ID, MatchmakingHandleSessionId) && !MatchmakingHandleSessionId.IsEmpty())
+	{
+		return MatchmakingHandleSessionId;
+	}
+	
+	// Otherwise, check if we have a party session that we are apart of, if so, use that ID
+	const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(Subsystem->GetSessionInterface());
+	check(SessionInterface.IsValid());
+
+	FNamedOnlineSession* PartySession = SessionInterface->GetPartySession();
+	if (PartySession != nullptr)
+	{
+		FString PartySessionId = PartySession->GetSessionIdStr();
+		if (!PartySessionId.Equals(TEXT("InvalidSession")))
+		{
+			return PartySessionId;
+		}
+	}
+
+	// We have no session ID to attach, return empty
+	return TEXT("");
 }
 
 void FOnlineAsyncTaskAccelByteStartV2Matchmaking::OnStartMatchmakingSuccess(const FAccelByteModelsV2MatchmakingCreateTicketResponse& Result)

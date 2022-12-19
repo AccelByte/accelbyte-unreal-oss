@@ -58,6 +58,10 @@ private:
 	/** Code associated with the party being restored */
 	FString PartyCode;
 
+	FAccelByteModelsBulkUserStatusNotif PartyMemberStatuses;
+
+	void GetPartyCode();
+
 	/** Delegate handler for when we get a response back from the backend on current party info */
 	void OnGetPartyInfoResponse(const FAccelByteModelsInfoPartyResponse& Result);
 
@@ -72,5 +76,8 @@ private:
 
 	/** Delegate handler for when get party data from the backend error */
 	void OnGetPartyDataError(int32 ErrorCode, const FString& ErrorMessage);
+	
+	void OnGetPartyMemberConnectStatusSuccess(const FAccelByteModelsBulkUserStatusNotif& Statuses);
+	void OnGetPartyMemberConnectStatusFailed(int Code, const FString& ErrMsg);
 };
 

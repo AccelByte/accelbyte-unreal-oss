@@ -107,6 +107,7 @@ void FOnlineSessionV1AccelByte::OnMatchmakingNotificationReceived(const FAccelBy
 			SessionSearchHandle = MakeShared<FOnlineSessionSearch>();
 			SessionSearchHandle->SearchState = EOnlineAsyncTaskState::InProgress;
 			SessionSearchHandle->QuerySettings.Set(SETTING_IS_REMOTE_MATCHMAKING, true, EOnlineComparisonOp::Equals);
+			SessionSearchHandle->QuerySettings.Set<FString>(SETTING_GAMEMODE, Notification.GameMode, EOnlineComparisonOp::Equals);
 
 			UE_LOG(LogAccelByteOSSParty, Verbose, TEXT("Matchmaking started by party leader!"));
 		}
@@ -1831,7 +1832,7 @@ bool FOnlineSessionV1AccelByte::QueryDedicatedSessionInfo(FName SessionName, con
 {
 	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("SessionName: %s"), *SessionName.ToString());
 
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteRetrieveDedicatedV1SessionInfo>(AccelByteSubsystem, SessionName);
+	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteRetrieveDedicatedV1SessionInfo>(AccelByteSubsystem, SessionName, Delegate);
 
 	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
 	return true;

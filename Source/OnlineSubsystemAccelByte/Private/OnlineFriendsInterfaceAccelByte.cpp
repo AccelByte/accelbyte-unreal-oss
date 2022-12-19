@@ -5,6 +5,7 @@
 #include "OnlineFriendsInterfaceAccelByte.h"
 #include "OnlineSubsystemAccelByte.h"
 #include "OnlineIdentityInterfaceAccelByte.h"
+#include "OnlinePresenceInterfaceAccelByte.h"
 #include "Core/AccelByteMultiRegistry.h"
 #include "Api/AccelByteLobbyApi.h"
 #include "AsyncTasks/Friends/OnlineAsyncTaskAccelByteReadFriendsList.h"
@@ -26,6 +27,18 @@ FOnlineFriendAccelByte::FOnlineFriendAccelByte(const FString& InDisplayName, con
 	, UserId(InUserId)
 	, InviteStatus(InInviteStatus)
 {
+}
+
+bool FOnlineFriendAccelByte::SetUserAttribute(const FString& AttrName, const FString& AttrValue)
+{
+	const FString* FoundAttr = UserAttributesMap.Find(AttrName);
+	if (FoundAttr == nullptr || *FoundAttr != AttrValue)
+	{
+		UserAttributesMap.Add(AttrName, AttrValue);
+		return true;
+	}
+
+	return false;
 }
 
 EInviteStatus::Type FOnlineFriendAccelByte::GetInviteStatus() const
@@ -181,6 +194,11 @@ void FOnlineFriendsAccelByte::OnFriendRequestAcceptedNotificationReceived(const 
 		{
 			TSharedPtr<FOnlineFriendAccelByte> AccelByteFriend = StaticCastSharedPtr<FOnlineFriendAccelByte>(*FoundFriend);
 			AccelByteFriend->SetInviteStatus(EInviteStatus::Accepted);
+			// NOTE(Damar): set online status on presence, I don't think we need to query the presence.
+			FOnlineUserPresence Presence;
+			Presence.bIsOnline = true;
+			Presence.Status.State = EOnlinePresenceState::Online;
+			AccelByteFriend->SetPresence(Presence);
 			TriggerOnInviteAcceptedDelegates(UserId.ToSharedRef().Get(), AccelByteFriend->GetUserId().Get());
 			TriggerOnFriendsChangeDelegates(LocalUserNum);
 		}
@@ -284,6 +302,16 @@ void FOnlineFriendsAccelByte::OnCancelFriendRequestNotificationReceived(const FA
 	}
 }
 
+void FOnlineFriendsAccelByte::OnPresenceReceived(const FUniqueNetId& UserId, const TSharedRef<FOnlineUserPresence>& Presence, int32 LocalUserNum)
+{
+	TSharedPtr<FOnlineFriend> Friend = GetFriend(LocalUserNum, UserId, TEXT(""));
+	if(Friend.IsValid())
+	{
+		TSharedPtr<FOnlineFriendAccelByte> AccelByteFriend = StaticCastSharedPtr<FOnlineFriendAccelByte>(Friend);
+		AccelByteFriend->SetPresence(Presence.Get());
+	}
+}
+
 void FOnlineFriendsAccelByte::RegisterRealTimeLobbyDelegates(int32 LocalUserNum)
 {
 	// Get our identity interface to retrieve the API client for this user
@@ -316,6 +344,16 @@ void FOnlineFriendsAccelByte::RegisterRealTimeLobbyDelegates(int32 LocalUserNum)
 
 	AccelByte::Api::Lobby::FCancelFriendsNotif OnCancelFriendRequestNotificationReceivedDelegate = AccelByte::Api::Lobby::FCancelFriendsNotif::CreateThreadSafeSP(AsShared(), &FOnlineFriendsAccelByte::OnCancelFriendRequestNotificationReceived, LocalUserNum);
 	ApiClient->Lobby.SetOnCancelFriendsNotifDelegate(OnCancelFriendRequestNotificationReceivedDelegate);
+
+	// Update the friend presence
+	const FOnlinePresenceAccelBytePtr PresenceInterface = StaticCastSharedPtr<FOnlinePresenceAccelByte>(AccelByteSubsystem->GetPresenceInterface());
+	if (!PresenceInterface.IsValid())
+	{
+		UE_LOG_AB(Warning, TEXT("Failed to register real-time lobby for a friend presence as an presence interface instance could not be retrieved"));
+		return;
+	}
+	FOnPresenceReceivedDelegate OnPresenceReceivedDelegate = FOnPresenceReceivedDelegate::CreateThreadSafeSP(AsShared(), &FOnlineFriendsAccelByte::OnPresenceReceived, LocalUserNum);
+	PresenceReceivedHandle = PresenceInterface->AddOnPresenceReceivedDelegate_Handle(OnPresenceReceivedDelegate);
 }
 
 void FOnlineFriendsAccelByte::AddFriendsToList(int32 LocalUserNum, const TArray<TSharedPtr<FOnlineFriend>>& NewFriends)

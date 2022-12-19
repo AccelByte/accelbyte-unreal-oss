@@ -3,6 +3,8 @@
 // and restrictions contact your company contract manager.
 
 #include "OnlineAsyncTaskAccelByteReadFriendsList.h"
+
+#include "OnlinePresenceInterfaceAccelByte.h"
 #include "OnlineSubsystemAccelByte.h"
 #include "Core/AccelByteRegistry.h"
 #include "Api/AccelByteLobbyApi.h"
@@ -46,8 +48,20 @@ void FOnlineAsyncTaskAccelByteReadFriendsList::Tick()
 {
 	Super::Tick();
 
+	if (bHasReceivedResponseForCurrentFriends && bHasReceivedResponseForIncomingFriends && bHasReceivedResponseForOutgoingFriends && (!bHasSentRequestForUserStatus && !bHasReceivedAllUserStatus))
+	{
+		ApiClient->Lobby.BulkGetUserPresence(FriendIdsToQuery,
+			THandler<FAccelByteModelsBulkUserStatusNotif>::CreateRaw(this, &FOnlineAsyncTaskAccelByteReadFriendsList::OnGetUserPresenceComplete),
+			FErrorHandler::CreateLambda([this](int32 Code, FString const& ErrMsg)
+			{
+				AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Could not query friends presence"));
+				CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
+			})
+		);
+		bHasSentRequestForUserStatus = true;
+	}
 	// If we have received all friend IDs from each list, but we haven't tried to get information on those friends yet, send the request out
-	if (bHasReceivedResponseForCurrentFriends && bHasReceivedResponseForIncomingFriends && bHasReceivedResponseForOutgoingFriends && (!bHasSentRequestForFriendInformation && !bHasRecievedAllFriendInformation))
+	if (bHasReceivedResponseForCurrentFriends && bHasReceivedResponseForIncomingFriends && bHasReceivedResponseForOutgoingFriends && bHasReceivedAllUserStatus && (!bHasSentRequestForFriendInformation && !bHasRecievedAllFriendInformation))
 	{
 		FOnlineUserCacheAccelBytePtr UserStore = Subsystem->GetUserCache();
 		if (!UserStore.IsValid())
@@ -94,7 +108,7 @@ void FOnlineAsyncTaskAccelByteReadFriendsList::TriggerDelegates()
 bool FOnlineAsyncTaskAccelByteReadFriendsList::HasTaskFinishedAsyncWork()
 {
 	// Check whether we have received responses for each friend type, invited or already friends
-	if (bHasReceivedResponseForCurrentFriends && bHasReceivedResponseForIncomingFriends && bHasReceivedResponseForOutgoingFriends && bHasRecievedAllFriendInformation)
+	if (bHasReceivedResponseForCurrentFriends && bHasReceivedResponseForIncomingFriends && bHasReceivedResponseForOutgoingFriends && bHasRecievedAllFriendInformation && bHasReceivedAllUserStatus)
 	{
 		return true;
 	}
@@ -180,6 +194,19 @@ void FOnlineAsyncTaskAccelByteReadFriendsList::OnQueryFriendInformationComplete(
 			}
 
 			TSharedPtr<FOnlineFriendAccelByte> Friend = MakeShared<FOnlineFriendAccelByte>(FriendInfo->DisplayName, FriendInfo->Id.ToSharedRef(), *FoundInviteStatus);
+			Friend->SetUserAttribute(ACCELBYTE_ACCOUNT_GAME_AVATAR_URL, FriendInfo->GameAvatarUrl);
+			Friend->SetUserAttribute(ACCELBYTE_ACCOUNT_PUBLISHER_AVATAR_URL, FriendInfo->PublisherAvatarUrl);
+			
+			FAccelByteModelsUserStatusNotif* UserPresenceStatus = AccelByteIdToPresence.Find(FriendInfo->Id->GetAccelByteId());
+			if (UserPresenceStatus != nullptr)
+			{
+				FOnlineUserPresence Presence;
+				Presence.bIsOnline = UserPresenceStatus->Availability == EAvailability::Online;
+				Presence.Status.StatusStr = UserPresenceStatus->Activity;
+				Presence.Status.State = UserPresenceStatus->Availability == EAvailability::Online ? EOnlinePresenceState::Online : EOnlinePresenceState::Offline;
+				Friend->SetPresence(Presence);
+			}
+
 			FoundFriends.Add(Friend);
 		}
 	}
@@ -191,4 +218,13 @@ void FOnlineAsyncTaskAccelByteReadFriendsList::OnQueryFriendInformationComplete(
 	}
 
 	bHasRecievedAllFriendInformation = true;
+}
+
+void FOnlineAsyncTaskAccelByteReadFriendsList::OnGetUserPresenceComplete(const FAccelByteModelsBulkUserStatusNotif& Statuses)
+{
+	for(FAccelByteModelsUserStatusNotif const& Status : Statuses.Data)
+	{
+		AccelByteIdToPresence.Add(Status.UserID, Status);
+	}
+	bHasReceivedAllUserStatus = true;
 }

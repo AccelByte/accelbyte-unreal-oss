@@ -30,6 +30,14 @@ PACKAGE_SCOPE:
 		InviteStatus = InInviteStatus;
 	}
 	
+	/** Method to allow async tasks to set attributes for game code to read` */
+	bool SetUserAttribute(const FString& AttrName, const FString& AttrValue);
+
+	void SetPresence(const FOnlineUserPresence& InPresence)
+	{
+		Presence = InPresence;
+	}
+	
 public:
 	
 	//~ Begin FOnlineFriend
@@ -159,6 +167,8 @@ PACKAGE_SCOPE:
 	/** Constructor that is invoked by the Subsystem instance to create a friend interface instance */
 	FOnlineFriendsAccelByte(FOnlineSubsystemAccelByte* InSubsystem);
 
+	FDelegateHandle PresenceReceivedHandle;
+	
 	/**
 	 * Method used by the Identity interface to register delegates for friend notifications to this interface to get
 	 * real-time updates from the Lobby websocket.
@@ -259,5 +269,7 @@ protected:
 
 	/** Delegate handler for when another user cancels their friend request to us */
 	void OnCancelFriendRequestNotificationReceived(const FAccelByteModelsCancelFriendsNotif& Notification, int32 LocalUserNum);
+
+	void OnPresenceReceived(const FUniqueNetId& UserId, const TSharedRef<FOnlineUserPresence>& Presence, int32 LocalUserNum);
 
 };

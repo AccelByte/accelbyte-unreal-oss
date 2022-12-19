@@ -70,6 +70,11 @@ private:
 
 	FAccelByteTimerObject TimerObject;
 
+	/**
+	 * Flag if login by External UI is failed. It will retry the Native login and skip the login UI
+	 */
+	bool bRetryLoginSkipExternalUI {false};
+
 	/*
 	 * Unique ID of the user account that we logged into on the native platform, will be invalid if we did not login with native platform
 	 */

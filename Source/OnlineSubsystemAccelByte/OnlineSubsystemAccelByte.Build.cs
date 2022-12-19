@@ -3,7 +3,9 @@
 // and restrictions contact your company contract manager.
 
 using UnrealBuildTool;
+using System;
 using System.IO;
+using System.Diagnostics;
 
 #if UE_5_0_OR_LATER
 using EpicGames.Core;
@@ -17,7 +19,7 @@ public class OnlineSubsystemAccelByte : ModuleRules
 	{
 		return TargetPlatform.ToString().Equals(Platform);
 	}
-	
+
 	public OnlineSubsystemAccelByte(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PrivateDefinitions.Add("ONLINESUBSYSTEMACCELBYTE_PACKAGE=1");
@@ -25,12 +27,12 @@ public class OnlineSubsystemAccelByte : ModuleRules
 		bAllowConfidentialPlatformDefines = true;
 
 		PrivateIncludePaths.Add(Path.Combine(ModuleDirectory, "Private"));
-		
+
 		PublicDependencyModuleNames.AddRange(new string[] {
 			"OnlineSubsystemUtils",
 			"AccelByteUe4Sdk"
 		});
-		
+
 		PrivateDependencyModuleNames.AddRange(new string[] {
 			"Core",
 			"CoreUObject",
@@ -57,7 +59,14 @@ public class OnlineSubsystemAccelByte : ModuleRules
 		bool bEnableV2Sessions = false;
 		GetBoolFromEngineConfig("OnlineSubsystemAccelByte", "bEnableV2Sessions", out bEnableV2Sessions);
 		PublicDefinitions.Add(string.Format("AB_USE_V2_SESSIONS={0}", bEnableV2Sessions ? 1 : 0));
-    }
+
+		if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("BuildDocs"))) return;
+
+		if (BuildDocs(ModuleDirectory))
+		{
+			Console.WriteLine("AccelByteDocsBuilder: documentation built successfully");
+		}
+	}
 
 	private bool GetBoolFromEngineConfig(string Section, string Key, out bool Value)
 	{
@@ -67,8 +76,8 @@ public class OnlineSubsystemAccelByte : ModuleRules
 
 		if (EngineConfig == null)
 		{
-            Value = false;
-            return false;
+			Value = false;
+			return false;
 		}
 
 		bool TempValue = false;
@@ -80,5 +89,29 @@ public class OnlineSubsystemAccelByte : ModuleRules
 
 		Value = TempValue;
 		return true;
+	}
+
+		private static bool BuildDocs(string ModuleDirectory)
+	{
+		try
+		{
+			using (var Process = new Process())
+			{
+				string ScriptPath = Path.Combine(ModuleDirectory, @"..\..\..\Doxygen\docs-builder\accelbyte_docs_builder.py");
+				Process.StartInfo.FileName = "python.exe";
+				Process.StartInfo.Arguments = string.Format("{0} internal", ScriptPath);
+				Process.StartInfo.UseShellExecute = false;
+
+				Process.Start();
+				if (!Process.HasExited) Process.WaitForExit();
+
+				return Process.ExitCode == 0;
+			}
+		}
+		catch (Exception E)
+		{
+			Console.WriteLine("Docs Builder Error: {0}", E.Message);
+			return false;
+		}
 	}
 }

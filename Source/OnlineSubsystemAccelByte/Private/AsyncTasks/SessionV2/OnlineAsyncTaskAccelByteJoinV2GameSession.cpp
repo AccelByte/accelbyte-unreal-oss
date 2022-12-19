@@ -65,14 +65,6 @@ void FOnlineAsyncTaskAccelByteJoinV2GameSession::Finalize()
 			return;
 		}
 
-		TSharedPtr<FOnlineSessionInfoAccelByteV2> SessionInfo = StaticCastSharedPtr<FOnlineSessionInfoAccelByteV2>(JoinedSession->SessionInfo);
-		if (!ensure(SessionInfo.IsValid()))
-		{
-			AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to finalize joining a game session as our local session information instance is invalid!"));
-			return;
-		}
-
-		SessionInfo->SetBackendSessionData(MakeShared<FAccelByteModelsV2GameSession>(UpdatedBackendSessionInfo));
 		JoinedSession->SessionState = EOnlineSessionState::Pending;
 
 		// This will seem pretty silly, but take the open slots for the session and set them to the max number of slots. This
@@ -86,26 +78,14 @@ void FOnlineAsyncTaskAccelByteJoinV2GameSession::Finalize()
 			JoinedSession->NumOpenPublicConnections = JoinedSession->SessionSettings.NumPublicConnections;
 		}
 
-		// Register all members marked as joined to the session
-		SessionInterface->RegisterPlayers(SessionName, SessionInfo->GetJoinedMembers(), false);
-
+		// Remove any restored session instance or invite that we had for this session, since we joined it
 		const FString SessionId = JoinedSession->GetSessionIdStr();
-
-		// Additionally, pass to the session interface to remove any restored session instance that we were tracking for this
-		// session, if any exists.
 		SessionInterface->RemoveRestoreSessionById(SessionId);
-
-		// Also, remove any invite we may have for this game session
 		SessionInterface->RemoveInviteById(SessionId);
 
-		// Check whether or not the session we just joined is a P2P session, if so then we need to call into the session
-		// interface to finalize joining, by connecting to the peer. Flag that we are doing this so that we don't trigger
-		// join session delegate too early.
-		if (SessionInfo->GetServerType() == EAccelByteV2SessionConfigurationServerType::P2P)
-		{
-			bJoiningP2P = true;
-			SessionInterface->ConnectToJoinedP2PSession(SessionName, EOnlineSessionP2PConnectedAction::Join);
-		}
+		// Update the game session data with what we received on join, that way if anything updated between the query and us
+		// joining, we would apply that to the joined session
+		SessionInterface->UpdateInternalGameSession(SessionName, UpdatedBackendSessionInfo, bJoiningP2P);
 	}
 	else
 	{

@@ -76,7 +76,8 @@ public:
 	friend inline FNboSerializeFromBufferAccelByte& operator>>(FNboSerializeFromBufferAccelByte& Ar, FOnlineSessionInfoAccelByteV1& SessionInfo)
 	{
 		check(SessionInfo.GetHostAddr().IsValid());
-		Ar >> *SessionInfo.GetSessionIdRef();
+		TSharedRef<FUniqueNetIdAccelByteResource> Session = ConstCastSharedRef<FUniqueNetIdAccelByteResource>(SessionInfo.GetSessionIdRef());
+		Ar >> *Session;
 		Ar >> *SessionInfo.GetHostAddr();
 		return Ar;
 	}

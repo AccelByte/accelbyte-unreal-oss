@@ -2,6 +2,57 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.8.2](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.8.2%0D0.8.1) (2022-12-19)
+
+
+### Features
+
+* add chat interface and connect chat on login ([7300b5a](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/7300b5a0b8670ee4cd39ae79a793a2398ad8de05))
+* add GetFromSubsystem and GetFromWorld in FOnlineChatAccelByte ([aae33b3](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/aae33b34a8fdc8479fcb10d060944ead96082a59))
+* add TextChat option on session ([81a990f](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/81a990f1972a02ea5271c17537d851871a93ad69))
+* Bulk stats update on some users ([031beae](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/031beae38a1fef8cdfea743ba3d89a6cd5e8e15d))
+* chat interface functions and events ([0fe55de](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/0fe55dee8172efb9a060a280aba907d1c0b5b9b2))
+* **EOS:** Support EOS login (launcher and accountPortal) ([a5c6583](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/a5c6583a46fe41726f8e91cd67f418749e783631))
+* **friendPresence:** Auto update friend presence. ([d736994](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/d7369948e1ca787a4e926c338d993eb74f25ca8f))
+* Get cached stats from a specified stats name and a specified user ([3c9f6c4](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/3c9f6c4f11f598ca96f08f424676d1f36b448bf3))
+* load last message for private message ([9ae37a1](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/9ae37a1ac3cb40a8cb11421010f717cb93899844))
+* **matchmaking:** set SETTING_GAMEMODE after getting match notif (this only works after AR-3776 done) ([60997b7](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/60997b7f9d64726077c0bb3d4f41b6309d873218))
+* **MMv2:** implement setting to override session ID passed to created matchmaking ticket ([c861fca](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/c861fca1b7d223b13666ff1cb8b1e6c06b89a5bb))
+* Reset stats from a specified user ([fa2d726](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/fa2d72618c85d077f5e6a9e1907f4496fe2cadf2))
+* **sdk:** move to latest sdk ([31ec23d](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/31ec23d2f0d1e51cc8239c41fe28264dcc1065a5))
+* **user:** implement avatar URL to user accounts ([155e0d2](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/155e0d21793db50dc0b975574dd845b9e0a20708))
+* **V1SessionInfo:** add delegate call when retrieve session info ([9eec43f](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/9eec43f786efc08291b5f20c31777b0a4f9bbaf0))
+
+
+### Bug Fixes
+
+* add another case for Busy and Invisible. ([44f6f7b](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/44f6f7bf340716631436c478dcc07be57408a424))
+* add missing code ([d756257](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/d7562576f3932a2e4b284edf34402f3b7725ddf4))
+* add query room data after user successfully join a chat room ([48ff9ba](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/48ff9bae8e37bca3e9e81c2a4f716afa4e024914))
+* chat interface include ([15bfea1](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/15bfea18cc52f9c4b361a8681db12342f2047a37))
+* **chat:** fix fstring initialization compile failure with ue5 ([95fadcc](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/95fadcc14362eaf5fca326e58932e043b1188793))
+* deprecation warnings in FUniqueNetId during compilation ([ed7203d](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/ed7203d78af926ede59492a20a69f6c7a663741a))
+* implement GetChatInterface override method in OnlineSubsystemAccelByte ([6d84315](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/6d84315fab55f6ce80d7d244b6a424624cae912c))
+* **MMv2:** fix refresh session on game server failing to update ([aabf5bb](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/aabf5bbbdcae9d639c86c8811dc90bb623d90838))
+* **MPv2:** fix join session using potentially stale data for created session ([f6d0d5b](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/f6d0d5bdf9199e8cfca8dc013be824ce3cf4bf65))
+* **party:** Presence party member ([d124928](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/d1249289cee1980bf5a4ee8d4701f854f53750aa))
+* register player V1 doesn't use any checking for dedicated server ([6ac5c76](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/6ac5c76eac6de8a69621c610b53293114f7a5a90))
+* **restoreParty:** fix restore party if failed to get member connect status ([0f602b7](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/0f602b75fc3a7b75601fcebc15b13001b0012d2e))
+* room cache race condition ([23fb5db](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/23fb5db769edc2c01ed02fb3f878e85816a09a24))
+* wrong presence state when querying user presence ([dbeebad](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/dbeebad1d1f798a44a5fc57fa94157b04e73781d))
+
+
+### Documentations
+
+* implement script for automated build ([a694fff](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/a694fff576918f0c5302f923ee00734c5e8e6365))
+
+
+### Refactors
+
+* Add UniqueNetId param in FOnlineChatAccelByte::RegisterChatDelegates and change accessablility it to PACKAGE_SCOPE ([437a4e7](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/437a4e77480efec9b4fc4b35e261eac099c9f7d1))
+* move chat connect to chat interface ([38b193a](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/38b193ae7c921907c4dcc79dde3025d1488ebb34))
+* rename ConnectAccelByteChat to Connect ([5686906](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/5686906beee11673d48f029e6e2b23b1b3d26d5a))
+
 ### [0.8.1](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.8.1%0D0.8.0) (2022-12-09)
 
 

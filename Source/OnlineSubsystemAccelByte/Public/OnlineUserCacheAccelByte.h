@@ -20,22 +20,32 @@ public:
 	/**
 	 * @brief Composite ID representation for this user, platform information may be blank if we cannot retrieve these values.
 	 */
-	TSharedPtr<const FUniqueNetIdAccelByteUser> Id;
+	TSharedPtr<const FUniqueNetIdAccelByteUser> Id{nullptr};
 
 	/**
 	 * @brief Display name for the user on our platform
 	 */
-	FString DisplayName;
+	FString DisplayName{};
 
 	/**
 	 * @brief Public facing ID for this user, usually used as a friend code
 	 */
-	FString PublicId;
+	FString PublicId{};
+
+	/**
+	 * @brief URL for an avatar for this user at the game level, may be blank if the user does not have one
+	 */
+	FString GameAvatarUrl{};
+
+	/**
+	 * @brief URL for an avatar for this user at the publisher level, may be blank if the user does not have one
+	 */
+	FString PublisherAvatarUrl{};
 
 	/**
 	 * @brief Custom attributes of the user's profile
 	 */
-	FJsonObject CustomAttributes;
+	FJsonObject CustomAttributes{};
 
 private:
 
@@ -43,13 +53,13 @@ private:
 	 * Flag determining whether or not this user will always be relevant to the player, such as if they are the user's friend.
 	 * If this is true, then this user will never be removed from the cache. This should only be set at query time.
 	 */
-	bool bIsImportant = false;
+	bool bIsImportant{false};
 
 	/**
 	 * Timestamp denoting the last time that this particular user has been grabbed from the cache. If this exceeds the
 	 * maximum value set in the user cache, and if the user is not marked as important, they will be purged from the cache.
 	 */
-	double LastAccessedTimeInSeconds = 0.0;
+	double LastAccessedTimeInSeconds{0.0};
 
 	/**
 	 * Setting the query async task as a friend class to set importance and last accessed

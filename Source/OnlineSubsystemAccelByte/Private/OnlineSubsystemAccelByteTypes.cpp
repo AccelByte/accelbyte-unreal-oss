@@ -75,9 +75,10 @@ FString FAccelByteUniqueIdComposite::ToString() const
 
 #pragma region FUniqueNetIdAccelByteResource
 
-PRAGMA_DISABLE_DEPRECATION_WARNINGS
 FUniqueNetIdAccelByteResource::FUniqueNetIdAccelByteResource()
+PRAGMA_DISABLE_DEPRECATION_WARNINGS
 	: FUniqueNetIdString()
+PRAGMA_ENABLE_DEPRECATION_WARNINGS
 {
 	Type = ACCELBYTE_SUBSYSTEM;
 }
@@ -91,9 +92,7 @@ PRAGMA_ENABLE_DEPRECATION_WARNINGS
 }
 
 FUniqueNetIdAccelByteResource::FUniqueNetIdAccelByteResource(FString&& InUniqueNetId)
-PRAGMA_DISABLE_DEPRECATION_WARNINGS
 	: FUniqueNetIdString(MoveTemp(InUniqueNetId), ACCELBYTE_SUBSYSTEM)
-PRAGMA_ENABLE_DEPRECATION_WARNINGS
 {
 }
 
@@ -110,7 +109,6 @@ FUniqueNetIdAccelByteResource::FUniqueNetIdAccelByteResource(FString&& InUniqueN
 {
 	check(InType == ACCELBYTE_SUBSYSTEM);
 }
-PRAGMA_ENABLE_DEPRECATION_WARNINGS
 
 FUniqueNetIdAccelByteResourceRef FUniqueNetIdAccelByteResource::Cast(const FUniqueNetId& NetId)
 {
@@ -124,9 +122,9 @@ FUniqueNetIdAccelByteResourceRef FUniqueNetIdAccelByteResource::Cast(const FUniq
 
 const FUniqueNetIdAccelByteResourceRef FUniqueNetIdAccelByteResource::Invalid()
 {
-	PRAGMA_DISABLE_DEPRECATION_WARNINGS
-	return MakeShared<FUniqueNetIdAccelByteResource>(ACCELBYTE_INVALID_ID_VALUE);
-	PRAGMA_ENABLE_DEPRECATION_WARNINGS
+	FString InvalidId = ACCELBYTE_INVALID_ID_VALUE;
+	FUniqueNetIdAccelByteResource* Resource = new FUniqueNetIdAccelByteResource(MoveTemp(InvalidId), ACCELBYTE_SUBSYSTEM);
+	return MakeShareable(Resource);
 }
 
 FName FUniqueNetIdAccelByteResource::GetType() const
@@ -143,26 +141,33 @@ bool FUniqueNetIdAccelByteResource::IsValid() const
 
 #pragma region FUniquneNetIdAccelByteUser
 
-PRAGMA_DISABLE_DEPRECATION_WARNINGS
 FUniqueNetIdAccelByteUser::FUniqueNetIdAccelByteUser()
+PRAGMA_DISABLE_DEPRECATION_WARNINGS
 	: FUniqueNetIdAccelByteResource()
+PRAGMA_ENABLE_DEPRECATION_WARNINGS
 {
 }
 
 FUniqueNetIdAccelByteUser::FUniqueNetIdAccelByteUser(const FString& InUniqueNetId)
+PRAGMA_DISABLE_DEPRECATION_WARNINGS
 	: FUniqueNetIdAccelByteResource(InUniqueNetId)
+PRAGMA_ENABLE_DEPRECATION_WARNINGS
 {
 	DecodeIDElements();
 }
 
 FUniqueNetIdAccelByteUser::FUniqueNetIdAccelByteUser(FString&& InUniqueNetId)
+PRAGMA_DISABLE_DEPRECATION_WARNINGS
 	: FUniqueNetIdAccelByteResource(MoveTemp(InUniqueNetId))
+PRAGMA_ENABLE_DEPRECATION_WARNINGS
 {
 	DecodeIDElements();
 }
 
 FUniqueNetIdAccelByteUser::FUniqueNetIdAccelByteUser(const FUniqueNetId& Src)
+PRAGMA_DISABLE_DEPRECATION_WARNINGS
 	: FUniqueNetIdAccelByteResource(Src)
+PRAGMA_ENABLE_DEPRECATION_WARNINGS
 {
 	DecodeIDElements();
 }
@@ -174,7 +179,9 @@ FUniqueNetIdAccelByteUser::FUniqueNetIdAccelByteUser(FString&& InUniqueNetId, co
 }
 
 FUniqueNetIdAccelByteUser::FUniqueNetIdAccelByteUser(const FAccelByteUniqueIdComposite& CompositeId, const FString& EncodedComposite)
+PRAGMA_DISABLE_DEPRECATION_WARNINGS
 	: FUniqueNetIdAccelByteResource(EncodedComposite)
+PRAGMA_ENABLE_DEPRECATION_WARNINGS
 	, CompositeStructure(CompositeId)
 {
 	// Check if this ID is valid and cache it so that we can cut down on processing of the ID later
@@ -184,7 +191,6 @@ FUniqueNetIdAccelByteUser::FUniqueNetIdAccelByteUser(const FAccelByteUniqueIdCom
 		bHasCachedValidState = true;
 	}
 }
-PRAGMA_ENABLE_DEPRECATION_WARNINGS
 
 FUniqueNetIdAccelByteUserRef FUniqueNetIdAccelByteUser::Create(const FAccelByteUniqueIdComposite& CompositeId)
 {
@@ -208,9 +214,9 @@ FUniqueNetIdAccelByteUserRef FUniqueNetIdAccelByteUser::Create(const FAccelByteU
 		return Invalid();
 	}
 
-	PRAGMA_DISABLE_DEPRECATION_WARNINGS
-	return MakeShared<const FUniqueNetIdAccelByteUser>(CompositeId, EncodedString);
-	PRAGMA_ENABLE_DEPRECATION_WARNINGS
+	FUniqueNetIdAccelByteUser* User = new FUniqueNetIdAccelByteUser(MoveTemp(EncodedString), ACCELBYTE_SUBSYSTEM);
+	User->CompositeStructure = CompositeId;
+	return MakeShareable(User);
 }
 
 FUniqueNetIdAccelByteUserRef FUniqueNetIdAccelByteUser::Create(const FString& InUniqueNetId)
@@ -223,16 +229,16 @@ FUniqueNetIdAccelByteUserRef FUniqueNetIdAccelByteUser::Create(const FString& In
 		return Create(FAccelByteUniqueIdComposite(InUniqueNetId));
 	}
 
-	PRAGMA_DISABLE_DEPRECATION_WARNINGS
-	return MakeShared<const FUniqueNetIdAccelByteUser>(InUniqueNetId);
-	PRAGMA_ENABLE_DEPRECATION_WARNINGS
+	FString UniqueNetId = InUniqueNetId;
+	FUniqueNetIdAccelByteUser* User = new FUniqueNetIdAccelByteUser(MoveTemp(UniqueNetId), ACCELBYTE_SUBSYSTEM);
+	return MakeShareable(User);
 }
 
 FUniqueNetIdAccelByteUserRef FUniqueNetIdAccelByteUser::Create(const FUniqueNetId& Src)
 {
-	PRAGMA_DISABLE_DEPRECATION_WARNINGS
-	return MakeShared<const FUniqueNetIdAccelByteUser>(FUniqueNetIdAccelByteUser(Src.ToString(), Src.GetType()));
-	PRAGMA_ENABLE_DEPRECATION_WARNINGS
+	FString TempString = Src.ToString();
+	FUniqueNetIdAccelByteUser* User = new FUniqueNetIdAccelByteUser(MoveTemp(TempString), Src.GetType());
+	return MakeShareable(User);
 }
 
 TSharedRef<const FUniqueNetIdAccelByteUser> FUniqueNetIdAccelByteUser::Cast(const FUniqueNetId& NetId)
@@ -245,11 +251,11 @@ TSharedRef<const FUniqueNetIdAccelByteUser> FUniqueNetIdAccelByteUser::Cast(cons
 	return Invalid();
 }
 
-TSharedRef<const FUniqueNetIdAccelByteUser> FUniqueNetIdAccelByteUser::Invalid()
+FUniqueNetIdAccelByteUserRef FUniqueNetIdAccelByteUser::Invalid()
 {
-	PRAGMA_DISABLE_DEPRECATION_WARNINGS
-	return MakeShared<FUniqueNetIdAccelByteUser>(ACCELBYTE_INVALID_ID_VALUE);
-	PRAGMA_ENABLE_DEPRECATION_WARNINGS
+	FString InvalidId = ACCELBYTE_INVALID_ID_VALUE;
+	FUniqueNetIdAccelByteUser* User = new FUniqueNetIdAccelByteUser(MoveTemp(InvalidId), ACCELBYTE_SUBSYSTEM);
+	return MakeShareable(User);
 }
 
 FName FUniqueNetIdAccelByteUser::GetType() const
@@ -427,7 +433,7 @@ FOnlineSessionInfoAccelByteV1::FOnlineSessionInfoAccelByteV1()
 	: FOnlineSessionInfo()
 	, HostAddr(ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM)->CreateInternetAddr())
 	, RemoteId(TEXT(""))
-	, SessionId(MakeShared<FUniqueNetIdAccelByteResource>(ACCELBYTE_INVALID_ID_VALUE))
+	, SessionId(FUniqueNetIdAccelByteResource::Invalid())
 {
 }
 
@@ -496,7 +502,8 @@ void FOnlineSessionInfoAccelByteV1::SetupP2PRelaySessionInfo(const FOnlineSubsys
 
 	FGuid OwnerGuid;
 	FPlatformMisc::CreateGuid(OwnerGuid);
-	SessionId = MakeShared<FUniqueNetIdAccelByteResource>(OwnerGuid.ToString());
+	FString Guid = OwnerGuid.ToString();
+	SessionId =  FUniqueNetIdAccelByteResource::Create(MoveTemp(Guid), ACCELBYTE_SUBSYSTEM);
 }
 
 FString FOnlineSessionInfoAccelByteV1::ToDebugString() const
@@ -522,7 +529,7 @@ void FOnlineSessionInfoAccelByteV1::SetRemoteId(const FString& InRemoteId)
 	RemoteId = InRemoteId;
 }
 
-TSharedRef<FUniqueNetIdAccelByteResource> FOnlineSessionInfoAccelByteV1::GetSessionIdRef() const
+FUniqueNetIdAccelByteResourceRef FOnlineSessionInfoAccelByteV1::GetSessionIdRef() const
 {
 	return SessionId;
 }
@@ -534,7 +541,8 @@ const FUniqueNetId& FOnlineSessionInfoAccelByteV1::GetSessionId() const
 
 void FOnlineSessionInfoAccelByteV1::SetSessionId(const FString& InSessionId)
 {
-	SessionId = MakeShared<FUniqueNetIdAccelByteResource>(InSessionId);
+	FString TempString = InSessionId;
+	SessionId = FUniqueNetIdAccelByteResource::Create(MoveTemp(TempString), ACCELBYTE_SUBSYSTEM);
 }
 
 TSharedPtr<FInternetAddr> FOnlineSessionInfoAccelByteV1::GetHostAddr() const
@@ -607,8 +615,8 @@ void FOnlineSessionInfoAccelByteV1::SetSessionResult(const FAccelByteModelsMatch
 
 FUserOnlineAccountAccelByte::FUserOnlineAccountAccelByte
 	( const FString& InUserId /*= TEXT("")*/ )
-	: UserIdRef(MakeShared<const FUniqueNetIdAccelByteUser>(InUserId))
 {
+	UserIdRef = FUniqueNetIdAccelByteUser::Create(InUserId);
 }
 
 FUserOnlineAccountAccelByte::FUserOnlineAccountAccelByte

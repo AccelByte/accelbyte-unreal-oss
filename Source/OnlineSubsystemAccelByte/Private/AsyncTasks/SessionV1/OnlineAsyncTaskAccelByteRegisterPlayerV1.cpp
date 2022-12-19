@@ -86,32 +86,34 @@ void FOnlineAsyncTaskAccelByteRegisterPlayersV1::TriggerDelegates()
 
 void FOnlineAsyncTaskAccelByteRegisterPlayersV1::GetAllUserInformation()
 {
+	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 	SetLastUpdateTimeToCurrentTime();
 
 	// #NOTE (Maxwell): This method should only retrieve user information if this is a client side register players call.
 	// Server normally does not need to know detailed player information, however clients need display names and other
 	// meta for in-game purposes. In addition, on a server build this call _will_ crash. Thus only run this on server builds...
-#if !UE_SERVER
-	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
-
-	FOnlineUserCacheAccelBytePtr UserStore = Subsystem->GetUserCache();
-	if (!UserStore.IsValid())
+	if (!IsRunningDedicatedServer())
 	{
-		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to query user information for players joining as our user store interface is invalid!"));
-		return;
-	}
+		FOnlineUserCacheAccelBytePtr UserStore = Subsystem->GetUserCache();
+		if (!UserStore.IsValid())
+		{
+			AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to query user information for players joining as our user store interface is invalid!"));
+			return;
+		}
 
-	TArray<FString> IdsToQuery;
-	for (const TSharedRef<const FUniqueNetId>& PlayerId : Players)
-	{
-		const TSharedRef<const FUniqueNetIdAccelByteUser> CompositePlayerId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(PlayerId);
-		IdsToQuery.Add(CompositePlayerId->GetAccelByteId());
-	}
+		TArray<FString> IdsToQuery;
+		for (const TSharedRef<const FUniqueNetId>& PlayerId : Players)
+		{
+			const TSharedRef<const FUniqueNetIdAccelByteUser> CompositePlayerId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(PlayerId);
+			IdsToQuery.Add(CompositePlayerId->GetAccelByteId());
+		}
 
-	// #NOTE (Maxwell): Not binding a callback to this method, as we don't need the players information currently, just
-	// cache the data for now so that later down the line other calls can use this cached data
-	UserStore->QueryUsersByAccelByteIds(0, IdsToQuery, FOnQueryUsersComplete());
-#endif
+		// #NOTE (Maxwell): Not binding a callback to this method, as we don't need the players information currently, just
+		// cache the data for now so that later down the line other calls can use this cached data
+		UserStore->QueryUsersByAccelByteIds(0, IdsToQuery, FOnQueryUsersComplete());
+	}
+	
+	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 
 void FOnlineAsyncTaskAccelByteRegisterPlayersV1::RegisterAllPlayers()

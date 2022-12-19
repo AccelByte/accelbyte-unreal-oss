@@ -8,9 +8,10 @@
 #include "Core/AccelByteRegistry.h"
 #include "Models/AccelByteDSMModels.h"
 
-FOnlineAsyncTaskAccelByteRetrieveDedicatedV1SessionInfo::FOnlineAsyncTaskAccelByteRetrieveDedicatedV1SessionInfo(FOnlineSubsystemAccelByte* const InABInterface, FName InSessionName)
+FOnlineAsyncTaskAccelByteRetrieveDedicatedV1SessionInfo::FOnlineAsyncTaskAccelByteRetrieveDedicatedV1SessionInfo(FOnlineSubsystemAccelByte* const InABInterface, FName InSessionName, const FOnQueryDedicatedSessionInfoComplete& InDelegate)
 	: FOnlineAsyncTaskAccelByte(InABInterface)
 	, SessionName(InSessionName)
+	, Delegate(InDelegate)
 {
 }
 
@@ -121,6 +122,12 @@ void FOnlineAsyncTaskAccelByteRetrieveDedicatedV1SessionInfo::TriggerDelegates()
 		check(Session != nullptr);
 
 		SessionInfo = StaticCastSharedPtr<FOnlineSessionInfoAccelByteV1>(Session->SessionInfo);
+
+		Delegate.ExecuteIfBound(bWasSuccessful, SessionName, SessionInfo);
+	}
+	else
+	{
+		Delegate.ExecuteIfBound(bWasSuccessful, SessionName, nullptr);
 	}
 	
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

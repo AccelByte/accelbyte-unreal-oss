@@ -47,6 +47,10 @@ private:
 
 	/** Create the actual matchmaking ticket on the backend. Will be done if we have latencies cached, or after we query for new latencies. */
 	void CreateMatchTicket();
+
+	/** Determine what session ID we should attach to the new match ticket, if any at all */
+	FString GetTicketSessionId() const;
+
 	void OnStartMatchmakingSuccess(const FAccelByteModelsV2MatchmakingCreateTicketResponse& Result);
 	void OnStartMatchmakingError(int32 ErrorCode, const FString& ErrorMessage);
 

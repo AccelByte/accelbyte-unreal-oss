@@ -79,6 +79,11 @@ void FOnlineAsyncTaskAccelByteQueryUserInfo::Finalize()
 	{
 		// Construct the user information instance and add the ID of the user to our QueriedUserIds array that will be passed to the completion delegate
 		TSharedRef<FUserOnlineAccountAccelByte> User = MakeShared<FUserOnlineAccountAccelByte>(QueriedUser->Id.ToSharedRef(), QueriedUser->DisplayName);
+		User->SetUserAttribute(ACCELBYTE_ACCOUNT_GAME_AVATAR_URL, QueriedUser->GameAvatarUrl);
+		User->SetUserAttribute(ACCELBYTE_ACCOUNT_PUBLISHER_AVATAR_URL, QueriedUser->PublisherAvatarUrl);
+
+		// Add the ID of this user to the list of IDs that we have queried. This will be passed to the delegate to inform
+		// consumer of which users we successfully have cached info for.
 		TSharedRef<const FUniqueNetId> FoundUserId = User->GetUserId();
 		QueriedUserIds.Add(FoundUserId);
 
@@ -87,6 +92,22 @@ void FOnlineAsyncTaskAccelByteQueryUserInfo::Finalize()
 		if (UserInterface != nullptr)
 		{
 			UserInterface->AddUserInfo(FoundUserId, User);
+		}
+
+		// Additionally, get an instance of the identity interface and check if this queried user has an account in it. If so
+		// update their information accordingly.
+		FOnlineIdentityAccelBytePtr IdentityInterface = nullptr;
+		if (FOnlineIdentityAccelByte::GetFromSubsystem(Subsystem, IdentityInterface))
+		{
+			return;
+		}
+
+		TSharedPtr<FUserOnlineAccountAccelByte> IdentityAccount = StaticCastSharedPtr<FUserOnlineAccountAccelByte>(IdentityInterface->GetUserAccount(QueriedUser->Id.ToSharedRef().Get()));
+		if (IdentityAccount.IsValid())
+		{
+			IdentityAccount->SetDisplayName(QueriedUser->DisplayName);
+			IdentityAccount->SetUserAttribute(ACCELBYTE_ACCOUNT_GAME_AVATAR_URL, QueriedUser->GameAvatarUrl);
+			IdentityAccount->SetUserAttribute(ACCELBYTE_ACCOUNT_PUBLISHER_AVATAR_URL, QueriedUser->PublisherAvatarUrl);
 		}
 	}
 

@@ -72,6 +72,12 @@ void FOnlineAsyncTaskAccelByteLogin::Initialize()
 		}
 
 		LoginType = static_cast<EAccelByteLoginType>(Result);
+		
+		if(LoginType == EAccelByteLoginType::ExchangeCode)
+		{
+			LoginWithNativeSubsystem();
+			return;
+		}
 	}
 	else
 	{
@@ -163,7 +169,7 @@ void FOnlineAsyncTaskAccelByteLogin::LoginWithNativeSubsystem()
 	if (NativeLoginStatus != ELoginStatus::LoggedIn)
 	{
 		const IOnlineExternalUIPtr NativeExternalUI = NativeSubsystem->GetExternalUIInterface();
-		if (NativeExternalUI.IsValid())
+		if (NativeExternalUI.IsValid() && !bRetryLoginSkipExternalUI)
 		{
 			FOnLoginUIClosedDelegate LoginUIClosed = TDelegateUtils<FOnLoginUIClosedDelegate>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteLogin::OnNativeLoginUIClosed);
 			bLoginUIOpened = NativeExternalUI->ShowLoginUI(LoginUserNum, true, false, LoginUIClosed);
@@ -172,7 +178,7 @@ void FOnlineAsyncTaskAccelByteLogin::LoginWithNativeSubsystem()
 
 	// If we successfully opened the system UI for logging in on the native OSS, then we just want to bail out and allow the
 	// handler for the native OSS to take over from here
-	if (bLoginUIOpened)
+	if (bLoginUIOpened && !bRetryLoginSkipExternalUI)
 	{
 		AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Login UI opened for native platform, allowing user to select account to log in to."));
 		return;
@@ -195,7 +201,14 @@ void FOnlineAsyncTaskAccelByteLogin::OnNativeLoginUIClosed(TSharedPtr<const FUni
 	{
 		ErrorStr = TEXT("login-failed-native-subsystem");
 		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Login with native subsystem failed. Error: %s"), *NativeError.ErrorRaw);
-		CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
+		if(bRetryLoginSkipExternalUI)
+		{
+			CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
+			return;
+		}
+		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Log, TEXT("Retry logging in without External UI"));
+		bRetryLoginSkipExternalUI = true;
+		LoginWithNativeSubsystem();
 		return;
 	}
 
@@ -219,7 +232,20 @@ void FOnlineAsyncTaskAccelByteLogin::OnNativeLoginUIClosed(TSharedPtr<const FUni
 
 	FOnLoginCompleteDelegate NativeLoginComplete = TDelegateUtils<FOnLoginCompleteDelegate>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteLogin::OnNativeLoginComplete);
 	NativeIdentityInterface->AddOnLoginCompleteDelegate_Handle(ControllerIndex, NativeLoginComplete);
-	NativeIdentityInterface->Login(ControllerIndex, FOnlineAccountCredentials());
+
+	// Add Type credential parameter for EOS.
+	if(NativeSubsystem->GetSubsystemName().ToString().Equals(TEXT("EOS"),ESearchCase::IgnoreCase))
+	{
+		if(AccountCredentials.Type.IsEmpty())
+		{
+			AccountCredentials.Type = TEXT("AccountPortal");
+		}
+		NativeIdentityInterface->Login(ControllerIndex, AccountCredentials);
+	}
+	else
+	{
+		NativeIdentityInterface->Login(ControllerIndex, FOnlineAccountCredentials());
+	}
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sending login request to native subsystem!"));
 }
@@ -333,6 +359,10 @@ void FOnlineAsyncTaskAccelByteLogin::PerformLoginWithType(const EAccelByteLoginT
 		ApiClient->User.LoginWithRefreshToken(Credentials.Token, OnLoginSuccessDelegate, OnLoginErrorDelegate);
 		AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sending async task to login with refresh token from native online subsystem."));
 		break;
+	case EAccelByteLoginType::EOS:
+		ApiClient->User.LoginWithOtherPlatform(EAccelBytePlatformType::EpicGames, Credentials.Token, OnLoginSuccessDelegate, OnLoginErrorDelegate);
+		AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sending async task to login with Epic Games from native online subsystem."));
+		break;
 	default:
 	case EAccelByteLoginType::None:
 		ErrorStr = TEXT("login-failed-invalid-type");
@@ -367,8 +397,6 @@ void FOnlineAsyncTaskAccelByteLogin::OnLoginSuccess()
 	Account->SetDisplayName(ApiClient->CredentialsRef->GetUserDisplayName());
 	Account->SetAccessToken(ApiClient->CredentialsRef->GetAccessToken());
 
-	AsyncTask(ENamedThreads::GameThread, [this]() {
-	});
 	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(Subsystem->GetIdentityInterface());
 	if (!IdentityInterface.IsValid())
 	{
@@ -378,6 +406,17 @@ void FOnlineAsyncTaskAccelByteLogin::OnLoginSuccess()
 	IdentityInterface->AddNewAuthenticatedUser(LoginUserNum, UserId.ToSharedRef(), Account.ToSharedRef());
 	AccelByte::FMultiRegistry::RemoveApiClient(UserId->GetAccelByteId());
 	AccelByte::FMultiRegistry::RegisterApiClient(UserId->GetAccelByteId(), ApiClient);
+
+	// Grab our user interface and kick off a task to get information about the newly logged in player from it, namely
+	// their avatar URL. No need to register a delegate to update the account from the query, the query task will check
+	// if an account instance exists for the player in the identity interface, and if so will update it.
+	FOnlineUserAccelBytePtr UserInterface = nullptr;
+	if (!FOnlineUserAccelByte::GetFromSubsystem(Subsystem, UserInterface))
+	{
+		return;
+	}
+
+	UserInterface->QueryUserInfo(LocalUserNum, { UserId.ToSharedRef() });
 
 	CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

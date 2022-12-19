@@ -68,7 +68,7 @@ void FOnlineAsyncTaskAccelByteRestoreV1Parties::Finalize()
 		}
 
 		// Construct the party instance and add it to the party interface
-		TSharedRef<FOnlinePartyAccelByte> Party = FOnlinePartyAccelByte::CreatePartyFromPartyInfo(UserId.ToSharedRef(), PartyInterface.ToSharedRef(), PartyInfo, PartyMemberInfo, PartyData, PartyCode);
+		TSharedRef<FOnlinePartyAccelByte> Party = FOnlinePartyAccelByte::CreatePartyFromPartyInfo(UserId.ToSharedRef(), PartyInterface.ToSharedRef(), PartyInfo, PartyMemberInfo, PartyData, PartyCode, PartyMemberStatuses);
 		PartyId = StaticCastSharedRef<const FOnlinePartyIdAccelByte>(Party->PartyId);
 		PartyInterface->AddPartyToInterface(UserId.ToSharedRef(), Party);
 		
@@ -102,6 +102,26 @@ void FOnlineAsyncTaskAccelByteRestoreV1Parties::TriggerDelegates()
 		PartyInterface->TriggerOnPartyJoinedDelegates(UserId.ToSharedRef().Get(), PartyId.ToSharedRef().Get());
 	}
 
+	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
+}
+
+void FOnlineAsyncTaskAccelByteRestoreV1Parties::GetPartyCode()
+{
+	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
+	if (UserId->GetAccelByteId() == PartyInfo.LeaderId)
+	{
+		// Send a request to get party code for the current party for party leader
+		const AccelByte::Api::Lobby::FPartyGetCodeResponse OnPartyGetCodeResponseDelegate = AccelByte::Api::Lobby::FPartyGetCodeResponse::CreateRaw(this, &FOnlineAsyncTaskAccelByteRestoreV1Parties::OnPartyGetCodeResponse);
+		ApiClient->Lobby.SetPartyGetCodeResponseDelegate(OnPartyGetCodeResponseDelegate);
+		ApiClient->Lobby.SendPartyGetCodeRequest();
+	}
+	else
+	{
+		// Send a request to get party code for the current party for party member
+		const THandler<FAccelByteModelsPartyData> OnGetPartyDataSuccessDelegate = THandler<FAccelByteModelsPartyData>::CreateRaw(this, &FOnlineAsyncTaskAccelByteRestoreV1Parties::OnGetPartyDataSuccess);
+		const FErrorHandler OnGetPartyDataErrorDelegate = FErrorHandler::CreateRaw(this, &FOnlineAsyncTaskAccelByteRestoreV1Parties::OnGetPartyDataError);
+		ApiClient->Lobby.GetPartyData(PartyInfo.PartyId, OnGetPartyDataSuccessDelegate, OnGetPartyDataErrorDelegate);
+	}
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 
@@ -142,21 +162,15 @@ void FOnlineAsyncTaskAccelByteRestoreV1Parties::OnQueryPartyInfoComplete(bool bI
 	{
 		PartyMemberInfo = Result.MemberInfo;
 		PartyData = Result.PartyData;
-		
-		if (UserId->GetAccelByteId() == PartyInfo.LeaderId)
+
+		TArray<FString> PartyMemberStrings;
+		for(TSharedRef<FAccelByteUserInfo>& User : PartyMemberInfo)
 		{
-			// Send a request to get party code for the current party for party leader
-			const AccelByte::Api::Lobby::FPartyGetCodeResponse OnPartyGetCodeResponseDelegate = AccelByte::Api::Lobby::FPartyGetCodeResponse::CreateRaw(this, &FOnlineAsyncTaskAccelByteRestoreV1Parties::OnPartyGetCodeResponse);
-			ApiClient->Lobby.SetPartyGetCodeResponseDelegate(OnPartyGetCodeResponseDelegate);
-			ApiClient->Lobby.SendPartyGetCodeRequest();
+			PartyMemberStrings.Add(User->Id->GetAccelByteId());
 		}
-		else
-		{
-			// Send a request to get party code for the current party for party member
-			const THandler<FAccelByteModelsPartyData> OnGetPartyDataSuccessDelegate = THandler<FAccelByteModelsPartyData>::CreateRaw(this, &FOnlineAsyncTaskAccelByteRestoreV1Parties::OnGetPartyDataSuccess);
-			const FErrorHandler OnGetPartyDataErrorDelegate = FErrorHandler::CreateRaw(this, &FOnlineAsyncTaskAccelByteRestoreV1Parties::OnGetPartyDataError);
-			ApiClient->Lobby.GetPartyData(PartyInfo.PartyId, OnGetPartyDataSuccessDelegate, OnGetPartyDataErrorDelegate);
-		}
+		THandler<FAccelByteModelsBulkUserStatusNotif> OnQueryPartyMembersStatusCompleteDelegate = THandler<FAccelByteModelsBulkUserStatusNotif>::CreateRaw(this, &FOnlineAsyncTaskAccelByteRestoreV1Parties::OnGetPartyMemberConnectStatusSuccess);
+		const FErrorHandler OnGetPartyMemberStatusesErrorDelegate = FErrorHandler::CreateRaw(this, &FOnlineAsyncTaskAccelByteRestoreV1Parties::OnGetPartyMemberConnectStatusFailed);
+		ApiClient->Lobby.BulkGetUserPresence(PartyMemberStrings, OnQueryPartyMembersStatusCompleteDelegate, OnGetPartyMemberStatusesErrorDelegate);
 	}
 	else
 	{
@@ -195,6 +209,22 @@ void FOnlineAsyncTaskAccelByteRestoreV1Parties::OnGetPartyDataError(int32 ErrorC
 {
 	UE_LOG_AB(Warning, TEXT("Failed to get party data from restored party from backend, party code will be empty"));
 	CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
+}
+
+void FOnlineAsyncTaskAccelByteRestoreV1Parties::OnGetPartyMemberConnectStatusSuccess(const FAccelByteModelsBulkUserStatusNotif& Statuses)
+{
+	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
+	PartyMemberStatuses = Statuses;
+
+	GetPartyCode();
+	
+	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
+}
+
+void FOnlineAsyncTaskAccelByteRestoreV1Parties::OnGetPartyMemberConnectStatusFailed(int Code, const FString& ErrMsg)
+{
+	UE_LOG_AB(Warning, TEXT("Failed to get party member status info as the request to the backend failed! Error code: %d; Error message: %s"), Code, *ErrMsg);
+	GetPartyCode();
 }
 
 #undef ONLINE_ERROR_NAMESPACE

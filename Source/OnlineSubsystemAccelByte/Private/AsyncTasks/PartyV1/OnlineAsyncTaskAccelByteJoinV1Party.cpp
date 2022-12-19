@@ -94,7 +94,7 @@ void FOnlineAsyncTaskAccelByteJoinV1Party::Finalize()
 	if (bWasSuccessful)
 	{
 		// Construct the party instance and add it to the party interface
-		TSharedRef<FOnlinePartyAccelByte> Party = FOnlinePartyAccelByte::CreatePartyFromPartyInfo(UserId.ToSharedRef(), PartyInterface.ToSharedRef(), PartyInfo, PartyMemberInfo, PartyData);
+		TSharedRef<FOnlinePartyAccelByte> Party = FOnlinePartyAccelByte::CreatePartyFromPartyInfo(UserId.ToSharedRef(), PartyInterface.ToSharedRef(), PartyInfo, PartyMemberInfo, PartyData, TEXT(""), MemberStatuses);
 		PartyInterface->AddPartyToInterface(UserId.ToSharedRef(), Party);
 		JoinedPartyId = StaticCastSharedRef<const FOnlinePartyIdAccelByte>(Party->PartyId);
 
@@ -231,9 +231,20 @@ void FOnlineAsyncTaskAccelByteJoinV1Party::OnQueryPartyInfoComplete(bool bIsSucc
 	{
 		PartyMemberInfo = Result.MemberInfo;
 		PartyData = Result.PartyData;
+		TArray<FString> PartyMemberUid;
+		for(TSharedRef<FAccelByteUserInfo>& Member : PartyMemberInfo)
+		{
+			PartyMemberUid.Add(Member->Id->GetAccelByteId());
+		}
 
-		CompletionResult = EJoinPartyCompletionResult::Succeeded;
-		CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
+		ApiClient->Lobby.BulkGetUserPresence(PartyMemberUid,
+			THandler<FAccelByteModelsBulkUserStatusNotif>::CreateRaw(this, &FOnlineAsyncTaskAccelByteJoinV1Party::OnGetUserPresenceComplete),
+			FErrorHandler::CreateLambda([this](int32 Code, FString const& ErrMsg)
+			{
+				AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Could not query party member presence"));
+				CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
+			})
+		);
 
 		UE_LOG(LogAccelByteOSSParty, Verbose, TEXT("Joined party '%s' through %s!"), *PartyInfo.PartyId, (OnlinePartyJoinInfo.IsValid()) ? TEXT("invite") : TEXT("code"));
 	}
@@ -280,4 +291,11 @@ FString FOnlineAsyncTaskAccelByteJoinV1Party::GetPartyInfoForError()
 	}
 
 	return TEXT("");
+}
+
+void FOnlineAsyncTaskAccelByteJoinV1Party::OnGetUserPresenceComplete(const FAccelByteModelsBulkUserStatusNotif& Statuses)
+{
+	MemberStatuses = Statuses;
+	CompletionResult = EJoinPartyCompletionResult::Succeeded;
+	CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
 }

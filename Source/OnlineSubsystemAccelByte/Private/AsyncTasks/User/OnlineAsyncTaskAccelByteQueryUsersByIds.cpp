@@ -228,6 +228,8 @@ void FOnlineAsyncTaskAccelByteQueryUsersByIds::OnGetBasicUserInfoSuccess(const F
 		User->DisplayName = BasicInfo.DisplayName;
 		User->bIsImportant = bIsImportant;
 		User->LastAccessedTimeInSeconds = FPlatformTime::Seconds();
+		User->GameAvatarUrl = BasicInfo.AvatarUrl;
+		User->PublisherAvatarUrl = BasicInfo.PublisherAvatarUrl;
 
 		// Construct a composite ID for this user
 		FAccelByteUniqueIdComposite CompositeId;

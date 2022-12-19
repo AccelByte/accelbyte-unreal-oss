@@ -52,14 +52,15 @@ void FOnlineAsyncTaskAccelByteUpdateV1PartyData::Initialize()
 		}
 
 		// Finally, clear all data marked dirty from the party data object
-		PartyData->ClearDirty();
+		// NOTE : Damar, we want to retry this in case if process is fail.
+		//PartyData->ClearDirty();
 
 		return PartyStorageData;
 	};
 
 	THandler<FAccelByteModelsPartyDataNotif> OnWritePartyStorageSuccessDelegate = THandler<FAccelByteModelsPartyDataNotif>::CreateRaw(this, &FOnlineAsyncTaskAccelByteUpdateV1PartyData::OnWritePartyStorageSuccess);
 	FErrorHandler OnWritePartyStorageErrorDelegate = FErrorHandler::CreateRaw(this, &FOnlineAsyncTaskAccelByteUpdateV1PartyData::OnWritePartyStorageError);
-	ApiClient->Lobby.WritePartyStorage(PartyId->ToString(), PartyStorageWriterFunction, OnWritePartyStorageSuccessDelegate, OnWritePartyStorageErrorDelegate);
+	ApiClient->Lobby.WritePartyStorage(PartyId->ToString(), PartyStorageWriterFunction, OnWritePartyStorageSuccessDelegate, OnWritePartyStorageErrorDelegate, 5);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sent off request to update party storage!"));
 }

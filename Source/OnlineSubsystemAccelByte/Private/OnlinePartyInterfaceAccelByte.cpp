@@ -108,7 +108,7 @@ const uint32 FOnlinePartyAccelByte::GetMemberCount() const
 	return UserIdToPartyMemberMap.Num();
 }
 
-TSharedRef<FOnlinePartyAccelByte> FOnlinePartyAccelByte::CreatePartyFromPartyInfo(const TSharedRef<const FUniqueNetIdAccelByteUser> LocalUserId, const TSharedRef<FOnlinePartySystemAccelByte, ESPMode::ThreadSafe> PartyInterface, const FAccelByteModelsPartyJoinResponse& PartyInfo, const TArray<TSharedRef<FAccelByteUserInfo>>& PartyMemberInfo, const TSharedRef<FOnlinePartyData>& InPartyData, const FString& PartyCode)
+TSharedRef<FOnlinePartyAccelByte> FOnlinePartyAccelByte::CreatePartyFromPartyInfo(const TSharedRef<const FUniqueNetIdAccelByteUser> LocalUserId, const TSharedRef<FOnlinePartySystemAccelByte, ESPMode::ThreadSafe> PartyInterface, const FAccelByteModelsPartyJoinResponse& PartyInfo, const TArray<TSharedRef<FAccelByteUserInfo>>& PartyMemberInfo, const TSharedRef<FOnlinePartyData>& InPartyData, const FString& PartyCode, const FAccelByteModelsBulkUserStatusNotif& InPartyMemberStatus)
 {
 	FAccelByteModelsInfoPartyResponse NewPartyInfo;
 	NewPartyInfo.Code = PartyInfo.Code;
@@ -118,10 +118,10 @@ TSharedRef<FOnlinePartyAccelByte> FOnlinePartyAccelByte::CreatePartyFromPartyInf
 	NewPartyInfo.LeaderId = PartyInfo.LeaderId;
 	NewPartyInfo.Members = PartyInfo.Members;
 	
-	return CreatePartyFromPartyInfo(LocalUserId, PartyInterface, NewPartyInfo, PartyMemberInfo, InPartyData, PartyCode);
+	return CreatePartyFromPartyInfo(LocalUserId, PartyInterface, NewPartyInfo, PartyMemberInfo, InPartyData, PartyCode, InPartyMemberStatus);
 }
 
-TSharedRef<FOnlinePartyAccelByte> FOnlinePartyAccelByte::CreatePartyFromPartyInfo(const TSharedRef<const FUniqueNetIdAccelByteUser> LocalUserId, const TSharedRef<FOnlinePartySystemAccelByte, ESPMode::ThreadSafe> PartyInterface, const FAccelByteModelsInfoPartyResponse& PartyInfo, const TArray<TSharedRef<FAccelByteUserInfo>>& PartyMemberInfo, const TSharedRef<FOnlinePartyData>& InPartyData, const FString& PartyCode)
+TSharedRef<FOnlinePartyAccelByte> FOnlinePartyAccelByte::CreatePartyFromPartyInfo(const TSharedRef<const FUniqueNetIdAccelByteUser> LocalUserId, const TSharedRef<FOnlinePartySystemAccelByte, ESPMode::ThreadSafe> PartyInterface, const FAccelByteModelsInfoPartyResponse& PartyInfo, const TArray<TSharedRef<FAccelByteUserInfo>>& PartyMemberInfo, const TSharedRef<FOnlinePartyData>& InPartyData, const FString& PartyCode, const FAccelByteModelsBulkUserStatusNotif& InPartyMemberStatus)
 {
 	// Fill out a basic config of flags that we know/support for this party
 	FPartyConfiguration Config;
@@ -149,6 +149,27 @@ TSharedRef<FOnlinePartyAccelByte> FOnlinePartyAccelByte::CreatePartyFromPartyInf
 	for (const TSharedRef<FAccelByteUserInfo>& Member : PartyMemberInfo)
 	{
 		TSharedRef<FOnlinePartyMemberAccelByte> PartyMember = MakeShared<FOnlinePartyMemberAccelByte>(Member->Id.ToSharedRef(), Member->DisplayName);
+		const FAccelByteModelsUserStatusNotif* MemberStatus = InPartyMemberStatus.Data.FindByPredicate([&Member](FAccelByteModelsUserStatusNotif const& Status)
+		{
+			return Member->Id->GetAccelByteId().Equals(Status.UserID);
+		});
+		if(MemberStatus != nullptr)
+		{
+			EMemberConnectionStatus NewMemberStatusConnection = EMemberConnectionStatus::Uninitialized;
+			switch(MemberStatus->Availability)
+			{
+			case EAvailability::Online:
+			case EAvailability::Busy:
+				NewMemberStatusConnection = EMemberConnectionStatus::Connected;
+				break;
+			case EAvailability::Offline:
+			case EAvailability::Invisible:
+			default:
+				NewMemberStatusConnection = EMemberConnectionStatus::Disconnected;
+				break;
+			}
+			PartyMember->SetMemberConnectionStatus(NewMemberStatusConnection);
+		}
 		Party->AddMember(LocalUserId, PartyMember);
 	}
 	
@@ -871,6 +892,44 @@ void FOnlinePartySystemAccelByte::OnPartyKickNotification(const FAccelByteModels
 	}
 }
 
+void FOnlinePartySystemAccelByte::OnPartyMemberConnectNotification(const FAccelByteModelsPartyMemberConnectionNotice& Notification, TSharedRef<const FUniqueNetIdAccelByteUser> UserId)
+{
+	TSharedPtr<FOnlinePartyAccelByte> Party = GetPartyForUser(UserId, MakeShared<const FOnlinePartyIdAccelByte>(Notification.PartyId));
+	if (Party.IsValid())
+	{
+		for(TPair<TSharedRef<const FUniqueNetIdAccelByteUser>, TSharedRef<FOnlinePartyMemberAccelByte>>& UserIdToPartyPair : Party->UserIdToPartyMemberMap)
+		{
+			if(UserIdToPartyPair.Key->GetAccelByteId().Equals(Notification.UserId))
+			{
+				if(UserIdToPartyPair.Value->MemberConnectionStatus != EMemberConnectionStatus::Connected)
+				{
+					UserIdToPartyPair.Value->SetMemberConnectionStatus(EMemberConnectionStatus::Connected);
+				}
+				break;
+			}
+		}
+	}
+}
+
+void FOnlinePartySystemAccelByte::OnPartyMemberDisconnectNotification(const FAccelByteModelsPartyMemberConnectionNotice& Notification, TSharedRef<const FUniqueNetIdAccelByteUser> UserId)
+{
+	TSharedPtr<FOnlinePartyAccelByte> Party = GetPartyForUser(UserId, MakeShared<const FOnlinePartyIdAccelByte>(Notification.PartyId));
+	if (Party.IsValid())
+	{
+		for(TPair<TSharedRef<const FUniqueNetIdAccelByteUser>, TSharedRef<FOnlinePartyMemberAccelByte>>& UserIdToPartyPair : Party->UserIdToPartyMemberMap)
+		{
+			if(UserIdToPartyPair.Key->GetAccelByteId().Equals(Notification.UserId))
+			{
+				if(UserIdToPartyPair.Value->MemberConnectionStatus != EMemberConnectionStatus::Disconnected)
+				{
+					UserIdToPartyPair.Value->SetMemberConnectionStatus(EMemberConnectionStatus::Disconnected);
+				}
+				break;
+			}
+		}
+	}
+}
+
 void FOnlinePartySystemAccelByte::OnPartyDataChangeNotification(const FAccelByteModelsPartyDataNotif& Notification, TSharedRef<const FUniqueNetIdAccelByteUser> UserId)
 {
 	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("UserId: %s; PartyId: %s"), *UserId->ToDebugString(), *Notification.PartyId);
@@ -1083,6 +1142,12 @@ void FOnlinePartySystemAccelByte::RegisterRealTimeLobbyDelegates(const TSharedRe
 
 	AccelByte::Api::Lobby::FPartyDataUpdateNotif OnPartyDataChangeNotificationDelegate = AccelByte::Api::Lobby::FPartyDataUpdateNotif::CreateThreadSafeSP(AsShared(), &FOnlinePartySystemAccelByte::OnPartyDataChangeNotification, UserId);
 	ApiClient->Lobby.SetPartyDataUpdateResponseDelegate(OnPartyDataChangeNotificationDelegate);
+
+	AccelByte::Api::Lobby::FPartyMemberConnectNotif OnPartyMemberConnectNotificationDelegate = AccelByte::Api::Lobby::FPartyMemberConnectNotif::CreateThreadSafeSP(AsShared(), &FOnlinePartySystemAccelByte::OnPartyMemberConnectNotification, UserId);
+	ApiClient->Lobby.SetPartyMemberConnectNotifDelegate(OnPartyMemberConnectNotificationDelegate);
+	
+	AccelByte::Api::Lobby::FPartyMemberConnectNotif OnPartyMemberDisconnectNotificationDelegate = AccelByte::Api::Lobby::FPartyMemberDisconnectNotif::CreateThreadSafeSP(AsShared(), &FOnlinePartySystemAccelByte::OnPartyMemberDisconnectNotification, UserId);
+	ApiClient->Lobby.SetPartyMemberDisconnectNotifDelegate(OnPartyMemberDisconnectNotificationDelegate);
 	
 	FOnPartyJoinedDelegate PartyJoinedDelegate = FOnPartyJoinedDelegate::CreateThreadSafeSP(this, &FOnlinePartySystemAccelByte::OnPartyJoinedComplete);
 	AddOnPartyJoinedDelegate_Handle(PartyJoinedDelegate);
@@ -1962,6 +2027,7 @@ bool FOnlinePartySystemAccelByte::GetPartyMembers(const FUniqueNetId& LocalUserI
 		{
 			OutPartyMembersArray = (*FoundParty)->GetAllMembers();
 		}
+		return true;
 	}
 	return false;
 }

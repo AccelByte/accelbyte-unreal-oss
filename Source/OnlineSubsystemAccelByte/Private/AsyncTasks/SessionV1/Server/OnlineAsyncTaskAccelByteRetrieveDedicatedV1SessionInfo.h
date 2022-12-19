@@ -23,7 +23,7 @@ class FOnlineAsyncTaskAccelByteRetrieveDedicatedV1SessionInfo : public FOnlineAs
 public:
 
 	/** Constructor to setup the RetrieveDedicatedSessionInfo task */
-	FOnlineAsyncTaskAccelByteRetrieveDedicatedV1SessionInfo(FOnlineSubsystemAccelByte* const InABInterface, FName InSessionName);
+	FOnlineAsyncTaskAccelByteRetrieveDedicatedV1SessionInfo(FOnlineSubsystemAccelByte* const InABInterface, FName InSessionName, const FOnQueryDedicatedSessionInfoComplete& InDelegate = FOnQueryDedicatedSessionInfoComplete());
 
 	virtual void Initialize() override;
 	virtual void Finalize() override;
@@ -63,6 +63,8 @@ private:
 	TSessionPartyArray Parties;
 
 	FAccelByteModelsMatchmakingResult SessionResult;
+	
+	FOnQueryDedicatedSessionInfoComplete Delegate;
 	
 	/** Attempt to authenticate the dedicated server with client credentials */
 	void OnAuthenticateServerComplete(bool bAuthenticationSuccessful);

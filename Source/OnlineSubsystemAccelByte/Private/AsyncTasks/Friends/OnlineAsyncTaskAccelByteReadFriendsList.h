@@ -58,6 +58,10 @@ private:
 
 	/** Whether we have gotten a response back from the backend for querying information on all of our friends */
 	FThreadSafeBool bHasRecievedAllFriendInformation;
+	
+	FThreadSafeBool bHasSentRequestForUserStatus;
+
+	FThreadSafeBool bHasReceivedAllUserStatus;
 
 	/** Array of AccelByte IDs that we need to query from backend */
 	TArray<FString> FriendIdsToQuery;
@@ -67,6 +71,8 @@ private:
 
 	/** Map of AccelByte IDs to invite status, used to make final friend instance */
 	TMap<FString, EInviteStatus::Type> AccelByteIdToFriendStatus;
+	
+	TMap<FString, FAccelByteModelsUserStatusNotif> AccelByteIdToPresence;
 
 	/** Convenience method for checking in tick whether the task is still waiting on async work from the backend */
 	bool HasTaskFinishedAsyncWork();
@@ -82,6 +88,7 @@ private:
 
 	/** Delegate handler for when we successfully get all information for each user in our friends list */
 	void OnQueryFriendInformationComplete(bool bIsSuccessful, TArray<TSharedRef<FAccelByteUserInfo>> UsersQueried);
-
+	
+	void OnGetUserPresenceComplete(const FAccelByteModelsBulkUserStatusNotif& Statuses);
 };
 

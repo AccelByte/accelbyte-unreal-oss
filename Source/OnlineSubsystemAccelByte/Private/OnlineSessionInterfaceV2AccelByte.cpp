@@ -1716,12 +1716,6 @@ void FOnlineSessionV2AccelByte::UpdateInternalGameSession(const FName& SessionNa
 		return;
 	}
 
-	if (!ensure(Session->LocalOwnerId.IsValid()))
-	{
-		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed update internal data for game session as the session has no local owner ID!"));
-		return;
-	}
-
 	const TArray<FAccelByteModelsV2SessionUser> OldMembers = SessionData->Members;	
 	const EAccelByteV2SessionConfigurationServerType OldServerType = SessionInfo->GetServerType();
 
@@ -1736,26 +1730,29 @@ void FOnlineSessionV2AccelByte::UpdateInternalGameSession(const FName& SessionNa
 	const EAccelByteV2SessionConfigurationServerType NewServerType = SessionInfo->GetServerType();	
 
 	bIsConnectingToP2P = false;
-
-	const bool bSwitchingToP2P = OldServerType != EAccelByteV2SessionConfigurationServerType::P2P && NewServerType == EAccelByteV2SessionConfigurationServerType::P2P;
-	const bool bSwitchingFromP2P = OldServerType == EAccelByteV2SessionConfigurationServerType::P2P && NewServerType != EAccelByteV2SessionConfigurationServerType::P2P;
-
-	if(bSwitchingToP2P)
+	
+	// If we have a local owner ID for this session, then check if we are switching to or from P2P
+	if (Session->LocalOwnerId.IsValid())
 	{
-		// If the session's local owner is also its leader, they'll be the P2P host
-		if(Session->LocalOwnerId.ToSharedRef().Get() == SessionInfo->GetLeaderId().ToSharedRef().Get())
+		const bool bSwitchingToP2P = OldServerType != EAccelByteV2SessionConfigurationServerType::P2P && NewServerType == EAccelByteV2SessionConfigurationServerType::P2P;
+		const bool bSwitchingFromP2P = OldServerType == EAccelByteV2SessionConfigurationServerType::P2P && NewServerType != EAccelByteV2SessionConfigurationServerType::P2P;
+		if (bSwitchingToP2P)
 		{
-			SetupAccelByteP2PConnection(Session->LocalOwnerId.ToSharedRef().Get());
+			// If the session's local owner is also its leader, they'll be the P2P host
+			if (Session->LocalOwnerId.IsValid() && Session->LocalOwnerId.ToSharedRef().Get() == SessionInfo->GetLeaderId().ToSharedRef().Get())
+			{
+				SetupAccelByteP2PConnection(Session->LocalOwnerId.ToSharedRef().Get());
+			}
+			else
+			{
+				bIsConnectingToP2P = true;
+				ConnectToJoinedP2PSession(SessionName, EOnlineSessionP2PConnectedAction::Update);
+			}
 		}
-		else
+		else if (bSwitchingFromP2P)
 		{
-			bIsConnectingToP2P = true;
-			ConnectToJoinedP2PSession(SessionName, EOnlineSessionP2PConnectedAction::Update);
+			TeardownAccelByteP2PConnection();
 		}
-	}
-	else if(bSwitchingFromP2P)
-	{
-		TeardownAccelByteP2PConnection();
 	}
 
 	// First, read all attributes from the session, as that will overwrite all of the reserved/built-in settings
@@ -1767,7 +1764,7 @@ void FOnlineSessionV2AccelByte::UpdateInternalGameSession(const FName& SessionNa
 	// After loading in custom attributes, load in reserved/built-in settings
 	Session->SessionSettings.Set(SETTING_SESSION_TYPE, SETTING_SESSION_TYPE_GAME_SESSION);
 	Session->SessionSettings.Set(SETTING_SESSION_MATCHPOOL, UpdatedGameSession.MatchPool);
-	Session->SessionSettings.Set(SETTING_SESSION_MATCHPOOL, UpdatedGameSession.MatchPool);
+	Session->SessionSettings.Set(SETTING_SESSION_SERVER_TYPE, GetServerTypeAsString(UpdatedGameSession.Configuration.Type));
 	Session->SessionSettings.Set(SETTING_SESSION_JOIN_TYPE, GetJoinabilityAsString(UpdatedGameSession.Configuration.Joinability));
 	Session->SessionSettings.Set(SETTING_SESSION_MINIMUM_PLAYERS, UpdatedGameSession.Configuration.MinPlayers);
 	Session->SessionSettings.Set(SETTING_SESSION_INVITE_TIMEOUT, UpdatedGameSession.Configuration.InviteTimeout);

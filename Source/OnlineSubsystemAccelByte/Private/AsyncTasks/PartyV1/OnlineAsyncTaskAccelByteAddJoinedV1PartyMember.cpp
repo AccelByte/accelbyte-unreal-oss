@@ -52,6 +52,7 @@ void FOnlineAsyncTaskAccelByteAddJoinedV1PartyMember::Finalize()
 	if (bWasSuccessful)
 	{
 		TSharedRef<FOnlinePartyMemberAccelByte> NewMember = MakeShared<FOnlinePartyMemberAccelByte>(JoinedPartyMember->Id.ToSharedRef(), JoinedPartyMember->DisplayName);
+		NewMember->SetMemberConnectionStatus(EMemberConnectionStatus::Connected);
 		Party->AddMember(UserId.ToSharedRef(), NewMember);
 		Party->RemoveInvite(UserId.ToSharedRef(), JoinedPartyMember->Id.ToSharedRef(), EPartyInvitationRemovedReason::Accepted);
 

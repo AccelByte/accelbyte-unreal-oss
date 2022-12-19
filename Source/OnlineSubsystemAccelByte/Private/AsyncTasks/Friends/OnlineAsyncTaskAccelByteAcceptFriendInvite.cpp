@@ -100,6 +100,18 @@ void FOnlineAsyncTaskAccelByteAcceptFriendInvite::OnAcceptFriendResponseDelegate
 	}
 	else
 	{
-		CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
+		Subsystem->GetPresenceInterface()->QueryPresence(*FriendId, IOnlinePresence::FOnPresenceTaskCompleteDelegate::CreateRaw(this, &FOnlineAsyncTaskAccelByteAcceptFriendInvite::OnGetUserPresenceComplete));
 	}
+}
+
+void FOnlineAsyncTaskAccelByteAcceptFriendInvite::OnGetUserPresenceComplete(const FUniqueNetId& TargetUserId, const bool bGetPresenceSuccess)
+{
+	TSharedPtr<FOnlineUserPresence> Presence;
+	Subsystem->GetPresenceInterface()->GetCachedPresence(TargetUserId, Presence);
+	if(Presence.IsValid())
+	{
+		TSharedPtr<FOnlineFriendAccelByte> AccelByteFriend = StaticCastSharedPtr<FOnlineFriendAccelByte>(InviteeFriend);
+		AccelByteFriend->SetPresence(*Presence);
+	}
+	CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
 }

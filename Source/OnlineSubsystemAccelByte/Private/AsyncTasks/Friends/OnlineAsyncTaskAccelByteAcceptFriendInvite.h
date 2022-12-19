@@ -48,5 +48,6 @@ private:
 	/** Delegate handler for when the call to accept a friend request completes */
 	void OnAcceptFriendResponseDelegate(const FAccelByteModelsAcceptFriendsResponse& Result);
 
+	void OnGetUserPresenceComplete(const FUniqueNetId& TargetUserId, const bool bGetPresenceSuccess);
 };
 

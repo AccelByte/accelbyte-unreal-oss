@@ -74,6 +74,8 @@ private:
 	/** ID of the party that we joined, used to fire delegates */
 	TSharedPtr<const FOnlinePartyIdAccelByte> JoinedPartyId;
 
+	FAccelByteModelsBulkUserStatusNotif MemberStatuses;
+
 	/** Delegate handler for when our request to check whether we are in a party gets a response */
 	void OnGetPartyInfoResponse(const FAccelByteModelsInfoPartyResponse& Result);
 
@@ -92,4 +94,5 @@ private:
 	/** Gets a formatted string to use for errors relating to party join */
 	FString GetPartyInfoForError();
 
+	void OnGetUserPresenceComplete(const FAccelByteModelsBulkUserStatusNotif& Statuses);
 };

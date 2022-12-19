@@ -68,14 +68,6 @@ void FOnlineAsyncTaskAccelByteJoinV2Party::Finalize()
 			return;
 		}
 
-		TSharedPtr<FOnlineSessionInfoAccelByteV2> SessionInfo = StaticCastSharedPtr<FOnlineSessionInfoAccelByteV2>(JoinedSession->SessionInfo);
-		if (!ensure(SessionInfo.IsValid()))
-		{
-			AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to join party as our session's information instance is invalid!"));
-			return;
-		}
-
-		SessionInfo->SetBackendSessionData(MakeShared<FAccelByteModelsV2PartySession>(PartyInfo));
 		JoinedSession->SessionState = EOnlineSessionState::Pending;
 
 		// This will seem pretty silly, but take the open slots for the session and set them to the max number of slots. This
@@ -84,17 +76,14 @@ void FOnlineAsyncTaskAccelByteJoinV2Party::Finalize()
 		// #NOTE Party sessions only have closed slots, so just use the private connection count
 		JoinedSession->NumOpenPrivateConnections = JoinedSession->SessionSettings.NumPrivateConnections;
 
-		// Register all members marked as joined to the session
-		SessionInterface->RegisterPlayers(SessionName, SessionInfo->GetJoinedMembers(), false);
-
+		// Remove any restored session instance or invite for this joined session so that it does not linger
 		const FString SessionId = JoinedSession->GetSessionIdStr();
-
-		// Additionally, pass to the session interface to remove any restored session instance that we were tracking for this
-		// session, if any exists.
 		SessionInterface->RemoveRestoreSessionById(SessionId);
-
-		// Also, try and remove the party invite from our list of invites.
 		SessionInterface->RemoveInviteById(SessionId);
+
+		// Update the session data in the session interface with the data we received on join, that way if any updates
+		// occured between query and join we would catch them
+		SessionInterface->UpdateInternalPartySession(SessionName, PartyInfo);
 	}
 	else
 	{
