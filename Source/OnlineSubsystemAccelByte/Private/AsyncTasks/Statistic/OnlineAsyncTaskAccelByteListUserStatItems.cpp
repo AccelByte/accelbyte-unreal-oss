@@ -11,7 +11,7 @@ FOnlineAsyncTaskAccelByteListUserStatItems::FOnlineAsyncTaskAccelByteListUserSta
 	const TArray<FString>& InStatCodes, const TArray<FString>& InTags, const FString& InAdditionalKey, bool bInAlwaysRequestToService)
 	: FOnlineAsyncTaskAccelByte(InABInterface), StatCodes(InStatCodes), Tags(InTags), AdditionalKey(InAdditionalKey), bAlwaysRequestToService(bInAlwaysRequestToService)
 {
-	UserId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(InLocalUserId.AsShared());
+	UserId = FUniqueNetIdAccelByteUser::CastChecked(InLocalUserId);
 }
 
 void FOnlineAsyncTaskAccelByteListUserStatItems::Initialize()

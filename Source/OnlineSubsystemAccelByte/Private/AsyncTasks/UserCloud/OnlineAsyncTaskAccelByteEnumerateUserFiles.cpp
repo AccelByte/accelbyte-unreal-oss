@@ -11,7 +11,7 @@
 FOnlineAsyncTaskAccelByteEnumerateUserFiles::FOnlineAsyncTaskAccelByteEnumerateUserFiles(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InUserId)
 	: FOnlineAsyncTaskAccelByte(InABInterface)
 {
-	UserId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(InUserId.AsShared());
+	UserId = FUniqueNetIdAccelByteUser::CastChecked(InUserId);
 }
 
 void FOnlineAsyncTaskAccelByteEnumerateUserFiles::Initialize()

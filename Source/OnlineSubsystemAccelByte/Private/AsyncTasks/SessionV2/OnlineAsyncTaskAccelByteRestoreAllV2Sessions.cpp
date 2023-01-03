@@ -13,7 +13,7 @@ FOnlineAsyncTaskAccelByteRestoreAllV2Sessions::FOnlineAsyncTaskAccelByteRestoreA
 	: FOnlineAsyncTaskAccelByte(InABInterface, true)
 	, CompletionDelegate(InCompletionDelegate)
 {
-	UserId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(InLocalUserId.AsShared());
+	UserId = FUniqueNetIdAccelByteUser::CastChecked(InLocalUserId);
 }
 
 void FOnlineAsyncTaskAccelByteRestoreAllV2Sessions::Initialize()

@@ -10,7 +10,7 @@ FOnlineAsyncTaskAccelByteCancelV2Matchmaking::FOnlineAsyncTaskAccelByteCancelV2M
 	, SearchHandle(InSearchHandle)
 	, SessionName(InSessionName)
 {
-	UserId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(SearchHandle->SearchingPlayerId.ToSharedRef());
+	UserId = FUniqueNetIdAccelByteUser::CastChecked(SearchHandle->SearchingPlayerId.ToSharedRef());
 }
 
 void FOnlineAsyncTaskAccelByteCancelV2Matchmaking::Initialize()

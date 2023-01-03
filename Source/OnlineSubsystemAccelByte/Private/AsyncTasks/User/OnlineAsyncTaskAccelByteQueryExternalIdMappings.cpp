@@ -20,7 +20,7 @@ FOnlineAsyncTaskAccelByteQueryExternalIdMappings::FOnlineAsyncTaskAccelByteQuery
 	, InitialExternalIds(InExternalIds)
 	, Delegate(InDelegate)
 {
-	UserId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(InUserId.AsShared());
+	UserId = FUniqueNetIdAccelByteUser::CastChecked(InUserId);
 }
 
 void FOnlineAsyncTaskAccelByteQueryExternalIdMappings::Initialize()

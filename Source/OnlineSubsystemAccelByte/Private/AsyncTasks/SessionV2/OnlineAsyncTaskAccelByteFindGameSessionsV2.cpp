@@ -41,7 +41,7 @@ FOnlineAsyncTaskAccelByteFindGameSessionsV2::FOnlineAsyncTaskAccelByteFindGameSe
 	, ResultsRemaining(SearchSettings->MaxSearchResults)
 {
 	// #TODO #SESSIONv2 Make this support the custom timeout value from the search settings handle eventually...
-	UserId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(InSearchingPlayerId.AsShared());
+	UserId = FUniqueNetIdAccelByteUser::CastChecked(InSearchingPlayerId);
 }
 
 void FOnlineAsyncTaskAccelByteFindGameSessionsV2::Initialize()

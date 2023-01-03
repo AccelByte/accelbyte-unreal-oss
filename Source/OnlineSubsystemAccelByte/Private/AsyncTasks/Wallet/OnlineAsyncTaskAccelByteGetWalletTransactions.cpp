@@ -15,7 +15,7 @@ FOnlineAsyncTaskAccelByteGetWalletTransactions::FOnlineAsyncTaskAccelByteGetWall
 	, Offset(InOffset)
 	, Limit(InLimit)
 {
-	UserId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(InLocalUserId.AsShared());
+	UserId = FUniqueNetIdAccelByteUser::CastChecked(InLocalUserId);
 }
 
 void FOnlineAsyncTaskAccelByteGetWalletTransactions::Initialize()

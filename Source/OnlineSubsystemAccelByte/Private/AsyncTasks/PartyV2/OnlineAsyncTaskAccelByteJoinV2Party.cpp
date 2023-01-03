@@ -13,7 +13,7 @@ FOnlineAsyncTaskAccelByteJoinV2Party::FOnlineAsyncTaskAccelByteJoinV2Party(FOnli
 	, SessionName(InSessionName)
 	, bIsRestoreSession(bInIsRestoreSession)
 {
-	UserId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(InLocalUserId.AsShared());
+	UserId = FUniqueNetIdAccelByteUser::CastChecked(InLocalUserId);
 }
 
 void FOnlineAsyncTaskAccelByteJoinV2Party::Initialize()

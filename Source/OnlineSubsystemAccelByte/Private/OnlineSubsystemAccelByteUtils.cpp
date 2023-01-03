@@ -31,7 +31,7 @@ FUniqueNetIdPtr FOnlineSubsystemAccelByteUtils::GetPlatformUniqueIdFromUniqueId(
 
 	if (UniqueId.GetType() == ACCELBYTE_SUBSYSTEM)
 	{
-		FUniqueNetIdAccelByteUserRef AccelByteId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(UniqueId.AsShared());
+		FUniqueNetIdAccelByteUserRef AccelByteId = FUniqueNetIdAccelByteUser::CastChecked(UniqueId);
 		return AccelByteId->GetPlatformUniqueId();
 	}
 
@@ -46,13 +46,13 @@ bool FOnlineSubsystemAccelByteUtils::IsPlayerOnSamePlatform(const FUniqueNetId& 
 
 bool FOnlineSubsystemAccelByteUtils::IsPlayerOnSamePlatform(FString UniqueIdString) 
 {
-	FUniqueNetIdAccelByteUserRef UniqueId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(GetUniqueIdFromString(UniqueIdString));
+	FUniqueNetIdAccelByteUserRef UniqueId = FUniqueNetIdAccelByteUser::CastChecked(GetUniqueIdFromString(UniqueIdString));
 	return IsPlayerOnSamePlatform(UniqueId.Get());
 }
 
 FString FOnlineSubsystemAccelByteUtils::GetAccelByteIdFromUniqueId(const FUniqueNetId& UniqueId) {
 	if (UniqueId.GetType() == ACCELBYTE_SUBSYSTEM) {
-		FUniqueNetIdAccelByteUserRef CompositeId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(UniqueId.AsShared());
+		FUniqueNetIdAccelByteUserRef CompositeId = FUniqueNetIdAccelByteUser::CastChecked(UniqueId);
 		return CompositeId->GetAccelByteId();
 	}
 
@@ -63,7 +63,7 @@ FString FOnlineSubsystemAccelByteUtils::GetPlatformNameFromUniqueId(const FUniqu
 {
 	if (UniqueId.GetType() == ACCELBYTE_SUBSYSTEM)
 	{
-		FUniqueNetIdAccelByteUserRef AccelByteId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(UniqueId.AsShared());
+		FUniqueNetIdAccelByteUserRef AccelByteId = FUniqueNetIdAccelByteUser::CastChecked(UniqueId);
 		return AccelByteId->GetPlatformType();
 	}
 
@@ -74,7 +74,7 @@ FString FOnlineSubsystemAccelByteUtils::GetPlatformIdStringFromUniqueId(const FU
 {
 	if (UniqueId.GetType() == ACCELBYTE_SUBSYSTEM) 
 	{
-		FUniqueNetIdAccelByteUserRef AccelByteId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(UniqueId.AsShared());
+		FUniqueNetIdAccelByteUserRef AccelByteId = FUniqueNetIdAccelByteUser::CastChecked(UniqueId);
 		return AccelByteId->GetPlatformId();
 	}
 	

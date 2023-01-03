@@ -14,7 +14,7 @@ FOnlineAsyncTaskAccelByteCreateV2Party::FOnlineAsyncTaskAccelByteCreateV2Party(F
 	, SessionName(InSessionName)
 	, NewSessionSettings(InNewSessionSettings)
 {
-	UserId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(InLocalUserId.AsShared());
+	UserId = FUniqueNetIdAccelByteUser::CastChecked(InLocalUserId);
 }
 
 void FOnlineAsyncTaskAccelByteCreateV2Party::Initialize()

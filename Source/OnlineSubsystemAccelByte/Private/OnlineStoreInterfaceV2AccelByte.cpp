@@ -59,7 +59,7 @@ void FOnlineStoreV2AccelByte::ResetOffers()
 void FOnlineStoreV2AccelByte::EmplaceOfferDynamicData(const FUniqueNetId& InUserId, TSharedRef<FAccelByteModelsItemDynamicData> InDynamicData)
 {
 	FScopeLock ScopeLock(&DynamicDataLock);
-	const TSharedRef<const FUniqueNetIdAccelByteUser> SharedUserId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(InUserId.AsShared());
+	const TSharedRef<const FUniqueNetIdAccelByteUser> SharedUserId = FUniqueNetIdAccelByteUser::CastChecked(InUserId);
 	FOfferToDynamicDataMap& FoundDynamicDataMap = OffersDynamicData.FindOrAdd(SharedUserId);
 	FoundDynamicDataMap.Emplace(InDynamicData->ItemId, InDynamicData);
 }
@@ -168,7 +168,7 @@ TSharedPtr<FOnlineStoreOffer> FOnlineStoreV2AccelByte::GetOfferBySku(const FStri
 TSharedPtr<FAccelByteModelsItemDynamicData> FOnlineStoreV2AccelByte::GetOfferDynamicData(const FUniqueNetId& UserId, const FUniqueOfferId& OfferId) const
 {
 	FScopeLock ScopeLock(&DynamicDataLock);
-	const TSharedRef<const FUniqueNetIdAccelByteUser> SharedUserId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(UserId.AsShared());
+	const TSharedRef<const FUniqueNetIdAccelByteUser> SharedUserId = FUniqueNetIdAccelByteUser::CastChecked(UserId);
 	const FOfferToDynamicDataMap* FoundDynamicDataMap = OffersDynamicData.Find(SharedUserId);
 	if (FoundDynamicDataMap != nullptr)
 	{

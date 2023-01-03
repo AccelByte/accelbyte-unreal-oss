@@ -10,7 +10,7 @@
 
 FOnlineAsyncTaskAccelByteQueryUserPresence::FOnlineAsyncTaskAccelByteQueryUserPresence(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InTargetUserId, const IOnlinePresence::FOnPresenceTaskCompleteDelegate& InDelegate, int32 InLocalUserNum)
 	: FOnlineAsyncTaskAccelByte(InABInterface, true)
-	, TargetUserId(StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(InTargetUserId.AsShared()))
+	, TargetUserId(FUniqueNetIdAccelByteUser::CastChecked(InTargetUserId))
 	, LocalCachedPresence(MakeShared<FOnlineUserPresenceAccelByte>())
 	, Delegate(InDelegate)
 {

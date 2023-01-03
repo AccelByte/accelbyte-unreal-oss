@@ -80,19 +80,19 @@ PRAGMA_DISABLE_DEPRECATION_WARNINGS
 	: FUniqueNetIdString()
 PRAGMA_ENABLE_DEPRECATION_WARNINGS
 {
-	Type = ACCELBYTE_SUBSYSTEM;
+	Type = ACCELBYTE_RESOURCE_ID_TYPE;
 }
 
 // #NOTE (Maxwell): EOS is also currently just disabling deprecation warnings for FUniqueNetIdString constructors
 FUniqueNetIdAccelByteResource::FUniqueNetIdAccelByteResource(const FString& InUniqueNetId)
 PRAGMA_DISABLE_DEPRECATION_WARNINGS
-	: FUniqueNetIdString(InUniqueNetId, ACCELBYTE_SUBSYSTEM)
+	: FUniqueNetIdString(InUniqueNetId, ACCELBYTE_RESOURCE_ID_TYPE)
 PRAGMA_ENABLE_DEPRECATION_WARNINGS
 {
 }
 
 FUniqueNetIdAccelByteResource::FUniqueNetIdAccelByteResource(FString&& InUniqueNetId)
-	: FUniqueNetIdString(MoveTemp(InUniqueNetId), ACCELBYTE_SUBSYSTEM)
+	: FUniqueNetIdString(MoveTemp(InUniqueNetId), ACCELBYTE_RESOURCE_ID_TYPE)
 {
 }
 
@@ -101,18 +101,16 @@ PRAGMA_DISABLE_DEPRECATION_WARNINGS
 	: FUniqueNetIdString(Src)
 PRAGMA_ENABLE_DEPRECATION_WARNINGS
 {
-	check(GetType() == ACCELBYTE_SUBSYSTEM);
 }
 
 FUniqueNetIdAccelByteResource::FUniqueNetIdAccelByteResource(FString&& InUniqueNetId, const FName InType)
 	: FUniqueNetIdString(MoveTemp(InUniqueNetId), InType)
 {
-	check(InType == ACCELBYTE_SUBSYSTEM);
 }
 
 FUniqueNetIdAccelByteResourceRef FUniqueNetIdAccelByteResource::Cast(const FUniqueNetId& NetId)
 {
-	if (ensure(NetId.GetType() == ACCELBYTE_SUBSYSTEM))
+	if (ensure(NetId.GetType() == ACCELBYTE_RESOURCE_ID_TYPE))
 	{
 		return StaticCastSharedRef<const FUniqueNetIdAccelByteResource>(NetId.AsShared());
 	}
@@ -120,21 +118,53 @@ FUniqueNetIdAccelByteResourceRef FUniqueNetIdAccelByteResource::Cast(const FUniq
 	return Invalid();
 }
 
+FUniqueNetIdAccelByteResourcePtr FUniqueNetIdAccelByteResource::TryCast(const FUniqueNetId& InId)
+{
+	if (ensure(InId.GetType() == ACCELBYTE_RESOURCE_ID_TYPE))
+	{
+		return StaticCastSharedRef<const FUniqueNetIdAccelByteResource>(InId.AsShared());
+	}
+
+	return nullptr;
+}
+
+FUniqueNetIdAccelByteResourcePtr FUniqueNetIdAccelByteResource::TryCast(const TSharedRef<const FUniqueNetId>& InId)
+{
+	if (ensure(InId->GetType() == ACCELBYTE_RESOURCE_ID_TYPE))
+	{
+		return StaticCastSharedRef<const FUniqueNetIdAccelByteResource>(InId);
+	}
+
+	return nullptr;
+}
+
 const FUniqueNetIdAccelByteResourceRef FUniqueNetIdAccelByteResource::Invalid()
 {
 	FString InvalidId = ACCELBYTE_INVALID_ID_VALUE;
-	FUniqueNetIdAccelByteResource* Resource = new FUniqueNetIdAccelByteResource(MoveTemp(InvalidId), ACCELBYTE_SUBSYSTEM);
+	FUniqueNetIdAccelByteResource* Resource = new FUniqueNetIdAccelByteResource(MoveTemp(InvalidId), ACCELBYTE_RESOURCE_ID_TYPE);
 	return MakeShareable(Resource);
 }
 
 FName FUniqueNetIdAccelByteResource::GetType() const
 {
-	return ACCELBYTE_SUBSYSTEM;
+	return ACCELBYTE_RESOURCE_ID_TYPE;
 }
 
 bool FUniqueNetIdAccelByteResource::IsValid() const
 {
 	return IsAccelByteIDValid(UniqueNetIdStr);
+}
+
+FUniqueNetIdAccelByteResourceRef FUniqueNetIdAccelByteResource::CastChecked(const FUniqueNetId& InId)
+{
+	check(InId.GetType() == ACCELBYTE_RESOURCE_ID_TYPE);
+	return StaticCastSharedRef<const FUniqueNetIdAccelByteResource>(InId.AsShared());
+}
+
+FUniqueNetIdAccelByteResourceRef FUniqueNetIdAccelByteResource::CastChecked(const TSharedRef<const FUniqueNetId>& InId)
+{
+	check(InId->GetType() == ACCELBYTE_RESOURCE_ID_TYPE);
+	return StaticCastSharedRef<const FUniqueNetIdAccelByteResource>(InId);
 }
 
 #pragma endregion  // FUniqueNetIdAccelByteResource
@@ -192,6 +222,21 @@ PRAGMA_ENABLE_DEPRECATION_WARNINGS
 	}
 }
 
+PRAGMA_DISABLE_DEPRECATION_WARNINGS
+FUniqueNetIdAccelByteUserRef FUniqueNetIdAccelByteUser::CastChecked(const FUniqueNetId& InId)
+{
+	check(InId.GetType() == ACCELBYTE_USER_ID_TYPE);
+	return StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(InId.AsShared());
+}
+
+FUniqueNetIdAccelByteUserRef FUniqueNetIdAccelByteUser::CastChecked(const TSharedRef<const FUniqueNetId>& InId)
+{
+	check(InId->GetType() == ACCELBYTE_USER_ID_TYPE);
+	return StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(InId);
+}
+
+PRAGMA_ENABLE_DEPRECATION_WARNINGS
+
 FUniqueNetIdAccelByteUserRef FUniqueNetIdAccelByteUser::Create(const FAccelByteUniqueIdComposite& CompositeId)
 {
 	if (CompositeId.Id.IsEmpty())
@@ -214,7 +259,7 @@ FUniqueNetIdAccelByteUserRef FUniqueNetIdAccelByteUser::Create(const FAccelByteU
 		return Invalid();
 	}
 
-	FUniqueNetIdAccelByteUser* User = new FUniqueNetIdAccelByteUser(MoveTemp(EncodedString), ACCELBYTE_SUBSYSTEM);
+	FUniqueNetIdAccelByteUser* User = new FUniqueNetIdAccelByteUser(MoveTemp(EncodedString), ACCELBYTE_RESOURCE_ID_TYPE);
 	User->CompositeStructure = CompositeId;
 	return MakeShareable(User);
 }
@@ -230,7 +275,7 @@ FUniqueNetIdAccelByteUserRef FUniqueNetIdAccelByteUser::Create(const FString& In
 	}
 
 	FString UniqueNetId = InUniqueNetId;
-	FUniqueNetIdAccelByteUser* User = new FUniqueNetIdAccelByteUser(MoveTemp(UniqueNetId), ACCELBYTE_SUBSYSTEM);
+	FUniqueNetIdAccelByteUser* User = new FUniqueNetIdAccelByteUser(MoveTemp(UniqueNetId), ACCELBYTE_RESOURCE_ID_TYPE);
 	return MakeShareable(User);
 }
 
@@ -241,9 +286,9 @@ FUniqueNetIdAccelByteUserRef FUniqueNetIdAccelByteUser::Create(const FUniqueNetI
 	return MakeShareable(User);
 }
 
-TSharedRef<const FUniqueNetIdAccelByteUser> FUniqueNetIdAccelByteUser::Cast(const FUniqueNetId& NetId)
+FUniqueNetIdAccelByteUserRef FUniqueNetIdAccelByteUser::Cast(const FUniqueNetId& NetId)
 {
-	if (ensure(NetId.GetType() == ACCELBYTE_SUBSYSTEM))
+	if (ensure(NetId.GetType() == ACCELBYTE_USER_ID_TYPE))
 	{
 		return StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(NetId.AsShared());
 	}
@@ -251,16 +296,36 @@ TSharedRef<const FUniqueNetIdAccelByteUser> FUniqueNetIdAccelByteUser::Cast(cons
 	return Invalid();
 }
 
-FUniqueNetIdAccelByteUserRef FUniqueNetIdAccelByteUser::Invalid()
+FUniqueNetIdAccelByteUserPtr FUniqueNetIdAccelByteUser::TryCast(const FUniqueNetId& InId)
+{
+	if (ensure(InId.GetType() == ACCELBYTE_USER_ID_TYPE))
+	{
+		return StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(InId.AsShared());
+	}
+
+	return nullptr;
+}
+
+FUniqueNetIdAccelByteUserPtr FUniqueNetIdAccelByteUser::TryCast(const TSharedRef<const FUniqueNetId>& InId)
+{
+	if (ensure(InId->GetType() == ACCELBYTE_USER_ID_TYPE))
+	{
+		return StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(InId);
+	}
+
+	return nullptr;
+}
+
+TSharedRef<const FUniqueNetIdAccelByteUser> FUniqueNetIdAccelByteUser::Invalid()
 {
 	FString InvalidId = ACCELBYTE_INVALID_ID_VALUE;
-	FUniqueNetIdAccelByteUser* User = new FUniqueNetIdAccelByteUser(MoveTemp(InvalidId), ACCELBYTE_SUBSYSTEM);
+	FUniqueNetIdAccelByteUser* User = new FUniqueNetIdAccelByteUser(MoveTemp(InvalidId), ACCELBYTE_RESOURCE_ID_TYPE);
 	return MakeShareable(User);
 }
 
 FName FUniqueNetIdAccelByteUser::GetType() const
 {
-	return ACCELBYTE_SUBSYSTEM;
+	return ACCELBYTE_USER_ID_TYPE;
 }
 
 bool FUniqueNetIdAccelByteUser::IsValid() const
@@ -375,7 +440,7 @@ bool FUniqueNetIdAccelByteUser::Compare(const FUniqueNetId& Other) const
 {
 	if (Other.GetType() == ACCELBYTE_SUBSYSTEM)
 	{
-		const TSharedRef<const FUniqueNetIdAccelByteUser> OtherCompositeId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(Other.AsShared());
+		const TSharedRef<const FUniqueNetIdAccelByteUser> OtherCompositeId = FUniqueNetIdAccelByteUser::CastChecked(Other);
 
 		// First check whether AccelByte IDs match, if they do then these IDs are definitely equal
 		if (GetAccelByteId() == OtherCompositeId->GetAccelByteId())
@@ -503,7 +568,7 @@ void FOnlineSessionInfoAccelByteV1::SetupP2PRelaySessionInfo(const FOnlineSubsys
 	FGuid OwnerGuid;
 	FPlatformMisc::CreateGuid(OwnerGuid);
 	FString Guid = OwnerGuid.ToString();
-	SessionId =  FUniqueNetIdAccelByteResource::Create(MoveTemp(Guid), ACCELBYTE_SUBSYSTEM);
+	SessionId =  FUniqueNetIdAccelByteResource::Create(MoveTemp(Guid), ACCELBYTE_RESOURCE_ID_TYPE);
 }
 
 FString FOnlineSessionInfoAccelByteV1::ToDebugString() const
@@ -542,7 +607,7 @@ const FUniqueNetId& FOnlineSessionInfoAccelByteV1::GetSessionId() const
 void FOnlineSessionInfoAccelByteV1::SetSessionId(const FString& InSessionId)
 {
 	FString TempString = InSessionId;
-	SessionId = FUniqueNetIdAccelByteResource::Create(MoveTemp(TempString), ACCELBYTE_SUBSYSTEM);
+	SessionId = FUniqueNetIdAccelByteResource::Create(MoveTemp(TempString), ACCELBYTE_RESOURCE_ID_TYPE);
 }
 
 TSharedPtr<FInternetAddr> FOnlineSessionInfoAccelByteV1::GetHostAddr() const
@@ -621,14 +686,14 @@ FUserOnlineAccountAccelByte::FUserOnlineAccountAccelByte
 
 FUserOnlineAccountAccelByte::FUserOnlineAccountAccelByte
 	( const TSharedRef<const FUniqueNetId>& InUserId )
-	: UserIdRef(StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(InUserId))
+	: UserIdRef(FUniqueNetIdAccelByteUser::CastChecked(InUserId))
 {
 }
 
 FUserOnlineAccountAccelByte::FUserOnlineAccountAccelByte
 	( const TSharedRef<const FUniqueNetId>& InUserId
 	, const FString& InDisplayName )
-	: UserIdRef(StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(InUserId))
+	: UserIdRef(FUniqueNetIdAccelByteUser::CastChecked(InUserId))
 	, DisplayName(InDisplayName)
 {
 }

@@ -356,6 +356,9 @@ typedef FOnSessionInvitesChanged::FDelegate FOnSessionInvitesChangedDelegate;
 
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnKickedFromSession, FName /*SessionName*/);
 typedef FOnKickedFromSession::FDelegate FOnKickedFromSessionDelegate;
+
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnSessionUpdateReceived, FName /*SessionName*/);
+typedef FOnSessionUpdateReceived::FDelegate FOnSessionUpdateReceivedDelegate;
 //~ End custom delegates
 
 class ONLINESUBSYSTEMACCELBYTE_API FOnlineSessionV2AccelByte : public IOnlineSession, public TSharedFromThis<FOnlineSessionV2AccelByte, ESPMode::ThreadSafe>
@@ -689,6 +692,11 @@ public:
 	 * is a need to do any extra clean up.
 	 */
 	DEFINE_ONLINE_DELEGATE_ONE_PARAM(OnKickedFromSession, FName /*SessionName*/);
+
+	/**
+	 * Delegate fired when a local player has received
+	 */
+	DEFINE_ONLINE_DELEGATE_ONE_PARAM(OnSessionUpdateReceived, FName /*SessionName*/);
 
 #if (ENGINE_MAJOR_VERSION == 4 && ENGINE_MINOR_VERSION <= 25)
 	/**

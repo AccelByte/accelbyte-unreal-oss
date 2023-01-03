@@ -10,7 +10,7 @@
 
 FOnlineAsyncTaskAccelByteUnblockPlayer::FOnlineAsyncTaskAccelByteUnblockPlayer(FOnlineSubsystemAccelByte* const InABInterface, int32 InLocalUserNum, const FUniqueNetId& InPlayerId)
 	: FOnlineAsyncTaskAccelByte(InABInterface)
-	, PlayerId(StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(InPlayerId.AsShared()))
+	, PlayerId(FUniqueNetIdAccelByteUser::CastChecked(InPlayerId))
 {
 	LocalUserNum = InLocalUserNum;
 }

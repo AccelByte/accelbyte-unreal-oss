@@ -9,13 +9,9 @@ FOnlineAsyncTaskAccelByteQueryCategories::FOnlineAsyncTaskAccelByteQueryCategori
 	FOnlineSubsystemAccelByte* const InABSubsystem, const FUniqueNetId& InUserId, const FOnQueryOnlineStoreCategoriesComplete& InDelegate) 
 	: FOnlineAsyncTaskAccelByte(InABSubsystem, true)
 	, Delegate(InDelegate)
+	, Language(InABSubsystem->GetLanguage())
 {
-	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
-
-	UserId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(InUserId.AsShared());
-	Language = Subsystem->GetLanguage();
-	
-	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
+	UserId = FUniqueNetIdAccelByteUser::CastChecked(InUserId);
 }
 
 void FOnlineAsyncTaskAccelByteQueryCategories::Initialize()

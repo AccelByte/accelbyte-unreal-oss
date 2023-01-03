@@ -177,7 +177,7 @@ bool FOnlineSessionInfoAccelByteV2::FindMember(const FUniqueNetId& MemberId, FAc
 	}
 
 	// Convert member ID to an AccelByte composite ID structure
-	FUniqueNetIdAccelByteUserPtr MemberCompositeId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(MemberId.AsShared());
+	FUniqueNetIdAccelByteUserPtr MemberCompositeId = FUniqueNetIdAccelByteUser::CastChecked(MemberId);
 	
 	// Iterate through each member in the session data, try and find a match by AccelByte ID
 	for (FAccelByteModelsV2SessionUser& Member : BackendSessionData->Members)
@@ -575,6 +575,7 @@ void FOnlineSessionV2AccelByte::Tick(float DeltaTime)
 		if (!bIsConnectingToP2P)
 		{
 			TriggerOnUpdateSessionCompleteDelegates(SessionEntry.Value->SessionName, true);
+			TriggerOnSessionUpdateReceivedDelegates(SessionEntry.Value->SessionName);
 		}
 	}
 
@@ -4015,6 +4016,7 @@ void FOnlineSessionV2AccelByte::OnICEConnectionComplete(const FString& PeerId, b
 		else if (Action == EOnlineSessionP2PConnectedAction::Update)
 		{
 			TriggerOnUpdateSessionCompleteDelegates(SessionName, true);
+			TriggerOnSessionUpdateReceivedDelegates(SessionName);
 		}
 	});
 }

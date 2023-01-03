@@ -80,7 +80,7 @@ TSharedPtr<FOnlineUser> FOnlineUserAccelByte::GetUserInfo(int32 LocalUserNum, co
 {
 	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("LocalUserNum: %d; UserId: %s"), LocalUserNum, *UserId.ToDebugString());
 
-	const TSharedRef<const FUniqueNetIdAccelByteUser> AccelByteID = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(UserId.AsShared());
+	const TSharedRef<const FUniqueNetIdAccelByteUser> AccelByteID = FUniqueNetIdAccelByteUser::CastChecked(UserId);
 	const TSharedRef<FUserOnlineAccountAccelByte>* UserInfo = IDToUserInfoMap.Find(AccelByteID);
 	if (UserInfo != nullptr)
 	{
@@ -91,7 +91,7 @@ TSharedPtr<FOnlineUser> FOnlineUserAccelByte::GetUserInfo(int32 LocalUserNum, co
 	// As a fallback, attempt to find a matching user in the cache with the same AccelByte Id
 	for (const TPair<TSharedRef<const FUniqueNetId>, TSharedRef<FUserOnlineAccountAccelByte>>& KeyValue : IDToUserInfoMap)
 	{
-		const TSharedRef<const FUniqueNetIdAccelByteUser> UserAccelByteID = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(KeyValue.Key);
+		const TSharedRef<const FUniqueNetIdAccelByteUser> UserAccelByteID = FUniqueNetIdAccelByteUser::CastChecked(KeyValue.Key);
 		if (UserAccelByteID->GetAccelByteId() == AccelByteID->GetAccelByteId())
 		{
 			AB_OSS_INTERFACE_TRACE_END(TEXT("Found user info by comparing AccelByteId for user with ID of '%s'"), *UserId.ToDebugString());
@@ -126,7 +126,7 @@ bool FOnlineUserAccelByte::QueryExternalIdMappings(const FUniqueNetId& UserId, c
 		const FString ErrorStr = TEXT("AccelByte OSS does not support calling this method with FExternalIdQueryOptions::bLookupByDisplayName set to true. Contact your account manager if you have a use case for this.");
 
 		// Need to cast UserId to be an AccelByte ID for the delegate to copy it
-		AccelByteSubsystem->ExecuteNextTick([Delegate, AccelByteId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(UserId.AsShared()), QueryOptions, ErrorStr]() {
+		AccelByteSubsystem->ExecuteNextTick([Delegate, AccelByteId = FUniqueNetIdAccelByteUser::CastChecked(UserId), QueryOptions, ErrorStr]() {
 			Delegate.ExecuteIfBound(false, AccelByteId.Get(), QueryOptions, TArray<FString>(), ErrorStr);
 		});
 

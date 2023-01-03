@@ -51,7 +51,7 @@ void FOnlineAsyncTaskAccelByteQueryUserInfo::Initialize()
 			continue;
 		}
 
-		const TSharedRef<const FUniqueNetIdAccelByteUser> AccelByteId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(NetId);
+		const TSharedRef<const FUniqueNetIdAccelByteUser> AccelByteId = FUniqueNetIdAccelByteUser::CastChecked(NetId);
 		UserIdsToQuery.Add(AccelByteId->GetAccelByteId());
 	}
 

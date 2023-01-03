@@ -104,7 +104,7 @@ void FOnlineAsyncTaskAccelByteRegisterPlayersV1::GetAllUserInformation()
 		TArray<FString> IdsToQuery;
 		for (const TSharedRef<const FUniqueNetId>& PlayerId : Players)
 		{
-			const TSharedRef<const FUniqueNetIdAccelByteUser> CompositePlayerId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(PlayerId);
+			const TSharedRef<const FUniqueNetIdAccelByteUser> CompositePlayerId = FUniqueNetIdAccelByteUser::CastChecked(PlayerId);
 			IdsToQuery.Add(CompositePlayerId->GetAccelByteId());
 		}
 
@@ -131,7 +131,7 @@ void FOnlineAsyncTaskAccelByteRegisterPlayersV1::RegisterAllPlayers()
 	// responsibility of registering the player to the session on the backend.
 	for (int32 PlayerIndex = 0; PlayerIndex < Players.Num(); PlayerIndex++)
 	{
-		const TSharedRef<const FUniqueNetIdAccelByteUser> Player = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(Players[PlayerIndex]);
+		const TSharedRef<const FUniqueNetIdAccelByteUser> Player = FUniqueNetIdAccelByteUser::CastChecked(Players[PlayerIndex]);
 		FUniqueNetIdMatcher PlayerMatch(Player.Get());
 		if (Session->RegisteredPlayers.IndexOfByPredicate(PlayerMatch) != INDEX_NONE)
 		{

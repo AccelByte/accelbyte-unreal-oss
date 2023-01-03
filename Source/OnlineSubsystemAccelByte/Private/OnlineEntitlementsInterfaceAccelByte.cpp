@@ -43,7 +43,7 @@ bool FOnlineEntitlementsAccelByte::GetFromWorld(const UWorld* World, FOnlineEnti
 
 TSharedPtr<FOnlineEntitlement> FOnlineEntitlementsAccelByte::GetEntitlement(const FUniqueNetId& UserId, const FUniqueEntitlementId& EntitlementId)
 {
-	const TSharedRef<const FUniqueNetIdAccelByteUser> SharedUserId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(UserId.AsShared());
+	const TSharedRef<const FUniqueNetIdAccelByteUser> SharedUserId = FUniqueNetIdAccelByteUser::CastChecked(UserId);
 	FScopeLock ScopeLock(&EntitlementMapLock);
 	FEntitlementMap* EntMapPtr = EntitlementMap.Find(SharedUserId);
 	if(EntMapPtr)
@@ -59,7 +59,7 @@ TSharedPtr<FOnlineEntitlement> FOnlineEntitlementsAccelByte::GetEntitlement(cons
 
 TSharedPtr<FOnlineEntitlement> FOnlineEntitlementsAccelByte::GetItemEntitlement(const FUniqueNetId& UserId, const FString& ItemId)
 {
-	const TSharedRef<const FUniqueNetIdAccelByteUser> SharedUserId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(UserId.AsShared());
+	const TSharedRef<const FUniqueNetIdAccelByteUser> SharedUserId = FUniqueNetIdAccelByteUser::CastChecked(UserId);
 	FScopeLock ScopeLock(&EntitlementMapLock);
 	FItemEntitlementMap* EntMapPtr = ItemEntitlementMap.Find(SharedUserId);
 	if(EntMapPtr)
@@ -75,7 +75,7 @@ TSharedPtr<FOnlineEntitlement> FOnlineEntitlementsAccelByte::GetItemEntitlement(
 
 void FOnlineEntitlementsAccelByte::GetAllEntitlements(const FUniqueNetId& UserId, const FString& Namespace, TArray<TSharedRef<FOnlineEntitlement>>& OutUserEntitlements)
 {
-	const TSharedRef<const FUniqueNetIdAccelByteUser> SharedUserId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(UserId.AsShared());
+	const TSharedRef<const FUniqueNetIdAccelByteUser> SharedUserId = FUniqueNetIdAccelByteUser::CastChecked(UserId);
 	FScopeLock ScopeLock(&EntitlementMapLock);
 	FEntitlementMap* EntMapPtr = EntitlementMap.Find(SharedUserId);
 	if(EntMapPtr)

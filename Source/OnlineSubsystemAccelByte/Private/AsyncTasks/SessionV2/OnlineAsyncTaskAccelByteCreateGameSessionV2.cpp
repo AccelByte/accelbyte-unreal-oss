@@ -19,7 +19,7 @@ FOnlineAsyncTaskAccelByteCreateGameSessionV2::FOnlineAsyncTaskAccelByteCreateGam
 	if (!IsRunningDedicatedServer())
 	{
 		// If we are not running a DS, then we would need a valid user ID before making the call
-		UserId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(InHostingPlayerId.AsShared());
+		UserId = FUniqueNetIdAccelByteUser::CastChecked(InHostingPlayerId);
 	}
 }
 

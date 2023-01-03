@@ -14,7 +14,7 @@ FOnlineAsyncTaskAccelByteDeleteUserFile::FOnlineAsyncTaskAccelByteDeleteUserFile
 	, bShouldCloudDelete(InBShouldCloudDelete)
 	, bShouldLocallyDelete(InBShouldLocallyDelete)
 {
-	UserId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(InUserId.AsShared());
+	UserId = FUniqueNetIdAccelByteUser::CastChecked(InUserId);
 }
 
 void FOnlineAsyncTaskAccelByteDeleteUserFile::Initialize()

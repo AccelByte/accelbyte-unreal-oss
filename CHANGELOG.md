@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.8.3](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.8.3%0D0.8.2) (2023-01-03)
+
+
+### Features
+
+* **MPv2:** implement separate delegate for when an update to a session is received ([4e2cf80](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/4e2cf8063951bfacefed8a3a79790d43415f9fda))
+
+
+### Bug Fixes
+
+* **MPv2:** update create session and send game session invite calls to allow servers to make them ([3a807f2](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/3a807f2b1a96ae3d6a92b6955b7a679d382cdc9a))
+* **MPv2:** update create session and send game session invite calls to allow servers to make them ([2898913](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/2898913084e1cbca5bbb159e5d7c8240db28a890))
+* **party:** change how initialize JoinInfo ([fe4f61f](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/fe4f61f43bc82018ecd425496f1a541931340709))
+* revert some conflicted changes ([7388a7c](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/7388a7ce375b0d0ba7350d4463a344c93b425e82))
+* **uniqueid:** update types for FUniqueIdAccelByteResource and FUniqueIdAccelByteUser ([dfe8bd6](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/dfe8bd6fbb8a2a95d5e176ed34509eeda32e2b38))
+
 ### [0.8.2](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.8.2%0D0.8.1) (2022-12-19)
 
 

@@ -126,8 +126,8 @@ bool FOnlineExternalUIAccelByte::ShowProfileUI(const FUniqueNetId& Requestor, co
 		return false;
 	}
 
-	TSharedRef<const FUniqueNetIdAccelByteUser> RequestorCompositeId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(Requestor.AsShared());
-	TSharedRef<const FUniqueNetIdAccelByteUser> RequesteeCompositeId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(Requestee.AsShared());
+	TSharedRef<const FUniqueNetIdAccelByteUser> RequestorCompositeId = FUniqueNetIdAccelByteUser::CastChecked(Requestor);
+	TSharedRef<const FUniqueNetIdAccelByteUser> RequesteeCompositeId = FUniqueNetIdAccelByteUser::CastChecked(Requestee);
 
 	if (!RequesteeCompositeId->HasPlatformInformation() || !RequestorCompositeId->HasPlatformInformation())
 	{
@@ -150,7 +150,7 @@ bool FOnlineExternalUIAccelByte::ShowAccountUpgradeUI(const FUniqueNetId& Unique
 		return false;
 	}
 
-	TSharedRef<const FUniqueNetIdAccelByteUser> CompositeUniqueId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(UniqueId.AsShared());
+	TSharedRef<const FUniqueNetIdAccelByteUser> CompositeUniqueId = FUniqueNetIdAccelByteUser::CastChecked(UniqueId);
 	if (!CompositeUniqueId->HasPlatformInformation())
 	{
 		return false;

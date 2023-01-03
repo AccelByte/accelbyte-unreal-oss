@@ -55,7 +55,7 @@ FOnlineAsyncTaskAccelByteQueryUsersByIds::FOnlineAsyncTaskAccelByteQueryUsersByI
 	, bIsImportant(InBIsImportant)
 	, Delegate(InDelegate)
 {
-	UserId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(InUserId.AsShared());
+	UserId = FUniqueNetIdAccelByteUser::CastChecked(InUserId);
 }
 
 FOnlineAsyncTaskAccelByteQueryUsersByIds::FOnlineAsyncTaskAccelByteQueryUsersByIds
@@ -71,7 +71,7 @@ FOnlineAsyncTaskAccelByteQueryUsersByIds::FOnlineAsyncTaskAccelByteQueryUsersByI
 	, bIsImportant(InBIsImportant)
 	, Delegate(InDelegate)
 {
-	UserId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(InUserId.AsShared());
+	UserId = FUniqueNetIdAccelByteUser::CastChecked(InUserId);
 }
 
 void FOnlineAsyncTaskAccelByteQueryUsersByIds::Initialize()

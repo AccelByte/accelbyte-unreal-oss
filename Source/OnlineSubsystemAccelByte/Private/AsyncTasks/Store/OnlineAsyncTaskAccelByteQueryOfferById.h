@@ -26,11 +26,12 @@ private:
 	void HandleGetItemByIds(const TArray<FAccelByteModelsItemInfo>& Result);
 	void HandleAsyncTaskError(int32 Code, FString const& ErrMsg);
 
-	FString ErrorMsg;
-	FString Language;
 	TArray<FUniqueOfferId> OfferIds;
+	FString Language;
+	FOnQueryOnlineStoreOffersComplete Delegate;
+
+	FString ErrorMsg;
 	THandler<TArray<FAccelByteModelsItemInfo>> OnSuccess;
 	FErrorHandler OnError;
-	FOnQueryOnlineStoreOffersComplete Delegate;
-	TMap<FUniqueOfferId, FOnlineStoreOfferRef> OfferMap;
+	TMap<FUniqueOfferId, FOnlineStoreOfferRef> OfferMap{};
 };

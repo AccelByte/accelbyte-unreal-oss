@@ -10,10 +10,10 @@ FOnlineAsyncTaskAccelBytePromoteV2PartyLeader::FOnlineAsyncTaskAccelBytePromoteV
 	: FOnlineAsyncTaskAccelByte(InABInterface)
 	, SessionName(InSessionName)
 	, SessionId(InSessionId)
-	, TargetMemberId(StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(InTargetMemberId.AsShared()))
+	, TargetMemberId(FUniqueNetIdAccelByteUser::CastChecked(InTargetMemberId))
 	, CompletionDelegate(InCompletionDelegate)
 {
-	UserId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(InLocalUserId.AsShared());
+	UserId = FUniqueNetIdAccelByteUser::CastChecked(InLocalUserId);
 }
 
 void FOnlineAsyncTaskAccelBytePromoteV2PartyLeader::Initialize()

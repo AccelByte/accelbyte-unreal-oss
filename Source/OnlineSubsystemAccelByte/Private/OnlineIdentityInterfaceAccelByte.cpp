@@ -372,7 +372,7 @@ void FOnlineIdentityAccelByte::GetUserPrivilege(const FUniqueNetId& UserId, EUse
 {
 	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("UserId: %s"), *UserId.ToDebugString());
 
-	TSharedRef<const FUniqueNetIdAccelByteUser> AccelByteCompositeId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(UserId.AsShared());
+	TSharedRef<const FUniqueNetIdAccelByteUser> AccelByteCompositeId = FUniqueNetIdAccelByteUser::CastChecked(UserId);
 	if (!AccelByteCompositeId->IsValid())
 	{
 		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to query privileges for user as their unique ID was invalid."));
@@ -584,7 +584,7 @@ void FOnlineIdentityAccelByte::RemoveUserFromMappings(const int32 LocalUserNum)
 	if (UniqueId != nullptr)
 	{
 		// Remove the account map first, and then remove the unique ID by local user num
-		const TSharedRef<const FUniqueNetIdAccelByteUser> AccelByteUser = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(*UniqueId);
+		const TSharedRef<const FUniqueNetIdAccelByteUser> AccelByteUser = FUniqueNetIdAccelByteUser::CastChecked(*UniqueId);
 		AccelByte::FMultiRegistry::RemoveApiClient(AccelByteUser->GetAccelByteId());
 		NetIdToLocalUserNumMap.Remove(*UniqueId);
 		NetIdToOnlineAccountMap.Remove(*UniqueId);

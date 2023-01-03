@@ -9,8 +9,8 @@
 
 FOnlineAsyncTaskAccelByteAddFriendToList::FOnlineAsyncTaskAccelByteAddFriendToList(FOnlineSubsystemAccelByte* const InABInterface, int32 InLocalUserNum, const FUniqueNetId& InFriendOwnerId, const FUniqueNetId& InFriendId, const EInviteStatus::Type& InInviteStatus)
 	: FOnlineAsyncTaskAccelByte(InABInterface)
-	, FriendOwnerId(StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(InFriendOwnerId.AsShared()))
-	, FriendId(StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(InFriendId.AsShared()))
+	, FriendOwnerId(FUniqueNetIdAccelByteUser::CastChecked(InFriendOwnerId))
+	, FriendId(FUniqueNetIdAccelByteUser::CastChecked(InFriendId))
 	, InviteStatus(InInviteStatus)
 {
 	LocalUserNum = InLocalUserNum;

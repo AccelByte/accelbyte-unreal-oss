@@ -11,7 +11,7 @@ FOnlineAsyncTaskAccelByteAcceptAgreementPolicies::FOnlineAsyncTaskAccelByteAccep
 	: FOnlineAsyncTaskAccelByte(InABInterface)
 	, DocumentsToAccept(InDocumentsToAccept)
 {
-	UserId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(InLocalUserId.AsShared());
+	UserId = FUniqueNetIdAccelByteUser::CastChecked(InLocalUserId);
 	bIsMandatory = false;
 }
 

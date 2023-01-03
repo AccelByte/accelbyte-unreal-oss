@@ -29,7 +29,7 @@ FOnlineAsyncTaskAccelByteStartV1Matchmaking::FOnlineAsyncTaskAccelByteStartV1Mat
 	// #NOTE(Maxwell): Use the first local player ID that initated matchmaking as the one that we are starting a matchmaking request for
 	if (LocalPlayers.IsValidIndex(0))
 	{
-		UserId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(LocalPlayers[0]);
+		UserId = FUniqueNetIdAccelByteUser::CastChecked(LocalPlayers[0]);
 	}
 }
 
@@ -65,7 +65,7 @@ void FOnlineAsyncTaskAccelByteStartV1Matchmaking::Initialize()
 
 	// We really only need to make sure that the first user (the one initiating the matchmaking request) is in a party
 	// so just grab the first user from local players and check that user
-	if (!PartyInterface->IsPlayerInAnyParty(StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(LocalPlayers[HOST_PLAYER_INDEX]).Get()))
+	if (!PartyInterface->IsPlayerInAnyParty(FUniqueNetIdAccelByteUser::CastChecked(LocalPlayers[HOST_PLAYER_INDEX]).Get()))
 	{
 		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Error, TEXT("Failed to create matchmaking session '%s', as the host player '%s' was not in a party!"), *SessionName.ToString(), *LocalPlayers[0]->ToString());
 		CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState);

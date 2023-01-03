@@ -7,9 +7,11 @@
 #include "AsyncTasks/OnlineAsyncTaskAccelByteUtils.h"
 
 FOnlineAsyncTaskAccelByteConnectChat::FOnlineAsyncTaskAccelByteConnectChat(
-	FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InLocalUserId): FOnlineAsyncTaskAccelByte(InABInterface)
+	FOnlineSubsystemAccelByte* const InABInterface,
+	const FUniqueNetId& InLocalUserId)
+	: FOnlineAsyncTaskAccelByte(InABInterface)
 {
-	UserId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(InLocalUserId.AsShared());
+	UserId = FUniqueNetIdAccelByteUser::CastChecked(InLocalUserId);
 	ErrorStr = TEXT("");
 }
 

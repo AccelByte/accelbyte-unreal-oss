@@ -55,7 +55,7 @@ void FOnlineAsyncTaskAccelByteUnregisterPlayersV1::Initialize()
 	// responsibility of unregistering the player from the session on the backend.
 	for (int32 PlayerIndex = 0; PlayerIndex < Players.Num(); PlayerIndex++)
 	{
-		const TSharedRef<const FUniqueNetIdAccelByteUser> Player = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(Players[PlayerIndex]);
+		const TSharedRef<const FUniqueNetIdAccelByteUser> Player = FUniqueNetIdAccelByteUser::CastChecked(Players[PlayerIndex]);
 
 		FUniqueNetIdMatcher PlayerMatch(Player.Get());
 		int IndexOfPlayer = Session->RegisteredPlayers.IndexOfByPredicate(PlayerMatch);

@@ -28,11 +28,11 @@ private:
 	void HandleAsyncTaskError(int32 Code, FString const& ErrMsg);
 
 	FString CategoryPath;
+	FOnQueryOnlineStoreCategoriesComplete Delegate;
+	FString ErrorMsg;
 	FString Language;
+
 	THandler<TArray<FAccelByteModelsCategoryInfo>> OnGetChildCategoriesSuccess;
 	FErrorHandler OnError;
-	FOnQueryOnlineStoreCategoriesComplete Delegate;
 	TMap<FString, FOnlineStoreCategory> CategoryMap;
-
-	FString ErrorMsg;
 };

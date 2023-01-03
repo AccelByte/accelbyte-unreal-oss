@@ -386,7 +386,7 @@ protected:
 			TSharedPtr<const FUniqueNetId> PlayerId = IdentityInterface->GetUniquePlayerId(LocalUserNum);
 			if (PlayerId.IsValid())
 			{
-				UserId = StaticCastSharedPtr<const FUniqueNetIdAccelByteUser>(PlayerId);
+				UserId = FUniqueNetIdAccelByteUser::CastChecked(PlayerId.ToSharedRef());
 			}
 		}
 		// Otherwise, if we have a user ID, we want to get their local user num

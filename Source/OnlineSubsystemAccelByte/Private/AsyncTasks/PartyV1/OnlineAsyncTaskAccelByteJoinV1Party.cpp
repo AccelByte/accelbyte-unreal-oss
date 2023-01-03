@@ -17,7 +17,7 @@ FOnlineAsyncTaskAccelByteJoinV1Party::FOnlineAsyncTaskAccelByteJoinV1Party(FOnli
 	, Delegate(InDelegate)
 	, PartyData(MakeShared<FOnlinePartyData>())
 {
-	UserId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(InLocalUserId.AsShared());
+	UserId = FUniqueNetIdAccelByteUser::CastChecked(InLocalUserId);
 }
 
 FOnlineAsyncTaskAccelByteJoinV1Party::FOnlineAsyncTaskAccelByteJoinV1Party(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InLocalUserId, const FString& InPartyCode, const FOnJoinPartyComplete& InDelegate)
@@ -26,7 +26,7 @@ FOnlineAsyncTaskAccelByteJoinV1Party::FOnlineAsyncTaskAccelByteJoinV1Party(FOnli
 	, Delegate(InDelegate)
 	, PartyData(MakeShared<FOnlinePartyData>())
 {
-	UserId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(InLocalUserId.AsShared());
+	UserId = FUniqueNetIdAccelByteUser::CastChecked(InLocalUserId);
 }
 
 void FOnlineAsyncTaskAccelByteJoinV1Party::Initialize()

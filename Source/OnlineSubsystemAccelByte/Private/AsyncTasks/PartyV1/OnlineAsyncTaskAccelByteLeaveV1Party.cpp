@@ -14,7 +14,7 @@ FOnlineAsyncTaskAccelByteLeaveV1Party::FOnlineAsyncTaskAccelByteLeaveV1Party(FOn
 	, Delegate(InDelegate)
 	, CompletionResult(ELeavePartyCompletionResult::LeavePending)
 {
-	UserId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(InLocalUserId.AsShared());
+	UserId = FUniqueNetIdAccelByteUser::CastChecked(InLocalUserId);
 }
 
 void FOnlineAsyncTaskAccelByteLeaveV1Party::Initialize()
@@ -97,7 +97,7 @@ void FOnlineAsyncTaskAccelByteLeaveV1Party::Finalize()
 				TArray<FOnlinePartyMemberConstRef> Members = Party->GetAllMembers();
 				for (const FOnlinePartyMemberConstRef& Member : Members)
 				{
-					TSharedRef<const FUniqueNetIdAccelByteUser> MemberId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(Member->GetUserId());
+					TSharedRef<const FUniqueNetIdAccelByteUser> MemberId = FUniqueNetIdAccelByteUser::CastChecked(Member->GetUserId());
 					PartyInterface->RemovePartyForUser(MemberId, PartyId);
 				}
 

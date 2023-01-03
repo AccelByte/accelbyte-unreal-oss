@@ -15,7 +15,7 @@ FOnlineAsyncTaskAccelByteSendV1PartyInvite::FOnlineAsyncTaskAccelByteSendV1Party
 	, Delegate(InDelegate)
 	, RecipientId(FUniqueNetIdAccelByteUser::Invalid())
 {
-	UserId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(InLocalUserId.AsShared());
+	UserId = FUniqueNetIdAccelByteUser::CastChecked(InLocalUserId);
 }
 
 void FOnlineAsyncTaskAccelByteSendV1PartyInvite::Initialize()
@@ -42,7 +42,7 @@ void FOnlineAsyncTaskAccelByteSendV1PartyInvite::Initialize()
 		return;
 	}
 
-	RecipientId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(Recipient.Id);
+	RecipientId = FUniqueNetIdAccelByteUser::CastChecked(Recipient.Id);
 
 	// Now, once we know we are in this party, we want to send a request to invite the player to the party
 	AccelByte::Api::Lobby::FPartyInviteResponse OnPartyInviteResponseDelegate = AccelByte::Api::Lobby::FPartyInviteResponse::CreateRaw(this, &FOnlineAsyncTaskAccelByteSendV1PartyInvite::OnPartyInviteResponse);

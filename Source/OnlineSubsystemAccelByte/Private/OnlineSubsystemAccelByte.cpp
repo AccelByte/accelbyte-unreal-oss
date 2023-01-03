@@ -510,7 +510,7 @@ AccelByte::FApiClientPtr FOnlineSubsystemAccelByte::GetApiClient(const FUniqueNe
 	}
 
 	// Grab the AccelByte composite user ID passed in to make sure that we're getting the right client
-	TSharedRef<const FUniqueNetIdAccelByteUser> AccelByteCompositeId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(NetId.AsShared());
+	TSharedRef<const FUniqueNetIdAccelByteUser> AccelByteCompositeId = FUniqueNetIdAccelByteUser::CastChecked(NetId);
 	AccelByte::FApiClientPtr ApiClient = AccelByte::FMultiRegistry::GetApiClient(AccelByteCompositeId->GetAccelByteId());
 	if (!ApiClient.IsValid())
 	{

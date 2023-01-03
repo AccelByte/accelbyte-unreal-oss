@@ -108,7 +108,7 @@ void FOnlinePresenceAccelByte::QueryPresence(const FUniqueNetId& User, const FOn
 
 EOnlineCachedResult::Type FOnlinePresenceAccelByte::GetCachedPresence(const FUniqueNetId& User, TSharedPtr<FOnlineUserPresence>& OutPresence) 
 {
-	TSharedRef<const FUniqueNetIdAccelByteUser> CompositeId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(User.AsShared());
+	TSharedRef<const FUniqueNetIdAccelByteUser> CompositeId = FUniqueNetIdAccelByteUser::CastChecked(User);
 	TSharedRef<FOnlineUserPresenceAccelByte>* FoundPresence = CachedPresenceByUserId.Find(CompositeId->GetAccelByteId());
 	if (FoundPresence != nullptr)
 	{

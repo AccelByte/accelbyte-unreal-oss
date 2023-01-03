@@ -11,7 +11,7 @@ FOnlineAsyncTaskAccelByteQueryEligibilities::FOnlineAsyncTaskAccelByteQueryEligi
 	, bNotAcceptedOnly(bInNotAcceptedOnly)
 	, bAlwaysRequestToService(bInAlwaysRequestToService)
 {
-	UserId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(InLocalUserId.AsShared());
+	UserId = FUniqueNetIdAccelByteUser::CastChecked(InLocalUserId);
 }
 
 void FOnlineAsyncTaskAccelByteQueryEligibilities::Initialize()

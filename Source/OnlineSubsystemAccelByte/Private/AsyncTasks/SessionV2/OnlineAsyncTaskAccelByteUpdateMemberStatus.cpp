@@ -9,7 +9,7 @@
 FOnlineAsyncTaskAccelByteUpdateMemberStatus::FOnlineAsyncTaskAccelByteUpdateMemberStatus(FOnlineSubsystemAccelByte* const InABInterface, FName InSessionName, const FUniqueNetId& InPlayerId, const EAccelByteV2SessionMemberStatus& InStatus, const FOnSessionMemberStatusUpdateComplete& InDelegate)
 	: FOnlineAsyncTaskAccelByte(InABInterface, ASYNC_TASK_FLAG_BIT(EAccelByteAsyncTaskFlags::ServerTask))
 	, SessionName(InSessionName)
-	, PlayerId(StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(InPlayerId.AsShared()))
+	, PlayerId(FUniqueNetIdAccelByteUser::CastChecked(InPlayerId))
 	, Status(InStatus)
 	, Delegate(InDelegate)
 {

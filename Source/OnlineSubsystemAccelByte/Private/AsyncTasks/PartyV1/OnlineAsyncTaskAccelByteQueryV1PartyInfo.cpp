@@ -21,7 +21,7 @@ FOnlineAsyncTaskAccelByteQueryV1PartyInfo::FOnlineAsyncTaskAccelByteQueryV1Party
 	, Members(InMembers)
 	, Delegate(InDelegate)
 {
-	UserId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(InUserId.AsShared());
+	UserId = FUniqueNetIdAccelByteUser::CastChecked(InUserId);
 }
 
 void FOnlineAsyncTaskAccelByteQueryV1PartyInfo::Initialize()

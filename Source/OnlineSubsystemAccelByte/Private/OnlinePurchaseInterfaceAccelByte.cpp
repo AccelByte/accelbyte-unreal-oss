@@ -61,7 +61,7 @@ void FOnlinePurchaseAccelByte::QueryReceipts(const FUniqueNetId& UserId, bool bR
 
 void FOnlinePurchaseAccelByte::GetReceipts(const FUniqueNetId& UserId, TArray<FPurchaseReceipt>& OutReceipts) const
 {
-	const TSharedRef<const FUniqueNetIdAccelByteUser> SharedUserId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(UserId.AsShared());
+	const TSharedRef<const FUniqueNetIdAccelByteUser> SharedUserId = FUniqueNetIdAccelByteUser::CastChecked(UserId);
 	FScopeLock ScopeLock(&ReceiptMapLock);
 	const FReceiptMap* ReceiptMap = PurchaseReceipts.Find(SharedUserId);
 	if(ReceiptMap)

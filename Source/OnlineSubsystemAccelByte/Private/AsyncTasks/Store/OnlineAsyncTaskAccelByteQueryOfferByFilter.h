@@ -30,11 +30,12 @@ private:
 	void FilterAndAddResults(const FAccelByteModelsItemPagingSlicedResult& Result);
 	void GetNextOffset(FString const& NextUrl, int32& OutOffset, int32& OutLimit);
 
-	FString ErrorMsg;
-	FString Language;
 	FOnlineStoreFilter Filter;
+	FOnQueryOnlineStoreOffersComplete Delegate;
+	FString Language;
+
+	FString ErrorMsg;
 	FAccelByteModelsItemCriteria SearchCriteriaRequest;
 	bool bIsSearchByCriteria {false};
-	FOnQueryOnlineStoreOffersComplete Delegate;
 	TMap<FUniqueOfferId, FOnlineStoreOfferRef> OfferMap;
 };

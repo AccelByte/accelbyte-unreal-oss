@@ -15,7 +15,7 @@ FOnlineAsyncTaskAccelByteStartV2Matchmaking::FOnlineAsyncTaskAccelByteStartV2Mat
 	, MatchPool(InMatchPool)
 	, Delegate(InDelegate)
 {
-	UserId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(SearchHandle->SearchingPlayerId.ToSharedRef());
+	UserId = FUniqueNetIdAccelByteUser::CastChecked(SearchHandle->SearchingPlayerId.ToSharedRef());
 }
 
 void FOnlineAsyncTaskAccelByteStartV2Matchmaking::Initialize()

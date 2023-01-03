@@ -11,7 +11,7 @@ FOnlineAsyncTaskAccelByteJoinV2GameSession::FOnlineAsyncTaskAccelByteJoinV2GameS
 	, SessionName(InSessionName)
 	, bIsRestoreSession(bInIsRestoreSession)
 {
-	UserId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(InLocalUserId.AsShared());
+	UserId = FUniqueNetIdAccelByteUser::CastChecked(InLocalUserId);
 }
 
 void FOnlineAsyncTaskAccelByteJoinV2GameSession::Initialize()

@@ -465,7 +465,7 @@ void FOnlineFriendsAccelByte::AddBlockedPlayerToList(int32 LocalUserNum, const T
 	}
 
 	// Convert the net ID from the identity interface to an AccelByte net ID for the map query
-	TSharedRef<const FUniqueNetIdAccelByteUser> NetId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(UserId.ToSharedRef());
+	TSharedRef<const FUniqueNetIdAccelByteUser> NetId = FUniqueNetIdAccelByteUser::CastChecked(UserId.ToSharedRef());
 	FBlockedPlayerArray* FoundBlockedPlayersList = UserIdToBlockedPlayersMap.Find(NetId);
 	if (FoundBlockedPlayersList != nullptr)
 	{
@@ -511,7 +511,7 @@ void FOnlineFriendsAccelByte::RemoveBlockedPlayerFromList(int32 LocalUserNum, co
 	}
 
 	// Convert the net ID from the identity interface to an AccelByte net ID for the map query
-	TSharedRef<const FUniqueNetIdAccelByteUser> NetId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(UserId.ToSharedRef());
+	TSharedRef<const FUniqueNetIdAccelByteUser> NetId = FUniqueNetIdAccelByteUser::CastChecked(UserId.ToSharedRef());
 	FBlockedPlayerArray* FoundBlockedPlayerList = UserIdToBlockedPlayersMap.Find(NetId);
 	if (FoundBlockedPlayerList != nullptr)
 	{
@@ -591,7 +591,7 @@ bool FOnlineFriendsAccelByte::DeleteFriend(int32 LocalUserNum, const FUniqueNetI
 void FOnlineFriendsAccelByte::SetFriendAlias(int32 LocalUserNum, const FUniqueNetId& FriendId, const FString& ListName, const FString& Alias, const FOnSetFriendAliasComplete& Delegate)
 {
 	UE_LOG_AB(Warning, TEXT("FOnlineFriendsAccelByte::SetFriendAlias is not implemented"));
-	const TSharedRef<const FUniqueNetIdAccelByteUser> NetId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(FriendId.AsShared());
+	const TSharedRef<const FUniqueNetIdAccelByteUser> NetId = FUniqueNetIdAccelByteUser::CastChecked(FriendId);
 	AccelByteSubsystem->ExecuteNextTick([LocalUserNum, NetId, ListName, Delegate]() {
 		Delegate.ExecuteIfBound(LocalUserNum, NetId.Get(), ListName, ONLINE_ERROR(EOnlineErrorResult::NotImplemented));
 	});
@@ -600,7 +600,7 @@ void FOnlineFriendsAccelByte::SetFriendAlias(int32 LocalUserNum, const FUniqueNe
 void FOnlineFriendsAccelByte::DeleteFriendAlias(int32 LocalUserNum, const FUniqueNetId& FriendId, const FString& ListName, const FOnDeleteFriendAliasComplete& Delegate)
 {
 	UE_LOG_AB(Warning, TEXT("FOnlineFriendsAccelByte::DeleteFriendAlias is not implemented"));
-	const TSharedRef<const FUniqueNetIdAccelByteUser> NetId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(FriendId.AsShared());
+	const TSharedRef<const FUniqueNetIdAccelByteUser> NetId = FUniqueNetIdAccelByteUser::CastChecked(FriendId);
 	AccelByteSubsystem->ExecuteNextTick([LocalUserNum, NetId, ListName, Delegate]() {
 		Delegate.ExecuteIfBound(LocalUserNum, NetId.Get(), ListName, ONLINE_ERROR(EOnlineErrorResult::NotImplemented));
 	});
@@ -609,7 +609,7 @@ void FOnlineFriendsAccelByte::DeleteFriendAlias(int32 LocalUserNum, const FUniqu
 void FOnlineFriendsAccelByte::AddRecentPlayers(const FUniqueNetId& UserId, const TArray<FReportPlayedWithUser>& InRecentPlayers, const FString& ListName, const FOnAddRecentPlayersComplete& InCompletionDelegate)
 {
 	UE_LOG_AB(Warning, TEXT("FOnlineFriendsAccelByte::AddRecentPlayers is not implemented"));
-	const TSharedRef<const FUniqueNetIdAccelByteUser> NetId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(UserId.AsShared());
+	const TSharedRef<const FUniqueNetIdAccelByteUser> NetId = FUniqueNetIdAccelByteUser::CastChecked(UserId);
 	AccelByteSubsystem->ExecuteNextTick([NetId, InCompletionDelegate]() {
 		InCompletionDelegate.ExecuteIfBound(NetId.Get(), ONLINE_ERROR(EOnlineErrorResult::NotImplemented));
 	});
@@ -701,7 +701,7 @@ bool FOnlineFriendsAccelByte::GetRecentPlayers(const FUniqueNetId& UserId, const
 
 bool FOnlineFriendsAccelByte::GetBlockedPlayers(const FUniqueNetId& UserId, TArray<TSharedRef<FOnlineBlockedPlayer>>& OutBlockedPlayers)
 {
-	const TSharedRef<const FUniqueNetIdAccelByteUser> NetId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(UserId.AsShared());
+	const TSharedRef<const FUniqueNetIdAccelByteUser> NetId = FUniqueNetIdAccelByteUser::CastChecked(UserId);
 	const FBlockedPlayerArray* BlockedPlayersList = UserIdToBlockedPlayersMap.Find(NetId);
 	if (BlockedPlayersList != nullptr)
 	{

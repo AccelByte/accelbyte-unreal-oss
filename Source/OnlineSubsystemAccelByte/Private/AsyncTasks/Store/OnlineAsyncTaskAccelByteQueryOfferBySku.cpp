@@ -11,14 +11,9 @@ FOnlineAsyncTaskAccelByteQueryOfferBySku::FOnlineAsyncTaskAccelByteQueryOfferByS
 	, Sku(InSku)
 	, Delegate(InDelegate)
 	, Offer(MakeShared<FOnlineStoreOffer>())
+	, Language(InABSubsystem->GetLanguage())
 {
-	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
-
-	UserId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(InUserId.AsShared());
-	
-	Language = Subsystem->GetLanguage();
-	
-	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
+	UserId = FUniqueNetIdAccelByteUser::CastChecked(InUserId);
 }
 
 void FOnlineAsyncTaskAccelByteQueryOfferBySku::Initialize()

@@ -27,11 +27,12 @@ private:
 	void HandleGetItemBySku(const FAccelByteModelsItemInfo& Result);
 	void HandleAsyncTaskError(int32 Code, FString const& ErrMsg);
 
-	FString ErrorMsg;
-	FString Language;
 	FString Sku;
-	THandler<FAccelByteModelsItemInfo> OnSuccess;
-	FErrorHandler OnError;
 	FOnQueryOnlineStoreOffersComplete Delegate;
 	FOnlineStoreOfferRef Offer;
+	FString Language;
+
+	FString ErrorMsg;
+	THandler<FAccelByteModelsItemInfo> OnSuccess;
+	FErrorHandler OnError;
 };

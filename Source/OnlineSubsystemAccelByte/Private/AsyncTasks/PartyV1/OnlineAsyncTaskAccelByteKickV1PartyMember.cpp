@@ -11,10 +11,10 @@
 FOnlineAsyncTaskAccelByteKickV1PartyMember::FOnlineAsyncTaskAccelByteKickV1PartyMember(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InLocalUserId, const FOnlinePartyId& InPartyId, const FUniqueNetId& InTargetMemberId, const FOnKickPartyMemberComplete& InDelegate)
 	: FOnlineAsyncTaskAccelByte(InABInterface)
 	, PartyId(StaticCastSharedRef<const FOnlinePartyIdAccelByte>(InPartyId.AsShared()))
-	, TargetMemberId(StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(InTargetMemberId.AsShared()))
+	, TargetMemberId(FUniqueNetIdAccelByteUser::CastChecked(InTargetMemberId))
 	, Delegate(InDelegate)
 {
-	UserId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(InLocalUserId.AsShared());
+	UserId = FUniqueNetIdAccelByteUser::CastChecked(InLocalUserId);
 }
 
 void FOnlineAsyncTaskAccelByteKickV1PartyMember::Initialize()

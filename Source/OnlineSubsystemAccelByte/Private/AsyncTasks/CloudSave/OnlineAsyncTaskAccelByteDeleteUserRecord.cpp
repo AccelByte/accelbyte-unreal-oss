@@ -10,7 +10,7 @@ FOnlineAsyncTaskAccelByteDeleteUserRecord::FOnlineAsyncTaskAccelByteDeleteUserRe
 	: FOnlineAsyncTaskAccelByte(InABInterface)
 	, Key(InKey)
 {
-	UserId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(InLocalUserId.AsShared());
+	UserId = FUniqueNetIdAccelByteUser::CastChecked(InLocalUserId);
 }
 
 void FOnlineAsyncTaskAccelByteDeleteUserRecord::Initialize()

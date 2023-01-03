@@ -204,7 +204,7 @@ TSharedPtr<const FAccelByteUserInfo> FOnlineUserCacheAccelByte::GetUser(const FU
 	// If this unique ID is an AccelByte composite ID already, then forward to the GetUser using the composite structure
 	if (UserId.GetType() == ACCELBYTE_SUBSYSTEM)
 	{
-		TSharedRef<const FUniqueNetIdAccelByteUser> AccelByteId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(UserId.AsShared());
+		TSharedRef<const FUniqueNetIdAccelByteUser> AccelByteId = FUniqueNetIdAccelByteUser::CastChecked(UserId);
 		return GetUser(AccelByteId->GetCompositeStructure());
 	}
 

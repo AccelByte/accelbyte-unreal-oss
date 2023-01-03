@@ -17,7 +17,7 @@ FOnlineAsyncTaskAccelByteUpdatePartyV2::FOnlineAsyncTaskAccelByteUpdatePartyV2(F
 		FNamedOnlineSession* Session = SessionInterface->GetNamedSession(SessionName);
 		if (ensure(Session != nullptr))
 		{
-			UserId = StaticCastSharedPtr<const FUniqueNetIdAccelByteUser>(Session->LocalOwnerId);
+			UserId = FUniqueNetIdAccelByteUser::CastChecked(Session->LocalOwnerId.ToSharedRef());
 		}
 	}
 }

@@ -4,21 +4,13 @@
 
 #include "OnlineAsyncTaskAccelByteQueryOfferById.h"
 
-FOnlineAsyncTaskAccelByteQueryOfferById::FOnlineAsyncTaskAccelByteQueryOfferById(
-	FOnlineSubsystemAccelByte* const InABSubsystem, const FUniqueNetId& InUserId, const TArray<FUniqueOfferId>& InOfferIds,
-	const FOnQueryOnlineStoreOffersComplete& InDelegate) 
+FOnlineAsyncTaskAccelByteQueryOfferById::FOnlineAsyncTaskAccelByteQueryOfferById(FOnlineSubsystemAccelByte* const InABSubsystem, const FUniqueNetId& InUserId, const TArray<FUniqueOfferId>& InOfferIds, const FOnQueryOnlineStoreOffersComplete& InDelegate)
 	: FOnlineAsyncTaskAccelByte(InABSubsystem)
 	, OfferIds(InOfferIds)
+	, Language(InABSubsystem->GetLanguage())
+	, Delegate(InDelegate)
 {
-	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
-
-	UserId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(InUserId.AsShared());
-	Delegate = InDelegate;
-	OfferMap = TMap<FUniqueOfferId, FOnlineStoreOfferRef>{};
-	
-	Language = Subsystem->GetLanguage();
-	
-	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
+	UserId = FUniqueNetIdAccelByteUser::CastChecked(InUserId);
 }
 
 void FOnlineAsyncTaskAccelByteQueryOfferById::Initialize()

@@ -26,9 +26,10 @@ private:
 	void HandleRedeemCodeComplete(const FAccelByteModelsFulfillmentResult& Result);
 	void HandleAsyncTaskError(int32 Code, FString const& ErrMsg);
 
-	FOnlineError Error;
-	FString Language;
 	FRedeemCodeRequest RedeemCodeRequest;
 	FOnPurchaseRedeemCodeComplete Delegate;
+	FString Language;
+
+	FOnlineError Error;
 	FPurchaseReceipt Receipt;
 };

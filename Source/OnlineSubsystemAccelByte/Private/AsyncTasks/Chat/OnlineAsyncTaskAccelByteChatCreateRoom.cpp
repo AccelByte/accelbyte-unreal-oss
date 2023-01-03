@@ -8,9 +8,10 @@ FOnlineAsyncTaskAccelByteChatCreateRoom::FOnlineAsyncTaskAccelByteChatCreateRoom
 	FOnlineSubsystemAccelByte* const InABInterface,
 	const FUniqueNetId& InLocalUserId,
 	const FAccelByteChatRoomConfig& InChatRoomConfig)
-	: FOnlineAsyncTaskAccelByte(InABInterface), ChatRoomConfig(InChatRoomConfig)
+	: FOnlineAsyncTaskAccelByte(InABInterface)
+	, ChatRoomConfig(InChatRoomConfig)
 {
-	UserId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(InLocalUserId.AsShared());
+	UserId = FUniqueNetIdAccelByteUser::CastChecked(InLocalUserId);
 }
 
 void FOnlineAsyncTaskAccelByteChatCreateRoom::Initialize()

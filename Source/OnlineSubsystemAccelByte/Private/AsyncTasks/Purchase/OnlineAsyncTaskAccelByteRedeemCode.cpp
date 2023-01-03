@@ -2,21 +2,13 @@
 
 #include "OnlinePurchaseInterfaceAccelByte.h"
 
-FOnlineAsyncTaskAccelByteRedeemCode::FOnlineAsyncTaskAccelByteRedeemCode(
-	FOnlineSubsystemAccelByte* const InABSubsystem,
-	const FUniqueNetId& InUserId,
-	const FRedeemCodeRequest& InRedeemCodeRequest,
-	const FOnPurchaseRedeemCodeComplete& InDelegate) : FOnlineAsyncTaskAccelByte(InABSubsystem)
+FOnlineAsyncTaskAccelByteRedeemCode::FOnlineAsyncTaskAccelByteRedeemCode(FOnlineSubsystemAccelByte* const InABSubsystem, const FUniqueNetId& InUserId, const FRedeemCodeRequest& InRedeemCodeRequest, const FOnPurchaseRedeemCodeComplete& InDelegate)
+	: FOnlineAsyncTaskAccelByte(InABSubsystem)
+	, RedeemCodeRequest(InRedeemCodeRequest)
+	, Delegate(InDelegate)
+	, Language(InABSubsystem->GetLanguage())
 {
-	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
-
-	UserId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(InUserId.AsShared());
-	RedeemCodeRequest = InRedeemCodeRequest;
-	Delegate = InDelegate;
-	
-	Language = Subsystem->GetLanguage();
-	
-	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
+	UserId = FUniqueNetIdAccelByteUser::CastChecked(InUserId);
 }
 
 void FOnlineAsyncTaskAccelByteRedeemCode::Initialize()

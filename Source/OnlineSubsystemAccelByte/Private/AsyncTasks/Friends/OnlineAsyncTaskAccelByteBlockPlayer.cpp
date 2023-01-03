@@ -12,7 +12,7 @@
 
 FOnlineAsyncTaskAccelByteBlockPlayer::FOnlineAsyncTaskAccelByteBlockPlayer(FOnlineSubsystemAccelByte* const InABInterface, int32 InLocalUserNum, const FUniqueNetId& InPlayerId)
 	: FOnlineAsyncTaskAccelByte(InABInterface)
-	, PlayerId(StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(InPlayerId.AsShared()))
+	, PlayerId(FUniqueNetIdAccelByteUser::CastChecked(InPlayerId))
 {
 	LocalUserNum = InLocalUserNum;
 }
@@ -78,7 +78,7 @@ void FOnlineAsyncTaskAccelByteBlockPlayer::Finalize()
 							// If this user blocks a player who is currently in the same party as the user, and is the party leader, then kick the blocked player
 							for (FOnlinePartyMemberConstRef PartyMember : CurrentMembers)
 							{
-								TSharedRef<const FUniqueNetIdAccelByteUser> PartyMemberCompositeId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(PartyMember->GetUserId());
+								TSharedRef<const FUniqueNetIdAccelByteUser> PartyMemberCompositeId = FUniqueNetIdAccelByteUser::CastChecked(PartyMember->GetUserId());
 								if (PartyMemberCompositeId->GetAccelByteId() == PlayerId->GetAccelByteId())
 								{
 									PartyInterface->KickMember(IdentityInterface->GetUniquePlayerId(LocalUserNum).ToSharedRef().Get(),UserParty->PartyId.Get(), PlayerId.Get());
@@ -90,7 +90,7 @@ void FOnlineAsyncTaskAccelByteBlockPlayer::Finalize()
 							// If this user blocks a player who is currently in the same party as the user, and is just a member aka not party leader, then leave the party
 							for (FOnlinePartyMemberConstRef PartyMember : CurrentMembers)
 							{
-								TSharedRef<const FUniqueNetIdAccelByteUser> PartyMemberCompositeId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(PartyMember->GetUserId());
+								TSharedRef<const FUniqueNetIdAccelByteUser> PartyMemberCompositeId = FUniqueNetIdAccelByteUser::CastChecked(PartyMember->GetUserId());
 								if (PartyMemberCompositeId->GetAccelByteId() == PlayerId->GetAccelByteId())
 								{
 									PartyInterface->LeaveParty(IdentityInterface->GetUniquePlayerId(LocalUserNum).ToSharedRef().Get(), UserParty->PartyId.Get());

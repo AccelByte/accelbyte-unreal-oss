@@ -14,8 +14,8 @@ FOnlineAsyncTaskAccelByteQueryStatsUser::FOnlineAsyncTaskAccelByteQueryStatsUser
 {
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Construct FOnlineAsyncTaskAccelByteQueryStatsUser")); 
 	
-	UserId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(LocalUserId);
-	FUniqueNetIdAccelByteUserRef NetId = StaticCastSharedRef<const class FUniqueNetIdAccelByteUser>(StatsUser);
+	UserId = FUniqueNetIdAccelByteUser::CastChecked(LocalUserId);
+	FUniqueNetIdAccelByteUserRef NetId = FUniqueNetIdAccelByteUser::CastChecked(StatsUser);
 	AccelByteUserId = NetId->GetAccelByteId();
 	Count = 0;
 	StatCodes = {};

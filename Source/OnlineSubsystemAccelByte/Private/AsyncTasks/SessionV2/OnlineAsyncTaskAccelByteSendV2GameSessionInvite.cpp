@@ -12,11 +12,11 @@ FOnlineAsyncTaskAccelByteSendV2GameSessionInvite::FOnlineAsyncTaskAccelByteSendV
 	// no flags to indicate that it's a client task.
 	: FOnlineAsyncTaskAccelByte(InABInterface, (IsRunningDedicatedServer()) ? ASYNC_TASK_FLAG_BIT(EAccelByteAsyncTaskFlags::ServerTask) : ASYNC_TASK_FLAG_BIT(EAccelByteAsyncTaskFlags::None))
 	, SessionName(InSessionName)
-	, RecipientId(StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(InRecipientId.AsShared()))
+	, RecipientId(FUniqueNetIdAccelByteUser::CastChecked(InRecipientId))
 {
 	if (!IsRunningDedicatedServer())
 	{
-		UserId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(InLocalUserId.AsShared());
+		UserId = FUniqueNetIdAccelByteUser::CastChecked(InLocalUserId);
 	}
 }
 

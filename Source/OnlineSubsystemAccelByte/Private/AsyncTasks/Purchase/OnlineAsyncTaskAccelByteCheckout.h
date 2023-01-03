@@ -26,10 +26,11 @@ private:
 	void HandleCheckoutComplete(const FAccelByteModelsOrderInfo& Result);
 	void HandleAsyncTaskError(int32 Code, FString const& ErrMsg);
 
-	FString Language;
 	FPurchaseCheckoutRequest CheckoutRequest;
 	FOnPurchaseCheckoutComplete Delegate;
-	FPurchaseReceipt Receipt;
 	FString ErrorCode;
 	FText ErrorMessage;
+	FString Language;
+
+	FPurchaseReceipt Receipt;
 };

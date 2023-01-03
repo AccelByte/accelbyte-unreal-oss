@@ -15,7 +15,7 @@ FOnlineAsyncTaskAccelByteGetRecentPlayer::FOnlineAsyncTaskAccelByteGetRecentPlay
 	: FOnlineAsyncTaskAccelByte(InABInterface)
 	, Namespace(InNamespace)
 {
-	UserId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(InUserId.AsShared());
+	UserId = FUniqueNetIdAccelByteUser::CastChecked(InUserId);
 }
 
 void FOnlineAsyncTaskAccelByteGetRecentPlayer::Initialize()

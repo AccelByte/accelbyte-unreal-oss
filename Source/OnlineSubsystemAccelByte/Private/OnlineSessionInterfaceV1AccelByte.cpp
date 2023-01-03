@@ -865,7 +865,7 @@ bool FOnlineSessionV1AccelByte::CancelMatchmaking(const FUniqueNetId& SearchingP
 		return false;
 	}
 
-	TSharedRef<const FUniqueNetIdAccelByteUser> ABUserId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(SearchingPlayerId.AsShared());
+	TSharedRef<const FUniqueNetIdAccelByteUser> ABUserId = FUniqueNetIdAccelByteUser::CastChecked(SearchingPlayerId);
 	FString PartyLeaderIdString = ABUserId.Get().GetAccelByteId();
 
 	// Note that here we are not registering any delegates for a cancel response, as we already will get a notification
@@ -1476,7 +1476,7 @@ uint32 FOnlineSessionV1AccelByte::FinalizeLANSearch()
 
 void FOnlineSessionV1AccelByte::AppendSessionToPacket(FNboSerializeToBufferAccelByte& Packet, FOnlineSession* Session)
 {
-	Packet << *StaticCastSharedPtr<const FUniqueNetIdAccelByteUser>(Session->OwningUserId);
+	Packet << *FUniqueNetIdAccelByteUser::CastChecked(Session->OwningUserId.ToSharedRef());
 	((FNboSerializeToBuffer&)Packet) << Session->OwningUserName;
 	((FNboSerializeToBuffer&)Packet) << Session->NumOpenPrivateConnections;
 	((FNboSerializeToBuffer&)Packet) << Session->NumOpenPublicConnections;
@@ -1840,7 +1840,7 @@ bool FOnlineSessionV1AccelByte::QueryDedicatedSessionInfo(FName SessionName, con
 
 void FOnlineSessionV1AccelByte::SendBanUser(FName SessionName, const FUniqueNetId& PlayerId, int32 InActionID, const FString& InMessage)
 {
-	TSharedRef<const FUniqueNetIdAccelByteUser> PlayerIdComposite = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(PlayerId.AsShared());
+	TSharedRef<const FUniqueNetIdAccelByteUser> PlayerIdComposite = FUniqueNetIdAccelByteUser::CastChecked(PlayerId);
 	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteBanUser>(AccelByteSubsystem, PlayerIdComposite->GetAccelByteId(), InActionID, InMessage);
 }
 

@@ -13,7 +13,7 @@ FOnlineAsyncTaskAccelByteGetLocalizedPolicyContent::FOnlineAsyncTaskAccelByteGet
 	, LocaleCode(InLocaleCode)
 	, bAlwaysRequestToService(bInAlwaysRequestToService)
 {
-	UserId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(InLocalUserId.AsShared());
+	UserId = FUniqueNetIdAccelByteUser::CastChecked(InLocalUserId);
 }
 
 void FOnlineAsyncTaskAccelByteGetLocalizedPolicyContent::Initialize()

@@ -13,7 +13,7 @@ FOnlineAsyncTaskAccelByteSetUserPresence::FOnlineAsyncTaskAccelByteSetUserPresen
 	, LocalCachedPresenceStatus(MakeShared<FOnlineUserPresenceStatus>(InStatus))
 	, Delegate(InDelegate)
 {
-	UserId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(InLocalUserId.AsShared());
+	UserId = FUniqueNetIdAccelByteUser::CastChecked(InLocalUserId);
 }
 
 void FOnlineAsyncTaskAccelByteSetUserPresence::Initialize() 

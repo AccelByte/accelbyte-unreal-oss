@@ -9,12 +9,12 @@ FOnlineAsyncTaskAccelByteFindV2GameSessionById::FOnlineAsyncTaskAccelByteFindV2G
 	// Initialize as a server task if we are running a dedicated server, as this doubles as a server task. Otherwise, use
 	// no flags to indicate that it is a client task.
 	: FOnlineAsyncTaskAccelByte(InABInterface, (IsRunningDedicatedServer()) ? ASYNC_TASK_FLAG_BIT(EAccelByteAsyncTaskFlags::ServerTask) : ASYNC_TASK_FLAG_BIT(EAccelByteAsyncTaskFlags::None))
-	, SessionId(StaticCastSharedRef<const FUniqueNetIdAccelByteResource>(InSessionId.AsShared()))
+	, SessionId(FUniqueNetIdAccelByteResource::CastChecked(InSessionId))
 	, Delegate(InDelegate)
 {
 	if (!IsRunningDedicatedServer())
 	{
-		UserId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(InSearchingPlayerId.AsShared());
+		UserId = FUniqueNetIdAccelByteUser::CastChecked(InSearchingPlayerId.AsShared());
 	}
 }
 

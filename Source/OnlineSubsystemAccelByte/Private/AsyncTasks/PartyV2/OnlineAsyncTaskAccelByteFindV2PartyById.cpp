@@ -7,10 +7,10 @@
 
 FOnlineAsyncTaskAccelByteFindV2PartyById::FOnlineAsyncTaskAccelByteFindV2PartyById(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InSearchingPlayerId, const FUniqueNetId& InSessionId, const FOnSingleSessionResultCompleteDelegate& InDelegate)
     : FOnlineAsyncTaskAccelByte(InABInterface)
-	, SessionId(StaticCastSharedRef<const FUniqueNetIdAccelByteResource>(InSessionId.AsShared()))
+	, SessionId(FUniqueNetIdAccelByteResource::CastChecked(InSessionId))
 	, Delegate(InDelegate)
 {
-	UserId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(InSearchingPlayerId.AsShared());
+	UserId = FUniqueNetIdAccelByteUser::CastChecked(InSearchingPlayerId);
 }
 
 void FOnlineAsyncTaskAccelByteFindV2PartyById::Initialize()

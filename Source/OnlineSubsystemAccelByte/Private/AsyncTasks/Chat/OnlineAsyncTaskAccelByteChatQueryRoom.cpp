@@ -9,9 +9,11 @@ FOnlineAsyncTaskAccelByteChatQueryRoom::FOnlineAsyncTaskAccelByteChatQueryRoom(
 	const FUniqueNetId& InLocalUserId,
 	const FAccelByteModelsChatQueryTopicRequest& InQuery,
 	const FOnChatQueryRoomComplete& InDelegate)
-	: FOnlineAsyncTaskAccelByte(InABInterface), Query(InQuery), Delegate(InDelegate)
+	: FOnlineAsyncTaskAccelByte(InABInterface)
+	, Query(InQuery)
+	, Delegate(InDelegate)
 {
-	UserId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(InLocalUserId.AsShared());
+	UserId = FUniqueNetIdAccelByteUser::CastChecked(InLocalUserId);
 }
 
 void FOnlineAsyncTaskAccelByteChatQueryRoom::Initialize()

@@ -35,10 +35,10 @@ typedef FOnChatDisconnected::FDelegate FOnChatDisconnectedDelegate;
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnReadChatReceived, TArray<FAccelByteModelsChatReadChatData> /*ReadChatsData*/)
 typedef FOnReadChatReceived::FDelegate FOnReadChatReceivedDelegate;
 
-DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnTopicAdded, FString /*ChatTopicName*/, FString /*TopicId*/, FString /*SenderId*/)
+DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnTopicAdded, FString /*ChatTopicName*/, FString /*TopicId*/, FString /*UserId*/)
 typedef FOnTopicAdded::FDelegate FOnTopicAddedDelegate;
 
-DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnTopicRemoved, FString /*ChatTopicName*/, FString /*TopicId*/, FString /*SenderId*/)
+DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnTopicRemoved, FString /*ChatTopicName*/, FString /*TopicId*/, FString /*UserId*/)
 typedef FOnTopicRemoved::FDelegate FOnTopicRemovedDelegate;
 
 DECLARE_MULTICAST_DELEGATE_FourParams(FOnTopicUpdated, FString /*ChatTopicName*/, FString /*TopicId*/, FString /*SenderId*/, bool /*IsChannel */)
@@ -175,23 +175,27 @@ public:
 	bool Connect(int32 LocalUserNum);
 
 	/**
-	 * Create a new chat room containing the given user
+	 * Create a new chat room containing the given user. Deprecated.
 	 *
 	 * @param UserId ID of the user creating the chat room
 	 * @param RoomId #NOTE Unsupported field as the backend will generate an ID
 	 * @param Nickname The local nickname of the chat room
 	 * @param ChatRoomConfig #NOTE Unsupported field as the backend does not support these configuration options
 	 * @returns A boolean indicating whether the process was started successfully
+	 *
+	 * @deprecated Manual room creation is deprecated - please use V2 Sessions to auto-create chat rooms!
 	 */
 	virtual bool CreateRoom(const FUniqueNetId& UserId, const FChatRoomId& RoomId, const FString& Nickname, const FChatRoomConfig& ChatRoomConfig) override;
 
 	/**
-	 * Create a new chat room containing the given user
+	 * Create a new chat room containing the given user. Deprecated.
 	 *
 	 * @param UserId ID of the user creating the chat room
 	 * @param Nickname The local nickname of the chat room
 	 * @param ChatRoomConfig Configuration for the chat room
 	 * @returns A boolean indicating whether the process was started successfully
+	 *
+	 * @deprecated Manual room creation is deprecated - please use V2 Sessions to auto-create chat rooms!
 	 */
 	virtual bool CreateRoom(const FUniqueNetId& UserId, const FString& Nickname, const FAccelByteChatRoomConfig& ChatRoomConfig);
 
@@ -326,12 +330,12 @@ public:
 	/**
 	* Delegate fired when a notification is received regarding being added to a topic
 	*/
-	DEFINE_ONLINE_DELEGATE_THREE_PARAM(OnTopicAdded, FString /*ChatTopicName*/, FString /*TopicId*/, FString /*SenderId*/);
+	DEFINE_ONLINE_DELEGATE_THREE_PARAM(OnTopicAdded, FString /*ChatTopicName*/, FString /*TopicId*/, FString /*UserId*/);
 
 	/**
 	* Delegate fired when a notification is received regarding being removed from a topic
 	*/
-	DEFINE_ONLINE_DELEGATE_THREE_PARAM(OnTopicRemoved, FString /*ChatTopicName*/, FString /*TopicId*/, FString /*SenderId*/);
+	DEFINE_ONLINE_DELEGATE_THREE_PARAM(OnTopicRemoved, FString /*ChatTopicName*/, FString /*TopicId*/, FString /*UserId*/);
 
 	/**
 	* Delegate fired when a notification is received regarding a topic being updated

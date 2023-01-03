@@ -11,11 +11,7 @@ FOnlineAsyncTaskAccelByteQueryOfferDynamicData::FOnlineAsyncTaskAccelByteQueryOf
 	, OfferId(InOfferId)
 	, Delegate(InDelegate)
 {
-	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
-
-	UserId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(InUserId.AsShared());
-	
-	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
+	UserId = FUniqueNetIdAccelByteUser::CastChecked(InUserId);
 }
 
 void FOnlineAsyncTaskAccelByteQueryOfferDynamicData::Initialize()

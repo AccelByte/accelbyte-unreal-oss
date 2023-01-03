@@ -12,7 +12,7 @@ FOnlineAsyncTaskAccelByteFindV1Sessions::FOnlineAsyncTaskAccelByteFindV1Sessions
 	: FOnlineAsyncTaskAccelByte(InABInterface, true)
 	, SearchSettings(InSearchSettings)
 {
-	UserId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(InSearchingPlayerId.AsShared());
+	UserId = FUniqueNetIdAccelByteUser::CastChecked(InSearchingPlayerId);
 }
 
 void FOnlineAsyncTaskAccelByteFindV1Sessions::Initialize()

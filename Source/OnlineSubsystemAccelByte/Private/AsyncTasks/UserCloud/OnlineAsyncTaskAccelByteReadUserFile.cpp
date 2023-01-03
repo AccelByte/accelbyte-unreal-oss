@@ -12,7 +12,7 @@ FOnlineAsyncTaskAccelByteReadUserFile::FOnlineAsyncTaskAccelByteReadUserFile(FOn
 	: FOnlineAsyncTaskAccelByte(InABInterface)
 	, FileName(InFileName)
 {
-	UserId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(InUserId.AsShared());
+	UserId = FUniqueNetIdAccelByteUser::CastChecked(InUserId);
 }
 
 void FOnlineAsyncTaskAccelByteReadUserFile::Initialize()

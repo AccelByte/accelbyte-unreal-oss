@@ -8,7 +8,7 @@ FOnlineAsyncTaskAccelByteQueryEntitlements::FOnlineAsyncTaskAccelByteQueryEntitl
 	Namespace(InNamespace),
 	PagedQuery(InPage)
 {
-	UserId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(InUserId.AsShared());
+	UserId = FUniqueNetIdAccelByteUser::CastChecked(InUserId);
 }
 
 void FOnlineAsyncTaskAccelByteQueryEntitlements::Initialize()

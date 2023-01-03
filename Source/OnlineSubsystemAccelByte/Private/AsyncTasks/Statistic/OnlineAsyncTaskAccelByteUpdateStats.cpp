@@ -13,12 +13,12 @@ FOnlineAsyncTaskAccelByteUpdateStats::FOnlineAsyncTaskAccelByteUpdateStats(FOnli
 {
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Construct FOnlineAsyncTaskAccelByteUpdateStats"));
 
-	UserId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(LocalUserId); 
+	UserId = FUniqueNetIdAccelByteUser::CastChecked(LocalUserId); 
 	
 	for (auto const& UpdatedUserStat : UpdatedUserStats)
 	{
 		FAccelByteModelsUpdateUserStatItemWithStatCode UpdateUserStatItemWithStatCode;
-		TSharedPtr<const FUniqueNetIdAccelByteUser> Account = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(UpdatedUserStat.Account);
+		TSharedPtr<const FUniqueNetIdAccelByteUser> Account = FUniqueNetIdAccelByteUser::CastChecked(UpdatedUserStat.Account);
 		for (auto const& Stat : UpdatedUserStat.Stats)
 		{
 			FString Key = Stat.Key;

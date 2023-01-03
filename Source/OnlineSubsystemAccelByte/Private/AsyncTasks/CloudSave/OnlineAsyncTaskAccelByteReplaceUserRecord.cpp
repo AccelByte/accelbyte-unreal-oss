@@ -12,7 +12,7 @@ FOnlineAsyncTaskAccelByteReplaceUserRecord::FOnlineAsyncTaskAccelByteReplaceUser
 	, UserRecordObj(InUserRecordObj)
 	, IsPublicRecord(IsPublic)
 {
-	UserId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(InLocalUserId.AsShared());
+	UserId = FUniqueNetIdAccelByteUser::CastChecked(InLocalUserId);
 }
 
 void FOnlineAsyncTaskAccelByteReplaceUserRecord::Initialize()

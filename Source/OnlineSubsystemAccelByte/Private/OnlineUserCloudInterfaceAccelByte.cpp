@@ -137,7 +137,7 @@ bool FOnlineUserCloudAccelByte::GetFileContents(const FUniqueNetId& UserId, cons
 	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("UserId: %s; FileName: %s"), *UserId.ToDebugString(), *FileName);
 
 	// Check if we have a cache of files read for this user
-	FFileNameToFileContentsMap* FoundReadCache = UserIdToFileNameFileContentsMap.Find(StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(UserId.AsShared()));
+	FFileNameToFileContentsMap* FoundReadCache = UserIdToFileNameFileContentsMap.Find(FUniqueNetIdAccelByteUser::CastChecked(UserId));
 	if (FoundReadCache == nullptr)
 	{
 		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Could not get file (%s) contents as user (%s) has no read cache!"), *FileName, *UserId.ToDebugString());
@@ -159,7 +159,7 @@ bool FOnlineUserCloudAccelByte::GetFileContents(const FUniqueNetId& UserId, cons
 
 bool FOnlineUserCloudAccelByte::ClearFiles(const FUniqueNetId& UserId)
 {
-	FFileNameToFileContentsMap* FoundContentsMap = UserIdToFileNameFileContentsMap.Find(StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(UserId.AsShared()));
+	FFileNameToFileContentsMap* FoundContentsMap = UserIdToFileNameFileContentsMap.Find(FUniqueNetIdAccelByteUser::CastChecked(UserId));
 	if (FoundContentsMap != nullptr)
 	{
 		FoundContentsMap->Empty();
@@ -171,7 +171,7 @@ bool FOnlineUserCloudAccelByte::ClearFiles(const FUniqueNetId& UserId)
 
 bool FOnlineUserCloudAccelByte::ClearFile(const FUniqueNetId& UserId, const FString& FileName)
 {
-	FFileNameToFileContentsMap* FoundContentsMap = UserIdToFileNameFileContentsMap.Find(StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(UserId.AsShared()));
+	FFileNameToFileContentsMap* FoundContentsMap = UserIdToFileNameFileContentsMap.Find(FUniqueNetIdAccelByteUser::CastChecked(UserId));
 	if (FoundContentsMap != nullptr)
 	{
 		if (FoundContentsMap->Contains(FileName))
@@ -186,7 +186,7 @@ bool FOnlineUserCloudAccelByte::ClearFile(const FUniqueNetId& UserId, const FStr
 
 void FOnlineUserCloudAccelByte::GetUserFileList(const FUniqueNetId& UserId, TArray<FCloudFileHeader>& UserFiles)
 {
-	FFileNameToFileHeaderMap* UserCloudFiles = UserIdToFileNameFileHeaderMap.Find(StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(UserId.AsShared()));
+	FFileNameToFileHeaderMap* UserCloudFiles = UserIdToFileNameFileHeaderMap.Find(FUniqueNetIdAccelByteUser::CastChecked(UserId));
 	if (UserCloudFiles != nullptr)
 	{
 		UserFiles.Empty(UserCloudFiles->Num());
@@ -205,7 +205,7 @@ void FOnlineUserCloudAccelByte::DumpCloudFileState(const FUniqueNetId& UserId, c
 	UE_LOG_AB(Log, TEXT("State for file '%s' owned by user '%s':"), *FileName, *UserId.ToDebugString());
 
 	// First try and dump information about the header of the file that is owned by the user
-	const FFileNameToFileHeaderMap* FoundHeaderMap = UserIdToFileNameFileHeaderMap.Find(StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(UserId.AsShared()));
+	const FFileNameToFileHeaderMap* FoundHeaderMap = UserIdToFileNameFileHeaderMap.Find(FUniqueNetIdAccelByteUser::CastChecked(UserId));
 	if (FoundHeaderMap != nullptr)
 	{
 		const FCloudFileHeader* FoundHeader = FoundHeaderMap->Find(FileName);
@@ -224,7 +224,7 @@ void FOnlineUserCloudAccelByte::DumpCloudFileState(const FUniqueNetId& UserId, c
 	}
 
 	// Then try and dump information about the cached contents, really just the size of the contents we have
-	const FFileNameToFileContentsMap* FoundContentsMap = UserIdToFileNameFileContentsMap.Find(StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(UserId.AsShared()));
+	const FFileNameToFileContentsMap* FoundContentsMap = UserIdToFileNameFileContentsMap.Find(FUniqueNetIdAccelByteUser::CastChecked(UserId));
 	if (FoundContentsMap != nullptr)
 	{
 		const TArray<uint8>* FoundContents = FoundContentsMap->Find(FileName);

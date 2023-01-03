@@ -10,7 +10,7 @@
 
 FOnlineAsyncTaskAccelByteRescindFriendInvite::FOnlineAsyncTaskAccelByteRescindFriendInvite(FOnlineSubsystemAccelByte* const InABInterface, int32 InLocalUserNum, const FUniqueNetId& InFriendId, const FString& InListName, const FOnSendInviteComplete& InDelegate)
 	: FOnlineAsyncTaskAccelByte(InABInterface)
-	, FriendId(StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(InFriendId.AsShared()))
+	, FriendId(FUniqueNetIdAccelByteUser::CastChecked(InFriendId))
 	, ListName(InListName)
 	, Delegate(InDelegate)
 {

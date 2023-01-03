@@ -12,7 +12,7 @@ FOnlineAsyncTaskAccelByteRejectV2PartyInvite::FOnlineAsyncTaskAccelByteRejectV2P
 	, InvitedSession(InInvitedSession)
 	, Delegate(InDelegate)
 {
-	UserId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(InLocalUserId.AsShared());
+	UserId = FUniqueNetIdAccelByteUser::CastChecked(InLocalUserId);
 }
 
 void FOnlineAsyncTaskAccelByteRejectV2PartyInvite::Initialize()

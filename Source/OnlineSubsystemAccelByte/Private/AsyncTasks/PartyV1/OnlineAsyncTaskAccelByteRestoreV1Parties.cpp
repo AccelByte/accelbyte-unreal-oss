@@ -15,7 +15,7 @@ FOnlineAsyncTaskAccelByteRestoreV1Parties::FOnlineAsyncTaskAccelByteRestoreV1Par
 	, CompletionDelegate(InCompletionDelegate)
 	, PartyData(MakeShared<FOnlinePartyData>())
 {
-	UserId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(InLocalUserId.AsShared());
+	UserId = FUniqueNetIdAccelByteUser::CastChecked(InLocalUserId);
 }
 
 void FOnlineAsyncTaskAccelByteRestoreV1Parties::Initialize()

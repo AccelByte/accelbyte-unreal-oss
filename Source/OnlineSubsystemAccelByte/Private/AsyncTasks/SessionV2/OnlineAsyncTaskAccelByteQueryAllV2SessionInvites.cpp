@@ -7,7 +7,7 @@
 FOnlineAsyncTaskAccelByteQueryAllV2SessionInvites::FOnlineAsyncTaskAccelByteQueryAllV2SessionInvites(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InPlayerId)
 	: FOnlineAsyncTaskAccelByte(InABInterface)
 {
-	UserId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(InPlayerId.AsShared());
+	UserId = FUniqueNetIdAccelByteUser::CastChecked(InPlayerId);
 }
 
 void FOnlineAsyncTaskAccelByteQueryAllV2SessionInvites::Initialize()

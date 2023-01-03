@@ -199,7 +199,7 @@ TSharedRef<FOnlinePartyAccelByte> FOnlinePartyAccelByte::CreatePartyFromPartyInf
 void FOnlinePartyAccelByte::AddMember(const TSharedRef<const FUniqueNetIdAccelByteUser>& LocalUserId, const TSharedRef<FOnlinePartyMemberAccelByte>& Member)
 {
 	TSharedRef<const FUniqueNetId> NewMemberId = Member->GetUserId();
-	UserIdToPartyMemberMap.Add(StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(NewMemberId), Member);
+	UserIdToPartyMemberMap.Add(FUniqueNetIdAccelByteUser::CastChecked(NewMemberId), Member);
 	OwningInterface->TriggerOnPartyMemberJoinedDelegates(LocalUserId.Get(), PartyId.Get(), NewMemberId.Get());
 }
 
@@ -259,25 +259,25 @@ void FOnlinePartyAccelByte::RemoveInvite(const TSharedRef<const FUniqueNetIdAcce
 		// If we found the invited user, then we want to remove them from the party invites array and trigger delegates
 		if (FoundInvitedUserIndex != INDEX_NONE)
 		{
-			const FInvitedPlayerPair& InvitedPlayer = InvitedPlayers[FoundInvitedUserIndex];
+			const FInvitedPlayerPair InvitedPlayer = InvitedPlayers[FoundInvitedUserIndex];
 			InvitedPlayers.RemoveAt(FoundInvitedUserIndex);
 			
 #if !(ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 1)
 			OwningInterface->TriggerOnPartyInviteRemovedDelegates(LocalUserId.Get(), PartyId.Get(), InvitedPlayer.Key.Get(), PartyInviteRemoveReason);
 #endif
-
 #if !(ENGINE_MAJOR_VERSION == 4 && ENGINE_MINOR_VERSION < 27)
 			TArray<IOnlinePartyJoinInfoConstRef> Invites;
-			FOnlinePartyJoinInfoAccelByte JoinInfo;
+			FString SenderDisplayName;
 			OwningInterface->GetPendingInvites(InvitedUserId.Get(), Invites);
 			for (const auto& Invite : Invites)
 			{
 				if (Invite->GetSourceUserId().Get() == LocalUserId.Get())
 				{
-					JoinInfo = Invite.Get();
+					SenderDisplayName = Invite->GetSourceDisplayName();
 				}
 			}
-			OwningInterface->TriggerOnPartyInviteRemovedExDelegates(LocalUserId.Get(), JoinInfo, PartyInviteRemoveReason);
+			TSharedRef<FOnlinePartyJoinInfoAccelByte> JoinInfoRef = MakeShared<FOnlinePartyJoinInfoAccelByte>(StaticCastSharedRef<const FOnlinePartyIdAccelByte>(PartyId), InvitedPlayer.Key, SenderDisplayName);
+			OwningInterface->TriggerOnPartyInviteRemovedExDelegates(LocalUserId.Get(), JoinInfoRef.Get(), PartyInviteRemoveReason);
 #endif
 		}
 	}
@@ -567,7 +567,7 @@ bool FOnlinePartyMemberAccelByte::GetUserAttribute(const FString& AttrName, FStr
 
 FOnlinePartyJoinInfoAccelByte::FOnlinePartyJoinInfoAccelByte(const IOnlinePartyJoinInfo& BaseInfo)
 	: PartyId(StaticCastSharedRef<const FOnlinePartyIdAccelByte>(BaseInfo.GetPartyId()))
-	, SourceUserId(StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(BaseInfo.GetSourceUserId()))
+	, SourceUserId(FUniqueNetIdAccelByteUser::CastChecked(BaseInfo.GetSourceUserId()))
 	, SourceUserDisplayName(BaseInfo.GetSourceDisplayName())
 	, SourcePlatform(BaseInfo.GetSourcePlatform())
 #if !(ENGINE_MAJOR_VERSION == 4 && ENGINE_MINOR_VERSION < 26)
@@ -734,7 +734,7 @@ TSharedPtr<FOnlinePartyAccelByte> FOnlinePartySystemAccelByte::GetFirstPartyForU
 }
 
 TSharedPtr<const FOnlinePartyId> FOnlinePartySystemAccelByte::GetFirstPartyIdForUser(const FUniqueNetId& UserId) {
-	TSharedRef<const FUniqueNetIdAccelByteUser> AccelbyteId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(UserId.AsShared());
+	TSharedRef<const FUniqueNetIdAccelByteUser> AccelbyteId = FUniqueNetIdAccelByteUser::CastChecked(UserId);
 	TSharedPtr<FOnlinePartyAccelByte> Party = GetFirstPartyForUser(AccelbyteId);
 	if (Party.IsValid()) {
 		return Party->PartyId;
@@ -836,7 +836,7 @@ void FOnlinePartySystemAccelByte::OnPartyMemberLeaveNotification(const FAccelByt
 	if (IdentityInterface.IsValid())
 	{
 		TSharedPtr<const FUniqueNetId> LocalPlayerUserId = IdentityInterface->GetUniquePlayerId(AccelByteSubsystem->GetLocalUserNumCached());
-		TSharedRef<const FUniqueNetIdAccelByteUser> LocalAccelByteUserId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(LocalPlayerUserId.ToSharedRef());
+		TSharedRef<const FUniqueNetIdAccelByteUser> LocalAccelByteUserId = FUniqueNetIdAccelByteUser::CastChecked(LocalPlayerUserId.ToSharedRef());
 
 		TSharedPtr<FOnlinePartyAccelByte> Party = GetFirstPartyForUser(LocalAccelByteUserId);
 		if (Party.IsValid())
@@ -947,7 +947,7 @@ void FOnlinePartySystemAccelByte::OnPartyDataChangeNotification(const FAccelByte
 		return;
 	} 
 	
-	TSharedPtr<const FUniqueNetIdAccelByteUser> PreviousLeaderId = StaticCastSharedPtr<const FUniqueNetIdAccelByteUser>(Party->LeaderId);
+	TSharedPtr<const FUniqueNetIdAccelByteUser> PreviousLeaderId = FUniqueNetIdAccelByteUser::CastChecked(Party->LeaderId.ToSharedRef());
 	if (!Notification.Leader.IsEmpty() && Notification.Leader != PreviousLeaderId->GetAccelByteId())
 	{
 		UE_LOG(LogAccelByteOSSParty, Verbose, TEXT("User '%s' has been promoted to leader of party '%s' replacing user '%s'!"), *Notification.Leader, *Party->PartyId->ToString(), *PreviousLeaderId->GetAccelByteId());
@@ -962,17 +962,17 @@ void FOnlinePartySystemAccelByte::OnPartyDataChangeNotification(const FAccelByte
 		{
 			Party->LeaderId = LeaderMember->GetUserId();
 
-			const TSharedRef<const FUniqueNetIdAccelByteUser> LeaderMemberId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(LeaderMember->GetUserId().Get().AsShared());
+			const TSharedRef<const FUniqueNetIdAccelByteUser> LeaderMemberId = FUniqueNetIdAccelByteUser::CastChecked(LeaderMember->GetUserId());
 			FString LeaderMemberIdStr = LeaderMemberId->GetAccelByteId();
 
-			TSharedPtr<const FUniqueNetIdAccelByteUser> PartyLeaderId = StaticCastSharedPtr<const FUniqueNetIdAccelByteUser>(Party->LeaderId);
+			TSharedPtr<const FUniqueNetIdAccelByteUser> PartyLeaderId = FUniqueNetIdAccelByteUser::CastChecked(Party->LeaderId.ToSharedRef());
 			FString PartyLeaderIdStr = PartyLeaderId->GetAccelByteId();
 			//Send the notif for all local users that have the same party object
 			for (auto Member : Party->GetAllMembers())
 			{
 				if (Member->GetUserId().Get() != *PreviousLeaderId.Get())
 				{
-					FPartyIDToPartyMap* FoundPartyMap = UserIdToPartiesMap.Find(FUniqueNetIdAccelByteUser::Cast(Member->GetUserId().Get()));
+					FPartyIDToPartyMap* FoundPartyMap = UserIdToPartiesMap.Find(FUniqueNetIdAccelByteUser::CastChecked(Member->GetUserId()));
 					if (FoundPartyMap != nullptr)
 					{
 						TSharedRef<FOnlinePartyAccelByte>* FoundPartyRef = FoundPartyMap->Find(MakeShared<const FOnlinePartyIdAccelByte>(Notification.PartyId));
@@ -1201,7 +1201,7 @@ bool FOnlinePartySystemAccelByte::RemovePartyFromInterface(const TSharedRef<cons
 
 bool FOnlinePartySystemAccelByte::IsPlayerInParty(const FUniqueNetId& UserId, const FOnlinePartyId& PartyId)
 {
-	const TSharedRef<const FUniqueNetIdAccelByteUser> AccelByteId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(UserId.AsShared());
+	const TSharedRef<const FUniqueNetIdAccelByteUser> AccelByteId = FUniqueNetIdAccelByteUser::CastChecked(UserId);
 	if (!AccelByteId->IsValid())
 	{
 		return false;
@@ -1229,7 +1229,7 @@ bool FOnlinePartySystemAccelByte::IsPlayerInParty(const FUniqueNetId& UserId, co
 
 bool FOnlinePartySystemAccelByte::IsPlayerInAnyParty(const FUniqueNetId& UserId)
 {
-	const TSharedRef<const FUniqueNetIdAccelByteUser> AccelByteId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(UserId.AsShared());
+	const TSharedRef<const FUniqueNetIdAccelByteUser> AccelByteId = FUniqueNetIdAccelByteUser::CastChecked(UserId);
 	if (!AccelByteId->IsValid())
 	{
 		return false;
@@ -1245,7 +1245,7 @@ bool FOnlinePartySystemAccelByte::IsPlayerInAnyParty(const FUniqueNetId& UserId)
 
 int32 FOnlinePartySystemAccelByte::GetCurrentPartyMemberCount(const FUniqueNetId& UserId)
 {
-	const TSharedRef<const FUniqueNetIdAccelByteUser> AccelByteId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(UserId.AsShared());
+	const TSharedRef<const FUniqueNetIdAccelByteUser> AccelByteId = FUniqueNetIdAccelByteUser::CastChecked(UserId);
 	if (!AccelByteId->IsValid())
 	{
 		return -1;
@@ -1324,8 +1324,8 @@ bool FOnlinePartySystemAccelByte::RemoveInviteForParty(const TSharedRef<const FU
 
 		if (FoundInviteIndex != INDEX_NONE)
 		{
-			FOnlinePartyJoinInfoAccelByte JoinInfo = (*FoundInvitesArray)[FoundInviteIndex]->JoinInfo.Get();
 			const TSharedRef<const FUniqueNetIdAccelByteUser> SenderId = (*FoundInvitesArray)[FoundInviteIndex]->InviterId;
+			const FString SenderDisplayName = (*FoundInvitesArray)[FoundInviteIndex]->InviterDisplayName;
 			
 			FoundInvitesArray->RemoveAt(FoundInviteIndex);
 #if !(ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 1)
@@ -1333,7 +1333,8 @@ bool FOnlinePartySystemAccelByte::RemoveInviteForParty(const TSharedRef<const FU
 #endif
 
 #if !(ENGINE_MAJOR_VERSION == 4 && ENGINE_MINOR_VERSION < 27)
-			TriggerOnPartyInviteRemovedExDelegates(UserId.Get(), JoinInfo,InvitationRemovalReason);
+			TSharedRef<FOnlinePartyJoinInfoAccelByte> JoinInfoRef = MakeShared<FOnlinePartyJoinInfoAccelByte>(PartyId, SenderId, SenderDisplayName);
+			TriggerOnPartyInviteRemovedExDelegates(UserId.Get(), JoinInfoRef.Get(),InvitationRemovalReason);
 #endif
 			TriggerOnPartyInvitesChangedDelegates(UserId.Get());
 			return true;
@@ -1494,7 +1495,7 @@ bool FOnlinePartySystemAccelByte::UpdateParty(const FUniqueNetId& LocalUserId, c
 	UE_LOG_AB(Warning, TEXT("FOnlinePartySystemAccelByte::UpdateParty is not supported!"));
 
 	// Convert IDs to our internal ID types so that we can pass them as lambda captures
-	const TSharedRef<const FUniqueNetIdAccelByteUser> NetId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(LocalUserId.AsShared());
+	const TSharedRef<const FUniqueNetIdAccelByteUser> NetId = FUniqueNetIdAccelByteUser::CastChecked(LocalUserId);
 	const TSharedRef<const FOnlinePartyIdAccelByte> ABPartyId = StaticCastSharedRef<const FOnlinePartyIdAccelByte>(PartyId.AsShared());
 	AccelByteSubsystem->ExecuteNextTick([NetId, ABPartyId, Delegate]() {
 		Delegate.ExecuteIfBound(NetId.Get(), ABPartyId.Get(), EUpdateConfigCompletionResult::UnknownClientFailure);
@@ -1574,7 +1575,7 @@ bool FOnlinePartySystemAccelByte::RejoinParty(const FUniqueNetId& LocalUserId, c
 	UE_LOG_AB(Warning, TEXT("FOnlinePartySystemAccelByte::RejoinParty is not supported!"));
 
 	// Convert IDs to our internal ID types so that we can pass them as lambda captures
-	const TSharedRef<const FUniqueNetIdAccelByteUser> NetId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(LocalUserId.AsShared());
+	const TSharedRef<const FUniqueNetIdAccelByteUser> NetId = FUniqueNetIdAccelByteUser::CastChecked(LocalUserId);
 	const TSharedRef<const FOnlinePartyIdAccelByte> ABPartyId = StaticCastSharedRef<const FOnlinePartyIdAccelByte>(PartyId.AsShared());
 	AccelByteSubsystem->ExecuteNextTick([NetId, ABPartyId, Delegate]() {
 		Delegate.ExecuteIfBound(NetId.Get(), ABPartyId.Get(), EJoinPartyCompletionResult::UnableToRejoin, UNSUPPORTED_METHOD_REASON);
@@ -1730,8 +1731,8 @@ bool FOnlinePartySystemAccelByte::RejectInvitation(const FUniqueNetId& LocalUser
 		return false;
 	}
 
-	TSharedRef<const FUniqueNetIdAccelByteUser> LocalUserIdAccelByte = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(LocalUserId.AsShared());
-	TSharedRef<const FUniqueNetIdAccelByteUser> SenderIdAccelByte = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(SenderId.AsShared());
+	TSharedRef<const FUniqueNetIdAccelByteUser> LocalUserIdAccelByte = FUniqueNetIdAccelByteUser::CastChecked(LocalUserId);
+	TSharedRef<const FUniqueNetIdAccelByteUser> SenderIdAccelByte = FUniqueNetIdAccelByteUser::CastChecked(SenderId);
 	
 	const TSharedPtr<FOnlineIdentityAccelByte, ESPMode::ThreadSafe> IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystem->GetIdentityInterface());
 	if (!IdentityInterface.IsValid())
@@ -1767,7 +1768,7 @@ void FOnlinePartySystemAccelByte::ClearInvitations(const FUniqueNetId& LocalUser
 	}
 
 	// ClearInvitations will just clear the local cache for now, as we cannot restore invites between sessions
-	ClearInviteForParty(StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(LocalUserId.AsShared()), MakeShareable(PartyId), EPartyInvitationRemovedReason::Cleared);
+	ClearInviteForParty(FUniqueNetIdAccelByteUser::CastChecked(LocalUserId), MakeShareable(PartyId), EPartyInvitationRemovedReason::Cleared);
 }
 
 bool FOnlinePartySystemAccelByte::KickMember(const FUniqueNetId& LocalUserId, const FOnlinePartyId& PartyId, const FUniqueNetId& TargetMemberId, const FOnKickPartyMemberComplete& Delegate)
@@ -1836,7 +1837,7 @@ bool FOnlinePartySystemAccelByte::IsMemberLeader(const FUniqueNetId& LocalUserId
 	}
 	
 	// Convert the LocalUserId to a shared reference to a FUniqueNetIdAccelByte for searching
-	const TSharedRef<const FUniqueNetIdAccelByteUser> SharedUserId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(LocalUserId.AsShared());
+	const TSharedRef<const FUniqueNetIdAccelByteUser> SharedUserId = FUniqueNetIdAccelByteUser::CastChecked(LocalUserId);
 	const FPartyIDToPartyMap* FoundPartyMap = UserIdToPartiesMap.Find(SharedUserId);
 	if (FoundPartyMap != nullptr)
 	{
@@ -1860,7 +1861,7 @@ uint32 FOnlinePartySystemAccelByte::GetPartyMemberCount(const FUniqueNetId& Loca
 		return 0;
 	}
 
-	const TSharedRef<const FUniqueNetIdAccelByteUser> SharedUserId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(LocalUserId.AsShared());
+	const TSharedRef<const FUniqueNetIdAccelByteUser> SharedUserId = FUniqueNetIdAccelByteUser::CastChecked(LocalUserId);
 	const FPartyIDToPartyMap* FoundPartyMap = UserIdToPartiesMap.Find(SharedUserId);
 	if (FoundPartyMap != nullptr)
 	{
@@ -1880,7 +1881,7 @@ FOnlinePartyConstPtr FOnlinePartySystemAccelByte::GetParty(const FUniqueNetId& L
 		return nullptr;
 	}
 
-	const TSharedRef<const FUniqueNetIdAccelByteUser> SharedUserId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(LocalUserId.AsShared());
+	const TSharedRef<const FUniqueNetIdAccelByteUser> SharedUserId = FUniqueNetIdAccelByteUser::CastChecked(LocalUserId);
 	const FPartyIDToPartyMap* FoundPartyMap = UserIdToPartiesMap.Find(SharedUserId);
 	if (FoundPartyMap != nullptr)
 	{
@@ -1900,7 +1901,7 @@ FOnlinePartyConstPtr FOnlinePartySystemAccelByte::GetParty(const FUniqueNetId& L
 		return nullptr;
 	}
 
-	const TSharedRef<const FUniqueNetIdAccelByteUser> SharedUserId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(LocalUserId.AsShared());
+	const TSharedRef<const FUniqueNetIdAccelByteUser> SharedUserId = FUniqueNetIdAccelByteUser::CastChecked(LocalUserId);
 	const FPartyIDToPartyMap* FoundPartyMap = UserIdToPartiesMap.Find(SharedUserId);
 	if (FoundPartyMap != nullptr)
 	{
@@ -1927,14 +1928,14 @@ FOnlinePartyMemberConstPtr FOnlinePartySystemAccelByte::GetPartyMember(const FUn
 		return nullptr;
 	}
 
-	const TSharedRef<const FUniqueNetIdAccelByteUser> SharedUserId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(LocalUserId.AsShared());
+	const TSharedRef<const FUniqueNetIdAccelByteUser> SharedUserId = FUniqueNetIdAccelByteUser::CastChecked(LocalUserId);
 	const FPartyIDToPartyMap* FoundPartyMap = UserIdToPartiesMap.Find(SharedUserId);
 	if (FoundPartyMap != nullptr)
 	{
 		const TSharedRef<FOnlinePartyAccelByte>* FoundParty = FoundPartyMap->Find(StaticCastSharedRef<const FOnlinePartyIdAccelByte>(PartyId.AsShared()));
 		if (FoundParty != nullptr)
 		{
-			return (*FoundParty)->GetMember(StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(MemberId.AsShared()));
+			return (*FoundParty)->GetMember(FUniqueNetIdAccelByteUser::CastChecked(MemberId));
 		}
 	}
 	return nullptr;
@@ -1951,7 +1952,7 @@ FOnlinePartyDataConstPtr FOnlinePartySystemAccelByte::GetPartyData(const FUnique
 		return nullptr;
 	}
 
-	const TSharedRef<const FUniqueNetIdAccelByteUser> SharedUserId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(LocalUserId.AsShared());
+	const TSharedRef<const FUniqueNetIdAccelByteUser> SharedUserId = FUniqueNetIdAccelByteUser::CastChecked(LocalUserId);
 	const FPartyIDToPartyMap* FoundPartyMap = UserIdToPartiesMap.Find(SharedUserId);
 	if (FoundPartyMap != nullptr)
 	{
@@ -1997,7 +1998,7 @@ bool FOnlinePartySystemAccelByte::GetJoinedParties(const FUniqueNetId& LocalUser
 		return false;
 	}
 
-	const TSharedRef<const FUniqueNetIdAccelByteUser> SharedUserId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(LocalUserId.AsShared());
+	const TSharedRef<const FUniqueNetIdAccelByteUser> SharedUserId = FUniqueNetIdAccelByteUser::CastChecked(LocalUserId);
 	const FPartyIDToPartyMap* FoundPartyMap = UserIdToPartiesMap.Find(SharedUserId);
 	if (FoundPartyMap != nullptr)
 	{
@@ -2018,7 +2019,7 @@ bool FOnlinePartySystemAccelByte::GetPartyMembers(const FUniqueNetId& LocalUserI
 		return false;
 	}
 
-	const TSharedRef<const FUniqueNetIdAccelByteUser> SharedUserId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(LocalUserId.AsShared());
+	const TSharedRef<const FUniqueNetIdAccelByteUser> SharedUserId = FUniqueNetIdAccelByteUser::CastChecked(LocalUserId);
 	const FPartyIDToPartyMap* FoundPartyMap = UserIdToPartiesMap.Find(SharedUserId);
 	if (FoundPartyMap != nullptr)
 	{
@@ -2039,7 +2040,7 @@ bool FOnlinePartySystemAccelByte::GetPendingInvites(const FUniqueNetId& LocalUse
 		return false;
 	}
 
-	const FPartyInviteArray* FoundInvites = UserIdToPartyInvitesMap.Find(StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(LocalUserId.AsShared()));
+	const FPartyInviteArray* FoundInvites = UserIdToPartyInvitesMap.Find(FUniqueNetIdAccelByteUser::CastChecked(LocalUserId));
 	if (FoundInvites != nullptr)
 	{
 		// If we found an array of invites for this user, then we want to add all of these invites to the out array
@@ -2072,7 +2073,7 @@ bool FOnlinePartySystemAccelByte::GetPendingInvitedUsers(const FUniqueNetId& Loc
 		return false;
 	}
 
-	const TSharedRef<const FUniqueNetIdAccelByteUser> SharedUserId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(LocalUserId.AsShared());
+	const TSharedRef<const FUniqueNetIdAccelByteUser> SharedUserId = FUniqueNetIdAccelByteUser::CastChecked(LocalUserId);
 	const FPartyIDToPartyMap* FoundPartyMap = UserIdToPartiesMap.Find(SharedUserId);
 	if (FoundPartyMap != nullptr)
 	{

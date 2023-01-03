@@ -29,11 +29,12 @@ private:
 	void HandleGetRootCategorySuccess(const TArray<FAccelByteModelsCategoryInfo>& AccelByteModelsCategoryInfos);
 	void HandleAsyncTaskError(int32 Code, FString const& ErrMsg);
 
+	FOnQueryOnlineStoreCategoriesComplete Delegate;
 	FString Language;
+
 	THandler<TArray<FAccelByteModelsCategoryInfo>> OnGetRootCategoriesSuccess;
 	THandler<TArray<FAccelByteModelsCategoryInfo>> OnGetDescendantCategoriesSuccess;
 	FErrorHandler OnError;
-	FOnQueryOnlineStoreCategoriesComplete Delegate;
 	// Key is root path
 	TMap<FString, FOnlineStoreCategory> CategoryMap;
 	int32 TaskLeft = -1;

@@ -96,6 +96,8 @@ bool FOnlineChatAccelByte::CreateRoom(
 
 bool FOnlineChatAccelByte::CreateRoom(const FUniqueNetId& UserId, const FString& Nickname, const FAccelByteChatRoomConfig& ChatRoomConfig)
 {
+	FReport::LogDeprecated(FString(__FUNCTION__), TEXT("Manual room creation is deprecated - please use V2 Sessions to auto-create chat rooms"));
+
 	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("UserId: %s, Nickname: %s, bIsJoinable: %s"), *UserId.ToDebugString(), *Nickname, LOG_BOOL_FORMAT(ChatRoomConfig.bIsJoinable));
 
 	// TODO: Store the supplied nickname
@@ -172,11 +174,11 @@ bool FOnlineChatAccelByte::SendRoomChat(const FUniqueNetId& UserId, const FChatR
 {
 	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("UserId: %s, RoomId: %s, MsgBody: %s"), *UserId.ToDebugString(), *RoomId, *MsgBody);
 
-	const FUniqueNetIdAccelByteUserRef AccelByteUserId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(UserId.AsShared());
+	const FUniqueNetIdAccelByteUserRef AccelByteUserId = FUniqueNetIdAccelByteUser::CastChecked(UserId);
 	const FString AccelByteId = AccelByteUserId->GetAccelByteId();
 	if (!IsJoinedTopic(AccelByteId, RoomId))
 	{
-		UE_LOG_AB(Verbose, TEXT("Unable to send room chat as the user %s is not joined room %s"), *AccelByteId, *RoomId);
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Unable to send room chat as the user %s has not joined room %s"), *AccelByteId, *RoomId);
 		return false;
 	}
 
@@ -189,11 +191,12 @@ bool FOnlineChatAccelByte::SendRoomChat(const FUniqueNetId& UserId, const FChatR
 
 bool FOnlineChatAccelByte::SendPrivateChat(const FUniqueNetId& UserId, const FUniqueNetId& RecipientId, const FString& MsgBody)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("UserId %s RecipientId %s"), *UserId.ToDebugString(), *RecipientId.ToDebugString());
+	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("UserId: %s, RecipientId: %s"), *UserId.ToDebugString(), *RecipientId.ToDebugString());
 
 	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteChatSendPersonalChat>(AccelByteSubsystem, UserId, RecipientId, MsgBody);
 
 	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+
 	return true;
 }
 
@@ -204,8 +207,9 @@ bool FOnlineChatAccelByte::IsChatAllowed(const FUniqueNetId& UserId, const FUniq
 
 void FOnlineChatAccelByte::GetJoinedRooms(const FUniqueNetId& UserId, TArray<FChatRoomId>& OutRooms)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("UserId %s"), *UserId.ToDebugString());
-	const FUniqueNetIdAccelByteUserRef AccelByteUserId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(UserId.AsShared());
+	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("UserId: %s"), *UserId.ToDebugString());
+
+	const FUniqueNetIdAccelByteUserRef AccelByteUserId = FUniqueNetIdAccelByteUser::CastChecked(UserId);
 	const FString AccelByteId = AccelByteUserId->GetAccelByteId();
 	for (const auto& Entry : TopicIdToChatRoomInfoCached)
 	{
@@ -214,39 +218,47 @@ void FOnlineChatAccelByte::GetJoinedRooms(const FUniqueNetId& UserId, TArray<FCh
 			OutRooms.Add(Entry.Value->GetRoomId());
 		}
 	}
-	AB_OSS_INTERFACE_TRACE_END(TEXT("Number of rooms %d"), OutRooms.Num());
+
+	AB_OSS_INTERFACE_TRACE_END(TEXT("Number of rooms: %d"), OutRooms.Num());
 }
 
 TSharedPtr<FChatRoomInfo> FOnlineChatAccelByte::GetRoomInfo(const FUniqueNetId& UserId, const FChatRoomId& RoomId)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("UserId %s RoomId %s"), *UserId.ToDebugString(), *RoomId);
+	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("UserId: %s, RoomId: %s"), *UserId.ToDebugString(), *RoomId);
+
 	FAccelByteChatRoomInfoRef* RoomInfo = TopicIdToChatRoomInfoCached.Find(RoomId);
-	if (RoomInfo != nullptr)
+	if (RoomInfo == nullptr)
 	{
-		AB_OSS_INTERFACE_TRACE_END("Room found");
-		return *RoomInfo;
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Room with ID %s not found"), *RoomId);
+		return nullptr;		
 	}
-	AB_OSS_INTERFACE_TRACE_END("Room not found");
-	return nullptr;
+
+	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+
+	return *RoomInfo;
 }
 
 bool FOnlineChatAccelByte::GetMembers(const FUniqueNetId& UserId, const FChatRoomId& RoomId, TArray<TSharedRef<FChatRoomMember>>& OutMembers)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("UserId %s RoomId %s"), *UserId.ToDebugString(), *RoomId);
+	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("UserId: %s, RoomId: %s"), *UserId.ToDebugString(), *RoomId);
+
 	const FAccelByteChatRoomInfoRef* RoomInfo = TopicIdToChatRoomInfoCached.Find(RoomId);
-	if (RoomInfo != nullptr)
+	if (RoomInfo == nullptr)
 	{
-		const TArray<FString>& Members = (*RoomInfo)->GetMembers();
-		for(const auto& MemberAccelByteId : Members)
-		{
-			FAccelByteChatRoomMemberRef RoomMember = GetAccelByteChatRoomMember(MemberAccelByteId);
-			OutMembers.Add(RoomMember);
-		}
-		AB_OSS_INTERFACE_TRACE_END(TEXT("Number of members %d"), OutMembers.Num());
-		return true;
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to get members for room with ID %s as the room was not found!"), *RoomId);
+		return false;
 	}
-	AB_OSS_INTERFACE_TRACE_END("Room not found");
-	return false;
+
+	const TArray<FString>& Members = (*RoomInfo)->GetMembers();
+	for (const auto& MemberAccelByteId : Members)
+	{
+		FAccelByteChatRoomMemberRef RoomMember = GetAccelByteChatRoomMember(MemberAccelByteId);
+		OutMembers.Add(RoomMember);
+	}
+
+	AB_OSS_INTERFACE_TRACE_END(TEXT("Number of members: %d"), OutMembers.Num());
+
+	return true;
 }
 
 TSharedPtr<FChatRoomMember> FOnlineChatAccelByte::GetMember(
@@ -254,24 +266,26 @@ TSharedPtr<FChatRoomMember> FOnlineChatAccelByte::GetMember(
 	const FChatRoomId& RoomId,
 	const FUniqueNetId& MemberId)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("UserId %s RoomId %s MemberId %s"), *UserId.ToDebugString(), *RoomId, *MemberId.ToDebugString());
-	const FUniqueNetIdAccelByteUserRef AccelByteUserId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(UserId.AsShared());
+	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("UserId: %s, RoomId: %s, MemberId: %s"), *UserId.ToDebugString(), *RoomId, *MemberId.ToDebugString());
+
+	const FUniqueNetIdAccelByteUserRef AccelByteUserId = FUniqueNetIdAccelByteUser::CastChecked(UserId);
 	const FString AccelByteId = AccelByteUserId->GetAccelByteId();
 
 	const FAccelByteChatRoomInfoRef* RoomInfo = TopicIdToChatRoomInfoCached.Find(RoomId);
 	if (RoomInfo == nullptr)
 	{
-		AB_OSS_INTERFACE_TRACE_END("Room not found");
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to get member from room with ID %s as the room was not found!"), *RoomId);
 		return nullptr;
 	}
 	
 	if (!(*RoomInfo)->HasMember(AccelByteId))
 	{
-		AB_OSS_INTERFACE_TRACE_END("User is not a member");
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to get member with ID %s from room with ID %s as the user is not a member of the room!"), *MemberId.ToDebugString(), *RoomId);
 		return nullptr;
 	}
 
 	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+
 	return GetAccelByteChatRoomMember(AccelByteId);
 }
 
@@ -281,37 +295,41 @@ bool FOnlineChatAccelByte::GetLastMessages(
 	int32 NumMessages,
 	TArray<TSharedRef<FChatMessage>>& OutMessages)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("UserId %s RoomId %s NumMessages %d"), *UserId.ToDebugString(), *RoomId, NumMessages);
-	const FUniqueNetIdAccelByteUserRef AccelByteUserId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(UserId.AsShared());
-	
+	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("UserId: %s, RoomId: %s, NumMessages: %d"), *UserId.ToDebugString(), *RoomId, NumMessages);
+
+	const FUniqueNetIdAccelByteUserRef AccelByteUserId = FUniqueNetIdAccelByteUser::CastChecked(UserId);	
 	FString RoomIdToLoad = RoomId;
+
 	// Check if the room id is the user id, so it will load personal chat message
 	if(HasPersonalChat(AccelByteUserId->GetAccelByteId(), RoomId))
 	{
 		RoomIdToLoad = PersonalChatTopicId(AccelByteUserId->GetAccelByteId(), RoomId);
 	}
+
 	FChatRoomIdToChatMessages* RoomIdToChatMessages = UserIdToChatRoomMessagesCached.Find(AccelByteUserId);
 	if (RoomIdToChatMessages == nullptr)
 	{
-		AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("Room not found"));
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to get last messages from room with ID %s as the room was not found!"), *RoomId);
 		return false;
 	}
 	TArray<TSharedRef<FChatMessage>>* Messages = RoomIdToChatMessages->Find(RoomIdToLoad);
 	if (Messages == nullptr)
 	{
-		AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("No messages in the room"));
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to get last messages from room with ID %s as the room has no messages!"), *RoomId);
 		return false;
 	}
 
 	TArray<TSharedRef<FChatMessage>> MsgList = *Messages;
 
-	const int32 Num = MsgList.Num();
-	const int32 Begin = FMath::Max(Num - NumMessages, 0);
-	for (int32 i = Num - 1; i >= Begin; i--)
+	const int32 TotalMessages = MsgList.Num();
+	const int32 LastIndex = FMath::Max(TotalMessages - NumMessages, 0);
+	for (int32 i = TotalMessages - 1; i >= LastIndex; i--)
 	{
 		OutMessages.Add(MsgList[i]);
 	}
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("Number of messages %d"), OutMessages.Num());
+
+	AB_OSS_INTERFACE_TRACE_END(TEXT("Number of messages: %d"), OutMessages.Num());
+
 	return true;
 }
 
@@ -538,7 +556,7 @@ void FOnlineChatAccelByte::OnRemoveFromTopicNotification(const FAccelByteModelsC
 	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("TopicId: %s"), *RemoveTopicEvent.TopicId);
 
 	RemoveMemberFromTopic(RemoveTopicEvent.SenderId, RemoveTopicEvent.TopicId);
-	TriggerOnTopicRemovedDelegates(RemoveTopicEvent.Name, RemoveTopicEvent.TopicId, RemoveTopicEvent.SenderId);
+	TriggerOnTopicRemovedDelegates(RemoveTopicEvent.Name, RemoveTopicEvent.TopicId, RemoveTopicEvent.UserId);
 	const TSharedPtr<const FUniqueNetId> UserIdPtr = AccelByteSubsystem->GetIdentityInterface()->GetUniquePlayerId(LocalUserNum);
 	if (UserIdPtr.IsValid())
 	{
@@ -554,62 +572,60 @@ void FOnlineChatAccelByte::OnAddToTopicNotification(const FAccelByteModelsChatUp
 	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("TopicId: %s"), *AddTopicEvent.TopicId);
 
 	const IOnlineIdentityPtr IdentityInterface = AccelByteSubsystem->GetIdentityInterface();
-	if (IdentityInterface.IsValid())
+	if (!ensure(IdentityInterface.IsValid()))
 	{
-		const TSharedPtr<const FUniqueNetId> UserIdPtr = AccelByteSubsystem->GetIdentityInterface()->GetUniquePlayerId(LocalUserNum);
-		if (UserIdPtr.IsValid())
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to add to topic notification as our identity interface is invalid!"));
+		return;
+	}
+
+	const TSharedPtr<const FUniqueNetId> UserIdPtr = AccelByteSubsystem->GetIdentityInterface()->GetUniquePlayerId(LocalUserNum);
+	if (!ensure(UserIdPtr.IsValid()))
+	{
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to add to topic notification as our UserIdPtr is invalid!"));
+		return;
+	}
+	
+	// Find the room first, if the room not found fetch the room info
+	// If room found, but no member info, fetch user information
+	// If room info and member info found, trigger the ChatRoomMemberJoinDelegate
+	TSharedPtr<const FUniqueNetId> SenderUserId = FUniqueNetIdAccelByteUser::Create(FAccelByteUniqueIdComposite(AddTopicEvent.SenderId));
+	const FAccelByteChatRoomInfoRef* ChatRoomInfo = TopicIdToChatRoomInfoCached.Find(AddTopicEvent.TopicId);
+	if (ChatRoomInfo == nullptr)
+	{
+		UE_LOG_AB(Verbose, TEXT("ChatRoomInfo not found by room ID %s!"), *AddTopicEvent.TopicId);
+		// we don't have room data locally
+		const FOnChatQueryRoomByIdComplete OnQueryTopicResponse = FOnChatQueryRoomByIdComplete::CreateThreadSafeSP(SharedThis(this), &FOnlineChatAccelByte::OnQueryChatRoomById_TriggerChatRoomMemberJoin, UserIdPtr, SenderUserId);
+		AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteChatQueryRoomById>(AccelByteSubsystem, *UserIdPtr, AddTopicEvent.TopicId, OnQueryTopicResponse);
+	}
+	else
+	{
+		UE_LOG_AB(Verbose, TEXT("ChatRoomInfo for room ID %s found. Current member num: %d, adding member with ID %s"), *AddTopicEvent.TopicId, (*ChatRoomInfo)->GetMembers().Num(), *AddTopicEvent.SenderId);
+		(*ChatRoomInfo)->AddMember(AddTopicEvent.SenderId);
+				
+		FAccelByteChatRoomMemberRef* MemberPtr = UserIdToChatRoomMemberCached.Find(AddTopicEvent.SenderId);
+		// member is not cached get the info
+		if (MemberPtr == nullptr || !(*MemberPtr)->HasNickname())
 		{
-			// Find the room first, if the room not found fetch the room info
-			// If room found, but no member info, fetch user information
-			// If room info and member info found, trigger the ChatRoomMemberJoinDelegate
-			TSharedPtr<const FUniqueNetId> SenderUserId = FUniqueNetIdAccelByteUser::Create(FAccelByteUniqueIdComposite(AddTopicEvent.SenderId));
-			const FAccelByteChatRoomInfoRef* ChatRoomInfo = TopicIdToChatRoomInfoCached.Find(AddTopicEvent.TopicId);
-			if (ChatRoomInfo == nullptr)
+			const FOnlineUserCacheAccelBytePtr UserStore = AccelByteSubsystem->GetUserCache();
+			if (!UserStore.IsValid())
 			{
-				UE_LOG_AB(Verbose, TEXT("ChatRoomInfo not found fetch by roomId %s!"), *AddTopicEvent.TopicId);
-				// we don't have room data locally
-				const FOnChatQueryRoomByIdComplete OnQueryTopicResponse = FOnChatQueryRoomByIdComplete::CreateThreadSafeSP(SharedThis(this), &FOnlineChatAccelByte::OnQueryChatRoomById_TriggerChatRoomMemberJoin, UserIdPtr, SenderUserId);
-				AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteChatQueryRoomById>(AccelByteSubsystem, *UserIdPtr, AddTopicEvent.TopicId, OnQueryTopicResponse);
+				UE_LOG_AB(Warning, TEXT("Unable to get member info as our user store instance is invalid!"));
+				TriggerOnChatRoomMemberJoinDelegates(*UserIdPtr, AddTopicEvent.TopicId, *SenderUserId);
 			}
 			else
 			{
-				UE_LOG_AB(Verbose, TEXT("ChatRoomInfo %s found add member %s, current num %d"), *AddTopicEvent.TopicId, *AddTopicEvent.SenderId, (*ChatRoomInfo)->GetMembers().Num());
-				(*ChatRoomInfo)->AddMember(AddTopicEvent.SenderId);
-				
-				FAccelByteChatRoomMemberRef* MemberPtr = UserIdToChatRoomMemberCached.Find(AddTopicEvent.SenderId);
-				// member is not cached get the info
-				if (MemberPtr == nullptr || !(*MemberPtr)->HasNickname())
-				{
-					const FOnlineUserCacheAccelBytePtr UserStore = AccelByteSubsystem->GetUserCache();
-					if (!UserStore.IsValid())
-					{
-						UE_LOG_AB(Warning, TEXT("Unable to get member info as our user store instance is invalid!"));
-						TriggerOnChatRoomMemberJoinDelegates(*UserIdPtr, AddTopicEvent.TopicId, *SenderUserId);
-					}
-					else
-					{
-						const TArray<FString> UserIds = {AddTopicEvent.SenderId};
-						const FOnQueryUsersComplete OnQueryUsersCompleteDelegate = FOnQueryUsersComplete::CreateThreadSafeSP(SharedThis(this), &FOnlineChatAccelByte::OnQueryChatMemberInfo_TriggerChatRoomMemberJoin, AddTopicEvent.TopicId, UserIdPtr, SenderUserId);
-						UserStore->QueryUsersByAccelByteIds(LocalUserNum, UserIds, OnQueryUsersCompleteDelegate);
-					}
-				}
-				else
-				{
-					TriggerOnChatRoomMemberJoinDelegates(*UserIdPtr, AddTopicEvent.TopicId, *SenderUserId);
-				}
+				const TArray<FString> UserIds = {AddTopicEvent.SenderId};
+				const FOnQueryUsersComplete OnQueryUsersCompleteDelegate = FOnQueryUsersComplete::CreateThreadSafeSP(SharedThis(this), &FOnlineChatAccelByte::OnQueryChatMemberInfo_TriggerChatRoomMemberJoin, AddTopicEvent.TopicId, UserIdPtr, SenderUserId);
+				UserStore->QueryUsersByAccelByteIds(LocalUserNum, UserIds, OnQueryUsersCompleteDelegate);
 			}
 		}
 		else
 		{
-			UE_LOG_AB(Warning, TEXT("OnAddToTopicNotification: UserIdPtr null"));
+			TriggerOnChatRoomMemberJoinDelegates(*UserIdPtr, AddTopicEvent.TopicId, *SenderUserId);
 		}
-	}
-	else
-	{
-		UE_LOG_AB(Warning, TEXT("OnAddToTopicNotification: IdentityInterface null"));
-	}
+	}	
 	
-	TriggerOnTopicAddedDelegates(AddTopicEvent.Name, AddTopicEvent.TopicId, AddTopicEvent.SenderId);
+	TriggerOnTopicAddedDelegates(AddTopicEvent.Name, AddTopicEvent.TopicId, AddTopicEvent.UserId);
 	
 	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
 }
@@ -642,7 +658,7 @@ void FOnlineChatAccelByte::OnReceivedChatNotification(const FAccelByteModelsChat
 	FAccelByteChatRoomMemberRef Member = GetAccelByteChatRoomMember(ChatNotif.From);
 	TSharedRef<FAccelByteChatMessage> OutChatMessage = MakeShared<FAccelByteChatMessage>(SenderUserId.ToSharedRef(), Member->GetNickname(), ChatNotif.Message, ChatNotif.CreatedAt);
 
-	const FUniqueNetIdAccelByteUserRef AccelByteUserId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(UserIdPtr.ToSharedRef());
+	const FUniqueNetIdAccelByteUserRef AccelByteUserId = FUniqueNetIdAccelByteUser::CastChecked(UserIdPtr.ToSharedRef());
 	AddChatMessage(AccelByteUserId, OutChatRoomId, OutChatMessage);
 
 	if (RoomType == EAccelByteChatRoomType::PERSONAL)
@@ -781,7 +797,7 @@ void FAccelByteChatRoomMember::SetNickname(const FString& InNickname)
 
 bool FAccelByteChatRoomMember::HasNickname() const
 {
-	const FUniqueNetIdAccelByteUserRef AccelByteUserId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(UserId);
+	const FUniqueNetIdAccelByteUserRef AccelByteUserId = FUniqueNetIdAccelByteUser::CastChecked(UserId);
 	return Nickname != AccelByteUserId->GetAccelByteId();
 }
 
@@ -850,7 +866,8 @@ const TArray<FString>& FAccelByteChatRoomInfo::GetMembers() const
 void FAccelByteChatRoomInfo::SetTopicData(const FAccelByteModelsChatTopicQueryData& InTopicData)
 {
 	TopicData = InTopicData;
-// NOTE: actually the topic don't have an owner, so we set first member as the owner
+
+    // NOTE: actually the topic don't have an owner, so we set first member as the owner
 	if (TopicData.Members.Num() > 0)
 	{
 		FAccelByteUniqueIdComposite SenderCompositeId;
@@ -866,10 +883,12 @@ void FAccelByteChatRoomInfo::SetTopicData(const FAccelByteModelsChatTopicQueryDa
 	case EAccelByteChatRoomType::SESSION_V2:
 		// auto create room should be private and cannot be joined
 		bIsPrivate = true;
+		break;
 	case EAccelByteChatRoomType::NORMAL:
-		// currently we dont support private room
+		// currently we don't support private room
 		bIsPrivate = false;
-	default: ;
+		break;
+	default: break;
 	}
 	
 	// currently only able to get joined room

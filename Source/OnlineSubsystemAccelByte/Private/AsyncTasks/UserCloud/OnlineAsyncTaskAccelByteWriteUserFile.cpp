@@ -14,7 +14,7 @@ FOnlineAsyncTaskAccelByteWriteUserFile::FOnlineAsyncTaskAccelByteWriteUserFile(F
 	, FileContents(InFileContents)
 	, bCompressBeforeUpload(InBCompressBeforeUpload)
 {
-	UserId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(InUserId.AsShared());
+	UserId = FUniqueNetIdAccelByteUser::CastChecked(InUserId);
 }
 
 void FOnlineAsyncTaskAccelByteWriteUserFile::Initialize()
