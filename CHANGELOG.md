@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.8.4](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.8.4%0D0.8.3) (2023-01-06)
+
+
+### Bug Fixes
+
+* **statistic:** compile error in shipping build because ResetStats async task is included ([2737569](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/2737569c484e0f784f4c77e5f061d061697cb728))
+
 ### [0.8.3](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.8.3%0D0.8.2) (2023-01-03)
 
 

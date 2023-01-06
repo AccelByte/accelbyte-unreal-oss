@@ -6,11 +6,13 @@
 #include "AsyncTasks/OnlineAsyncTaskAccelByte.h"
 #include "Models/AccelByteStatisticModels.h"
 
-
+#if !UE_BUILD_SHIPPING
 class FOnlineAsyncTaskAccelByteResetUserStats : public FOnlineAsyncTaskAccelByte
 {
 public:
-	FOnlineAsyncTaskAccelByteResetUserStats(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetIdRef StatsUserId);
+	FOnlineAsyncTaskAccelByteResetUserStats(FOnlineSubsystemAccelByte* const InABInterface
+		, const FUniqueNetIdRef StatsUserId
+		, const FOnlineStatsUpdateStatsComplete& InDelegate);
 
 	virtual void Initialize() override;
 	virtual void TriggerDelegates() override;
@@ -24,7 +26,7 @@ protected:
 
 private:
 
-	void HandleBulkUpdateUserStatItemsValue(const TArray<FAccelByteModelsUpdateUserStatItemsResponse>& Result);
+	void HandleResetStatItemsSuccess(const TArray<FAccelByteModelsUpdateUserStatItemsResponse>& Result);
 
 	THandler<TArray<FAccelByteModelsUpdateUserStatItemsResponse>> OnBulkResetMultipleUserStatItemsValueSuccess;
 	void HandleAsyncTaskError(int32 Code, FString const& ErrMsg);
@@ -37,3 +39,4 @@ private:
 	FOnlineStatsUpdateStatsComplete Delegate; 
 
 };
+#endif

@@ -4,9 +4,13 @@
 
 #include "OnlineAsyncTaskAccelByteResetUserStats.h"
 
-FOnlineAsyncTaskAccelByteResetUserStats::FOnlineAsyncTaskAccelByteResetUserStats(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetIdRef InStatsUserId)
+#if !UE_BUILD_SHIPPING
+FOnlineAsyncTaskAccelByteResetUserStats::FOnlineAsyncTaskAccelByteResetUserStats(FOnlineSubsystemAccelByte* const InABInterface
+	, const FUniqueNetIdRef InStatsUserId
+	, const FOnlineStatsUpdateStatsComplete& InDelegate)
 	: FOnlineAsyncTaskAccelByte(InABInterface, true)
-	, StatsUserId(InStatsUserId) 
+	, StatsUserId{InStatsUserId}
+	, Delegate{InDelegate}
 {
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Construct FOnlineAsyncTaskAccelByteResetUserStats"));
 
@@ -34,7 +38,7 @@ void FOnlineAsyncTaskAccelByteResetUserStats::Initialize()
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Initialized"));
 	Super::Initialize();
 
-	OnBulkResetMultipleUserStatItemsValueSuccess = THandler<TArray<FAccelByteModelsUpdateUserStatItemsResponse>>::CreateRaw(this, &FOnlineAsyncTaskAccelByteResetUserStats::HandleBulkUpdateUserStatItemsValue);
+	OnBulkResetMultipleUserStatItemsValueSuccess = THandler<TArray<FAccelByteModelsUpdateUserStatItemsResponse>>::CreateRaw(this, &FOnlineAsyncTaskAccelByteResetUserStats::HandleResetStatItemsSuccess);
 	OnError = FErrorHandler::CreateRaw(this, &FOnlineAsyncTaskAccelByteResetUserStats::HandleAsyncTaskError);
 
 	FString AdditionalKey = TEXT("");	
@@ -54,9 +58,10 @@ void FOnlineAsyncTaskAccelByteResetUserStats::TriggerDelegates()
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 
-void FOnlineAsyncTaskAccelByteResetUserStats::HandleBulkUpdateUserStatItemsValue(const TArray<FAccelByteModelsUpdateUserStatItemsResponse>& Result)
+void FOnlineAsyncTaskAccelByteResetUserStats::HandleResetStatItemsSuccess(const TArray<FAccelByteModelsUpdateUserStatItemsResponse>& Result)
 {
-	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("BulkUpdateUserStatItemsValue Success")); 
+	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("BulkUpdateUserStatItemsValue Success"));
+	OnlineError.bSucceeded = true;
 	CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
@@ -71,3 +76,4 @@ void FOnlineAsyncTaskAccelByteResetUserStats::HandleAsyncTaskError(int32 Code, F
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
+#endif
