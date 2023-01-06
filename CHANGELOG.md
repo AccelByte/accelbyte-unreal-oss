@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.8.5](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.8.5%0D0.8.4) (2023-01-06)
+
+
+### Bug Fixes
+
+* **statistic:** unable to find AsyncTask in non shipping build ([01c9f8f](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/01c9f8f418e9b5956a97204f3e0163186454410d))
+
 ### [0.8.4](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.8.4%0D0.8.3) (2023-01-06)
 
 

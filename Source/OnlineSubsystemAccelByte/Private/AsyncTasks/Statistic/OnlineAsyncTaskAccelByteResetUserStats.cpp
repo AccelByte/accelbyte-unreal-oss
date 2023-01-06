@@ -3,8 +3,8 @@
 // and restrictions contact your company contract manager.
 
 #include "OnlineAsyncTaskAccelByteResetUserStats.h"
+#include "Core/AccelByteError.h"
 
-#if !UE_BUILD_SHIPPING
 FOnlineAsyncTaskAccelByteResetUserStats::FOnlineAsyncTaskAccelByteResetUserStats(FOnlineSubsystemAccelByte* const InABInterface
 	, const FUniqueNetIdRef InStatsUserId
 	, const FOnlineStatsUpdateStatsComplete& InDelegate)
@@ -38,6 +38,7 @@ void FOnlineAsyncTaskAccelByteResetUserStats::Initialize()
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Initialized"));
 	Super::Initialize();
 
+#if !UE_BUILD_SHIPPING
 	OnBulkResetMultipleUserStatItemsValueSuccess = THandler<TArray<FAccelByteModelsUpdateUserStatItemsResponse>>::CreateRaw(this, &FOnlineAsyncTaskAccelByteResetUserStats::HandleResetStatItemsSuccess);
 	OnError = FErrorHandler::CreateRaw(this, &FOnlineAsyncTaskAccelByteResetUserStats::HandleAsyncTaskError);
 
@@ -46,6 +47,9 @@ void FOnlineAsyncTaskAccelByteResetUserStats::Initialize()
 	UserStatItemValue.UserId = UserId->ToString();
 	TArray<FAccelByteModelsResetUserStatItemValue> UserStatItemValues = { UserStatItemValue };
 	ApiClient->Statistic.BulkResetMultipleUserStatItemsValue(UserStatItemValues, OnBulkResetMultipleUserStatItemsValueSuccess, OnError);
+#else
+	HandleAsyncTaskError(static_cast<int32>(AccelByte::ErrorCodes::InvalidRequest), TEXT("Unable to do ResetStats in shipping build."));
+#endif
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
@@ -76,4 +80,3 @@ void FOnlineAsyncTaskAccelByteResetUserStats::HandleAsyncTaskError(int32 Code, F
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
-#endif
