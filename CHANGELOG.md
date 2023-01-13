@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.8.6](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.8.6%0D0.8.5) (2023-01-13)
+
+
+### Bug Fixes
+
+* **users:** only one user returned for multiple user query ([bf2f7a2](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/bf2f7a287966b15aa71b038e273364c1f3abc0b1))
+
 ### [0.8.5](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.8.5%0D0.8.4) (2023-01-06)
 
 

@@ -97,9 +97,9 @@ void FOnlineAsyncTaskAccelByteQueryUserInfo::Finalize()
 		// Additionally, get an instance of the identity interface and check if this queried user has an account in it. If so
 		// update their information accordingly.
 		FOnlineIdentityAccelBytePtr IdentityInterface = nullptr;
-		if (FOnlineIdentityAccelByte::GetFromSubsystem(Subsystem, IdentityInterface))
+		if (!FOnlineIdentityAccelByte::GetFromSubsystem(Subsystem, IdentityInterface))
 		{
-			return;
+			continue;
 		}
 
 		TSharedPtr<FUserOnlineAccountAccelByte> IdentityAccount = StaticCastSharedPtr<FUserOnlineAccountAccelByte>(IdentityInterface->GetUserAccount(QueriedUser->Id.ToSharedRef().Get()));
