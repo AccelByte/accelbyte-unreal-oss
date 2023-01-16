@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.8.7](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.8.7%0D0.8.6) (2023-01-16)
+
+
+### Bug Fixes
+
+* **sessionV1:** timeout occurred for an MM session ([c4f5900](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/c4f590053cebbd3dae826b8c05e4761571cc98e8))
+
 ### [0.8.6](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.8.6%0D0.8.5) (2023-01-13)
 
 

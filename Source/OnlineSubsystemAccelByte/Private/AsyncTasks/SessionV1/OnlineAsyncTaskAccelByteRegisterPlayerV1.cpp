@@ -168,6 +168,7 @@ void FOnlineAsyncTaskAccelByteRegisterPlayersV1::RegisterAllPlayers()
 		else
 		{
 			UE_LOG_AB(Warning, TEXT("Attempted to register player '%s' to session '%s', player already added from matchmaking service!"), *Player->ToDebugString(), *SessionId);
+			PendingPlayerRegistrations.Decrement();
 		}
 	}
 }
