@@ -12,7 +12,7 @@ FOnlineAsyncTaskAccelByteQueryUserInfo::FOnlineAsyncTaskAccelByteQueryUserInfo
 	, int32 InLocalUserNum
 	, const TArray<TSharedRef<const FUniqueNetId>>& InUserIds
 	, const FOnQueryUserInfoComplete& InDelegate )
-	: FOnlineAsyncTaskAccelByte(InABSubsystem)
+	: FOnlineAsyncTaskAccelByte(InABSubsystem, true)
 	, InitialUserIds(InUserIds)
 	, Delegate(InDelegate)
 {
@@ -55,17 +55,7 @@ void FOnlineAsyncTaskAccelByteQueryUserInfo::Initialize()
 		UserIdsToQuery.Add(AccelByteId->GetAccelByteId());
 	}
 
-	// Try and query all of the users and cache them in the user store
-	const FOnlineUserCacheAccelBytePtr UserCache = Subsystem->GetUserCache();
-	if (!UserCache.IsValid())
-	{
-		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Could not query information on users as our user store instance is invalid!"));
-		CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState);
-		return;
-	}
-
-	const FOnQueryUsersComplete OnQueryUsersCompleteDelegate = FOnQueryUsersComplete::CreateRaw(this, &FOnlineAsyncTaskAccelByteQueryUserInfo::OnQueryUsersComplete);
-	UserCache->QueryUsersByAccelByteIds(LocalUserNum, UserIdsToQuery, OnQueryUsersCompleteDelegate);
+	GetBasicUserInfo();
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
@@ -77,6 +67,7 @@ void FOnlineAsyncTaskAccelByteQueryUserInfo::Finalize()
 	// Iterate through each account that we have received from the backend and add to our user interface
 	for (const TSharedRef<FAccelByteUserInfo>& QueriedUser : UsersQueried)
 	{
+
 		// Construct the user information instance and add the ID of the user to our QueriedUserIds array that will be passed to the completion delegate
 		TSharedRef<FUserOnlineAccountAccelByte> User = MakeShared<FUserOnlineAccountAccelByte>(QueriedUser->Id.ToSharedRef(), QueriedUser->DisplayName);
 		User->SetUserAttribute(ACCELBYTE_ACCOUNT_GAME_AVATAR_URL, QueriedUser->GameAvatarUrl);
@@ -123,17 +114,68 @@ void FOnlineAsyncTaskAccelByteQueryUserInfo::TriggerDelegates()
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 
-void FOnlineAsyncTaskAccelByteQueryUserInfo::OnQueryUsersComplete(bool bIsSuccessful, TArray<TSharedRef<FAccelByteUserInfo>> InUsersQueried)
+void FOnlineAsyncTaskAccelByteQueryUserInfo::GetBasicUserInfo()
 {
-	if (bIsSuccessful)
+	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("IDs to query: %d"), UserIdsToQuery.Num());
+
+	if (UserIdsToQuery.Num() <= 0)
 	{
-		UsersQueried = InUsersQueried;
+		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Cannot query users as our array of user IDs is blank!"));
+		CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState);
+		return;
+	}
+
+	const FOnlineUserCacheAccelBytePtr UserCache = Subsystem->GetUserCache();
+	if (!UserCache.IsValid())
+	{
+		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Cannot query users as our user store instance is invalid!"));
+		CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState);
+		return;
+	}
+
+	TArray<FString> UsersToQuery;
+	// Get users that we already have cached and users that we need to query, filters from the AccelByteIds array
+	UserCache->GetQueryAndCacheArrays(UserIdsToQuery, UsersToQuery, UsersCached);
+
+	// This means these users are already in the cache, so we can just skip the query and successfully complete
+	if (UsersToQuery.Num() <= 0)
+	{
 		CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
+		return;
 	}
-	else
+
+	const THandler<FListBulkUserInfo> OnBulkGetBasicUserInfoSuccessDelegate = THandler<FListBulkUserInfo>::CreateRaw(this, &FOnlineAsyncTaskAccelByteQueryUserInfo::OnGetBasicUserInfoSuccess);
+	const FErrorHandler OnBulkGetBasicUserInfoErrorDelegate = FErrorHandler::CreateRaw(this, &FOnlineAsyncTaskAccelByteQueryUserInfo::OnGetBasicUserInfoError);
+	ApiClient->User.BulkGetUserInfo(UsersToQuery, OnBulkGetBasicUserInfoSuccessDelegate, OnBulkGetBasicUserInfoErrorDelegate);
+
+	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
+}
+
+void FOnlineAsyncTaskAccelByteQueryUserInfo::OnGetBasicUserInfoSuccess(const FListBulkUserInfo& Result)
+{
+	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("User information received: %d"), Result.Data.Num());
+
+	TArray<TSharedRef<const FUniqueNetId>> PlatformIdsToQuery;
+	for (const FBaseUserInfo& BasicInfo : Result.Data)
 	{
-		ErrorStr = TEXT("query-users-error-response");
-		UE_LOG_AB(Warning, TEXT("Failed to query users from the backend!"));
-		CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
+		// Set up our user info struct with basic data
+		TSharedRef<FAccelByteUserInfo> User = MakeShared<FAccelByteUserInfo>();
+		User->DisplayName = BasicInfo.DisplayName;
+		User->GameAvatarUrl = BasicInfo.AvatarUrl;
+		User->PublisherAvatarUrl = BasicInfo.PublisherAvatarUrl;
+
+		// Add the user to our successful queries
+		UsersQueried.Add(User);
 	}
+
+	UsersQueried.Append(UsersCached);
+	CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
+
+	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
+}
+
+void FOnlineAsyncTaskAccelByteQueryUserInfo::OnGetBasicUserInfoError(int32 ErrorCode, const FString& ErrorMessage)
+{
+	UE_LOG_AB(Warning, TEXT("Failed to get basic user information from backend! Error code: %d; Error message: %s"), ErrorCode, *ErrorMessage);
+	CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
 }

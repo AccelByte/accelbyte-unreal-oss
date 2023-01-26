@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.8.8](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.8.8%0D0.8.7) (2023-01-26)
+
+
+### Bug Fixes
+
+* **user:** add timeout on query user info, change to direct api request insteall of call another async task ([cc40837](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/cc408376488a0cab6126ca940f453e883f3e094e))
+
 ### [0.8.7](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.8.7%0D0.8.6) (2023-01-16)
 
 
