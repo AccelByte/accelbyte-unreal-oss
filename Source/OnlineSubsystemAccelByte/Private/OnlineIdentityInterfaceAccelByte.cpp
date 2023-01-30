@@ -120,28 +120,46 @@ bool FOnlineIdentityAccelByte::Logout(int32 LocalUserNum, FString Reason)
 		IdentityInterface->OnLogout(LocalUserNum, false);
 	});
 
-	AccelByte::FApiClientPtr ApiClient = GetApiClient(LocalUserNum);
-	if (!ApiClient.IsValid())
+	if (!IsRunningDedicatedServer())
 	{
-		UE_LOG_AB(Warning, TEXT("Failed to log out user %d as an API client could not be found for them!"), LocalUserNum);
-		OnLogout(LocalUserNum, false);
-		return false;
-	}
+		AccelByte::FApiClientPtr ApiClient = GetApiClient(LocalUserNum);
+		if (!ApiClient.IsValid())
+		{
+			UE_LOG_AB(Warning, TEXT("Failed to log out user %d as an API client could not be found for them!"), LocalUserNum);
+			OnLogout(LocalUserNum, false);
+			return false;
+		}
 
-	if (!ApiClient->CredentialsRef->IsSessionValid())
+		if (!ApiClient->CredentialsRef->IsSessionValid())
+		{
+			UE_LOG_AB(Warning, TEXT("Force log out user %d as the login session is not valid!"), LocalUserNum);
+			OnLogout(LocalUserNum, true);
+			return false;
+		}
+
+		// @todo multiuser Change this to logout the user based on LocalUserNum when SDK supports multiple user login
+		// NOTE(Maxwell, 4/8/2021): Logout automatically signals to the credential store to forget all credentials, so this is all we need to call
+		if (ApiClient->Lobby.IsConnected())
+		{
+			ApiClient->Lobby.Disconnect(true);
+		}
+		ApiClient->User.Logout(OnLogoutSuccessDelegate, OnLogoutFailedDelegate);
+	}
+	else
 	{
-		UE_LOG_AB(Warning, TEXT("Force log out user %d as the login session is not valid!"), LocalUserNum);
+		AccelByte::FServerApiClientPtr ApiClient = FMultiRegistry::GetServerApiClient();
+		if (!ApiClient.IsValid())
+		{
+			UE_LOG_AB(Warning, TEXT("Failed to log out user %d as an API client could not be found for them!"), LocalUserNum);
+			OnLogout(LocalUserNum, false);
+			return false;
+		}
+
+		ApiClient->ServerCredentialsRef->Shutdown();
+		ApiClient->ServerCredentialsRef->ForgetAll();
+		FMultiRegistry::RemoveApiClient();
 		OnLogout(LocalUserNum, true);
-		return false;
 	}
-
-	// @todo multiuser Change this to logout the user based on LocalUserNum when SDK supports multiple user login
-	// NOTE(Maxwell, 4/8/2021): Logout automatically signals to the credential store to forget all credentials, so this is all we need to call
-	if (ApiClient->Lobby.IsConnected())
-	{
-		ApiClient->Lobby.Disconnect(true);
-	}
-	ApiClient->User.Logout(OnLogoutSuccessDelegate, OnLogoutFailedDelegate);
 
 	return true;
 }
@@ -468,7 +486,7 @@ AccelByte::FApiClientPtr FOnlineIdentityAccelByte::GetApiClient(int32 LocalUserN
 	return AccelByteSubsystem->GetApiClient(LocalUserNum);
 }
 
-bool FOnlineIdentityAccelByte::AuthenticateAccelByteServer(const FOnAuthenticateServerComplete& Delegate)
+bool FOnlineIdentityAccelByte::AuthenticateAccelByteServer(const FOnAuthenticateServerComplete& Delegate, int32 LocalUserNum)
 {
 #if AB_USE_V2_SESSIONS
 	UE_LOG_AB(Warning, TEXT("FOnlineIdentityAccelByte::AuthenticateAccelByteServer is deprecated with V2 sessions. Servers should be authenticated through AutoLogin!"));
@@ -485,7 +503,7 @@ bool FOnlineIdentityAccelByte::AuthenticateAccelByteServer(const FOnAuthenticate
 		ServerAuthDelegates.Add(Delegate);
 
 		const TSharedRef<FOnlineIdentityAccelByte, ESPMode::ThreadSafe> IdentityInterface = SharedThis(this);
-		const FVoidHandler OnLoginSuccess = FVoidHandler::CreateThreadSafeSP(IdentityInterface, &FOnlineIdentityAccelByte::OnAuthenticateAccelByteServerSuccess);
+		const FVoidHandler OnLoginSuccess = FVoidHandler::CreateThreadSafeSP(IdentityInterface, &FOnlineIdentityAccelByte::OnAuthenticateAccelByteServerSuccess, LocalUserNum);
 		const FErrorHandler OnLoginError = FErrorHandler::CreateThreadSafeSP(IdentityInterface, &FOnlineIdentityAccelByte::OnAuthenticateAccelByteServerError);
 		FRegistry::ServerOauth2.LoginWithClientCredentials(OnLoginSuccess, OnLoginError);
 	}
@@ -510,14 +528,9 @@ bool FOnlineIdentityAccelByte::AuthenticateAccelByteServer(const FOnAuthenticate
 	return false;
 }
 
-bool FOnlineIdentityAccelByte::IsServerAuthenticated()
+bool FOnlineIdentityAccelByte::IsServerAuthenticated(int32 LocalUserNum)
 {
-#if AB_USE_V2_SESSIONS
-	UE_LOG_AB(Warning, TEXT("FOnlineIdentityAccelByte::IsServerAuthenticated is deprecated with V2 sessions. Servers should check authentication through GetLoginStatus!"));
-	return false;
-#endif
-
-	return bIsServerAuthenticated;
+	return GetLoginStatus(LocalUserNum) == ELoginStatus::LoggedIn;
 }
 
 bool FOnlineIdentityAccelByte::ConnectAccelByteLobby(int32 LocalUserNum)
@@ -597,7 +610,7 @@ void FOnlineIdentityAccelByte::OnGetNativeUserPrivilegeComplete(const FUniqueNet
 	OriginalDelegate.ExecuteIfBound(AccelByteId.Get(), Privilege, PrivilegeResults);
 }
 
-void FOnlineIdentityAccelByte::OnAuthenticateAccelByteServerSuccess()
+void FOnlineIdentityAccelByte::OnAuthenticateAccelByteServerSuccess(int32 LocalUserNum)
 {
 	for (FOnAuthenticateServerComplete& Delegate : ServerAuthDelegates)
 	{
@@ -605,6 +618,7 @@ void FOnlineIdentityAccelByte::OnAuthenticateAccelByteServerSuccess()
 	}
 
 	ServerAuthDelegates.Empty();
+	AddAuthenticatedServer(LocalUserNum);
 
 	// #TODO (Maxwell): This is some super nasty code to avoid duplicate server authentication, again this should just be apart of AutoLogin...
 	bIsAuthenticatingServer = false;

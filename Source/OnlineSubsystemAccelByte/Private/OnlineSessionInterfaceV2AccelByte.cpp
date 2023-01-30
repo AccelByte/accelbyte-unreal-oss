@@ -208,6 +208,26 @@ TArray<FAccelByteModelsV2GameSessionTeam> FOnlineSessionInfoAccelByteV2::GetTeam
 void FOnlineSessionInfoAccelByteV2::SetTeamAssignments(const TArray<FAccelByteModelsV2GameSessionTeam>& InTeams)
 {
 	Teams = InTeams;
+
+	// Reset member-party mapping
+	MemberParties.Empty();
+	
+	for(const auto& Team : Teams)
+	{
+		for(const auto& Party : Team.Parties)
+		{
+			// no need to store if partyId is empty
+			if(Party.PartyID.IsEmpty())
+			{
+				continue;
+			}
+
+			for(const auto& Member : Party.UserIDs)
+			{
+				MemberParties.Emplace(Member, Party.PartyID);
+			}
+		}
+	}
 }
 
 bool FOnlineSessionInfoAccelByteV2::HasConnectionInfo() const
@@ -284,6 +304,23 @@ TArray<FUniqueNetIdRef> FOnlineSessionInfoAccelByteV2::GetJoinedMembers() const
 TArray<FUniqueNetIdRef> FOnlineSessionInfoAccelByteV2::GetInvitedPlayers() const
 {
 	return InvitedPlayers;
+}
+
+FString FOnlineSessionInfoAccelByteV2::GetMemberPartyId(const FUniqueNetIdRef& UserId) const
+{
+	auto ABUserId = FUniqueNetIdAccelByteUser::TryCast(UserId);
+	if(!ABUserId->IsValid())
+	{
+		UE_LOG_AB(Warning, TEXT("Could not check member's Party ID since UserId is invalid!"));
+		return "";
+	}
+
+	if(!MemberParties.Contains(ABUserId->GetAccelByteId()))
+	{
+		return "";
+	}
+
+	return MemberParties[ABUserId->GetAccelByteId()];
 }
 
 void FOnlineSessionInfoAccelByteV2::UpdatePlayerLists(bool& bOutJoinedMembersChanged, bool& bOutInvitedPlayersChanged)
@@ -1685,7 +1722,7 @@ void FOnlineSessionV2AccelByte::ConnectToJoinedP2PSession(FName SessionName, EOn
 	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
 }
 
-void FOnlineSessionV2AccelByte::UpdateInternalGameSession(const FName& SessionName, const FAccelByteModelsV2GameSession& UpdatedGameSession, bool& bIsConnectingToP2P)
+void FOnlineSessionV2AccelByte::UpdateInternalGameSession(const FName& SessionName, const FAccelByteModelsV2GameSession& UpdatedGameSession, bool& bIsConnectingToP2P, bool bIsFirstJoin)
 {
 	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("SessionName: %s"), *SessionName.ToString());
 
@@ -1737,7 +1774,8 @@ void FOnlineSessionV2AccelByte::UpdateInternalGameSession(const FName& SessionNa
 	{
 		const bool bSwitchingToP2P = OldServerType != EAccelByteV2SessionConfigurationServerType::P2P && NewServerType == EAccelByteV2SessionConfigurationServerType::P2P;
 		const bool bSwitchingFromP2P = OldServerType == EAccelByteV2SessionConfigurationServerType::P2P && NewServerType != EAccelByteV2SessionConfigurationServerType::P2P;
-		if (bSwitchingToP2P)
+		const bool bIsFirstP2PJoin = NewServerType == EAccelByteV2SessionConfigurationServerType::P2P && bIsFirstJoin;
+		if (bSwitchingToP2P || bIsFirstP2PJoin)
 		{
 			// If the session's local owner is also its leader, they'll be the P2P host
 			if (Session->LocalOwnerId.IsValid() && Session->LocalOwnerId.ToSharedRef().Get() == SessionInfo->GetLeaderId().ToSharedRef().Get())
@@ -1747,7 +1785,7 @@ void FOnlineSessionV2AccelByte::UpdateInternalGameSession(const FName& SessionNa
 			else
 			{
 				bIsConnectingToP2P = true;
-				ConnectToJoinedP2PSession(SessionName, EOnlineSessionP2PConnectedAction::Update);
+				ConnectToJoinedP2PSession(SessionName, (bIsFirstP2PJoin) ? EOnlineSessionP2PConnectedAction::Join : EOnlineSessionP2PConnectedAction::Update);
 			}
 		}
 		else if (bSwitchingFromP2P)

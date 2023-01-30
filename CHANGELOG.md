@@ -2,6 +2,28 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.8.10](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.8.10%0D0.8.9) (2023-01-30)
+
+
+### Features
+
+* bump sdk and network utilities to enable turn manager send metric ([542feab](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/542feabab63e2e538ad3a0591ee750563b8cc473))
+* **cloudsave:** add bulk get user record with FUniqueNetIds as param ([a5ce304](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/a5ce304924987f6cda9357e7c350bdcb79c791ae))
+* **cloudsave:** add GetPublicUserRecord for other userid ([2bee89b](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/2bee89ba6126d692be475551c00c299e97323426))
+* **cloudsave:** GetUserRecord for server ([c616006](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/c61600684bbddeeafa9cb90d22acbdb346e72383))
+* **cloudsave:** modify to separate request between client and server ([f0d8e52](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/f0d8e524829d8f7c285e45225bca793008b55eae))
+* **Login:** login using cached token (windows only) ([797325b](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/797325bb296742f55179b9aebc615c4e870d4f71))
+* **sessionV1:** remove user from session in the channel ([70127d3](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/70127d350d58234b950b713d25612c75bfaedbf1))
+* **sessionV2:** add get member's partyID in session info ([7ad7ea5](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/7ad7ea595d1510f312b5340930868b1c240bb4a6))
+
+
+### Bug Fixes
+
+* **MPv2:** fix issue where P2P connection was not setup on initial session join ([684f409](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/684f409ac28a247659f08af938c1b3ba18a2c3b3))
+* remove "client-" prefix when validating user id ([63c5c90](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/63c5c90bc77fd90d5843c9549be0eb233ac5c310))
+* **SessionV2:** remove GetSimplifiedNativePlatformName when setting party creator platform type ([3a43080](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/3a430809bfcae2636e079928f80c483cc6054fbe))
+* targetted SDK submodule commit ([b2cd876](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/b2cd87653b41d13d390d7b731c2aec5c15681919))
+
 ### [0.8.9](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.8.9%0D0.8.8) (2023-01-30)
 
 

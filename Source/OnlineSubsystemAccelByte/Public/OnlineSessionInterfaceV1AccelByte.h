@@ -104,6 +104,11 @@ DECLARE_DELEGATE_OneParam(FOnDequeueJoinableSessionComplete, bool /*bWasSuccessf
 DECLARE_DELEGATE_ThreeParams(FOnQueryDedicatedSessionInfoComplete, bool /*bWasSuccessful*/, FName /*SessionName*/, TSharedPtr<FOnlineSessionInfoAccelByteV1> /*SessionInfo*/)
 
 /**
+ * Delegate fired when request to remove user from session completes
+ */
+DECLARE_DELEGATE_OneParam(FOnRemoveUserFromSessionComplete, bool /*bWasSuccessful*/)
+
+/**
  * Delegate fired when a request to post event to session browser that a match has started completes
  */
 DECLARE_DELEGATE_OneParam(FOnSendStartMatchEventComplete, bool /*bWasSuccessful*/)
@@ -454,6 +459,11 @@ public:
 	 * Query information about a dedicated session from the backend, used to get team and party associations from backfill
 	 */
 	bool QueryDedicatedSessionInfo(FName SessionName, const FOnQueryDedicatedSessionInfoComplete& Delegate=FOnQueryDedicatedSessionInfoComplete());
+
+	/**
+	 * Remove a user from session in the channel
+	 */
+	bool RemoveUserFromSession(const FUniqueNetId& LocalUserId, const FString& ChannelName, const FString& MatchId, const FOnRemoveUserFromSessionComplete& Delegate=FOnRemoveUserFromSessionComplete());
 
 	/**
 	 * #SG Send event to session browser service that we have started a match for this session

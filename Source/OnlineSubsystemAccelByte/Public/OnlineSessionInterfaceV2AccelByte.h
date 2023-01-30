@@ -82,6 +82,9 @@ public:
 	/** Get an array of user IDs representing players that are marked as invited to this session*/
 	TArray<FUniqueNetIdRef> GetInvitedPlayers() const;
 
+	/** Get PartyID a sesion member belong to, returns empty string if not found */
+	FString GetMemberPartyId(const FUniqueNetIdRef& UserId) const;
+
 PACKAGE_SCOPE:
 	/**
 	 * Update the list of invited players on this session from the backend session data.
@@ -180,6 +183,8 @@ private:
 	 */
 	FUniqueNetIdPtr LeaderId{};
 
+	/** Map of Members belonging to which party, key is User ID and value is Party ID **/
+	TMap<FString, FString> MemberParties;
 };
 
 /**
@@ -912,7 +917,7 @@ PACKAGE_SCOPE:
 	/**
 	 * Update game session data from a backend model. Used for update notifications and refreshing a game session manually.
 	 */
-	void UpdateInternalGameSession(const FName& SessionName, const FAccelByteModelsV2GameSession& UpdatedGameSession, bool& bIsConnectingToP2P);
+	void UpdateInternalGameSession(const FName& SessionName, const FAccelByteModelsV2GameSession& UpdatedGameSession, bool& bIsConnectingToP2P, bool bIsFirstJoin=false);
 
 	/**
 	 * Update party session data from a backend model. Used for update notifications and refreshing a game session manually.

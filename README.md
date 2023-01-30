@@ -1,18 +1,22 @@
-# AccelByte Online Subsystem
+# AccelByte Cloud Online Subsystem
 ## Overview
-AccelByte Cloud Online Subsystem (**OSS**) is the high-level bridge between Unreal Engine and AccelByte
-services that comprises interfaces that access AccelByte services and its features. The AccelByte Cloud
-OSS is designed to handle higher level logic with asynchronous communication and delegates, and is also
-designed to  be modular by grouping similar service-specific APIs that support features together.
+AccelByte Cloud Online Subsystem (**AccelByte Cloud OSS**) is the high-level bridge between Unreal Engine 
+and AccelByte services that comprises interfaces that access AccelByte services and its features. 
+The AccelByte Cloud OSS is designed to handle higher level logic with asynchronous communication and 
+delegates, and is also designed to  be modular by grouping similar service-specific APIs that support features together.
+## Supported Unreal Engine
+- [ ] Unreal Engine 4.25
+- [x] Unreal Engine 4.26
+- [x] Unreal Engine 4.27
+- [x] Unreal Engine 5.0
+- [x] Unreal Engine 5.1
 ## Getting Started
-
 ### Dependencies
 AccelByte OSS have some dependencies to another Plugins/Modules, such as the following:
 1. AccelByte Cloud Unreal Engine SDK ([link](https://github.com/accelbyte/accelbyte-unreal-sdk-plugin)):
    a library that comprises APIs for the game client and game server to send requests to AccelByte services.
 2. AccelByte Cloud Network Utilities ([link](https://github.com/AccelByte/accelbyte-unreal-network-utilities)):
    a library that comprises network functionalities to communicate between game clients for P2P networking.
-
 ### Configuration
 To use AccelByte OSS, some configurations need to be set up first as follows:
 1. Add required plugins to .uproject file
@@ -49,7 +53,7 @@ ExtraModuleNames.AddRange( new string[] {
   "AccelByteNetworkUtilities"
 });
 ```
-4. Edit the DefaultEngine.ini to include the following settings
+4. Edit the `DefaultEngine.ini` to include the following settings
 ```
 [OnlineSubsystem]
 DefaultPlatformService=AccelByte
@@ -165,4 +169,26 @@ if (IdentityInterface.IsValid())
       );
    IdentityInterface->Logout(LocalUserNum);
 }
+```
+### Online Auth Interface
+Online Auth Interface is used for secure handshaking between Game Client and Dedicated Server, 
+the secure handshaking uses a security token which will be encrypted using OpenSSL and AES 
+created by the Dedicated Server and the maximum size of security token supported is 1008 bytes. 
+The handshaking process will be using Handler component called `AuthHandlerComponentAccelByte`
+#### AuthHandlerComponentAccelByte
+1)  Add the following to `DefaultEngine.ini`
+```
+    [PacketHandlerComponents]
+    ; Options can be set in this section of DefaultEngine.ini to enable different types of network packet encruption plugins
+    Components=OnlineSubsystemAccelByte.AuthHandlerComponentAccelByteFactory
+    bEnableReliability=true
+```
+
+2) (**Options**) If you want to apply encryption to all packets during connection, set as the following in `DefaultEngine.ini`
+```
+   ;If this option is not enabled, "AuthHandlerComponentAccelByte" handler is automatically disabled after authentication handshaking.
+   [OnlineSubsystemAccelByte]
+   ; If this option is enabled, all network packets are encrypted using encryption algorithm(AES-CBC-256 and HMAC-SHA-256) even after authentication handshaking.
+   EnabledEncrytion=true
+   ;-------------------------------------------
 ```

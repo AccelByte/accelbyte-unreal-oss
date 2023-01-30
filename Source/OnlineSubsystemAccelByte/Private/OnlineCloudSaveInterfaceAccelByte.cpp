@@ -42,9 +42,21 @@ bool FOnlineCloudSaveAccelByte::GetUserRecord(int32 LocalUserNum, const FString&
 	return GetUserRecord(LocalUserNum, Key, false);
 }
 
+bool FOnlineCloudSaveAccelByte::GetUserRecord(int32 LocalUserNum, const FString& Key, const FUniqueNetIdAccelByteUserRef& RecordUserId)
+{
+	const FString UserId = RecordUserId->GetAccelByteId();
+	return GetUserRecord(LocalUserNum, Key, false, UserId);
+}
+
 bool FOnlineCloudSaveAccelByte::GetPublicUserRecord(int32 LocalUserNum, const FString& Key)
 {
 	return GetUserRecord(LocalUserNum, Key, true);
+}
+
+bool FOnlineCloudSaveAccelByte::GetPublicUserRecord(int32 LocalUserNum, const FString& Key, const FUniqueNetIdAccelByteUserRef& RecordUserId)
+{
+	const FString UserId = RecordUserId->GetAccelByteId();
+	return GetUserRecord(LocalUserNum, Key, true, UserId);
 }
 
 bool FOnlineCloudSaveAccelByte::ReplaceUserRecord(int32 LocalUserNum, const FString& Key, const FJsonObject& RecordRequest)
@@ -111,6 +123,16 @@ bool FOnlineCloudSaveAccelByte::BulkGetPublicUserRecord(int32 LocalUserNum, cons
 	AB_OSS_INTERFACE_TRACE_END(TEXT("User not logged in at user index '%d'!"), LocalUserNum);
 	TriggerOnBulkGetPublicUserRecordCompletedDelegates(LocalUserNum, false, FListAccelByteModelsUserRecord(), ErrorStr);
 	return false;
+}
+
+bool FOnlineCloudSaveAccelByte::BulkGetPublicUserRecord(int32 LocalUserNum, const FString& Key, const TArray<FUniqueNetIdAccelByteUserRef>& UniqueNetIds)
+{
+	TArray<FString> UserIds{};
+	for (const auto& UniqueNetId : UniqueNetIds)
+	{
+		UserIds.Add(UniqueNetId->GetAccelByteId());
+	}
+	return BulkGetPublicUserRecord(LocalUserNum, Key, UserIds);
 }
 
 bool FOnlineCloudSaveAccelByte::GetGameRecord(int32 LocalUserNum, const FString& Key, bool bAlwaysRequestToService)
@@ -189,7 +211,7 @@ bool FOnlineCloudSaveAccelByte::GetGameRecordFromCache(const FString& Key, FAcce
 	return false;
 }
 
-bool FOnlineCloudSaveAccelByte::GetUserRecord(int32 LocalUserNum, const FString& Key, bool IsPublic)
+bool FOnlineCloudSaveAccelByte::GetUserRecord(int32 LocalUserNum, const FString& Key, bool IsPublic, const FString& UserId)
 {
 	const IOnlineIdentityPtr IdentityInterface = AccelByteSubsystem->GetIdentityInterface();
 	if (IdentityInterface.IsValid())
@@ -198,16 +220,23 @@ bool FOnlineCloudSaveAccelByte::GetUserRecord(int32 LocalUserNum, const FString&
 		if (IdentityInterface->GetLoginStatus(LocalUserNum) == ELoginStatus::LoggedIn)
 		{
 			const TSharedPtr<const FUniqueNetId> UserIdPtr = IdentityInterface->GetUniquePlayerId(LocalUserNum);
-			TSharedPtr<FUserOnlineAccount> UserAccount;
-			if (UserIdPtr.IsValid())
+			if (!IsRunningDedicatedServer())
 			{
-				AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGetUserRecord>(AccelByteSubsystem, *UserIdPtr.Get(), Key, IsPublic);
+				if (UserIdPtr.IsValid())
+				{
+					AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGetUserRecord>(AccelByteSubsystem, LocalUserNum, *UserIdPtr.Get(), Key, IsPublic, UserId);
+					return true;
+				}
+				const FString ErrorStr = TEXT("get-user-record-failed-userid-invalid");
+				AB_OSS_INTERFACE_TRACE_END(TEXT("UserId is not valid at user index '%d'!"), LocalUserNum);
+				TriggerOnGetUserRecordCompletedDelegates(LocalUserNum, false, FAccelByteModelsUserRecord(), ErrorStr);
+				return false;
+			}
+			else
+			{
+				AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGetUserRecord>(AccelByteSubsystem, LocalUserNum, *UserIdPtr.Get(), Key, IsPublic, UserId);
 				return true;
 			}
-			const FString ErrorStr = TEXT("get-user-record-failed-userid-invalid");
-			AB_OSS_INTERFACE_TRACE_END(TEXT("UserId is not valid at user index '%d'!"), LocalUserNum);
-			TriggerOnGetUserRecordCompletedDelegates(LocalUserNum, false, FAccelByteModelsUserRecord(), ErrorStr);
-			return false;
 		}
 	}
 

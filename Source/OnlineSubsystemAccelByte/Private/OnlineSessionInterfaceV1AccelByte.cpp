@@ -34,6 +34,7 @@
 #include "AsyncTasks/SessionV1/Server/OnlineAsyncTaskAccelByteGetDedicatedV1SessionId.h"
 #include "AsyncTasks/SessionV1/Server/OnlineAsyncTaskAccelByteEnqueueJoinableV1Session.h"
 #include "AsyncTasks/SessionV1/Server/OnlineAsyncTaskAccelByteDequeueJoinableV1Session.h"
+#include "AsyncTasks/SessionV1/Server/OnlineAsyncTaskAccelByteRemoveUserFromV1Session.h"
 #include "AsyncTasks/Server/OnlineAsyncTaskAccelByteBanUser.h"
 
 bool GetConnectionStringFromSessionInfo(TSharedPtr<FOnlineSessionInfoAccelByteV1> SessionInfo, FString& ConnectInfo, int32 PortOverride = 0)
@@ -1836,6 +1837,17 @@ bool FOnlineSessionV1AccelByte::QueryDedicatedSessionInfo(FName SessionName, con
 
 	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
 	return true;
+}
+
+bool FOnlineSessionV1AccelByte::RemoveUserFromSession(const FUniqueNetId& LocalUserId, const FString& ChannelName, const FString& MatchId, const FOnRemoveUserFromSessionComplete& Delegate)
+{
+	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("ChannelName: %s"), *ChannelName);
+
+	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteRemoveUserFromV1Session>(AccelByteSubsystem, LocalUserId, ChannelName, MatchId, Delegate);
+
+	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+	return true;
+
 }
 
 void FOnlineSessionV1AccelByte::SendBanUser(FName SessionName, const FUniqueNetId& PlayerId, int32 InActionID, const FString& InMessage)

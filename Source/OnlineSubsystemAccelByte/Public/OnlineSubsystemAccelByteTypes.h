@@ -42,7 +42,8 @@ enum class EAccelByteLoginType : uint8
 	Steam,
 	EOS,
 	ExchangeCode, // Epic Launcher
-	RefreshToken
+	RefreshToken,
+	CachedToken
 };
 
 enum class EAccelBytePartyType : uint32

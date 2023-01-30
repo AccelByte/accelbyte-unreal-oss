@@ -18,6 +18,7 @@
 #include "OnlineCloudSaveInterfaceAccelByte.h"
 #include "OnlineTimeInterfaceAccelByte.h"
 #include "OnlineStatisticInterfaceAccelByte.h"
+#include "OnlineAuthInterfaceAccelByte.h"
 #include "OnlineSubsystemAccelByteModule.h"
 #include "Api/AccelByteLobbyApi.h"
 #include "Models/AccelByteLobbyModels.h"
@@ -65,6 +66,7 @@ bool FOnlineSubsystemAccelByte::Init()
 	AnalyticsInterface = MakeShared<FOnlineAnalyticsAccelByte, ESPMode::ThreadSafe>(this);
 	StatisticInterface = MakeShared<FOnlineStatisticAccelByte, ESPMode::ThreadSafe>(this);
 	ChatInterface = MakeShared<FOnlineChatAccelByte, ESPMode::ThreadSafe>(this);
+	AuthInterface = MakeShared<FOnlineAuthAccelByte, ESPMode::ThreadSafe>(this);
 	
 	// Create an async task manager and a thread for the manager to process tasks on
 	AsyncTaskManager = MakeShared<FOnlineAsyncTaskManagerAccelByte, ESPMode::ThreadSafe>(this);
@@ -122,6 +124,9 @@ bool FOnlineSubsystemAccelByte::Shutdown()
 	PurchaseInterface.Reset();
 	TimeInterface.Reset();
 	AnalyticsInterface.Reset();
+	StatisticInterface.Reset();
+	ChatInterface.Reset();
+	AuthInterface.Reset();
 	
 	return true;
 }
@@ -222,11 +227,6 @@ IOnlineTimePtr FOnlineSubsystemAccelByte::GetTimeInterface() const
 	return TimeInterface;
 }
 
-IOnlineChatPtr FOnlineSubsystemAccelByte::GetChatInterface() const
-{
-	return ChatInterface;
-}
-
 FOnlineAnalyticsAccelBytePtr FOnlineSubsystemAccelByte::GetAnalyticsInterface() const
 {
 	return AnalyticsInterface;
@@ -235,6 +235,16 @@ FOnlineAnalyticsAccelBytePtr FOnlineSubsystemAccelByte::GetAnalyticsInterface() 
 IOnlineStatsPtr FOnlineSubsystemAccelByte::GetStatsInterface() const
 {
 	return StatisticInterface;
+}
+
+IOnlineChatPtr FOnlineSubsystemAccelByte::GetChatInterface() const
+{
+	return ChatInterface;
+}
+
+FOnlineAuthAccelBytePtr FOnlineSubsystemAccelByte::GetAuthInterface() const
+{
+	return AuthInterface;
 }
 
 #if (ENGINE_MAJOR_VERSION == 4 && ENGINE_MINOR_VERSION <= 25)
@@ -310,6 +320,11 @@ bool FOnlineSubsystemAccelByte::Tick(float DeltaTime)
 	if (SessionInterface.IsValid())
 	{
 		SessionInterface->Tick(DeltaTime);
+	}
+
+	if (AuthInterface.IsValid())
+	{
+		AuthInterface->Tick(DeltaTime);
 	}
 
 	// If we have automation testing enabled, check if we have any exec tests that are complete and if so, remove them

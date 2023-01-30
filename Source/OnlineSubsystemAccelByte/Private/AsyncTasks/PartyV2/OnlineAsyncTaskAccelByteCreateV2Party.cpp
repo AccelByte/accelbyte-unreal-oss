@@ -162,7 +162,7 @@ void FOnlineAsyncTaskAccelByteCreateV2Party::OnGetMyPartiesSuccess(const FAccelB
 	// Add self to members array
 	FAccelByteModelsV2SessionUser SelfMember;
 	SelfMember.ID = UserId->GetAccelByteId();
-	SelfMember.PlatformID = Subsystem->GetSimplifiedNativePlatformName(UserId->GetPlatformType());
+	SelfMember.PlatformID = UserId->GetPlatformType();
 	SelfMember.PlatformUserID = UserId->GetPlatformId();
 	CreatePartyRequest.Members.Emplace(SelfMember);
 

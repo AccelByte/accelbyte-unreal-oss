@@ -117,12 +117,12 @@ public:
 	 * for server auth, we bypass a lot of that code. However, this would require a rework to the current server code that
 	 * we don't have time for... For now, use this method for all server auth...
 	 */
-	bool AuthenticateAccelByteServer(const FOnAuthenticateServerComplete& Delegate);
+	bool AuthenticateAccelByteServer(const FOnAuthenticateServerComplete& Delegate, int32 LocalUserNum = 0);
 
 	/**
 	 * Check whether or not our server is authenticated or not
 	 */
-	bool IsServerAuthenticated();
+	bool IsServerAuthenticated(int32 LocalUserNum = 0);
 
 	DEFINE_ONLINE_PLAYER_DELEGATE_THREE_PARAM(MAX_LOCAL_PLAYERS, OnConnectLobbyComplete, bool /*bWasSuccessful*/, const FUniqueNetId& /*UserId*/, const FString& /*Error*/);
 
@@ -201,7 +201,7 @@ private:
 	/**
 	 * Handler for when we finish authenticating a server to fire off delegates
 	 */
-	void OnAuthenticateAccelByteServerSuccess();
+	void OnAuthenticateAccelByteServerSuccess(int32 LocalUserNum = 0);
 
 	/**
 	 * Handler for when we fail to authenticate a server to fire off delegates

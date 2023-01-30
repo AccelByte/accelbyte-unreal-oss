@@ -363,6 +363,10 @@ void FOnlineAsyncTaskAccelByteLogin::PerformLoginWithType(const EAccelByteLoginT
 		ApiClient->User.LoginWithOtherPlatform(EAccelBytePlatformType::EpicGames, Credentials.Token, OnLoginSuccessDelegate, OnLoginErrorDelegate);
 		AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sending async task to login with Epic Games from native online subsystem."));
 		break;
+	case EAccelByteLoginType::CachedToken:
+		ApiClient->User.TryRelogin(Credentials.Id, OnLoginSuccessDelegate, OnLoginErrorDelegate);
+		AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sending async task to login with cached refresh token for the specified PlatformUserID."));
+		break;
 	default:
 	case EAccelByteLoginType::None:
 		ErrorStr = TEXT("login-failed-invalid-type");

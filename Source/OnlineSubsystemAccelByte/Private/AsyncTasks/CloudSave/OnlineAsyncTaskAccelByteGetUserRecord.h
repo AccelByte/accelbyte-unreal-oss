@@ -14,7 +14,7 @@
 class FOnlineAsyncTaskAccelByteGetUserRecord : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteGetUserRecord, ESPMode::ThreadSafe>
 {
 public:
-	FOnlineAsyncTaskAccelByteGetUserRecord(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InLocalUserId, const FString& InKey, bool IsPublic);
+	FOnlineAsyncTaskAccelByteGetUserRecord(FOnlineSubsystemAccelByte* const InABInterface, const int32 InLocalUserNum, const FUniqueNetId& InLocalUserId, const FString& InKey, bool IsPublic, const FString& InRecordUserId = TEXT(""));
 
 	virtual void Initialize() override;
 	virtual void TriggerDelegates() override;
@@ -49,6 +49,11 @@ private:
 	 * String representing the record key to get
 	 */
 	FString Key;
+
+	/*
+	 * The UserId of the record owner
+	 */
+	FString RecordUserId;
 
 	FAccelByteModelsUserRecord UserRecord;
 

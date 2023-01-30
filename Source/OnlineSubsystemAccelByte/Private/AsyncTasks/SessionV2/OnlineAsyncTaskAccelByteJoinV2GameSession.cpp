@@ -85,7 +85,7 @@ void FOnlineAsyncTaskAccelByteJoinV2GameSession::Finalize()
 
 		// Update the game session data with what we received on join, that way if anything updated between the query and us
 		// joining, we would apply that to the joined session
-		SessionInterface->UpdateInternalGameSession(SessionName, UpdatedBackendSessionInfo, bJoiningP2P);
+		SessionInterface->UpdateInternalGameSession(SessionName, UpdatedBackendSessionInfo, bJoiningP2P, true);
 	}
 	else
 	{

@@ -77,12 +77,30 @@ public:
 	bool GetUserRecord(int32 LocalUserNum, const FString& Key);
 
 	/**
+	 * @brief Get a record (arbitrary JSON data) by its key in user-level. Only for request by Game Server
+	 *
+	 * @param LocalUserNum Index of user that is attempting to get record
+	 * @param Key The record key to delete
+	 * @param RecordUserId The UserId of the record owner
+	 */
+	bool GetUserRecord(int32 LocalUserNum, const FString& Key, const FUniqueNetIdAccelByteUserRef& RecordUserId);
+
+	/**
 	 * @brief Get a public record (arbitrary JSON data) by its key in user-level.
 	 *
 	 * @param LocalUserNum Index of user that is attempting to get record
 	 * @param Key The record key to delete
 	 */
 	bool GetPublicUserRecord(int32 LocalUserNum, const FString& Key);
+
+	/**
+	 * @brief Get a public record (arbitrary JSON data) by its key in user-level.
+	 *
+	 * @param LocalUserNum Index of user that is attempting to get record
+	 * @param Key The record key to delete
+	 * @param RecordUserId The UserId of the record owner
+	 */
+	bool GetPublicUserRecord(int32 LocalUserNum, const FString& Key, const FUniqueNetIdAccelByteUserRef& RecordUserId);
 
 	/**
 	 * @brief Replace a record in user-level. If the record doesn't exist, it will create and save the record. If already exists, it will replace the existing one.
@@ -118,6 +136,15 @@ public:
 	 * @param UserIds List UserId(s) of the record owner.
 	 */
 	bool BulkGetPublicUserRecord(int32 LocalUserNum, const FString& Key, const TArray<FString>& UserIds);
+
+	/**
+	 * @brief Get a public record (arbitrary JSON data) by its key and userId in user-level.
+	 *
+	 * @param LocalUserNum Index of user that is attempting to get bulk public user record
+	 * @param Key Key of record.
+	 * @param UniqueNetIds List UniqueNetId(UserId)(s) of the record owner.
+	 */
+	bool BulkGetPublicUserRecord(int32 LocalUserNum, const FString& Key, const TArray<FUniqueNetIdAccelByteUserRef>& UniqueNetIds);
 
 	/**
 	 * @brief Get a record by its key in namespace-level.
@@ -156,6 +183,6 @@ protected:
 	FOnlineSubsystemAccelByte* AccelByteSubsystem = nullptr;
 
 private:
-	bool GetUserRecord(int32 LocalUserNum, const FString& Key, bool IsPublic);
+	bool GetUserRecord(int32 LocalUserNum, const FString& Key, bool IsPublic, const FString& UserId = TEXT(""));
 	bool ReplaceUserRecord(int32 LocalUserNum, const FString& Key, const FJsonObject& RecordRequest, bool IsPublic);
 };
