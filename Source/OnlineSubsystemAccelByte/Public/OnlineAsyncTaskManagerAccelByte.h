@@ -19,9 +19,13 @@ public:
 
 	void OnlineTick() override;
 
+	void CheckMaxParallelTasks();
+
 private:
 
 	/** Pointer to subsystem instance that constructed this manager */
 	FOnlineSubsystemAccelByte* AccelByteSubsystem;
 
+	/** How long Task elapsed can considered as too long*/
+	const double TaskTimeThreshold = 30.0;
 };

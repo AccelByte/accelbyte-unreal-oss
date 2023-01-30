@@ -6,8 +6,7 @@
 #include "OnlineSubsystemAccelByte.h"
 
 FOnlineAsyncTaskManagerAccelByte::FOnlineAsyncTaskManagerAccelByte(FOnlineSubsystemAccelByte* ParentSubsystem)
-	:
-	AccelByteSubsystem(ParentSubsystem)
+	: AccelByteSubsystem(ParentSubsystem)
 {
 }
 
@@ -15,4 +14,14 @@ void FOnlineAsyncTaskManagerAccelByte::OnlineTick()
 {
 	check(AccelByteSubsystem);
 	check(FPlatformTLS::GetCurrentThreadId() == OnlineThreadId);
+}
+
+void FOnlineAsyncTaskManagerAccelByte::CheckMaxParallelTasks()
+{
+#if !UE_BUILD_SHIPPING
+	if (MaxParallelTasks == ParallelTasks.Num())
+	{
+		UE_LOG(LogAccelByteOSS, Warning, TEXT("The number of Parallel Tasks has reached it cap: %d, Please put some delay between each tasks."), MaxParallelTasks);
+	}
+#endif
 }

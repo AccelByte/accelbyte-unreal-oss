@@ -176,10 +176,14 @@ public:
 	 */
 	virtual void Tick() override
 	{
-		if (bShouldUseTimeout && HasTaskTimedOut())
+		if (HasTaskTimedOut())
 		{
-			CompleteTask(EAccelByteAsyncTaskCompleteState::TimedOut);
-			OnTaskTimedOut();
+			UE_LOG(LogAccelByteOSS, Warning, TEXT("Task has been idle for longer than %d s"), TaskTimeoutInSeconds);
+			if (bShouldUseTimeout)
+			{
+				CompleteTask(EAccelByteAsyncTaskCompleteState::TimedOut);
+				OnTaskTimedOut();
+			}
 		}
 
 		// If we are not currently in the working state, then kick off the work we need to do for the task

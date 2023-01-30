@@ -246,6 +246,8 @@ PACKAGE_SCOPE:
 
 		check(AsyncTaskManager.IsValid());
 
+		AsyncTaskManager->CheckMaxParallelTasks();
+
 		TOnlineAsyncTask* NewTask = new TOnlineAsyncTask(Forward<TArguments>(Arguments)...);
 		AsyncTaskManager->AddToParallelTasks(NewTask);
 	}

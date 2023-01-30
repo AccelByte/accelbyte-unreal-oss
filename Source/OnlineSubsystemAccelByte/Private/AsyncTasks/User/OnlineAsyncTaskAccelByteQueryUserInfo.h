@@ -44,27 +44,11 @@ private:
 
 	/** Array of user IDs that we successfully queried (should be the same as initial, but may also differ if a user isn't found) */
 	TArray<TSharedRef<const FUniqueNetId>> QueriedUserIds;
-
-	/**
-	 * Array of users that we already had cached in our user store
-	 */
-	TArray<TSharedRef<FAccelByteUserInfo>> UsersCached;
 	
 	/** String representing the error that was encountered while trying to query user information */
 	FString ErrorStr;
 
-	/**
-	 * Calls method to get basic user information by an array of AccelByte IDs
-	 */
-	void GetBasicUserInfo();
+	/** Delegate handler for when we complete a query for users from the backend */
+	void OnQueryUsersComplete(bool bIsSuccessful, TArray<TSharedRef<FAccelByteUserInfo>> InUsersQueried);
 
-	/**
-	 * Delegate handler for when querying basic user information by AccelByte IDs succeeds
-	 */
-	void OnGetBasicUserInfoSuccess(const FListBulkUserInfo& Result);
-
-	/**
-	 * Delegate handler for when querying basic user information by platform IDs fails
-	 */
-	void OnGetBasicUserInfoError(int32 ErrorCode, const FString& ErrorMessage);
 };

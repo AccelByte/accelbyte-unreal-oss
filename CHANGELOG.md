@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.8.9](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.8.9%0D0.8.8) (2023-01-30)
+
+
+### Features
+
+* **taskManager:** print warning when MaxParallelTasks reached ([b399135](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/b399135b051033aa388f1afcd49d020cf5e22e88))
+
+
+### Reverts
+
+* Revert "fix(user): add timeout on query user info, change to direct api request insteall of call another async task" ([f21c9c2](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/f21c9c2ab95e9e25a5b7245e860e964760560638))
+
 ### [0.8.8](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.8.8%0D0.8.7) (2023-01-26)
 
 
