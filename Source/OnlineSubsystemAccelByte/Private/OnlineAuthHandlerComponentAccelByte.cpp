@@ -5,13 +5,14 @@
 #include "OnlineAuthHandlerComponentAccelByte.h"
 #include "OnlineSubsystemAccelByteDefines.h"
 #include "Net/Core/Misc/PacketAudit.h"
+#include "Misc/AES.h"
 #include "OnlineSubsystemUtils.h"
 
 /** The maximum size (bits) for a packet */
 #define MAX_PACKET_BITS ((MAX_PACKET_SIZE) * 8)
 
 /** The maximum size for a data packet */
-#define MAX_AES_ENCRYPTION_BITS ((MAX_PACKET_SIZE - AES_BLOCK_SIZE - 1) * 8)
+#define MAX_AES_ENCRYPTION_BITS ((MAX_PACKET_SIZE - FAES::AESBlockSize - 1) * 8)
 
 #define ACCELBYTE_RESEND_REQUEST_INTERVAL 3.0f
 

@@ -17,15 +17,14 @@
 #include "GameFramework/GameSession.h"
 #include "GameFramework/PlayerState.h"
 #include "GameFramework/PlayerController.h"
-#include "Engine/World.h"
-#include "Engine/Engine.h"
 
 // Determining if we need to be disabled or not
 #include "Misc/ConfigCacheIni.h"
+#include "Misc/AES.h"
 #include "PacketHandler.h"
 
 // AccelByte tells us this number in documentation, however there's no define within the SDK
-#define ACCELBYTE_AUTH_MAX_TOKEN_LENGTH_IN_BYTES (MAX_PACKET_SIZE - AES_BLOCK_SIZE - 1)
+#define ACCELBYTE_AUTH_MAX_TOKEN_LENGTH_IN_BYTES (MAX_PACKET_SIZE - FAES::AESBlockSize - 1)
 #define ACCELBYTE_KICK_INTERVAL 1.0f
 
 FOnlineAuthAccelByte::FOnlineAuthAccelByte(FOnlineSubsystemAccelByte* InSubsystem) :

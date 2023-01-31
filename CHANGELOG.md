@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.8.11](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.8.11%0D0.8.10) (2023-01-31)
+
+
+### Bug Fixes
+
+* missing AES_BLOCK_SIZE when compiled in UE 5.1 ([879e6e8](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/879e6e85815efe40fa2beb40720bb4527ccda862))
+
 ### [0.8.10](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.8.10%0D0.8.9) (2023-01-30)
 
 
