@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.8.12](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.8.12%0D0.8.11) (2023-02-10)
+
+
+### Bug Fixes
+
+* **cloudsave:** replace replace user record callback with replace game record callback ([8673968](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/8673968655df64bf113e99e76a89d8623820c301))
+
 ### [0.8.11](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.8.11%0D0.8.10) (2023-01-31)
 
 

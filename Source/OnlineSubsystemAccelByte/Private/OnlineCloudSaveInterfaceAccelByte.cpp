@@ -180,7 +180,7 @@ bool FOnlineCloudSaveAccelByte::ReplaceGameRecord(int32 LocalUserNum, const FStr
 			}
 			const FString ErrorStr = TEXT("replace-game-record-failed-userid-invalid");
 			AB_OSS_INTERFACE_TRACE_END(TEXT("UserId is not valid at user index '%d'!"), LocalUserNum);
-			TriggerOnReplaceUserRecordCompletedDelegates(LocalUserNum, false, ErrorStr);
+			TriggerOnReplaceGameRecordCompletedDelegates(LocalUserNum, false, ErrorStr);
 			return false;
 		}
 	}
