@@ -420,7 +420,7 @@ void FOnlineAsyncTaskAccelByteLogin::OnLoginSuccess()
 		return;
 	}
 
-	UserInterface->QueryUserInfo(LocalUserNum, { UserId.ToSharedRef() });
+	UserInterface->QueryUserInfo(LoginUserNum, { UserId.ToSharedRef() });
 
 	CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

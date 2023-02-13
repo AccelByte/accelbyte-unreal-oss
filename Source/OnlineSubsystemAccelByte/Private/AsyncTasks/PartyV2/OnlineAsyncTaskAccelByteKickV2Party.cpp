@@ -5,10 +5,11 @@
 #include "OnlineAsyncTaskAccelByteKickV2Party.h"
 #include "OnlineSessionInterfaceV2AccelByte.h"
 
-FOnlineAsyncTaskAccelByteKickV2Party::FOnlineAsyncTaskAccelByteKickV2Party(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InLocalUserId, const FName& InSessionName, const FUniqueNetId& InPlayerIdToKick)
+FOnlineAsyncTaskAccelByteKickV2Party::FOnlineAsyncTaskAccelByteKickV2Party(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InLocalUserId, const FName& InSessionName, const FUniqueNetId& InPlayerIdToKick, const FOnKickPlayerComplete& InDelegate)
 	: FOnlineAsyncTaskAccelByte(InABInterface)
 	, SessionName(InSessionName)
 	, PlayerIdToKick(FUniqueNetIdAccelByteUser::CastChecked(InPlayerIdToKick))
+	, Delegate(InDelegate)
 {
 	UserId = FUniqueNetIdAccelByteUser::CastChecked(InLocalUserId);
 }
@@ -69,6 +70,8 @@ void FOnlineAsyncTaskAccelByteKickV2Party::TriggerDelegates()
 		SessionInterface->TriggerOnSessionParticipantRemovedDelegates(SessionName, PlayerIdToKick.Get());
 #endif
 	}
+
+	Delegate.ExecuteIfBound(bWasSuccessful, PlayerIdToKick.Get());
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }

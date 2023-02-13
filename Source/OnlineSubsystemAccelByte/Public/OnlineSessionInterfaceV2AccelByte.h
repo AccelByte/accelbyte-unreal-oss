@@ -19,6 +19,7 @@
 #include "Models/AccelByteSessionModels.h"
 #include "Models/AccelByteMatchmakingModels.h"
 #include "Models/AccelByteDSHubModels.h"
+#include "AccelByteNetworkingStatus.h"
 
 class FInternetAddr;
 class FNamedOnlineSession;
@@ -325,6 +326,7 @@ DECLARE_DELEGATE_OneParam(FOnRejectSessionInviteComplete, bool /*bWasSuccessful*
 DECLARE_DELEGATE_OneParam(FOnAcceptBackfillProposalComplete, bool /*bWasSuccessful*/);
 DECLARE_DELEGATE_OneParam(FOnRejectBackfillProposalComplete, bool /*bWasSuccessful*/);
 DECLARE_DELEGATE_OneParam(FOnSessionMemberStatusUpdateComplete, bool /*bWasSuccessful*/);
+DECLARE_DELEGATE_TwoParams(FOnKickPlayerComplete, bool /*bWasSuccessful*/, const FUniqueNetId& /*KickedPlayerId*/);
 
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnServerReceivedSession, FName /*SessionName*/);
 typedef FOnServerReceivedSession::FDelegate FOnServerReceivedSessionDelegate;
@@ -542,7 +544,7 @@ public:
 	/**
 	 * Kick a member of the session out of the session.
 	 */
-	bool KickPlayer(const FUniqueNetId& LocalUserId, const FName& SessionName, const FUniqueNetId& PlayerIdToKick);
+	bool KickPlayer(const FUniqueNetId& LocalUserId, const FName& SessionName, const FUniqueNetId& PlayerIdToKick, const FOnKickPlayerComplete& Delegate=FOnKickPlayerComplete());
 
 	/**
 	 * Promote a member of the party session to leader
@@ -1034,7 +1036,7 @@ private:
 	/**
 	 * Delegate handler when we finish connecting to a P2P ICE session
 	 */
-	void OnICEConnectionComplete(const FString& PeerId, bool bStatus, FName SessionName, EOnlineSessionP2PConnectedAction Action);
+	void OnICEConnectionComplete(const FString& PeerId, const EAccelByteP2PConnectionStatus& Status, FName SessionName, EOnlineSessionP2PConnectedAction Action);
 
 	/**
 	 * Internal method to get a named session as a const pointer.

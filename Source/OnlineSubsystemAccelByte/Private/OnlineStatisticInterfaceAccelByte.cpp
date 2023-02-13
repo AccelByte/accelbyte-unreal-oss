@@ -11,6 +11,7 @@
 #include "AsyncTasks/Statistic/OnlineAsyncTaskAccelByteQueryStatsUsers.h"
 #include "AsyncTasks/Statistic/OnlineAsyncTaskAccelByteUpdateStats.h"
 #include "AsyncTasks/Statistic/OnlineAsyncTaskAccelByteResetUserStats.h"
+#include "AsyncTasks/Statistic/OnlineAsyncTaskAccelByteCreateStatsUser.h"
 #include "OnlineSubsystemUtils.h"
 
 bool FOnlineStatisticAccelByte::ListUserStatItems(int32 LocalUserNum, const TArray<FString>& StatCodes, const TArray<FString>& Tags, const FString& AdditionalKey, bool bAlwaysRequestToService)
@@ -57,6 +58,13 @@ bool FOnlineStatisticAccelByte::GetListUserStatItems(int32 LocalUserNum, TArray<
 	return false;
 }
 
+void FOnlineStatisticAccelByte::CreateStats(const int32 LocalUserNum, const FUniqueNetIdRef StatsUser, const TArray<FString>& StatNames, const FOnlineStatsCreateStatsComplete& Delegate)
+{
+	UE_LOG_ONLINE_STATS(Display, TEXT("FOnlineStatisticAccelByte::CreateStats"));
+	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteCreateStatsUser>
+		(AccelByteSubsystem, LocalUserNum, StatsUser, StatNames, Delegate);
+}
+
 void FOnlineStatisticAccelByte::QueryStats(const FUniqueNetIdRef LocalUserId, const FUniqueNetIdRef StatsUser, const TArray<FString>& StatNames, const FOnlineStatsQueryUserStatsComplete& Delegate)
 {
 	UE_LOG_ONLINE_STATS(Display, TEXT("FOnlineStatisticAccelByte::QueryStats"));
@@ -70,7 +78,7 @@ void FOnlineStatisticAccelByte::QueryStats(const FUniqueNetIdRef LocalUserId, co
 	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteQueryStatsUser>
 		(AccelByteSubsystem, LocalUserId, StatsUser, StatNames, OnComplete);
 
-};
+}
 
 void FOnlineStatisticAccelByte::QueryStats(const FUniqueNetIdRef LocalUserId, const FUniqueNetIdRef StatsUser, const FOnlineStatsQueryUserStatsComplete& Delegate)
 {

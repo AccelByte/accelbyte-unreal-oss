@@ -516,6 +516,7 @@ bool FOnlineSessionV1AccelByte::CreateSession(int32 HostingPlayerNum, FName Sess
 		FOnlineIdentityAccelBytePtr IdentityInterface =  StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystem->GetIdentityInterface());
 		const AccelByte::FApiClientPtr ApiClient = IdentityInterface->GetApiClient(HostingPlayerNum); 
 		FAccelByteNetworkUtilitiesModule::Get().Setup(ApiClient);
+		FAccelByteNetworkUtilitiesModule::Get().EnableHosting();
 	}
 
 	// Try and grab session ID from the environment or from the command line if we have it in advance
@@ -739,6 +740,7 @@ bool FOnlineSessionV1AccelByte::EndSession(FName SessionName)
 		if (bIceEnabled)
 		{
 			FAccelByteNetworkUtilitiesModule::Get().UnregisterDefaultSocketSubsystem();
+			FAccelByteNetworkUtilitiesModule::Get().DisableHosting();
 		}
 
 		if(Session->bHosting)
@@ -1048,8 +1050,8 @@ bool FOnlineSessionV1AccelByte::JoinSession(int32 PlayerNum, FName SessionName, 
 			FAccelByteNetworkUtilitiesModule::Get().RequestConnect(SessionInfo->GetRemoteId());
 
 			// Register a delegate that will notify that we've joined the session once we've connected to the WebRTC socket
-			const FAccelByteNetworkUtilitiesModule::OnICEConnected OnICEConnectionCompleteDelegate = FAccelByteNetworkUtilitiesModule::OnICEConnected::CreateRaw(this, &FOnlineSessionV1AccelByte::OnRTCConnected, SessionName);
-			FAccelByteNetworkUtilitiesModule::Get().RegisterICEConnectedDelegate(OnICEConnectionCompleteDelegate);
+			const FAccelByteNetworkUtilitiesModule::OnICERequestConnectFinished OnICEConnectionCompleteDelegate = FAccelByteNetworkUtilitiesModule::OnICERequestConnectFinished::CreateRaw(this, &FOnlineSessionV1AccelByte::OnRTCConnected, SessionName);
+			FAccelByteNetworkUtilitiesModule::Get().RegisterICERequestConnectFinishedDelegate(OnICEConnectionCompleteDelegate);
 
 			// Register a delegate that will notify if WebRTC socket closed
 			const TDelegate<void(const FString&)> OnICEConnectionCloseDelegate = TDelegate<void(const FString&)>::CreateRaw(this, &FOnlineSessionV1AccelByte::OnRTCClosed, SessionName);
@@ -1065,9 +1067,36 @@ bool FOnlineSessionV1AccelByte::JoinSession(int32 PlayerNum, FName SessionName, 
 	}
 }
 
-void FOnlineSessionV1AccelByte::OnRTCConnected(const FString& NetId, bool bWasSuccessful, FName SessionName)
+void FOnlineSessionV1AccelByte::OnRTCConnected(const FString& NetId, const EAccelByteP2PConnectionStatus& Status, FName SessionName)
 {
-	TriggerOnJoinSessionCompleteDelegates(SessionName, EOnJoinSessionCompleteResult::Success);
+	EOnJoinSessionCompleteResult::Type Result;
+	
+	switch (Status)
+	{
+	case Success:
+		Result = EOnJoinSessionCompleteResult::Success;
+		break;
+
+	case SignalingServerDisconnected:
+	case HostResponseTimeout:
+	case PeerIsNotHosting:
+		Result = EOnJoinSessionCompleteResult::SessionDoesNotExist;
+		break;
+
+	case JuiceGatherFailed:
+	case JuiceGetLocalDescriptionFailed:
+	case JuiceConnectionFailed:
+	case FailedGettingTurnServer:
+	case FailedGettingTurnServerCredential:
+		Result = EOnJoinSessionCompleteResult::CouldNotRetrieveAddress;
+		break;
+
+	default:
+		Result = EOnJoinSessionCompleteResult::UnknownError;
+	}
+
+
+	TriggerOnJoinSessionCompleteDelegates(SessionName, Result);
 }
 
 void FOnlineSessionV1AccelByte::OnRTCClosed(const FString& NetId, FName SessionName)

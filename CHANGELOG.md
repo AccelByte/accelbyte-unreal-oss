@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.8.13](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.8.13%0D0.8.12) (2023-02-13)
+
+
+### Features
+
+* **MPv2:** add delegate to notify when a kick player call has completed ([165044c](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/165044c7739c7aa3b05c7326ffe0e94aa76d2de3))
+* **p2p:** update hosting state in network manager when hosting p2p session ([ca0eed5](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/ca0eed58abe61b94cd0616c3fb6afecf58fa40a0))
+* **statistic:** add create statitem for ds ([a7d3cf6](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/a7d3cf6623a7d0ca4f1ef8bf7ed631ca51a6a5b2))
+
+
+### Bug Fixes
+
+* **editor:** crash on exit PIE instance due to invalid reference access ([f7854f8](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/f7854f8dfff8918b0756d6dbedcb344a4a73f1b8))
+* invalid subsystem instance in the static delegate ([a510b25](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/a510b250fecf25a8d2708e1b3d1fe14571434790))
+* **MPv2:** invalid usages of LocalOwnerId that could have side effects on servers ([d735c89](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/d735c89390a452b3deb9f0754d8a9dc633816922))
+* **MPv2:** joining a new session would not register players that were already joined to the session ([67e2c5e](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/67e2c5ec28c7b9f5ad43ae0805ac4e09505eb1a4))
+
 ### [0.8.12](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.8.12%0D0.8.11) (2023-02-10)
 
 

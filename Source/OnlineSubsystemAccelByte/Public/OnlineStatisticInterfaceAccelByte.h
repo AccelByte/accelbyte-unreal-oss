@@ -14,6 +14,8 @@
 DECLARE_MULTICAST_DELEGATE_FourParams(FOnListUserStatItemsCompleted, int32 /*LocalUserNum*/, bool /*bWasSuccessful*/, const TArray<FAccelByteModelsFetchUser>&, const FString& /*Error*/);
 typedef FOnListUserStatItemsCompleted::FDelegate FOnListUserStatItemsCompletedDelegate;
 
+DECLARE_DELEGATE_TwoParams(FOnlineStatsCreateStatsComplete, const FOnlineError& /*ResultState*/, const TArray<FAccelByteModelsBulkStatItemOperationResult>& /*Result*/);
+
 /**
  * Implementation of Statistic service from AccelByte services
  */
@@ -41,6 +43,16 @@ public:
 	TSharedPtr<const FOnlineStatsUserStats>  GetAllListUserStatItemFromCache(const FUniqueNetIdRef StatsUserId) const;
 
 	void QueryStats(const FUniqueNetIdRef LocalUserId, const FUniqueNetIdRef StatsUser, const TArray<FString>& StatNames, const FOnlineStatsQueryUserStatsComplete& Delegate);
+
+	/**
+	 * Create a one or more user's stats. Only for request by Game Server
+	 * 
+	 * @param LocalUserNum Index of user that is attempting to create the stats
+	 * @param StatsUser User to create stats for
+	 * @param StatNames Stats to create stats for all specified users
+	 * @param Delegate Called when the user's stats have finished being created, or when we fail to create the user's stats
+	 */
+	virtual void CreateStats(const int32 LocalUserNum, const FUniqueNetIdRef StatsUser, const TArray<FString>& StatNames, const FOnlineStatsCreateStatsComplete& Delegate);
 
 	//~ Begin IOnlineStats Interface
 	virtual void QueryStats(const FUniqueNetIdRef LocalUserId, const FUniqueNetIdRef StatsUser, const FOnlineStatsQueryUserStatsComplete& Delegate) override;

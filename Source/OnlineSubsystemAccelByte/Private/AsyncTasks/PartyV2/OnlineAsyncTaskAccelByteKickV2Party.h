@@ -5,15 +5,17 @@
 
 #include "AsyncTasks/OnlineAsyncTaskAccelByte.h"
 #include "OnlineSubsystemAccelByteTypes.h"
+#include "Models/AccelByteSessionModels.h"
+#include "OnlineSessionInterfaceV2AccelByte.h"
 
 /**
- * Fill out information about your async task here.
+ * Async task to kick a player from a party session
  */
 class FOnlineAsyncTaskAccelByteKickV2Party : public FOnlineAsyncTaskAccelByte
 {
 public:
 
-	FOnlineAsyncTaskAccelByteKickV2Party(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InLocalUserId, const FName& InSessionName, const FUniqueNetId& InPlayerIdToKick);
+	FOnlineAsyncTaskAccelByteKickV2Party(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InLocalUserId, const FName& InSessionName, const FUniqueNetId& InPlayerIdToKick, const FOnKickPlayerComplete& InDelegate);
 
 	virtual void Initialize() override;
 	virtual void Finalize() override;
@@ -32,6 +34,9 @@ private:
 	
 	/** ID of the player that we are trying to kick from the party session */
 	TSharedRef<const FUniqueNetIdAccelByteUser> PlayerIdToKick;
+
+	/** Delegate fired when we finish kicking a player from the party session */
+	FOnKickPlayerComplete Delegate{};
 
 	/** Updated session data from the backend that we will use to update our local session copy */
 	FAccelByteModelsV2PartySession UpdatedBackendSessionData;

@@ -30,7 +30,8 @@ public class OnlineSubsystemAccelByte : ModuleRules
 
 		PublicDependencyModuleNames.AddRange(new string[] {
 			"OnlineSubsystemUtils",
-			"AccelByteUe4Sdk"
+			"AccelByteUe4Sdk",
+			"AccelByteNetworkUtilities"
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[] {

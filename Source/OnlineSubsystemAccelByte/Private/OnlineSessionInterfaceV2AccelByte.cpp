@@ -1056,20 +1056,22 @@ void FOnlineSessionV2AccelByte::FinalizeCreateGameSession(const FName& SessionNa
 		NewSession->NumOpenPrivateConnections = 0;
 	}
 
-	// Register ourselves to the session as well
-	if (!ensure(NewSession->LocalOwnerId.IsValid()))
+	// Register ourselves to the session and attempt to set up P2P connection if we are not running a dedicated server
+	if (!IsRunningDedicatedServer())
 	{
-		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to finalize creating game session as the local owner of the session is invalid!"));
-		DestroySession(SessionName);
-		return;
-	}
+		if (!ensure(NewSession->LocalOwnerId.IsValid()))
+		{
+			AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to finalize creating game session as the local owner of the session is invalid!"));
+			DestroySession(SessionName);
+			return;
+		}
 
-	RegisterPlayer(SessionName, NewSession->LocalOwnerId.ToSharedRef().Get(), false);
-
-	// If this is a P2P session, then we want to run the code to register the P2P socket subsystem
-	if (SessionInfo->GetServerType() == EAccelByteV2SessionConfigurationServerType::P2P)
-	{
-		SetupAccelByteP2PConnection(NewSession->LocalOwnerId.ToSharedRef().Get());
+		const FUniqueNetIdRef LocalOwnerIdRef = NewSession->LocalOwnerId.ToSharedRef();
+		RegisterPlayer(SessionName, LocalOwnerIdRef.Get(), false);
+		if (SessionInfo->GetServerType() == EAccelByteV2SessionConfigurationServerType::P2P)
+		{
+			SetupAccelByteP2PConnection(LocalOwnerIdRef.Get());
+		}
 	}
 
 	NewSession->SessionState = EOnlineSessionState::Pending;
@@ -1705,9 +1707,9 @@ void FOnlineSessionV2AccelByte::ConnectToJoinedP2PSession(FName SessionName, EOn
 	FAccelByteNetworkUtilitiesModule::Get().Setup(ApiClient);
 
 	// Register a delegate so that we can fire our join session complete delegate when connection finishes
-	const FAccelByteNetworkUtilitiesModule::OnICEConnected OnICEConnectionCompleteDelegate =
-		FAccelByteNetworkUtilitiesModule::OnICEConnected::CreateThreadSafeSP(SharedThis(this), &FOnlineSessionV2AccelByte::OnICEConnectionComplete, SessionName, Action);
-	FAccelByteNetworkUtilitiesModule::Get().RegisterICEConnectedDelegate(OnICEConnectionCompleteDelegate);
+	const FAccelByteNetworkUtilitiesModule::OnICERequestConnectFinished OnICEConnectionCompleteDelegate =
+		FAccelByteNetworkUtilitiesModule::OnICERequestConnectFinished::CreateThreadSafeSP(SharedThis(this), &FOnlineSessionV2AccelByte::OnICEConnectionComplete, SessionName, Action);
+	FAccelByteNetworkUtilitiesModule::Get().RegisterICERequestConnectFinishedDelegate(OnICEConnectionCompleteDelegate);
 
 	// Request connection to the peer
 	TSharedPtr<FOnlineSessionInfoAccelByteV2> SessionInfo = StaticCastSharedPtr<FOnlineSessionInfoAccelByteV2>(Session->SessionInfo);
@@ -2910,7 +2912,7 @@ FUniqueNetIdPtr FOnlineSessionV2AccelByte::GetSessionLeaderId(const FNamedOnline
 	return SessionInfo->GetLeaderId();
 }
 
-bool FOnlineSessionV2AccelByte::KickPlayer(const FUniqueNetId& LocalUserId, const FName& SessionName, const FUniqueNetId& PlayerIdToKick)
+bool FOnlineSessionV2AccelByte::KickPlayer(const FUniqueNetId& LocalUserId, const FName& SessionName, const FUniqueNetId& PlayerIdToKick, const FOnKickPlayerComplete& Delegate)
 {
 	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("LocalUserId: %s; SessionName: %s; PlayerIdToKick: %s"), *LocalUserId.ToDebugString(), *SessionName.ToString(), *PlayerIdToKick.ToDebugString());
 
@@ -2928,7 +2930,7 @@ bool FOnlineSessionV2AccelByte::KickPlayer(const FUniqueNetId& LocalUserId, cons
 	}
 	else if (SessionType == EAccelByteV2SessionType::PartySession)
 	{
-		AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteKickV2Party>(AccelByteSubsystem, LocalUserId, SessionName, PlayerIdToKick);
+		AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteKickV2Party>(AccelByteSubsystem, LocalUserId, SessionName, PlayerIdToKick, Delegate);
 		AB_OSS_INTERFACE_TRACE_END(TEXT("Sent off request to kick player from party session!"));
 		return true;
 	}
@@ -3777,9 +3779,21 @@ void FOnlineSessionV2AccelByte::UpdateSessionMembers(FNamedOnlineSession* Sessio
 			return Member.ID == NewMember.ID;
 		});
 
-		// If this user's status hasn't changed, then just move on to next member
+		// If this user's status hasn't changed, then we want to ensure that we have this player in the RegisteredPlayers
+		// array. If they are already in the array, then skip. Otherwise, register them.
 		if (PreviousMember != nullptr && PreviousMember->Status == NewMember.Status)
 		{
+			const bool bIsJoined = (PreviousMember->Status == EAccelByteV2SessionMemberStatus::JOINED || PreviousMember->Status == EAccelByteV2SessionMemberStatus::CONNECTED);
+			const bool bNeedsRegistration = bIsJoined && !Session->RegisteredPlayers.ContainsByPredicate([&PreviousMember](const FUniqueNetIdRef& PlayerId) {
+				FUniqueNetIdAccelByteUserRef AccelBytePlayerId = FUniqueNetIdAccelByteUser::CastChecked(PlayerId);
+				return AccelBytePlayerId->GetAccelByteId() == PreviousMember->ID;
+			});
+
+			if (bNeedsRegistration)
+			{
+				RegisterJoinedSessionMember(Session, *PreviousMember);
+			}
+
 			continue;
 		}
 
@@ -3837,7 +3851,7 @@ void FOnlineSessionV2AccelByte::UnregisterLeftSessionMember(FNamedOnlineSession*
 
 	// If the user that has left is ourselves, then we want to destroy this session as well. Developers will need to listen
 	// to OnDestroySessionComplete to ensure that they are catching being booted out of a session from the backend.
-	if (LeftUserId.ToSharedRef().Get() == Session->LocalOwnerId.ToSharedRef().Get())
+	if (Session->LocalOwnerId.IsValid() && LeftUserId.ToSharedRef().Get() == Session->LocalOwnerId.ToSharedRef().Get())
 	{
 		DestroySession(Session->SessionName);
 	}
@@ -4037,19 +4051,50 @@ void FOnlineSessionV2AccelByte::SetupAccelByteP2PConnection(const FUniqueNetId& 
 	}
 
 	FAccelByteNetworkUtilitiesModule::Get().Setup(ApiClient);
+
+	FAccelByteNetworkUtilitiesModule::Get().EnableHosting();
 }
 
 void FOnlineSessionV2AccelByte::TeardownAccelByteP2PConnection()
 {
 	FAccelByteNetworkUtilitiesModule::Get().UnregisterDefaultSocketSubsystem();
+	FAccelByteNetworkUtilitiesModule::Get().DisableHosting();
 }
 
-void FOnlineSessionV2AccelByte::OnICEConnectionComplete(const FString& PeerId, bool bStatus, FName SessionName, EOnlineSessionP2PConnectedAction Action)
+void FOnlineSessionV2AccelByte::OnICEConnectionComplete(const FString& PeerId,
+	const EAccelByteP2PConnectionStatus& Status, FName SessionName, EOnlineSessionP2PConnectedAction Action)
 {
-	AsyncTask(ENamedThreads::GameThread, [this, Action, SessionName, bStatus] {
+	UE_LOG_AB(Log, TEXT("FOnlineSessionV2AccelByte::OnICEConnectionComplete"))
+	EOnJoinSessionCompleteResult::Type Result;
+	
+	switch (Status)
+	{
+	case Success:
+		Result = EOnJoinSessionCompleteResult::Success;
+		break;
+
+	case SignalingServerDisconnected:
+	case HostResponseTimeout:
+	case PeerIsNotHosting:
+		Result = EOnJoinSessionCompleteResult::SessionDoesNotExist;
+		break;
+
+	case JuiceGatherFailed:
+	case JuiceGetLocalDescriptionFailed:
+	case JuiceConnectionFailed:
+	case FailedGettingTurnServer:
+	case FailedGettingTurnServerCredential:
+		Result = EOnJoinSessionCompleteResult::CouldNotRetrieveAddress;
+		break;
+
+	default:
+		Result = EOnJoinSessionCompleteResult::UnknownError;
+	}
+
+	AsyncTask(ENamedThreads::GameThread, [this, Action, SessionName, Result] {
 		if(Action == EOnlineSessionP2PConnectedAction::Join)
         {
-			TriggerOnJoinSessionCompleteDelegates(SessionName, bStatus ? EOnJoinSessionCompleteResult::Success : EOnJoinSessionCompleteResult::CouldNotRetrieveAddress);
+			TriggerOnJoinSessionCompleteDelegates(SessionName, Result);
         }
 		else if (Action == EOnlineSessionP2PConnectedAction::Update)
 		{

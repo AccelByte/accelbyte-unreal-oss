@@ -73,10 +73,11 @@ bool FOnlineSubsystemAccelByte::Init()
 	AsyncTaskManagerThread.Reset(FRunnableThread::Create(AsyncTaskManager.Get(), *FString::Printf(TEXT("OnlineAsyncTaskThread %s"), *InstanceName.ToString())));
 	check(AsyncTaskManagerThread.IsValid());
 
-	for(int i = 0; i < MAX_LOCAL_PLAYERS; i++)
+	for(int UserNum = 0; UserNum < MAX_LOCAL_PLAYERS; UserNum++)
 	{
 		// Note @damar disabling this, this should be handled for each user.
-		IdentityInterface->AddOnLoginCompleteDelegate_Handle(i, FOnLoginCompleteDelegate::CreateRaw(this, &FOnlineSubsystemAccelByte::OnLoginCallback));
+		IdentityInterface->AddOnLoginCompleteDelegate_Handle(UserNum, FOnLoginCompleteDelegate::CreateRaw(this, &FOnlineSubsystemAccelByte::OnLoginCallback));
+		IdentityInterface->AddOnConnectLobbyCompleteDelegate_Handle(UserNum, FOnConnectLobbyCompleteDelegate::CreateRaw(this, &FOnlineSubsystemAccelByte::OnLobbyConnectedCallback));
 	}
 
 	GConfig->GetBool(TEXT("OnlineSubsystemAccelByte"), TEXT("bAutoLobbyConnectAfterLoginSuccess"), bIsAutoLobbyConnectAfterLoginSuccess, GEngineIni);
@@ -106,6 +107,28 @@ bool FOnlineSubsystemAccelByte::Shutdown()
 	// Clear out any exec tests that we have added
 	ActiveExecTests.Empty();
 #endif
+
+	for (int32 UserNum = 0; UserNum < MAX_LOCAL_PLAYERS; UserNum++)
+	{
+		// #NOTE (Maxwell): Seems that in PIE shutdown will be called twice for the OSS, rendering the IdentityInterface
+		// invalid on the second pass and causing a crash here. Mitigate this by skipping this loop if interface is invalid.
+		if (!IdentityInterface.IsValid())
+		{
+			break;
+		}
+
+		IdentityInterface->ClearOnLoginCompleteDelegates(UserNum, this);
+		IdentityInterface->ClearOnConnectLobbyCompleteDelegates(UserNum, this);
+
+		TSharedPtr<const FUniqueNetId> PlayerId = IdentityInterface->GetUniquePlayerId(UserNum);
+		if (!PlayerId.IsValid())
+		{
+			continue;
+		}
+
+		TSharedRef<const FUniqueNetIdAccelByteUser> AccelByteCompositeId = FUniqueNetIdAccelByteUser::CastChecked(PlayerId.ToSharedRef());
+		AccelByte::FMultiRegistry::RemoveApiClient(AccelByteCompositeId->GetAccelByteId());
+	}
 
 	// Reset all of our references to our shared interfaces to effectively destroy them if nothing else is using the memory
 	PartyInterface.Reset();
@@ -504,6 +527,74 @@ void FOnlineSubsystemAccelByte::OnLoginCallback(int32 LocalUserNum, bool bWasSuc
 void FOnlineSubsystemAccelByte::OnMessageNotif(const FAccelByteModelsNotificationMessage& InMessage, int32 LocalUserNum)
 {
 	UE_LOG_AB(Verbose, TEXT("Got freeform notification from backend at %s!\nTopic: %s\nPayload: %s"), *InMessage.SentAt.ToString(), *InMessage.Topic, *InMessage.Payload);
+}
+
+void FOnlineSubsystemAccelByte::OnLobbyConnectedCallback(int32 LocalUserNum, bool bWasSuccessful, const FUniqueNetId& UniqueNetId, const FString& ErrorMessage)
+{
+	AccelByte::FApiClientPtr ApiClient = GetApiClient(LocalUserNum);
+	
+	auto OnLobbyConnectionClosedDelegate = AccelByte::Api::Lobby::FConnectionClosed::CreateThreadSafeSP(AsShared(), &FOnlineSubsystemAccelByte::OnLobbyConnectionClosed, LocalUserNum);
+	ApiClient->Lobby.SetConnectionClosedDelegate(OnLobbyConnectionClosedDelegate);
+	
+	// #NOTE (Wiwing): Overwrite connect Lobby success delegate for reconnection
+	auto OnLobbyReconnectionDelegate = Api::Lobby::FConnectSuccess::CreateThreadSafeSP(AsShared(), &FOnlineSubsystemAccelByte::OnLobbyReconnected, LocalUserNum);
+	ApiClient->Lobby.SetConnectSuccessDelegate(OnLobbyReconnectionDelegate);
+}
+
+
+void FOnlineSubsystemAccelByte::OnLobbyConnectionClosed(int32 StatusCode, const FString& Reason, bool WasClean, int32 InLocalUserNum)
+{
+	UE_LOG_AB(Warning, TEXT("Lobby connection closed. Reason '%s' Code : '%d'"), *Reason, StatusCode);
+
+	if (!IdentityInterface.IsValid() || !PartyInterface.IsValid())
+	{
+		UE_LOG_AB(Warning, TEXT("Error due to either IdentityInterface or PartyInterface is invalid"));
+		return;
+	}
+
+	const TSharedPtr<const FUniqueNetId> UserIdPtr = IdentityInterface->GetUniquePlayerId(InLocalUserNum);
+	TSharedPtr<FUserOnlineAccount> UserAccount;
+
+	if (UserIdPtr.IsValid())
+	{
+		const FUniqueNetId& UserId = UserIdPtr.ToSharedRef().Get();
+		UserAccount = IdentityInterface->GetUserAccount(UserId);
+	}
+
+	if (UserAccount.IsValid())
+	{
+		const TSharedPtr<FUserOnlineAccountAccelByte> UserAccountAccelByte = StaticCastSharedPtr<FUserOnlineAccountAccelByte>(UserAccount);
+		UserAccountAccelByte->SetConnectedToLobby(false);
+	}
+
+	FString LogoutReason;
+	if (StatusCode == 1006) // Internet connection is disconnected
+	{
+		LogoutReason = TEXT("network-disconnection");
+		AccelByte::FApiClientPtr ApiClient = GetApiClient(InLocalUserNum);
+		ApiClient->CredentialsRef->ForgetAll();
+
+#if !AB_USE_V2_SESSIONS
+		TSharedPtr<FUniqueNetIdAccelByteUser const> LocalUserId = StaticCastSharedPtr<FUniqueNetIdAccelByteUser const>(IdentityInterface->GetUniquePlayerId(InLocalUserNum));
+		PartyInterface->RemovePartyFromInterface(LocalUserId.ToSharedRef());
+#endif
+	}
+	IdentityInterface->Logout(InLocalUserNum, LogoutReason);
+}
+
+void FOnlineSubsystemAccelByte::OnLobbyReconnected(int32 InLocalUserNum)
+{
+	UE_LOG_AB(Log, TEXT("Lobby successfully reconnected."));
+
+#if !AB_USE_V2_SESSIONS
+	if (IdentityInterface.IsValid() && PartyInterface.IsValid())
+	{
+		TSharedPtr<FUniqueNetIdAccelByteUser const> LocalUserId = StaticCastSharedPtr<FUniqueNetIdAccelByteUser const>(IdentityInterface->GetUniquePlayerId(InLocalUserNum));
+
+		PartyInterface->RemovePartyFromInterface(LocalUserId.ToSharedRef());
+		PartyInterface->RestoreParties(LocalUserId.ToSharedRef().Get(), FOnRestorePartiesComplete());
+	}
+#endif
 }
 
 void FOnlineSubsystemAccelByte::SetLocalUserNumCached(int32 InLocalUserNum)

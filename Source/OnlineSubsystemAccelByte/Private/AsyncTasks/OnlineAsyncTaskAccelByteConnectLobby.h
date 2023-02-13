@@ -49,11 +49,6 @@ private:
 	void OnLobbyDisconnectedNotif(const FAccelByteModelsDisconnectNotif&);
 	AccelByte::Api::Lobby::FDisconnectNotif OnLobbyDisconnectedNotifDelegate;
 
-	/** Delegate handler for when a lobby connection is disconnected. */
-	static void OnLobbyConnectionClosed(int32 StatusCode, const FString& Reason, bool WasClean, int32 InLocalUserNum, const FOnlineIdentityAccelBytePtr IdentityInterface, const FOnlinePartySystemAccelBytePtr PartyInterface);
-
-	static void OnLobbyReconnected(int32 InLocalUserNum, const FOnlineIdentityAccelBytePtr IdentityInterface, const FOnlinePartySystemAccelBytePtr PartyInterface);
-
 	void UnbindDelegates();
 
 	/**

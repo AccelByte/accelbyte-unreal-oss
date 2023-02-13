@@ -123,7 +123,7 @@ typedef TSharedPtr<FOnlineChatAccelByte, ESPMode::ThreadSafe> FOnlineChatAccelBy
 /** Shared pointer to the AccelByte implementation of the Auth interface */
 typedef TSharedPtr<FOnlineAuthAccelByte, ESPMode::ThreadSafe> FOnlineAuthAccelBytePtr;
 
-class ONLINESUBSYSTEMACCELBYTE_API FOnlineSubsystemAccelByte final : public FOnlineSubsystemImpl
+class ONLINESUBSYSTEMACCELBYTE_API FOnlineSubsystemAccelByte final : public FOnlineSubsystemImpl, public TSharedFromThis<FOnlineSubsystemAccelByte, ESPMode::ThreadSafe>
 {
 public:
 	virtual ~FOnlineSubsystemAccelByte() override = default;
@@ -430,6 +430,12 @@ private:
 	void OnLoginCallback(int32 LocalUserNum, bool bWasSuccessful, const FUniqueNetId& UserId, const FString& Error);
 
 	void OnMessageNotif(const FAccelByteModelsNotificationMessage &InMessage, int32 LocalUserNum);
+
+	void OnLobbyConnectedCallback(int32 LocalUserNum, bool bWasSuccessful, const FUniqueNetId& UniqueNetId, const FString& ErrorMessage);
+
+	void OnLobbyConnectionClosed(int32 StatusCode, const FString& Reason, bool WasClean, int32 InLocalUserNum);
+
+	void OnLobbyReconnected(int32 InLocalUserNum);
 
 };
 
