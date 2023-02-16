@@ -19,8 +19,8 @@ void FOnlineAsyncTaskAccelByteCancelV2Matchmaking::Initialize()
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("SearchingPlayerId: %s; TicketId: %s"), *UserId->ToDebugString(), *SearchHandle->TicketId);
 
-	const FVoidHandler OnDeleteMatchTicketSuccessDelegate = FVoidHandler::CreateRaw(this, &FOnlineAsyncTaskAccelByteCancelV2Matchmaking::OnDeleteMatchTicketSuccess);
-	const FErrorHandler OnDeleteMatchTicketErrorDelegate = FErrorHandler::CreateRaw(this, &FOnlineAsyncTaskAccelByteCancelV2Matchmaking::OnDeleteMatchTicketError);
+	const FVoidHandler OnDeleteMatchTicketSuccessDelegate = TDelegateUtils<FVoidHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteCancelV2Matchmaking::OnDeleteMatchTicketSuccess);
+	const FErrorHandler OnDeleteMatchTicketErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteCancelV2Matchmaking::OnDeleteMatchTicketError);
 
 	ApiClient->MatchmakingV2.DeleteMatchTicket(SearchHandle->TicketId, OnDeleteMatchTicketSuccessDelegate, OnDeleteMatchTicketErrorDelegate);
 	

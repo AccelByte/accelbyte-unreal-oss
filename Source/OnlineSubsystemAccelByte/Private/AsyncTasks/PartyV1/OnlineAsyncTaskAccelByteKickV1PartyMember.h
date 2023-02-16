@@ -4,6 +4,7 @@
 #pragma once
 
 #include "AsyncTasks/OnlineAsyncTaskAccelByte.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteUtils.h"
 #include "OnlineSubsystemAccelByteTypes.h"
 #include "Models/AccelByteLobbyModels.h"
 #include "OnlinePartyInterfaceAccelByte.h"
@@ -11,7 +12,7 @@
 /**
  * Fill out information about your async task here.
  */
-class FOnlineAsyncTaskAccelByteKickV1PartyMember : public FOnlineAsyncTaskAccelByte
+class FOnlineAsyncTaskAccelByteKickV1PartyMember : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteKickV1PartyMember, ESPMode::ThreadSafe>
 {
 public:
 

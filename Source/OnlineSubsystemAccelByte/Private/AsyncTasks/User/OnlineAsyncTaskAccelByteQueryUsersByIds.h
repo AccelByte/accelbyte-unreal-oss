@@ -4,6 +4,7 @@
 #pragma once
 
 #include "AsyncTasks/OnlineAsyncTaskAccelByte.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteUtils.h"
 #include "OnlineSubsystemAccelByteTypes.h"
 #include "OnlineUserCacheAccelByte.h"
 #include "Models/AccelByteUserModels.h"
@@ -11,7 +12,7 @@
 /**
  * Task to query a bulk of users by AccelByte or platform IDs, will add these users to the user cache.
  */
-class FOnlineAsyncTaskAccelByteQueryUsersByIds : public FOnlineAsyncTaskAccelByte
+class FOnlineAsyncTaskAccelByteQueryUsersByIds : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteQueryUsersByIds, ESPMode::ThreadSafe>
 {
 public:
 	/**

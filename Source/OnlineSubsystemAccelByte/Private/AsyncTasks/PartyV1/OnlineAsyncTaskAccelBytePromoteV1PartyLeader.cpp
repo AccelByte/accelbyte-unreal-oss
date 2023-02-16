@@ -50,7 +50,7 @@ void FOnlineAsyncTaskAccelBytePromoteV1PartyLeader::Initialize()
 		return;
 	}
 
-	AccelByte::Api::Lobby::FPartyPromoteLeaderResponse OnPromotePartyMemberResponseDelegate = AccelByte::Api::Lobby::FPartyPromoteLeaderResponse::CreateRaw(this, &FOnlineAsyncTaskAccelBytePromoteV1PartyLeader::OnPromotePartyMemberResponse);
+	AccelByte::Api::Lobby::FPartyPromoteLeaderResponse OnPromotePartyMemberResponseDelegate = TDelegateUtils<AccelByte::Api::Lobby::FPartyPromoteLeaderResponse>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelBytePromoteV1PartyLeader::OnPromotePartyMemberResponse);
 	ApiClient->Lobby.SetPartyPromoteLeaderResponseDelegate(OnPromotePartyMemberResponseDelegate);
 	ApiClient->Lobby.SendPartyPromoteLeaderRequest(TargetMemberId->GetAccelByteId());
 

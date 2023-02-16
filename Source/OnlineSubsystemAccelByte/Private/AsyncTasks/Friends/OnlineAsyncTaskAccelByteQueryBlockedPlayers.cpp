@@ -20,8 +20,8 @@ void FOnlineAsyncTaskAccelByteQueryBlockedPlayers::Initialize()
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("UserId: %s"), *UserId->ToDebugString());
 
-	THandler<FAccelByteModelsListBlockedUserResponse> OnGetListOfBlockedUsersSuccessDelegate = THandler<FAccelByteModelsListBlockedUserResponse>::CreateRaw(this, &FOnlineAsyncTaskAccelByteQueryBlockedPlayers::OnGetListOfBlockedUsersSuccess);
-	FErrorHandler OnGetListOfBlockedUsersErrorDelegate = FErrorHandler::CreateRaw(this, &FOnlineAsyncTaskAccelByteQueryBlockedPlayers::OnGetListOfBlockedUsersError);
+	THandler<FAccelByteModelsListBlockedUserResponse> OnGetListOfBlockedUsersSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsListBlockedUserResponse>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryBlockedPlayers::OnGetListOfBlockedUsersSuccess);
+	FErrorHandler OnGetListOfBlockedUsersErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryBlockedPlayers::OnGetListOfBlockedUsersError);
 	ApiClient->Lobby.GetListOfBlockedUsers(OnGetListOfBlockedUsersSuccessDelegate, OnGetListOfBlockedUsersErrorDelegate);
 	
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
@@ -77,7 +77,7 @@ void FOnlineAsyncTaskAccelByteQueryBlockedPlayers::OnGetListOfBlockedUsersSucces
 		return;
 	}
 
-	FOnQueryUsersComplete OnQueryBlockedPlayersCompleteDelegate = FOnQueryUsersComplete::CreateRaw(this, &FOnlineAsyncTaskAccelByteQueryBlockedPlayers::OnQueryBlockedPlayersComplete);
+	FOnQueryUsersComplete OnQueryBlockedPlayersCompleteDelegate = TDelegateUtils<FOnQueryUsersComplete>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryBlockedPlayers::OnQueryBlockedPlayersComplete);
 	UserStore->QueryUsersByAccelByteIds(UserId.ToSharedRef().Get(), BlockedUserIds, OnQueryBlockedPlayersCompleteDelegate, true);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sent off %d requests to get information on blocked users."), Result.Data.Num());

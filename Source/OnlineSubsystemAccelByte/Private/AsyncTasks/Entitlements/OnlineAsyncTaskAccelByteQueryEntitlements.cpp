@@ -40,8 +40,8 @@ void FOnlineAsyncTaskAccelByteQueryEntitlements::QueryEntitlement(int32 Offset, 
 {
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Starting Query entitlement, Offset: %d, Limit: %d"), Offset, Limit);
 	THandler<FAccelByteModelsEntitlementPagingSlicedResult> OnQueryEntitlementSuccess =
-		THandler<FAccelByteModelsEntitlementPagingSlicedResult>::CreateRaw(this, &FOnlineAsyncTaskAccelByteQueryEntitlements::HandleQueryEntitlementSuccess);
-	FErrorHandler OnError = FErrorHandler::CreateRaw(this, &FOnlineAsyncTaskAccelByteQueryEntitlements::HandleQueryEntitlementError);
+		TDelegateUtils<THandler<FAccelByteModelsEntitlementPagingSlicedResult>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryEntitlements::HandleQueryEntitlementSuccess);
+	FErrorHandler OnError = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryEntitlements::HandleQueryEntitlementError);
 	ApiClient->Entitlement.QueryUserEntitlements(TEXT(""), TEXT(""), Offset, Limit, OnQueryEntitlementSuccess, OnError, EAccelByteEntitlementClass::NONE, EAccelByteAppType::NONE);
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }

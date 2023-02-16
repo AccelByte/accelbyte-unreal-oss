@@ -4,6 +4,7 @@
 #pragma once
 
 #include "AsyncTasks/OnlineAsyncTaskAccelByte.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteUtils.h"
 #include "OnlineFriendsInterfaceAccelByte.h"
 #include "OnlineSubsystemAccelByteTypes.h"
 #include "OnlineUserCacheAccelByte.h"
@@ -13,7 +14,7 @@ struct FAccelByteModelsSessionBrowserRecentPlayerGetResult;
 /**
  * Task for blocking a player on the AccelByte backend
  */
-class FOnlineAsyncTaskAccelByteGetRecentPlayer : public FOnlineAsyncTaskAccelByte
+class FOnlineAsyncTaskAccelByteGetRecentPlayer : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteGetRecentPlayer, ESPMode::ThreadSafe>
 {
 public:
 

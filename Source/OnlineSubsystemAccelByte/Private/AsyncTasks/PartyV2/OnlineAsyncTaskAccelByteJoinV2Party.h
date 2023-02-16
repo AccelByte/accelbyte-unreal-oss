@@ -4,6 +4,7 @@
 #pragma once
 
 #include "AsyncTasks/OnlineAsyncTaskAccelByte.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteUtils.h"
 #include "Models/AccelByteSessionModels.h"
 #include "OnlineSubsystemAccelByteTypes.h"
 #include "Interfaces/OnlineSessionInterface.h"
@@ -11,7 +12,7 @@
 /**
  * Async Task to join a party session 
  */
-class FOnlineAsyncTaskAccelByteJoinV2Party : public FOnlineAsyncTaskAccelByte
+class FOnlineAsyncTaskAccelByteJoinV2Party : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteJoinV2Party, ESPMode::ThreadSafe>
 {
 public:
 

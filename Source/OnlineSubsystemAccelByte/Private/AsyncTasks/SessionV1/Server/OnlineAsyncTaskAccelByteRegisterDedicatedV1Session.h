@@ -5,10 +5,11 @@
 #pragma once
 
 #include "AsyncTasks/OnlineAsyncTaskAccelByte.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteUtils.h"
 #include "OnlineSubsystemAccelByteTypes.h"
 #include "OnlineSessionInterfaceV1AccelByte.h"
 
-class FOnlineAsyncTaskAccelByteRegisterDedicatedV1Session : public FOnlineAsyncTaskAccelByte
+class FOnlineAsyncTaskAccelByteRegisterDedicatedV1Session : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteRegisterDedicatedV1Session, ESPMode::ThreadSafe>
 {
 public:
 

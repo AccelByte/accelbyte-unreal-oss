@@ -27,13 +27,13 @@ void FOnlineAsyncTaskAccelByteReadFriendsList::Initialize()
 	// Since we will want to be able to operate on users that we have sent an invite to, as well as users that have
 	// sent invites to us, then we need to not only query the current accepted friends list, but also the outgoing
 	// and incoming friends lists. Set up all the delegates for these queries.
-	AccelByte::Api::Lobby::FLoadFriendListResponse OnLoadFriendsListResponseDelegate = AccelByte::Api::Lobby::FLoadFriendListResponse::CreateRaw(this, &FOnlineAsyncTaskAccelByteReadFriendsList::OnLoadFriendsListResponse);
+	AccelByte::Api::Lobby::FLoadFriendListResponse OnLoadFriendsListResponseDelegate = TDelegateUtils<AccelByte::Api::Lobby::FLoadFriendListResponse>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteReadFriendsList::OnLoadFriendsListResponse);
 	ApiClient->Lobby.SetLoadFriendListResponseDelegate(OnLoadFriendsListResponseDelegate);
 
-	AccelByte::Api::Lobby::FListIncomingFriendsResponse OnListIncomingFriendsResponseDelegate = AccelByte::Api::Lobby::FListIncomingFriendsResponse::CreateRaw(this, &FOnlineAsyncTaskAccelByteReadFriendsList::OnListIncomingFriendsResponse);
+	AccelByte::Api::Lobby::FListIncomingFriendsResponse OnListIncomingFriendsResponseDelegate = TDelegateUtils<AccelByte::Api::Lobby::FListIncomingFriendsResponse>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteReadFriendsList::OnListIncomingFriendsResponse);
 	ApiClient->Lobby.SetListIncomingFriendsResponseDelegate(OnListIncomingFriendsResponseDelegate);
 
-	AccelByte::Api::Lobby::FListOutgoingFriendsResponse OnListOutgoingFriendsResponseDelegate = AccelByte::Api::Lobby::FListOutgoingFriendsResponse::CreateRaw(this, &FOnlineAsyncTaskAccelByteReadFriendsList::OnListOutgoingFriendsResponse);
+	AccelByte::Api::Lobby::FListOutgoingFriendsResponse OnListOutgoingFriendsResponseDelegate = TDelegateUtils<AccelByte::Api::Lobby::FListOutgoingFriendsResponse>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteReadFriendsList::OnListOutgoingFriendsResponse);
 	ApiClient->Lobby.SetListOutgoingFriendsResponseDelegate(OnListOutgoingFriendsResponseDelegate);
 
 	// Fire off all list requests for friends
@@ -51,7 +51,7 @@ void FOnlineAsyncTaskAccelByteReadFriendsList::Tick()
 	if (bHasReceivedResponseForCurrentFriends && bHasReceivedResponseForIncomingFriends && bHasReceivedResponseForOutgoingFriends && (!bHasSentRequestForUserStatus && !bHasReceivedAllUserStatus))
 	{
 		ApiClient->Lobby.BulkGetUserPresence(FriendIdsToQuery,
-			THandler<FAccelByteModelsBulkUserStatusNotif>::CreateRaw(this, &FOnlineAsyncTaskAccelByteReadFriendsList::OnGetUserPresenceComplete),
+			TDelegateUtils<THandler<FAccelByteModelsBulkUserStatusNotif>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteReadFriendsList::OnGetUserPresenceComplete),
 			FErrorHandler::CreateLambda([this](int32 Code, FString const& ErrMsg)
 			{
 				AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Could not query friends presence"));
@@ -71,7 +71,7 @@ void FOnlineAsyncTaskAccelByteReadFriendsList::Tick()
 			return;
 		}
 
-		FOnQueryUsersComplete OnQueryFriendInformationCompleteDelegate = FOnQueryUsersComplete::CreateRaw(this, &FOnlineAsyncTaskAccelByteReadFriendsList::OnQueryFriendInformationComplete);
+		FOnQueryUsersComplete OnQueryFriendInformationCompleteDelegate = TDelegateUtils<FOnQueryUsersComplete>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteReadFriendsList::OnQueryFriendInformationComplete);
 		UserStore->QueryUsersByAccelByteIds(LocalUserNum, FriendIdsToQuery, OnQueryFriendInformationCompleteDelegate, true);
 
 		bHasSentRequestForFriendInformation = true;

@@ -45,8 +45,8 @@ void FOnlineAsyncTaskAccelByteCreateStatsUser::Initialize()
 		return;
 	}
 
-	OnBulkCreateStatItemsSuccess = THandler<TArray<FAccelByteModelsBulkStatItemOperationResult>>::CreateRaw(this, &FOnlineAsyncTaskAccelByteCreateStatsUser::HandleBulkCreateStatItems);
-	OnError = FErrorHandler::CreateRaw(this, &FOnlineAsyncTaskAccelByteCreateStatsUser::HandleAsyncTaskError);
+	OnBulkCreateStatItemsSuccess = TDelegateUtils<THandler<TArray<FAccelByteModelsBulkStatItemOperationResult>>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteCreateStatsUser::HandleBulkCreateStatItems);
+	OnError = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteCreateStatsUser::HandleAsyncTaskError);
 
 	if (IsRunningDedicatedServer())
 	{

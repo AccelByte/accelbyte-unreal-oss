@@ -21,8 +21,8 @@ void FOnlineAsyncTaskAccelByteSyncDLC::Initialize()
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 
-	const FVoidHandler OnSuccessDelegate = FVoidHandler::CreateRaw(this, &FOnlineAsyncTaskAccelByteSyncDLC::OnSyncDLCSuccess);
-	const FErrorHandler OnErrorDelegate = FErrorHandler::CreateRaw(this, &FOnlineAsyncTaskAccelByteSyncDLC::OnSyncDLCFailed);
+	const FVoidHandler OnSuccessDelegate = TDelegateUtils<FVoidHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteSyncDLC::OnSyncDLCSuccess);
+	const FErrorHandler OnErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteSyncDLC::OnSyncDLCFailed);
 
 	const FName NativeSubsystemName = Subsystem->GetNativePlatformName();
 

@@ -43,8 +43,8 @@ void FOnlineAsyncTaskAccelByteEnqueueJoinableV1Session::Initialize()
 		return;
 	}
 
-	FVoidHandler OnEnqueueJoinableSessionSuccessDelegate = FVoidHandler::CreateRaw(this, &FOnlineAsyncTaskAccelByteEnqueueJoinableV1Session::OnEnqueueJoinableSessionSuccess);
-	FErrorHandler OnEnqueueJoinableSessionErrorDelegate = FErrorHandler::CreateRaw(this, &FOnlineAsyncTaskAccelByteEnqueueJoinableV1Session::OnEnqueueJoinableSessionError);
+	FVoidHandler OnEnqueueJoinableSessionSuccessDelegate = TDelegateUtils<FVoidHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteEnqueueJoinableV1Session::OnEnqueueJoinableSessionSuccess);
+	FErrorHandler OnEnqueueJoinableSessionErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteEnqueueJoinableV1Session::OnEnqueueJoinableSessionError);
 	
 	FRegistry::ServerMatchmaking.EnqueueJoinableSession(ABSessionInfo->GetSessionResult(), OnEnqueueJoinableSessionSuccessDelegate, OnEnqueueJoinableSessionErrorDelegate);
 

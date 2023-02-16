@@ -28,8 +28,8 @@ void FOnlineAsyncTaskAccelByteWriteUserFile::Initialize()
 	const FString SlotId = UserCloudInterface->GetSlotIdFromCache(UserId.ToSharedRef(), FileName);
 	if (SlotId.IsEmpty())
 	{
-		THandler<TArray<FAccelByteModelsSlot>> OnGetAllSlotsSuccessDelegate = THandler<TArray<FAccelByteModelsSlot>>::CreateRaw(this, &FOnlineAsyncTaskAccelByteWriteUserFile::OnGetAllSlotsSuccess);
-		FErrorHandler OnGetAllSlotsErrorDelegate = FErrorHandler::CreateRaw(this, &FOnlineAsyncTaskAccelByteWriteUserFile::OnGetAllSlotsError);
+		THandler<TArray<FAccelByteModelsSlot>> OnGetAllSlotsSuccessDelegate = TDelegateUtils<THandler<TArray<FAccelByteModelsSlot>>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteWriteUserFile::OnGetAllSlotsSuccess);
+		FErrorHandler OnGetAllSlotsErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteWriteUserFile::OnGetAllSlotsError);
 		ApiClient->CloudStorage.GetAllSlots(OnGetAllSlotsSuccessDelegate, OnGetAllSlotsErrorDelegate);
 	}
 	else
@@ -71,9 +71,9 @@ void FOnlineAsyncTaskAccelByteWriteUserFile::TriggerDelegates()
 
 void FOnlineAsyncTaskAccelByteWriteUserFile::RunWriteSlot(const FString& SlotId)
 {
-	THandler<FAccelByteModelsSlot> OnCreateOrUpdateSlotSuccessDelegate = THandler<FAccelByteModelsSlot>::CreateRaw(this, &FOnlineAsyncTaskAccelByteWriteUserFile::OnCreateOrUpdateSlotSuccess);
-	FErrorHandler OnCreateOrUpdateSlotErrorDelegate = FErrorHandler::CreateRaw(this, &FOnlineAsyncTaskAccelByteWriteUserFile::OnCreateOrUpdateSlotError);
-	FHttpRequestProgressDelegate OnCreateOrUpdateSlotProgressDelegate = FHttpRequestProgressDelegate::CreateRaw(this, &FOnlineAsyncTaskAccelByteWriteUserFile::OnCreateOrUpdateSlotProgress);
+	THandler<FAccelByteModelsSlot> OnCreateOrUpdateSlotSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsSlot>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteWriteUserFile::OnCreateOrUpdateSlotSuccess);
+	FErrorHandler OnCreateOrUpdateSlotErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteWriteUserFile::OnCreateOrUpdateSlotError);
+	FHttpRequestProgressDelegate OnCreateOrUpdateSlotProgressDelegate = TDelegateUtils<FHttpRequestProgressDelegate>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteWriteUserFile::OnCreateOrUpdateSlotProgress);
 
 	// If we have an empty slot ID passed in, we will treat this as meaning that we need to create a new slot
 	if (SlotId.IsEmpty())

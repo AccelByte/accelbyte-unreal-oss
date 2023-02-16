@@ -33,7 +33,7 @@ void FOnlineAsyncTaskAccelByteSetUserPresence::Initialize()
 	}
 
 	// Send off the actual request to set user presence
-	AccelByte::Api::Lobby::FSetUserPresenceResponse OnSetUserPresenceResponseDelegate = AccelByte::Api::Lobby::FSetUserPresenceResponse::CreateRaw(this, &FOnlineAsyncTaskAccelByteSetUserPresence::OnSetUserPresenceResponse);
+	AccelByte::Api::Lobby::FSetUserPresenceResponse OnSetUserPresenceResponseDelegate = TDelegateUtils<AccelByte::Api::Lobby::FSetUserPresenceResponse>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteSetUserPresence::OnSetUserPresenceResponse);
 	ApiClient->Lobby.SetUserPresenceResponseDelegate(OnSetUserPresenceResponseDelegate);
 	ApiClient->Lobby.SendSetPresenceStatus(PresenceStatus, LocalCachedPresenceStatus->StatusStr);
 

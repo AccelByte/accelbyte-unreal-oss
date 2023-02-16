@@ -40,7 +40,7 @@ void FOnlineAsyncTaskAccelByteAcceptFriendInvite::Initialize()
 		if (InviteStatus == EInviteStatus::PendingInbound)
 		{
 			// Since this friend is a valid pointer and is a pending inbound invite, then we want to send a request to accept their invite
-			AccelByte::Api::Lobby::FAcceptFriendsResponse OnAcceptFriendResponseDelegate = AccelByte::Api::Lobby::FAcceptFriendsResponse::CreateRaw(this, &FOnlineAsyncTaskAccelByteAcceptFriendInvite::OnAcceptFriendResponseDelegate);
+			AccelByte::Api::Lobby::FAcceptFriendsResponse OnAcceptFriendResponseDelegate = TDelegateUtils<AccelByte::Api::Lobby::FAcceptFriendsResponse>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteAcceptFriendInvite::OnAcceptFriendResponseDelegate);
 			ApiClient->Lobby.SetAcceptFriendsResponseDelegate(OnAcceptFriendResponseDelegate);
 			ApiClient->Lobby.AcceptFriend(FriendId->GetAccelByteId());
 			AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sent request through lobby websocket to accept a friend request."));
@@ -100,7 +100,7 @@ void FOnlineAsyncTaskAccelByteAcceptFriendInvite::OnAcceptFriendResponseDelegate
 	}
 	else
 	{
-		Subsystem->GetPresenceInterface()->QueryPresence(*FriendId, IOnlinePresence::FOnPresenceTaskCompleteDelegate::CreateRaw(this, &FOnlineAsyncTaskAccelByteAcceptFriendInvite::OnGetUserPresenceComplete));
+		Subsystem->GetPresenceInterface()->QueryPresence(*FriendId, TDelegateUtils<IOnlinePresence::FOnPresenceTaskCompleteDelegate>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteAcceptFriendInvite::OnGetUserPresenceComplete));
 	}
 }
 

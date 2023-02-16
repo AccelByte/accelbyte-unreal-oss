@@ -4,13 +4,14 @@
 #pragma once
 
 #include "AsyncTasks/OnlineAsyncTaskAccelByte.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteUtils.h"
 #include "OnlineSubsystemAccelByteTypes.h"
 #include "Models/AccelByteCloudStorageModels.h"
 
 /**
  * Async task to delete a user file from a CloudStorage slot.
  */
-class FOnlineAsyncTaskAccelByteDeleteUserFile : public FOnlineAsyncTaskAccelByte
+class FOnlineAsyncTaskAccelByteDeleteUserFile : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteDeleteUserFile, ESPMode::ThreadSafe>
 {
 public:
 

@@ -4,13 +4,14 @@
 #pragma once
 
 #include "AsyncTasks/OnlineAsyncTaskAccelByte.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteUtils.h"
 #include "OnlineSubsystemAccelByteTypes.h"
 #include "OnlinePartyInterfaceAccelByte.h"
 
 /**
  * Task for leaving a party
  */
-class FOnlineAsyncTaskAccelByteLeaveV1Party : public FOnlineAsyncTaskAccelByte
+class FOnlineAsyncTaskAccelByteLeaveV1Party : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteLeaveV1Party, ESPMode::ThreadSafe>
 {
 public:
 

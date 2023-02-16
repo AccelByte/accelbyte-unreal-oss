@@ -4,12 +4,13 @@
 #pragma once
 
 #include "AsyncTasks/OnlineAsyncTaskAccelByte.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteUtils.h"
 #include "OnlineSubsystemAccelByteTypes.h"
 
 /**
  * Async task to write a file to a slot using the CloudStorage API.
  */
-class FOnlineAsyncTaskAccelByteWriteUserFile : public FOnlineAsyncTaskAccelByte
+class FOnlineAsyncTaskAccelByteWriteUserFile : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteWriteUserFile, ESPMode::ThreadSafe>
 {
 public:
 

@@ -18,8 +18,8 @@ void FOnlineAsyncTaskAccelByteQueryOfferById::Initialize()
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Initialized"));
 	FOnlineAsyncTaskAccelByte::Initialize();
 	
-	OnSuccess = THandler<TArray<FAccelByteModelsItemInfo>>::CreateRaw(this, &FOnlineAsyncTaskAccelByteQueryOfferById::HandleGetItemByIds);
-	OnError = FErrorHandler::CreateRaw(this, &FOnlineAsyncTaskAccelByteQueryOfferById::HandleAsyncTaskError);
+	OnSuccess = TDelegateUtils<THandler<TArray<FAccelByteModelsItemInfo>>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryOfferById::HandleGetItemByIds);
+	OnError = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryOfferById::HandleAsyncTaskError);
 	ApiClient->Item.BulkGetLocaleItems(OfferIds, TEXT(""), Language, OnSuccess, OnError);
 	
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

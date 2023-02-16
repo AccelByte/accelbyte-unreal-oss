@@ -73,8 +73,8 @@ void FOnlineAsyncTaskAccelByteUnregisterPlayersV1::Initialize()
 		Session->NumOpenPublicConnections++;
 
 		// Next, signal to session manager that we have unregistered a player from the session
-		THandler<FAccelByteModelsSessionBrowserAddPlayerResponse> OnUnregisterPlayerFromSessionSuccessDelegate = THandler<FAccelByteModelsSessionBrowserAddPlayerResponse>::CreateRaw(this, &FOnlineAsyncTaskAccelByteUnregisterPlayersV1::OnUnregisterPlayerFromSessionSuccess);
-		FErrorHandler OnUnregisterPlayerFromSessionErrorDelegate = FErrorHandler::CreateRaw(this, &FOnlineAsyncTaskAccelByteUnregisterPlayersV1::OnUnregisterPlayerFromSessionError, Player->GetAccelByteId());
+		THandler<FAccelByteModelsSessionBrowserAddPlayerResponse> OnUnregisterPlayerFromSessionSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsSessionBrowserAddPlayerResponse>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteUnregisterPlayersV1::OnUnregisterPlayerFromSessionSuccess);
+		FErrorHandler OnUnregisterPlayerFromSessionErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteUnregisterPlayersV1::OnUnregisterPlayerFromSessionError, Player->GetAccelByteId());
 		// NOTE(damar): SessionId with dashes is custom match (?)
 		bool bIsCustomMatch = SessionId.Contains(TEXT("-"));
 		if(bIsCustomMatch)

@@ -4,6 +4,7 @@
 #pragma once
 
 #include "AsyncTasks/OnlineAsyncTaskAccelByte.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteUtils.h"
 #include "OnlineSessionInterfaceV2AccelByte.h"
 #include "OnlineSubsystemAccelByteTypes.h"
 #include "Models/AccelByteSessionModels.h"
@@ -11,7 +12,7 @@
 /**
  * Async task to restore both party & game sessions if the user exits a game while still in a party or game session.
  */
-class FOnlineAsyncTaskAccelByteRestoreAllV2Sessions : public FOnlineAsyncTaskAccelByte
+class FOnlineAsyncTaskAccelByteRestoreAllV2Sessions : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteRestoreAllV2Sessions, ESPMode::ThreadSafe>
 {
 public:
 

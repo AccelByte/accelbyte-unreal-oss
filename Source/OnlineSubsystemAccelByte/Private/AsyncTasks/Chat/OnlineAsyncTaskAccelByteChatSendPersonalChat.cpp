@@ -94,8 +94,8 @@ void FOnlineAsyncTaskAccelByteChatSendPersonalChat::Finalize()
 void FOnlineAsyncTaskAccelByteChatSendPersonalChat::CreatePersonalTopic()
 {
 	const AccelByte::Api::Chat::FChatActionTopicResponse OnCreatePersonalTopicSuccessDelegate =
-		AccelByte::Api::Chat::FChatActionTopicResponse::CreateRaw(this, &FOnlineAsyncTaskAccelByteChatSendPersonalChat::OnCreatePersonalTopicSuccess);
-	const FErrorHandler OnCreatePersonalTopicErrorDelegate = FErrorHandler::CreateRaw(this, &FOnlineAsyncTaskAccelByteChatSendPersonalChat::OnCreatePersonalTopicError);
+		TDelegateUtils<AccelByte::Api::Chat::FChatActionTopicResponse>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteChatSendPersonalChat::OnCreatePersonalTopicSuccess);
+	const FErrorHandler OnCreatePersonalTopicErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteChatSendPersonalChat::OnCreatePersonalTopicError);
 
 	ApiClient->Chat.CreatePersonalTopic(RecipientId->GetAccelByteId(), OnCreatePersonalTopicSuccessDelegate, OnCreatePersonalTopicErrorDelegate);
 }
@@ -103,8 +103,8 @@ void FOnlineAsyncTaskAccelByteChatSendPersonalChat::CreatePersonalTopic()
 void FOnlineAsyncTaskAccelByteChatSendPersonalChat::SendPersonalChat()
 {
 	const AccelByte::Api::Chat::FSendChatResponse OnSendRoomChatSuccessDelegate =
-		AccelByte::Api::Chat::FSendChatResponse::CreateRaw(this, &FOnlineAsyncTaskAccelByteChatSendPersonalChat::OnSendRoomChatSuccess);
-	const FErrorHandler OnSendRoomChatErrorDelegate = FErrorHandler::CreateRaw(this, &FOnlineAsyncTaskAccelByteChatSendPersonalChat::OnSendRoomChatError);
+		TDelegateUtils<AccelByte::Api::Chat::FSendChatResponse>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteChatSendPersonalChat::OnSendRoomChatSuccess);
+	const FErrorHandler OnSendRoomChatErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteChatSendPersonalChat::OnSendRoomChatError);
 
 	ApiClient->Chat.SendChat(RoomId, ChatMessage, OnSendRoomChatSuccessDelegate, OnSendRoomChatErrorDelegate);
 }

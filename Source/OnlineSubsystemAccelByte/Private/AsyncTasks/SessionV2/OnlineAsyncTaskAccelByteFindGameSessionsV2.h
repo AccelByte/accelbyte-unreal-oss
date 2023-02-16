@@ -5,6 +5,7 @@
 #pragma once
 
 #include "AsyncTasks/OnlineAsyncTaskAccelByte.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteUtils.h"
 #include "OnlineSubsystemAccelByteTypes.h"
 #include "Models/AccelByteSessionModels.h"
 #include "OnlineSessionSettings.h"
@@ -12,7 +13,7 @@
 /**
  * Task to query game sessions on backend.
  */
-class FOnlineAsyncTaskAccelByteFindGameSessionsV2 : public FOnlineAsyncTaskAccelByte
+class FOnlineAsyncTaskAccelByteFindGameSessionsV2 : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteFindGameSessionsV2, ESPMode::ThreadSafe>
 {
 public:
 

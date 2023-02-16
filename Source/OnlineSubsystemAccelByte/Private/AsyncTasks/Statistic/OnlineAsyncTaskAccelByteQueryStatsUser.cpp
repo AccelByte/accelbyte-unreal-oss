@@ -29,8 +29,8 @@ void FOnlineAsyncTaskAccelByteQueryStatsUser::Initialize()
 	Super::Initialize(); 
 
 	THandler<FAccelByteModelsUserStatItemPagingSlicedResult> OnGetUserStatItemsSuccess =
-		THandler<FAccelByteModelsUserStatItemPagingSlicedResult>::CreateRaw(this, &FOnlineAsyncTaskAccelByteQueryStatsUser::HandleGetUserStatItems);
-	OnError = FErrorHandler::CreateRaw(this, &FOnlineAsyncTaskAccelByteQueryStatsUser::HandleAsyncTaskError);
+		TDelegateUtils<THandler<FAccelByteModelsUserStatItemPagingSlicedResult>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryStatsUser::HandleGetUserStatItems);
+	OnError = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryStatsUser::HandleAsyncTaskError);
 	ApiClient->Statistic.GetUserStatItems(AccelByteUserId, StatNames, {}, OnGetUserStatItemsSuccess, OnError);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
@@ -53,7 +53,7 @@ void FOnlineAsyncTaskAccelByteQueryStatsUser::HandleGetUserStatItems(const FAcce
 		StatCodes.Add(value.StatCode);
 	}	
 	
-	OnBulkFetchStatItemsValueSuccess = THandler<TArray<FAccelByteModelsStatItemValueResponse>>::CreateRaw(this, &FOnlineAsyncTaskAccelByteQueryStatsUser::HandleBulkFetchStatItemsValue);
+	OnBulkFetchStatItemsValueSuccess = TDelegateUtils<THandler<TArray<FAccelByteModelsStatItemValueResponse>>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryStatsUser::HandleBulkFetchStatItemsValue);
 	ApiClient->Statistic.BulkFetchStatItemsValue(StatCodes[Count], { AccelByteUserId }, OnBulkFetchStatItemsValueSuccess, OnError);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

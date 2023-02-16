@@ -4,13 +4,14 @@
 #pragma once
 
 #include "AsyncTasks/OnlineAsyncTaskAccelByte.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteUtils.h"
 #include "OnlineSubsystemAccelByteTypes.h"
 #include "OnlineSessionSettings.h"
 
 /**
  * Update a V2 party session instance with new settings
  */
-class FOnlineAsyncTaskAccelByteUpdatePartyV2 : public FOnlineAsyncTaskAccelByte
+class FOnlineAsyncTaskAccelByteUpdatePartyV2 : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteUpdatePartyV2, ESPMode::ThreadSafe>
 {
 public:
 

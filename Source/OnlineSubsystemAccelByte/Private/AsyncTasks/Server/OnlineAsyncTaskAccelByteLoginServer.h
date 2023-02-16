@@ -4,12 +4,13 @@
 #pragma once
 
 #include "AsyncTasks/OnlineAsyncTaskAccelByte.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteUtils.h"
 #include "OnlineSubsystemAccelByteTypes.h"
 
 /**
  * Async task to log in a dedicated server
  */
-class FOnlineAsyncTaskAccelByteLoginServer : public FOnlineAsyncTaskAccelByte
+class FOnlineAsyncTaskAccelByteLoginServer : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteLoginServer, ESPMode::ThreadSafe>
 {
 public:
 	FOnlineAsyncTaskAccelByteLoginServer(FOnlineSubsystemAccelByte* const InABInterface, int32 InLocalUserNum);

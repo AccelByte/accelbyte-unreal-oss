@@ -26,8 +26,8 @@ void FOnlineAsyncTaskAccelByteKickV2Party::Initialize()
 	FNamedOnlineSession* Session = SessionInterface->GetPartySession();
 	AB_ASYNC_TASK_ENSURE(Session != nullptr, "Failed to kick player from party as we do not have a party session stored locally!");
 
-	const THandler<FAccelByteModelsV2PartySession> OnKickUserFromPartySuccessDelegate = THandler<FAccelByteModelsV2PartySession>::CreateRaw(this, &FOnlineAsyncTaskAccelByteKickV2Party::OnKickUserFromPartySuccess);
-	const FErrorHandler OnKickUserFromPartyErrorDelegate = FErrorHandler::CreateRaw(this, &FOnlineAsyncTaskAccelByteKickV2Party::OnKickUserFromPartyError);
+	const THandler<FAccelByteModelsV2PartySession> OnKickUserFromPartySuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsV2PartySession>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteKickV2Party::OnKickUserFromPartySuccess);
+	const FErrorHandler OnKickUserFromPartyErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteKickV2Party::OnKickUserFromPartyError);
 	ApiClient->Session.KickUserFromParty(Session->GetSessionIdStr(), PlayerIdToKick->GetAccelByteId(), OnKickUserFromPartySuccessDelegate, OnKickUserFromPartyErrorDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

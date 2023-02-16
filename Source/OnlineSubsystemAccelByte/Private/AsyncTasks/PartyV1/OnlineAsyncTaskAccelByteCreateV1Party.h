@@ -4,6 +4,7 @@
 #pragma once
 
 #include "AsyncTasks/OnlineAsyncTaskAccelByte.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteUtils.h"
 #include "OnlineSubsystemAccelByteTypes.h"
 #include "Interfaces/OnlinePartyInterface.h"
 #include "Models/AccelByteLobbyModels.h"
@@ -11,7 +12,7 @@
 /**
  * Async task to create a party for the user on the backend
  */
-class FOnlineAsyncTaskAccelByteCreateV1Party : public FOnlineAsyncTaskAccelByte
+class FOnlineAsyncTaskAccelByteCreateV1Party : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteCreateV1Party, ESPMode::ThreadSafe>
 {
 public:
 

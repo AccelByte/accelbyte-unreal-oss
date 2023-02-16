@@ -4,6 +4,7 @@
 #pragma once
 
 #include "AsyncTasks/OnlineAsyncTaskAccelByte.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteUtils.h"
 #include "OnlineSubsystemAccelByteTypes.h"
 #include "Interfaces/OnlinePartyInterface.h"
 #include "Models/AccelByteLobbyModels.h"
@@ -12,7 +13,7 @@
 /**
  * Task for updating party storage for a party
  */
-class FOnlineAsyncTaskAccelByteUpdateV1PartyData : public FOnlineAsyncTaskAccelByte
+class FOnlineAsyncTaskAccelByteUpdateV1PartyData : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteUpdateV1PartyData, ESPMode::ThreadSafe>
 {
 public:
 

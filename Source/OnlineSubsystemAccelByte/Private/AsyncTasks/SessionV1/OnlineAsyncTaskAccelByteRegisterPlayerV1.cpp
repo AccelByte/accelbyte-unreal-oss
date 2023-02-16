@@ -153,8 +153,8 @@ void FOnlineAsyncTaskAccelByteRegisterPlayersV1::RegisterAllPlayers()
 			Session->NumOpenPublicConnections--;
 		}
 
-		const THandler<FAccelByteModelsSessionBrowserAddPlayerResponse> OnRegisterPlayerSuccessDelegate = THandler<FAccelByteModelsSessionBrowserAddPlayerResponse>::CreateRaw(this, &FOnlineAsyncTaskAccelByteRegisterPlayersV1::OnRegisterPlayerSuccess);
-		const FErrorHandler OnRegisterPlayerErrorDelegate = FErrorHandler::CreateRaw(this, &FOnlineAsyncTaskAccelByteRegisterPlayersV1::OnRegisterPlayerError, Player->GetAccelByteId());
+		const THandler<FAccelByteModelsSessionBrowserAddPlayerResponse> OnRegisterPlayerSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsSessionBrowserAddPlayerResponse>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteRegisterPlayersV1::OnRegisterPlayerSuccess);
+		const FErrorHandler OnRegisterPlayerErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteRegisterPlayersV1::OnRegisterPlayerError, Player->GetAccelByteId());
 		// NOTE(damar): SessionId with dashes is custom match (?)
 		bool bIsCustomMatch = SessionId.Contains(TEXT("-"));
 		if(bIsCustomMatch)

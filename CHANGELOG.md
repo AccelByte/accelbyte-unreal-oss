@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.8.14](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.8.14%0D0.8.13) (2023-02-16)
+
+
+### Bug Fixes
+
+* **asyncTasks:** add asyncTask to inherit TselfPtr, change CreateRaw to CreateThreadSafeSelfPtr ([2e5a6cc](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/2e5a6cc49c51315ce5f15fbfeedbc46b1ee43e31))
+
 ### [0.8.13](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.8.13%0D0.8.12) (2023-02-13)
 
 

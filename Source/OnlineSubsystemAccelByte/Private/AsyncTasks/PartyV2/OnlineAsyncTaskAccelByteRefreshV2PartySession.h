@@ -4,6 +4,7 @@
 #pragma once
 
 #include "AsyncTasks/OnlineAsyncTaskAccelByte.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteUtils.h"
 #include "OnlineSubsystemAccelByteTypes.h"
 #include "OnlineSessionInterfaceV2AccelByte.h"
 #include "Models/AccelByteSessionModels.h"
@@ -11,7 +12,7 @@
 /**
  * Async task to refresh local party session data with data from the backend
  */
-class FOnlineAsyncTaskAccelByteRefreshV2PartySession : public FOnlineAsyncTaskAccelByte
+class FOnlineAsyncTaskAccelByteRefreshV2PartySession : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteRefreshV2PartySession, ESPMode::ThreadSafe>
 {
 public:
 

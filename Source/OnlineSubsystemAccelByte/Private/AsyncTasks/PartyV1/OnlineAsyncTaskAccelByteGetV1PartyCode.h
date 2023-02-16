@@ -4,6 +4,7 @@
 #pragma once
 
 #include "AsyncTasks/OnlineAsyncTaskAccelByte.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteUtils.h"
 #include "OnlineSubsystemAccelByteTypes.h"
 #include "Interfaces/OnlinePartyInterface.h"
 #include "Models/AccelByteLobbyModels.h"
@@ -21,7 +22,7 @@ DECLARE_DELEGATE_FourParams(FOnPartyCodeGenerated, bool /*1*/, const FString& /*
 /**
  * Fill out information about your async task here.
  */
-class FOnlineAsyncTaskAccelByteGetV1PartyCode : public FOnlineAsyncTaskAccelByte
+class FOnlineAsyncTaskAccelByteGetV1PartyCode : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteGetV1PartyCode, ESPMode::ThreadSafe>
 {
 public:
 

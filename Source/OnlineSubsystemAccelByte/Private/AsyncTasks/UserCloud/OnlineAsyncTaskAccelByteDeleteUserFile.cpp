@@ -32,8 +32,8 @@ void FOnlineAsyncTaskAccelByteDeleteUserFile::Initialize()
 		// If we could not find a cached slot ID, then we need to query all of the users slots to find a match
 		if (SlotId.IsEmpty())
 		{
-			THandler<TArray<FAccelByteModelsSlot>> OnGetAllSlotsSuccessDelegate = THandler<TArray<FAccelByteModelsSlot>>::CreateRaw(this, &FOnlineAsyncTaskAccelByteDeleteUserFile::OnGetAllSlotsSuccess);
-			FErrorHandler OnGetAllSlotsErrorDelegate = FErrorHandler::CreateRaw(this, &FOnlineAsyncTaskAccelByteDeleteUserFile::OnGetAllSlotsError);
+			THandler<TArray<FAccelByteModelsSlot>> OnGetAllSlotsSuccessDelegate = TDelegateUtils<THandler<TArray<FAccelByteModelsSlot>>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteDeleteUserFile::OnGetAllSlotsSuccess);
+			FErrorHandler OnGetAllSlotsErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteDeleteUserFile::OnGetAllSlotsError);
 			ApiClient->CloudStorage.GetAllSlots(OnGetAllSlotsSuccessDelegate, OnGetAllSlotsErrorDelegate);
 		}
 		else
@@ -76,8 +76,8 @@ void FOnlineAsyncTaskAccelByteDeleteUserFile::TriggerDelegates()
 
 void FOnlineAsyncTaskAccelByteDeleteUserFile::RunDeleteSlot(const FString& SlotId)
 {
-	FVoidHandler OnDeleteSlotSuccessDelegate = FVoidHandler::CreateRaw(this, &FOnlineAsyncTaskAccelByteDeleteUserFile::OnDeleteSlotSuccess);
-	FErrorHandler OnDeleteSlotErrorDelegate = FErrorHandler::CreateRaw(this, &FOnlineAsyncTaskAccelByteDeleteUserFile::OnDeleteSlotError);
+	FVoidHandler OnDeleteSlotSuccessDelegate = TDelegateUtils<FVoidHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteDeleteUserFile::OnDeleteSlotSuccess);
+	FErrorHandler OnDeleteSlotErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteDeleteUserFile::OnDeleteSlotError);
 	ApiClient->CloudStorage.DeleteSlot(SlotId, OnDeleteSlotSuccessDelegate, OnDeleteSlotErrorDelegate);
 }
 

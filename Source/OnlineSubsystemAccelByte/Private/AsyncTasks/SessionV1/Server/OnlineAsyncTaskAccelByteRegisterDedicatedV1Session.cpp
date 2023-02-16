@@ -40,7 +40,7 @@ void FOnlineAsyncTaskAccelByteRegisterDedicatedV1Session::Initialize()
 	// from there register either a local server or a server on Armada.
 	if (!IdentityInterface->IsServerAuthenticated())
 	{		
-		const FOnAuthenticateServerComplete OnAuthenticateServerCompleteDelegate = FOnAuthenticateServerComplete::CreateRaw(this, &FOnlineAsyncTaskAccelByteRegisterDedicatedV1Session::OnAuthenticateServerComplete);
+		const FOnAuthenticateServerComplete OnAuthenticateServerCompleteDelegate = TDelegateUtils<FOnAuthenticateServerComplete>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteRegisterDedicatedV1Session::OnAuthenticateServerComplete);
 		IdentityInterface->AuthenticateAccelByteServer(OnAuthenticateServerCompleteDelegate);
 
 		AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Authenticating server with client credentials for session '%s'."), *SessionName.ToString());
@@ -309,7 +309,7 @@ void FOnlineAsyncTaskAccelByteRegisterDedicatedV1Session::CreateGameSession()
 	}
 
 	AccelByte::THandler<FAccelByteModelsSessionBrowserData> OnSessionCreateSuccessDelegate =
-		AccelByte::THandler<FAccelByteModelsSessionBrowserData>::CreateRaw(
+		TDelegateUtils<AccelByte::THandler<FAccelByteModelsSessionBrowserData>>::CreateThreadSafeSelfPtr(
 			this,
 			&FOnlineAsyncTaskAccelByteRegisterDedicatedV1Session::OnSessionCreateSuccess
 		);

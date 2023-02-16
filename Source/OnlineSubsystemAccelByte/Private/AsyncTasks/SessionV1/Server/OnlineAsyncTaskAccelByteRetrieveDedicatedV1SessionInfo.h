@@ -5,6 +5,7 @@
 #pragma once
 
 #include "AsyncTasks/OnlineAsyncTaskAccelByte.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteUtils.h"
 #include "OnlineSubsystemAccelByteTypes.h"
 #include "OnlineSessionInterfaceV1AccelByte.h"
 
@@ -18,7 +19,7 @@ struct FAccelByteModelsServerSessionResponse;
  * when a player tries to connect to the server for the first time, get session information at that point. This is because
  * session information isn't created on server registration, rather when the dedicated server is claimed by a matchmaking request.
  */
-class FOnlineAsyncTaskAccelByteRetrieveDedicatedV1SessionInfo : public FOnlineAsyncTaskAccelByte
+class FOnlineAsyncTaskAccelByteRetrieveDedicatedV1SessionInfo : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteRetrieveDedicatedV1SessionInfo, ESPMode::ThreadSafe>
 {
 public:
 

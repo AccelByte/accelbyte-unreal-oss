@@ -12,7 +12,8 @@
 /**
  * Async task to set user Time using Lobby API.
  */
-class FOnlineAsyncTaskAccelByteGetServerTime : public FOnlineAsyncTaskAccelByte {
+class FOnlineAsyncTaskAccelByteGetServerTime : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteGetServerTime, ESPMode::ThreadSafe>
+{
 public:
 
 	FOnlineAsyncTaskAccelByteGetServerTime(FOnlineSubsystemAccelByte* const InABInterface);

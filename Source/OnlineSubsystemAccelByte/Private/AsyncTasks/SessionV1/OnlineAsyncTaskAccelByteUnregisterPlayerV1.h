@@ -5,6 +5,7 @@
 #pragma once
 
 #include "AsyncTasks/OnlineAsyncTaskAccelByte.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteUtils.h"
 #include "OnlineSubsystemAccelByteTypes.h"
 #include "OnlineSessionInterfaceV1AccelByte.h"
 
@@ -13,7 +14,7 @@
  *
  * For dedicated sessions, this requires the permission ADMIN:NAMESPACE:{namespace}:MATCHMAKING:CHANNEL [DELETE] on your server OAuth client.
  */
-class FOnlineAsyncTaskAccelByteUnregisterPlayersV1 : public FOnlineAsyncTaskAccelByte
+class FOnlineAsyncTaskAccelByteUnregisterPlayersV1 : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteUnregisterPlayersV1, ESPMode::ThreadSafe>
 {
 public:
 

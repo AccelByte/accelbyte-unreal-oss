@@ -50,8 +50,8 @@ void FOnlineAsyncTaskAccelByteCheckout::Initialize()
 		OrderRequest.Region = *Region;
 	}
 	
-	THandler<FAccelByteModelsOrderInfo> OnSuccess = THandler<FAccelByteModelsOrderInfo>::CreateRaw(this, &FOnlineAsyncTaskAccelByteCheckout::HandleCheckoutComplete);
-	FErrorHandler OnError = FErrorHandler::CreateRaw(this, &FOnlineAsyncTaskAccelByteCheckout::HandleAsyncTaskError);
+	THandler<FAccelByteModelsOrderInfo> OnSuccess = TDelegateUtils<THandler<FAccelByteModelsOrderInfo>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteCheckout::HandleCheckoutComplete);
+	FErrorHandler OnError = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteCheckout::HandleAsyncTaskError);
 	ApiClient->Order.CreateNewOrder(OrderRequest, OnSuccess, OnError);
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }

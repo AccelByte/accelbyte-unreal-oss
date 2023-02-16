@@ -6,11 +6,12 @@
 
 #include "OnlineSessionSettings.h"
 #include "AsyncTasks/OnlineAsyncTaskAccelByte.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteUtils.h"
 #include "Interfaces/OnlineSessionInterface.h"
 #include "Models/AccelByteMatchmakingModels.h"
 #include "OnlineSessionInterfaceV2AccelByte.h"
 
-class FOnlineAsyncTaskAccelByteStartV2Matchmaking : public FOnlineAsyncTaskAccelByte
+class FOnlineAsyncTaskAccelByteStartV2Matchmaking : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteStartV2Matchmaking, ESPMode::ThreadSafe>
 {
 public:
 	FOnlineAsyncTaskAccelByteStartV2Matchmaking(FOnlineSubsystemAccelByte* const InABInterface, const TSharedRef<FOnlineSessionSearchAccelByte>& InSearchHandle, const FName& InSessionName, const FString& InMatchPool, const FOnStartMatchmakingComplete& InDelegate);

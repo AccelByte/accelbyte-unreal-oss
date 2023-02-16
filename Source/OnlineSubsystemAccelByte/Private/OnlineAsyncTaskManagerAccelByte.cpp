@@ -18,7 +18,7 @@ void FOnlineAsyncTaskManagerAccelByte::OnlineTick()
 
 void FOnlineAsyncTaskManagerAccelByte::CheckMaxParallelTasks()
 {
-#if !UE_BUILD_SHIPPING
+#if !UE_BUILD_SHIPPING && (ENGINE_MAJOR_VERSION == 4 && ENGINE_MINOR_VERSION >= 27)
 	if (MaxParallelTasks == ParallelTasks.Num())
 	{
 		UE_LOG(LogAccelByteOSS, Warning, TEXT("The number of Parallel Tasks has reached it cap: %d, Please put some delay between each tasks."), MaxParallelTasks);

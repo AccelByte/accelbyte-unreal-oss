@@ -23,7 +23,7 @@ void FOnlineAsyncTaskAccelByteRescindFriendInvite::Initialize()
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("LocalUserNum: %d; FriendId: %s"), LocalUserNum, *FriendId->ToDebugString());
 
-	AccelByte::Api::Lobby::FCancelFriendsResponse OnRequestFriendResponseDelegate = AccelByte::Api::Lobby::FCancelFriendsResponse::CreateRaw(this, &FOnlineAsyncTaskAccelByteRescindFriendInvite::OnCancelFriendInviteResponse);
+	AccelByte::Api::Lobby::FCancelFriendsResponse OnRequestFriendResponseDelegate = TDelegateUtils<AccelByte::Api::Lobby::FCancelFriendsResponse>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteRescindFriendInvite::OnCancelFriendInviteResponse);
 	ApiClient->Lobby.SetCancelFriendsResponseDelegate(OnRequestFriendResponseDelegate);
 	ApiClient->Lobby.CancelFriendRequest(FriendId->GetAccelByteId());
 

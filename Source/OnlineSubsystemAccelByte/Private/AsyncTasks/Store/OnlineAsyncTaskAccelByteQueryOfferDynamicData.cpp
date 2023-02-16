@@ -19,8 +19,8 @@ void FOnlineAsyncTaskAccelByteQueryOfferDynamicData::Initialize()
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Initialized"));
 	Super::Initialize();
 	
-	OnSuccess = THandler<FAccelByteModelsItemDynamicData>::CreateRaw(this, &FOnlineAsyncTaskAccelByteQueryOfferDynamicData::HandleGetItemDynamicData);
-	OnError = FErrorHandler::CreateRaw(this, &FOnlineAsyncTaskAccelByteQueryOfferDynamicData::HandleAsyncTaskError);
+	OnSuccess = TDelegateUtils<THandler<FAccelByteModelsItemDynamicData>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryOfferDynamicData::HandleGetItemDynamicData);
+	OnError = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryOfferDynamicData::HandleAsyncTaskError);
 	ApiClient->Item.GetItemDynamicData(OfferId, OnSuccess, OnError);
 	
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

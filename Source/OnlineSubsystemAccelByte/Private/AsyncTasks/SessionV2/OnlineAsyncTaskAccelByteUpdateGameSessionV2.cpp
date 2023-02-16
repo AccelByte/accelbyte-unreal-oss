@@ -152,8 +152,8 @@ void FOnlineAsyncTaskAccelByteUpdateGameSessionV2::Initialize()
 	UpdateRequest.Teams = SessionInfo->GetTeamAssignments();
 
 	// Send the API call based on whether we are a server or a client
-	const THandler<FAccelByteModelsV2GameSession> OnUpdateGameSessionSuccessDelegate = THandler<FAccelByteModelsV2GameSession>::CreateRaw(this, &FOnlineAsyncTaskAccelByteUpdateGameSessionV2::OnUpdateGameSessionSuccess);
-	const FErrorHandler OnUpdateGameSessionErrorDelegate = FErrorHandler::CreateRaw(this, &FOnlineAsyncTaskAccelByteUpdateGameSessionV2::OnUpdateGameSessionError);
+	const THandler<FAccelByteModelsV2GameSession> OnUpdateGameSessionSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsV2GameSession>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteUpdateGameSessionV2::OnUpdateGameSessionSuccess);
+	const FErrorHandler OnUpdateGameSessionErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteUpdateGameSessionV2::OnUpdateGameSessionError);
 	if (IsRunningDedicatedServer())
 	{
 		FRegistry::ServerSession.UpdateGameSession(SessionInfo->GetSessionId().ToString(), UpdateRequest, OnUpdateGameSessionSuccessDelegate, OnUpdateGameSessionErrorDelegate);

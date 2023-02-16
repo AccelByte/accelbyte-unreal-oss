@@ -21,8 +21,8 @@ void FOnlineAsyncTaskAccelByteQueryOfferBySku::Initialize()
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Initialized"));
 	Super::Initialize();
 	
-	OnSuccess = THandler<FAccelByteModelsItemInfo>::CreateRaw(this, &FOnlineAsyncTaskAccelByteQueryOfferBySku::HandleGetItemBySku);
-	OnError = FErrorHandler::CreateRaw(this, &FOnlineAsyncTaskAccelByteQueryOfferBySku::HandleAsyncTaskError);
+	OnSuccess = TDelegateUtils<THandler<FAccelByteModelsItemInfo>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryOfferBySku::HandleGetItemBySku);
+	OnError = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryOfferBySku::HandleAsyncTaskError);
 	ApiClient->Item.GetItemBySku(Sku, Language, TEXT(""), OnSuccess, OnError);
 	
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

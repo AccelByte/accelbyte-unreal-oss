@@ -29,7 +29,7 @@ void FOnlineAsyncTaskAccelByteAddJoinedV1PartyMember::Initialize()
 		return;
 	}
 
-	FOnQueryUsersComplete OnQueryJoinedPartyMemberCompleteDelegate = FOnQueryUsersComplete::CreateRaw(this, &FOnlineAsyncTaskAccelByteAddJoinedV1PartyMember::OnQueryJoinedPartyMemberComplete);
+	FOnQueryUsersComplete OnQueryJoinedPartyMemberCompleteDelegate = TDelegateUtils<FOnQueryUsersComplete>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteAddJoinedV1PartyMember::OnQueryJoinedPartyMemberComplete);
 	UserStore->QueryUsersByAccelByteIds(LocalUserNum, { JoinedAccelByteId }, OnQueryJoinedPartyMemberCompleteDelegate, true);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sent request to get further data on joined party member!"));

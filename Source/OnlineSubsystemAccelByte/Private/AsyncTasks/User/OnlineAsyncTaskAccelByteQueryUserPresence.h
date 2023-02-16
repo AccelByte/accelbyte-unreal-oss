@@ -4,13 +4,15 @@
 #pragma once
 
 #include "AsyncTasks/OnlineAsyncTaskAccelByte.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteUtils.h"
 #include "OnlineSubsystemAccelByteTypes.h"
 #include "OnlinePresenceInterfaceAccelByte.h"
 
 /**
  * Async task to query user presence using Locker API.
  */
-class FOnlineAsyncTaskAccelByteQueryUserPresence : public FOnlineAsyncTaskAccelByte {
+class FOnlineAsyncTaskAccelByteQueryUserPresence : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteQueryUserPresence, ESPMode::ThreadSafe>
+{
 public:
 
 	FOnlineAsyncTaskAccelByteQueryUserPresence(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InTargetUserId, const IOnlinePresence::FOnPresenceTaskCompleteDelegate& InDelegate, int32 InLocalUserNum);

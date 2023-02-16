@@ -4,13 +4,14 @@
 #pragma once
 
 #include "AsyncTasks/OnlineAsyncTaskAccelByte.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteUtils.h"
 #include "OnlineSubsystemAccelByteTypes.h"
 #include "OnlineSessionInterfaceV2AccelByte.h"
 
 /**
  * Fill out information about your async task here.
  */
-class FOnlineAsyncTaskAccelByteLeaveV2GameSession : public FOnlineAsyncTaskAccelByte
+class FOnlineAsyncTaskAccelByteLeaveV2GameSession : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteLeaveV2GameSession, ESPMode::ThreadSafe>
 {
 public:
 

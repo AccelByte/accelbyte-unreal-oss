@@ -36,7 +36,7 @@ void FOnlineAsyncTaskAccelByteCreateV1Party::Initialize()
 	// Next, we want to send off a request to check on the backend if we are in a party. This way we can validate in case
 	// we're in one, but we haven't restored our state. This will tell the developer to call RestoreParties to restore
 	// that previous state and act accordingly.
-	AccelByte::Api::Lobby::FPartyInfoResponse OnGetPartyInfoResponseDelegate = AccelByte::Api::Lobby::FPartyInfoResponse::CreateRaw(this, &FOnlineAsyncTaskAccelByteCreateV1Party::OnGetPartyInfoResponse);
+	AccelByte::Api::Lobby::FPartyInfoResponse OnGetPartyInfoResponseDelegate = TDelegateUtils<AccelByte::Api::Lobby::FPartyInfoResponse>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteCreateV1Party::OnGetPartyInfoResponse);
 	ApiClient->Lobby.SetInfoPartyResponseDelegate(OnGetPartyInfoResponseDelegate);
 	ApiClient->Lobby.SendInfoPartyRequest();
 
@@ -106,7 +106,7 @@ void FOnlineAsyncTaskAccelByteCreateV1Party::OnGetPartyInfoResponse(const FAccel
 	}
 	
 	// Finally, since we are not in a party, we can send the request to create one
-	AccelByte::Api::Lobby::FPartyCreateResponse OnCreatePartyResponseDelegate = AccelByte::Api::Lobby::FPartyCreateResponse::CreateRaw(this, &FOnlineAsyncTaskAccelByteCreateV1Party::OnCreatePartyResponse);
+	AccelByte::Api::Lobby::FPartyCreateResponse OnCreatePartyResponseDelegate = TDelegateUtils<AccelByte::Api::Lobby::FPartyCreateResponse>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteCreateV1Party::OnCreatePartyResponse);
 	ApiClient->Lobby.SetCreatePartyResponseDelegate(OnCreatePartyResponseDelegate);
 	ApiClient->Lobby.SendCreatePartyRequest();
 
@@ -130,7 +130,7 @@ void FOnlineAsyncTaskAccelByteCreateV1Party::OnCreatePartyResponse(const FAccelB
 		PartyInfo = Result;
 
 		// Send a request to get party code for the current party
-		AccelByte::Api::Lobby::FPartyGetCodeResponse OnPartyGetCodeResponseDelegate = AccelByte::Api::Lobby::FPartyGetCodeResponse::CreateRaw(this, &FOnlineAsyncTaskAccelByteCreateV1Party::OnPartyGetCodeResponse);
+		AccelByte::Api::Lobby::FPartyGetCodeResponse OnPartyGetCodeResponseDelegate = TDelegateUtils<AccelByte::Api::Lobby::FPartyGetCodeResponse>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteCreateV1Party::OnPartyGetCodeResponse);
 		ApiClient->Lobby.SetPartyGetCodeResponseDelegate(OnPartyGetCodeResponseDelegate);
 		ApiClient->Lobby.SendPartyGetCodeRequest();
 	}

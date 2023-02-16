@@ -4,8 +4,9 @@
 
 #pragma once
 #include "AsyncTasks/OnlineAsyncTaskAccelByte.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteUtils.h"
 
-class FOnlineAsyncTaskAccelByteQueryEntitlements : public FOnlineAsyncTaskAccelByte
+class FOnlineAsyncTaskAccelByteQueryEntitlements : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteQueryEntitlements, ESPMode::ThreadSafe>
 {
 public:
 	FOnlineAsyncTaskAccelByteQueryEntitlements(FOnlineSubsystemAccelByte* const InABSubsystem, const FUniqueNetId& InUserId, const FString& InNamespace, const FPagedQuery& InPage);

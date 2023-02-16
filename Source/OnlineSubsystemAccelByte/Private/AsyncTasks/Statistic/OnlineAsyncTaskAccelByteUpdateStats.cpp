@@ -37,8 +37,8 @@ void FOnlineAsyncTaskAccelByteUpdateStats::Initialize()
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Initialized"));
 	Super::Initialize();
 
-	OnBulkUpdateUserStatItemsValueSuccess = THandler<TArray<FAccelByteModelsUpdateUserStatItemsResponse>>::CreateRaw(this, &FOnlineAsyncTaskAccelByteUpdateStats::HandleBulkUpdateUserStatItemsValue);
-	OnError = FErrorHandler::CreateRaw(this, &FOnlineAsyncTaskAccelByteUpdateStats::HandleAsyncTaskError);
+	OnBulkUpdateUserStatItemsValueSuccess = TDelegateUtils<THandler<TArray<FAccelByteModelsUpdateUserStatItemsResponse>>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteUpdateStats::HandleBulkUpdateUserStatItemsValue);
+	OnError = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteUpdateStats::HandleAsyncTaskError);
 
 	FString AdditionalKey = TEXT("");	
 	ApiClient->Statistic.BulkUpdateUserStatItemsValue(AdditionalKey, BulkUpdateUserStatItems, OnBulkUpdateUserStatItemsValueSuccess, OnError);

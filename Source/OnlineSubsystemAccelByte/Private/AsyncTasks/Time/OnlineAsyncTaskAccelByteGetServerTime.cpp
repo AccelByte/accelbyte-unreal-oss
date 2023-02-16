@@ -20,8 +20,8 @@ void FOnlineAsyncTaskAccelByteGetServerTime::Initialize()
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(" "));
 	THandler<FTime> OnGetServerTimeSuccess =
-		THandler<FTime>::CreateRaw(this, &FOnlineAsyncTaskAccelByteGetServerTime::HandleGetServerTimeSuccess);
-	FErrorHandler OnError = FErrorHandler::CreateRaw(this, &FOnlineAsyncTaskAccelByteGetServerTime::HandleGetServerTimeError);
+		TDelegateUtils<THandler<FTime>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteGetServerTime::HandleGetServerTimeSuccess);
+	FErrorHandler OnError = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteGetServerTime::HandleGetServerTimeError);
 	FRegistry::Miscellaneous.GetServerCurrentTime(OnGetServerTimeSuccess, OnError);
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }

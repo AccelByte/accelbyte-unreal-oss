@@ -90,7 +90,7 @@ void FOnlineAsyncTaskAccelByteSendFriendInvite::QueryInvitedFriend(const FString
 		return;
 	}
 
-	FOnQueryUsersComplete OnQueryInvitedFriendCompleteDelegate = FOnQueryUsersComplete::CreateRaw(this, &FOnlineAsyncTaskAccelByteSendFriendInvite::OnQueryInvitedFriendComplete);
+	FOnQueryUsersComplete OnQueryInvitedFriendCompleteDelegate = TDelegateUtils<FOnQueryUsersComplete>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteSendFriendInvite::OnQueryInvitedFriendComplete);
 	UserStore->QueryUsersByAccelByteIds(LocalUserNum, { InFriendId }, OnQueryInvitedFriendCompleteDelegate, true);
 }
 
@@ -106,7 +106,7 @@ void FOnlineAsyncTaskAccelByteSendFriendInvite::OnQueryInvitedFriendComplete(boo
 		InvitedFriend = MakeShared<FOnlineFriendAccelByte>(User->DisplayName, User->Id.ToSharedRef(), EInviteStatus::PendingOutbound);
 
 		// Send the actual request to send the friend request
-		AccelByte::Api::Lobby::FRequestFriendsResponse OnRequestFriendResponseDelegate = AccelByte::Api::Lobby::FRequestFriendsResponse::CreateRaw(this, &FOnlineAsyncTaskAccelByteSendFriendInvite::OnRequestFriendResponse);
+		AccelByte::Api::Lobby::FRequestFriendsResponse OnRequestFriendResponseDelegate = TDelegateUtils<AccelByte::Api::Lobby::FRequestFriendsResponse>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteSendFriendInvite::OnRequestFriendResponse);
 		ApiClient->Lobby.SetRequestFriendsResponseDelegate(OnRequestFriendResponseDelegate);
 		ApiClient->Lobby.RequestFriend(User->Id->GetAccelByteId());
 	}

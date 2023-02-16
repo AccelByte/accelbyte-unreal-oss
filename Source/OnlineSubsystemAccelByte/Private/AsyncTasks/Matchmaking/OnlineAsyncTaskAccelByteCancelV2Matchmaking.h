@@ -4,9 +4,10 @@
 
 #pragma once
 #include "AsyncTasks/OnlineAsyncTaskAccelByte.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteUtils.h"
 #include "OnlineSessionInterfaceV2AccelByte.h"
 
-class FOnlineAsyncTaskAccelByteCancelV2Matchmaking : public FOnlineAsyncTaskAccelByte
+class FOnlineAsyncTaskAccelByteCancelV2Matchmaking : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteCancelV2Matchmaking, ESPMode::ThreadSafe>
 {
 public:
 	FOnlineAsyncTaskAccelByteCancelV2Matchmaking(FOnlineSubsystemAccelByte* const InABInterface, const TSharedRef<FOnlineSessionSearchAccelByte>& InSearchHandle, const FName& InSessionName);

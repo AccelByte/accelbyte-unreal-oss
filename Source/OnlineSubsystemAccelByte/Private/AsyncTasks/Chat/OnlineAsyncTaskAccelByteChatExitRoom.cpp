@@ -21,8 +21,8 @@ void FOnlineAsyncTaskAccelByteChatExitRoom::Initialize()
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 
 	const AccelByte::Api::Chat::FChatActionTopicResponse OnExitRoomSuccessDelegate =
-		AccelByte::Api::Chat::FChatActionTopicResponse::CreateRaw(this, &FOnlineAsyncTaskAccelByteChatExitRoom::OnExitRoomSuccess);
-	const FErrorHandler OnExitRoomErrorDelegate = FErrorHandler::CreateRaw(this, &FOnlineAsyncTaskAccelByteChatExitRoom::OnExitRoomError);
+		TDelegateUtils<AccelByte::Api::Chat::FChatActionTopicResponse>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteChatExitRoom::OnExitRoomSuccess);
+	const FErrorHandler OnExitRoomErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteChatExitRoom::OnExitRoomError);
 
 	ApiClient->Chat.QuitTopic(RoomId, OnExitRoomSuccessDelegate, OnExitRoomErrorDelegate);
 

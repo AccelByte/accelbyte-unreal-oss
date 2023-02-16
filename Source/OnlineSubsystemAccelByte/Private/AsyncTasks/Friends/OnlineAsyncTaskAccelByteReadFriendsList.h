@@ -4,6 +4,7 @@
 #pragma once
 
 #include "AsyncTasks/OnlineAsyncTaskAccelByte.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteUtils.h"
 #include "OnlineSubsystemAccelByteTypes.h"
 #include "OnlineFriendsInterfaceAccelByte.h"
 #include "Models/AccelByteLobbyModels.h"
@@ -13,7 +14,7 @@
 /**
  * Async task to try and read the user's friends list from the backend through the Lobby websocket.
  */
-class FOnlineAsyncTaskAccelByteReadFriendsList : public FOnlineAsyncTaskAccelByte
+class FOnlineAsyncTaskAccelByteReadFriendsList : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteReadFriendsList, ESPMode::ThreadSafe>
 {
 public:
 

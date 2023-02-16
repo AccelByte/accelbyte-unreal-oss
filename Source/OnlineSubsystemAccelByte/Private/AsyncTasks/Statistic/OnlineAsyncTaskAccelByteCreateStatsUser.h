@@ -9,7 +9,7 @@
 #include "OnlineStatisticInterfaceAccelByte.h"
  
 
-class FOnlineAsyncTaskAccelByteCreateStatsUser : public FOnlineAsyncTaskAccelByte
+class FOnlineAsyncTaskAccelByteCreateStatsUser : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteCreateStatsUser, ESPMode::ThreadSafe>
 {
 public:
 	FOnlineAsyncTaskAccelByteCreateStatsUser(FOnlineSubsystemAccelByte* const InABInterface, const int32 InLocalUserNum,

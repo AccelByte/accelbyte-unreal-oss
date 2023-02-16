@@ -4,6 +4,7 @@
 #pragma once
 
 #include "AsyncTasks/OnlineAsyncTaskAccelByte.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteUtils.h"
 #include "OnlineSubsystemAccelByteTypes.h"
 #include "Models/AccelByteDSMModels.h"
 #include "Models/AccelByteSessionModels.h"
@@ -11,7 +12,7 @@
 /**
  * Async task to get the session that has claimed this server instance
  */
-class FOnlineAsyncTaskAccelByteGetServerClaimedV2Session : public FOnlineAsyncTaskAccelByte
+class FOnlineAsyncTaskAccelByteGetServerClaimedV2Session : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteGetServerClaimedV2Session, ESPMode::ThreadSafe>
 {
 public:
 

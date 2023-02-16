@@ -64,7 +64,7 @@ void FOnlineAsyncTaskAccelByteLeaveV1Party::Initialize()
 		// Cancel matchmaking in the case that the leave party request is made while in matchmaking state
 		SessionInt->CancelMatchmakingNotification();
 
-		AccelByte::Api::Lobby::FPartyLeaveResponse OnLeavePartyResponseDelegate = AccelByte::Api::Lobby::FPartyLeaveResponse::CreateRaw(this, &FOnlineAsyncTaskAccelByteLeaveV1Party::OnLeavePartyResponse);
+		AccelByte::Api::Lobby::FPartyLeaveResponse OnLeavePartyResponseDelegate = TDelegateUtils<AccelByte::Api::Lobby::FPartyLeaveResponse>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteLeaveV1Party::OnLeavePartyResponse);
 		ApiClient->Lobby.SetLeavePartyResponseDelegate(OnLeavePartyResponseDelegate);
 		ApiClient->Lobby.SendLeavePartyRequest();
 	}

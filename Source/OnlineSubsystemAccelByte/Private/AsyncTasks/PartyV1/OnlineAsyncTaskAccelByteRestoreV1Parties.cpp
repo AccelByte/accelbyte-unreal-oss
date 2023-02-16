@@ -42,7 +42,7 @@ void FOnlineAsyncTaskAccelByteRestoreV1Parties::Initialize()
 	}
 
 	// Get information about the current user's party, which then will give us a party to restore if we are in one
-	AccelByte::Api::Lobby::FPartyInfoResponse OnGetPartyInfoResponseDelegate = AccelByte::Api::Lobby::FPartyInfoResponse::CreateRaw(this, &FOnlineAsyncTaskAccelByteRestoreV1Parties::OnGetPartyInfoResponse);
+	AccelByte::Api::Lobby::FPartyInfoResponse OnGetPartyInfoResponseDelegate = TDelegateUtils<AccelByte::Api::Lobby::FPartyInfoResponse>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteRestoreV1Parties::OnGetPartyInfoResponse);
 	ApiClient->Lobby.SetInfoPartyResponseDelegate(OnGetPartyInfoResponseDelegate);
 	ApiClient->Lobby.SendInfoPartyRequest();
 
@@ -111,15 +111,15 @@ void FOnlineAsyncTaskAccelByteRestoreV1Parties::GetPartyCode()
 	if (UserId->GetAccelByteId() == PartyInfo.LeaderId)
 	{
 		// Send a request to get party code for the current party for party leader
-		const AccelByte::Api::Lobby::FPartyGetCodeResponse OnPartyGetCodeResponseDelegate = AccelByte::Api::Lobby::FPartyGetCodeResponse::CreateRaw(this, &FOnlineAsyncTaskAccelByteRestoreV1Parties::OnPartyGetCodeResponse);
+		const AccelByte::Api::Lobby::FPartyGetCodeResponse OnPartyGetCodeResponseDelegate = TDelegateUtils<AccelByte::Api::Lobby::FPartyGetCodeResponse>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteRestoreV1Parties::OnPartyGetCodeResponse);
 		ApiClient->Lobby.SetPartyGetCodeResponseDelegate(OnPartyGetCodeResponseDelegate);
 		ApiClient->Lobby.SendPartyGetCodeRequest();
 	}
 	else
 	{
 		// Send a request to get party code for the current party for party member
-		const THandler<FAccelByteModelsPartyData> OnGetPartyDataSuccessDelegate = THandler<FAccelByteModelsPartyData>::CreateRaw(this, &FOnlineAsyncTaskAccelByteRestoreV1Parties::OnGetPartyDataSuccess);
-		const FErrorHandler OnGetPartyDataErrorDelegate = FErrorHandler::CreateRaw(this, &FOnlineAsyncTaskAccelByteRestoreV1Parties::OnGetPartyDataError);
+		const THandler<FAccelByteModelsPartyData> OnGetPartyDataSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsPartyData>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteRestoreV1Parties::OnGetPartyDataSuccess);
+		const FErrorHandler OnGetPartyDataErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteRestoreV1Parties::OnGetPartyDataError);
 		ApiClient->Lobby.GetPartyData(PartyInfo.PartyId, OnGetPartyDataSuccessDelegate, OnGetPartyDataErrorDelegate);
 	}
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
@@ -150,7 +150,7 @@ void FOnlineAsyncTaskAccelByteRestoreV1Parties::OnGetPartyInfoResponse(const FAc
 		PartyInfo = Result;
 		bUserHasPartyToRestore = true;
 
-		FOnQueryPartyInfoComplete OnQueryPartyInfoCompleteDelegate = FOnQueryPartyInfoComplete::CreateRaw(this, &FOnlineAsyncTaskAccelByteRestoreV1Parties::OnQueryPartyInfoComplete);
+		FOnQueryPartyInfoComplete OnQueryPartyInfoCompleteDelegate = TDelegateUtils<FOnQueryPartyInfoComplete>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteRestoreV1Parties::OnQueryPartyInfoComplete);
 		Subsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteQueryV1PartyInfo>(Subsystem, UserId.ToSharedRef().Get(), Result.PartyId, Result.Members, OnQueryPartyInfoCompleteDelegate);
 	}
 }
@@ -168,8 +168,8 @@ void FOnlineAsyncTaskAccelByteRestoreV1Parties::OnQueryPartyInfoComplete(bool bI
 		{
 			PartyMemberStrings.Add(User->Id->GetAccelByteId());
 		}
-		THandler<FAccelByteModelsBulkUserStatusNotif> OnQueryPartyMembersStatusCompleteDelegate = THandler<FAccelByteModelsBulkUserStatusNotif>::CreateRaw(this, &FOnlineAsyncTaskAccelByteRestoreV1Parties::OnGetPartyMemberConnectStatusSuccess);
-		const FErrorHandler OnGetPartyMemberStatusesErrorDelegate = FErrorHandler::CreateRaw(this, &FOnlineAsyncTaskAccelByteRestoreV1Parties::OnGetPartyMemberConnectStatusFailed);
+		THandler<FAccelByteModelsBulkUserStatusNotif> OnQueryPartyMembersStatusCompleteDelegate = TDelegateUtils<THandler<FAccelByteModelsBulkUserStatusNotif>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteRestoreV1Parties::OnGetPartyMemberConnectStatusSuccess);
+		const FErrorHandler OnGetPartyMemberStatusesErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteRestoreV1Parties::OnGetPartyMemberConnectStatusFailed);
 		ApiClient->Lobby.BulkGetUserPresence(PartyMemberStrings, OnQueryPartyMembersStatusCompleteDelegate, OnGetPartyMemberStatusesErrorDelegate);
 	}
 	else

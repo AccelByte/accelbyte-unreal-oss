@@ -37,12 +37,12 @@ void FOnlineAsyncTaskAccelByteRemoveUserFromV1Session::Initialize()
 		return;
 	}
 
-	OnRemoveUserFromSessionSuccessDelegate = FVoidHandler::CreateRaw(this, &FOnlineAsyncTaskAccelByteRemoveUserFromV1Session::OnRemoveUserFromSessionSuccess);
-	OnRemoveUserFromSessionErrorDelegate = FErrorHandler::CreateRaw(this, &FOnlineAsyncTaskAccelByteRemoveUserFromV1Session::OnRemoveUserFromSessionError);
+	OnRemoveUserFromSessionSuccessDelegate = TDelegateUtils<FVoidHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteRemoveUserFromV1Session::OnRemoveUserFromSessionSuccess);
+	OnRemoveUserFromSessionErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteRemoveUserFromV1Session::OnRemoveUserFromSessionError);
 
 	if (!IdentityInterface->IsServerAuthenticated())
 	{
-		const FOnAuthenticateServerComplete OnAuthenticateServerCompleteDelegate = FOnAuthenticateServerComplete::CreateRaw(this, &FOnlineAsyncTaskAccelByteRemoveUserFromV1Session::OnAuthenticateServerComplete);
+		const FOnAuthenticateServerComplete OnAuthenticateServerCompleteDelegate = TDelegateUtils<FOnAuthenticateServerComplete>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteRemoveUserFromV1Session::OnAuthenticateServerComplete);
 		IdentityInterface->AuthenticateAccelByteServer(OnAuthenticateServerCompleteDelegate);
 
 		AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Authenticating server with client credentials to get session information"));

@@ -78,14 +78,14 @@ void FOnlineAsyncTaskAccelByteStartV1Matchmaking::Initialize()
 	SearchSettings->SearchState = EOnlineAsyncTaskState::InProgress;
 	if (ApiClient->Qos.GetCachedLatencies().Num() <= 0)
 	{
-		const THandler<TArray<TPair<FString, float>>> OnGetServerLatenciesSuccessDelegate = THandler<TArray<TPair<FString, float>>>::CreateRaw(this, &FOnlineAsyncTaskAccelByteStartV1Matchmaking::OnGetServerLatenciesSuccess);
-		FErrorHandler OnGetServerLatenciesErrorDelegate = FErrorHandler::CreateRaw(this, &FOnlineAsyncTaskAccelByteStartV1Matchmaking::OnGetServerLatenciesError);
+		const THandler<TArray<TPair<FString, float>>> OnGetServerLatenciesSuccessDelegate = TDelegateUtils<THandler<TArray<TPair<FString, float>>>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteStartV1Matchmaking::OnGetServerLatenciesSuccess);
+		FErrorHandler OnGetServerLatenciesErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteStartV1Matchmaking::OnGetServerLatenciesError);
 		ApiClient->Qos.GetServerLatencies(OnGetServerLatenciesSuccessDelegate, OnGetServerLatenciesErrorDelegate);
 	}
 	else
 	{
 		Latencies = ApiClient->Qos.GetCachedLatencies();
-		AccelByte::Api::Lobby::FMatchmakingResponse OnStartMatchmakingResponseReceivedDelegate = AccelByte::Api::Lobby::FMatchmakingResponse::CreateRaw(this, &FOnlineAsyncTaskAccelByteStartV1Matchmaking::OnStartMatchmakingResponseReceived);
+		AccelByte::Api::Lobby::FMatchmakingResponse OnStartMatchmakingResponseReceivedDelegate = TDelegateUtils<AccelByte::Api::Lobby::FMatchmakingResponse>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteStartV1Matchmaking::OnStartMatchmakingResponseReceived);
 		ApiClient->Lobby.SetStartMatchmakingResponseDelegate(OnStartMatchmakingResponseReceivedDelegate);
 		CreateMatchmakingSessionAndStartMatchmaking();
 	}
@@ -133,7 +133,7 @@ void FOnlineAsyncTaskAccelByteStartV1Matchmaking::OnGetServerLatenciesSuccess(co
 
 	Latencies = Result;
 
-	AccelByte::Api::Lobby::FMatchmakingResponse OnStartMatchmakingResponseReceivedDelegate = AccelByte::Api::Lobby::FMatchmakingResponse::CreateRaw(this, &FOnlineAsyncTaskAccelByteStartV1Matchmaking::OnStartMatchmakingResponseReceived);
+	AccelByte::Api::Lobby::FMatchmakingResponse OnStartMatchmakingResponseReceivedDelegate = TDelegateUtils<AccelByte::Api::Lobby::FMatchmakingResponse>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteStartV1Matchmaking::OnStartMatchmakingResponseReceived);
 	ApiClient->Lobby.SetStartMatchmakingResponseDelegate(OnStartMatchmakingResponseReceivedDelegate);
 	CreateMatchmakingSessionAndStartMatchmaking();
 

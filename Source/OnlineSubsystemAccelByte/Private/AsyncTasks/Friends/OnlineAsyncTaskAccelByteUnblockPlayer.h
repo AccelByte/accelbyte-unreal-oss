@@ -4,13 +4,14 @@
 #pragma once
 
 #include "AsyncTasks/OnlineAsyncTaskAccelByte.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteUtils.h"
 #include "OnlineSubsystemAccelByteTypes.h"
 #include "Models/AccelByteLobbyModels.h"
 
 /**
  * Task for unblocking a player on the AccelByte backend.
  */
-class FOnlineAsyncTaskAccelByteUnblockPlayer : public FOnlineAsyncTaskAccelByte
+class FOnlineAsyncTaskAccelByteUnblockPlayer : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteUnblockPlayer, ESPMode::ThreadSafe>
 {
 public:
 

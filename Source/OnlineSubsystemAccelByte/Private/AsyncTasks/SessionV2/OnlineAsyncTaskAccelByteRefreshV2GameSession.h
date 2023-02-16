@@ -4,6 +4,7 @@
 #pragma once
 
 #include "AsyncTasks/OnlineAsyncTaskAccelByte.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteUtils.h"
 #include "OnlineSubsystemAccelByteTypes.h"
 #include "OnlineSessionInterfaceV2AccelByte.h"
 #include "Models/AccelByteSessionModels.h"
@@ -11,7 +12,7 @@
 /**
  * Async task to refresh local game session data with data from the backend
  */
-class FOnlineAsyncTaskAccelByteRefreshV2GameSession : public FOnlineAsyncTaskAccelByte
+class FOnlineAsyncTaskAccelByteRefreshV2GameSession : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteRefreshV2GameSession, ESPMode::ThreadSafe>
 {
 public:
 

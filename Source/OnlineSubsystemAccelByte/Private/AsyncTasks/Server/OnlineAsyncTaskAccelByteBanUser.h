@@ -5,6 +5,7 @@
 #pragma once
 
 #include "AsyncTasks/OnlineAsyncTaskAccelByte.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteUtils.h"
 #include "OnlineSubsystemAccelByteTypes.h"
 
 /**
@@ -12,7 +13,7 @@
  *
  * For dedicated sessions, this requires the permission "ADMIN:NAMESPACE:{namespace}:ACTION" action=4 (UPDATE) on your server OAuth client.
  */
-class FOnlineAsyncTaskAccelByteBanUser : public FOnlineAsyncTaskAccelByte
+class FOnlineAsyncTaskAccelByteBanUser : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteBanUser, ESPMode::ThreadSafe>
 {
 public:
 

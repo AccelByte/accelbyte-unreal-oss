@@ -18,8 +18,8 @@ void FOnlineAsyncTaskAccelByteLeaveV2Party::Initialize()
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("UserId: %s"), *UserId->ToDebugString());
 
-	const FVoidHandler OnLeavePartySuccessDelegate = FVoidHandler::CreateRaw(this, &FOnlineAsyncTaskAccelByteLeaveV2Party::OnLeavePartySuccess);
-	const FErrorHandler OnLeavePartyErrorDelegate = FErrorHandler::CreateRaw(this, &FOnlineAsyncTaskAccelByteLeaveV2Party::OnLeavePartyError);
+	const FVoidHandler OnLeavePartySuccessDelegate = TDelegateUtils<FVoidHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteLeaveV2Party::OnLeavePartySuccess);
+	const FErrorHandler OnLeavePartyErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteLeaveV2Party::OnLeavePartyError);
 	ApiClient->Session.LeaveParty(SessionId, OnLeavePartySuccessDelegate, OnLeavePartyErrorDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

@@ -4,13 +4,14 @@
 #pragma once
 
 #include "AsyncTasks/OnlineAsyncTaskAccelByte.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteUtils.h"
 #include "OnlineSessionInterfaceV2AccelByte.h"
 #include "OnlineSubsystemAccelByteTypes.h"
 
 /**
  * Async task to promote a member of a party to leader on the backend
  */
-class FOnlineAsyncTaskAccelBytePromoteV2PartyLeader : public FOnlineAsyncTaskAccelByte
+class FOnlineAsyncTaskAccelBytePromoteV2PartyLeader : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelBytePromoteV2PartyLeader, ESPMode::ThreadSafe>
 {
 public:
 

@@ -4,9 +4,10 @@
 
 #pragma once
 #include "AsyncTasks/OnlineAsyncTaskAccelByte.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteUtils.h"
 #include "Models/AccelByteEcommerceModels.h"
 
-class FOnlineAsyncTaskAccelByteQueryOfferBySku : public FOnlineAsyncTaskAccelByte
+class FOnlineAsyncTaskAccelByteQueryOfferBySku : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteQueryOfferBySku, ESPMode::ThreadSafe>
 {
 public:
 	FOnlineAsyncTaskAccelByteQueryOfferBySku(FOnlineSubsystemAccelByte* const InABSubsystem, const FUniqueNetId& InUserId, const FString& InSku,

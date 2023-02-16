@@ -52,8 +52,8 @@ void FOnlineAsyncTaskAccelByteSendFreeFormNotification::SendFreeFormNotification
 		Request.Topic = Topic;
 		Request.Message = Payload;
 
-		FVoidHandler OnSuccess = FVoidHandler::CreateRaw(this, &FOnlineAsyncTaskAccelByteSendFreeFormNotification::OnSendFreeFormNotificationSuccess);
-		FErrorHandler OnError = FErrorHandler::CreateRaw(this, &FOnlineAsyncTaskAccelByteSendFreeFormNotification::OnSendFreeFormNotificationError);
+		FVoidHandler OnSuccess = TDelegateUtils<FVoidHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteSendFreeFormNotification::OnSendFreeFormNotificationSuccess);
+		FErrorHandler OnError = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteSendFreeFormNotification::OnSendFreeFormNotificationError);
 
 		ApiClient->Lobby.SendNotificationToUser(Receiver, Request, true, OnSuccess, OnError);
 	}

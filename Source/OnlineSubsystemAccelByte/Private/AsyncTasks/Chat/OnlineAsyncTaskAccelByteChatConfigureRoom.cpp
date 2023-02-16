@@ -23,8 +23,8 @@ void FOnlineAsyncTaskAccelByteChatConfigureRoom::Initialize()
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 
 	const AccelByte::Api::Chat::FChatActionTopicResponse OnUpdateTopicSuccessDelegate =
-		AccelByte::Api::Chat::FChatActionTopicResponse::CreateRaw(this, &FOnlineAsyncTaskAccelByteChatConfigureRoom::OnUpdateTopicSuccess);
-	const FErrorHandler OnUpdateTopicErrorDelegate = FErrorHandler::CreateRaw(this, &FOnlineAsyncTaskAccelByteChatConfigureRoom::OnUpdateTopicError);
+		TDelegateUtils<AccelByte::Api::Chat::FChatActionTopicResponse>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteChatConfigureRoom::OnUpdateTopicSuccess);
+	const FErrorHandler OnUpdateTopicErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteChatConfigureRoom::OnUpdateTopicError);
 
 	ApiClient->Chat.UpdateTopic(RoomId, ChatRoomConfig.FriendlyName, ChatRoomConfig.bIsJoinable, OnUpdateTopicSuccessDelegate, OnUpdateTopicErrorDelegate);
 

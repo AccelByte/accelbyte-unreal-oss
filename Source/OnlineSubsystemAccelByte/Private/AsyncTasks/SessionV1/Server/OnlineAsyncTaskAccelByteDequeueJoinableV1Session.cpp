@@ -43,8 +43,8 @@ void FOnlineAsyncTaskAccelByteDequeueJoinableV1Session::Initialize()
 		return;
 	}
 
-	FVoidHandler OnDequeueJoinableSessionSuccessDelegate = FVoidHandler::CreateRaw(this, &FOnlineAsyncTaskAccelByteDequeueJoinableV1Session::OnDequeueJoinableSessionSuccess);
-	FErrorHandler OnDequeueJoinableSessionErrorDelegate = FErrorHandler::CreateRaw(this, &FOnlineAsyncTaskAccelByteDequeueJoinableV1Session::OnDequeueJoinableSessionError);
+	FVoidHandler OnDequeueJoinableSessionSuccessDelegate = TDelegateUtils<FVoidHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteDequeueJoinableV1Session::OnDequeueJoinableSessionSuccess);
+	FErrorHandler OnDequeueJoinableSessionErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteDequeueJoinableV1Session::OnDequeueJoinableSessionError);
 	FRegistry::ServerMatchmaking.DequeueJoinableSession(ABSessionInfo->GetSessionId().ToString(), OnDequeueJoinableSessionSuccessDelegate, OnDequeueJoinableSessionErrorDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sent request to dequeue joinable session on backend."));

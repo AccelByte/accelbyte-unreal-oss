@@ -238,7 +238,7 @@ void FOnlineAsyncTaskAccelByteJoinV1Party::OnQueryPartyInfoComplete(bool bIsSucc
 		}
 
 		ApiClient->Lobby.BulkGetUserPresence(PartyMemberUid,
-			THandler<FAccelByteModelsBulkUserStatusNotif>::CreateRaw(this, &FOnlineAsyncTaskAccelByteJoinV1Party::OnGetUserPresenceComplete),
+			TDelegateUtils<THandler<FAccelByteModelsBulkUserStatusNotif>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteJoinV1Party::OnGetUserPresenceComplete),
 			FErrorHandler::CreateLambda([this](int32 Code, FString const& ErrMsg)
 			{
 				AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Could not query party member presence"));

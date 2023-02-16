@@ -23,8 +23,8 @@ void FOnlineAsyncTaskAccelByteChatJoinPublicRoom::Initialize()
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 
 	const AccelByte::Api::Chat::FChatActionTopicResponse OnJoinPublicRoomSuccessDelegate =
-		AccelByte::Api::Chat::FChatActionTopicResponse::CreateRaw(this, &FOnlineAsyncTaskAccelByteChatJoinPublicRoom::OnJoinPublicRoomSuccess);
-	const FErrorHandler OnJoinPublicRoomErrorDelegate = FErrorHandler::CreateRaw(this, &FOnlineAsyncTaskAccelByteChatJoinPublicRoom::OnJoinPublicRoomError);
+		TDelegateUtils<AccelByte::Api::Chat::FChatActionTopicResponse>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteChatJoinPublicRoom::OnJoinPublicRoomSuccess);
+	const FErrorHandler OnJoinPublicRoomErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteChatJoinPublicRoom::OnJoinPublicRoomError);
 
 	ApiClient->Chat.JoinTopic(RoomId, OnJoinPublicRoomSuccessDelegate, OnJoinPublicRoomErrorDelegate);
 
@@ -98,8 +98,8 @@ void FOnlineAsyncTaskAccelByteChatJoinPublicRoom::OnJoinPublicRoomSuccess(const 
 
 	// query topic to get members
 	const FOnChatQueryRoomByIdComplete OnJoinPublicRoomSuccessDelegate =
-		FOnChatQueryRoomByIdComplete::CreateRaw(this, &FOnlineAsyncTaskAccelByteChatJoinPublicRoom::OnQueryTopicByIdAfterJoinRoomSuccess);
-	const FErrorHandler OnJoinPublicRoomErrorDelegate = FErrorHandler::CreateRaw(this, &FOnlineAsyncTaskAccelByteChatJoinPublicRoom::OnJoinPublicRoomError);
+		TDelegateUtils<FOnChatQueryRoomByIdComplete>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteChatJoinPublicRoom::OnQueryTopicByIdAfterJoinRoomSuccess);
+	const FErrorHandler OnJoinPublicRoomErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteChatJoinPublicRoom::OnJoinPublicRoomError);
 
 	Subsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteChatQueryRoomById>(Subsystem, UserId.ToSharedRef().Get(), Response.TopicId, OnJoinPublicRoomSuccessDelegate);
 	

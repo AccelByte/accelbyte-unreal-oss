@@ -4,6 +4,7 @@
 #pragma once
 
 #include "AsyncTasks/OnlineAsyncTaskAccelByte.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteUtils.h"
 #include "OnlineSubsystemAccelByteTypes.h"
 #include "Interfaces/OnlineSessionInterface.h"
 #include "OnlineSessionSettings.h"
@@ -11,7 +12,7 @@
 /**
  * Find a single session by its ID
  */
-class FOnlineAsyncTaskAccelByteFindV2GameSessionById : public FOnlineAsyncTaskAccelByte
+class FOnlineAsyncTaskAccelByteFindV2GameSessionById : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteFindV2GameSessionById, ESPMode::ThreadSafe>
 {
 public:
 

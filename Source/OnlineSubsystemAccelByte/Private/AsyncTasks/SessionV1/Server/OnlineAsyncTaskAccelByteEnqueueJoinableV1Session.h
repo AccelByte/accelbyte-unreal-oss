@@ -4,13 +4,14 @@
 #pragma once
 
 #include "AsyncTasks/OnlineAsyncTaskAccelByte.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteUtils.h"
 #include "OnlineSubsystemAccelByteTypes.h"
 #include "OnlineSessionInterfaceV1AccelByte.h"
 
 /**
  * Task to enqueue a dedicated session as joinable on the backend, allows for backfilling through matchmaking
  */
-class FOnlineAsyncTaskAccelByteEnqueueJoinableV1Session : public FOnlineAsyncTaskAccelByte
+class FOnlineAsyncTaskAccelByteEnqueueJoinableV1Session : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteEnqueueJoinableV1Session, ESPMode::ThreadSafe>
 {
 public:
 

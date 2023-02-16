@@ -5,13 +5,14 @@
 #pragma once
 
 #include "AsyncTasks/OnlineAsyncTaskAccelByte.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteUtils.h"
 #include "OnlineSubsystemAccelByteTypes.h"
 #include "OnlineSessionInterfaceV1AccelByte.h"
 
 /**
  * Async task to update dedicated or P2P game settings through the SessionBrowser APIs.
  */
-class FOnlineAsyncTaskAccelByteUpdateV1GameSettings : public FOnlineAsyncTaskAccelByte
+class FOnlineAsyncTaskAccelByteUpdateV1GameSettings : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteUpdateV1GameSettings, ESPMode::ThreadSafe>
 {
 public:
 

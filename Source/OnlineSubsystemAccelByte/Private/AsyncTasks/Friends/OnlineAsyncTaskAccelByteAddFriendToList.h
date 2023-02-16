@@ -4,6 +4,7 @@
 #pragma once
 
 #include "AsyncTasks/OnlineAsyncTaskAccelByte.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteUtils.h"
 #include "OnlineSubsystemAccelByteTypes.h"
 #include "Models/AccelByteUserModels.h"
 #include "OnlineUserCacheAccelByte.h"
@@ -11,7 +12,7 @@
 /**
  * Task used by real time notification methods to add a new friend entry to the friends list based on invite status
  */
-class FOnlineAsyncTaskAccelByteAddFriendToList : public FOnlineAsyncTaskAccelByte
+class FOnlineAsyncTaskAccelByteAddFriendToList : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteAddFriendToList, ESPMode::ThreadSafe>
 {
 public:
 

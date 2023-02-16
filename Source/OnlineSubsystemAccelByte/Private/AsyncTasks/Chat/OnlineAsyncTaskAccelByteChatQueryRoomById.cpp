@@ -23,8 +23,8 @@ void FOnlineAsyncTaskAccelByteChatQueryRoomById::Initialize()
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 
 	const AccelByte::Api::Chat::FQueryTopicByIdResponse OnQueryRoomSuccessDelegate =
-		AccelByte::Api::Chat::FQueryTopicByIdResponse::CreateRaw(this, &FOnlineAsyncTaskAccelByteChatQueryRoomById::OnQueryRoomSuccess);
-	const FErrorHandler OnQueryRoomErrorDelegate = FErrorHandler::CreateRaw(this, &FOnlineAsyncTaskAccelByteChatQueryRoomById::OnQueryRoomError);
+		TDelegateUtils<AccelByte::Api::Chat::FQueryTopicByIdResponse>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteChatQueryRoomById::OnQueryRoomSuccess);
+	const FErrorHandler OnQueryRoomErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteChatQueryRoomById::OnQueryRoomError);
 
 	ApiClient->Chat.QueryTopicById(RoomId, OnQueryRoomSuccessDelegate, OnQueryRoomErrorDelegate);
 
@@ -101,7 +101,7 @@ void FOnlineAsyncTaskAccelByteChatQueryRoomById::OnQueryRoomSuccess(const FAccel
 		return;
 	}
 
-	FOnQueryUsersComplete OnQueryUsersCompleteDelegate = FOnQueryUsersComplete::CreateRaw(this, &FOnlineAsyncTaskAccelByteChatQueryRoomById::OnQueryMemberInformationComplete);
+	FOnQueryUsersComplete OnQueryUsersCompleteDelegate = TDelegateUtils<FOnQueryUsersComplete>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteChatQueryRoomById::OnQueryMemberInformationComplete);
 	UserStore->QueryUsersByAccelByteIds(LocalUserNum, UserIds, OnQueryUsersCompleteDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

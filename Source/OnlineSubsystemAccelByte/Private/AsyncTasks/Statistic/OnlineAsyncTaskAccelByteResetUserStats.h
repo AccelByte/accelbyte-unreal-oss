@@ -4,9 +4,10 @@
 
 #pragma once
 #include "AsyncTasks/OnlineAsyncTaskAccelByte.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteUtils.h"
 #include "Models/AccelByteStatisticModels.h"
 
-class FOnlineAsyncTaskAccelByteResetUserStats : public FOnlineAsyncTaskAccelByte
+class FOnlineAsyncTaskAccelByteResetUserStats : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteResetUserStats, ESPMode::ThreadSafe>
 {
 public:
 	FOnlineAsyncTaskAccelByteResetUserStats(FOnlineSubsystemAccelByte* const InABInterface

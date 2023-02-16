@@ -4,13 +4,14 @@
 #pragma once
 
 #include "AsyncTasks/OnlineAsyncTaskAccelByte.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteUtils.h"
 #include "OnlineSubsystemAccelByteTypes.h"
 #include "Models/AccelByteLobbyModels.h"
 
 /**
  * Async task to attempt to delete a friend from the user's friends list on the backend.
  */
-class FOnlineAsyncTaskAccelByteDeleteFriend : public FOnlineAsyncTaskAccelByte
+class FOnlineAsyncTaskAccelByteDeleteFriend : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteDeleteFriend, ESPMode::ThreadSafe>
 {
 public:
 

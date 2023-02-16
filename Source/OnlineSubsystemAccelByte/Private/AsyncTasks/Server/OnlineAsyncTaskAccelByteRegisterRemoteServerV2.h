@@ -4,13 +4,14 @@
 #pragma once
 
 #include "AsyncTasks/OnlineAsyncTaskAccelByte.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteUtils.h"
 #include "OnlineSubsystemAccelByteTypes.h"
 #include "OnlineSessionInterfaceV2AccelByte.h"
 
 /**
  * Register a server spawned in the cloud to Armada for a session to claim
  */
-class FOnlineAsyncTaskAccelByteRegisterRemoteServerV2 : public FOnlineAsyncTaskAccelByte
+class FOnlineAsyncTaskAccelByteRegisterRemoteServerV2 : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteRegisterRemoteServerV2, ESPMode::ThreadSafe>
 {
 public:
 

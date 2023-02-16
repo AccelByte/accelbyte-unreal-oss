@@ -4,11 +4,12 @@
 #pragma once
 
 #include "OnlineAsyncTaskAccelByte.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteUtils.h"
 
 /**
  * Async task to send free form notification.
  */
-class FOnlineAsyncTaskAccelByteSendFreeFormNotification : public FOnlineAsyncTaskAccelByte
+class FOnlineAsyncTaskAccelByteSendFreeFormNotification : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteSendFreeFormNotification, ESPMode::ThreadSafe>
 {
 public:
 

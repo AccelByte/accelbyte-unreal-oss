@@ -4,6 +4,7 @@
 #pragma once
 
 #include "AsyncTasks/OnlineAsyncTaskAccelByte.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteUtils.h"
 #include "OnlineSubsystemAccelByteTypes.h"
 #include "Models/AccelByteLobbyModels.h"
 #include "Interfaces/OnlineFriendsInterface.h"
@@ -12,7 +13,7 @@
 /**
  * Task to send a friend request to a user
  */
-class FOnlineAsyncTaskAccelByteSendFriendInvite : public FOnlineAsyncTaskAccelByte
+class FOnlineAsyncTaskAccelByteSendFriendInvite : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteSendFriendInvite, ESPMode::ThreadSafe>
 {
 public:
 

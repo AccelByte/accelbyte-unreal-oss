@@ -4,13 +4,14 @@
 #pragma once
 
 #include "AsyncTasks/OnlineAsyncTaskAccelByte.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteUtils.h"
 #include "OnlineSubsystemAccelByteTypes.h"
 #include "Interfaces/OnlineSessionInterface.h"
 
 /**
  * Task to send a request to backend that we wish to join the session associated with SessionName
  */
-class FOnlineAsyncTaskAccelByteJoinV2GameSession : public FOnlineAsyncTaskAccelByte
+class FOnlineAsyncTaskAccelByteJoinV2GameSession : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteJoinV2GameSession, ESPMode::ThreadSafe>
 {
 public:
 

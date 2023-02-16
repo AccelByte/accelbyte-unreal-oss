@@ -23,8 +23,8 @@ void FOnlineAsyncTaskAccelByteBanUser::Initialize()
 	const IOnlineSessionPtr SessionInterface = Subsystem->GetSessionInterface();
 	check(SessionInterface != nullptr);
 
-	const FVoidHandler OnSuccessDelegate = FVoidHandler::CreateRaw(this, &FOnlineAsyncTaskAccelByteBanUser::OnSuccess);
-    const FErrorHandler OnFailedDelegate = FErrorHandler::CreateRaw(this, &FOnlineAsyncTaskAccelByteBanUser::OnFailed);
+	const FVoidHandler OnSuccessDelegate = TDelegateUtils<FVoidHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteBanUser::OnSuccess);
+    const FErrorHandler OnFailedDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteBanUser::OnFailed);
 
 	TArray<FString> UserIds;
 	UserIds.Add(UserId);

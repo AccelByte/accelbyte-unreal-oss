@@ -5,6 +5,7 @@
 #pragma once
 
 #include "AsyncTasks/OnlineAsyncTaskAccelByte.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteUtils.h"
 #include "OnlineSubsystemAccelByteTypes.h"
 #include "OnlineUserCloudInterfaceAccelByte.h"
 #include "Models/AccelByteCloudStorageModels.h"
@@ -12,7 +13,7 @@
 /**
  * Async task to get information about all files that a user has in their cloud store
  */
-class FOnlineAsyncTaskAccelByteEnumerateUserFiles : public FOnlineAsyncTaskAccelByte
+class FOnlineAsyncTaskAccelByteEnumerateUserFiles : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteEnumerateUserFiles, ESPMode::ThreadSafe>
 {
 public:
 

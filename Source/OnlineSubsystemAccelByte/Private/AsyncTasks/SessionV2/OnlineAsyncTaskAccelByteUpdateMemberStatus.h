@@ -4,13 +4,14 @@
 #pragma once
 
 #include "AsyncTasks/OnlineAsyncTaskAccelByte.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteUtils.h"
 #include "OnlineSubsystemAccelByteTypes.h"
 #include "OnlineSessionInterfaceV2AccelByte.h"
 
 /**
  * Server async task to update the status of a member of a session.
  */
-class FOnlineAsyncTaskAccelByteUpdateMemberStatus : public FOnlineAsyncTaskAccelByte
+class FOnlineAsyncTaskAccelByteUpdateMemberStatus : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteUpdateMemberStatus, ESPMode::ThreadSafe>
 {
 public:
 

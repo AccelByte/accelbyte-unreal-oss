@@ -4,13 +4,14 @@
 #pragma once
 
 #include "AsyncTasks/OnlineAsyncTaskAccelByte.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteUtils.h"
 #include "OnlineSubsystemAccelByteTypes.h"
 #include "OnlineEntitlementsInterfaceAccelByte.h"
 
 /**
  * Async task to Synchronize DLC using the DLC sync API call respective to the user's platform.
  */
-class FOnlineAsyncTaskAccelByteSyncDLC : public FOnlineAsyncTaskAccelByte
+class FOnlineAsyncTaskAccelByteSyncDLC : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteSyncDLC, ESPMode::ThreadSafe>
 {
 public:
 

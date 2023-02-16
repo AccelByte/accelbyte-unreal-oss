@@ -5,6 +5,7 @@
 #pragma once
 
 #include "AsyncTasks/OnlineAsyncTaskAccelByte.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteUtils.h"
 #include "OnlineUserInterfaceAccelByte.h"
 #include "Models/AccelByteUserModels.h"
 
@@ -12,7 +13,7 @@
  * Async task fired by FOnlineUserAccelByte::QueryExternalIdMappings to query the backend to map a platform user ID to
  * an AccelByte user ID.
  */
-class FOnlineAsyncTaskAccelByteQueryExternalIdMappings : public FOnlineAsyncTaskAccelByte
+class FOnlineAsyncTaskAccelByteQueryExternalIdMappings : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteQueryExternalIdMappings, ESPMode::ThreadSafe>
 {
 public:
 

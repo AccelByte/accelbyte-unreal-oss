@@ -97,8 +97,8 @@ void FOnlineAsyncTaskAccelByteQueryUsersByIds::Initialize()
 		EAccelBytePlatformType ABPlatformType;
 		if (Subsystem->GetAccelBytePlatformTypeFromAuthType(PlatformType, ABPlatformType))
 		{
-			const THandler<FBulkPlatformUserIdResponse> OnBulkGetUserSuccess = THandler<FBulkPlatformUserIdResponse>::CreateRaw(this, &FOnlineAsyncTaskAccelByteQueryUsersByIds::OnBulkQueryPlatformIdMappingsSuccess);
-			const FErrorHandler OnBulkGetUserError = FErrorHandler::CreateRaw(this, &FOnlineAsyncTaskAccelByteQueryUsersByIds::OnBulkQueryPlatformIdMappingsError);
+			const THandler<FBulkPlatformUserIdResponse> OnBulkGetUserSuccess = TDelegateUtils<THandler<FBulkPlatformUserIdResponse>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryUsersByIds::OnBulkQueryPlatformIdMappingsSuccess);
+			const FErrorHandler OnBulkGetUserError = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryUsersByIds::OnBulkQueryPlatformIdMappingsError);
 			ApiClient->User.BulkGetUserByOtherPlatformUserIds(ABPlatformType, UserIds, OnBulkGetUserSuccess, OnBulkGetUserError);
 		}
 	}
@@ -209,8 +209,8 @@ void FOnlineAsyncTaskAccelByteQueryUsersByIds::GetBasicUserInfo(const TArray<FSt
 		return;
 	}
 
-	const THandler<FListBulkUserInfo> OnBulkGetBasicUserInfoSuccessDelegate = THandler<FListBulkUserInfo>::CreateRaw(this, &FOnlineAsyncTaskAccelByteQueryUsersByIds::OnGetBasicUserInfoSuccess);
-	const FErrorHandler OnBulkGetBasicUserInfoErrorDelegate = FErrorHandler::CreateRaw(this, &FOnlineAsyncTaskAccelByteQueryUsersByIds::OnGetBasicUserInfoError);
+	const THandler<FListBulkUserInfo> OnBulkGetBasicUserInfoSuccessDelegate = TDelegateUtils<THandler<FListBulkUserInfo>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryUsersByIds::OnGetBasicUserInfoSuccess);
+	const FErrorHandler OnBulkGetBasicUserInfoErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryUsersByIds::OnGetBasicUserInfoError);
 	ApiClient->User.BulkGetUserInfo(UsersToQuery, OnBulkGetBasicUserInfoSuccessDelegate, OnBulkGetBasicUserInfoErrorDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

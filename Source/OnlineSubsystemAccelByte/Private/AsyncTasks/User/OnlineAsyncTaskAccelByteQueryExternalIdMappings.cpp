@@ -51,8 +51,8 @@ void FOnlineAsyncTaskAccelByteQueryExternalIdMappings::Initialize()
 		return;
 	}
 
-	const THandler<FBulkPlatformUserIdResponse> OnBulkGetUserByOtherPlatformIdsSuccessDelegate = THandler<FBulkPlatformUserIdResponse>::CreateRaw(this, &FOnlineAsyncTaskAccelByteQueryExternalIdMappings::OnBulkGetUserByOtherPlatformIdsSuccess);
-	const FErrorHandler OnBulkGetUserByOtherPlatformIdsErrorDelegate = FErrorHandler::CreateRaw(this, &FOnlineAsyncTaskAccelByteQueryExternalIdMappings::OnBulkGetUserByOtherPlatformIdsError);
+	const THandler<FBulkPlatformUserIdResponse> OnBulkGetUserByOtherPlatformIdsSuccessDelegate = TDelegateUtils<THandler<FBulkPlatformUserIdResponse>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryExternalIdMappings::OnBulkGetUserByOtherPlatformIdsSuccess);
+	const FErrorHandler OnBulkGetUserByOtherPlatformIdsErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryExternalIdMappings::OnBulkGetUserByOtherPlatformIdsError);
 	ApiClient->User.BulkGetUserByOtherPlatformUserIds(static_cast<EAccelBytePlatformType>(Result), InitialExternalIds, OnBulkGetUserByOtherPlatformIdsSuccessDelegate, OnBulkGetUserByOtherPlatformIdsErrorDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

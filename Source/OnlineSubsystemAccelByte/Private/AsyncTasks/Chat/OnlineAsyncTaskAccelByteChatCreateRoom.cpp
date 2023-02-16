@@ -23,8 +23,8 @@ void FOnlineAsyncTaskAccelByteChatCreateRoom::Initialize()
 	TSet<FString> UserIds = { UserId->GetAccelByteId() };
 	
 	const AccelByte::Api::Chat::FChatActionTopicResponse OnCreateGroupTopicSuccessDelegate =
-		AccelByte::Api::Chat::FChatActionTopicResponse::CreateRaw(this, &FOnlineAsyncTaskAccelByteChatCreateRoom::OnCreateGroupTopicSuccess);
-	const FErrorHandler OnCreateGroupTopicErrorDelegate = FErrorHandler::CreateRaw(this, &FOnlineAsyncTaskAccelByteChatCreateRoom::OnCreateGroupTopicError);
+		TDelegateUtils<AccelByte::Api::Chat::FChatActionTopicResponse>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteChatCreateRoom::OnCreateGroupTopicSuccess);
+	const FErrorHandler OnCreateGroupTopicErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteChatCreateRoom::OnCreateGroupTopicError);
 
 	// #NOTE Passing UserIds as both members and admins, since the creating user should be both
 	ApiClient->Chat.CreateGroupTopic(UserIds, UserIds, ChatRoomConfig.FriendlyName, ChatRoomConfig.bIsJoinable, OnCreateGroupTopicSuccessDelegate, OnCreateGroupTopicErrorDelegate);

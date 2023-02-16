@@ -5,12 +5,13 @@
 #pragma once
 
 #include "AsyncTasks/OnlineAsyncTaskAccelByte.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteUtils.h"
 #include "OnlineSubsystemAccelByteTypes.h"
 #include "OnlineUserInterfaceAccelByte.h"
 #include "Models/AccelByteUserModels.h"
 #include "OnlineUserCacheAccelByte.h"
 
-class FOnlineAsyncTaskAccelByteQueryUserInfo : public FOnlineAsyncTaskAccelByte
+class FOnlineAsyncTaskAccelByteQueryUserInfo : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteQueryUserInfo, ESPMode::ThreadSafe>
 {
 public:
 

@@ -4,6 +4,7 @@
 #pragma once
 
 #include "AsyncTasks/OnlineAsyncTaskAccelByte.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteUtils.h"
 #include "OnlineSubsystemAccelByteTypes.h"
 #include "OnlineSessionInterfaceV2AccelByte.h"
 #include "Models/AccelByteMatchmakingModels.h"
@@ -11,7 +12,7 @@
 /**
  * Task to accept a backfill proposal received from matchmaking
  */
-class FOnlineAsyncTaskAccelByteAcceptBackfillProposal : public FOnlineAsyncTaskAccelByte
+class FOnlineAsyncTaskAccelByteAcceptBackfillProposal : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteAcceptBackfillProposal, ESPMode::ThreadSafe>
 {
 public:
 

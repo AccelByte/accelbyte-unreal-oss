@@ -24,8 +24,8 @@ void FOnlineAsyncTaskAccelByteRedeemCode::Initialize()
 		return;
 	}
 
-	THandler<FAccelByteModelsFulfillmentResult> OnSuccess = THandler<FAccelByteModelsFulfillmentResult>::CreateRaw(this, &FOnlineAsyncTaskAccelByteRedeemCode::HandleRedeemCodeComplete);
-	FErrorHandler OnError = FErrorHandler::CreateRaw(this, &FOnlineAsyncTaskAccelByteRedeemCode::HandleAsyncTaskError);
+	THandler<FAccelByteModelsFulfillmentResult> OnSuccess = TDelegateUtils<THandler<FAccelByteModelsFulfillmentResult>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteRedeemCode::HandleRedeemCodeComplete);
+	FErrorHandler OnError = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteRedeemCode::HandleAsyncTaskError);
 	ApiClient->Fulfillment.RedeemCode(RedeemCodeRequest.Code, TEXT(""), Language, OnSuccess, OnError);
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }

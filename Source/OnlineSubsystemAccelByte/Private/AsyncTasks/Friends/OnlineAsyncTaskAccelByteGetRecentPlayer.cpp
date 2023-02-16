@@ -24,8 +24,8 @@ void FOnlineAsyncTaskAccelByteGetRecentPlayer::Initialize()
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("UserId: %s, Namespace: %s"), *UserId->ToDebugString(), *Namespace);
 
-	const THandler<FAccelByteModelsSessionBrowserRecentPlayerGetResult> SuccessDelegate = THandler<FAccelByteModelsSessionBrowserRecentPlayerGetResult>::CreateRaw(this, &FOnlineAsyncTaskAccelByteGetRecentPlayer::OnGetRecentPlayerSuccess);
-	const FErrorHandler ErrorDelegate = FErrorHandler::CreateRaw(this, &FOnlineAsyncTaskAccelByteGetRecentPlayer::OnGetRecentPlayerError);
+	const THandler<FAccelByteModelsSessionBrowserRecentPlayerGetResult> SuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsSessionBrowserRecentPlayerGetResult>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteGetRecentPlayer::OnGetRecentPlayerSuccess);
+	const FErrorHandler ErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteGetRecentPlayer::OnGetRecentPlayerError);
 
 	// #AB (apin) limit only for 50 for splitgate
 	ApiClient->SessionBrowser.GetRecentPlayer(UserId->GetAccelByteId(), SuccessDelegate, ErrorDelegate, 0, 50);
@@ -80,7 +80,7 @@ void FOnlineAsyncTaskAccelByteGetRecentPlayer::OnGetRecentPlayerSuccess(const FA
 		return;
 	}
 
-	FOnQueryUsersComplete OnQueryRecentPlayersCompleteDelegate = FOnQueryUsersComplete::CreateRaw(this, &FOnlineAsyncTaskAccelByteGetRecentPlayer::OnQueryRecentPlayersComplete);
+	FOnQueryUsersComplete OnQueryRecentPlayersCompleteDelegate = TDelegateUtils<FOnQueryUsersComplete>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteGetRecentPlayer::OnQueryRecentPlayersComplete);
 	UserStore->QueryUsersByAccelByteIds(LocalUserNum, UsersToQuery, OnQueryRecentPlayersCompleteDelegate, true);
 }
 

@@ -4,6 +4,7 @@
 #pragma once
 
 #include "AsyncTasks/OnlineAsyncTaskAccelByte.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteUtils.h"
 #include "OnlineSubsystemAccelByteTypes.h"
 #include "Models/AccelByteSessionModels.h"
 #include "OnlineSessionInterfaceV2AccelByte.h"
@@ -11,7 +12,7 @@
 /**
  * Async task to kick a player from a party session
  */
-class FOnlineAsyncTaskAccelByteKickV2Party : public FOnlineAsyncTaskAccelByte
+class FOnlineAsyncTaskAccelByteKickV2Party : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteKickV2Party, ESPMode::ThreadSafe>
 {
 public:
 

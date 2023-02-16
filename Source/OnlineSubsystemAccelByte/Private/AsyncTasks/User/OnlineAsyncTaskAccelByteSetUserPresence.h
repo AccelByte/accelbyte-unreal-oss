@@ -12,7 +12,8 @@
 /**
  * Async task to set user presence using Lobby API.
  */
-class FOnlineAsyncTaskAccelByteSetUserPresence : public FOnlineAsyncTaskAccelByte {
+class FOnlineAsyncTaskAccelByteSetUserPresence : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteSetUserPresence, ESPMode::ThreadSafe>
+{
 public:
 
 	FOnlineAsyncTaskAccelByteSetUserPresence(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InLocalUserId, const FOnlineUserPresenceStatus& InStatus, const IOnlinePresence::FOnPresenceTaskCompleteDelegate& InDelegate);

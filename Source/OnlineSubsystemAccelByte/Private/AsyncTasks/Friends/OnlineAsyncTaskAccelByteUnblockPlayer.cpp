@@ -23,7 +23,7 @@ void FOnlineAsyncTaskAccelByteUnblockPlayer::Initialize()
 
 	// Unblocking a player is straightforward as we just will send the request to unblock them and delete the entry from
 	// the blocked players list if the unblock call is successful
-	AccelByte::Api::Lobby::FUnblockPlayerResponse OnUnblockPlayerResponseDelegate = AccelByte::Api::Lobby::FUnblockPlayerResponse::CreateRaw(this, &FOnlineAsyncTaskAccelByteUnblockPlayer::OnUnblockPlayerResponse);
+	AccelByte::Api::Lobby::FUnblockPlayerResponse OnUnblockPlayerResponseDelegate = TDelegateUtils<AccelByte::Api::Lobby::FUnblockPlayerResponse>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteUnblockPlayer::OnUnblockPlayerResponse);
 	ApiClient->Lobby.SetUnblockPlayerResponseDelegate(OnUnblockPlayerResponseDelegate);
 	ApiClient->Lobby.UnblockPlayer(PlayerId->GetAccelByteId());
 

@@ -37,7 +37,7 @@ void FOnlineAsyncTaskAccelByteBlockPlayer::Initialize()
 	FoundFriend = FriendsInterface->GetFriend(LocalUserNum, PlayerId.Get(), EFriendsLists::ToString(EFriendsLists::Default));
 
 	// Now, send the request to block the player through the lobby websocket
-	AccelByte::Api::Lobby::FBlockPlayerResponse OnBlockPlayerResponseDelegate = AccelByte::Api::Lobby::FBlockPlayerResponse::CreateRaw(this, &FOnlineAsyncTaskAccelByteBlockPlayer::OnBlockPlayerResponse);
+	AccelByte::Api::Lobby::FBlockPlayerResponse OnBlockPlayerResponseDelegate = TDelegateUtils<AccelByte::Api::Lobby::FBlockPlayerResponse>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteBlockPlayer::OnBlockPlayerResponse);
 	ApiClient->Lobby.SetBlockPlayerResponseDelegate(OnBlockPlayerResponseDelegate);
 	ApiClient->Lobby.BlockPlayer(PlayerId->GetAccelByteId());
 
@@ -146,7 +146,7 @@ void FOnlineAsyncTaskAccelByteBlockPlayer::OnBlockPlayerResponse(const FAccelByt
 				return;
 			}
 
-			FOnQueryUsersComplete OnQueryBlockedPlayerCompleteDelegate = FOnQueryUsersComplete::CreateRaw(this, &FOnlineAsyncTaskAccelByteBlockPlayer::OnQueryBlockedPlayerComplete);
+			FOnQueryUsersComplete OnQueryBlockedPlayerCompleteDelegate = TDelegateUtils<FOnQueryUsersComplete>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteBlockPlayer::OnQueryBlockedPlayerComplete);
 			UserStore->QueryUsersByAccelByteIds(LocalUserNum, { PlayerId->GetAccelByteId() }, OnQueryBlockedPlayerCompleteDelegate, true);
 		}
 	}

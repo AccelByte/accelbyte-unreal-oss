@@ -114,8 +114,8 @@ void FOnlineAsyncTaskAccelByteFindGameSessionsV2::QueryResultsPage(int32 Offset)
 	}
 
 	// Make call to query game sessions from offset with user defined limit
-	const THandler<FAccelByteModelsV2PaginatedGameSessionQueryResult> OnQueryGameSessionsSuccessDelegate = THandler<FAccelByteModelsV2PaginatedGameSessionQueryResult>::CreateRaw(this, &FOnlineAsyncTaskAccelByteFindGameSessionsV2::OnQueryGameSessionsSuccess, Offset);
-	const FErrorHandler OnQueryGameSessionsErrorDelegate = FErrorHandler::CreateRaw(this, &FOnlineAsyncTaskAccelByteFindGameSessionsV2::OnQueryGameSessionsError);
+	const THandler<FAccelByteModelsV2PaginatedGameSessionQueryResult> OnQueryGameSessionsSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsV2PaginatedGameSessionQueryResult>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteFindGameSessionsV2::OnQueryGameSessionsSuccess, Offset);
+	const FErrorHandler OnQueryGameSessionsErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteFindGameSessionsV2::OnQueryGameSessionsError);
 
 	const int32 Limit = FMath::Min(ResultsRemaining, ResultsPerPage);
 	ApiClient->Session.QueryGameSessions(QueryStruct, OnQueryGameSessionsSuccessDelegate, OnQueryGameSessionsErrorDelegate, Offset, Limit);

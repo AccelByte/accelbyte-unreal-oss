@@ -3,12 +3,14 @@
 // and restrictions contact your company contract manager.
 #pragma once
 
+#include "iostream"
+#include "typeinfo"
 #include "OnlineAsyncTaskManager.h"
 #include "OnlineSubsystemAccelByteModule.h"
 #include "OnlineSubsystemAccelByteInternalHelpers.h"
+#include "OnlineSubsystemAccelByteTypes.h"
 #include "Engine/LocalPlayer.h"
 #include <Core/AccelByteMultiRegistry.h>
-#include <OnlineSubsystemAccelByteTypes.h>
 #include <OnlineIdentityInterfaceAccelByte.h>
 #include <OnlineSubsystemAccelByte.h>
 #include <Interfaces/OnlineStatsInterface.h>
@@ -178,7 +180,7 @@ public:
 	{
 		if (HasTaskTimedOut())
 		{
-			UE_LOG(LogAccelByteOSS, Warning, TEXT("Task has been idle for longer than %d s"), TaskTimeoutInSeconds);
+			UE_LOG(LogAccelByteOSS, Warning, TEXT("Task %s has been idle for longer than %f s"), *GetTaskName(), TaskTimeoutInSeconds);
 			if (bShouldUseTimeout)
 			{
 				CompleteTask(EAccelByteAsyncTaskCompleteState::TimedOut);
@@ -247,7 +249,7 @@ protected:
 	bool bShouldUseTimeout = false;
 
 	/** Time in seconds since the last time an async portion of a task has updated its timeout */
-	double LastTaskUpdateInSeconds = 0.0;
+	double LastTaskUpdateInSeconds = FPlatformTime::Seconds();
 
 	/** Time in seconds that we should timeout this request, set to 30 seconds by default */
 	double TaskTimeoutInSeconds = 30.0;
@@ -390,7 +392,11 @@ protected:
 			TSharedPtr<const FUniqueNetId> PlayerId = IdentityInterface->GetUniquePlayerId(LocalUserNum);
 			if (PlayerId.IsValid())
 			{
+#ifdef ONLINESUBSYSTEMACCELBYTE_PACKAGE
 				UserId = FUniqueNetIdAccelByteUser::CastChecked(PlayerId.ToSharedRef());
+#else
+				UserId = StaticCastSharedPtr<const FUniqueNetIdAccelByteUser>(PlayerId);
+#endif
 			}
 		}
 		// Otherwise, if we have a user ID, we want to get their local user num

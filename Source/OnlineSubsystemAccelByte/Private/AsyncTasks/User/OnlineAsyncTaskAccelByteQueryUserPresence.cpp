@@ -28,8 +28,8 @@ void FOnlineAsyncTaskAccelByteQueryUserPresence::Initialize()
 	UsersToQuery.Add(TargetUserId->GetAccelByteId());
 
 	// Send off the actual request to get user presence
-	THandler<FAccelByteModelsBulkUserStatusNotif> OnQueryUserPresenceSuccessDelegate = THandler<FAccelByteModelsBulkUserStatusNotif>::CreateRaw(this, &FOnlineAsyncTaskAccelByteQueryUserPresence::OnQueryUserPresenceSuccess);
-	FErrorHandler OnQueryUserPresenceErrorDelegate = FErrorHandler::CreateRaw(this, &FOnlineAsyncTaskAccelByteQueryUserPresence::OnQueryUserPresenceError);
+	THandler<FAccelByteModelsBulkUserStatusNotif> OnQueryUserPresenceSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsBulkUserStatusNotif>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryUserPresence::OnQueryUserPresenceSuccess);
+	FErrorHandler OnQueryUserPresenceErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryUserPresence::OnQueryUserPresenceError);
 	ApiClient->Lobby.BulkGetUserPresence(UsersToQuery, OnQueryUserPresenceSuccessDelegate, OnQueryUserPresenceErrorDelegate, false);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

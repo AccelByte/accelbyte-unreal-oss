@@ -42,7 +42,7 @@ void FOnlineAsyncTaskAccelByteFindV1Sessions::Initialize()
 		SearchType = SETTING_SEARCH_TYPE_DEDICATED;
 	}
 
-	THandler<FAccelByteModelsSessionBrowserGetResult> OnSessionBrowserFindSuccessDelegate = THandler<FAccelByteModelsSessionBrowserGetResult>::CreateRaw(this, &FOnlineAsyncTaskAccelByteFindV1Sessions::OnSessionBrowserFindSuccess);
+	THandler<FAccelByteModelsSessionBrowserGetResult> OnSessionBrowserFindSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsSessionBrowserGetResult>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteFindV1Sessions::OnSessionBrowserFindSuccess);
 	FErrorHandler OnSessionBrowserFindErrorDelegate = FErrorHandler::CreateLambda([this](int32 ErrorCode, const FString& ErrorMessage) {
 		CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
 		UE_LOG_AB(Error, TEXT("Failed to find sessions! Error code: %d; Error message: %s"), ErrorCode, *ErrorMessage);

@@ -4,13 +4,14 @@
 #pragma once
 
 #include "AsyncTasks/OnlineAsyncTaskAccelByte.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteUtils.h"
 #include "OnlineSubsystemAccelByteTypes.h"
 #include "OnlineSessionInterfaceV2AccelByte.h"
 
 /**
  * Update a V2 game session instance with new settings
  */
-class FOnlineAsyncTaskAccelByteUpdateGameSessionV2 : public FOnlineAsyncTaskAccelByte
+class FOnlineAsyncTaskAccelByteUpdateGameSessionV2 : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteUpdateGameSessionV2, ESPMode::ThreadSafe>
 {
 public:
 

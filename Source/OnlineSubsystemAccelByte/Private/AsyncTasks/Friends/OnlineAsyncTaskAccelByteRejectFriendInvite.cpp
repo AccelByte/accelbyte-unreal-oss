@@ -38,7 +38,7 @@ void FOnlineAsyncTaskAccelByteRejectFriendInvite::Initialize()
 		if (InviteStatus == EInviteStatus::PendingInbound)
 		{
 			// Since this friend is a valid pointer and is a pending inbound invite, then we want to send a request to reject their invite
-			AccelByte::Api::Lobby::FRejectFriendsResponse OnRejectFriendResponseDelegate = AccelByte::Api::Lobby::FRejectFriendsResponse::CreateRaw(this, &FOnlineAsyncTaskAccelByteRejectFriendInvite::OnRejectFriendResponse);
+			AccelByte::Api::Lobby::FRejectFriendsResponse OnRejectFriendResponseDelegate = TDelegateUtils<AccelByte::Api::Lobby::FRejectFriendsResponse>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteRejectFriendInvite::OnRejectFriendResponse);
 			ApiClient->Lobby.SetRejectFriendsResponseDelegate(OnRejectFriendResponseDelegate);
 			ApiClient->Lobby.RejectFriend(FriendId->GetAccelByteId());
 			AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sent request through lobby websocket to reject a friend request."));

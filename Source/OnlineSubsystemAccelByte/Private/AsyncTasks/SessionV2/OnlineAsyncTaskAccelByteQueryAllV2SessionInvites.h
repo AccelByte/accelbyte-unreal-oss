@@ -4,6 +4,7 @@
 #pragma once
 
 #include "AsyncTasks/OnlineAsyncTaskAccelByte.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteUtils.h"
 #include "OnlineSubsystemAccelByteTypes.h"
 #include "Models/AccelByteSessionModels.h"
 #include "OnlineSessionInterfaceV2AccelByte.h"
@@ -11,7 +12,7 @@
 /**
  * Queries all invites for a player, includes both game session and party session invites. Developer then can filter those invites locally.
  */
-class FOnlineAsyncTaskAccelByteQueryAllV2SessionInvites : public FOnlineAsyncTaskAccelByte
+class FOnlineAsyncTaskAccelByteQueryAllV2SessionInvites : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteQueryAllV2SessionInvites, ESPMode::ThreadSafe>
 {
 public:
 

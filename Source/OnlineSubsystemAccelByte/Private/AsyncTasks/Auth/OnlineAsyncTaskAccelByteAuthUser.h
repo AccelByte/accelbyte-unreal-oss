@@ -6,6 +6,7 @@
 
 #include "CoreMinimal.h"
 #include "AsyncTasks/OnlineAsyncTaskAccelByte.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteUtils.h"
 
 DECLARE_DELEGATE_TwoParams(FOnAuthUSerCompleted, bool /*bWasSuccessful*/, const FString& /*UserId*/);
 
@@ -14,7 +15,7 @@ DECLARE_DELEGATE_TwoParams(FOnAuthUSerCompleted, bool /*bWasSuccessful*/, const 
  *
  * For dedicated sessions, this requires the permission "ADMIN:NAMESPACE:{namespace}:BAN:USER:{userId} [READ]".
  */
-class FOnlineAsyncTaskAccelByteAuthUser : public FOnlineAsyncTaskAccelByte
+class FOnlineAsyncTaskAccelByteAuthUser : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteAuthUser, ESPMode::ThreadSafe>
 {
 public:
 	//FGetUserBansResponse, FBanUserResponse

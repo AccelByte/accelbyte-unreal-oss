@@ -39,8 +39,8 @@ void FOnlineAsyncTaskAccelByteResetUserStats::Initialize()
 	Super::Initialize();
 
 #if !UE_BUILD_SHIPPING
-	OnBulkResetMultipleUserStatItemsValueSuccess = THandler<TArray<FAccelByteModelsUpdateUserStatItemsResponse>>::CreateRaw(this, &FOnlineAsyncTaskAccelByteResetUserStats::HandleResetStatItemsSuccess);
-	OnError = FErrorHandler::CreateRaw(this, &FOnlineAsyncTaskAccelByteResetUserStats::HandleAsyncTaskError);
+	OnBulkResetMultipleUserStatItemsValueSuccess = TDelegateUtils<THandler<TArray<FAccelByteModelsUpdateUserStatItemsResponse>>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteResetUserStats::HandleResetStatItemsSuccess);
+	OnError = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteResetUserStats::HandleAsyncTaskError);
 
 	FString AdditionalKey = TEXT("");	
 	FAccelByteModelsResetUserStatItemValue UserStatItemValue{};

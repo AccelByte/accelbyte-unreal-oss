@@ -4,6 +4,7 @@
 #pragma once
 
 #include "AsyncTasks/OnlineAsyncTaskAccelByte.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteUtils.h"
 #include "OnlineSubsystemAccelByteTypes.h"
 #include "Models/AccelByteUserModels.h"
 #include "Models/AccelByteLobbyModels.h"
@@ -13,7 +14,7 @@
  * Task to cancel a friend request to a user
  * Note: This is a custom functionality
  */
-class FOnlineAsyncTaskAccelByteRescindFriendInvite : public FOnlineAsyncTaskAccelByte
+class FOnlineAsyncTaskAccelByteRescindFriendInvite : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteRescindFriendInvite, ESPMode::ThreadSafe>
 {
 public:
 

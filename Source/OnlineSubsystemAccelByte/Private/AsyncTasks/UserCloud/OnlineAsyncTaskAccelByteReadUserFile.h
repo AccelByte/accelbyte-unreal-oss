@@ -4,13 +4,14 @@
 #pragma once
 
 #include "AsyncTasks/OnlineAsyncTaskAccelByte.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteUtils.h"
 #include "OnlineSubsystemAccelByteTypes.h"
 #include "OnlineUserCloudInterfaceAccelByte.h"
 
 /**
  * Async task to read file contents from a slot in the CloudStorage API.
  */
-class FOnlineAsyncTaskAccelByteReadUserFile : public FOnlineAsyncTaskAccelByte
+class FOnlineAsyncTaskAccelByteReadUserFile : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteReadUserFile, ESPMode::ThreadSafe>
 {
 public:
 

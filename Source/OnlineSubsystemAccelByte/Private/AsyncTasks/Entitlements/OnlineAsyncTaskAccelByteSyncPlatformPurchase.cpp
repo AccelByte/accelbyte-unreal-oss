@@ -23,8 +23,8 @@ void FOnlineAsyncTaskAccelByteSyncPlatformPurchase::Initialize()
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 	EAccelBytePlatformSync PlatformEnum = GetNavitePlatformSyncType();
 
-	FVoidHandler OnSyncPlatformPurchaseSuccessDelegate = FVoidHandler::CreateRaw(this, &FOnlineAsyncTaskAccelByteSyncPlatformPurchase::OnSyncPlatformPurchaseSuccess);
-	FErrorHandler OnSyncPlatformPurchaseErrorDelegate = FErrorHandler::CreateRaw(this, &FOnlineAsyncTaskAccelByteSyncPlatformPurchase::OnSyncPlatformPurchaseError);
+	FVoidHandler OnSyncPlatformPurchaseSuccessDelegate = TDelegateUtils<FVoidHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteSyncPlatformPurchase::OnSyncPlatformPurchaseSuccess);
+	FErrorHandler OnSyncPlatformPurchaseErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteSyncPlatformPurchase::OnSyncPlatformPurchaseError);
 	ApiClient->Entitlement.SyncPlatformPurchase(EntitlementSyncBase, PlatformEnum, OnSyncPlatformPurchaseSuccessDelegate, OnSyncPlatformPurchaseErrorDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

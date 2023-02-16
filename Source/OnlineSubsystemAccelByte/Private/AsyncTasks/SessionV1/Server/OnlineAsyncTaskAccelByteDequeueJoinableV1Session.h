@@ -4,13 +4,14 @@
 #pragma once
 
 #include "AsyncTasks/OnlineAsyncTaskAccelByte.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteUtils.h"
 #include "OnlineSubsystemAccelByteTypes.h"
 #include "OnlineSessionInterfaceV1AccelByte.h"
 
 /**
  * Task to dequeue joinable session from the backend, disabling backfill from matchmaker.
  */
-class FOnlineAsyncTaskAccelByteDequeueJoinableV1Session : public FOnlineAsyncTaskAccelByte
+class FOnlineAsyncTaskAccelByteDequeueJoinableV1Session : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteDequeueJoinableV1Session, ESPMode::ThreadSafe>
 {
 public:
 

@@ -4,6 +4,7 @@
 #pragma once
 
 #include "AsyncTasks/OnlineAsyncTaskAccelByte.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteUtils.h"
 #include "Models/AccelByteSessionModels.h"
 #include "OnlineSubsystemAccelByteTypes.h"
 #include "OnlineSessionSettings.h"
@@ -12,7 +13,7 @@
 /**
  * Async Task to reject a party session invite
  */
-class FOnlineAsyncTaskAccelByteRejectV2PartyInvite : public FOnlineAsyncTaskAccelByte
+class FOnlineAsyncTaskAccelByteRejectV2PartyInvite : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteRejectV2PartyInvite, ESPMode::ThreadSafe>
 {
 public:
 	FOnlineAsyncTaskAccelByteRejectV2PartyInvite(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InLocalUserId, const FOnlineSessionSearchResult& InInvitedSession, const FOnRejectSessionInviteComplete& InDelegate);

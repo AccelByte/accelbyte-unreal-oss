@@ -4,13 +4,14 @@
 #pragma once
 
 #include "AsyncTasks/OnlineAsyncTaskAccelByte.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteUtils.h"
 #include "OnlineSubsystemAccelByteTypes.h"
 #include "OnlineSessionInterfaceV2AccelByte.h"
 
 /**
  * Unregister a server in the cloud from the DSM
  */
-class FOnlineAsyncTaskAccelByteUnregisterRemoteServerV2 : public FOnlineAsyncTaskAccelByte
+class FOnlineAsyncTaskAccelByteUnregisterRemoteServerV2 : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteUnregisterRemoteServerV2, ESPMode::ThreadSafe>
 {
 public:
 

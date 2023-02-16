@@ -29,8 +29,8 @@ void FOnlineAsyncTaskAccelByteStartV2Matchmaking::Initialize()
 	if (!bHasCachedLatencies)
 	{
 		// If for some reason we have no latencies cached on the SDK, make a request to get latencies
-		const THandler<TArray<TPair<FString, float>>>& OnGetLatenciesSuccessDelegate = THandler<TArray<TPair<FString, float>>>::CreateRaw(this, &FOnlineAsyncTaskAccelByteStartV2Matchmaking::OnGetLatenciesSuccess);
-		const FErrorHandler& OnGetLatenciesErrorDelegate = FErrorHandler::CreateRaw(this, &FOnlineAsyncTaskAccelByteStartV2Matchmaking::OnGetLatenciesError);
+		const THandler<TArray<TPair<FString, float>>>& OnGetLatenciesSuccessDelegate = TDelegateUtils<THandler<TArray<TPair<FString, float>>>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteStartV2Matchmaking::OnGetLatenciesSuccess);
+		const FErrorHandler& OnGetLatenciesErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteStartV2Matchmaking::OnGetLatenciesError);
 
 		ApiClient->Qos.GetServerLatencies(OnGetLatenciesSuccessDelegate, OnGetLatenciesErrorDelegate);
 
@@ -120,8 +120,8 @@ void FOnlineAsyncTaskAccelByteStartV2Matchmaking::CreateMatchTicket()
 	AB_ASYNC_TASK_ENSURE(SessionInterface.IsValid(), "Failed to create match ticket as our session interface is invalid!");
 
 	// Now, create the match ticket on the backend
-	const THandler<FAccelByteModelsV2MatchmakingCreateTicketResponse> OnStartMatchmakingSuccessDelegate = THandler<FAccelByteModelsV2MatchmakingCreateTicketResponse>::CreateRaw(this, &FOnlineAsyncTaskAccelByteStartV2Matchmaking::OnStartMatchmakingSuccess);
-	const FErrorHandler OnStartMatchmakingErrorDelegate = FErrorHandler::CreateRaw(this, &FOnlineAsyncTaskAccelByteStartV2Matchmaking::OnStartMatchmakingError);
+	const THandler<FAccelByteModelsV2MatchmakingCreateTicketResponse> OnStartMatchmakingSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsV2MatchmakingCreateTicketResponse>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteStartV2Matchmaking::OnStartMatchmakingSuccess);
+	const FErrorHandler OnStartMatchmakingErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteStartV2Matchmaking::OnStartMatchmakingError);
 	
 	FAccelByteModelsV2MatchTicketOptionalParams Optionals;
 	Optionals.Latencies = ApiClient->Qos.GetCachedLatencies();	

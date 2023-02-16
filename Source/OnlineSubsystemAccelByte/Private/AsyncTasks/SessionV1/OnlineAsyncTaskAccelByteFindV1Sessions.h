@@ -5,13 +5,14 @@
 #pragma once
 
 #include "AsyncTasks/OnlineAsyncTaskAccelByte.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteUtils.h"
 #include "OnlineSubsystemAccelByteTypes.h"
 #include "OnlineSessionInterfaceV1AccelByte.h"
 
 /**
  * Async task to search for either dedicated or P2P sessions through the SessionBrowser APIs.
  */
-class FOnlineAsyncTaskAccelByteFindV1Sessions : public FOnlineAsyncTaskAccelByte
+class FOnlineAsyncTaskAccelByteFindV1Sessions : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteFindV1Sessions, ESPMode::ThreadSafe>
 {
 public:
 

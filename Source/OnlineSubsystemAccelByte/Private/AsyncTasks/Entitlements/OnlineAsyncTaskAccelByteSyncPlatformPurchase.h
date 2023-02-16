@@ -4,13 +4,14 @@
 #pragma once
 
 #include "AsyncTasks/OnlineAsyncTaskAccelByte.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteUtils.h"
 #include "OnlineEntitlementsInterfaceAccelByte.h"
 #include "Models/AccelByteEcommerceModels.h"
 
 /**
  * Async task for syncing platform purchases. Currently supports Steam, Xbox and Playstation.
  */
-class FOnlineAsyncTaskAccelByteSyncPlatformPurchase : public FOnlineAsyncTaskAccelByte 
+class FOnlineAsyncTaskAccelByteSyncPlatformPurchase : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteSyncPlatformPurchase, ESPMode::ThreadSafe>
 {
 public:
 

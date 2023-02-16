@@ -4,13 +4,14 @@
 #pragma once
 
 #include "AsyncTasks/OnlineAsyncTaskAccelByte.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteUtils.h"
 #include "OnlineSubsystemAccelByteTypes.h"
 #include "Models/AccelByteLobbyModels.h"
 
 /**
  * Async task to attempt to reject a friend request from the backend.
  */
-class FOnlineAsyncTaskAccelByteRejectFriendInvite : public FOnlineAsyncTaskAccelByte
+class FOnlineAsyncTaskAccelByteRejectFriendInvite : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteRejectFriendInvite, ESPMode::ThreadSafe>
 {
 public:
 

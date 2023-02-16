@@ -4,6 +4,7 @@
 #pragma once
 
 #include "AsyncTasks/OnlineAsyncTaskAccelByte.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteUtils.h"
 #include "OnlineSubsystemAccelByteTypes.h"
 #include "Models/AccelByteLobbyModels.h"
 #include "Models/AccelByteUserModels.h"
@@ -12,7 +13,7 @@
 /**
  * Task to get a list of all users that the user has blocked
  */
-class FOnlineAsyncTaskAccelByteQueryBlockedPlayers : public FOnlineAsyncTaskAccelByte
+class FOnlineAsyncTaskAccelByteQueryBlockedPlayers : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteQueryBlockedPlayers, ESPMode::ThreadSafe>
 {
 public:
 
