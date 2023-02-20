@@ -147,7 +147,7 @@ public:
 	 * 
 	 * @param InBShouldUseTimeout Whether any child of this task will by default use a timeout mechanism on Tick
 	 */
-	explicit FOnlineAsyncTaskAccelByte(FOnlineSubsystemAccelByte* const InABSubsystem, bool bInShouldUseTimeout=false)
+	explicit FOnlineAsyncTaskAccelByte(FOnlineSubsystemAccelByte* const InABSubsystem, bool bInShouldUseTimeout=true)
 		: FOnlineAsyncTaskAccelByte(InABSubsystem, (bInShouldUseTimeout) ? ASYNC_TASK_FLAG_BIT(EAccelByteAsyncTaskFlags::UseTimeout) : ASYNC_TASK_FLAG_BIT(EAccelByteAsyncTaskFlags::None))
 	{
 	}
