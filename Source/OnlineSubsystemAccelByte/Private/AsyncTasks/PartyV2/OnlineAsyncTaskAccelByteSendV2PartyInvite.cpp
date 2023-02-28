@@ -36,16 +36,16 @@ void FOnlineAsyncTaskAccelByteSendV2PartyInvite::Initialize()
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 
-void FOnlineAsyncTaskAccelByteSendV2PartyInvite::Finalize()
-{
-	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
-
-	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
-}
-
 void FOnlineAsyncTaskAccelByteSendV2PartyInvite::TriggerDelegates()
 {
+	Super::TriggerDelegates();
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
+
+	FOnlineSessionV2AccelBytePtr SessionInterface = nullptr;
+	check(FOnlineSessionV2AccelByte::GetFromSubsystem(Subsystem, SessionInterface));
+
+	SessionInterface->TriggerOnSendSessionInviteCompleteDelegates(UserId.ToSharedRef().Get(), SessionName, bWasSuccessful, RecipientId.Get());
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }

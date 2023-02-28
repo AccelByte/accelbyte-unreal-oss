@@ -114,6 +114,11 @@ FUniqueNetIdAccelByteResource::FUniqueNetIdAccelByteResource(FString&& InUniqueN
 {
 }
 
+FUniqueNetIdAccelByteResource::FUniqueNetIdAccelByteResource(const FString& InUniqueNetId, const FName InType)
+	: FUniqueNetIdString(InUniqueNetId, InType)
+{
+}
+
 FUniqueNetIdAccelByteResourceRef FUniqueNetIdAccelByteResource::Cast(const FUniqueNetId& NetId)
 {
 	if (ensure(NetId.GetType() == ACCELBYTE_RESOURCE_ID_TYPE))
@@ -179,14 +184,14 @@ FUniqueNetIdAccelByteResourceRef FUniqueNetIdAccelByteResource::CastChecked(cons
 
 FUniqueNetIdAccelByteUser::FUniqueNetIdAccelByteUser()
 PRAGMA_DISABLE_DEPRECATION_WARNINGS
-	: FUniqueNetIdAccelByteResource()
+	: FUniqueNetIdAccelByteResource(TEXT(""), ACCELBYTE_USER_ID_TYPE)
 PRAGMA_ENABLE_DEPRECATION_WARNINGS
 {
 }
 
 FUniqueNetIdAccelByteUser::FUniqueNetIdAccelByteUser(const FString& InUniqueNetId)
 PRAGMA_DISABLE_DEPRECATION_WARNINGS
-	: FUniqueNetIdAccelByteResource(InUniqueNetId)
+	: FUniqueNetIdAccelByteResource(InUniqueNetId, ACCELBYTE_USER_ID_TYPE)
 PRAGMA_ENABLE_DEPRECATION_WARNINGS
 {
 	DecodeIDElements();
@@ -194,7 +199,7 @@ PRAGMA_ENABLE_DEPRECATION_WARNINGS
 
 FUniqueNetIdAccelByteUser::FUniqueNetIdAccelByteUser(FString&& InUniqueNetId)
 PRAGMA_DISABLE_DEPRECATION_WARNINGS
-	: FUniqueNetIdAccelByteResource(MoveTemp(InUniqueNetId))
+	: FUniqueNetIdAccelByteResource(MoveTemp(InUniqueNetId), ACCELBYTE_USER_ID_TYPE)
 PRAGMA_ENABLE_DEPRECATION_WARNINGS
 {
 	DecodeIDElements();
@@ -202,7 +207,7 @@ PRAGMA_ENABLE_DEPRECATION_WARNINGS
 
 FUniqueNetIdAccelByteUser::FUniqueNetIdAccelByteUser(const FUniqueNetId& Src)
 PRAGMA_DISABLE_DEPRECATION_WARNINGS
-	: FUniqueNetIdAccelByteResource(Src)
+	: FUniqueNetIdAccelByteResource(Src.ToString(), ACCELBYTE_USER_ID_TYPE)
 PRAGMA_ENABLE_DEPRECATION_WARNINGS
 {
 	DecodeIDElements();
@@ -214,9 +219,15 @@ FUniqueNetIdAccelByteUser::FUniqueNetIdAccelByteUser(FString&& InUniqueNetId, co
 	DecodeIDElements();
 }
 
+FUniqueNetIdAccelByteUser::FUniqueNetIdAccelByteUser(const FString& InUniqueNetId, const FName InType)
+	: FUniqueNetIdAccelByteResource(InUniqueNetId, InType)
+{
+	DecodeIDElements();
+}
+
 FUniqueNetIdAccelByteUser::FUniqueNetIdAccelByteUser(const FAccelByteUniqueIdComposite& CompositeId, const FString& EncodedComposite)
 PRAGMA_DISABLE_DEPRECATION_WARNINGS
-	: FUniqueNetIdAccelByteResource(EncodedComposite)
+	: FUniqueNetIdAccelByteResource(EncodedComposite, ACCELBYTE_USER_ID_TYPE)
 PRAGMA_ENABLE_DEPRECATION_WARNINGS
 	, CompositeStructure(CompositeId)
 {
@@ -265,31 +276,32 @@ FUniqueNetIdAccelByteUserRef FUniqueNetIdAccelByteUser::Create(const FAccelByteU
 		return Invalid();
 	}
 
-	FUniqueNetIdAccelByteUser* User = new FUniqueNetIdAccelByteUser(MoveTemp(EncodedString), ACCELBYTE_RESOURCE_ID_TYPE);
+	FUniqueNetIdAccelByteUser* User = new FUniqueNetIdAccelByteUser(MoveTemp(EncodedString), ACCELBYTE_USER_ID_TYPE);
 	User->CompositeStructure = CompositeId;
 	return MakeShareable(User);
 }
 
 FUniqueNetIdAccelByteUserRef FUniqueNetIdAccelByteUser::Create(const FString& InUniqueNetId)
 {
-	// Check if this is a Base64 encoded string, meaning that it _most likely_ is a full composite ID. If it is, just pass
-	// the string straight to MakeShared, as it will decode the components for you. Otherwise, treat it as just the AccelByte ID.
-	FString DecodedString;
-	if (!FBase64::Decode(InUniqueNetId, DecodedString))
+	// Check if this is a Base64 encoded string first before anything. If it is, then we want to check if we can parse
+	// JSON from it. If so, then we just want to pass it directly into a new instance of a FUniqueNetIdAccelByteUser.
+	// Otherwise, we want to pass the string directly as the AccelByte ID component of a new FUniqueNetIdAccelByteUser's
+	// encoded data.
+	FString DecodedString{};
+	FAccelByteUniqueIdComposite CompositeId{};
+	if (!FBase64::Decode(InUniqueNetId, DecodedString) || !FJsonObjectConverter::JsonObjectStringToUStruct(DecodedString, &CompositeId))
 	{
 		return Create(FAccelByteUniqueIdComposite(InUniqueNetId));
 	}
 
-	FString UniqueNetId = InUniqueNetId;
-	FUniqueNetIdAccelByteUser* User = new FUniqueNetIdAccelByteUser(MoveTemp(UniqueNetId), ACCELBYTE_RESOURCE_ID_TYPE);
-	return MakeShareable(User);
+	return MakeShared<const FUniqueNetIdAccelByteUser>(CompositeId, InUniqueNetId);
 }
 
 FUniqueNetIdAccelByteUserRef FUniqueNetIdAccelByteUser::Create(const FUniqueNetId& Src)
 {
-	FString TempString = Src.ToString();
-	FUniqueNetIdAccelByteUser* User = new FUniqueNetIdAccelByteUser(MoveTemp(TempString), Src.GetType());
-	return MakeShareable(User);
+PRAGMA_DISABLE_DEPRECATION_WARNINGS
+	return MakeShared<FUniqueNetIdAccelByteUser>(Src);
+PRAGMA_ENABLE_DEPRECATION_WARNINGS
 }
 
 FUniqueNetIdAccelByteUserRef FUniqueNetIdAccelByteUser::Cast(const FUniqueNetId& NetId)
@@ -324,9 +336,9 @@ FUniqueNetIdAccelByteUserPtr FUniqueNetIdAccelByteUser::TryCast(const TSharedRef
 
 TSharedRef<const FUniqueNetIdAccelByteUser> FUniqueNetIdAccelByteUser::Invalid()
 {
-	FString InvalidId = ACCELBYTE_INVALID_ID_VALUE;
-	FUniqueNetIdAccelByteUser* User = new FUniqueNetIdAccelByteUser(MoveTemp(InvalidId), ACCELBYTE_RESOURCE_ID_TYPE);
-	return MakeShareable(User);
+PRAGMA_DISABLE_DEPRECATION_WARNINGS
+	return MakeShared<const FUniqueNetIdAccelByteUser>(ACCELBYTE_INVALID_ID_VALUE);
+PRAGMA_ENABLE_DEPRECATION_WARNINGS
 }
 
 FName FUniqueNetIdAccelByteUser::GetType() const

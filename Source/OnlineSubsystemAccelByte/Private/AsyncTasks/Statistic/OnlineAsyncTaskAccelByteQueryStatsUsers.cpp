@@ -3,108 +3,202 @@
 // and restrictions contact your company contract manager.
 
 #include "OnlineAsyncTaskAccelByteQueryStatsUsers.h"
+#include "OnlineError.h"
+#include "OnlineIdentityInterfaceAccelByte.h"
+#include "OnlineStatisticInterfaceAccelByte.h"
+
+#define ONLINE_ERROR_NAMESPACE "FOnlineStatsSystemAccelByte"
 
 FOnlineAsyncTaskAccelByteQueryStatsUsers::FOnlineAsyncTaskAccelByteQueryStatsUsers(FOnlineSubsystemAccelByte* const InABInterface, const TSharedRef<const FUniqueNetId> InLocalUserId,
 	const TArray<FUniqueNetIdRef>& InStatsUsers, const TArray<FString>& InStatNames, const FOnlineStatsQueryUsersStatsComplete& InDelegate)
 	: FOnlineAsyncTaskAccelByte(InABInterface, true)
-	, LocalUserId(InLocalUserId)
 	, StatsUsers(InStatsUsers)
 	, StatNames(InStatNames)
 	, Delegate(InDelegate)
+	, CountUsers(InStatsUsers.Num())
 {
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Construct FOnlineAsyncTaskAccelByteQueryStatsUsers"));
 
-	UserId = FUniqueNetIdAccelByteUser::CastChecked(LocalUserId);
-	for (auto StatsUser : StatsUsers)
+	if (!IsRunningDedicatedServer() && InLocalUserId->IsValid())
 	{
-		FUniqueNetIdAccelByteUserRef NetId = StaticCastSharedRef<const class FUniqueNetIdAccelByteUser>(StatsUser);
-		AccelByteUserIds.Add(NetId->GetAccelByteId());
+		UserId = FUniqueNetIdAccelByteUser::CastChecked(InLocalUserId);
 	}
-	CountStatCodesString = 0;
-	CountUsers = 0;
-	StatCodes = {};
-	StatCodesString = {};
+
+	if (CountUsers < 0)
+	{
+		CountUsers = 0;
+	}
 	
+	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
+}
+
+FOnlineAsyncTaskAccelByteQueryStatsUsers::FOnlineAsyncTaskAccelByteQueryStatsUsers(FOnlineSubsystemAccelByte* const InABInterface, const int32 InLocalUserNum, 
+	const TArray<FUniqueNetIdRef>& InStatsUsers, const TArray<FString>& InStatNames, const FOnlineStatsQueryUsersStatsComplete& InDelegate)
+	: FOnlineAsyncTaskAccelByte(InABInterface, true)
+	, LocalUserNum(InLocalUserNum)
+	, StatsUsers(InStatsUsers)
+	, StatNames(InStatNames)
+	, Delegate(InDelegate)
+	, CountUsers(InStatsUsers.Num())
+{
+	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
+
+	if (!IsRunningDedicatedServer())
+	{
+		const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(Subsystem->GetIdentityInterface());
+		if (IdentityInterface.IsValid())
+		{
+			UserId = FUniqueNetIdAccelByteUser::CastChecked(IdentityInterface->GetUniquePlayerId(LocalUserNum).ToSharedRef());
+		}
+	}
+
+	if (CountUsers < 0)
+	{
+		CountUsers = 0;
+	}
+
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 
 void FOnlineAsyncTaskAccelByteQueryStatsUsers::Initialize()
 {
-	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Initialized"));
+	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 	Super::Initialize(); 
 
-	OnGetUserStatItemsSuccess = TDelegateUtils<THandler<FAccelByteModelsUserStatItemPagingSlicedResult>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryStatsUsers::HandleGetUserStatItems);
-		OnError = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryStatsUsers::HandleAsyncTaskError);
-	ApiClient->Statistic.GetUserStatItems(AccelByteUserIds[CountUsers], StatNames, {}, OnGetUserStatItemsSuccess, OnError);
+	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(Subsystem->GetIdentityInterface());
+	if (!IdentityInterface.IsValid())
+	{
+		ErrorMessage = TEXT("request-failed-query-stats-user-error");
+		CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
+		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to query user stats, identity interface is invalid!"));
+		return;
+	}
+
+	ELoginStatus::Type LoginStatus;
+	if (!IsRunningDedicatedServer())
+	{
+		if (UserId.Get()->IsValid())
+		{
+			LoginStatus = IdentityInterface->GetLoginStatus(*UserId.Get());
+		}
+		else
+		{
+			ErrorMessage = TEXT("request-failed-query-stats-user-error");
+			CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
+			AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to query user stats, userId is invalid!"));
+			return;
+		}
+	}
+	else
+	{
+		LoginStatus = IdentityInterface->GetLoginStatus(LocalUserNum);
+	}
+	if (LoginStatus != ELoginStatus::LoggedIn)
+	{
+		ErrorMessage = TEXT("request-failed-query-stats-user-error");
+		CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
+		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to query user stats, user not logged in!"));
+		return;
+	}
+
+	for (const auto& StatsUser : StatsUsers)
+	{
+		const FUniqueNetIdAccelByteUserRef ABStatsUser = FUniqueNetIdAccelByteUser::CastChecked(StatsUser);
+
+		OnGetUserStatItemsSuccessHandler = TDelegateUtils<THandler<FAccelByteModelsUserStatItemPagingSlicedResult>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryStatsUsers::OnGetUserStatItemsSuccess);
+		OnError = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryStatsUsers::OnGetUsersStatsItemsError);
+
+		if (IsRunningDedicatedServer())
+		{
+			FMultiRegistry::GetServerApiClient()->ServerStatistic.GetUserStatItems(ABStatsUser->GetAccelByteId(), StatNames, {}, OnGetUserStatItemsSuccessHandler, OnError);
+		}
+		else
+		{
+			ApiClient->Statistic.GetUserStatItems(ABStatsUser->GetAccelByteId(), StatNames, {}, OnGetUserStatItemsSuccessHandler, OnError);
+		}
+	}
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 } 
 
+void FOnlineAsyncTaskAccelByteQueryStatsUsers::Finalize()
+{
+	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
+	Super::Finalize();
+
+	const FOnlineStatisticAccelBytePtr StatisticInterface = StaticCastSharedPtr<FOnlineStatisticAccelByte>(Subsystem->GetStatsInterface());
+	if (StatisticInterface.IsValid())
+	{
+		for (const auto& UserStatsPair : OnlineUsersStatsPairs)
+		{
+			StatisticInterface->EmplaceStats(UserStatsPair);
+		}
+	}
+
+	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
+}
+
 void FOnlineAsyncTaskAccelByteQueryStatsUsers::TriggerDelegates()
 {
-	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Trigger Delegates"));
-	Super::TriggerDelegates(); 
-	Delegate.ExecuteIfBound(OnlineError, OnlineUsersStatsPairs);
+	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
+	Super::TriggerDelegates();
+	EOnlineErrorResult Result = ((bWasSuccessful) ? EOnlineErrorResult::Success : EOnlineErrorResult::RequestFailure);
+
+	Delegate.ExecuteIfBound(ONLINE_ERROR(Result, ErrorCode, FText::FromString(ErrorMessage)), OnlineUsersStatsPairs);
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 
-void FOnlineAsyncTaskAccelByteQueryStatsUsers::HandleGetUserStatItems(const FAccelByteModelsUserStatItemPagingSlicedResult& Result)
+void FOnlineAsyncTaskAccelByteQueryStatsUsers::Tick()
 {
-	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("GetUserStatItems Success")); 
+	Super::Tick();
 
-	for (auto value : Result.Data)
+	if (CountUsers == 0)
 	{
-		StatCodesString.Add(value.StatCode);
-	}	
-	
-	OnBulkFetchStatItemsValueSuccess = TDelegateUtils<THandler<TArray<FAccelByteModelsStatItemValueResponse>>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryStatsUsers::HandleBulkFetchStatItemsValue);
-	ApiClient->Statistic.BulkFetchStatItemsValue(StatCodesString[CountStatCodesString], { AccelByteUserIds[CountUsers] }, OnBulkFetchStatItemsValueSuccess, OnError);
-
-	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
-}
-
-void FOnlineAsyncTaskAccelByteQueryStatsUsers::HandleBulkFetchStatItemsValue(const TArray<FAccelByteModelsStatItemValueResponse>& Result)
-{
-	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("BulkFetchStatItemsValue Success"));
-
-	for (FAccelByteModelsStatItemValueResponse User : Result)
-	{
-		FString Key = User.StatCode;
-		FVariantData Value = User.Value;
-		StatCodes.Add(Key, Value);
+		CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
 	}
-	
-	CountStatCodesString++;
-	if (CountStatCodesString < StatCodesString.Num())
-	{ 
-		ApiClient->Statistic.BulkFetchStatItemsValue(StatCodesString[CountStatCodesString], { AccelByteUserIds[CountUsers] }, OnBulkFetchStatItemsValueSuccess, OnError);
+}
+
+void FOnlineAsyncTaskAccelByteQueryStatsUsers::OnGetUserStatItemsSuccess(const FAccelByteModelsUserStatItemPagingSlicedResult& Result)
+{
+	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("")); 
+
+	if (Result.Data.Num() > 0)
+	{
+		TMap<FString, FVariantData> StatCodes;
+		for (const auto& Stats : Result.Data)
+		{
+			FString Key = Stats.StatCode;
+			FVariantData Value = Stats.Value;
+			StatCodes.Add(Key, Value);
+		}
+
+		for (const auto& StatsUser : StatsUsers)
+		{
+			const FUniqueNetIdAccelByteUserRef ABStatsUser = FUniqueNetIdAccelByteUser::CastChecked(StatsUser);
+			if (ABStatsUser->GetAccelByteId() == Result.Data[0].userId)
+			{
+				OnlineUsersStatsPairs.Add(MakeShareable(new FOnlineStatsUserStats(StatsUser, StatCodes)));
+			}
+		}
+	}
+
+	if (CountUsers > 0)
+	{
+		CountUsers--;
 	}
 	else
 	{
-		OnlineUsersStatsPairs.Add(MakeShareable(new FOnlineStatsUserStats(StatsUsers[CountUsers], StatCodes)));
-		CountUsers++;
-		if (CountUsers < AccelByteUserIds.Num())
-		{
-			CountStatCodesString = 0;
-			StatCodesString = {};
-			StatCodes = {};
-			ApiClient->Statistic.GetUserStatItems(AccelByteUserIds[CountUsers], StatNames, {}, OnGetUserStatItemsSuccess, OnError);
-		}
-		else
-		{
-			CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
-		}
+		CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
 	}
+
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 
-void FOnlineAsyncTaskAccelByteQueryStatsUsers::HandleAsyncTaskError(int32 Code, FString const& ErrMsg)
+void FOnlineAsyncTaskAccelByteQueryStatsUsers::OnGetUsersStatsItemsError(int32 Code, FString const& ErrMsg)
 {
-	AB_OSS_ASYNC_TASK_TRACE_BEGIN_VERBOSITY(Error, TEXT("Code: %d; Message: %s"), Code, *ErrMsg);
- 
-	OnlineError.SetFromErrorCode(Code);
-	OnlineError.SetFromErrorMessage(FText::FromString(ErrMsg));
-	CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
-
+	AB_OSS_ASYNC_TASK_TRACE_BEGIN_VERBOSITY(Warning, TEXT("Code: %d; Message: %s"), Code, *ErrMsg);
+	//continue until all users queried
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
+
+#undef ONLINE_ERROR_NAMESPACE

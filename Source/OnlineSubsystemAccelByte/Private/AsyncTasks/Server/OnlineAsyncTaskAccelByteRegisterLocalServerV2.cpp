@@ -23,7 +23,7 @@ void FOnlineAsyncTaskAccelByteRegisterLocalServerV2::Initialize()
 	AB_ASYNC_TASK_ENSURE(SessionInterface->GetServerLocalIp(LocalServerIp), "Failed to register local server to Armada as we failed to get the server's local address!");
 
 	int32 RegisterPort = 0;
-	AB_ASYNC_TASK_ENSURE(SessionInterface->GetServerPort(RegisterPort), "Failed to register local server to Armada as we failed to get the server's port!");
+	AB_ASYNC_TASK_ENSURE(SessionInterface->GetServerPort(RegisterPort, true), "Failed to register local server to Armada as we failed to get the server's port!");
 
 	ServerName = TEXT("");
 	AB_ASYNC_TASK_ENSURE(SessionInterface->GetLocalServerName(ServerName), "Failed to register local server to Armada as we failed to get the server's name!");

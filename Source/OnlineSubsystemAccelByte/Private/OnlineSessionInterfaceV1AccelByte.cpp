@@ -1073,21 +1073,21 @@ void FOnlineSessionV1AccelByte::OnRTCConnected(const FString& NetId, const EAcce
 	
 	switch (Status)
 	{
-	case Success:
+	case EAccelByteP2PConnectionStatus::Success:
 		Result = EOnJoinSessionCompleteResult::Success;
 		break;
 
-	case SignalingServerDisconnected:
-	case HostResponseTimeout:
-	case PeerIsNotHosting:
+	case EAccelByteP2PConnectionStatus::SignalingServerDisconnected:
+	case EAccelByteP2PConnectionStatus::HostResponseTimeout:
+	case EAccelByteP2PConnectionStatus::PeerIsNotHosting:
 		Result = EOnJoinSessionCompleteResult::SessionDoesNotExist;
 		break;
 
-	case JuiceGatherFailed:
-	case JuiceGetLocalDescriptionFailed:
-	case JuiceConnectionFailed:
-	case FailedGettingTurnServer:
-	case FailedGettingTurnServerCredential:
+	case EAccelByteP2PConnectionStatus::JuiceGatherFailed:
+	case EAccelByteP2PConnectionStatus::JuiceGetLocalDescriptionFailed:
+	case EAccelByteP2PConnectionStatus::JuiceConnectionFailed:
+	case EAccelByteP2PConnectionStatus::FailedGettingTurnServer:
+	case EAccelByteP2PConnectionStatus::FailedGettingTurnServerCredential:
 		Result = EOnJoinSessionCompleteResult::CouldNotRetrieveAddress;
 		break;
 

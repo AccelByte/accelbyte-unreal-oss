@@ -191,7 +191,8 @@ PACKAGE_SCOPE:
 	static FUniqueNetIdAccelByteResourceRef CastChecked(const TSharedRef<const FUniqueNetId>& InId);
 	
 protected:
-	FUniqueNetIdAccelByteResource(FString&& InUniqueNetId, const FName InType);
+	explicit FUniqueNetIdAccelByteResource(FString&& InUniqueNetId, const FName InType);
+	explicit FUniqueNetIdAccelByteResource(const FString& InUniqueNetId, const FName InType);
 };
 
 /**
@@ -398,7 +399,8 @@ private:
 	void DecodeIDElements();
 
 protected:
-	FUniqueNetIdAccelByteUser(FString&& InUniqueNetId, const FName InType);
+	explicit FUniqueNetIdAccelByteUser(FString&& InUniqueNetId, const FName InType);
+	explicit FUniqueNetIdAccelByteUser(const FString& InUniqueNetId, const FName InType);
 };
 
 /**

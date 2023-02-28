@@ -40,6 +40,7 @@ public:
 		case EAvailability::Online: State = EOnlinePresenceState::Online; break;
 		case EAvailability::Busy: State = EOnlinePresenceState::DoNotDisturb; break;
 		case EAvailability::Invisible: State = EOnlinePresenceState::Chat; break;
+		case EAvailability::Away: State = EOnlinePresenceState::Away; break;
 		case EAvailability::Offline:
 		default: State = EOnlinePresenceState::Offline; break;
 		}

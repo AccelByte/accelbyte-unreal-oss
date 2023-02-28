@@ -2,6 +2,29 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.8.16](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.8.16%0D0.8.15) (2023-02-28)
+
+
+### Features
+
+* **DS:** expose watchdog to session interface ([d209400](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/d209400abe95c0f5285db8ae2b7123ca765200eb))
+* **MMv2:** add calls to manually start and stop backfilling ([3f030c6](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/3f030c6714f7731d9be040d978157e4897fa3f8b))
+* **MPv2:** add party code generation and revoking, as well as join by party code ([28188d2](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/28188d2460193ad60b6d645d62e912f23defd1ae))
+* **presence:** add Away status presence ([afb9737](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/afb97370784c2277d1be28283c76ff903c946ced))
+* **statistic:** add query specific stats for ds ([15c7e67](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/15c7e67efbd9390cfc6175563d1a24bd7318ae11))
+* **statistic:** fix querystats function, add querystats for ds ([ac1ef9a](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/ac1ef9aa5b961bdca27489beee296a5964b5dee3))
+* **statistic:** query multi users multi stats for ds ([a427753](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/a427753d4496025292c95ef2ba3b88895393f331))
+* **statistic:** update emplace stats ([6e992dc](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/6e992dc70def9d04457ff71aacf6c78ae3aa0cfc))
+
+
+### Bug Fixes
+
+* **asyncTasks:** add asyncTask to inherit TselfPtr, change CreateRaw to CreateThreadSafeSelfPtr ([1a91132](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/1a91132c717fc047c77ab4c80293cd3fbe165315))
+* **p2p:** update networking status usage ([64e71cf](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/64e71cfbe6d3bfc521ed35c524cffc88f0da00f5))
+* set LastTaskUpdateInSeconds to current time and fix float log ([bc09b0d](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/bc09b0dc44bd7200df2ceaaf6235997686d8f299))
+* **statistic:** change statuser to NetIdAccelByte, change emplace loop to append ([35754c8](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/35754c81764390ef407260ba1d063d9c3065ae2a))
+* **UniqueId:** fix a bug where passing an AccelByte ID to CreateUniquePlayerId would return an invalid ID ([08e3fdb](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/08e3fdb0726b7690047470c7ec37fa041b16a727))
+
 ### [0.8.15](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.8.15%0D0.8.14) (2023-02-20)
 
 

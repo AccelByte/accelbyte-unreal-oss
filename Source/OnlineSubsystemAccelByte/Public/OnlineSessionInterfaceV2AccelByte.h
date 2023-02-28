@@ -20,6 +20,7 @@
 #include "Models/AccelByteMatchmakingModels.h"
 #include "Models/AccelByteDSHubModels.h"
 #include "AccelByteNetworkingStatus.h"
+#include "GameServerApi/AccelByteServerWatchdogApi.h"
 
 class FInternetAddr;
 class FNamedOnlineSession;
@@ -53,8 +54,11 @@ public:
 	/** Get the locally stored backend session data for this session */
 	TSharedPtr<FAccelByteModelsV2BaseSession> GetBackendSessionData() const;
 
-	/** Get the locally stored backend session data for this session as game session*/
+	/** Get the locally stored backend session data for this session as game session */
 	TSharedPtr<FAccelByteModelsV2GameSession> GetBackendSessionDataAsGameSession() const;
+
+	/** Get the locally stored backend session data for this session as a party session */
+	TSharedPtr<FAccelByteModelsV2PartySession> GetBackendSessionDataAsPartySession() const;
 
 	/** Get the locally stored team assignments for this session */
 	TArray<FAccelByteModelsV2GameSessionTeam> GetTeamAssignments() const;
@@ -131,8 +135,6 @@ PACKAGE_SCOPE:
 	bool ContainsMember(const FUniqueNetId& MemberId);
 
 private:
-	TSharedPtr<FAccelByteModelsV2GameSession> StaticCastAsGameSession(const TSharedPtr<FAccelByteModelsV2BaseSession>& InBaseSession) const;
-
 	/**
 	 * Structure representing the session data on the backend, used for updating session data.
 	 */
@@ -186,6 +188,16 @@ private:
 
 	/** Map of Members belonging to which party, key is User ID and value is Party ID **/
 	TMap<FString, FString> MemberParties;
+
+	/**
+	 * Static cast the given base session pointer to a game session pointer if type is valid
+	 */
+	TSharedPtr<FAccelByteModelsV2GameSession> StaticCastAsGameSession(const TSharedPtr<FAccelByteModelsV2BaseSession>& InBaseSession) const;
+
+	/**
+	 * Static cast the given base session pointer to a party session pointer if type is valid
+	 */
+	TSharedPtr<FAccelByteModelsV2PartySession> StaticCastAsPartySession(const TSharedPtr<FAccelByteModelsV2BaseSession>& InBaseSession) const;
 };
 
 /**
@@ -326,7 +338,11 @@ DECLARE_DELEGATE_OneParam(FOnRejectSessionInviteComplete, bool /*bWasSuccessful*
 DECLARE_DELEGATE_OneParam(FOnAcceptBackfillProposalComplete, bool /*bWasSuccessful*/);
 DECLARE_DELEGATE_OneParam(FOnRejectBackfillProposalComplete, bool /*bWasSuccessful*/);
 DECLARE_DELEGATE_OneParam(FOnSessionMemberStatusUpdateComplete, bool /*bWasSuccessful*/);
+DECLARE_DELEGATE_TwoParams(FOnGenerateNewPartyCodeComplete, bool /*bWasSuccessful*/, FString /*NewPartyCode*/);
+DECLARE_DELEGATE_OneParam(FOnRevokePartyCodeComplete, bool /*bWasSuccessful*/);
 DECLARE_DELEGATE_TwoParams(FOnKickPlayerComplete, bool /*bWasSuccessful*/, const FUniqueNetId& /*KickedPlayerId*/);
+DECLARE_DELEGATE_OneParam(FOnCreateBackfillTicketComplete, bool /*bWasSuccessful*/);
+DECLARE_DELEGATE_OneParam(FOnDeleteBackfillTicketComplete, bool /*bWasSuccessful*/);
 
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnServerReceivedSession, FName /*SessionName*/);
 typedef FOnServerReceivedSession::FDelegate FOnServerReceivedSessionDelegate;
@@ -366,6 +382,12 @@ typedef FOnKickedFromSession::FDelegate FOnKickedFromSessionDelegate;
 
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnSessionUpdateReceived, FName /*SessionName*/);
 typedef FOnSessionUpdateReceived::FDelegate FOnSessionUpdateReceivedDelegate;
+
+DECLARE_MULTICAST_DELEGATE_FourParams(FOnSendSessionInviteComplete, const FUniqueNetId& /*LocalSenderId*/, FName /*SessionName*/, bool /*bWasSuccessful*/, const FUniqueNetId& /*InviteeId*/);
+typedef FOnSendSessionInviteComplete::FDelegate FOnSendSessionInviteCompleteDelegate;
+
+DECLARE_MULTICAST_DELEGATE(FOnWatchdogDrainReceived);
+typedef FOnWatchdogDrainReceived::FDelegate FOnWatchdogDrainReceivedDelegate;
 //~ End custom delegates
 
 class ONLINESUBSYSTEMACCELBYTE_API FOnlineSessionV2AccelByte : public IOnlineSession, public TSharedFromThis<FOnlineSessionV2AccelByte, ESPMode::ThreadSafe>
@@ -607,6 +629,24 @@ public:
 	bool RefreshSession(const FName& SessionName, const FOnRefreshSessionComplete& Delegate);
 
 	/**
+	 * Create a backfill ticket for the session provided. This will queue your session to be backfilled with users from
+	 * matchmaking.
+	 */
+	bool CreateBackfillTicket(const FName& SessionName, const FOnCreateBackfillTicketComplete& Delegate);
+
+	/**
+	 * Create a backfill ticket for the session provided. This will queue your session to be backfilled with users from
+	 * matchmaking in the match pool specified.
+	 */
+	bool CreateBackfillTicket(const FName& SessionName, const FString& MatchPool, const FOnCreateBackfillTicketComplete& Delegate);
+
+	/**
+	 * Delete a backfill ticket associated with the session provided. This will stop backfilling players from
+	 * matchmaking for the session.
+	 */
+	bool DeleteBackfillTicket(const FName& SessionName, const FOnDeleteBackfillTicketComplete& Delegate);
+
+	/**
 	 * Accept a backfill proposal from matchmaking. Which will then invite the players backfilled to your session.
 	 */
 	bool AcceptBackfillProposal(const FName& SessionName, const FAccelByteModelsV2MatchmakingBackfillProposalNotif& Proposal, bool bStopBackfilling, const FOnAcceptBackfillProposalComplete& Delegate);
@@ -622,6 +662,40 @@ public:
 	 * Requires permission 'ADMIN:NAMESPACE:{namespace}:SESSION:GAME' to be set with action 'UPDATE'.
 	 */
 	bool UpdateMemberStatus(FName SessionName, const FUniqueNetId& PlayerId, const EAccelByteV2SessionMemberStatus& Status, const FOnSessionMemberStatusUpdateComplete& Delegate=FOnSessionMemberStatusUpdateComplete());
+
+	/**
+	 * Join a party session using a party code. This code is intended to be generated either by the party leader, or on
+	 * party create, and passed to players to join the session without invites. To access an already generated party
+	 * code, grab the SETTING_PARTYSESSION_CODE setting out of a party session's settings.
+	 */
+	bool JoinSession(const FUniqueNetId& LocalUserId, FName SessionName, const FString& PartyCode);
+
+	/**
+	 * Generate a new party code for this party session. Once updated, this new generated code will be reflected in the
+	 * SETTING_PARTYSESSION_CODE session setting.
+	 */
+	bool GenerateNewPartyCode(const FUniqueNetId& LocalUserId, FName SessionName, const FOnGenerateNewPartyCodeComplete& Delegate);
+
+	/**
+	 * Revoke the code stored on a party for external joins. Once revoked, the SETTING_PARTYSESSION_CODE session setting
+	 * will be blanked out and joining this party via code will not be possible.
+	 */
+	bool RevokePartyCode(const FUniqueNetId& LocalUserId, FName SessionName, const FOnRevokePartyCodeComplete& Delegate);
+	
+	/**
+	 * Set an override for a local server name to register with. Only intended for use with local dedicated servers.
+	 */
+	void SetLocalServerNameOverride(const FString& InLocalServerNameOverride);
+
+	/**
+	 * Set an override for a local server IP to register with. Only intended for use with local dedicated servers.
+	 */
+	void SetLocalServerIpOverride(const FString& InLocalServerIpOverride);
+
+	/**
+	 * Set an override for a local server name to register with. Only intended for use with local dedicated servers.
+	 */
+	void SetLocalServerPortOverride(int32 InLocalServerPortOverride);
 
 	/**
 	 * Delegate fired when we have retrieved information on the session that our server is claimed by on the backend.
@@ -701,9 +775,15 @@ public:
 	DEFINE_ONLINE_DELEGATE_ONE_PARAM(OnKickedFromSession, FName /*SessionName*/);
 
 	/**
-	 * Delegate fired when a local player has received
+	 * Delegate fired when a local player has received an update from the backend to a session
 	 */
 	DEFINE_ONLINE_DELEGATE_ONE_PARAM(OnSessionUpdateReceived, FName /*SessionName*/);
+	DEFINE_ONLINE_DELEGATE(OnWatchdogDrainReceived);
+
+	/**
+	 * Delegate fired when a local player has sent an invite to a player
+	 */
+	DEFINE_ONLINE_DELEGATE_FOUR_PARAM(OnSendSessionInviteComplete, const FUniqueNetId& /*LocalSenderId*/, FName /*SessionName*/, bool /*bWasSuccessful*/, const FUniqueNetId& /*InviteeId*/);
 
 #if (ENGINE_MAJOR_VERSION == 4 && ENGINE_MINOR_VERSION <= 25)
 	/**
@@ -810,6 +890,16 @@ PACKAGE_SCOPE:
 	bool ConstructPartySessionFromBackendSessionModel(const FAccelByteModelsV2PartySession& BackendSession, FOnlineSession& OutResult);
 
 	/**
+	 * Fill out SessionSettings field of a game session with constants from the backend data
+	 */
+	void AddBuiltInGameSessionSettingsToSessionSettings(FOnlineSessionSettings& OutSettings, const FAccelByteModelsV2GameSession& GameSession);
+
+	/**
+	 * Fill out SessionSettings field of a party session with constants from the backend data
+	 */
+	void AddBuiltInPartySessionSettingsToSessionSettings(FOnlineSessionSettings& OutSettings, const FAccelByteModelsV2PartySession& PartySession);
+
+	/**
 	 * Checks whether or not the attribute name passed in is intended to be ignored for session attributes on backend.
 	 */
 	bool ShouldSkipAddingFieldToSessionAttributes(const FName& FieldName) const;
@@ -822,7 +912,7 @@ PACKAGE_SCOPE:
 	/**
 	 * Attempt to get the currently bound port for a dedicated server.
 	 */
-	bool GetServerPort(int32& OutPort) const;
+	bool GetServerPort(int32& OutPort, bool bIsLocal=false) const;
 
 	/**
 	 * Attempt to get the name of the local server to register with
@@ -938,6 +1028,16 @@ PACKAGE_SCOPE:
 	 */
 	void DisconnectFromDSHub();
 
+	/**
+	 * Send ready message to Watchdog
+	 */
+	void SendReadyToWatchdog();
+
+	/**
+	 * Disconnect a server from the Watchdog, unregistering any delegates bound.
+	 */
+	void DisconnectFromWatchdog();
+
 private:
 	/** Parent subsystem of this interface instance */
 	FOnlineSubsystemAccelByte* AccelByteSubsystem = nullptr;
@@ -975,6 +1075,15 @@ private:
 
 	/** Cache matchmaking ticket after started matchmaking. to be used to cancel matchmaking process */
 	FString MatchmakingTicketId;
+
+	/** Stored override for a local server name to register with. */
+	FString LocalServerNameOverride{};
+
+	/** Stored override for a local server IP to register with. */
+	FString LocalServerIpOverride{};
+
+	/** Stored override for a local server port to register with. */
+	int32 LocalServerPortOverride{-1};
 
 	/** Hidden on purpose */
 	FOnlineSessionV2AccelByte() :
@@ -1036,7 +1145,7 @@ private:
 	/**
 	 * Delegate handler when we finish connecting to a P2P ICE session
 	 */
-	void OnICEConnectionComplete(const FString& PeerId, const EAccelByteP2PConnectionStatus& Status, FName SessionName, EOnlineSessionP2PConnectedAction Action);
+	void OnICEConnectionComplete(const FString& PeerId, const NetworkUtilities::EAccelByteP2PConnectionStatus& Status, FName SessionName, EOnlineSessionP2PConnectedAction Action);
 
 	/**
 	 * Internal method to get a named session as a const pointer.
@@ -1047,6 +1156,8 @@ private:
 	 * Enqueue a session data update for the next tick if its version is more up-to-date than existing data
 	 */
 	void EnqueueBackendDataUpdate(const FName& SessionName, const TSharedPtr<FAccelByteModelsV2BaseSession>& SessionData, const bool bIsDSReadyUpdate=false);
+
+	void OnWatchdogDrain();
 
 protected:
 	FNamedOnlineSession* AddNamedSession(FName SessionName, const FOnlineSessionSettings& SessionSettings) override;

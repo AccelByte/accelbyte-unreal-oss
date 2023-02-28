@@ -28,6 +28,9 @@
 #include "AsyncTasks/PartyV2/OnlineAsyncTaskAccelByteRejectV2PartyInvite.h"
 #include "AsyncTasks/PartyV2/OnlineAsyncTaskAccelByteRefreshV2PartySession.h"
 #include "AsyncTasks/PartyV2/OnlineAsyncTaskAccelByteFindV2PartyById.h"
+#include "AsyncTasks/PartyV2/OnlineAsyncTaskAccelByteJoinV2PartyByCode.h"
+#include "AsyncTasks/PartyV2/OnlineAsyncTaskAccelByteGenerateNewV2PartyCode.h"
+#include "AsyncTasks/PartyV2/OnlineAsyncTaskAccelByteRevokeV2PartyCode.h"
 #include "AsyncTasks/Matchmaking/OnlineAsyncTaskAccelByteStartV2Matchmaking.h"
 #include "AsyncTasks/Matchmaking/OnlineAsyncTaskAccelByteCancelV2Matchmaking.h"
 #include "AsyncTasks/Server/OnlineAsyncTaskAccelByteGetServerClaimedV2Session.h"
@@ -37,6 +40,8 @@
 #include "AsyncTasks/Server/OnlineAsyncTaskAccelByteUnregisterLocalServerV2.h"
 #include "AsyncTasks/Server/OnlineAsyncTaskAccelByteAcceptBackfillProposal.h"
 #include "AsyncTasks/Server/OnlineAsyncTaskAccelByteRejectBackfillProposal.h"
+#include "AsyncTasks/Server/OnlineAsyncTaskAccelByteCreateBackfillTicket.h"
+#include "AsyncTasks/Server/OnlineAsyncTaskAccelByteDeleteBackfillTicket.h"
 #include "OnlineIdentityInterfaceAccelByte.h"
 #include "OnlineSessionInterfaceV1AccelByte.h"
 #include "OnlineSubsystemAccelByte.h"
@@ -146,6 +151,11 @@ TSharedPtr<FAccelByteModelsV2BaseSession> FOnlineSessionInfoAccelByteV2::GetBack
 TSharedPtr<FAccelByteModelsV2GameSession> FOnlineSessionInfoAccelByteV2::GetBackendSessionDataAsGameSession() const
 {
 	return StaticCastAsGameSession(BackendSessionData);
+}
+
+TSharedPtr<FAccelByteModelsV2PartySession> FOnlineSessionInfoAccelByteV2::GetBackendSessionDataAsPartySession() const
+{
+	return StaticCastAsPartySession(BackendSessionData);
 }
 
 TSharedPtr<FAccelByteModelsV2BaseSession> FOnlineSessionInfoAccelByteV2::GetLatestBackendSessionDataUpdate() const
@@ -454,6 +464,15 @@ TSharedPtr<FAccelByteModelsV2GameSession> FOnlineSessionInfoAccelByteV2::StaticC
 		return nullptr;
 	}
 	return StaticCastSharedPtr<FAccelByteModelsV2GameSession>(InBaseSession);
+}
+
+TSharedPtr<FAccelByteModelsV2PartySession> FOnlineSessionInfoAccelByteV2::StaticCastAsPartySession(const TSharedPtr<FAccelByteModelsV2BaseSession>& InBaseSession) const
+{
+	if (InBaseSession->SessionType != EAccelByteV2SessionType::PartySession)
+	{
+		return nullptr;
+	}
+	return StaticCastSharedPtr<FAccelByteModelsV2PartySession>(InBaseSession);
 }
 
 FOnlineSessionSearchAccelByte::FOnlineSessionSearchAccelByte(const TSharedRef<FOnlineSessionSearch>& InBaseSearch)
@@ -1098,6 +1117,7 @@ void FOnlineSessionV2AccelByte::FinalizeCreatePartySession(const FName& SessionN
 	// Parties are always invite only, so we just want to update the private connection num
 	Session->SessionSettings.NumPrivateConnections = BackendSessionInfo.Configuration.MaxPlayers;
 	Session->NumOpenPrivateConnections = Session->SessionSettings.NumPrivateConnections;
+	Session->SessionSettings.Set(SETTING_PARTYSESSION_CODE, BackendSessionInfo.Code);
 
 	// Make sure to also register ourselves to the session
 	if (!ensure(Session->LocalOwnerId.IsValid()))
@@ -1122,16 +1142,7 @@ bool FOnlineSessionV2AccelByte::ConstructGameSessionFromBackendSessionModel(cons
 	}
 
 	// Add some session attributes to the settings object so that developers can update them if needed
-	OutResult.SessionSettings.Set(SETTING_SESSION_TYPE, SETTING_SESSION_TYPE_GAME_SESSION);
-	OutResult.SessionSettings.Set(SETTING_SESSION_JOIN_TYPE, GetJoinabilityAsString(BackendSession.Configuration.Joinability));
-	OutResult.SessionSettings.Set(SETTING_SESSION_MATCHPOOL, BackendSession.MatchPool);
-	OutResult.SessionSettings.Set(SETTING_SESSION_MINIMUM_PLAYERS, BackendSession.Configuration.MinPlayers);
-	OutResult.SessionSettings.Set(SETTING_SESSION_INACTIVE_TIMEOUT, BackendSession.Configuration.InactiveTimeout);
-	OutResult.SessionSettings.Set(SETTING_SESSION_INVITE_TIMEOUT, BackendSession.Configuration.InactiveTimeout);
-	OutResult.SessionSettings.Set(SETTING_GAMESESSION_CLIENTVERSION, BackendSession.Configuration.ClientVersion);
-	OutResult.SessionSettings.Set(SETTING_GAMESESSION_DEPLOYMENT, BackendSession.Configuration.Deployment);
-
-	FOnlineSessionSettingsAccelByte::Set(OutResult.SessionSettings, SETTING_GAMESESSION_REQUESTEDREGIONS, BackendSession.Configuration.RequestedRegions);
+	AddBuiltInGameSessionSettingsToSessionSettings(OutResult.SessionSettings, BackendSession);
 
 	if (!BackendSession.CreatedBy.IsEmpty())
 	{
@@ -1188,11 +1199,7 @@ bool FOnlineSessionV2AccelByte::ConstructPartySessionFromBackendSessionModel(con
 	}
 
 	// Add some session attributes to the settings object so that developers can update them if needed
-	OutResult.SessionSettings.Set(SETTING_SESSION_TYPE, SETTING_SESSION_TYPE_PARTY_SESSION);
-	OutResult.SessionSettings.Set(SETTING_SESSION_JOIN_TYPE, GetJoinabilityAsString(BackendSession.Configuration.Joinability));
-	OutResult.SessionSettings.Set(SETTING_SESSION_MINIMUM_PLAYERS, BackendSession.Configuration.MinPlayers);
-	OutResult.SessionSettings.Set(SETTING_SESSION_INACTIVE_TIMEOUT, BackendSession.Configuration.InactiveTimeout);
-	OutResult.SessionSettings.Set(SETTING_SESSION_INVITE_TIMEOUT, BackendSession.Configuration.InactiveTimeout);
+	AddBuiltInPartySessionSettingsToSessionSettings(OutResult.SessionSettings, BackendSession);
 
 	if (!BackendSession.CreatedBy.IsEmpty())
 	{
@@ -1221,6 +1228,37 @@ bool FOnlineSessionV2AccelByte::ConstructPartySessionFromBackendSessionModel(con
 	return true;
 }
 
+void FOnlineSessionV2AccelByte::AddBuiltInGameSessionSettingsToSessionSettings(FOnlineSessionSettings& OutSettings, const FAccelByteModelsV2GameSession& GameSession)
+{
+	OutSettings.Set(SETTING_SESSION_TYPE, SETTING_SESSION_TYPE_GAME_SESSION);
+	OutSettings.Set(SETTING_SESSION_MATCHPOOL, GameSession.MatchPool);
+	OutSettings.Set(SETTING_SESSION_SERVER_TYPE, GetServerTypeAsString(GameSession.Configuration.Type));
+	OutSettings.Set(SETTING_SESSION_JOIN_TYPE, GetJoinabilityAsString(GameSession.Configuration.Joinability));
+	OutSettings.Set(SETTING_SESSION_MINIMUM_PLAYERS, GameSession.Configuration.MinPlayers);
+	OutSettings.Set(SETTING_SESSION_INVITE_TIMEOUT, GameSession.Configuration.InviteTimeout);
+	OutSettings.Set(SETTING_SESSION_INACTIVE_TIMEOUT, GameSession.Configuration.InactiveTimeout);
+	OutSettings.Set(SETTING_GAMESESSION_CLIENTVERSION, GameSession.Configuration.ClientVersion);
+	OutSettings.Set(SETTING_GAMESESSION_DEPLOYMENT, GameSession.Configuration.Deployment);
+
+	// If we have an ID for an active backfill ticket set on this session, then set it here
+	if (!GameSession.BackfillTicketID.IsEmpty())
+	{
+		OutSettings.Set(SETTING_MATCHMAKING_BACKFILL_TICKET_ID, GameSession.BackfillTicketID);
+	}
+
+	FOnlineSessionSettingsAccelByte::Set(OutSettings, SETTING_GAMESESSION_REQUESTEDREGIONS, GameSession.Configuration.RequestedRegions);
+}
+
+void FOnlineSessionV2AccelByte::AddBuiltInPartySessionSettingsToSessionSettings(FOnlineSessionSettings& OutSettings, const FAccelByteModelsV2PartySession& PartySession)
+{
+	OutSettings.Set(SETTING_SESSION_TYPE, SETTING_SESSION_TYPE_PARTY_SESSION);
+	OutSettings.Set(SETTING_SESSION_JOIN_TYPE, GetJoinabilityAsString(PartySession.Configuration.Joinability));
+	OutSettings.Set(SETTING_SESSION_MINIMUM_PLAYERS, PartySession.Configuration.MinPlayers);
+	OutSettings.Set(SETTING_SESSION_INACTIVE_TIMEOUT, PartySession.Configuration.InactiveTimeout);
+	OutSettings.Set(SETTING_SESSION_INVITE_TIMEOUT, PartySession.Configuration.InactiveTimeout);
+	OutSettings.Set(SETTING_PARTYSESSION_CODE, PartySession.Code);
+}
+
 bool FOnlineSessionV2AccelByte::ShouldSkipAddingFieldToSessionAttributes(const FName& FieldName) const
 {
 	return FieldName == SETTING_SESSION_TYPE ||
@@ -1233,12 +1271,22 @@ bool FOnlineSessionV2AccelByte::ShouldSkipAddingFieldToSessionAttributes(const F
 		FieldName == SETTING_GAMESESSION_DEPLOYMENT ||
 		FieldName == SETTING_GAMESESSION_CLIENTVERSION ||
 		FieldName == SETTING_GAMESESSION_SERVERNAME ||
-		FieldName == SETTING_SESSION_SERVER_TYPE;
+		FieldName == SETTING_SESSION_SERVER_TYPE ||
+		FieldName == SETTING_PARTYSESSION_CODE ||
+		FieldName == SETTING_MATCHMAKING_BACKFILL_TICKET_ID;
 }
 
 bool FOnlineSessionV2AccelByte::GetServerLocalIp(FString& OutIp) const
 {
 	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT(""));
+
+	// First, check if we have an override IP set on the interface, if so always use that.
+	if (!LocalServerIpOverride.IsEmpty())
+	{
+		OutIp = LocalServerIpOverride;
+		AB_OSS_INTERFACE_TRACE_END(TEXT("OutIp: %s"), *OutIp);
+		return true;
+	}
 
 	ISocketSubsystem* SocketSubsystem = ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM);
 	if (SocketSubsystem == nullptr)
@@ -1266,9 +1314,17 @@ bool FOnlineSessionV2AccelByte::GetServerLocalIp(FString& OutIp) const
 	return true;
 }
 
-bool FOnlineSessionV2AccelByte::GetServerPort(int32& OutPort) const
+bool FOnlineSessionV2AccelByte::GetServerPort(int32& OutPort, bool bIsLocal) const
 {
 	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT(""));
+
+	// First, check if we have an override port set on the interface, if so always use that.
+	if (bIsLocal && LocalServerPortOverride > 0)
+	{
+		OutPort = LocalServerPortOverride;
+		AB_OSS_INTERFACE_TRACE_END(TEXT("OutPort: %d"), OutPort);
+		return true;
+	}
 
 	if (!IsRunningDedicatedServer())
 	{
@@ -1307,7 +1363,15 @@ bool FOnlineSessionV2AccelByte::GetLocalServerName(FString& OutServerName) const
 {
 	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT(""));
 
-	// First, start by trying to find server name as an environment variable
+	// First, check if we have an override name set on the interface, if so always use that.
+	if (!LocalServerNameOverride.IsEmpty())
+	{
+		OutServerName = LocalServerNameOverride;
+		AB_OSS_INTERFACE_TRACE_END(TEXT("OutServerName: %s"), *OutServerName);
+		return true;
+	}
+
+	// Then, try to find server name as an environment variable
 	OutServerName = FPlatformMisc::GetEnvironmentVariable(TEXT("SERVER_NAME"));
 	if (OutServerName.IsEmpty())
 	{
@@ -1803,18 +1867,7 @@ void FOnlineSessionV2AccelByte::UpdateInternalGameSession(const FName& SessionNa
 	}
 
 	// After loading in custom attributes, load in reserved/built-in settings
-	Session->SessionSettings.Set(SETTING_SESSION_TYPE, SETTING_SESSION_TYPE_GAME_SESSION);
-	Session->SessionSettings.Set(SETTING_SESSION_MATCHPOOL, UpdatedGameSession.MatchPool);
-	Session->SessionSettings.Set(SETTING_SESSION_SERVER_TYPE, GetServerTypeAsString(UpdatedGameSession.Configuration.Type));
-	Session->SessionSettings.Set(SETTING_SESSION_JOIN_TYPE, GetJoinabilityAsString(UpdatedGameSession.Configuration.Joinability));
-	Session->SessionSettings.Set(SETTING_SESSION_MINIMUM_PLAYERS, UpdatedGameSession.Configuration.MinPlayers);
-	Session->SessionSettings.Set(SETTING_SESSION_INVITE_TIMEOUT, UpdatedGameSession.Configuration.InviteTimeout);
-	Session->SessionSettings.Set(SETTING_SESSION_INACTIVE_TIMEOUT, UpdatedGameSession.Configuration.InactiveTimeout);
-	Session->SessionSettings.Set(SETTING_GAMESESSION_CLIENTVERSION, UpdatedGameSession.Configuration.ClientVersion);
-	Session->SessionSettings.Set(SETTING_GAMESESSION_DEPLOYMENT, UpdatedGameSession.Configuration.Deployment);
-
-	FOnlineSessionSettingsAccelByte::Set(Session->SessionSettings, SETTING_GAMESESSION_REQUESTEDREGIONS, UpdatedGameSession.Configuration.RequestedRegions);
-
+	AddBuiltInGameSessionSettingsToSessionSettings(Session->SessionSettings, UpdatedGameSession);
 	SetSessionMaxPlayerCount(Session, UpdatedGameSession.Configuration.MaxPlayers);
 
 	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
@@ -1868,11 +1921,7 @@ void FOnlineSessionV2AccelByte::UpdateInternalPartySession(const FName& SessionN
 	}
 
 	// After reading attributes, reload reserved/built-in settings for the session
-	Session->SessionSettings.Set(SETTING_SESSION_TYPE, SETTING_SESSION_TYPE_PARTY_SESSION);
-	Session->SessionSettings.Set(SETTING_SESSION_JOIN_TYPE, GetJoinabilityAsString(UpdatedPartySession.Configuration.Joinability));
-	Session->SessionSettings.Set(SETTING_SESSION_MINIMUM_PLAYERS, UpdatedPartySession.Configuration.MinPlayers);
-	Session->SessionSettings.Set(SETTING_SESSION_INVITE_TIMEOUT, UpdatedPartySession.Configuration.InviteTimeout);
-	Session->SessionSettings.Set(SETTING_SESSION_INACTIVE_TIMEOUT, UpdatedPartySession.Configuration.InactiveTimeout);
+	AddBuiltInPartySessionSettingsToSessionSettings(Session->SessionSettings, UpdatedPartySession);
 	SetSessionMaxPlayerCount(Session, UpdatedPartySession.Configuration.MaxPlayers);
 
 	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
@@ -2349,6 +2398,112 @@ bool FOnlineSessionV2AccelByte::JoinSession(const FUniqueNetId& LocalUserId, FNa
 
 	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
 	return true;
+}
+
+bool FOnlineSessionV2AccelByte::JoinSession(const FUniqueNetId& LocalUserId, FName SessionName, const FString& PartyCode)
+{
+	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("LocalUserId: %s; SessionName: %s; PartyCode: %s"), *LocalUserId.ToDebugString(), *SessionName.ToString(), *PartyCode);
+
+	// First, ensure that we are not going to clobber an existing session with the given name
+	if (GetNamedSession(SessionName) != nullptr)
+	{
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to join session with name '%s' as a session with that name already exists!"), *SessionName.ToString());
+		AccelByteSubsystem->ExecuteNextTick([SessionInterface = SharedThis(this), SessionName]() {
+			SessionInterface->TriggerOnJoinSessionCompleteDelegates(SessionName, EOnJoinSessionCompleteResult::AlreadyInSession);
+		});
+		return false;
+	}
+
+	// Next, create a dummy session that we will use to occupy the session name while joining by code. Since join by party
+	// code doesn't match the flow of a typical join session, we have to fudge it a bit. So the general steps will be:
+	// 1. Create dummy session under the given name, and fire off async task to join by code
+	// 2. Make the call to join the party by code
+	// 3. Store the party data from the join call
+	// 4. Convert the party data to a session result, and then call the proper JoinSession method to turn into proper
+	//    FNamedOnlineSession.
+	FNamedOnlineSession* NewSession = AddNamedSession(SessionName, FOnlineSessionSettings());
+	NewSession->SessionState = EOnlineSessionState::Creating;
+	NewSession->LocalOwnerId = LocalUserId.AsShared();
+
+	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteJoinV2PartyByCode>(AccelByteSubsystem, LocalUserId, SessionName, PartyCode);
+
+	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+	return true;
+}
+
+bool FOnlineSessionV2AccelByte::GenerateNewPartyCode(const FUniqueNetId& LocalUserId, FName SessionName, const FOnGenerateNewPartyCodeComplete& Delegate)
+{
+	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("LocalUserId: %s; SessionName: %s"), *LocalUserId.ToDebugString(), *SessionName.ToString());
+
+	FNamedOnlineSession* Session = GetNamedSession(SessionName);
+	if (Session == nullptr)
+	{
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to generate new code for party with session name '%s' as the session does not exist locally!"), *SessionName.ToString());
+		AccelByteSubsystem->ExecuteNextTick([Delegate]() {
+			Delegate.ExecuteIfBound(false, TEXT(""));
+		});
+		return false;
+	}
+
+	EAccelByteV2SessionType SessionType = GetSessionTypeFromSettings(Session->SessionSettings);
+	if (SessionType != EAccelByteV2SessionType::PartySession)
+	{
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to generate new party code for session with name '%s' as the session is not a party session!"), *SessionName.ToString());
+		AccelByteSubsystem->ExecuteNextTick([Delegate]() {
+			Delegate.ExecuteIfBound(false, TEXT(""));
+		});
+		return false;
+	}
+
+	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGenerateNewV2PartyCode>(AccelByteSubsystem, LocalUserId, SessionName, Delegate);
+
+	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+	return true;
+}
+
+bool FOnlineSessionV2AccelByte::RevokePartyCode(const FUniqueNetId& LocalUserId, FName SessionName, const FOnRevokePartyCodeComplete& Delegate)
+{
+	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("LocalUserId: %s; SessionName: %s"), *LocalUserId.ToDebugString(), *SessionName.ToString());
+
+	FNamedOnlineSession* Session = GetNamedSession(SessionName);
+	if (Session == nullptr)
+	{
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to revoke code for party with session name '%s' as the session does not exist locally!"), *SessionName.ToString());
+		AccelByteSubsystem->ExecuteNextTick([Delegate]() {
+			Delegate.ExecuteIfBound(false);
+		});
+		return false;
+	}
+
+	EAccelByteV2SessionType SessionType = GetSessionTypeFromSettings(Session->SessionSettings);
+	if (SessionType != EAccelByteV2SessionType::PartySession)
+	{
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to revoke party code for session with name '%s' as the session is not a party session!"), *SessionName.ToString());
+		AccelByteSubsystem->ExecuteNextTick([Delegate]() {
+			Delegate.ExecuteIfBound(false);
+		});
+		return false;
+	}
+
+	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteRevokeV2PartyCode>(AccelByteSubsystem, LocalUserId, SessionName, Delegate);
+
+	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+	return true;
+}
+
+void FOnlineSessionV2AccelByte::SetLocalServerNameOverride(const FString& InLocalServerNameOverride)
+{
+	LocalServerNameOverride = InLocalServerNameOverride;
+}
+
+void FOnlineSessionV2AccelByte::SetLocalServerIpOverride(const FString& InLocalServerIpOverride)
+{
+	LocalServerIpOverride = InLocalServerIpOverride;
+}
+
+void FOnlineSessionV2AccelByte::SetLocalServerPortOverride(int32 InLocalServerPortOverride)
+{
+	LocalServerPortOverride = InLocalServerPortOverride;
 }
 
 bool FOnlineSessionV2AccelByte::FindFriendSession(int32 LocalUserNum, const FUniqueNetId& Friend)
@@ -2828,6 +2983,9 @@ void FOnlineSessionV2AccelByte::RegisterServer(FName SessionName, const FOnRegis
 		return;
 	}
 
+	const AccelByte::GameServerApi::ServerWatchdog::FOnWatchdogDrainReceived OnWatchdogDrainReceivedDelegate = AccelByte::GameServerApi::ServerWatchdog::FOnWatchdogDrainReceived::CreateThreadSafeSP(SharedThis(this), &FOnlineSessionV2AccelByte::OnWatchdogDrain);
+	FRegistry::ServerWatchdog.SetOnWatchdogDrainReceivedDelegate(OnWatchdogDrainReceivedDelegate);
+
 	// For an Armada-spawned server pod, there will always be a POD_NAME environment variable set. For local servers this
 	// will most likely never be the case. With this, if we have the pod name variable, then register as a non-local server
 	// otherwise, register as a local server.
@@ -3178,6 +3336,51 @@ bool FOnlineSessionV2AccelByte::RefreshSession(const FName& SessionName, const F
 	return true;
 }
 
+bool FOnlineSessionV2AccelByte::CreateBackfillTicket(const FName& SessionName, const FOnCreateBackfillTicketComplete& Delegate)
+{
+	return CreateBackfillTicket(SessionName, TEXT(""), Delegate);
+}
+
+bool FOnlineSessionV2AccelByte::CreateBackfillTicket(const FName& SessionName, const FString& MatchPool, const FOnCreateBackfillTicketComplete& Delegate)
+{
+	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("SessionName: %s"), *SessionName.ToString());
+
+	FNamedOnlineSession* Session = GetNamedSession(SessionName);
+	if (Session == nullptr)
+	{
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Cannot create backfill ticket for session as the session does not exist locally!"));
+		AccelByteSubsystem->ExecuteNextTick([Delegate, SessionName]() {
+			Delegate.ExecuteIfBound(false);
+			});
+		return false;
+	}
+
+	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteCreateBackfillTicket>(AccelByteSubsystem, SessionName, MatchPool, Delegate);
+
+	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+	return true;
+}
+
+bool FOnlineSessionV2AccelByte::DeleteBackfillTicket(const FName& SessionName, const FOnDeleteBackfillTicketComplete& Delegate)
+{
+	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("SessionName: %s"), *SessionName.ToString());
+
+	FNamedOnlineSession* Session = GetNamedSession(SessionName);
+	if (Session == nullptr)
+	{
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Cannot delete backfill ticket for session as the session does not exist locally!"));
+		AccelByteSubsystem->ExecuteNextTick([Delegate, SessionName]() {
+			Delegate.ExecuteIfBound(false);
+		});
+		return false;
+	}
+
+	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteDeleteBackfillTicket>(AccelByteSubsystem, SessionName, Delegate);
+
+	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+	return true;
+}
+
 bool FOnlineSessionV2AccelByte::AcceptBackfillProposal(const FName& SessionName, const FAccelByteModelsV2MatchmakingBackfillProposalNotif& Proposal, bool bStopBackfilling, const FOnAcceptBackfillProposalComplete& Delegate)
 {
 	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("SessionName: %s"), *SessionName.ToString());
@@ -3186,6 +3389,9 @@ bool FOnlineSessionV2AccelByte::AcceptBackfillProposal(const FName& SessionName,
 	if (Session == nullptr)
 	{
 		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Cannot accept backfill proposal for session as the session does not exist locally!"));
+		AccelByteSubsystem->ExecuteNextTick([Delegate]() {
+			Delegate.ExecuteIfBound(false);
+		});
 		return false;
 	}
 
@@ -3203,6 +3409,9 @@ bool FOnlineSessionV2AccelByte::RejectBackfillProposal(const FName& SessionName,
 	if (Session == nullptr)
 	{
 		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Cannot reject backfill proposal for session as the session does not exist locally!"));
+		AccelByteSubsystem->ExecuteNextTick([Delegate]() {
+			Delegate.ExecuteIfBound(false);
+		});
 		return false;
 	}
 
@@ -3220,6 +3429,9 @@ bool FOnlineSessionV2AccelByte::UpdateMemberStatus(FName SessionName, const FUni
 	if (Session == nullptr)
 	{
 		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Could not member status for session named '%s' as the session does not exist locally!"), *SessionName.ToString());
+		AccelByteSubsystem->ExecuteNextTick([Delegate]() {
+			Delegate.ExecuteIfBound(false);
+		});
 		return false;
 	}
 
@@ -4069,21 +4281,21 @@ void FOnlineSessionV2AccelByte::OnICEConnectionComplete(const FString& PeerId,
 	
 	switch (Status)
 	{
-	case Success:
+	case EAccelByteP2PConnectionStatus::Success:
 		Result = EOnJoinSessionCompleteResult::Success;
 		break;
 
-	case SignalingServerDisconnected:
-	case HostResponseTimeout:
-	case PeerIsNotHosting:
+	case EAccelByteP2PConnectionStatus::SignalingServerDisconnected:
+	case EAccelByteP2PConnectionStatus::HostResponseTimeout:
+	case EAccelByteP2PConnectionStatus::PeerIsNotHosting:
 		Result = EOnJoinSessionCompleteResult::SessionDoesNotExist;
 		break;
 
-	case JuiceGatherFailed:
-	case JuiceGetLocalDescriptionFailed:
-	case JuiceConnectionFailed:
-	case FailedGettingTurnServer:
-	case FailedGettingTurnServerCredential:
+	case EAccelByteP2PConnectionStatus::JuiceGatherFailed:
+	case EAccelByteP2PConnectionStatus::JuiceGetLocalDescriptionFailed:
+	case EAccelByteP2PConnectionStatus::JuiceConnectionFailed:
+	case EAccelByteP2PConnectionStatus::FailedGettingTurnServer:
+	case EAccelByteP2PConnectionStatus::FailedGettingTurnServerCredential:
 		Result = EOnJoinSessionCompleteResult::CouldNotRetrieveAddress;
 		break;
 
@@ -4185,6 +4397,56 @@ void FOnlineSessionV2AccelByte::OnV2BackfillProposalNotification(const FAccelByt
 	}
 
 	TriggerOnBackfillProposalReceivedDelegates(Notification);
+
+	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+}
+
+void FOnlineSessionV2AccelByte::SendReadyToWatchdog()
+{
+	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("Send Ready Message to watchdog"));
+
+	if (!IsRunningDedicatedServer())
+	{
+		AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+		return;
+	}
+	FRegistry::ServerWatchdog.SendReadyMessage();
+
+	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+}
+
+void FOnlineSessionV2AccelByte::DisconnectFromWatchdog()
+{
+	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT(""));
+
+	// Bail if this is not a dedicated server
+	if (!IsRunningDedicatedServer())
+	{
+		AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+		return;
+	}
+
+	// Unbind any delegates that we want to stop listening to Watchdog for
+	FRegistry::ServerWatchdog.SetOnWatchdogDrainReceivedDelegate(AccelByte::GameServerApi::ServerWatchdog::FOnWatchdogDrainReceived());
+
+	// Finally, disconnect the DS watchdog websocket
+	FRegistry::ServerWatchdog.Disconnect();
+
+	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+}
+
+void FOnlineSessionV2AccelByte::OnWatchdogDrain()
+{
+	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT(""));
+
+	// Bail if this is not a dedicated server
+	if (!IsRunningDedicatedServer())
+	{
+		AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+		return;
+	}
+
+	TriggerOnWatchdogDrainReceivedDelegates();
 
 	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
 }

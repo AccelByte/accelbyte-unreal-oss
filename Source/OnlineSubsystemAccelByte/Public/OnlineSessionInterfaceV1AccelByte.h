@@ -268,7 +268,7 @@ private:
 	FOnlineSessionSearchResult ConstructSessionResultForMatch(const FAccelBytePendingMatchInfo& PendingMatch);
 
 	void CreateP2PSession(FNamedOnlineSession* Session);
-	void OnRTCConnected(const FString& NetId, const EAccelByteP2PConnectionStatus& Status, FName SessionName);
+	void OnRTCConnected(const FString& NetId, const AccelByte::NetworkUtilities::EAccelByteP2PConnectionStatus& Status, FName SessionName);
 	void OnRTCClosed(const FString & NetId, FName SessionName);
 	void OnSessionCreateSuccess(const FAccelByteModelsSessionBrowserData& Data, FName SessionName);
 	void UpdateSessionSettings(FName SessionName, FSessionSettings Settings);

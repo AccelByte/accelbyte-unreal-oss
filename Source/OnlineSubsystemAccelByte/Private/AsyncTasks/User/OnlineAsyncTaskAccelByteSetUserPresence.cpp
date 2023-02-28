@@ -28,6 +28,7 @@ void FOnlineAsyncTaskAccelByteSetUserPresence::Initialize()
 	case EOnlinePresenceState::Online: PresenceStatus = EAvailability::Online; break;
 	case EOnlinePresenceState::DoNotDisturb: PresenceStatus = EAvailability::Busy; break;
 	case EOnlinePresenceState::Chat: PresenceStatus = EAvailability::Invisible; break;
+	case EOnlinePresenceState::Away: PresenceStatus = EAvailability::Away; break;
 	case EOnlinePresenceState::Offline:
 	default: PresenceStatus = EAvailability::Offline; break;
 	}

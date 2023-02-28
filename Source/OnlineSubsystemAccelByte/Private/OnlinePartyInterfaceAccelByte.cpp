@@ -160,6 +160,7 @@ TSharedRef<FOnlinePartyAccelByte> FOnlinePartyAccelByte::CreatePartyFromPartyInf
 			{
 			case EAvailability::Online:
 			case EAvailability::Busy:
+			case EAvailability::Away:
 				NewMemberStatusConnection = EMemberConnectionStatus::Connected;
 				break;
 			case EAvailability::Offline:

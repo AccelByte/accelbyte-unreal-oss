@@ -42,17 +42,68 @@ public:
 	bool GetListUserStatItems(int32 LocalUserNum, TArray<TSharedRef<FAccelByteModelsFetchUser>>& OutUsers);
 	TSharedPtr<const FOnlineStatsUserStats>  GetAllListUserStatItemFromCache(const FUniqueNetIdRef StatsUserId) const;
 
+	/**
+	 * Query a specific user's stats
+	 *
+	 * @param LocalUserId User to query as (if applicable)
+	 * @param StatsUser User to get stats for
+	 * @param StatNames Stats to get stats for all specified users
+	 * @param Delegate Called when the user's stats have finished being requested and are now available, or when we fail to retrieve the user's stats
+	 */
 	void QueryStats(const FUniqueNetIdRef LocalUserId, const FUniqueNetIdRef StatsUser, const TArray<FString>& StatNames, const FOnlineStatsQueryUserStatsComplete& Delegate);
+
+	/**
+	 * Query a specific user's stats
+	 *
+	 * @param LocalUserNum Index of user(or server) to query as
+	 * @param StatsUser User to get stats for
+	 * @param StatNames Stats to get stats for all specified users
+	 * @param Delegate Called when the user's stats have finished being requested and are now available, or when we fail to retrieve the user's stats
+	 */
+	virtual void QueryStats(const int32 LocalUserNum, const FUniqueNetIdRef StatsUser, const TArray<FString>& StatNames, const FOnlineStatsQueryUserStatsComplete& Delegate);
+
+	/**
+	 * Query a specific user's stats
+	 *
+	 * @param LocalUserNum Index of user(or server) to query as
+	 * @param StatsUser User to get stats for
+	 * @param Delegate Called when the user's stats have finished being requested and are now available, or when we fail to retrieve the user's stats
+	 */
+	virtual void QueryStats(const int32 LocalUserNum, const FUniqueNetIdRef StatsUser, const FOnlineStatsQueryUserStatsComplete& Delegate);
+
+	/**
+	 * Query a one or more user's stats
+	 *
+	 * @param LocalUserNum Index of user(or server) to query as
+	 * @param StatsUser Users to get stats for
+	 * @param StatNames Stats to get stats for all specified users
+	 * @param Delegate Called when the user's stats have finished being requested and are now available, or when we fail to retrieve the user's stats
+	 */
+	virtual void QueryStats(const int32 LocalUserNum, const TArray<FUniqueNetIdRef>& StatUsers, const TArray<FString>& StatNames, const FOnlineStatsQueryUsersStatsComplete& Delegate);
 
 	/**
 	 * Create a one or more user's stats. Only for request by Game Server
 	 * 
-	 * @param LocalUserNum Index of user that is attempting to create the stats
+	 * @param LocalUserNum Index of user(server) that is attempting to create the stats
 	 * @param StatsUser User to create stats for
 	 * @param StatNames Stats to create stats for all specified users
 	 * @param Delegate Called when the user's stats have finished being created, or when we fail to create the user's stats
 	 */
 	virtual void CreateStats(const int32 LocalUserNum, const FUniqueNetIdRef StatsUser, const TArray<FString>& StatNames, const FOnlineStatsCreateStatsComplete& Delegate);
+	
+	/**
+	 * Emplace a user's cached stats object
+	 *
+	 * @param UserStats The stats to emplace
+	 */
+	virtual void EmplaceStats(const TSharedPtr<const FOnlineStatsUserStats>& InUserStats);
+
+	/**
+	 * Emplace user's cached stats object
+	 *
+	 * @param UsersStats The stats to emplace
+	 */
+	virtual void EmplaceStats(const TArray<TSharedPtr<const FOnlineStatsUserStats>>& InUsersStats);
 
 	//~ Begin IOnlineStats Interface
 	virtual void QueryStats(const FUniqueNetIdRef LocalUserId, const FUniqueNetIdRef StatsUser, const FOnlineStatsQueryUserStatsComplete& Delegate) override;
@@ -73,7 +124,20 @@ protected:
 	/** Instance of the subsystem that created this interface */
 	FOnlineSubsystemAccelByte* AccelByteSubsystem = nullptr;
 
-private : 
+private :
+	/**
+	 * Query a specific user's stats
+	 *
+	 * @param LocalUserNum Index of user(or server) to query as
+	 * @param LocalUserId User to query as (if applicable)
+	 * @param StatsUser User to get stats for
+	 * @param StatNames Stats to create stats for all specified users
+	 * @param Delegate Called when the user's stats have finished being requested and are now available, or when we fail to retrieve the user's stats
+	 */
+	virtual void QueryStats(const int32 LocalUserNum, const FUniqueNetId& LocalUserId, const FUniqueNetIdRef StatsUser, const TArray<FString>& StatNames, const FOnlineStatsQueryUserStatsComplete& Delegate);
+	
 	TSharedPtr<const FOnlineStatsUserStats> UserStats;
+	/** Critical sections for thread safe operation of UsersStats */
+	mutable FCriticalSection StatsLock;
 	TArray<TSharedRef<const FOnlineStatsUserStats>> UsersStats;
 };

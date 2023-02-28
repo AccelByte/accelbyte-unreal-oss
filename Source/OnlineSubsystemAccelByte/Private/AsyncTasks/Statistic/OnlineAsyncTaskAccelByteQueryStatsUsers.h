@@ -12,10 +12,15 @@ class FOnlineAsyncTaskAccelByteQueryStatsUsers : public FOnlineAsyncTaskAccelByt
 {
 public:
 	FOnlineAsyncTaskAccelByteQueryStatsUsers(FOnlineSubsystemAccelByte* const InABInterface, const TSharedRef<const FUniqueNetId> InLocalUserId,
-		const TArray<FUniqueNetIdRef>& InStatsUsers, const TArray<FString>& StatNames, const FOnlineStatsQueryUsersStatsComplete& InDelegate);
+		const TArray<FUniqueNetIdRef>& InStatsUsers, const TArray<FString>& InStatNames, const FOnlineStatsQueryUsersStatsComplete& InDelegate);
+
+	FOnlineAsyncTaskAccelByteQueryStatsUsers(FOnlineSubsystemAccelByte* const InABInterface, const int32 InLocalUserNum,
+		const TArray<FUniqueNetIdRef>& InStatsUsers, const TArray<FString>& InStatNames, const FOnlineStatsQueryUsersStatsComplete& InDelegate);
 
 	virtual void Initialize() override;
+	virtual void Finalize() override;
 	virtual void TriggerDelegates() override;
+	virtual void Tick() override;
 
 protected:
 
@@ -25,25 +30,21 @@ protected:
 	}
 
 private:
-	void HandleBulkFetchStatItemsValue(const TArray<FAccelByteModelsStatItemValueResponse>& Result);
-	void HandleGetUserStatItems(const FAccelByteModelsUserStatItemPagingSlicedResult& Result);
+	void OnGetUserStatItemsSuccess(const FAccelByteModelsUserStatItemPagingSlicedResult& Result);
 
-	THandler<TArray<FAccelByteModelsStatItemValueResponse>> OnBulkFetchStatItemsValueSuccess;
-	void HandleAsyncTaskError(int32 Code, FString const& ErrMsg);
-	FErrorHandler OnError;	
-	FOnlineError OnlineError;
+	void OnGetUsersStatsItemsError(int32 Code, FString const& ErrMsg);
+	FErrorHandler OnError;
 	TArray<TSharedRef<const FOnlineStatsUserStats>> OnlineUsersStatsPairs;
-	THandler<FAccelByteModelsUserStatItemPagingSlicedResult> OnGetUserStatItemsSuccess;
+	THandler<FAccelByteModelsUserStatItemPagingSlicedResult> OnGetUserStatItemsSuccessHandler;
 	
-	FUniqueNetIdRef LocalUserId;
+	int32 LocalUserNum;
 	TArray<FUniqueNetIdRef> StatsUsers;
 	TArray<FString> StatNames;
 	FOnlineStatsQueryUsersStatsComplete Delegate;
 
 	TArray<FString> AccelByteUserIds;
-	TMap<FString, FVariantData> StatCodes;
-	TArray<FString> StatCodesString{};
-	int32 CountStatCodesString; 
-	int32 CountUsers; 
+	int32 CountUsers;
+	FString ErrorCode;
+	FString ErrorMessage;
 
 };

@@ -11,10 +11,11 @@
 class FOnlineAsyncTaskAccelByteQueryStatsUser : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteQueryStatsUser, ESPMode::ThreadSafe>
 {
 public:
-	FOnlineAsyncTaskAccelByteQueryStatsUser(FOnlineSubsystemAccelByte* const InABInterface, const TSharedRef<const FUniqueNetId> InLocalUserId,
+	FOnlineAsyncTaskAccelByteQueryStatsUser(FOnlineSubsystemAccelByte* const InABInterface, const int32 InLocalUserNum, const FUniqueNetId& InLocalUserId,
 		const TSharedRef<const FUniqueNetId> InStatsUser, const TArray<FString>& InStatCodes, const FOnlineStatsQueryUserStatsComplete& InDelegate);
 
 	virtual void Initialize() override;
+	virtual void Finalize() override;
 	virtual void TriggerDelegates() override;
 
 protected:
@@ -25,22 +26,18 @@ protected:
 	}
 
 private:
-	void HandleBulkFetchStatItemsValue(const TArray<FAccelByteModelsStatItemValueResponse>& Result);
-	void HandleGetUserStatItems(const FAccelByteModelsUserStatItemPagingSlicedResult& Result);
+	void OnGetUserStatItemsSuccess(const FAccelByteModelsUserStatItemPagingSlicedResult& Result);
 
-	THandler<TArray<FAccelByteModelsStatItemValueResponse>> OnBulkFetchStatItemsValueSuccess;
-	void HandleAsyncTaskError(int32 Code, FString const& ErrMsg);
-	FErrorHandler OnError;	
-	FOnlineError OnlineError;
+	void OnGetUserStatsItemsError(int32 Code, FString const& ErrMsg);
+	FErrorHandler OnError;
 	TSharedPtr<const FOnlineStatsUserStats> OnlineUserStatsPair;
 
-	FUniqueNetIdRef LocalUserId;
-	FUniqueNetIdRef StatsUser;
-	FString AccelByteUserId;
+	int32 LocalUserNum;
+	FUniqueNetIdAccelByteUserRef StatsUser;
 	TMap<FString, FVariantData> Stats;
-	TArray<FString> StatCodes{};
 	TArray<FString> StatNames{};
 	FOnlineStatsQueryUserStatsComplete Delegate;
-	int32 Count;
+	FString ErrorCode;
+	FString ErrorMessage;
 
 };
