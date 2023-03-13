@@ -5,6 +5,9 @@
 #include "OnlineAsyncTaskAccelByteGetGameRecord.h"
 #include "OnlineSubsystemAccelByte.h"
 #include "OnlineCloudSaveInterfaceAccelByte.h"
+#include "OnlineError.h"
+
+#define ONLINE_ERROR_NAMESPACE "FOnlineAsyncTaskAccelByteGetGameRecord"
 
 FOnlineAsyncTaskAccelByteGetGameRecord::FOnlineAsyncTaskAccelByteGetGameRecord(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InLocalUserId, const FString& InKey, bool bInAlwaysRequestToService)
 	: FOnlineAsyncTaskAccelByte(InABInterface)
@@ -23,7 +26,7 @@ void FOnlineAsyncTaskAccelByteGetGameRecord::Initialize()
 	const FOnlineCloudSaveAccelBytePtr CloudSaveInterface = Subsystem->GetCloudSaveInterface();
 	if (!CloudSaveInterface.IsValid())
 	{
-		ErrorStr = TEXT("request-failed-get-game-record-error");
+		ErrorStr = FText::FromString(TEXT("request-failed-get-game-record-error"));
 		CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
 		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to get game record, cloud save interface is invalid!"));
 		return;
@@ -39,7 +42,8 @@ void FOnlineAsyncTaskAccelByteGetGameRecord::Initialize()
 			const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(Subsystem->GetIdentityInterface());
 			if (!IdentityInterface.IsValid())
 			{
-				ErrorStr = TEXT("request-failed-get-game-record-error");
+				ErrorCode = FString::Printf(TEXT("%d"), ErrorCodes::StatusUnauthorized);
+				ErrorStr = FText::FromString(TEXT("request-failed-get-game-record-error"));
 				CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
 				AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to get user record, identity interface is invalid!"));
 				return;
@@ -47,7 +51,8 @@ void FOnlineAsyncTaskAccelByteGetGameRecord::Initialize()
 
 			if (IdentityInterface->GetLoginStatus(*UserId) != ELoginStatus::LoggedIn)
 			{
-				ErrorStr = TEXT("request-failed-get-game-record-error");
+				ErrorCode = TEXT("401");
+				ErrorStr = FText::FromString(TEXT("request-failed-get-game-record-error"));
 				CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
 				AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to get game user, not logged in!"));
 				return;
@@ -78,11 +83,11 @@ void FOnlineAsyncTaskAccelByteGetGameRecord::TriggerDelegates()
 	{
 		if (bWasSuccessful)
 		{
-			CloudSaveInterface->TriggerOnGetGameRecordCompletedDelegates(LocalUserNum, true, GameRecord, TEXT(""));
+			CloudSaveInterface->TriggerOnGetGameRecordCompletedDelegates(LocalUserNum, ONLINE_ERROR(EOnlineErrorResult::Success), Key,  GameRecord);
 		}
 		else
 		{
-			CloudSaveInterface->TriggerOnGetGameRecordCompletedDelegates(LocalUserNum, false, GameRecord, ErrorStr);
+			CloudSaveInterface->TriggerOnGetGameRecordCompletedDelegates(LocalUserNum, ONLINE_ERROR(EOnlineErrorResult::RequestFailure, ErrorCode, ErrorStr), Key, GameRecord);
 		}
 	}
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
@@ -101,9 +106,10 @@ void FOnlineAsyncTaskAccelByteGetGameRecord::OnGetGameRecordSuccess(const FAccel
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Request to get game record for user '%s' Success!"), *UserId->ToDebugString());
 }
 
-void FOnlineAsyncTaskAccelByteGetGameRecord::OnGetGameRecordError(int32 ErrorCode, const FString& ErrorMessage)
+void FOnlineAsyncTaskAccelByteGetGameRecord::OnGetGameRecordError(int32 Code, const FString& ErrorMessage)
 {
-	ErrorStr = TEXT("request-failed-get-game-record-error");
-	UE_LOG_AB(Warning, TEXT("Failed to get game record! Error Code: %d; Error Message: %s"), ErrorCode, *ErrorMessage);
+	ErrorCode = FString::Printf(TEXT("%d"), Code);
+	ErrorStr = FText::FromString(TEXT("request-failed-get-game-record-error"));
+	UE_LOG_AB(Warning, TEXT("Failed to get game record! Error Code: %d; Error Message: %s"), Code, *ErrorMessage);
 	CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
 }

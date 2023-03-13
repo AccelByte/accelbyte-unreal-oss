@@ -44,7 +44,15 @@ private:
 	 */
 	FAccelByteModelsV2GameSession NewSessionData;
 
+	/**
+	 * Flag indicating whether the request failed due to a version number mismatch
+	 */
+	bool bWasConflictError = false;
+
 	void OnUpdateGameSessionSuccess(const FAccelByteModelsV2GameSession& BackendSessionData);
 	void OnUpdateGameSessionError(int32 ErrorCode, const FString& ErrorMessage);
 
+	void RefreshSession();
+	void OnRefreshGameSessionSuccess(const FAccelByteModelsV2GameSession& Result);
+	void OnRefreshGameSessionError(int32 ErrorCode, const FString& ErrorMessage);
 };

@@ -5,6 +5,7 @@
 #include "OnlineAsyncTaskAccelByteUpdatePartyV2.h"
 #include "OnlineSessionInterfaceV2AccelByte.h"
 #include "OnlineSubsystemAccelByteSessionSettings.h"
+#include "OnlineAsyncTaskAccelByteRefreshV2PartySession.h"
 
 FOnlineAsyncTaskAccelByteUpdatePartyV2::FOnlineAsyncTaskAccelByteUpdatePartyV2(FOnlineSubsystemAccelByte* const InABInterface, const FName& InSessionName, const FOnlineSessionSettings& InNewSessionSettings)
 	: FOnlineAsyncTaskAccelByte(InABInterface)
@@ -113,7 +114,13 @@ void FOnlineAsyncTaskAccelByteUpdatePartyV2::TriggerDelegates()
 		return;
 	}
 
+	if (bWasConflictError)
+	{
+		SessionInterface->TriggerOnSessionUpdateConflictErrorDelegates(SessionName, NewSessionSettings);
+	}
+
 	SessionInterface->TriggerOnUpdateSessionCompleteDelegates(SessionName, bWasSuccessful);
+	SessionInterface->TriggerOnSessionUpdateRequestCompleteDelegates(SessionName, bWasSuccessful);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
@@ -131,5 +138,55 @@ void FOnlineAsyncTaskAccelByteUpdatePartyV2::OnUpdatePartySessionSuccess(const F
 void FOnlineAsyncTaskAccelByteUpdatePartyV2::OnUpdatePartySessionError(int32 ErrorCode, const FString& ErrorMessage)
 {
 	UE_LOG_AB(Warning, TEXT("Failed to update party session on backend! Error code: %d; Error message: %s"), ErrorCode, *ErrorMessage);
+
+	// If this is a version conflict error, we want to refresh the local session data before completing the task
+	if (ErrorCode != StaticCast<int32>(AccelByte::ErrorCodes::SessionUpdateVersionMismatch))
+	{
+		CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
+		return;
+	}
+
+	bWasConflictError = true;
+	RefreshSession();
+}
+
+void FOnlineAsyncTaskAccelByteUpdatePartyV2::RefreshSession()
+{
+	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
+
+	const TSharedPtr<FOnlineSessionV2AccelByte, ESPMode::ThreadSafe> SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(Subsystem->GetSessionInterface());
+	AB_ASYNC_TASK_ENSURE(SessionInterface.IsValid(), "Could not refresh party session named '%s' as our session interface is invalid!", *SessionName.ToString());
+
+	FNamedOnlineSession* Session = SessionInterface->GetNamedSession(SessionName);
+	AB_ASYNC_TASK_ENSURE(Session != nullptr, "Could not refresh party session named '%s' as the session does not exist locally!", *SessionName.ToString());
+
+	const FString SessionId = Session->GetSessionIdStr();
+	AB_ASYNC_TASK_ENSURE(!SessionId.Equals(TEXT("InvalidSession")), "Could not refresh party session named '%s' as there is not a valid session ID associated!", *SessionName.ToString());
+
+	AB_ASYNC_TASK_DEFINE_SDK_DELEGATES(FOnlineAsyncTaskAccelByteUpdatePartyV2, RefreshPartySession, THandler<FAccelByteModelsV2PartySession>);
+	ApiClient->Session.GetPartyDetails(SessionId, OnRefreshPartySessionSuccessDelegate, OnRefreshPartySessionErrorDelegate);
+
+	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
+}
+
+void FOnlineAsyncTaskAccelByteUpdatePartyV2::OnRefreshPartySessionSuccess(const FAccelByteModelsV2PartySession& Result)
+{
+	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
+
+	const TSharedPtr<FOnlineSessionV2AccelByte, ESPMode::ThreadSafe> SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(Subsystem->GetSessionInterface());
+	if (SessionInterface.IsValid())
+	{
+		SessionInterface->UpdateInternalPartySession(SessionName, Result);
+	}
+
+	// If we had to refresh the session, then the overall update request still failed
+	CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
+
+	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
+}
+
+void FOnlineAsyncTaskAccelByteUpdatePartyV2::OnRefreshPartySessionError(int32 ErrorCode, const FString& ErrorMessage)
+{
+	AB_ASYNC_TASK_REQUEST_FAILED("Request to refresh party session failed on backend!", ErrorCode, ErrorMessage);
 	CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
 }

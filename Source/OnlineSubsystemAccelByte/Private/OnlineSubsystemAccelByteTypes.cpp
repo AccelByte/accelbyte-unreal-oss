@@ -98,7 +98,9 @@ PRAGMA_ENABLE_DEPRECATION_WARNINGS
 }
 
 FUniqueNetIdAccelByteResource::FUniqueNetIdAccelByteResource(FString&& InUniqueNetId)
+PRAGMA_DISABLE_DEPRECATION_WARNINGS
 	: FUniqueNetIdString(MoveTemp(InUniqueNetId), ACCELBYTE_RESOURCE_ID_TYPE)
+PRAGMA_ENABLE_DEPRECATION_WARNINGS
 {
 }
 
@@ -110,12 +112,16 @@ PRAGMA_ENABLE_DEPRECATION_WARNINGS
 }
 
 FUniqueNetIdAccelByteResource::FUniqueNetIdAccelByteResource(FString&& InUniqueNetId, const FName InType)
+PRAGMA_DISABLE_DEPRECATION_WARNINGS
 	: FUniqueNetIdString(MoveTemp(InUniqueNetId), InType)
+PRAGMA_ENABLE_DEPRECATION_WARNINGS
 {
 }
 
 FUniqueNetIdAccelByteResource::FUniqueNetIdAccelByteResource(const FString& InUniqueNetId, const FName InType)
+PRAGMA_DISABLE_DEPRECATION_WARNINGS
 	: FUniqueNetIdString(InUniqueNetId, InType)
+PRAGMA_ENABLE_DEPRECATION_WARNINGS
 {
 }
 
@@ -214,13 +220,17 @@ PRAGMA_ENABLE_DEPRECATION_WARNINGS
 }
 
 FUniqueNetIdAccelByteUser::FUniqueNetIdAccelByteUser(FString&& InUniqueNetId, const FName InType)
+PRAGMA_DISABLE_DEPRECATION_WARNINGS
 	: FUniqueNetIdAccelByteResource(MoveTemp(InUniqueNetId), InType)
+PRAGMA_ENABLE_DEPRECATION_WARNINGS
 {
 	DecodeIDElements();
 }
 
 FUniqueNetIdAccelByteUser::FUniqueNetIdAccelByteUser(const FString& InUniqueNetId, const FName InType)
+PRAGMA_DISABLE_DEPRECATION_WARNINGS
 	: FUniqueNetIdAccelByteResource(InUniqueNetId, InType)
+PRAGMA_ENABLE_DEPRECATION_WARNINGS
 {
 	DecodeIDElements();
 }
@@ -276,7 +286,9 @@ FUniqueNetIdAccelByteUserRef FUniqueNetIdAccelByteUser::Create(const FAccelByteU
 		return Invalid();
 	}
 
+	PRAGMA_DISABLE_DEPRECATION_WARNINGS
 	FUniqueNetIdAccelByteUser* User = new FUniqueNetIdAccelByteUser(MoveTemp(EncodedString), ACCELBYTE_USER_ID_TYPE);
+	PRAGMA_ENABLE_DEPRECATION_WARNINGS
 	User->CompositeStructure = CompositeId;
 	return MakeShareable(User);
 }
@@ -294,7 +306,9 @@ FUniqueNetIdAccelByteUserRef FUniqueNetIdAccelByteUser::Create(const FString& In
 		return Create(FAccelByteUniqueIdComposite(InUniqueNetId));
 	}
 
+	PRAGMA_DISABLE_DEPRECATION_WARNINGS
 	return MakeShared<const FUniqueNetIdAccelByteUser>(CompositeId, InUniqueNetId);
+	PRAGMA_ENABLE_DEPRECATION_WARNINGS
 }
 
 FUniqueNetIdAccelByteUserRef FUniqueNetIdAccelByteUser::Create(const FUniqueNetId& Src)

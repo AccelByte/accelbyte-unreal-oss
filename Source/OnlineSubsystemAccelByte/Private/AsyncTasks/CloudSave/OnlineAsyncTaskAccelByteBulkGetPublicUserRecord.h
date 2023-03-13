@@ -37,13 +37,13 @@ private:
 	/**
 	 * Delegate handler for when get another user record fails
 	 */
-	void OnBulkGetPublicUserRecordError(int32 ErrorCode, const FString& ErrorMessage);
+	void OnBulkGetPublicUserRecordError(int32 Code, const FString& ErrorMessage);
 	FErrorHandler OnBulkGetPublicUserRecordErrorDelegate;
 
 	/**
 	 * String representing the error code that occurred
 	 */
-	FString ErrorStr;
+	FText ErrorStr;
 
 	/**
 	 * String representing the record key to get
@@ -54,6 +54,8 @@ private:
 	 * String representing another user id
 	 */
 	TArray<FString> UserIds;
+
+	FString ErrorCode;
 
 	FListAccelByteModelsUserRecord ListUserRecord;
 };

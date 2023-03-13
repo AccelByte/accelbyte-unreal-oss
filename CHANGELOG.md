@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [0.9.0](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.9.0%0D0.8.16) (2023-03-13)
+
+
+### ⚠ BREAKING CHANGES
+
+* changing delegate signature will breaks client's project who is already using these feature
+
+
+Approved-by: Jonathan Eka Sulistya Putra
+Approved-by: Wijanarko Sukma Pamungkas
+Approved-by: Teoderikus Ferdian Yanottama Yatna Putra
+
+### Bug Fixes
+
+* **asyncTasks:** add asyncTask to inherit TselfPtr, change CreateRaw to CreateThreadSafeSelfPtr ([8658341](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/865834163ee3cec8b86af11a162b9feb4560e3ce))
+
+
+* Merged in feature/JES-479-support-add-key-in-cloud-save-interface (pull request #230) ([9946c5e](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/9946c5e90db2740ef6aa15af3bbd95585c4401cc)), closes [#230](https://accelbyte.atlassian.net/browse/230)
+
 ### [0.8.16](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.8.16%0D0.8.15) (2023-02-28)
 
 

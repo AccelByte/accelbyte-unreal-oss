@@ -5,6 +5,10 @@
 #include "OnlineAsyncTaskAccelByteBulkGetPublicUserRecord.h"
 #include "OnlineSubsystemAccelByte.h"
 #include "OnlineCloudSaveInterfaceAccelByte.h"
+#include "OnlineError.h"
+
+
+#define ONLINE_ERROR_NAMESPACE "FOnlineAsyncTaskAccelByteBulkGetPublicUserRecord"
 
 FOnlineAsyncTaskAccelByteBulkGetPublicUserRecord::FOnlineAsyncTaskAccelByteBulkGetPublicUserRecord(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InLocalUserId, const FString& InKey, const TArray<FString>& InUserIds)
 	: FOnlineAsyncTaskAccelByte(InABInterface)
@@ -36,11 +40,11 @@ void FOnlineAsyncTaskAccelByteBulkGetPublicUserRecord::TriggerDelegates()
 	{
 		if (bWasSuccessful)
 		{
-			CloudSaveInterface->TriggerOnBulkGetPublicUserRecordCompletedDelegates(LocalUserNum, true, ListUserRecord, TEXT(""));
+			CloudSaveInterface->TriggerOnBulkGetPublicUserRecordCompletedDelegates(LocalUserNum, ONLINE_ERROR(EOnlineErrorResult::Success), ListUserRecord);
 		}
 		else
 		{
-			CloudSaveInterface->TriggerOnBulkGetPublicUserRecordCompletedDelegates(LocalUserNum, false, ListUserRecord, ErrorStr);
+			CloudSaveInterface->TriggerOnBulkGetPublicUserRecordCompletedDelegates(LocalUserNum, ONLINE_ERROR(EOnlineErrorResult::RequestFailure, ErrorCode, ErrorStr), ListUserRecord);
 		}
 	}
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
@@ -54,9 +58,10 @@ void FOnlineAsyncTaskAccelByteBulkGetPublicUserRecord::OnBulkGetPublicUserRecord
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Request to get bulk public user record for user '%s' Success!"), *UserId->ToDebugString());
 }
 
-void FOnlineAsyncTaskAccelByteBulkGetPublicUserRecord::OnBulkGetPublicUserRecordError(int32 ErrorCode, const FString& ErrorMessage)
+void FOnlineAsyncTaskAccelByteBulkGetPublicUserRecord::OnBulkGetPublicUserRecordError(int32 Code, const FString& ErrorMessage)
 {
-	ErrorStr = TEXT("request-failed-get-bulk-public-user-record-error");
-	UE_LOG_AB(Warning, TEXT("Failed to get bulk public user record! Error Code: %d; Error Message: %s"), ErrorCode, *ErrorMessage);
+	ErrorCode = FString::Printf(TEXT("%d"), Code);
+	ErrorStr = FText::FromString(TEXT("request-failed-get-bulk-public-user-record-error"));
+	UE_LOG_AB(Warning, TEXT("Failed to get bulk public user record! Error Code: %d; Error Message: %s"), Code, *ErrorMessage);
 	CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
 }

@@ -681,6 +681,7 @@ void FOnlineSessionV2AccelByte::RegisterSessionNotificationDelegates(const FUniq
 	BIND_LOBBY_NOTIFICATION(PartyMembersChanged, PartySessionMembersChanged);
 	BIND_LOBBY_NOTIFICATION(PartyUpdated, PartySessionUpdated);
 	BIND_LOBBY_NOTIFICATION(PartyKicked, KickedFromPartySession);
+	BIND_LOBBY_NOTIFICATION(PartyRejected, PartySessionInviteRejected);
 	//~ End Party Session Notifications
 
 	// Begin Matchmaking Notifications
@@ -1836,7 +1837,7 @@ void FOnlineSessionV2AccelByte::UpdateInternalGameSession(const FName& SessionNa
 	bIsConnectingToP2P = false;
 	
 	// If we have a local owner ID for this session, then check if we are switching to or from P2P
-	if (Session->LocalOwnerId.IsValid())
+	if (!IsRunningDedicatedServer() && Session->LocalOwnerId.IsValid())
 	{
 		const bool bSwitchingToP2P = OldServerType != EAccelByteV2SessionConfigurationServerType::P2P && NewServerType == EAccelByteV2SessionConfigurationServerType::P2P;
 		const bool bSwitchingFromP2P = OldServerType == EAccelByteV2SessionConfigurationServerType::P2P && NewServerType != EAccelByteV2SessionConfigurationServerType::P2P;
@@ -1978,6 +1979,7 @@ bool FOnlineSessionV2AccelByte::UpdateSession(FName SessionName, FOnlineSessionS
 		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to get session with name '%s' as it does not exist!"), *SessionName.ToString());
 		AccelByteSubsystem->ExecuteNextTick([SessionInterface = AsShared(), SessionName]() {
 			SessionInterface->TriggerOnUpdateSessionCompleteDelegates(SessionName, false);
+			SessionInterface->TriggerOnSessionUpdateRequestCompleteDelegates(SessionName, false);
 		});
 		return false;
 	}
@@ -1989,6 +1991,7 @@ bool FOnlineSessionV2AccelByte::UpdateSession(FName SessionName, FOnlineSessionS
 	{
 		AccelByteSubsystem->ExecuteNextTick([SessionInterface = AsShared(), SessionName]() {
 			SessionInterface->TriggerOnUpdateSessionCompleteDelegates(SessionName, true);
+			SessionInterface->TriggerOnSessionUpdateRequestCompleteDelegates(SessionName, true);
 		});
 		AB_OSS_INTERFACE_TRACE_END(TEXT("Skipping updating session settings on backend as bShouldRefreshOnlineData is marked false!"));
 		return false;
@@ -2005,6 +2008,7 @@ bool FOnlineSessionV2AccelByte::UpdateSession(FName SessionName, FOnlineSessionS
 		{
 			AccelByteSubsystem->ExecuteNextTick([SessionInterface = AsShared(), SessionName]() {
 				SessionInterface->TriggerOnUpdateSessionCompleteDelegates(SessionName, true);
+				SessionInterface->TriggerOnSessionUpdateRequestCompleteDelegates(SessionName, true);
 			});
 			AB_OSS_INTERFACE_TRACE_END(TEXT("Game servers are not able to update party sessions!"));
 			return false;
@@ -2843,6 +2847,40 @@ int32 FOnlineSessionV2AccelByte::GetNumSessions()
 
 void FOnlineSessionV2AccelByte::DumpSessionState()
 {
+	FScopeLock ScopeLock(&SessionLock);
+
+	for (const TPair<FName, TSharedPtr<FNamedOnlineSession>>& Pair : Sessions)
+	{
+		if (!ensure(Pair.Value.IsValid()))
+		{
+			continue;
+		}
+
+		FNamedOnlineSession* Session = Pair.Value.Get();
+
+		const TSharedPtr<FOnlineSessionInfoAccelByteV2> SessionInfo = StaticCastSharedPtr<FOnlineSessionInfoAccelByteV2>(Session->SessionInfo);
+		if (!ensure(SessionInfo.IsValid()))
+		{
+			continue;
+		}
+
+		DumpNamedSession(Session);
+
+		FString BackendDataJsonString;
+		EAccelByteV2SessionType SessionType = GetSessionTypeFromSettings(Session->SessionSettings);
+
+		if (SessionType == EAccelByteV2SessionType::GameSession)
+		{
+			FJsonObjectConverter::UStructToJsonObjectString(SessionInfo->GetBackendSessionDataAsGameSession().ToSharedRef().Get(), BackendDataJsonString);
+		}
+		else if (SessionType == EAccelByteV2SessionType::PartySession)
+		{
+			FJsonObjectConverter::UStructToJsonObjectString(SessionInfo->GetBackendSessionDataAsPartySession().ToSharedRef().Get(), BackendDataJsonString);
+		}
+
+		LOG_SCOPE_VERBOSITY_OVERRIDE(LogAccelByteOSS, ELogVerbosity::VeryVerbose);
+		UE_LOG_AB(Verbose, TEXT("dumping session backend data as JSON: %s"), *BackendDataJsonString);
+	}
 }
 
 #if !(ENGINE_MAJOR_VERSION == 4 && ENGINE_MINOR_VERSION < 27)
@@ -3949,12 +3987,29 @@ void FOnlineSessionV2AccelByte::OnPartySessionInviteRejectedNotification(FAccelB
 	
 	if (bHasInvitedPlayersChanged)
 	{
+		FUniqueNetIdPtr UniqueRejectID = nullptr;
+		FAccelByteModelsV2SessionUser* FoundSender = RejectEvent.Members.FindByPredicate([&RejectEvent](const FAccelByteModelsV2SessionUser& User) {
+			return User.ID == RejectEvent.RejectedID;
+		});
+
+		if (FoundSender != nullptr)
+		{
+			FAccelByteUniqueIdComposite IdComponents;
+			IdComponents.Id = FoundSender->ID;
+			IdComponents.PlatformType = FoundSender->PlatformID;
+			IdComponents.PlatformId = FoundSender->PlatformUserID;
+
+			UniqueRejectID = FUniqueNetIdAccelByteUser::Create(IdComponents);
+			TriggerOnSessionInviteRejectedDelegates(Session->SessionName, UniqueRejectID.ToSharedRef().Get());
+		}
+
 		TriggerOnSessionInvitesChangedDelegates(Session->SessionName);
 	}
 
 	SessionInfo->UpdateLeaderId();
 
 	TriggerOnUpdateSessionCompleteDelegates(Session->SessionName, true);
+	TriggerOnSessionUpdateReceivedDelegates(Session->SessionName);
 
 	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
 }

@@ -8,6 +8,7 @@
 #include "OnlineSubsystemAccelByteSessionSettings.h"
 #include "GameServerApi/AccelByteServerSessionApi.h"
 #include "Api/AccelByteSessionApi.h"
+#include "OnlineAsyncTaskAccelByteRefreshV2GameSession.h"
 
 FOnlineAsyncTaskAccelByteUpdateGameSessionV2::FOnlineAsyncTaskAccelByteUpdateGameSessionV2(FOnlineSubsystemAccelByte* const InABInterface, const FName& InSessionName, const FOnlineSessionSettings& InNewSessionSettings)
 	// Initialize as a server task if we are running a dedicated server, as this doubles as a server task. Otherwise, use
@@ -198,7 +199,13 @@ void FOnlineAsyncTaskAccelByteUpdateGameSessionV2::TriggerDelegates()
 		return;
 	}
 
+	if (bWasConflictError)
+	{
+		SessionInterface->TriggerOnSessionUpdateConflictErrorDelegates(SessionName, NewSessionSettings);
+	}
+
 	SessionInterface->TriggerOnUpdateSessionCompleteDelegates(SessionName, bWasSuccessful);
+	SessionInterface->TriggerOnSessionUpdateRequestCompleteDelegates(SessionName, bWasSuccessful);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
@@ -216,5 +223,65 @@ void FOnlineAsyncTaskAccelByteUpdateGameSessionV2::OnUpdateGameSessionSuccess(co
 void FOnlineAsyncTaskAccelByteUpdateGameSessionV2::OnUpdateGameSessionError(int32 ErrorCode, const FString& ErrorMessage)
 {
 	UE_LOG_AB(Warning, TEXT("Failed to update game session on backend! Error code: %d; Error message: %s"), ErrorCode, *ErrorMessage);
+
+	// If this is a version conflict error, we want to refresh the local session data before completing the task
+	if (ErrorCode != StaticCast<int32>(AccelByte::ErrorCodes::SessionUpdateVersionMismatch))
+	{
+		CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
+		return;
+	}
+
+	bWasConflictError = true;
+	RefreshSession();
+}
+
+void FOnlineAsyncTaskAccelByteUpdateGameSessionV2::RefreshSession()
+{
+	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
+
+	const TSharedPtr<FOnlineSessionV2AccelByte, ESPMode::ThreadSafe> SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(Subsystem->GetSessionInterface());
+	check(SessionInterface.IsValid());
+
+	FNamedOnlineSession* Session = SessionInterface->GetNamedSession(SessionName);
+	AB_ASYNC_TASK_ENSURE(Session != nullptr, "Could not refresh game session named '%s' as the session does not exist locally!", *SessionName.ToString());
+
+	const FString SessionId = Session->GetSessionIdStr();
+	AB_ASYNC_TASK_ENSURE(!SessionId.Equals(TEXT("InvalidSession")), "Could not refresh game session named '%s' as there is not a valid session ID associated!", *SessionName.ToString());
+
+	// Send the API call based on whether we are a server or a client
+	AB_ASYNC_TASK_DEFINE_SDK_DELEGATES(FOnlineAsyncTaskAccelByteUpdateGameSessionV2, RefreshGameSession, THandler<FAccelByteModelsV2GameSession>);
+	if (IsRunningDedicatedServer())
+	{
+		FMultiRegistry::GetServerApiClient()->ServerSession.GetGameSessionDetails(SessionId, OnRefreshGameSessionSuccessDelegate, OnRefreshGameSessionErrorDelegate);
+	}
+	else
+	{
+		ApiClient->Session.GetGameSessionDetails(SessionId, OnRefreshGameSessionSuccessDelegate, OnRefreshGameSessionErrorDelegate);
+	}
+
+	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
+}
+
+void FOnlineAsyncTaskAccelByteUpdateGameSessionV2::OnRefreshGameSessionSuccess(const FAccelByteModelsV2GameSession& Result)
+{
+	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
+
+	const TSharedPtr<FOnlineSessionV2AccelByte, ESPMode::ThreadSafe> SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(Subsystem->GetSessionInterface());
+	if (SessionInterface.IsValid())
+	{
+		// We don't care about this out flag in this case
+		bool bIsConnectingToP2P = false;
+		SessionInterface->UpdateInternalGameSession(SessionName, Result, bIsConnectingToP2P);
+	}
+
+	// If we had to refresh the session, then the overall update request still failed
+	CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
+
+	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
+}
+
+void FOnlineAsyncTaskAccelByteUpdateGameSessionV2::OnRefreshGameSessionError(int32 ErrorCode, const FString& ErrorMessage)
+{
+	AB_ASYNC_TASK_REQUEST_FAILED("Request to refresh game session failed on backend!", ErrorCode, ErrorMessage);
 	CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
 }

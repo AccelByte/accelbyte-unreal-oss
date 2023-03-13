@@ -7,6 +7,9 @@
 #include "OnlineIdentityInterfaceAccelByte.h"
 #include "OnlineCloudSaveInterfaceAccelByte.h"
 #include "AsyncTasks/Server/OnlineAsyncTaskAccelByteLoginServer.h"
+#include "OnlineError.h"
+
+#define ONLINE_ERROR_NAMESPACE "FOnlineAsyncTaskAccelByteReplaceGameRecord"
 
 FOnlineAsyncTaskAccelByteReplaceGameRecord::FOnlineAsyncTaskAccelByteReplaceGameRecord(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InLocalUserId, const FString& InKey, const FJsonObject& InGameRecordObj)
 	: FOnlineAsyncTaskAccelByte(InABInterface)
@@ -27,7 +30,8 @@ void FOnlineAsyncTaskAccelByteReplaceGameRecord::Initialize()
 
 	if (!IsRunningDedicatedServer())
 	{
-		ErrorStr = TEXT("request-failed-replace-game-record-error");
+		ErrorCode = FString::Printf(TEXT("%d"), ErrorCodes::StatusBadRequest);
+		ErrorStr = FText::FromString(TEXT("request-failed-replace-game-record-error"));
 		CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
 		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to replace game record, access denied!"));
 		return;
@@ -36,7 +40,8 @@ void FOnlineAsyncTaskAccelByteReplaceGameRecord::Initialize()
 	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(Subsystem->GetIdentityInterface());
 	if (!IdentityInterface.IsValid())
 	{
-		ErrorStr = TEXT("request-failed-replace-game-record-error");
+		ErrorCode = FString::Printf(TEXT("%d"), ErrorCodes::StatusUnauthorized);
+		ErrorStr = FText::FromString(TEXT("request-failed-replace-game-record-error"));
 		CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
 		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to replace game record, identity interface is invalid!"));
 		return;
@@ -44,7 +49,8 @@ void FOnlineAsyncTaskAccelByteReplaceGameRecord::Initialize()
 
 	if (IdentityInterface->GetLoginStatus(*UserId) != ELoginStatus::LoggedIn)
 	{
-		ErrorStr = TEXT("request-failed-replace-game-record-error");
+		ErrorCode = FString::Printf(TEXT("%d"), ErrorCodes::StatusUnauthorized);
+		ErrorStr = FText::FromString(TEXT("request-failed-replace-game-record-error"));
 		CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
 		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to replace game record, not logged in!"));
 		return;
@@ -65,11 +71,11 @@ void FOnlineAsyncTaskAccelByteReplaceGameRecord::TriggerDelegates()
 	{
 		if (bWasSuccessful)
 		{
-			CloudSaveInterface->TriggerOnReplaceGameRecordCompletedDelegates(LocalUserNum, true, TEXT(""));
+			CloudSaveInterface->TriggerOnReplaceGameRecordCompletedDelegates(LocalUserNum, ONLINE_ERROR(EOnlineErrorResult::Success),Key);
 		}
 		else
 		{
-			CloudSaveInterface->TriggerOnReplaceGameRecordCompletedDelegates(LocalUserNum, false, ErrorStr);
+			CloudSaveInterface->TriggerOnReplaceGameRecordCompletedDelegates(LocalUserNum, ONLINE_ERROR(EOnlineErrorResult::RequestFailure, ErrorCode, ErrorStr),Key);
 		}
 	}
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
@@ -98,9 +104,10 @@ void FOnlineAsyncTaskAccelByteReplaceGameRecord::OnReplaceGameRecordSuccess()
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Request to replace game record for user '%s' Success!"), *UserId->ToDebugString());
 }
 
-void FOnlineAsyncTaskAccelByteReplaceGameRecord::OnReplaceGameRecordError(int32 ErrorCode, const FString& ErrorMessage)
+void FOnlineAsyncTaskAccelByteReplaceGameRecord::OnReplaceGameRecordError(int32 Code, const FString& ErrorMessage)
 {
-	ErrorStr = TEXT("request-failed-replace-game-record-error");
-	UE_LOG_AB(Warning, TEXT("Failed to replace game record! Error Code: %d; Error Message: %s"), ErrorCode, *ErrorMessage);
+	ErrorCode = FString::Printf(TEXT("%d"), Code);
+	ErrorStr = FText::FromString(TEXT("request-failed-replace-game-record-error"));
+	UE_LOG_AB(Warning, TEXT("Failed to replace game record! Error Code: %d; Error Message: %s"), Code, *ErrorMessage);
 	CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
 }

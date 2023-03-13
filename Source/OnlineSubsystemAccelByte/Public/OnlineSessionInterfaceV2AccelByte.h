@@ -383,11 +383,20 @@ typedef FOnKickedFromSession::FDelegate FOnKickedFromSessionDelegate;
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnSessionUpdateReceived, FName /*SessionName*/);
 typedef FOnSessionUpdateReceived::FDelegate FOnSessionUpdateReceivedDelegate;
 
+DECLARE_MULTICAST_DELEGATE_TwoParams(FOnSessionUpdateRequestComplete, FName /*SessionName*/, bool /*bWasSuccessful*/);
+typedef FOnSessionUpdateRequestComplete::FDelegate FOnSessionUpdateRequestCompleteDelegate;
+
+DECLARE_MULTICAST_DELEGATE_TwoParams(FOnSessionUpdateConflictError, FName /*SessionName*/, FOnlineSessionSettings /*FailedSessionSettings*/);
+typedef FOnSessionUpdateConflictError::FDelegate FOnSessionUpdateConflictErrorDelegate;
+
 DECLARE_MULTICAST_DELEGATE_FourParams(FOnSendSessionInviteComplete, const FUniqueNetId& /*LocalSenderId*/, FName /*SessionName*/, bool /*bWasSuccessful*/, const FUniqueNetId& /*InviteeId*/);
 typedef FOnSendSessionInviteComplete::FDelegate FOnSendSessionInviteCompleteDelegate;
 
 DECLARE_MULTICAST_DELEGATE(FOnWatchdogDrainReceived);
 typedef FOnWatchdogDrainReceived::FDelegate FOnWatchdogDrainReceivedDelegate;
+
+DECLARE_MULTICAST_DELEGATE_TwoParams(FOnSessionInviteRejected, FName /*SessionName*/, const FUniqueNetId& /*RejecterId*/);
+typedef FOnSessionInviteRejected::FDelegate FOnSessionInviteRejectedDelegate;
 //~ End custom delegates
 
 class ONLINESUBSYSTEMACCELBYTE_API FOnlineSessionV2AccelByte : public IOnlineSession, public TSharedFromThis<FOnlineSessionV2AccelByte, ESPMode::ThreadSafe>
@@ -778,12 +787,30 @@ public:
 	 * Delegate fired when a local player has received an update from the backend to a session
 	 */
 	DEFINE_ONLINE_DELEGATE_ONE_PARAM(OnSessionUpdateReceived, FName /*SessionName*/);
+
+	/**
+	 * Delegate fired when a session update request is completed. Together with the above OnSessionUpdateReceived delegate,
+	 * the developer can separately listen to both update notifications and update request completion, without breaking changes
+	 * to the regular OnUpdateSessionComplete delegate, which is used to handle both cases
+	 */
+	DEFINE_ONLINE_DELEGATE_TWO_PARAM(OnSessionUpdateRequestComplete, FName /*SessionName*/, bool /*bWasSuccessful*/);
+
+	/**
+	 * Delegate fired when a session update fails due to a version mismatch 
+	 */
+	DEFINE_ONLINE_DELEGATE_TWO_PARAM(OnSessionUpdateConflictError, FName /*SessionName*/, FOnlineSessionSettings /*FailedSessionSettings*/);
+
 	DEFINE_ONLINE_DELEGATE(OnWatchdogDrainReceived);
 
 	/**
 	 * Delegate fired when a local player has sent an invite to a player
 	 */
 	DEFINE_ONLINE_DELEGATE_FOUR_PARAM(OnSendSessionInviteComplete, const FUniqueNetId& /*LocalSenderId*/, FName /*SessionName*/, bool /*bWasSuccessful*/, const FUniqueNetId& /*InviteeId*/);
+
+	/**
+	 * Delegate fired when a local player rejects invite
+	 */
+	DEFINE_ONLINE_DELEGATE_TWO_PARAM(OnSessionInviteRejected, FName /*SessionName*/, const FUniqueNetId& /*RejectedId*/);
 
 #if (ENGINE_MAJOR_VERSION == 4 && ENGINE_MINOR_VERSION <= 25)
 	/**

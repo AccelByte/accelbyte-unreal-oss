@@ -11,6 +11,9 @@
 #include "AsyncTasks/CloudSave/OnlineAsyncTaskAccelByteBulkGetPublicUserRecord.h"
 #include "AsyncTasks/CloudSave/OnlineAsyncTaskAccelByteGetGameRecord.h"
 #include "AsyncTasks/CloudSave/OnlineAsyncTaskAccelByteReplaceGameRecord.h"
+#include "OnlineError.h"
+
+#define ONLINE_ERROR_NAMESPACE "FOnlineCloudSaveAccelByte"
 
 bool FOnlineCloudSaveAccelByte::GetFromSubsystem(const IOnlineSubsystem* Subsystem, FOnlineCloudSaveAccelBytePtr& OutInterfaceInstance)
 {
@@ -84,16 +87,17 @@ bool FOnlineCloudSaveAccelByte::DeleteUserRecord(int32 LocalUserNum, const FStri
 				AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteDeleteUserRecord>(AccelByteSubsystem, *UserIdPtr.Get(), Key);
 				return true;
 			}
+			constexpr int32 ResponseCode = static_cast<int32>(ErrorCodes::StatusUnauthorized);
 			const FString ErrorStr = TEXT("delete-user-record-failed-userid-invalid");
 			AB_OSS_INTERFACE_TRACE_END(TEXT("UserId is not valid at user index '%d'!"), LocalUserNum);
-			TriggerOnDeleteUserRecordCompletedDelegates(LocalUserNum, false, ErrorStr);
+			TriggerOnDeleteUserRecordCompletedDelegates(LocalUserNum, ONLINE_ERROR(EOnlineErrorResult::InvalidUser),Key);
 			return false;
 		}
 	}
 
 	const FString ErrorStr = TEXT("delete-user-record-failed-not-logged-in");
 	AB_OSS_INTERFACE_TRACE_END(TEXT("User not logged in at user index '%d'!"), LocalUserNum);
-	TriggerOnDeleteUserRecordCompletedDelegates(LocalUserNum, false, ErrorStr);
+	TriggerOnDeleteUserRecordCompletedDelegates(LocalUserNum, ONLINE_ERROR(EOnlineErrorResult::InvalidAuth),Key);
 	return false;
 }
 
@@ -114,14 +118,15 @@ bool FOnlineCloudSaveAccelByte::BulkGetPublicUserRecord(int32 LocalUserNum, cons
 			}
 			const FString ErrorStr = TEXT("bulk-get-public-user-record-failed-userid-invalid");
 			AB_OSS_INTERFACE_TRACE_END(TEXT("UserId is not valid at user index '%d'!"), LocalUserNum);
-			TriggerOnBulkGetPublicUserRecordCompletedDelegates(LocalUserNum, false, FListAccelByteModelsUserRecord(), ErrorStr);
+			TriggerOnBulkGetPublicUserRecordCompletedDelegates(LocalUserNum, ONLINE_ERROR(EOnlineErrorResult::InvalidUser), FListAccelByteModelsUserRecord());
 			return false;
 		}
 	}
 
+	constexpr int32 ResponseCode = static_cast<int32>(ErrorCodes::StatusUnauthorized);
 	const FString ErrorStr = TEXT("bulk-get-public-user-records-failed-not-logged-in");
 	AB_OSS_INTERFACE_TRACE_END(TEXT("User not logged in at user index '%d'!"), LocalUserNum);
-	TriggerOnBulkGetPublicUserRecordCompletedDelegates(LocalUserNum, false, FListAccelByteModelsUserRecord(), ErrorStr);
+	TriggerOnBulkGetPublicUserRecordCompletedDelegates(LocalUserNum, ONLINE_ERROR(EOnlineErrorResult::InvalidAuth), FListAccelByteModelsUserRecord());
 	return false;
 }
 
@@ -152,14 +157,15 @@ bool FOnlineCloudSaveAccelByte::GetGameRecord(int32 LocalUserNum, const FString&
 			}
 			const FString ErrorStr = TEXT("get-game-record-failed-userid-invalid");
 			AB_OSS_INTERFACE_TRACE_END(TEXT("UserId is not valid at user index '%d'!"), LocalUserNum);
-			TriggerOnGetGameRecordCompletedDelegates(LocalUserNum, false, FAccelByteModelsGameRecord(), ErrorStr);
+			TriggerOnGetGameRecordCompletedDelegates(LocalUserNum, ONLINE_ERROR(EOnlineErrorResult::InvalidUser), Key, FAccelByteModelsGameRecord());
 			return false;
 		}
 	}
-
+	
+	constexpr int32 ResponseCode = static_cast<int32>(ErrorCodes::StatusUnauthorized);
 	const FString ErrorStr = TEXT("get-game-records-failed-not-logged-in");
 	AB_OSS_INTERFACE_TRACE_END(TEXT("User not logged in at user index '%d'!"), LocalUserNum);
-	TriggerOnGetGameRecordCompletedDelegates(LocalUserNum, false, FAccelByteModelsGameRecord(), ErrorStr);
+	TriggerOnGetGameRecordCompletedDelegates(LocalUserNum, ONLINE_ERROR(EOnlineErrorResult::MissingInterface), Key,FAccelByteModelsGameRecord());
 	return false;
 }
 
@@ -180,14 +186,14 @@ bool FOnlineCloudSaveAccelByte::ReplaceGameRecord(int32 LocalUserNum, const FStr
 			}
 			const FString ErrorStr = TEXT("replace-game-record-failed-userid-invalid");
 			AB_OSS_INTERFACE_TRACE_END(TEXT("UserId is not valid at user index '%d'!"), LocalUserNum);
-			TriggerOnReplaceGameRecordCompletedDelegates(LocalUserNum, false, ErrorStr);
+			TriggerOnReplaceGameRecordCompletedDelegates(LocalUserNum, ONLINE_ERROR(EOnlineErrorResult::InvalidUser), Key);
 			return false;
 		}
 	}
-
+	
 	const FString ErrorStr = TEXT("replace-game-record-failed-not-logged-in");
 	AB_OSS_INTERFACE_TRACE_END(TEXT("User not logged in at user index '%d'!"), LocalUserNum);
-	TriggerOnReplaceUserRecordCompletedDelegates(LocalUserNum, false, ErrorStr);
+	TriggerOnReplaceUserRecordCompletedDelegates(LocalUserNum, ONLINE_ERROR(EOnlineErrorResult::MissingInterface), Key);
 	return false;
 }
 
@@ -229,7 +235,7 @@ bool FOnlineCloudSaveAccelByte::GetUserRecord(int32 LocalUserNum, const FString&
 				}
 				const FString ErrorStr = TEXT("get-user-record-failed-userid-invalid");
 				AB_OSS_INTERFACE_TRACE_END(TEXT("UserId is not valid at user index '%d'!"), LocalUserNum);
-				TriggerOnGetUserRecordCompletedDelegates(LocalUserNum, false, FAccelByteModelsUserRecord(), ErrorStr);
+				TriggerOnGetUserRecordCompletedDelegates(LocalUserNum, ONLINE_ERROR(EOnlineErrorResult::InvalidUser), Key, FAccelByteModelsUserRecord());
 				return false;
 			}
 			else
@@ -242,7 +248,7 @@ bool FOnlineCloudSaveAccelByte::GetUserRecord(int32 LocalUserNum, const FString&
 
 	const FString ErrorStr = TEXT("get-user-record-failed-not-logged-in");
 	AB_OSS_INTERFACE_TRACE_END(TEXT("User not logged in at user index '%d'!"), LocalUserNum);
-	TriggerOnGetUserRecordCompletedDelegates(LocalUserNum, false, FAccelByteModelsUserRecord(), ErrorStr);
+	TriggerOnGetUserRecordCompletedDelegates(LocalUserNum, ONLINE_ERROR(EOnlineErrorResult::MissingInterface),Key,  FAccelByteModelsUserRecord());
 	return false;
 }
 
@@ -261,16 +267,18 @@ bool FOnlineCloudSaveAccelByte::ReplaceUserRecord(int32 LocalUserNum, const FStr
 				AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteReplaceUserRecord>(AccelByteSubsystem, *UserIdPtr.Get(), Key, RecordRequest, IsPublic);
 				return true;
 			}
+			constexpr int32 ResponseCode = static_cast<int32>(ErrorCodes::StatusUnauthorized);
 			const FString ErrorStr = TEXT("replace-user-record-failed-userid-invalid");
 			AB_OSS_INTERFACE_TRACE_END(TEXT("UserId is not valid at user index '%d'!"), LocalUserNum);
-			TriggerOnReplaceUserRecordCompletedDelegates(LocalUserNum, false, ErrorStr);
+			TriggerOnReplaceUserRecordCompletedDelegates(LocalUserNum, ONLINE_ERROR(EOnlineErrorResult::InvalidUser), Key);
 			return false;
 		}
 	}
 
+	constexpr int32 ResponseCode = static_cast<int32>(ErrorCodes::StatusUnauthorized);
 	const FString ErrorStr = TEXT("replace-user-record-failed-not-logged-in");
 	AB_OSS_INTERFACE_TRACE_END(TEXT("User not logged in at user index '%d'!"), LocalUserNum);
-	TriggerOnReplaceUserRecordCompletedDelegates(LocalUserNum, false, ErrorStr);
+	TriggerOnReplaceUserRecordCompletedDelegates(LocalUserNum, ONLINE_ERROR(EOnlineErrorResult::MissingInterface), Key);
 	return false;
 }
 

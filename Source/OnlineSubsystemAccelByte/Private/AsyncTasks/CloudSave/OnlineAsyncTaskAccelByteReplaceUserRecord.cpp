@@ -5,6 +5,9 @@
 #include "OnlineAsyncTaskAccelByteReplaceUserRecord.h"
 #include "OnlineSubsystemAccelByte.h"
 #include "OnlineCloudSaveInterfaceAccelByte.h"
+#include "OnlineError.h"
+
+#define ONLINE_ERROR_NAMESPACE "FOnlineAsyncTaskAccelByteReplaceUserRecord"
 
 FOnlineAsyncTaskAccelByteReplaceUserRecord::FOnlineAsyncTaskAccelByteReplaceUserRecord(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InLocalUserId, const FString& InKey, const FJsonObject& InUserRecordObj, bool IsPublic)
 	: FOnlineAsyncTaskAccelByte(InABInterface)
@@ -59,11 +62,11 @@ void FOnlineAsyncTaskAccelByteReplaceUserRecord::TriggerDelegates()
 	{
 		if (bWasSuccessful)
 		{
-			CloudSaveInterface->TriggerOnReplaceUserRecordCompletedDelegates(LocalUserNum, true, TEXT(""));
+			CloudSaveInterface->TriggerOnReplaceUserRecordCompletedDelegates(LocalUserNum, ONLINE_ERROR(EOnlineErrorResult::Success), Key);
 		}
 		else
 		{
-			CloudSaveInterface->TriggerOnReplaceUserRecordCompletedDelegates(LocalUserNum, false, ErrorStr);
+			CloudSaveInterface->TriggerOnReplaceUserRecordCompletedDelegates(LocalUserNum, ONLINE_ERROR(EOnlineErrorResult::RequestFailure, ErrorCode, ErrorStr), Key);
 		}
 	}
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
@@ -76,9 +79,10 @@ void FOnlineAsyncTaskAccelByteReplaceUserRecord::OnReplaceUserRecordsSuccess()
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Request to replace user '%s' record Success!"), *UserId->ToDebugString());
 }
 
-void FOnlineAsyncTaskAccelByteReplaceUserRecord::OnReplaceUserRecordsError(int32 ErrorCode, const FString& ErrorMessage)
+void FOnlineAsyncTaskAccelByteReplaceUserRecord::OnReplaceUserRecordsError(int32 Code, const FString& ErrorMessage)
 {
-	ErrorStr = TEXT("request-failed-replace-user-record-error");
-	UE_LOG_AB(Warning, TEXT("Failed to replace user record! Error Code: %d; Error Message: %s"), ErrorCode, *ErrorMessage);
+	ErrorCode = FString::Printf(TEXT("%d"), Code);
+	ErrorStr = FText::FromString(TEXT("request-failed-replace-user-record-error"));
+	UE_LOG_AB(Warning, TEXT("Failed to replace user record! Error Code: %d; Error Message: %s"), Code, *ErrorMessage);
 	CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
 }

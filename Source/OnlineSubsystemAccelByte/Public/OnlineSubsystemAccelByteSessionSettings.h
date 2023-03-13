@@ -2,6 +2,8 @@
 // This is licensed software from AccelByte Inc, for limitations
 // and restrictions contact your company contract manager.
 
+#pragma once
+
 // These are all of the session settings used by the AccelByte Online Subsystem for our V2 sessions.
 
 // GENERIC SESSIONS BEGIN

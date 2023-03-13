@@ -43,7 +43,8 @@ private:
 	/**
 	 * String representing the error code that occurred
 	 */
-	FString ErrorStr;
+	FText ErrorStr;
+	FString ErrorCode;
 
 	/**
 	 * String representing the record key to delete
