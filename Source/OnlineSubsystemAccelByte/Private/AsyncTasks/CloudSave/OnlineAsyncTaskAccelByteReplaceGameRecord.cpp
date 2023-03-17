@@ -111,3 +111,5 @@ void FOnlineAsyncTaskAccelByteReplaceGameRecord::OnReplaceGameRecordError(int32 
 	UE_LOG_AB(Warning, TEXT("Failed to replace game record! Error Code: %d; Error Message: %s"), Code, *ErrorMessage);
 	CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
 }
+
+#undef ONLINE_ERROR_NAMESPACE

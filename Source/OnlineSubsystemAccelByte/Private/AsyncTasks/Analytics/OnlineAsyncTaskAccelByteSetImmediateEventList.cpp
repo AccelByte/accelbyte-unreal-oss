@@ -15,7 +15,7 @@ void FOnlineAsyncTaskAccelByteSetImmediateEventList::Initialize()
 {
 	Super::Initialize();
 	
-	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Setting immediate event list, UserId: %s"), *UserId->ToDebugString());
+	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Setting immediate event list, LocalUserNum: %d"), LocalUserNum);
 
 	if (IsRunningDedicatedServer())
 	{

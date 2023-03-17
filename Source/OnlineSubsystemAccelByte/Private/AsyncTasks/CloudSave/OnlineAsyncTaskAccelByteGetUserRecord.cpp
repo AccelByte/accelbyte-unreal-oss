@@ -129,3 +129,5 @@ void FOnlineAsyncTaskAccelByteGetUserRecord::OnGetUserRecordsError(int32 Code, c
 	UE_LOG_AB(Warning, TEXT("Failed to get user record! Error Code: %d; Error Message: %s"), Code, *ErrorMessage);
 	CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
 }
+
+#undef ONLINE_ERROR_NAMESPACE

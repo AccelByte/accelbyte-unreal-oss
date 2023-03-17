@@ -23,7 +23,7 @@ class FOnlineSubsystemAccelByte;
 /**
  * Does a simple check to see if the actual AccelByte ID for the composite is valid.
  */
-bool IsAccelByteIDValid(const FString& AccelByteId);
+bool ONLINESUBSYSTEMACCELBYTE_API IsAccelByteIDValid(const FString& AccelByteId);
 
 /**
  * @brief Enum representing the types of authentication that the Identity interface can use with the AccelByte backend.

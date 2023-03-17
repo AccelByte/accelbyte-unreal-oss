@@ -288,3 +288,5 @@ void FOnlineCloudSaveAccelByte::AddGameRecordToMap(const FString& Key, const TSh
 	FScopeLock ScopeLock(&GameRecordMapLock);
 	GameRecordMap.Add(Key, Record);
 }
+
+#undef ONLINE_ERROR_NAMESPACE

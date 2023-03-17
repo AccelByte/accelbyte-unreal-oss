@@ -113,3 +113,5 @@ void FOnlineAsyncTaskAccelByteGetGameRecord::OnGetGameRecordError(int32 Code, co
 	UE_LOG_AB(Warning, TEXT("Failed to get game record! Error Code: %d; Error Message: %s"), Code, *ErrorMessage);
 	CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
 }
+
+#undef ONLINE_ERROR_NAMESPACE

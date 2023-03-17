@@ -14,7 +14,7 @@ void FOnlineAsyncTaskAccelByteSetTelemetryInterval::Initialize()
 {
 	Super::Initialize();
 	
-	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Setting telemetry send interval, UserId: %s"), *UserId->ToDebugString());
+	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Setting telemetry send interval, LocalUserNum: %d"), LocalUserNum);
 
 	if (IsRunningDedicatedServer())
 	{

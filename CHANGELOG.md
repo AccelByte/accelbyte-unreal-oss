@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.9.1](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.9.1%0D0.9.0) (2023-03-17)
+
+
+### Features
+
+* **cloudsave:** add undef ONLINE_ERROR_NAMESPACE ([4e63ebd](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/4e63ebdcf2cf0e56e7e065b1597122da3c48b75d))
+
 ## [0.9.0](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.9.0%0D0.8.16) (2023-03-13)
 
 

@@ -17,7 +17,7 @@ void FOnlineAsyncTaskAccelByteSendTelemetry::Initialize()
 {
 	Super::Initialize();
 
-	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Sending telemetry event, UserId: %s"), *UserId->ToDebugString());
+	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Sending telemetry event, LocalUserNum: %d"), LocalUserNum);
 
 	if (IsRunningDedicatedServer())
 	{
