@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.9.2](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.9.2%0D0.9.1) (2023-03-20)
+
+
+### ⚠ BREAKING CHANGES
+
+* **logout:** on websocket/lobby disconnection, IdentityInterface Logout won't always be triggered. Only triggered on specific closure code
+
+### Bug Fixes
+
+* **logout:** prevent logout for specifc connection close status code ([b3372ee](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/b3372ee02f68c1c8bb286d16c30f8f4b10056289))
+
 ### [0.9.1](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.9.1%0D0.9.0) (2023-03-17)
 
 

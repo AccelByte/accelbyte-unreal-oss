@@ -437,6 +437,9 @@ private:
 
 	void OnLobbyReconnected(int32 InLocalUserNum);
 
+	DECLARE_DELEGATE(FLogOutFromInterfaceDelegate)
+	FLogOutFromInterfaceDelegate LogoutDelegate {};
+
 };
 
 /** Shared pointer to the AccelByte implementation of the OnlineSubsystem */

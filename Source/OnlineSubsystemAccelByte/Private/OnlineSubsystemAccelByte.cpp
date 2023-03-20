@@ -22,6 +22,7 @@
 #include "OnlineSubsystemAccelByteModule.h"
 #include "Api/AccelByteLobbyApi.h"
 #include "Models/AccelByteLobbyModels.h"
+#include "Core/AccelByteWebSocketErrorTypes.h"
 
 //~ Begin AccelByte Peer to Peer Includes
 #include "AccelByteNetworkUtilities.h"
@@ -355,6 +356,10 @@ bool FOnlineSubsystemAccelByte::Tick(float DeltaTime)
 	ActiveExecTests.RemoveAll([](const TSharedPtr<FExecTestBase>& ExecTest) { return ExecTest->bIsComplete; });
 #endif
 
+	if (LogoutDelegate.IsBound())
+	{
+		LogoutDelegate.ExecuteIfBound();
+	}
 	return true;
 }
 
@@ -567,19 +572,27 @@ void FOnlineSubsystemAccelByte::OnLobbyConnectionClosed(int32 StatusCode, const 
 		UserAccountAccelByte->SetConnectedToLobby(false);
 	}
 
-	FString LogoutReason;
-	if (StatusCode == 1006) // Internet connection is disconnected
+	if (FOnlineIdentityAccelByte::IsLogoutRequired(StatusCode) == false)
 	{
-		LogoutReason = TEXT("network-disconnection");
-		AccelByte::FApiClientPtr ApiClient = GetApiClient(InLocalUserNum);
-		ApiClient->CredentialsRef->ForgetAll();
+		return;
+	}
+
+	int32 ClosedAbnormally = static_cast<int32>(AccelByte::EWebsocketErrorTypes::LocalClosedAbnormally);
+	FString LogoutReason = (StatusCode != ClosedAbnormally) ? Reason : TEXT("network-disconnection");
+
+	AccelByte::FApiClientPtr ApiClient = GetApiClient(InLocalUserNum);
+	ApiClient->CredentialsRef->ForgetAll();
 
 #if !AB_USE_V2_SESSIONS
 		TSharedPtr<FUniqueNetIdAccelByteUser const> LocalUserId = StaticCastSharedPtr<FUniqueNetIdAccelByteUser const>(IdentityInterface->GetUniquePlayerId(InLocalUserNum));
 		PartyInterface->RemovePartyFromInterface(LocalUserId.ToSharedRef());
 #endif
-	}
-	IdentityInterface->Logout(InLocalUserNum, LogoutReason);
+	LogoutDelegate.Unbind();
+	LogoutDelegate = FLogOutFromInterfaceDelegate::CreateLambda([&, InLocalUserNum, LogoutReason]()
+	{
+		IdentityInterface->Logout(InLocalUserNum, LogoutReason);
+		LogoutDelegate.Unbind();
+	});
 }
 
 void FOnlineSubsystemAccelByte::OnLobbyReconnected(int32 InLocalUserNum)

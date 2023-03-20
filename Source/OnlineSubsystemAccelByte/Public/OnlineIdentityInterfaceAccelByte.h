@@ -128,6 +128,13 @@ public:
 
 	bool ConnectAccelByteLobby(int32 LocalUserNum);
 
+	/**
+	* To decide whether the current user should be logged out or not.
+	* Logout required for specific range of codes.
+	* Which means connection closure is abnormal and client should not reconnect (i.e. ban & access token revocation)
+	*/
+	static bool IsLogoutRequired(int32 WsClosedConnectionStatusCode);
+
 PACKAGE_SCOPE:
 	/**
 	 * Used by the login async task to move data for the newly authenticated user to this identity instance.

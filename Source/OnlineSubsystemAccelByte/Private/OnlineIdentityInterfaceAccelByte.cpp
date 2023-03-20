@@ -13,6 +13,7 @@
 #include "Core/AccelByteRegistry.h"
 #include "Core/AccelByteMultiRegistry.h"
 #include "Core/AccelByteError.h"
+#include "Core/AccelByteWebSocketErrorTypes.h"
 #include "Core/AccelByteCredentials.h"
 #include "Api/AccelByteUserProfileApi.h"
 #include "OnlineSubsystemAccelByteModule.h"
@@ -638,6 +639,21 @@ void FOnlineIdentityAccelByte::OnAuthenticateAccelByteServerError(int32 ErrorCod
 	// Reset our authentication state to false as we can retry from here
 	bIsAuthenticatingServer = false;
 	bIsServerAuthenticated = false;
+}
+
+bool FOnlineIdentityAccelByte::IsLogoutRequired(int32 StatusCode)
+{
+	//Explanation of deprecation & new assigned numbers can be read in each enums between these numbers
+	int LowestDeprecatedNumber = static_cast<int32>(AccelByte::EWebsocketErrorTypes::DisconnectSenderError);
+	int HighestDeprecatedNumber = static_cast<int32>(AccelByte::EWebsocketErrorTypes::DisconnectReaderError);
+	if (StatusCode >= LowestDeprecatedNumber && StatusCode <= HighestDeprecatedNumber)
+	{
+		return false;
+	}
+
+	int32 LowestNumber = static_cast<int32>(AccelByte::EWebsocketErrorTypes::DisconnectServerShutdown);
+	int32 HighestNumber = static_cast<int32>(AccelByte::EWebsocketErrorTypes::OutsideBoundaryOfDisconnection);
+	return (StatusCode > LowestNumber && StatusCode < HighestNumber);
 }
 
 /** End FOnlineIdentityAccelByte */
