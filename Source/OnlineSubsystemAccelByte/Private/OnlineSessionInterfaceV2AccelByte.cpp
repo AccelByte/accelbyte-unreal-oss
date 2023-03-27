@@ -2253,6 +2253,9 @@ bool FOnlineSessionV2AccelByte::CancelMatchmaking(int32 SearchingPlayerNum, FNam
 	if (!ensure(IdentityInterface.IsValid()))
 	{
 		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to cancel matchmaking as our identity interface is invalid!"));
+		AccelByteSubsystem->ExecuteNextTick([SessionInterface = SharedThis(this), SessionName]() {
+			SessionInterface->TriggerOnCancelMatchmakingCompleteDelegates(SessionName, false);
+		});
 		return false;
 	}
 
@@ -2260,6 +2263,9 @@ bool FOnlineSessionV2AccelByte::CancelMatchmaking(int32 SearchingPlayerNum, FNam
 	if (!ensure(PlayerId.IsValid()))
 	{
 		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to cancel matchmaking as we could not get a unique ID for player at index %d!"), SearchingPlayerNum);
+		AccelByteSubsystem->ExecuteNextTick([SessionInterface = SharedThis(this), SessionName]() {
+			SessionInterface->TriggerOnCancelMatchmakingCompleteDelegates(SessionName, false);
+		});
 		return false;
 	}
 
@@ -2272,11 +2278,11 @@ bool FOnlineSessionV2AccelByte::CancelMatchmaking(const FUniqueNetId& SearchingP
 
 	if (!CurrentMatchmakingSearchHandle.IsValid() || CurrentMatchmakingSearchHandle->SearchState != EOnlineAsyncTaskState::InProgress)
 	{
-		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to cancel matchmaking as we are not currently running a matchmaking query!"));
+		AB_OSS_INTERFACE_TRACE_END(TEXT("A matchmaking query is currently not running. Treating the cancel request as a success to allow game client to clean up local state if stuck."));
 		AccelByteSubsystem->ExecuteNextTick([SessionInterface = SharedThis(this), SessionName]() {
-			SessionInterface->TriggerOnCancelMatchmakingCompleteDelegates(SessionName, false);
+			SessionInterface->TriggerOnCancelMatchmakingCompleteDelegates(SessionName, true);
 		});
-		return false;
+		return true;
 	}
 
 	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteCancelV2Matchmaking>(AccelByteSubsystem, CurrentMatchmakingSearchHandle.ToSharedRef(), SessionName);

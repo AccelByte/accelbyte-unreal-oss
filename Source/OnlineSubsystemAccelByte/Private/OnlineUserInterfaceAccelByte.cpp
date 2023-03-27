@@ -15,6 +15,7 @@
 #include "AsyncTasks/User/OnlineAsyncTaskAccelByteQueryUserInfo.h"
 #include "AsyncTasks/User/OnlineAsyncTaskAccelByteQueryUserIdMapping.h"
 #include "AsyncTasks/User/OnlineAsyncTaskAccelByteQueryExternalIdMappings.h"
+#include "AsyncTasks/User/FOnlineAsyncTaskAccelByteListUserByUserId.h"
 #include "OnlineSubsystemUtils.h"
 
 FOnlineUserAccelByte::FOnlineUserAccelByte(FOnlineSubsystemAccelByte* InSubsystem)
@@ -234,3 +235,10 @@ bool FOnlineUserAccelByte::TestExec(UWorld* InWorld, const TCHAR* Cmd, FOutputDe
 	return bWasHandled;
 }
 #endif
+
+void FOnlineUserAccelByte::ListUserByUserId(const int32 LocalUserNum, const TArray<FString>& UserIds)
+{
+	UE_LOG_ONLINE_STATS(Display, TEXT("FOnlineUserAccelByte::ListUserByUserId"));
+	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteListUserByUserId>
+		(AccelByteSubsystem, LocalUserNum, UserIds);
+}

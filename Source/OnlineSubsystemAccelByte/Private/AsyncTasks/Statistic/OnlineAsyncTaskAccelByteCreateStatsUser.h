@@ -7,7 +7,6 @@
 #include "AsyncTasks/OnlineAsyncTaskAccelByteUtils.h"
 #include "Models/AccelByteStatisticModels.h"
 #include "OnlineStatisticInterfaceAccelByte.h"
- 
 
 class FOnlineAsyncTaskAccelByteCreateStatsUser : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteCreateStatsUser, ESPMode::ThreadSafe>
 {

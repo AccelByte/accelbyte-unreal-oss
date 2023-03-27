@@ -44,7 +44,7 @@ void FOnlineAsyncTaskAccelByteResetUserStats::Initialize()
 
 	FString AdditionalKey = TEXT("");	
 	FAccelByteModelsResetUserStatItemValue UserStatItemValue{};
-	UserStatItemValue.UserId = UserId->ToString();
+	UserStatItemValue.UserId = UserId->GetAccelByteId();
 	TArray<FAccelByteModelsResetUserStatItemValue> UserStatItemValues = { UserStatItemValue };
 	ApiClient->Statistic.BulkResetMultipleUserStatItemsValue(UserStatItemValues, OnBulkResetMultipleUserStatItemsValueSuccess, OnError);
 #else

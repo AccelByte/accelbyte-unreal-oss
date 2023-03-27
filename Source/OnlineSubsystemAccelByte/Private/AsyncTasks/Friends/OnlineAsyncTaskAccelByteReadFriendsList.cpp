@@ -50,14 +50,21 @@ void FOnlineAsyncTaskAccelByteReadFriendsList::Tick()
 
 	if (bHasReceivedResponseForCurrentFriends && bHasReceivedResponseForIncomingFriends && bHasReceivedResponseForOutgoingFriends && (!bHasSentRequestForUserStatus && !bHasReceivedAllUserStatus))
 	{
-		ApiClient->Lobby.BulkGetUserPresence(FriendIdsToQuery,
-			TDelegateUtils<THandler<FAccelByteModelsBulkUserStatusNotif>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteReadFriendsList::OnGetUserPresenceComplete),
-			FErrorHandler::CreateLambda([this](int32 Code, FString const& ErrMsg)
-			{
-				AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Could not query friends presence"));
-				CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
-			})
-		);
+		if (FriendIdsToQuery.Num() > 0)
+		{
+			ApiClient->Lobby.BulkGetUserPresence(FriendIdsToQuery,
+				TDelegateUtils<THandler<FAccelByteModelsBulkUserStatusNotif>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteReadFriendsList::OnGetUserPresenceComplete),
+				FErrorHandler::CreateLambda([this](int32 Code, FString const& ErrMsg)
+					{
+						AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Could not query friends presence"));
+						CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
+					})
+			);
+		}
+		else
+		{
+			OnGetUserPresenceComplete(FAccelByteModelsBulkUserStatusNotif{});
+		}
 		bHasSentRequestForUserStatus = true;
 	}
 	// If we have received all friend IDs from each list, but we haven't tried to get information on those friends yet, send the request out

@@ -54,6 +54,11 @@ private:
 	FString ErrorStr;
 
 	/**
+	 * Object representing the error code that occurred
+	 */
+	FErrorOAuthInfo  ErrorOAuthObject;
+
+	/**
 	 * Type of login that we wish to do on the backend
 	 */
 	EAccelByteLoginType LoginType;
@@ -99,16 +104,14 @@ private:
 	 * as ControllerIndex is -1 if the call fails and we need to be able to inform that the login failed.
 	 */
 	void OnNativeLoginUIClosed(TSharedPtr<const FUniqueNetId> UniqueId, const int ControllerIndex, const FOnlineError& NativeError);
-
+	
 	/**
-	 * Perform login on the AccelByte backend using the login type specified
+	 * Perform login on the AccelByte backend using defined login type and OAuth error type
 	 */
-	void PerformLoginWithType(const EAccelByteLoginType& LoginType, const FOnlineAccountCredentials& Credentials);
-
+	void PerformLogin(const FOnlineAccountCredentials& Credentials);
+	
 	/**
-	 * Delegate handler for when any AccelByte login call succeeds.
-	 *
-	 * @param LocalUserNum Index of the user that the login succeeded for
+	 * Delegate handler for when any AccelByte login call succeeds. 
 	 */
 	void OnLoginSuccess();
 
@@ -117,9 +120,17 @@ private:
 	 *
 	 * @param ErrorCode Code returned from the backend representing the error that was encountered with the request
 	 * @param ErrorMessage Message returned from the backend describing the error that was encountered with the request
-	 * @param LocalUserNum Index of the user that the login failed for
 	 */
 	void OnLoginError(int32 ErrorCode, const FString& ErrorMessage);
+
+	/**
+	 * Delegate handler for when any AccelByte login call fails.
+	 *
+	 * @param ErrorCode Code returned from the backend representing the error that was encountered with the request
+	 * @param ErrorMessage Message returned from the backend describing the error that was encountered with the request
+	 * @param ErrorObject Object representing the error code that occurred
+	 */
+	void OnLoginErrorOAuth(int32 ErrorCode, const FString& ErrorMessage, const FErrorOAuthInfo& ErrorObject);
 
 	/**
 	 * Method to calculate a local offset timestamp from UTC

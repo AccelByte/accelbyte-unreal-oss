@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.9.3](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.9.3%0D0.9.2) (2023-03-27)
+
+
+### Bug Fixes
+
+* **analytics:** remove login status check for SetTelemetrySendInterval and SetTelemetryImmediateEventList ([0ca75ed](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/0ca75ed23644d19b2938365f6a1931ec7028147f))
+* fix SDK cannot login from Odin launcher from UE5 project, replace the old function for getting environment variable with the new API. ([1c5a2ce](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/1c5a2ce73b60e8a4f3aa0d35780b95b3de6d36b4))
+* **Friends:** skip bulk presence and return true if friendlist is empty ([5f27e90](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/5f27e9043a6c219b4dddbbd0599eb60301be2da0))
+* skip mpv2 server authentication when already authenticated on AutoLogin ([12c2a47](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/12c2a4756b8b71269e73b8eb9aa1911ff2ce067f))
+* wrong UserId->ToString() usage to UserId->GetAccelByteId() ([c7e92ef](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/c7e92ef35716c64c1936bc73092c2eacec641d14))
+
 ### [0.9.2](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.9.2%0D0.9.1) (2023-03-20)
 
 

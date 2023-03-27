@@ -22,6 +22,9 @@
  */
 DECLARE_DELEGATE_OneParam(FOnReportUserComplete, bool /*bWasSuccessful*/);
 
+DECLARE_MULTICAST_DELEGATE_FourParams(FOnListUserByUserIdComplete, int32 /*LocalUserNum*/, bool /*bWasSuccessful*/, const FListUserDataResponse& /*Data*/, const FOnlineError  & /* OnlineError  */);
+typedef FOnListUserByUserIdComplete::FDelegate FOnListUserByUserIdCompleteDelegate;
+
 class ONLINESUBSYSTEMACCELBYTE_API FOnlineUserAccelByte : public IOnlineUser, public TSharedFromThis<FOnlineUserAccelByte, ESPMode::ThreadSafe>
 {
 public:
@@ -56,6 +59,16 @@ public:
 	virtual TSharedPtr<const FUniqueNetId> GetExternalIdMapping(const FExternalIdQueryOptions& QueryOptions, const FString& ExternalId) override;
 	//~ End IOnlineUser overrides
 
+	/**
+	 * Get bulk list user by UserId. Only for request by Game Server
+	 * 
+	 * @param LocalUserNum Index of user(server) that is attempting to create the stats
+	 * @param UserIds User to create stats for 
+	 */
+	virtual void ListUserByUserId(const int32 LocalUserNum, const TArray<FString>& UserIds);
+	
+	DEFINE_ONLINE_PLAYER_DELEGATE_THREE_PARAM(MAX_LOCAL_PLAYERS, OnListUserByUserIdComplete, bool /*bWasSuccessful*/, const FListUserDataResponse& /* ListUser*/, const FOnlineError & /* OnlineError */);
+ 	
 PACKAGE_SCOPE:
 #if WITH_DEV_AUTOMATION_TESTS
 	/**

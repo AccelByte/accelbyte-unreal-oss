@@ -67,7 +67,9 @@ bool FOnlineIdentityAccelByte::Login(int32 LocalUserNum, const FOnlineAccountCre
 		
 		TriggerOnLoginChangedDelegates(LocalUserNum);
 		TriggerOnLoginCompleteDelegates(LocalUserNum, false, FUniqueNetIdAccelByteUser::Invalid().Get(), ErrorStr);
-		TriggerOnLoginStatusChangedDelegates(LocalUserNum, ELoginStatus::NotLoggedIn, ELoginStatus::NotLoggedIn, FUniqueNetIdAccelByteUser::Invalid().Get());
+		FErrorOAuthInfo ErrorOAuthInfo { (int32)ErrorCodes::InvalidRequest, ErrorStr,
+		FString::Printf(TEXT("%d"), ErrorCodes::InvalidRequest), ErrorStr };
+		TriggerOnLoginWithOAuthErrorCompleteDelegates(LocalUserNum, false, FUniqueNetIdAccelByteUser::Invalid().Get(), ErrorOAuthInfo);
 		return false;
 	}
 
@@ -89,8 +91,10 @@ bool FOnlineIdentityAccelByte::Login(int32 LocalUserNum, const FOnlineAccountCre
 		AB_OSS_INTERFACE_TRACE_END(TEXT("User already logged in at user index '%d'!"), LocalUserNum);
 
 		TriggerOnLoginChangedDelegates(LocalUserNum);
-		TriggerOnLoginCompleteDelegates(LocalUserNum, false, FUniqueNetIdAccelByteUser::Invalid().Get(), ErrorStr);
-		TriggerOnLoginStatusChangedDelegates(LocalUserNum, ELoginStatus::NotLoggedIn, ELoginStatus::NotLoggedIn, FUniqueNetIdAccelByteUser::Invalid().Get());
+		TriggerOnLoginCompleteDelegates(LocalUserNum, true, *UserIdPtr, ErrorStr); 
+		FErrorOAuthInfo ErrorOAuthInfo { (int32)ErrorCodes::InvalidRequest, ErrorStr,
+			FString::Printf(TEXT("%d"), ErrorCodes::InvalidRequest), ErrorStr };
+		TriggerOnLoginWithOAuthErrorCompleteDelegates(LocalUserNum, false, *UserIdPtr, ErrorOAuthInfo);
 		return false;
 	}
 
@@ -174,6 +178,17 @@ bool FOnlineIdentityAccelByte::AutoLogin(int32 LocalUserNum)
 		// Servers have a custom authentication flow where we just associate them with user index zero. Async task code for
 		// servers should not access the identity interface, this is basically just implemented to fit the flow of a dedicated
 		// server on Unreal closely.
+
+		// Skip login server if server is already logged in.
+		if(IsServerAuthenticated())
+		{
+			const FString ErrorStr = TEXT("login-failed-already-logged-in");
+			TriggerOnLoginCompleteDelegates(LocalUserNum, false, FUniqueNetIdAccelByteUser::Invalid().Get(), ErrorStr);
+
+			AB_OSS_INTERFACE_TRACE_END(TEXT("User already logged in at user index '%d'!"), LocalUserNum)
+			return false;
+		}
+		
 		AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteLoginServer>(AccelByteSubsystem, LocalUserNum);
 		return true;
 #else
@@ -193,11 +208,11 @@ bool FOnlineIdentityAccelByte::AutoLogin(int32 LocalUserNum)
 
 	// Check if we have an environment variable set named "JUSTICE_AUTHORIZATION_CODE", which if so will initiate a
 	// launcher login and reset the type to be a "launcher" login
-	const FString LauncherCode = FGenericPlatformMisc::GetEnvironmentVariable(TEXT("JUSTICE_AUTHORIZATION_CODE"));
+	const FString LauncherCode = FPlatformMisc::GetEnvironmentVariable(TEXT("JUSTICE_AUTHORIZATION_CODE"));
 
 	if (!LauncherCode.IsEmpty())
 	{
-		Credentials.Type = "launcher";
+		Credentials.Type = "Launcher";
 	}
 
 	// If we don't have a username and password in the command line as well as no launcher token, we still want to

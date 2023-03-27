@@ -301,7 +301,10 @@ FUniqueNetIdAccelByteUserRef FUniqueNetIdAccelByteUser::Create(const FString& In
 	// encoded data.
 	FString DecodedString{};
 	FAccelByteUniqueIdComposite CompositeId{};
-	if (!FBase64::Decode(InUniqueNetId, DecodedString) || !FJsonObjectConverter::JsonObjectStringToUStruct(DecodedString, &CompositeId))
+
+	const bool bIsEncodedCompositeString = FBase64::Decode(InUniqueNetId, DecodedString) &&
+		FJsonObjectConverter::JsonObjectStringToUStruct(DecodedString, &CompositeId, 0, 0);
+	if (!bIsEncodedCompositeString)
 	{
 		return Create(FAccelByteUniqueIdComposite(InUniqueNetId));
 	}

@@ -4,6 +4,7 @@
 
 #include "OnlineAsyncTaskAccelByteCancelV2Matchmaking.h"
 #include "OnlineSessionInterfaceV2AccelByte.h"
+#include "Core/AccelByteError.h"
 
 FOnlineAsyncTaskAccelByteCancelV2Matchmaking::FOnlineAsyncTaskAccelByteCancelV2Matchmaking(FOnlineSubsystemAccelByte* const InABInterface, const TSharedRef<FOnlineSessionSearchAccelByte>& InSearchHandle, const FName& InSessionName)
 	: FOnlineAsyncTaskAccelByte(InABInterface)
@@ -81,6 +82,16 @@ void FOnlineAsyncTaskAccelByteCancelV2Matchmaking::OnDeleteMatchTicketSuccess()
 
 void FOnlineAsyncTaskAccelByteCancelV2Matchmaking::OnDeleteMatchTicketError(int32 ErrorCode, const FString& ErrorMessage)
 {
+	if (ErrorCode == static_cast<int32>(AccelByte::ErrorCodes::MatchmakingV2MatchTicketNotFound))
+	{
+		// Since the backend was not able to find the ticket associated with our search handle to delete, we want to treat
+		// this cancel as a success. This way, if the client is out of sync enough to think that they are still matchmaking,
+		// they can still cancel and reflect that their ticket has been removed.
+		UE_LOG_AB(Verbose, TEXT("Ticket was not found by matchmaking service when trying to cancel, treating this as a successful cancel!"));
+		CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
+		return;
+	}
+
 	UE_LOG_AB(Warning, TEXT("Failed to cancel matchmaking ticket '%s' as the request to delete failed on the backend! Error code: %d; Error message: %s"), *SearchHandle->TicketId, ErrorCode, *ErrorMessage);
 	CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
 }

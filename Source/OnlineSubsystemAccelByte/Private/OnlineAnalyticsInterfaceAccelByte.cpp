@@ -36,44 +36,50 @@ bool FOnlineAnalyticsAccelByte::GetFromWorld(const UWorld* World, TSharedPtr<FOn
 
 bool FOnlineAnalyticsAccelByte::SetTelemetrySendInterval(int32 InLocalUserNum)
 {
+	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("Set telemetry send interval for LocalUserNum: %d"), InLocalUserNum);
+
 	int32 SendTelemetryEventIntervalInSeconds;
 	if(GConfig->GetInt(TEXT("OnlineSubsystemAccelByte"), TEXT("SendTelemetryEventIntervalInSeconds"), SendTelemetryEventIntervalInSeconds, GEngineIni))
 	{
-		if(IsUserLoggedIn(InLocalUserNum))
-		{
-			AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteSetTelemetryInterval>(
-				AccelByteSubsystem, InLocalUserNum, SendTelemetryEventIntervalInSeconds);
-			return true;
-		}
+		AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteSetTelemetryInterval>(
+			AccelByteSubsystem, InLocalUserNum, SendTelemetryEventIntervalInSeconds);
+		AB_OSS_INTERFACE_TRACE_END(TEXT("Dispatching async task to attempt to set telemetry send interval"));
+		return true;
 	}
 
+	AB_OSS_INTERFACE_TRACE_END(TEXT("SendTelemetryEventIntervalInSeconds is not found in config, using default interval"));
 	return false;
 }
 
 bool FOnlineAnalyticsAccelByte::SetTelemetryImmediateEventList(int32 InLocalUserNum, TArray<FString> const& EventNames)
 {
-	if (IsUserLoggedIn(InLocalUserNum))
+	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("Set telemetry immediate event list for LocalUserNum: %d"), InLocalUserNum);
+	if (EventNames.Num() <= 0)
 	{
-		AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteSetImmediateEventList>(
-			AccelByteSubsystem, InLocalUserNum, EventNames);
-		return true;
+		AB_OSS_INTERFACE_TRACE_END(TEXT("Event list is empty"));
+		return false;
 	}
 
-	return false;
+	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteSetImmediateEventList>(
+		AccelByteSubsystem, InLocalUserNum, EventNames);
+	AB_OSS_INTERFACE_TRACE_END(TEXT("Dispatching async task to attempt to set immediate event list"));
+	return true;
 }
 
 bool FOnlineAnalyticsAccelByte::SendTelemetryEvent(
 	int32 InLocalUserNum, FAccelByteModelsTelemetryBody const& TelemetryBody,
 	FVoidHandler const& OnSuccess, FErrorHandler const& OnError)
 {
+	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("Send telemetry event for LocalUserNum: %d"), InLocalUserNum);
 	if (IsUserLoggedIn(InLocalUserNum) && IsValidTelemetry(TelemetryBody))
 	{
 		AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteSendTelemetry>(
 			AccelByteSubsystem, InLocalUserNum, TelemetryBody, OnSuccess, OnError);
-		
+		AB_OSS_INTERFACE_TRACE_END(TEXT("Dispatching async task to attempt to send telemetry event"));
 		return true;
 	}
 
+	AB_OSS_INTERFACE_TRACE_END(TEXT("Failed to send telemetry event, user not logged in or invalid telemetry"));
 	return false;
 }
 

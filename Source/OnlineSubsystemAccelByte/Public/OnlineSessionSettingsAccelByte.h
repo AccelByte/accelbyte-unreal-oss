@@ -160,6 +160,19 @@ public:
 	static bool Get(const FVariantData& Data, TArray<double>& Value);
 
 	/**
+	 * Get a search setting double value as an integer. Search settings across the OSS are stored as a double. However,
+	 * due to limitations with FVariantData, integers cannot be retrieved from these double values, even if they are
+	 * within range.
+	 *
+	 * @param SearchSettings search settings object to fetch the setting from
+	 * @param Key setting key that we want to read
+	 * @param Value output value that will be returned to the caller
+	 * @return boolean that is true if an integer could be grabbed, or false otherwise.
+	 */
+	template<typename T>
+	static bool GetInt(const FOnlineSearchSettings& SearchSettings, FName Key, T& OutValue);
+
+	/**
 	 * Get the ESessionSettingsAccelByteArrayFieldType for a field
 	 *
 	 * @param SearchSettings search settings to get the type from
@@ -336,10 +349,23 @@ public:
 	 * @param SessionSettings settings object to get the value from
 	 * @param Key key for the setting
 	 * @param OutValue setting value
-	 * 
+	 *
 	 * @return an boolean indicating whether the value was retrieved
 	 */
 	static bool Get(const FOnlineSessionSettings& SessionSettings, FName Key, TArray<double>& OutValue);
+
+	/**
+	 * Get a session setting double value as an integer. Session settings across the OSS are stored as a double. However,
+	 * due to limitations with FVariantData, integers cannot be retrieved from these double values, even if they are
+	 * within range.
+	 *
+	 * @param SessionSettings session settings object to fetch the setting from
+	 * @param Key setting key that we want to read
+	 * @param Value output value that will be returned to the caller
+	 * @return boolean that is true if an integer could be grabbed, or false otherwise.
+	 */
+	template<typename T>
+	static bool GetInt(const FOnlineSessionSettings& SessionSettings, FName Key, T& OutValue);
 
 	/**
 	 * Get the ESessionSettingsAccelByteArrayFieldType for a field

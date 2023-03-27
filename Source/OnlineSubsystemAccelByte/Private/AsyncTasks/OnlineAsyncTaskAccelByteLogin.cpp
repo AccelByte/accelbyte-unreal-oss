@@ -86,7 +86,13 @@ void FOnlineAsyncTaskAccelByteLogin::Initialize()
 		UE_LOG_AB(Log, TEXT("Login type passed to Login call was blank - using AccelByte email/password type as default!"));
 	}
 
-	PerformLoginWithType(LoginType, AccountCredentials);
+	const FString LauncherCode = FPlatformMisc::GetEnvironmentVariable(TEXT("JUSTICE_AUTHORIZATION_CODE"));
+	if (!LauncherCode.IsEmpty())
+	{
+		LoginType = EAccelByteLoginType::Launcher;
+	}
+
+	PerformLogin(AccountCredentials);	
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Trying to login with type '%s'!"), *AccountCredentials.Type);
 }
@@ -123,11 +129,16 @@ void FOnlineAsyncTaskAccelByteLogin::TriggerDelegates()
 				// ever accept the agreement, we want to at least gracefully error out.
 				ErrorStr = TEXT("login-failed-agreement-not-accepted");
 				IdentityInterface->TriggerOnLoginCompleteDelegates(LoginUserNum, false, ReturnId.Get(), ErrorStr);
+				ErrorOAuthObject.Error = ErrorStr;
+				ErrorOAuthObject.ErrorMessage= ErrorStr;
+				ErrorOAuthObject.Error_description = ErrorStr;
+				IdentityInterface->TriggerOnLoginWithOAuthErrorCompleteDelegates(LoginUserNum, false, ReturnId.Get(), ErrorOAuthObject);
 			}
 		}
 		else
 		{
 			IdentityInterface->TriggerOnLoginCompleteDelegates(LoginUserNum, bWasSuccessful, ReturnId.Get(), ErrorStr);
+			IdentityInterface->TriggerOnLoginWithOAuthErrorCompleteDelegates(LoginUserNum, bWasSuccessful, ReturnId.Get(), ErrorOAuthObject);
 		}
 	}
 
@@ -303,8 +314,8 @@ void FOnlineAsyncTaskAccelByteLogin::OnNativeLoginComplete(int32 NativeLocalUser
 	Credentials.Token = FGenericPlatformHttp::UrlEncode(NativeIdentityInterface->GetAuthToken(LoginUserNum));
 
 	FTimerDelegate TimerDelegate = FTimerDelegate::CreateLambda([this, Credentials, NativeIdentityInterface]()
-	{
-		PerformLoginWithType(LoginType, Credentials);
+	{ 
+		PerformLogin(Credentials);
 	});
 
 	if (NativeSubsystem->GetSubsystemName().ToString().Equals(TEXT("STEAM"), ESearchCase::IgnoreCase))
@@ -317,54 +328,54 @@ void FOnlineAsyncTaskAccelByteLogin::OnNativeLoginComplete(int32 NativeLocalUser
 	}
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sending login request to AccelByte backend for native user!"));
-}
+} 
 
-void FOnlineAsyncTaskAccelByteLogin::PerformLoginWithType(const EAccelByteLoginType& Type, const FOnlineAccountCredentials& Credentials)
+void FOnlineAsyncTaskAccelByteLogin::PerformLogin(const FOnlineAccountCredentials& Credentials)
 {
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("LoginType: %s"), *Credentials.Type);
 
 	const AccelByte::FVoidHandler OnLoginSuccessDelegate = TDelegateUtils<AccelByte::FVoidHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteLogin::OnLoginSuccess);
-	const AccelByte::FErrorHandler OnLoginErrorDelegate = TDelegateUtils<AccelByte::FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteLogin::OnLoginError);
-	switch (Type)
+	const AccelByte::FOAuthErrorHandler OnLoginErrorOAuthDelegate = TDelegateUtils<AccelByte::FOAuthErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteLogin::OnLoginErrorOAuth);
+	switch (LoginType)
 	{
 	case EAccelByteLoginType::DeviceId:
-		ApiClient->User.LoginWithDeviceId(OnLoginSuccessDelegate, OnLoginErrorDelegate);
+		ApiClient->User.LoginWithDeviceId(OnLoginSuccessDelegate, OnLoginErrorOAuthDelegate);
 		AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sending async task to login with Device ID."));
 		break;
 	case EAccelByteLoginType::AccelByte:
-		ApiClient->User.LoginWithUsername(Credentials.Id, Credentials.Token, OnLoginSuccessDelegate, OnLoginErrorDelegate);
+		ApiClient->User.LoginWithUsername(Credentials.Id, Credentials.Token, OnLoginSuccessDelegate, OnLoginErrorOAuthDelegate);
 		AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sending async task to login with AccelByte credentials."));
 		break;
 	case EAccelByteLoginType::Xbox:
-		ApiClient->User.LoginWithOtherPlatform(EAccelBytePlatformType::Live, Credentials.Token, OnLoginSuccessDelegate, OnLoginErrorDelegate);
+		ApiClient->User.LoginWithOtherPlatform(EAccelBytePlatformType::Live, Credentials.Token, OnLoginSuccessDelegate, OnLoginErrorOAuthDelegate);
 		AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sending async task to login with XSTS token from native online subsystem."));
 		break;
 	case EAccelByteLoginType::PS4:
-		ApiClient->User.LoginWithOtherPlatform(EAccelBytePlatformType::PS4, Credentials.Token, OnLoginSuccessDelegate, OnLoginErrorDelegate);
+		ApiClient->User.LoginWithOtherPlatform(EAccelBytePlatformType::PS4, Credentials.Token, OnLoginSuccessDelegate, OnLoginErrorOAuthDelegate);
 		AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sending async task to login with PS4 auth token from native online subsystem."));
 		break;
 	case EAccelByteLoginType::PS5:
-		ApiClient->User.LoginWithOtherPlatform(EAccelBytePlatformType::PS5, Credentials.Token, OnLoginSuccessDelegate, OnLoginErrorDelegate);
+		ApiClient->User.LoginWithOtherPlatform(EAccelBytePlatformType::PS5, Credentials.Token, OnLoginSuccessDelegate, OnLoginErrorOAuthDelegate);
 		AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sending async task to login with PS5 auth token from native online subsystem."));
 		break;
 	case EAccelByteLoginType::Launcher:
-		ApiClient->User.LoginWithLauncher(OnLoginSuccessDelegate, OnLoginErrorDelegate);
+		ApiClient->User.LoginWithLauncher(OnLoginSuccessDelegate, OnLoginErrorOAuthDelegate);
 		AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sending async task to login with AccelByte launcher auth token."));
 		break;
 	case EAccelByteLoginType::Steam:
-		ApiClient->User.LoginWithOtherPlatform(EAccelBytePlatformType::Steam, Credentials.Token, OnLoginSuccessDelegate, OnLoginErrorDelegate);
+		ApiClient->User.LoginWithOtherPlatform(EAccelBytePlatformType::Steam, Credentials.Token, OnLoginSuccessDelegate, OnLoginErrorOAuthDelegate);
 		AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sending async task to login with Steam auth token from native online subsystem."));
 		break;
 	case EAccelByteLoginType::RefreshToken:
-		ApiClient->User.LoginWithRefreshToken(Credentials.Token, OnLoginSuccessDelegate, OnLoginErrorDelegate);
+		ApiClient->User.LoginWithRefreshToken(Credentials.Token, OnLoginSuccessDelegate, OnLoginErrorOAuthDelegate);
 		AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sending async task to login with refresh token from native online subsystem."));
 		break;
 	case EAccelByteLoginType::EOS:
-		ApiClient->User.LoginWithOtherPlatform(EAccelBytePlatformType::EpicGames, Credentials.Token, OnLoginSuccessDelegate, OnLoginErrorDelegate);
+		ApiClient->User.LoginWithOtherPlatform(EAccelBytePlatformType::EpicGames, Credentials.Token, OnLoginSuccessDelegate, OnLoginErrorOAuthDelegate);
 		AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sending async task to login with Epic Games from native online subsystem."));
 		break;
 	case EAccelByteLoginType::CachedToken:
-		ApiClient->User.TryRelogin(Credentials.Id, OnLoginSuccessDelegate, OnLoginErrorDelegate);
+		ApiClient->User.TryRelogin(Credentials.Id, OnLoginSuccessDelegate, OnLoginErrorOAuthDelegate);
 		AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sending async task to login with cached refresh token for the specified PlatformUserID."));
 		break;
 	default:
@@ -434,6 +445,18 @@ void FOnlineAsyncTaskAccelByteLogin::OnLoginError(int32 ErrorCode, const FString
 	{
 		ErrorStr = TEXT("user-banned");
 	}
+	CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
+}
+
+void FOnlineAsyncTaskAccelByteLogin::OnLoginErrorOAuth(int32 ErrorCode, const FString& ErrorMessage, const FErrorOAuthInfo& ErrorObject)
+{
+	UE_LOG_AB(Warning, TEXT("Failed to login to the AccelByte backend! Error Code: %d; Error Message: %s"), ErrorCode, *ErrorMessage);
+	ErrorOAuthObject = ErrorObject;
+	ErrorStr = TEXT("login-failed-connect");
+	if (ErrorCode == 1124060) // Permanent ban
+		{
+		ErrorStr = TEXT("user-banned");
+		}
 	CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
 }
 

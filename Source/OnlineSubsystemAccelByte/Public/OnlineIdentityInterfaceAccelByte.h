@@ -38,6 +38,9 @@ DECLARE_DELEGATE_OneParam(FOnAuthenticateServerComplete, bool /*bWasSuccessful*/
 DECLARE_MULTICAST_DELEGATE_FourParams(FOnConnectLobbyComplete, int32 /*LocalUserNum*/, bool /*bWasSuccessful*/, const FUniqueNetId& /*UserId*/, const FString& /*Error*/);
 typedef FOnConnectLobbyComplete::FDelegate FOnConnectLobbyCompleteDelegate;
 
+DECLARE_MULTICAST_DELEGATE_FourParams(FOnLoginWithOAuthErrorComplete, int32 /*LocalUserNum*/, bool /*bWasSuccessful*/, const FUniqueNetId& /*UserId*/, const FErrorOAuthInfo& /*Error*/);
+typedef FOnLoginWithOAuthErrorComplete::FDelegate FOnLoginWithOAuthErrorCompleteDelegate;
+
 /**
  * AccelByte service implementation of the online identity interface
  */
@@ -126,6 +129,8 @@ public:
 
 	DEFINE_ONLINE_PLAYER_DELEGATE_THREE_PARAM(MAX_LOCAL_PLAYERS, OnConnectLobbyComplete, bool /*bWasSuccessful*/, const FUniqueNetId& /*UserId*/, const FString& /*Error*/);
 
+	DEFINE_ONLINE_PLAYER_DELEGATE_THREE_PARAM(MAX_LOCAL_PLAYERS, OnLoginWithOAuthErrorComplete, bool /*bWasSuccessful*/, const FUniqueNetId& /*UserId*/, const FErrorOAuthInfo& /*Error Object*/);
+ 
 	bool ConnectAccelByteLobby(int32 LocalUserNum);
 
 	/**

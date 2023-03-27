@@ -50,7 +50,7 @@ void FOnlineAsyncTaskAccelByteRemoveUserFromV1Session::Initialize()
 	}
 
 	FServerApiClientPtr ServerApiClient = FMultiRegistry::GetServerApiClient();
-	ServerApiClient->ServerMatchmaking.RemoveUserFromSession(ChannelName, MatchId, *UserId->ToString(), OnRemoveUserFromSessionSuccessDelegate, OnRemoveUserFromSessionErrorDelegate);
+	ServerApiClient->ServerMatchmaking.RemoveUserFromSession(ChannelName, MatchId, *UserId->GetAccelByteId(), OnRemoveUserFromSessionSuccessDelegate, OnRemoveUserFromSessionErrorDelegate);
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 
@@ -75,7 +75,7 @@ void FOnlineAsyncTaskAccelByteRemoveUserFromV1Session::OnAuthenticateServerCompl
 	}
 
 	FServerApiClientPtr ServerApiClient = FMultiRegistry::GetServerApiClient();
-	ServerApiClient->ServerMatchmaking.RemoveUserFromSession(ChannelName, MatchId, *UserId->ToString(), OnRemoveUserFromSessionSuccessDelegate, OnRemoveUserFromSessionErrorDelegate);
+	ServerApiClient->ServerMatchmaking.RemoveUserFromSession(ChannelName, MatchId, *UserId->GetAccelByteId(), OnRemoveUserFromSessionSuccessDelegate, OnRemoveUserFromSessionErrorDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
