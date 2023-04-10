@@ -4,6 +4,8 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "OnlineSubsystemTypes.h"
+#include "OnlineDelegateMacros.h"
 #include "OnlineSubsystemAccelByteTypes.h"
 #include "Interfaces/OnlineFriendsInterface.h"
 #include "Interfaces/OnlinePresenceInterface.h"
@@ -13,6 +15,9 @@
 class FOnlineSubsystemAccelByte;
 struct FAccelByteModelsSessionBrowserRecentPlayerData;
 class IOnlineSubsystem;
+
+DECLARE_MULTICAST_DELEGATE_TwoParams(FOnSyncThirdPartyPlatformFriendsComplete, int32 /*LocalUserNum*/, const FOnlineError& /*ErrorInfo*/)
+typedef FOnSyncThirdPartyPlatformFriendsComplete::FDelegate FOnSyncThirdPartyPlatformFriendsCompleteDelegate;
 
 /**
  * Implementation of a friend represented in the AccelByte backend
@@ -194,6 +199,8 @@ PACKAGE_SCOPE:
 	void RemoveBlockedPlayerFromList(int32 LocalUserNum, const TSharedRef<const FUniqueNetIdAccelByteUser>& PlayerId);
 
 public:
+	DEFINE_ONLINE_PLAYER_DELEGATE_ONE_PARAM(MAX_LOCAL_PLAYERS, OnSyncThirdPartyPlatformFriendsComplete, const FOnlineError& /*ErrorInfo*/);
+
 	virtual ~FOnlineFriendsAccelByte() override = default;
 
 	/**
@@ -239,6 +246,43 @@ public:
 	virtual void DumpRecentPlayers() const override;
 	virtual void DumpBlockedPlayers() const override;
 	//~ End IOnlineFriends cached methods
+
+	//~ Begin AccelByteFriends additional methods
+	/**
+	 * Starts an async task that sends an invite to another player.
+	 *
+	 * @param LocalUserNum the user that is sending the invite
+	 * @param InFriendCode Friend's PublicCode
+	 * @param ListName name of the friends list to invite to. Not yet implemented on AccelByte you can leave it blank
+	 * @param Delegate fired when the request is complete
+	 *
+	 * @return true if the request was started successfully, false otherwise
+	 */
+	virtual bool SendInvite(int32 LocalUserNum, const FString& InFriendCode, const FString& ListName = TEXT(""), const FOnSendInviteComplete& Delegate = FOnSendInviteComplete());
+
+	/** 
+	 * Check on the cached list whether player is blocked
+	 * 
+	 * @param UserId Id of user that made the request
+	 * @param BlockedId Id of user to check
+	 * 
+	 * @return true if blocked, false otherwise
+	 */
+	virtual bool IsPlayerBlocked(const FUniqueNetId& UserId, const FUniqueNetId& BlockedId);
+
+	/**
+	 * Sync third party platform friend to AccelByte service, this will automatically add the third party friends to AccelByte
+	 * service if they already linked their account to AccelByte service. The native friend list is retrieved using native OSS.
+	 *
+	 * @param LocalUserNum the user that sending friend sync request
+	 * @param NativeFriendListName friend list name in native platform
+	 * @param AccelByteFriendListName friend list name in AccelByte service (optional)
+	 *
+	 * @return true if the request was started successfully, false otherwise
+	 */
+	virtual bool SyncThirdPartyPlatformFriend(int32 LocalUserNum, const FString& NativeFriendListName, const FString& AccelByteFriendListName = TEXT(""));
+
+	//~ End AccelByteFriends additional methods
 
 protected:
 

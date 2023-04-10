@@ -11,10 +11,18 @@ class FOnlineAsyncTaskAccelByteResetUserStats : public FOnlineAsyncTaskAccelByte
 {
 public:
 	FOnlineAsyncTaskAccelByteResetUserStats(FOnlineSubsystemAccelByte* const InABInterface
-		, const FUniqueNetIdRef StatsUserId
+		, const FUniqueNetIdRef InStatsUserId
+		, const TSharedPtr<const FOnlineStatsUserStats> InUserStats
+		, const FOnlineStatsUpdateStatsComplete& InDelegate = nullptr);
+
+	FOnlineAsyncTaskAccelByteResetUserStats(FOnlineSubsystemAccelByte* const InABInterface
+		, const int32 InLocalUserNum
+		, const FUniqueNetIdRef InStatsUserId
+		, const TSharedPtr<const FOnlineStatsUserStats> InUserStats
 		, const FOnlineStatsUpdateStatsComplete& InDelegate = nullptr);
 
 	virtual void Initialize() override;
+	virtual void Finalize() override;
 	virtual void TriggerDelegates() override;
 
 protected:
@@ -26,16 +34,19 @@ protected:
 
 private:
 
-	void HandleResetStatItemsSuccess(const TArray<FAccelByteModelsUpdateUserStatItemsResponse>& Result);
+	void OnResetUserStatItemsSuccess(const TArray<FAccelByteModelsUpdateUserStatItemsResponse>& Result);
 
 	THandler<TArray<FAccelByteModelsUpdateUserStatItemsResponse>> OnBulkResetMultipleUserStatItemsValueSuccess;
-	void HandleAsyncTaskError(int32 Code, FString const& ErrMsg);
+	void OnResetUserStatItemsFailed(int32 Code, FString const& ErrMsg);
 	FErrorHandler OnError;
-	FOnlineError OnlineError;
+	TSharedPtr<const FOnlineStatsUserStats> OnlineUserStatsPair;
 
-	FUniqueNetIdRef StatsUserId;
-	TArray<FOnlineStatsUserUpdatedStats> UpdatedUserStats;
-	TArray<FAccelByteModelsUpdateUserStatItemWithStatCode> BulkUpdateUserStatItems; 
+	TArray<FAccelByteModelsUpdateUserStatItemsResponse> UserStatsResetResponse;
+	FUniqueNetIdAccelByteUserRef StatsUserId;
+	TMap<FString, FVariantData> Stats;
+	TSharedPtr<const FOnlineStatsUserStats> UserStats;
 	FOnlineStatsUpdateStatsComplete Delegate; 
+	FString ErrorCode;
+	FString ErrorMessage;
 
 };

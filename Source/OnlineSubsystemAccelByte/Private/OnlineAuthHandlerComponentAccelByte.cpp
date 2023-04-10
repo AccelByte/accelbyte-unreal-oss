@@ -89,14 +89,17 @@ FAuthHandlerComponentAccelByte::FAuthHandlerComponentAccelByte()
 		AuthInterface = OnlineSubsystem->GetAuthInterface();
 		if (!AuthInterface.IsValid() || !AuthInterface->IsSessionAuthEnabled())
 		{
-			UE_LOG_AB(Warning, TEXT("AUTH HANDLER: (%s) AuthInterface Session is invalid."), (IsServer() ? TEXT("DS") : TEXT("CL")));
 			bIsEnabled = false;
+			SetActive(false);
+			SetState(Handler::Component::State::Initialized);
 		}
 	}
 	else
 	{
 		UE_LOG_AB(Warning, TEXT("AUTH HANDLER: IOnlineSubsystem is null: "));
 		bIsEnabled = false;
+		SetActive(false);
+		SetState(Handler::Component::State::Initialized);
 	}
 }
 
@@ -112,6 +115,7 @@ void FAuthHandlerComponentAccelByte::Clear()
 	AuthUserData.Empty();
 
 	State = EState::Uninitialized;
+	SetState(Handler::Component::State::UnInitialized);
 	LastTimestamp = 0.0f;
 
 	bRequiresReliability = false;
@@ -123,7 +127,8 @@ void FAuthHandlerComponentAccelByte::LoadSettings()
 {
 	if (GConfig->GetBool(TEXT("OnlineSubsystemAccelByte"), TEXT("EnabledEncryption"), bEnabledEncryption, GEngineIni))
 	{
-		if (bEnabledEncryption) {
+		if (bEnabledEncryption)
+		{
 			UE_LOG_AB(Warning, TEXT("AUTH HANDLER: (%s) Enabled encryption for all packets.(AES-CBC-256 and HMAC-SHA-256)"), ((Handler->Mode == Handler::Mode::Server) ? TEXT("DS") : TEXT("CL")));
 			EncryptorPacket = &FAuthHandlerComponentAccelByte::EncryptAES;
 			DecryptorPacket = &FAuthHandlerComponentAccelByte::DecryptAES;
@@ -134,11 +139,16 @@ void FAuthHandlerComponentAccelByte::LoadSettings()
 
 void FAuthHandlerComponentAccelByte::Initialize()
 {
-	SetComponentReady();
+	bRequiresReliability = true;
+	bRequiresHandshake = true;
 
-	bRequiresReliability = IsValid();
-	bRequiresHandshake = IsValid();
-	SetActive(IsValid());
+	if (!IsValid())
+	{
+		return;
+	}
+
+	SetActive(true);
+	SetComponentReady();
 
 	LastTimestamp = FPlatformTime::Seconds();
 }
@@ -147,7 +157,12 @@ void FAuthHandlerComponentAccelByte::SetComponentReady()
 {
 	if (Handler == nullptr)
 	{
-		UE_LOG_AB(Error, TEXT("AUTH HANDLER: SetCompnentReady: Handler is null."));
+		UE_LOG_AB(Warning, TEXT("AUTH HANDLER: SetCompnentReady: Handler is null."));
+		return;
+	}
+
+	if (!IsValid())
+	{
 		return;
 	}
 
@@ -183,6 +198,11 @@ void FAuthHandlerComponentAccelByte::SetCryptor(bool bIsServer)
 
 void FAuthHandlerComponentAccelByte::Tick(float DeltaTime)
 {
+	if (!IsValid())
+	{
+		return;
+	}
+
 	// Don't do anything if we're not enabled or not ready.
 	// Alternatively, if we're already finished then just don't do anything here either
 	if (!IsActive())
@@ -226,18 +246,18 @@ void FAuthHandlerComponentAccelByte::SendAuthResult()
 	{
 		switch (AuthInterface->GetAuthStatus(AuthUserData.UserId))
 		{
-		case EAccelByteAuthStatus::AuthSuccess:
-		{
-			AuthenticateUserResult(true);
-		}
-		break;
-		case EAccelByteAuthStatus::AuthFail:
-		case EAccelByteAuthStatus::KickUser:
-		case EAccelByteAuthStatus::FailKick:
-		{
-			AuthenticateUserResult(false);
-		}
-		break;
+			case EAccelByteAuthStatus::AuthSuccess:
+			{
+				AuthenticateUserResult(true);
+			}
+			break;
+			case EAccelByteAuthStatus::AuthFail:
+			case EAccelByteAuthStatus::KickUser:
+			case EAccelByteAuthStatus::FailKick:
+			{
+				AuthenticateUserResult(false);
+			}
+			break;
 		}
 	}
 }
@@ -253,7 +273,7 @@ void FAuthHandlerComponentAccelByte::SendKey()
 			{
 				SendPublicKey();
 				SendKeyAES();
-				SetState(EState::SentKey);
+				SetAuthState(EState::SentKey);
 			}
 		}
 	}
@@ -273,7 +293,8 @@ void FAuthHandlerComponentAccelByte::Incoming(FBitReader& Packet)
 	}
 	else
 	{
-		if (nullptr != DecryptorPacket) {
+		if (nullptr != DecryptorPacket)
+		{
 			if (1 == Packet.ReadBit())
 			{
 				if (!(*this.*DecryptorPacket)(Packet))
@@ -332,7 +353,7 @@ void FAuthHandlerComponentAccelByte::NotifyHandshakeBegin()
 		}
 		else
 		{
-			UE_LOG_AB(Error, TEXT("AUTH HANDLER: (%s) any wrong state in the handshaking."), ((Handler->Mode == Handler::Mode::Server) ? TEXT("DS") : TEXT("CL")));
+			UE_LOG_AB(Warning, TEXT("AUTH HANDLER: (%s) any wrong state in the handshaking."), ((Handler->Mode == Handler::Mode::Server) ? TEXT("DS") : TEXT("CL")));
 		}
 	}
 	else
@@ -345,7 +366,7 @@ void FAuthHandlerComponentAccelByte::IncomingHandshake(FBitReader& Packet)
 {
 	if (!AuthInterface.IsValid())
 	{
-		UE_LOG_AB(Error, TEXT("AUTH HANDLER: (%s) AuthInterface is not valid."), ((Handler->Mode == Handler::Mode::Server) ? TEXT("DS") : TEXT("CL")));
+		UE_LOG_AB(Warning, TEXT("AUTH HANDLER: (%s) AuthInterface is not valid."), ((Handler->Mode == Handler::Mode::Server) ? TEXT("DS") : TEXT("CL")));
 		return;
 	}
 
@@ -357,7 +378,7 @@ void FAuthHandlerComponentAccelByte::IncomingHandshake(FBitReader& Packet)
 
 		if (Packet.IsError())
 		{
-			UE_LOG_AB(Error, TEXT("AUTH HANDLER: IncomingHandshake: accelbyte auth packet could not be properly serialized."));
+			UE_LOG_AB(Warning, TEXT("AUTH HANDLER: IncomingHandshake: accelbyte auth packet could not be properly serialized."));
 			return;
 		}
 
@@ -392,7 +413,7 @@ void FAuthHandlerComponentAccelByte::IncomingHandshake(FBitReader& Packet)
 					if (Packet.IsError())
 					{
 						// Really this is if we somehow overflow and cannot fit the packet.
-						UE_LOG_AB(Error, TEXT("AUTH HANDLER: IncomingHandshake: accelbyte auth packet could not be properly serialized."));
+						UE_LOG_AB(Warning, TEXT("AUTH HANDLER: IncomingHandshake: accelbyte auth packet could not be properly serialized."));
 						return;
 					}
 
@@ -429,14 +450,14 @@ void FAuthHandlerComponentAccelByte::IncomingHandshake(FBitReader& Packet)
 	}
 	else
 	{
-		UE_LOG_AB(Error, TEXT("AUTH HANDLER: (%s) packet is wrong for the handshaking."), ((Handler->Mode == Handler::Mode::Server) ? TEXT("DS") : TEXT("CL")));
+		UE_LOG_AB(Warning, TEXT("AUTH HANDLER: (%s) packet is wrong for the handshaking."), ((Handler->Mode == Handler::Mode::Server) ? TEXT("DS") : TEXT("CL")));
 		Packet.SetError();
 		return;
 	}
 
 	if (!bHandledPacket)
 	{
-		UE_LOG_AB(Error, TEXT("AUTH HANDLER: (%s) got IncomingHandshake() the other packet when not yet initialized."), ((Handler->Mode == Handler::Mode::Server) ? TEXT("DS") : TEXT("CL")));
+		UE_LOG_AB(Warning, TEXT("AUTH HANDLER: (%s) got IncomingHandshake() the other packet when not yet initialized."), ((Handler->Mode == Handler::Mode::Server) ? TEXT("DS") : TEXT("CL")));
 		Packet.SetError();
 	}
 }
@@ -445,24 +466,19 @@ void FAuthHandlerComponentAccelByte::CompletedHandshaking(bool bResult)
 {
 	if (bResult)
 	{
-		SetState(EState::Initialized);
+		SetAuthState(EState::Initialized);
 		HandlerComponent::Initialized();
 
 		if (bEnabledEncryption)
 		{
-#if !UE_BUILD_SHIPPING
-			UE_LOG_AB(Warning, TEXT("AUTH HANDLER: (%s) All packets are encrypted using '%s' algorithm. If you want to disable this feature, please delete the Encryption option in 'DefaultEngine.ini'.")
-				, ((Handler->Mode == Handler::Mode::Server) ? TEXT("DS") : TEXT("CL")), (bEnabledEncryption ? TEXT("AES") : TEXT("RSA")));
-#endif
 			return;
 		}
+		UE_LOG_AB(Warning, TEXT("AUTH HANDLER: (%s) complete handshake.(T)"), ((Handler->Mode == Handler::Mode::Server) ? TEXT("DS") : TEXT("CL")));
 	}
 	else
 	{
-#if !UE_BUILD_SHIPPING
-		UE_LOG_AB(Error, TEXT("AUTH HANDLER: (%s) AccelByte Authenticate handshaking: Fail: (%s)"), ((Handler->Mode == Handler::Mode::Server) ? TEXT("DS") : TEXT("CL")), *AuthUserData.UserId);
-#endif
-		SetState(EState::AuthFail);
+		SetAuthState(EState::AuthFail);
+		UE_LOG_AB(Warning, TEXT("AUTH HANDLER: (%s) complete handshake.(F)"), ((Handler->Mode == Handler::Mode::Server) ? TEXT("DS") : TEXT("CL")));
 	}
 
 	bRequiresReliability = false;
@@ -482,9 +498,6 @@ void FAuthHandlerComponentAccelByte::NetCleanUp()
 			if (UNetConnection* NetConnection = PC->GetNetConnection())
 			{
 				NetConnection->CleanUp();
-#if !UE_BUILD_SHIPPING
-				UE_LOG_AB(Error, TEXT("AUTH HANDLER: (%s) Connection is closed."), ((Handler->Mode == Handler::Mode::Server) ? TEXT("DS") : TEXT("CL")));
-#endif
 			}
 		}
 	}
@@ -502,13 +515,15 @@ void FAuthHandlerComponentAccelByte::SendPublicKey()
 
 void FAuthHandlerComponentAccelByte::RecvPublicKey(FBitReader& Packet)
 {
+#if !PLATFORM_SWITCH
 	UnpackPublicKey(Packet);
 
 	// Generate/send the session key and initialization vector, and setup the symmetric encryption locally
 	if (Packet.IsError())
 	{
-		UE_LOG_AB(Error, TEXT("AUTH HANDLER: RSA: Error unpacking the RSA key, can't complete handshake."));
+		UE_LOG_AB(Warning, TEXT("AUTH HANDLER: RSA: Error unpacking the RSA key, can't complete handshake."));
 	}
+#endif
 }
 
 void FAuthHandlerComponentAccelByte::PackPublicKey(FBitWriter& Packet)
@@ -516,15 +531,13 @@ void FAuthHandlerComponentAccelByte::PackPublicKey(FBitWriter& Packet)
 	FBitWriter Local;
 	Local.AllowAppend(true);
 	Local.SetAllowResize(true);
-
 	FAccelByteAuthHeader Header;
 	Header.Type = EAccelByteAuthMsgType::RSAKey;
 
 	Local.WriteBit(1);
 	Local << Header;
 
-	Local.Serialize(Packet.GetData(), Packet.GetNumBytes());
-
+#if !PLATFORM_SWITCH
 	const uint32 MaxModulusNum = (RSACrypto.GetKeySizeInBits() + 7) >> 3;
 	const uint32 MaxExponentNum = (RSACrypto.GetKeySizeInBits() + 7) >> 3;
 
@@ -539,12 +552,13 @@ void FAuthHandlerComponentAccelByte::PackPublicKey(FBitWriter& Packet)
 	Local.Serialize(RSACrypto.GetPublicExponent().GetData(), RSACrypto.GetPublicExponent().Num());
 
 	Local.Serialize(Packet.GetData(), Packet.GetNumBytes());
-
+#endif
 	Packet = Local;
 }
 
 void FAuthHandlerComponentAccelByte::UnpackPublicKey(FBitReader& Packet)
 {
+#if !PLATFORM_SWITCH
 	/* Remote's Public Key */
 	TArray<uint8> RSARemotePublicExponent;
 	/* Remote's Modulus for RSA Key */
@@ -561,7 +575,7 @@ void FAuthHandlerComponentAccelByte::UnpackPublicKey(FBitReader& Packet)
 
 	if (int32(ModulusNum * 8) > RSACrypto.GetKeySizeInBits())
 	{
-		UE_LOG_AB(Error, TEXT("AUTH HANDLER: RSA: Modulus size '%i bits' should not exceed key size '%i'"),
+		UE_LOG_AB(Warning, TEXT("AUTH HANDLER: RSA: Modulus size '%i bits' should not exceed key size '%i'"),
 			(ModulusNum * 8), RSACrypto.GetKeySizeInBits())
 
 		Packet.SetError();
@@ -585,7 +599,7 @@ void FAuthHandlerComponentAccelByte::UnpackPublicKey(FBitReader& Packet)
 		}
 		else
 		{
-			UE_LOG_AB(Error, TEXT("AUTH HANDLER: RSA: Exponent size '%i bits' should not exceed MAX_EXPONENT_BITS"),
+			UE_LOG_AB(Warning, TEXT("AUTH HANDLER: RSA: Exponent size '%i bits' should not exceed MAX_EXPONENT_BITS"),
 				(ExponentNum * 8));
 
 			Packet.SetError();
@@ -597,10 +611,12 @@ void FAuthHandlerComponentAccelByte::UnpackPublicKey(FBitReader& Packet)
 		// Make sure the packet has no remaining data now
 		RSACrypto.CreateKey(RSARemotePublicExponent, RSARemotePublicExponent, RSARemoteModulus);
 	}
+#endif
 }
 
 bool FAuthHandlerComponentAccelByte::EncryptRSA(FBitWriter& Packet)
 {
+#if !PLATFORM_SWITCH
 	// Serialize size of plain text data
 	uint32 NumberOfBytesInPlaintext = static_cast<uint32>(Packet.GetNumBytes());
 
@@ -637,11 +653,13 @@ bool FAuthHandlerComponentAccelByte::EncryptRSA(FBitWriter& Packet)
 
 	// Serialize Packet from CipherText
 	Packet.Serialize(CipherText.GetData(), CipherText.Num());
+#endif
 	return true;
 }
 
 bool FAuthHandlerComponentAccelByte::DecryptRSA(FBitReader& Packet)
 {
+#if !PLATFORM_SWITCH
 	// Serialize size of plain text data
 	uint32 NumberOfBytesInPlaintext;
 	Packet.SerializeIntPacked(NumberOfBytesInPlaintext);
@@ -671,19 +689,23 @@ bool FAuthHandlerComponentAccelByte::DecryptRSA(FBitReader& Packet)
 
 	FBitReader Copy(PlainText.GetData(), NumberOfBytesInPlaintext * 8);
 	Packet = Copy;
-
+#endif
 	return true;
 }
 
-void FAuthHandlerComponentAccelByte::SetState(EState InState)
+void FAuthHandlerComponentAccelByte::SetAuthState(EState InState)
 {
 	State = InState;
 }
 
 int32 FAuthHandlerComponentAccelByte::GetReservedPacketBits() const
 {
-	if ((State != EState::Initialized) || bEnabledEncryption) {
-		return 1;
+	if (IsValid())
+	{
+		if ((State != EState::Initialized) || bEnabledEncryption)
+		{
+			return 1;
+		}
 	}
 
 	return 0;
@@ -691,6 +713,13 @@ int32 FAuthHandlerComponentAccelByte::GetReservedPacketBits() const
 
 void FAuthHandlerComponentAccelByte::SendKeyAES()
 {
+	FAccelByteAuthHeader Header;
+	Header.Type = EAccelByteAuthMsgType::AESKey;
+
+	FBitWriter OutPacket(0, true);
+	OutPacket.WriteBit(1);
+	OutPacket << Header;
+#if !PLATFORM_SWITCH
 	// Now send the initialization vector and session key
 	FBitWriter TempPacket(0, true);
 
@@ -699,19 +728,17 @@ void FAuthHandlerComponentAccelByte::SendKeyAES()
 
 	EncryptRSA(TempPacket);
 
-	FAccelByteAuthHeader Header;
-	Header.Type = EAccelByteAuthMsgType::AESKey;
-
-	FBitWriter OutPacket(0, true);
-	OutPacket.WriteBit(1);
-	OutPacket << Header;
 	OutPacket.SerializeBits(TempPacket.GetData(), TempPacket.GetNumBits());
-
+#endif
 	SendPacket(OutPacket);
 }
 
 bool FAuthHandlerComponentAccelByte::RecvKeyAES(FBitReader& Packet)
 {
+#if PLATFORM_SWITCH
+	SetAuthState(EState::RecvedKey);
+	return true;
+#else
 	// for Client
 	DecryptRSA(Packet);
 
@@ -724,19 +751,23 @@ bool FAuthHandlerComponentAccelByte::RecvKeyAES(FBitReader& Packet)
 	if (!Packet.IsError())
 	{
 		AESCrypto.Initialize();
-		SetState(EState::RecvedKey);
+		SetAuthState(EState::RecvedKey);
 
 		return true;
 	}
 	else
 	{
-		UE_LOG_AB(Error, TEXT("AUTH HANDLER: Failed to initialize AES encryption."));
+		UE_LOG_AB(Warning, TEXT("AUTH HANDLER: Failed to initialize AES encryption."));
 	}
 	return false;
+#endif
 }
 
 bool FAuthHandlerComponentAccelByte::EncryptAES(FBitWriter& Packet)
 {
+#if PLATFORM_SWITCH
+	return true;
+#else
 	int32 PacketNumBytes = Packet.GetNumBytes();
 
 	if (PacketNumBytes > 0)
@@ -778,10 +809,14 @@ bool FAuthHandlerComponentAccelByte::EncryptAES(FBitWriter& Packet)
 	}
 
 	return false;
+#endif
 }
 
 bool FAuthHandlerComponentAccelByte::DecryptAES(FBitReader& Packet)
 {
+#if PLATFORM_SWITCH
+	return true;
+#else
 	if (!Packet.IsError())
 	{
 		uint32 NumberOfBitsInPlaintext = 0;
@@ -808,14 +843,15 @@ bool FAuthHandlerComponentAccelByte::DecryptAES(FBitReader& Packet)
 		}
 		else
 		{
-			UE_LOG_AB(Error, TEXT("AUTH HANDLER: AES: serializing PlainText is error."));
+			UE_LOG_AB(Warning, TEXT("AUTH HANDLER: AES: serializing PlainText is error."));
 		}
 	}
 	else
 	{
-		UE_LOG_AB(Error, TEXT("AUTH HANDLER: AES: serializing incoming packet is error."));
+		UE_LOG_AB(Warning, TEXT("AUTH HANDLER: AES: serializing incoming packet is error."));
 	}
 	return false;
+#endif
 }
 
 void FAuthHandlerComponentAccelByte::RequestResend()
@@ -883,12 +919,12 @@ bool FAuthHandlerComponentAccelByte::SendAuthData()
 
 	if (!EncryptAES(TempPacket))
 	{
-		UE_LOG_AB(Error, TEXT("AUTH HANDLER: AES Encryption skipped as plain text size is too large. send smaller packets for secure data. over '%i' bytes."),
+		UE_LOG_AB(Warning, TEXT("AUTH HANDLER: AES Encryption skipped as plain text size is too large. send smaller packets for secure data. over '%i' bytes."),
 			(TempPacket.GetNumBits() - MAX_AES_ENCRYPTION_BITS) / 8);
 
 		return false;
 	}
-	
+
 	FBitWriter OutPacket((sizeof(FAccelByteAuthHeader) + FOnlineAuthAccelByte::GetMaxTokenSizeInBytes()) * 8 + 1, true);
 	OutPacket.WriteBit(1);
 	FAccelByteAuthHeader Header;
@@ -897,7 +933,7 @@ bool FAuthHandlerComponentAccelByte::SendAuthData()
 	OutPacket.SerializeBits(TempPacket.GetData(), TempPacket.GetNumBits());
 
 	SendPacket(OutPacket);
-	SetState(EState::SentAuth);
+	SetAuthState(EState::SentAuth);
 
 	return true;
 }
@@ -916,7 +952,7 @@ void FAuthHandlerComponentAccelByte::OnAuthenticateUser()
 	/** the DS handler */
 	if (AuthInterface->AuthenticateUser(AuthUserData))
 	{
-		SetState(EState::WaitForAuth);
+		SetAuthState(EState::WaitForAuth);
 	}
 }
 
@@ -940,7 +976,7 @@ bool FAuthHandlerComponentAccelByte::SetAuthData(FString& UserId)
 {
 	if (IsServer())
 	{
-		UE_LOG_AB(Error, TEXT("AUTH HANDLER: (DS) SetAuthData. the Dedicated Server doesn't need this."));
+		UE_LOG_AB(Warning, TEXT("AUTH HANDLER: (DS) SetAuthData. the Dedicated Server doesn't need this."));
 		return false;
 	}
 

@@ -2,6 +2,26 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [0.10.0](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.10.0%0D0.9.3) (2023-04-10)
+
+
+### ⚠ BREAKING CHANGES
+
+* **User:** change UserInfo's PublicId to PublicCode.
+
+### Features
+
+* achievement oss ([1c9fd59](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/1c9fd59b62351f5db49d8fd62dca4d047e517d31))
+* **friend:** add sync third party platform friend ([82ae7af](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/82ae7af0fbc01427e3cd9b439d741cb9b1cbc5a5))
+* **friend:** invite friend using friendId ([5436843](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/5436843674b91daa12f04de3d71d4f7057da036a))
+* **User:** add get and create user profile ([d0a4188](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/d0a41887288c7c70726a47ddc71a90354619b88a))
+
+
+### Bug Fixes
+
+* fix SDK cannot login from Odin launcher from UE5 project, replace the old function for getting environment variable with the new API. ([91797fb](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/91797fb708f2e2ef45e3b25ae88314be971d3d5b))
+* **userProfile:** only add new auth user when it is their own account info ([9ebae54](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/9ebae54054e652b5a93951e27555f1e3aaea579d))
+
 ### [0.9.3](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.9.3%0D0.9.2) (2023-03-27)
 
 

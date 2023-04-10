@@ -131,10 +131,4 @@ private:
 	 * @param ErrorObject Object representing the error code that occurred
 	 */
 	void OnLoginErrorOAuth(int32 ErrorCode, const FString& ErrorMessage, const FErrorOAuthInfo& ErrorObject);
-
-	/**
-	 * Method to calculate a local offset timestamp from UTC
-	 */
-	FString GetLocalTimeOffsetFromUTC();
-
 };

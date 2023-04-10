@@ -5,6 +5,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "OnlineAchievementsInterfaceAccelByte.h"
 #include "OnlineSubsystemImpl.h"
 #include "OnlineSubsystemAccelByteDefines.h"
 #include "OnlineAsyncTaskManagerAccelByte.h"
@@ -50,6 +51,7 @@ class FOnlineStatisticAccelByte;
 class FOnlineChatAccelByte;
 class FOnlineAuthAccelByte;
 class FExecTestBase;
+class FOnlineAchievementsAccelByte;
 
 struct FAccelByteModelsNotificationMessage;
 
@@ -122,6 +124,9 @@ typedef TSharedPtr<FOnlineChatAccelByte, ESPMode::ThreadSafe> FOnlineChatAccelBy
 
 /** Shared pointer to the AccelByte implementation of the Auth interface */
 typedef TSharedPtr<FOnlineAuthAccelByte, ESPMode::ThreadSafe> FOnlineAuthAccelBytePtr;
+
+typedef TSharedPtr<FOnlineAchievementsAccelByte, ESPMode::ThreadSafe> FOnlineAchievementAccelBytePtr;
+
 
 class ONLINESUBSYSTEMACCELBYTE_API FOnlineSubsystemAccelByte final : public FOnlineSubsystemImpl, public TSharedFromThis<FOnlineSubsystemAccelByte, ESPMode::ThreadSafe>
 {
@@ -241,6 +246,7 @@ PACKAGE_SCOPE:
 		, StatisticInterface(nullptr)
 		, ChatInterface(nullptr)
 		, AuthInterface(nullptr)
+		, AchievementInterface(nullptr)
 		, Language(FGenericPlatformMisc::GetDefaultLanguage())
 	{
 	}
@@ -412,7 +418,10 @@ private:
 
 	/** Shared instance of our auth implementation */
 	FOnlineAuthAccelBytePtr AuthInterface;
-	
+
+	/** Shared instance of our achievement implementation */
+	FOnlineAchievementAccelBytePtr AchievementInterface;
+
 	/** Thread spawned to run the FOnlineAsyncTaskManagerAccelBytePtr instance */
 	TUniquePtr<FRunnableThread> AsyncTaskManagerThread;
 

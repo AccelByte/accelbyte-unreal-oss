@@ -15,8 +15,12 @@
 #include "AsyncTasks/User/OnlineAsyncTaskAccelByteQueryUserInfo.h"
 #include "AsyncTasks/User/OnlineAsyncTaskAccelByteQueryUserIdMapping.h"
 #include "AsyncTasks/User/OnlineAsyncTaskAccelByteQueryExternalIdMappings.h"
+#include "AsyncTasks/User/OnlineAsyncTaskAccelByteQueryUserProfile.h"
+#include "AsyncTasks/User/OnlineAsyncTaskAccelByteCreateUserProfile.h"
 #include "AsyncTasks/User/FOnlineAsyncTaskAccelByteListUserByUserId.h"
 #include "OnlineSubsystemUtils.h"
+
+#define ONLINE_ERROR_NAMESPACE "FOnlineUserAccelByte"
 
 FOnlineUserAccelByte::FOnlineUserAccelByte(FOnlineSubsystemAccelByte* InSubsystem)
 	: AccelByteSubsystem(InSubsystem)
@@ -41,6 +45,37 @@ bool FOnlineUserAccelByte::GetFromSubsystem(const IOnlineSubsystem* Subsystem, F
 {
 	OutInterfaceInstance = StaticCastSharedPtr<FOnlineUserAccelByte>(Subsystem->GetUserInterface());
 	return OutInterfaceInstance.IsValid();
+}
+
+bool FOnlineUserAccelByte::CreateUserProfile(const FUniqueNetId& UserId)
+{
+	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("UserId: %s"), *UserId.ToDebugString());
+
+	check(AccelByteSubsystem != nullptr);
+	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteCreateUserProfile>(AccelByteSubsystem, UserId);
+
+	AB_OSS_INTERFACE_TRACE_END(TEXT("Created and dispatched async task to get or create user profile!"));
+	return true;
+}
+
+bool FOnlineUserAccelByte::QueryUserProfile(int32 LocalUserNum, const TArray<TSharedRef<const FUniqueNetId>>& UserIds)
+{
+	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("LocalUserNum: %d; UserId Amount: %d"), LocalUserNum, UserIds.Num());
+
+	check(AccelByteSubsystem != nullptr);
+	if (LocalUserNum < 0 || LocalUserNum >= MAX_LOCAL_PLAYERS)
+	{
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("LocalUserNum passed was out of range!"));
+		AccelByteSubsystem->ExecuteNextTick([UserInterface = SharedThis(this), LocalUserNum, UserIds]()
+			{
+				UserInterface->TriggerOnQueryUserProfileCompleteDelegates(LocalUserNum, false, UserIds, ONLINE_ERROR(EOnlineErrorResult::InvalidUser, TEXT("query-user-profile-local-user-index-out-of-range")));
+			});
+		return false;
+	}
+	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteQueryUserProfile>(AccelByteSubsystem, LocalUserNum, UserIds, OnQueryUserProfileCompleteDelegates[LocalUserNum]);
+
+	AB_OSS_INTERFACE_TRACE_END(TEXT("Created and dispatched async task to query user information for %d IDs!"), UserIds.Num());
+	return true;
 }
 
 bool FOnlineUserAccelByte::QueryUserInfo(int32 LocalUserNum, const TArray<TSharedRef<const FUniqueNetId>>& UserIds)
@@ -195,6 +230,19 @@ TSharedPtr<const FUniqueNetId> FOnlineUserAccelByte::GetExternalIdMapping(const 
 	return nullptr;
 }
 
+void FOnlineUserAccelByte::PostLoginBulkGetUserProfileCompleted(int32 LocalUserNum, bool bWasSuccessful, const TArray<FUniqueNetIdRef>& UserIds, const FOnlineError& ErrorStr)
+{
+	if (UserIds.Num() == 0)
+	{
+		check(AccelByteSubsystem != nullptr);
+
+		const auto UserId = AccelByteSubsystem->GetIdentityInterface()->GetUniquePlayerId(LocalUserNum);
+		CreateUserProfile(*UserId.Get());
+	}
+
+	ClearOnQueryUserInfoCompleteDelegates(LocalUserNum, this);
+}
+
 #if WITH_DEV_AUTOMATION_TESTS
 bool FOnlineUserAccelByte::TestExec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar)
 {
@@ -242,3 +290,5 @@ void FOnlineUserAccelByte::ListUserByUserId(const int32 LocalUserNum, const TArr
 	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteListUserByUserId>
 		(AccelByteSubsystem, LocalUserNum, UserIds);
 }
+
+#undef ONLINE_ERROR_NAMESPACE

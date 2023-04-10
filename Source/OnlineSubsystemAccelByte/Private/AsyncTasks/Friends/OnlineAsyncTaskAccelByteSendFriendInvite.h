@@ -63,8 +63,11 @@ private:
 	 */
 	TSharedPtr<FOnlineFriend> InvitedFriend;
 	
+	/** Delegate handler for when the call to GetPublicUserProfileByPublicId succeeds, used for friend code invite */
+	void OnGetUserByFriendCodeSuccess(const FAccelByteModelsPublicUserProfileInfo& Result);
+
 	/** Delegate handler for when the call to GetPublicUserProfileByPublicId errors out, used for friend code invite */
-	void OnGetUserByFriendCodeError(int32 ErrorCode, const FString& ErrorMessage);
+	void OnGetUserByFriendCodeError(int32 ErrorCode, const FString& ErrorMessage, const FJsonObject& ErrorObject);
 
 	/**
 	 * Method to kick off a query about the user we want to send a request to

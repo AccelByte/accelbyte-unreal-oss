@@ -431,6 +431,8 @@ void FOnlineAsyncTaskAccelByteLogin::OnLoginSuccess()
 		return;
 	}
 
+	// Bind delegate for Query UserProfile
+	UserInterface->AddOnQueryUserProfileCompleteDelegate_Handle(LoginUserNum, FOnQueryUserProfileCompleteDelegate::CreateThreadSafeSP(UserInterface.Get(), &FOnlineUserAccelByte::PostLoginBulkGetUserProfileCompleted));
 	UserInterface->QueryUserInfo(LoginUserNum, { UserId.ToSharedRef() });
 
 	CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
@@ -458,62 +460,4 @@ void FOnlineAsyncTaskAccelByteLogin::OnLoginErrorOAuth(int32 ErrorCode, const FS
 		ErrorStr = TEXT("user-banned");
 		}
 	CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
-}
-
-FString FOnlineAsyncTaskAccelByteLogin::GetLocalTimeOffsetFromUTC()
-{
-	// Get current time locally as well as in UTC to calculate an offset for timezone
-	const FDateTime UtcTime = FDateTime::UtcNow();
-	const FDateTime LocalTime = FDateTime::Now();
-
-	// Begin by checking if we are not on the same day as UTC, so that we can either advance the UTC time or local time by
-	// a day to get an accurate measurement of hours behind/ahead of UTC
-	int32 UtcHour = UtcTime.GetHour();
-	int32 LocalHour = LocalTime.GetHour();
-	if (UtcTime.GetDay() != LocalTime.GetDay()) {
-		if (UtcTime > LocalTime) UtcHour += 24;
-		else if (LocalTime > UtcTime) LocalHour += 24;
-	}
-
-	// Now calculate the difference in hours, and create a local offset format timezone, or UTC if no difference
-	const int32 HourDifferenceFromUtc = LocalHour - UtcHour;
-	const int32 MinuteDifferenceFromUtc = LocalTime.GetMinute() - UtcTime.GetMinute();
-	FString LocalOffsetTimezone;
-	if (HourDifferenceFromUtc == 0 && MinuteDifferenceFromUtc == 0)
-	{
-		LocalOffsetTimezone = TEXT("UTC");
-	}
-	else
-	{
-		// Getting the sign manually since we need plus or minus
-		FString LocalOffsetSign;
-		if (HourDifferenceFromUtc >= 0)
-		{
-			LocalOffsetSign = TEXT("+");
-		}
-		else
-		{
-			LocalOffsetSign = TEXT("-");
-		}
-
-		// Converting both hour and minute offset to a string to allow for prepending a leading zero
-		// #NOTE Using abs for difference values as we already have this from the offset sign
-		FString HourString = FString::FromInt(FMath::Abs(HourDifferenceFromUtc));
-		if (HourString.Len() == 1)
-		{
-			HourString = TEXT("0") + HourString;
-		}
-
-		FString MinuteString = FString::FromInt(FMath::Abs(MinuteDifferenceFromUtc));
-		if (MinuteString.Len() == 1)
-		{
-			MinuteString = TEXT("0") + MinuteString;
-		}
-
-		// Finally, set the LocalOffsetTimezone value to our formatted string
-		LocalOffsetTimezone = FString::Printf(TEXT("%s%s:%s"), *LocalOffsetSign, *HourString, *MinuteString);
-	}
-
-	UE_LOG_AB(Verbose, TEXT("Calculated local time offset from UTC: %s"), *LocalOffsetTimezone);
-	return LocalOffsetTimezone;
 }

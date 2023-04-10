@@ -10,6 +10,7 @@
 
 #include "Delegates/IDelegateInstance.h"
 #include "OnlineSubsystemAccelByteTypes.h"
+#include "Models/AccelByteUserModels.h"
 
 DECLARE_DELEGATE_OneParam(FOnGetDisplayNameComplete, FString /*DisplayName*/);
 
@@ -67,6 +68,13 @@ public:
 	static FString GetUserJoinTime(const FString &UserId);
 	static void AddUserDisconnectedTime(const FString &UserId, const FString Value);
 	static FString GetUserDisconnectedTime(const FString &UserId);
+	
+	/**
+	 * Method to calculate a local offset timestamp from UTC
+	 */
+	static FString GetLocalTimeOffsetFromUTC();
+
+	static EAccelBytePlatformType GetCurrentAccelBytePlatformType(const FName& NativeSubsystemName);
 	
 private:
 

@@ -92,6 +92,17 @@ void FOnlineStatisticAccelByte::EmplaceStats(const TArray<TSharedPtr<const FOnli
 	}
 }
 
+void FOnlineStatisticAccelByte::ResetStats(const int32 LocalUserNum, const FUniqueNetIdRef StatsUserId)
+{
+#if !UE_BUILD_SHIPPING
+	UE_LOG_ONLINE_STATS(Display, TEXT("FOnlineStatisticAccelByte::ResetStats"));
+
+	TSharedPtr<const FOnlineStatsUserStats> Value = GetStats(StatsUserId);
+
+	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteResetUserStats>(AccelByteSubsystem, LocalUserNum, StatsUserId, Value);
+#endif // !UE_BUILD_SHIPPING
+}
+
 void FOnlineStatisticAccelByte::QueryStats(const FUniqueNetIdRef LocalUserId, const FUniqueNetIdRef StatsUser, const TArray<FString>& StatNames, const FOnlineStatsQueryUserStatsComplete& Delegate)
 {
 	QueryStats(0, LocalUserId.Get(), StatsUser, StatNames, Delegate);
@@ -199,9 +210,18 @@ TSharedPtr<const FOnlineStatsUserStats> FOnlineStatisticAccelByte::GetAllListUse
 #if !UE_BUILD_SHIPPING
 void FOnlineStatisticAccelByte::ResetStats(const FUniqueNetIdRef StatsUserId)
 {
-	UE_LOG_ONLINE_STATS(Display, TEXT("FOnlineStatisticAccelByte::ResetStats"));
-	
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteResetUserStats>(AccelByteSubsystem, StatsUserId);
+	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystem->GetIdentityInterface());
+
+	if (IsRunningDedicatedServer())
+	{
+		ResetStats(0, StatsUserId);
+	}
+	else
+	{
+		int32 UserNumber;
+		IdentityInterface->GetLocalUserNum(StatsUserId.Get(),UserNumber);
+		ResetStats(UserNumber, StatsUserId);
+	}
 }
 #endif
 

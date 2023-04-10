@@ -31,9 +31,6 @@ public:
 	virtual void Incoming(FBitReader& Packet) override;
 	virtual void Outgoing(FBitWriter& Packet, FOutPacketTraits& Traits) override;
 	virtual void Tick(float DeltaTime) override;
-
-	//virtual void Tick(float DeltaTime) override;
-
 	//~ Begin HandlerComponent interface
 
 private:
@@ -66,7 +63,7 @@ private:
 	bool DecryptRSA(FBitReader& Packet);
 
 	/* Set the state of the handler */
-	void SetState(EState State);
+	void SetAuthState(EState State);
 
 	/* send all key to remote connection. */
 	void SendKey();

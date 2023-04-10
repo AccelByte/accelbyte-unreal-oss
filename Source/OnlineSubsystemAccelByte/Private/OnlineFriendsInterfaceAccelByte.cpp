@@ -18,6 +18,7 @@
 #include "AsyncTasks/Friends/OnlineAsyncTaskAccelByteBlockPlayer.h"
 #include "AsyncTasks/Friends/OnlineAsyncTaskAccelByteUnblockPlayer.h"
 #include "AsyncTasks/Friends/OnlineAsyncTaskAccelByteGetRecentPlayer.h"
+#include "AsyncTasks/Friends/OnlineAsyncTaskAccelByteSyncThirPartyFriend.h"
 #include "OnlineSubsystemUtils.h"
 
 #define ONLINE_ERROR_NAMESPACE "FOnlineFriendAccelByte"
@@ -567,6 +568,36 @@ bool FOnlineFriendsAccelByte::DeleteFriendsList(int32 LocalUserNum, const FStrin
 bool FOnlineFriendsAccelByte::SendInvite(int32 LocalUserNum, const FUniqueNetId& FriendId, const FString& ListName, const FOnSendInviteComplete& Delegate)
 {
 	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteSendFriendInvite>(AccelByteSubsystem, LocalUserNum, FriendId, ListName, Delegate);
+	return true;
+}
+
+bool FOnlineFriendsAccelByte::SendInvite(int32 LocalUserNum, const FString& InFriendCode, const FString& ListName, const FOnSendInviteComplete& Delegate)
+{
+	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteSendFriendInvite>(AccelByteSubsystem, LocalUserNum, InFriendCode, ListName, Delegate);
+	return true;
+}
+
+bool FOnlineFriendsAccelByte::IsPlayerBlocked(const FUniqueNetId& InUserId, const FUniqueNetId& InBlockedId)
+{
+	// Get Blocked Players
+	TArray<TSharedRef<FOnlineBlockedPlayer>> BlockedPlayers;
+	GetBlockedPlayers(InUserId, BlockedPlayers);
+
+	// Check if is in blocked player list 
+	for (TSharedRef<FOnlineBlockedPlayer> BlockedPlayer : BlockedPlayers)
+	{
+		if (BlockedPlayer->GetUserId().Get() == InBlockedId)
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
+bool FOnlineFriendsAccelByte::SyncThirdPartyPlatformFriend(int32 LocalUserNum, const FString& NativeFriendListName, const FString& AccelByteFriendListName)
+{
+	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteSyncThirPartyFriend>(AccelByteSubsystem, LocalUserNum, NativeFriendListName, AccelByteFriendListName);
 	return true;
 }
 

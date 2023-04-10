@@ -6,6 +6,8 @@
 #include "Containers/UnrealString.h"
 #include "OnlineSubsystemAccelByteTypes.h"
 #include "AsyncTasks/User/OnlineAsyncTaskAccelByteQueryUsersByIds.h"
+#include "AsyncTasks/User/OnlineAsyncTaskAccelByteQueryUserProfile.h"
+#include "OnlineUserInterfaceAccelByte.h"
 #include "OnlineSubsystemUtils.h"
 
 bool IsInvalidAccelByteId(const FString& Id)
@@ -135,7 +137,11 @@ bool FOnlineUserCacheAccelByte::QueryUsersByAccelByteIds(int32 LocalUserNum, con
 		return false;
 	}
 
-	Subsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteQueryUsersByIds>(Subsystem, LocalUserNum, FilteredIds, bIsImportant, Delegate);
+	FOnlineUserAccelBytePtr UserInterface = StaticCastSharedPtr<FOnlineUserAccelByte>(Subsystem->GetUserInterface());
+
+	//Run QueryUserProfile after QueryUsersByIds to get Info like FriendId
+	Subsystem->CreateAndDispatchAsyncTaskSerial<FOnlineAsyncTaskAccelByteQueryUsersByIds>(Subsystem, LocalUserNum, FilteredIds, bIsImportant, Delegate);
+	Subsystem->CreateAndDispatchAsyncTaskSerial<FOnlineAsyncTaskAccelByteQueryUserProfile>(Subsystem, LocalUserNum, FilteredIds, UserInterface->OnQueryUserProfileCompleteDelegates[LocalUserNum]);
 	return true;
 }
 
@@ -172,7 +178,15 @@ bool FOnlineUserCacheAccelByte::QueryUsersByAccelByteIds(const FUniqueNetId& Use
 		return false;
 	}
 
-	Subsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteQueryUsersByIds>(Subsystem, UserId, FilteredIds, bIsImportant, Delegate);
+	FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(Subsystem->GetIdentityInterface());
+	FOnlineUserAccelBytePtr UserInterface = StaticCastSharedPtr<FOnlineUserAccelByte>(Subsystem->GetUserInterface());
+
+	int32 LocalUserNum;
+	IdentityInterface->GetLocalUserNum(UserId, LocalUserNum);
+
+	//Run QueryUserProfile after QueryUsersByIds to get Info like FriendId
+	Subsystem->CreateAndDispatchAsyncTaskSerial<FOnlineAsyncTaskAccelByteQueryUsersByIds>(Subsystem, UserId, FilteredIds, bIsImportant, Delegate);
+	Subsystem->CreateAndDispatchAsyncTaskSerial<FOnlineAsyncTaskAccelByteQueryUserProfile>(Subsystem, UserId, FilteredIds, UserInterface->OnQueryUserProfileCompleteDelegates[LocalUserNum]);
 	return true;
 }
 
@@ -252,6 +266,17 @@ void FOnlineUserCacheAccelByte::AddUsersToCache(const TArray<TSharedRef<FAccelBy
 {
 	for (const TSharedRef<FAccelByteUserInfo>& User : UsersQueried)
 	{
+		if (User->PublicCode.IsEmpty())
+		{
+			const auto CachedUserInfo = GetUser(*User->Id.ToSharedRef());
+			if (CachedUserInfo.IsValid())
+			{
+				if (!CachedUserInfo->PublicCode.IsEmpty())
+				{
+					User->PublicCode = CachedUserInfo->PublicCode;
+				}
+			}
+		}
 		// Add the user to the AccelByte ID mapping cache first
 		AccelByteIdToUserInfoMap.Add(User->Id->GetAccelByteId(), User);
 
@@ -261,6 +286,69 @@ void FOnlineUserCacheAccelByte::AddUsersToCache(const TArray<TSharedRef<FAccelBy
 			const FString PlatformId = ConvertPlatformTypeAndIdToCacheKey(User->Id->GetPlatformType(), User->Id->GetPlatformId());
 			PlatformIdToUserInfoMap.Add(PlatformId, User);
 		}
+	}
+}
+
+void FOnlineUserCacheAccelByte::AddPublicCodeToCache(const FUniqueNetId& UserId, const FString& PublicCode)
+{
+	// Lock while we access the cache
+	FScopeLock ScopeLock(&CacheLock);
+
+	// If this unique ID is an AccelByte composite ID already, then forward to the GetUser using the composite structure
+	if (UserId.GetType() == ACCELBYTE_SUBSYSTEM)
+	{
+		TSharedRef<const FUniqueNetIdAccelByteUser> AccelByteId = FUniqueNetIdAccelByteUser::CastChecked(UserId);
+		AddPublicCodeToCache(AccelByteId->GetCompositeStructure(), PublicCode);
+		return;
+	}
+
+	// Otherwise, query as if it is a platform ID
+	const FString PlatformId = ConvertPlatformTypeAndIdToCacheKey(UserId.GetType().ToString(), UserId.ToString());
+	const TSharedRef<FAccelByteUserInfo>* FoundUserInfo = PlatformIdToUserInfoMap.Find(PlatformId);
+	if (FoundUserInfo != nullptr)
+	{
+		(*FoundUserInfo)->LastAccessedTimeInSeconds = FPlatformTime::Seconds();
+		FoundUserInfo->Get().PublicCode = PublicCode;
+	}
+	else
+	{
+		// Create a new user info
+		TSharedRef<FAccelByteUserInfo> User = MakeShared<FAccelByteUserInfo>();
+		User->PublicCode = PublicCode;
+		AddUsersToCache({ User });
+	}
+}
+
+void FOnlineUserCacheAccelByte::AddPublicCodeToCache(const FAccelByteUniqueIdComposite& UserId, const FString& PublicCode)
+{
+	// Lock while we access the cache
+	FScopeLock ScopeLock(&CacheLock);
+
+	// Start by checking the cache for the user associated with the AccelByte ID, if we have one to query
+	TSharedRef<FAccelByteUserInfo>* FoundUserInfo = nullptr;
+	if (!UserId.Id.IsEmpty())
+	{
+		FoundUserInfo = AccelByteIdToUserInfoMap.Find(UserId.Id);
+	}
+
+	// Next, if we didn't already find the user using the AccelByte ID, and we have platform type and ID try and query by that
+	if (FoundUserInfo == nullptr && (!UserId.PlatformType.IsEmpty() && !UserId.PlatformId.IsEmpty()))
+	{
+		const FString PlatformId = ConvertPlatformTypeAndIdToCacheKey(UserId.PlatformType, UserId.PlatformId);
+		FoundUserInfo = PlatformIdToUserInfoMap.Find(PlatformId);
+	}
+
+	if (FoundUserInfo != nullptr)
+	{
+		(*FoundUserInfo)->LastAccessedTimeInSeconds = FPlatformTime::Seconds();
+		FoundUserInfo->Get().PublicCode = PublicCode;
+	}
+	else
+	{
+		// Create a new user info
+		TSharedRef<FAccelByteUserInfo> User = MakeShared<FAccelByteUserInfo>();
+		User->PublicCode = PublicCode;
+		AddUsersToCache({ User });
 	}
 }
 

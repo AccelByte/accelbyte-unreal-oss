@@ -37,6 +37,17 @@ void FOnlineAsyncTaskAccelByteSendFriendInvite::Initialize()
 	{
 		QueryInvitedFriend(FriendId->GetAccelByteId());
 	}
+	// If we have no friend ID but we do have a friend code, then send a request with that friend code
+	else if (!FriendCode.IsEmpty())
+	{
+		// Friend codes *must* be all uppercase, since it may be faster for the user to input the code as all lower case, just
+		// convert the friend code to an all uppercase string before performing any operations with it
+		FriendCode.ToUpperInline();
+
+		const THandler<FAccelByteModelsPublicUserProfileInfo> OnGetUserByFriendCodeSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsPublicUserProfileInfo>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteSendFriendInvite::OnGetUserByFriendCodeSuccess);
+		const FCustomErrorHandler OnGetUserByFriendCodeErrorDelegate = TDelegateUtils<FCustomErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteSendFriendInvite::OnGetUserByFriendCodeError);
+		ApiClient->UserProfile.GetUserProfilePublicInfoByPublicId(FriendCode, OnGetUserByFriendCodeSuccessDelegate, OnGetUserByFriendCodeErrorDelegate);
+	}
 	else
 	{
 		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("ID of the user you wish to friend or a friend code must be specified to send a request!"));
@@ -73,7 +84,43 @@ void FOnlineAsyncTaskAccelByteSendFriendInvite::TriggerDelegates()
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 
-void FOnlineAsyncTaskAccelByteSendFriendInvite::OnGetUserByFriendCodeError(int32 ErrorCode, const FString& ErrorMessage)
+void FOnlineAsyncTaskAccelByteSendFriendInvite::OnGetUserByFriendCodeSuccess(const FAccelByteModelsPublicUserProfileInfo& Result)
+{
+	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("FriendCode: %s, UserId: %s"), *FriendCode, *Result.UserId);
+
+	const TSharedPtr<FOnlineFriendsAccelByte, ESPMode::ThreadSafe> FriendInterface = StaticCastSharedPtr<FOnlineFriendsAccelByte>(Subsystem->GetFriendsInterface());
+	const TSharedPtr<FOnlineIdentityAccelByte, ESPMode::ThreadSafe> IdentityInt = StaticCastSharedPtr<FOnlineIdentityAccelByte>(Subsystem->GetIdentityInterface());
+
+	if (!FriendInterface || !IdentityInt)
+	{
+		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Unable to send friend invited friend interface or indentity interface is invalid"));
+		CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState);
+		return;
+	}
+
+	TSharedPtr<const FUniqueNetId> LocalUserId = IdentityInt->GetUniquePlayerId(LocalUserNum);
+	TSharedPtr<const FUniqueNetIdAccelByteUser> FriendUserId = FUniqueNetIdAccelByteUser::Create(Result.UserId);
+
+	if (!LocalUserId || !FriendUserId)
+	{
+		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Unable to send friend invited invalid user id"));
+		CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState);
+		return;
+	}
+
+	if (FriendInterface->IsPlayerBlocked(*FriendUserId, *LocalUserId))
+	{
+		ErrorStr = TEXT("friend-request-requester-blocked");
+		CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
+		return;
+	}
+
+	QueryInvitedFriend(Result.UserId);
+
+	AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sent off request to send a friend invite to user %s"), *Result.UserId);
+}
+
+void FOnlineAsyncTaskAccelByteSendFriendInvite::OnGetUserByFriendCodeError(int32 ErrorCode, const FString& ErrorMessage, const FJsonObject& ErrorObject)
 {
 	ErrorStr = TEXT("friend-request-invalid-code");
 	UE_LOG_AB(Warning, TEXT("Failed to get user by friend code %s to send a friend invite!"), *FriendCode);

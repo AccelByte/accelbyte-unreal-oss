@@ -29,12 +29,11 @@
 
 FOnlineAuthAccelByte::FOnlineAuthAccelByte(FOnlineSubsystemAccelByte* InSubsystem) :
 	OnlineSubsystem(InSubsystem),
-	ApiClientPtr(nullptr),
 	bEnabled(false),
 	LastTimestamp(0.0f),
 	SessionInterface(nullptr)
 {
-	const FString AccelByteModuleName(TEXT("AuthHandlerComponentAccelByteFactory"));
+	const FString AccelByteModuleName(TEXT("AuthHandlerComponentAccelByte"));
 	if (!PacketHandler::DoesAnyProfileHaveComponent(AccelByteModuleName))
 	{
 		// Pull the components to see if there's anything we can use.
@@ -58,19 +57,18 @@ FOnlineAuthAccelByte::FOnlineAuthAccelByte(FOnlineSubsystemAccelByte* InSubsyste
 
 	if (IsSessionAuthEnabled())
 	{
-		ApiClientPtr = FMultiRegistry::GetApiClient();
 		LastTimestamp = FPlatformTime::Seconds();
 
-		UE_LOG_AB(Log, TEXT("AUTH: (%s) AccelByte Authentication Enabled."), (IsServer() ? TEXT("DS") : TEXT("CL")));
+		UE_LOG_AB(Log, TEXT("AUTH: AccelByte Authentication Enabled."));
 
 #if AB_USE_V2_SESSIONS
 		SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(OnlineSubsystem->GetSessionInterface());
 #else
 		SessionInterface = StaticCastSharedPtr<FOnlineSessionV1AccelByte>(OnlineSubsystem->GetSessionInterface());
-#endif
+#endif //#if AB_USE_V2_SESSIONS
 		if (!SessionInterface.IsValid())
 		{
-			UE_LOG_AB(Error, TEXT("AUTH: (%s) Session interface is null."), (IsServer() ? TEXT("DS") : TEXT("CL")));
+			UE_LOG_AB(Warning, TEXT("AUTH: AccelByte Authentication Disabled. (Session interface is null.)"));
 			bEnabled = false;
 		}
 	}
@@ -78,7 +76,6 @@ FOnlineAuthAccelByte::FOnlineAuthAccelByte(FOnlineSubsystemAccelByte* InSubsyste
 
 FOnlineAuthAccelByte::FOnlineAuthAccelByte() :
 	OnlineSubsystem(nullptr),
-	ApiClientPtr(nullptr),
 	bEnabled(false),
 	LastTimestamp(0.0f),
 	SessionInterface(nullptr)
@@ -119,7 +116,7 @@ FOnlineAuthAccelByte::SharedAuthUserPtr FOnlineAuthAccelByte::GetUser(const FStr
 	{
 		return *AuthUserPtr;
 	}
-	
+
 	UE_LOG_AB(Warning, TEXT("AUTH: (%s) Trying to fetch user '%s' (%d) entry but the user does not exist."), (IsServer() ? TEXT("DS") : TEXT("CL")), *InUserId, AuthUsers.Num());
 	return nullptr;
 }
@@ -144,40 +141,29 @@ bool FOnlineAuthAccelByte::GetAuthData(FString& UserId)
 		return false;
 	}
 
-	if (IsServer())
+	if (!IsServer())
 	{
-		UE_LOG_AB(Error, TEXT("AUTH: (DS) GetAuthData: the Dedicated Server doesn't need this."));
-	}
-	else if (ApiClientPtr.IsValid())
-	{
-		if (ApiClientPtr->CredentialsRef->IsSessionValid())
+		const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(OnlineSubsystem->GetIdentityInterface());
+		if (!ensure(IdentityInterface.IsValid()))
 		{
-			const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(OnlineSubsystem->GetIdentityInterface());
-			if (!ensure(IdentityInterface.IsValid()))
-			{
-				UE_LOG_AB(Warning, TEXT("AUTH: Failed to finalize server login as our identity interface is invalid!"));
-				return false;
-			}
-
-			const TSharedPtr<const FUniqueNetId> UserIdPtr = IdentityInterface->GetUniquePlayerId(0);
-			TSharedPtr<FUserOnlineAccount> UserAccount;
-
-			if (UserIdPtr.IsValid())
-			{
-				const FUniqueNetId& UserIdRef = UserIdPtr.ToSharedRef().Get();
-				UserAccount = IdentityInterface->GetUserAccount(UserIdRef);
-				TSharedRef<const FUniqueNetIdAccelByteUser> Player = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(UserAccount->GetUserId());
-				UserId = Player->GetAccelByteId();
-
-				if (!UserId.IsEmpty())
-				{
-					return true;
-				}
-			}
+			UE_LOG_AB(Warning, TEXT("AUTH: Failed to finalize server login as our identity interface is invalid!"));
+			return false;
 		}
-		else
+
+		const TSharedPtr<const FUniqueNetId> UserIdPtr = IdentityInterface->GetUniquePlayerId(0);
+		if (UserIdPtr.IsValid())
 		{
-			UE_LOG_AB(Warning, TEXT("AUTH: (CL) GetAuthData: session is invalid."));
+			const FUniqueNetIdAccelByteUserRef AccelByteUserId = FUniqueNetIdAccelByteUser::CastChecked(*UserIdPtr);
+			UserId = AccelByteUserId->GetAccelByteId();
+
+			if (!UserId.IsEmpty())
+			{
+				return true;
+			}
+			else
+			{
+				UE_LOG_AB(Warning, TEXT("AUTH: (CL) GetAuthData: user id is empty."));
+			}
 		}
 	}
 
@@ -214,10 +200,6 @@ bool FOnlineAuthAccelByte::AuthenticateUser(const FAccelByteAuthUserData& InUser
 						}));
 
 				TargetUser->Status |= EAccelByteAuthStatus::ValidationStarted;
-
-#if !UE_BUILD_SHIPPING
-				UE_LOG_AB(Log, TEXT("AUTH: (%s) AuthenticateUser (%s)."), (IsServer() ? TEXT("DS") : TEXT("CL")), *InUserData.UserId);
-#endif
 
 				return true;
 			}
@@ -345,9 +327,6 @@ bool FOnlineAuthAccelByte::KickUser(const FString& InUserId, bool bSuppressFailu
 					if (UNetConnection* NetConnection = PC->GetNetConnection())
 					{
 						NetConnection->CleanUp();
-#if !UE_BUILD_SHIPPING
-						UE_LOG_AB(Error, TEXT("AUTH: (%s) Connection is closed."), *InUserId);
-#endif
 						bKickSuccess = true;
 						break;
 					}
@@ -393,7 +372,7 @@ bool FOnlineAuthAccelByte::IsInSessionUser(const FString& InUserId) const
 	{
 		return false;
 	}
-	
+
 	if (!SessionInterface.IsValid())
 	{
 		return false;
@@ -402,7 +381,7 @@ bool FOnlineAuthAccelByte::IsInSessionUser(const FString& InUserId) const
 	const FNamedOnlineSession* NamedSession = SessionInterface->GetNamedSession(NAME_PartySession);
 	if (NamedSession == nullptr)
 	{
-		UE_LOG_AB(Error, TEXT("AUTH: (%s) Session interface is null."), (IsServer() ? TEXT("DS") : TEXT("CL")));
+		UE_LOG_AB(Warning, TEXT("AUTH: (%s) Session interface is null."), (IsServer() ? TEXT("DS") : TEXT("CL")));
 		return false;
 	}
 
@@ -418,7 +397,7 @@ bool FOnlineAuthAccelByte::IsInSessionUser(const FString& InUserId) const
 			}
 		}
 	}
-	
+
 	return false;
 }
 
@@ -428,7 +407,7 @@ bool FOnlineAuthAccelByte::Tick(float DeltaTime)
 	{
 		return true;
 	}
-	
+
 	float CurTime = FPlatformTime::Seconds();
 	if (LastTimestamp != 0.0)
 	{

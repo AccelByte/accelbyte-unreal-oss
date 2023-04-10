@@ -14,6 +14,7 @@
 #include "OnlineSubsystemTypes.h"
 #include "OnlineSubsystemAccelByte.h"
 #include "OnlineSubsystemAccelByteTypes.h"
+#include "OnlineError.h"
 
 /**
  * Delegate that denotes when a user report has completed.
@@ -21,6 +22,27 @@
  * @param bWasSuccessful true if the report was sent successfully, false otherwise.
  */
 DECLARE_DELEGATE_OneParam(FOnReportUserComplete, bool /*bWasSuccessful*/);
+
+/**
+ * Delegate that denotes when create user profile has completed.
+ *
+ * @param LocalUserNum the controller number of the associated user that made the request
+ * @param bWasSuccessful true if user profile created and/or acquired successfully, false otherwise.
+ * @param Error information about the error condition
+ */
+DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnCreateUserProfileComplete, int32 /*LocalUserNum*/, bool /*bWasSuccessful*/, const FOnlineError& /*Error*/);
+typedef FOnCreateUserProfileComplete::FDelegate FOnCreateUserProfileCompleteDelegate;
+
+/**
+ * Delegate used when the userProfile query request has completed
+ *
+ * @param LocalUserNum the controller number of the associated user that made the request
+ * @param bWasSuccessful true if the async action completed without error, false if there was an error
+ * @param UserIds list of user ids that were queried
+ * @param Error information about the error condition
+ */
+DECLARE_MULTICAST_DELEGATE_FourParams(FOnQueryUserProfileComplete, int32 /*LocalUserNum*/, bool /*bWasSuccessful*/, const TArray<FUniqueNetIdRef>& /*UserIds*/, const FOnlineError& /*Error*/);
+typedef FOnQueryUserProfileComplete::FDelegate FOnQueryUserProfileCompleteDelegate;
 
 DECLARE_MULTICAST_DELEGATE_FourParams(FOnListUserByUserIdComplete, int32 /*LocalUserNum*/, bool /*bWasSuccessful*/, const FListUserDataResponse& /*Data*/, const FOnlineError  & /* OnlineError  */);
 typedef FOnListUserByUserIdComplete::FDelegate FOnListUserByUserIdCompleteDelegate;
@@ -49,6 +71,40 @@ public:
 	 */
 	static bool GetFromSubsystem(const IOnlineSubsystem* Subsystem, TSharedPtr<FOnlineUserAccelByte, ESPMode::ThreadSafe>& OutInterfaceInstance);
 
+	/**
+	 * Starts an async task that create the profiles for the requesting user. Will trigger OnCreateUserProfileComplete Online Delegate when Complete
+	 *
+	 * @param LocalUserNum the user requesting the create
+	 */
+	virtual bool CreateUserProfile(const FUniqueNetId& UserId);
+
+	/**
+	 * Delegate used when the userProfile create request has completed
+	 *
+	 * @param LocalUserNum the controller number of the associated user that made the request
+	 * @param bWasSuccessful true if the async action completed without error, false if there was an error
+	 * @param Error information about the error condition
+	 */
+	DEFINE_ONLINE_PLAYER_DELEGATE_TWO_PARAM(MAX_LOCAL_PLAYERS, OnCreateUserProfileComplete, bool /*bWasSuccessful*/, const FOnlineError& /*Error*/);
+
+	/**
+	 * Delegate used when the userProfile query request has completed
+	 *
+	 * @param LocalUserNum the controller number of the associated user that made the request
+	 * @param bWasSuccessful true if the async action completed without error, false if there was an error
+	 * @param UserIds list of user ids that were queried
+	 * @param Error information about the error condition
+	 */
+	DEFINE_ONLINE_PLAYER_DELEGATE_THREE_PARAM(MAX_LOCAL_PLAYERS, OnQueryUserProfileComplete, bool /*bWasSuccessful*/, const TArray< FUniqueNetIdRef >& /*UserIds*/, const FOnlineError& /*Error*/);
+
+	/**
+	 * Starts an async task that queries/reads the profiles for a list of users
+	 *
+	 * @param LocalUserNum the user requesting the query
+	 * @param UserIds list of users to read info about
+	 */
+	virtual bool QueryUserProfile(int32 LocalUserNum, const TArray<TSharedRef<const FUniqueNetId>>& UserIds);
+
 	//~ Begin IOnlineUser overrides
 	virtual bool QueryUserInfo(int32 LocalUserNum, const TArray<TSharedRef<const FUniqueNetId>>& UserIds) override;
 	virtual bool GetAllUserInfo(int32 LocalUserNum, TArray<TSharedRef<class FOnlineUser>>& OutUsers) override;
@@ -70,6 +126,7 @@ public:
 	DEFINE_ONLINE_PLAYER_DELEGATE_THREE_PARAM(MAX_LOCAL_PLAYERS, OnListUserByUserIdComplete, bool /*bWasSuccessful*/, const FListUserDataResponse& /* ListUser*/, const FOnlineError & /* OnlineError */);
  	
 PACKAGE_SCOPE:
+
 #if WITH_DEV_AUTOMATION_TESTS
 	/**
 	 * Internal method for handling extra exec tests for this interface.
@@ -92,7 +149,14 @@ PACKAGE_SCOPE:
 	{
 		ExternalIDToAccelByteIDMap.Append(InMap);
 	}
+
+	/*
+	 * Delegate for after completed get user profile on login
+	 */
+	void PostLoginBulkGetUserProfileCompleted(int32 LocalUserNum, bool bWasSuccessful, const TArray<FUniqueNetIdRef>& UserIds, const FOnlineError& ErrorStr);
+	
 private:
+
 	/** Pointer to the AccelByte OSS instance that instantiated this online user interface. */
 	FOnlineSubsystemAccelByte* AccelByteSubsystem = nullptr;
 

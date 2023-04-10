@@ -611,6 +611,13 @@ public:
 
 	//~ Begin AccelByte-specific implementation
 	/**
+	 * @brief Get user's PublicCode on AccelByte services
+	 *
+	 * @return The user's PublicCode
+	 */
+	FString GetPublicCode();
+	
+	/**
 	 * @brief Set user's display name on AccelByte services
 	 *
 	 * @param InDisplayName The user's display name
@@ -623,6 +630,13 @@ public:
 	 * @param InAccessToken The user's access token
 	 */
 	void SetAccessToken(const FString& InAccessToken);
+
+	/**
+	 * @brief Set user's PublicCode on AccelByte services
+	 *
+	 * @param InPublicCode The user's PublicCode
+	 */
+	void SetPublicCode(const FString& InPublicCode);
 
 	/**
 	 * @brief A flag that indicates whether the user is connected to AccelByte Lobby or not
@@ -662,6 +676,9 @@ private:
 
 	/** Access token for the AccelByte user associated with this account */
 	FString AccessToken;
+
+	/** Generated public user identifier code, usually used as a friend code **/
+	FString PublicCode;
 	
 	/** Additional key/value pair data related to auth */
 	TMap<FString, FString> AdditionalAuthData;

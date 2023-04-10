@@ -108,9 +108,6 @@ private:
 	/** Pointer to the AccelByte OSS instance that instantiated this online user interface. */
 	FOnlineSubsystemAccelByte* OnlineSubsystem;
 
-	/** API client that should be used for this task, use GetApiClient to get a valid instance */
-	FApiClientPtr ApiClientPtr;
-
 	/** Settings */
 	bool bEnabled;
 	float LastTimestamp;
@@ -133,6 +130,4 @@ public:
 	 * Handler for when we finish querying for all pending authonication
 	 */
 	void OnAuthUserCompleted(bool bWasSuccessful, const FString& UserId);
-
-	
 };

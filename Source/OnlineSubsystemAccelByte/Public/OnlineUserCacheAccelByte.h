@@ -28,9 +28,9 @@ public:
 	FString DisplayName{};
 
 	/**
-	 * @brief Public facing ID for this user, usually used as a friend code
+	 * @brief Generated public user identifier code, usually used as a friend code
 	 */
-	FString PublicId{};
+	FString PublicCode{};
 
 	/**
 	 * @brief URL for an avatar for this user at the game level, may be blank if the user does not have one
@@ -195,6 +195,16 @@ PACKAGE_SCOPE:
 	 * Add an array of freshly queried users to the user cache
 	 */
 	void AddUsersToCache(const TArray<TSharedRef<FAccelByteUserInfo>>& UsersQueried);
+
+	/**
+	 * Add PublicCode to a user cache, create new if not exist
+	 */
+	void AddPublicCodeToCache(const FUniqueNetId& UserId, const FString& PublicCode);
+
+	/**
+	 * Add PublicCode to a user cache, create new if not exist
+	 */
+	void AddPublicCodeToCache(const FAccelByteUniqueIdComposite& UserId, const FString& PublicCode);
 
 	/**
 	 * Searches through the user caches for a user that hasn't been accessed in longer than the maximum time set for this

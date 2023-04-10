@@ -760,6 +760,11 @@ FString FUserOnlineAccountAccelByte::GetDisplayName(const FString& /*Platform*/)
 	return DisplayName;
 }
 
+FString FUserOnlineAccountAccelByte::GetPublicCode()
+{
+	return PublicCode;
+}
+
 void FUserOnlineAccountAccelByte::SetDisplayName(const FString& InDisplayName)
 {
 	DisplayName = InDisplayName;
@@ -773,6 +778,11 @@ FString FUserOnlineAccountAccelByte::GetAccessToken() const
 void FUserOnlineAccountAccelByte::SetAccessToken(const FString& InAccessToken)
 {
 	AccessToken = InAccessToken;
+}
+
+void FUserOnlineAccountAccelByte::SetPublicCode(const FString& InPublicCode)
+{
+	PublicCode = InPublicCode;
 }
 
 bool FUserOnlineAccountAccelByte::GetUserAttribute(const FString& AttrName, FString& OutAttrValue) const

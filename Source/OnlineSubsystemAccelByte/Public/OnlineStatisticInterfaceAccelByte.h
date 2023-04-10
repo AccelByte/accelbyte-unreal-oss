@@ -14,6 +14,9 @@
 DECLARE_MULTICAST_DELEGATE_FourParams(FOnListUserStatItemsCompleted, int32 /*LocalUserNum*/, bool /*bWasSuccessful*/, const TArray<FAccelByteModelsFetchUser>&, const FString& /*Error*/);
 typedef FOnListUserStatItemsCompleted::FDelegate FOnListUserStatItemsCompletedDelegate;
 
+DECLARE_MULTICAST_DELEGATE_FourParams(FOnUserStatItemsResetCompleted, int32 /*LocalUserNum*/, bool /*bWasSuccessful*/, const TArray<FAccelByteModelsUpdateUserStatItemsResponse>&, const FString& /*Error*/);
+typedef FOnUserStatItemsResetCompleted::FDelegate FOnUserStatItemsResetCompletedDelegate;
+
 DECLARE_DELEGATE_TwoParams(FOnlineStatsCreateStatsComplete, const FOnlineError& /*ResultState*/, const TArray<FAccelByteModelsBulkStatItemOperationResult>& /*Result*/);
 
 /**
@@ -36,6 +39,8 @@ public:
 	bool ListUserStatItems(int32 LocalUserNum, const TArray<FString>& StatCodes, const TArray<FString>& Tags, const FString& AdditionalKey, bool bAlwaysRequestToService);
 
 	DEFINE_ONLINE_PLAYER_DELEGATE_THREE_PARAM(MAX_LOCAL_PLAYERS, OnListUserStatItemsCompleted, bool, const TArray<FAccelByteModelsFetchUser>&, const FString&);
+
+	DEFINE_ONLINE_PLAYER_DELEGATE_THREE_PARAM(MAX_LOCAL_PLAYERS, OnUserStatItemsResetCompleted, bool, const TArray<FAccelByteModelsUpdateUserStatItemsResponse>&, const FString&);
 
 	/* Get the list users stat items */
 	// TODO : make this method as implementation from GetStats
@@ -104,6 +109,14 @@ public:
 	 * @param UsersStats The stats to emplace
 	 */
 	virtual void EmplaceStats(const TArray<TSharedPtr<const FOnlineStatsUserStats>>& InUsersStats);
+
+	/**
+	 * Reset all user statistics.
+	 *
+	 * @param LocalUserNum Index of user(server) that is attempting to create the stats
+	 * @param StatsUserId User to create stats for
+	 */
+	virtual void ResetStats(const int32 LocalUserNum, const FUniqueNetIdRef StatsUserId);
 
 	//~ Begin IOnlineStats Interface
 	virtual void QueryStats(const FUniqueNetIdRef LocalUserId, const FUniqueNetIdRef StatsUser, const FOnlineStatsQueryUserStatsComplete& Delegate) override;

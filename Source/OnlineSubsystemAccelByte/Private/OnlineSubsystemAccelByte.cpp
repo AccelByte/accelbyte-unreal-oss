@@ -68,6 +68,7 @@ bool FOnlineSubsystemAccelByte::Init()
 	StatisticInterface = MakeShared<FOnlineStatisticAccelByte, ESPMode::ThreadSafe>(this);
 	ChatInterface = MakeShared<FOnlineChatAccelByte, ESPMode::ThreadSafe>(this);
 	AuthInterface = MakeShared<FOnlineAuthAccelByte, ESPMode::ThreadSafe>(this);
+	AchievementInterface = MakeShared<FOnlineAchievementsAccelByte, ESPMode::ThreadSafe>(this);
 	
 	// Create an async task manager and a thread for the manager to process tasks on
 	AsyncTaskManager = MakeShared<FOnlineAsyncTaskManagerAccelByte, ESPMode::ThreadSafe>(this);
@@ -151,6 +152,7 @@ bool FOnlineSubsystemAccelByte::Shutdown()
 	StatisticInterface.Reset();
 	ChatInterface.Reset();
 	AuthInterface.Reset();
+	AchievementInterface.Reset();
 	
 	return true;
 }
@@ -228,7 +230,7 @@ IOnlineEntitlementsPtr FOnlineSubsystemAccelByte::GetEntitlementsInterface() con
 
 IOnlineAchievementsPtr FOnlineSubsystemAccelByte::GetAchievementsInterface() const
 {
-	return nullptr;
+	return AchievementInterface;
 }
 
 FOnlineAgreementAccelBytePtr FOnlineSubsystemAccelByte::GetAgreementInterface() const
