@@ -8,6 +8,9 @@
 #include "Misc/AES.h"
 #include "OnlineSubsystemUtils.h"
 
+#include "GameFramework/PlayerController.h"
+#include "Engine/NetConnection.h"
+
 /** The maximum size (bits) for a packet */
 #define MAX_PACKET_BITS ((MAX_PACKET_SIZE) * 8)
 

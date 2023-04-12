@@ -203,3 +203,4 @@ void FOnlineAsyncTaskAccelByteResetUserStats::OnResetUserStatItemsFailed(int32 C
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
+#undef ONLINE_ERROR_NAMESPACE

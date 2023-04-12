@@ -4,6 +4,7 @@
 
 #pragma once
 #include "OnlineSubsystemAccelByteTypes.h"
+#include "Dom/JsonObject.h"
 
 class FOnlineSubsystemAccelByte;
 class IOnlineSubsystem;
