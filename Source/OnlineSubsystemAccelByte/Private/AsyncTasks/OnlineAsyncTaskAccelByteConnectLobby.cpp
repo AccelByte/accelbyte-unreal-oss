@@ -37,7 +37,14 @@ void FOnlineAsyncTaskAccelByteConnectLobby::Initialize()
 	// Send off a request to connect to the lobby websocket, as well as connect our delegates for doing so
 	ApiClient->Lobby.SetConnectSuccessDelegate(OnLobbyConnectSuccessDelegate);
 	ApiClient->Lobby.SetConnectFailedDelegate(OnLobbyConnectErrorDelegate);
-	ApiClient->Lobby.Connect();
+	if (ApiClient->Lobby.IsConnected())
+	{
+		OnLobbyConnectSuccess();
+	}
+	else
+	{
+		ApiClient->Lobby.Connect();
+	}
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
