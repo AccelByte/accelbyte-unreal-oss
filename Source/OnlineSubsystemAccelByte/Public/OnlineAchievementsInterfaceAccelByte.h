@@ -56,7 +56,9 @@ public:
 		const FUniqueNetId& PlayerId,
 		const FString& AchievementId,
 	    FOnlineAchievement& OutAchievement) override;
+#if !UE_BUILD_SHIPPING
 	virtual bool ResetAchievements(const FUniqueNetId& PlayerId) override;
+#endif // !UE_BUILD_SHIPPING
 	//~ End IOnlineAchievement Interface
 	
 protected:
