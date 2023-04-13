@@ -10,6 +10,7 @@
 #include "GameServerApi/AccelByteServerSessionBrowserApi.h"
 #include "SocketSubsystem.h"
 #include "Core/AccelByteUtilities.h"
+#include "Engine/Engine.h"
 
 FOnlineAsyncTaskAccelByteRegisterDedicatedV1Session::FOnlineAsyncTaskAccelByteRegisterDedicatedV1Session(FOnlineSubsystemAccelByte* const InABInterface, int32 InHostingPlayerNum, FName InSessionName, const FOnlineSessionSettings& InNewSessionSettings, bool InRegisterToSessionBrowser)
 	: FOnlineAsyncTaskAccelByte(InABInterface)

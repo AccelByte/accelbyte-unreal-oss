@@ -3,7 +3,7 @@
 // and restrictions contact your company contract manager.
 
 #pragma once
-
+#include "Runtime/Launch/Resources/Version.h"
 #include "CoreMinimal.h"
 #if ENGINE_MAJOR_VERSION >= 5
 #include "Online/CoreOnline.h"
