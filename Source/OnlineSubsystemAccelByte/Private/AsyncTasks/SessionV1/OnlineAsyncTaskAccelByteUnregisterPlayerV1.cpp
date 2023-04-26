@@ -73,8 +73,8 @@ void FOnlineAsyncTaskAccelByteUnregisterPlayersV1::Initialize()
 		Session->NumOpenPublicConnections++;
 
 		// Next, signal to session manager that we have unregistered a player from the session
-		THandler<FAccelByteModelsSessionBrowserAddPlayerResponse> OnUnregisterPlayerFromSessionSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsSessionBrowserAddPlayerResponse>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteUnregisterPlayersV1::OnUnregisterPlayerFromSessionSuccess);
-		FErrorHandler OnUnregisterPlayerFromSessionErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteUnregisterPlayersV1::OnUnregisterPlayerFromSessionError, Player->GetAccelByteId());
+		THandler<FAccelByteModelsSessionBrowserAddPlayerResponse> OnUnregisterPlayerFromSessionSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsSessionBrowserAddPlayerResponse>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteUnregisterPlayersV1::OnUnregisterPlayerFromSessionSuccess, PlayerIndex);
+		FErrorHandler OnUnregisterPlayerFromSessionErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteUnregisterPlayersV1::OnUnregisterPlayerFromSessionError, Player->GetAccelByteId(), PlayerIndex);
 		// NOTE(damar): SessionId with dashes is custom match (?)
 		bool bIsCustomMatch = SessionId.Contains(TEXT("-"));
 		if(bIsCustomMatch)
@@ -116,17 +116,18 @@ void FOnlineAsyncTaskAccelByteUnregisterPlayersV1::TriggerDelegates()
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 
-void FOnlineAsyncTaskAccelByteUnregisterPlayersV1::OnUnregisterPlayerFromSessionSuccess(const FAccelByteModelsSessionBrowserAddPlayerResponse& Result)
+void FOnlineAsyncTaskAccelByteUnregisterPlayersV1::OnUnregisterPlayerFromSessionSuccess(const FAccelByteModelsSessionBrowserAddPlayerResponse& Result, int32 Index)
 {
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Status: %s"), LOG_BOOL_FORMAT(Result.Status));
 
+	SuccessfullyUnregisteredPlayers.Add(Players[Index]);
 	SetLastUpdateTimeToCurrentTime();
 	PendingPlayerUnregistrations.Decrement();
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 
-void FOnlineAsyncTaskAccelByteUnregisterPlayersV1::OnUnregisterPlayerFromSessionError(int32 ErrorCode, const FString& ErrorMessage, FString PlayerId)
+void FOnlineAsyncTaskAccelByteUnregisterPlayersV1::OnUnregisterPlayerFromSessionError(int32 ErrorCode, const FString& ErrorMessage, FString PlayerId, int32 Index)
 {
 	UE_LOG_AB(Warning, TEXT("Failed to unregister player '%s' from session! Error code: %d; Error message: %s"), *PlayerId, ErrorCode, *ErrorMessage);
 	PendingPlayerUnregistrations.Decrement();

@@ -12,6 +12,7 @@
 #include "AsyncTasks/Statistic/OnlineAsyncTaskAccelByteUpdateStats.h"
 #include "AsyncTasks/Statistic/OnlineAsyncTaskAccelByteResetUserStats.h"
 #include "AsyncTasks/Statistic/OnlineAsyncTaskAccelByteCreateStatsUser.h"
+#include "AsyncTasks/Statistic/OnlineAsyncTaskAccelByteUpdateStatsUsers.h"
 #include "OnlineSubsystemUtils.h"
 
 bool FOnlineStatisticAccelByte::ListUserStatItems(int32 LocalUserNum, const TArray<FString>& StatCodes, const TArray<FString>& Tags, const FString& AdditionalKey, bool bAlwaysRequestToService)
@@ -103,6 +104,17 @@ void FOnlineStatisticAccelByte::ResetStats(const int32 LocalUserNum, const FUniq
 #endif // !UE_BUILD_SHIPPING
 }
 
+void FOnlineStatisticAccelByte::UpdateStats(const int32 LocalUserNum, const TArray<FOnlineStatsUserUpdatedStats>& BulkUpdateMultipleUserStatItems, const FOnUpdateMultipleUserStatItemsComplete& Delegate)
+{
+	UE_LOG_ONLINE_STATS(Display, TEXT("FOnlineStatisticAccelByte::UpdateStats"));
+
+	if (IsRunningDedicatedServer())
+	{
+		AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteUpdateStatsUsers>
+			(AccelByteSubsystem, LocalUserNum, BulkUpdateMultipleUserStatItems, Delegate);
+	}
+}
+
 void FOnlineStatisticAccelByte::QueryStats(const FUniqueNetIdRef LocalUserId, const FUniqueNetIdRef StatsUser, const TArray<FString>& StatNames, const FOnlineStatsQueryUserStatsComplete& Delegate)
 {
 	QueryStats(0, LocalUserId.Get(), StatsUser, StatNames, Delegate);
@@ -185,14 +197,17 @@ TSharedPtr<const FOnlineStatsUserStats> FOnlineStatisticAccelByte::GetStats(cons
 void FOnlineStatisticAccelByte::UpdateStats(const FUniqueNetIdRef LocalUserId, const TArray<FOnlineStatsUserUpdatedStats>& UpdatedUserStats, const FOnlineStatsUpdateStatsComplete& Delegate)
 {
 	UE_LOG_ONLINE_STATS(Display, TEXT("FOnlineStatisticAccelByte::UpdateStats"));
-	
-	auto OnComplete = FOnlineStatsUpdateStatsComplete::CreateLambda([&](const FOnlineError& Error)
-	{   
-		Delegate.ExecuteIfBound(Error);
-	});
-	TArray<FString> StatCodes{};
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteUpdateStats>
-		(AccelByteSubsystem, LocalUserId, UpdatedUserStats, OnComplete);
+
+	if (!IsRunningDedicatedServer())
+	{
+		auto OnComplete = FOnlineStatsUpdateStatsComplete::CreateLambda([&](const FOnlineError& Error)
+			{
+				Delegate.ExecuteIfBound(Error);
+			});
+		TArray<FString> StatCodes{};
+		AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteUpdateStats>
+			(AccelByteSubsystem, LocalUserId, UpdatedUserStats, OnComplete);
+	}
 }
 
 TSharedPtr<const FOnlineStatsUserStats> FOnlineStatisticAccelByte::GetAllListUserStatItemFromCache(const FUniqueNetIdRef StatsUserId) const

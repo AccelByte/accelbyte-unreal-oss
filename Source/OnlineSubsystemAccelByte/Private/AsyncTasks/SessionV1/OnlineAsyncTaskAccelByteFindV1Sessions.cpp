@@ -94,6 +94,14 @@ void FOnlineAsyncTaskAccelByteFindV1Sessions::OnSessionBrowserFindSuccess(const 
 		return;
 	}
 
+	const TSharedPtr<FOnlineSessionV1AccelByte, ESPMode::ThreadSafe> SessionInterface = StaticCastSharedPtr<FOnlineSessionV1AccelByte>(Subsystem->GetSessionInterface());
+	if (!ensure(SessionInterface.IsValid()))
+	{
+		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to finalize finding a game session as our session interface is invalid!"));
+		CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
+		return;
+	}
+
 	// Update the timeout just in case processing takes a bit of time
 	SetLastUpdateTimeToCurrentTime();
 
@@ -101,91 +109,7 @@ void FOnlineAsyncTaskAccelByteFindV1Sessions::OnSessionBrowserFindSuccess(const 
 	{
 		FOnlineSessionSearchResult SearchResult;
 		SearchResult.PingInMs = -1;
-		
-		FOnlineSession Session;
-
-		// This block contains settings for features that we do not currently support, such as join via presence, invites, etc
-		Session.NumOpenPrivateConnections = FoundSession.Game_session_setting.Current_internal_player;
-		Session.SessionSettings.NumPrivateConnections = FoundSession.Game_session_setting.Max_internal_player;
-		Session.SessionSettings.bAllowJoinViaPresence = false;
-		Session.SessionSettings.bAllowJoinViaPresenceFriendsOnly = false;
-		Session.SessionSettings.bAllowInvites = false;
-		Session.SessionSettings.bUsesPresence = true;
-		Session.SessionSettings.bAntiCheatProtected = false;
-		// End unsupported feature block
-
-		// # AB (Apin) splitgate do differently about player count calculation
-		Session.NumOpenPublicConnections = FoundSession.Game_session_setting.Max_player - FoundSession.Game_session_setting.Current_player;
-		FDefaultValueHelper::ParseInt(FoundSession.Game_version, Session.SessionSettings.BuildUniqueId);
-		Session.SessionSettings.NumPublicConnections = FoundSession.Game_session_setting.Max_player;
-		Session.SessionSettings.bAllowJoinInProgress = FoundSession.Game_session_setting.Allow_join_in_progress;
-		// Differentiating between dedicated and p2p sessions through the session browser is done through a string that will either be
-		// 'p2p' or 'dedicated'. With that in mind, just check in a case insensitive manner if the session is marked as 'dedicated'.
-		Session.SessionSettings.bIsDedicated = (FoundSession.Session_type.Compare(TEXT("dedicated"), ESearchCase::IgnoreCase) == 0);
-		Session.SessionSettings.bIsLANMatch = false;
-		Session.SessionSettings.bShouldAdvertise = true;
-
-		auto Setting = FoundSession.Game_session_setting.Settings;
-		if(Setting.JsonObject.IsValid())
-		{
-			for(const auto &JValue : FoundSession.Game_session_setting.Settings.JsonObject->Values)
-			{
-				switch (JValue.Value->Type)
-				{
-				case EJson::String:						
-					Session.SessionSettings.Set(FName(JValue.Key), JValue.Value->AsString());
-					break;
-				case EJson::Boolean:						
-					Session.SessionSettings.Set(FName(JValue.Key), JValue.Value->AsBool());
-					break;
-				case EJson::Number:						
-					Session.SessionSettings.Set(FName(JValue.Key), JValue.Value->AsNumber());
-					break;
-				default:
-					break;
-				}
-			}
-		}		
-
-		TSharedPtr<FOnlineSessionInfoAccelByteV1> SessionInfo = MakeShared<FOnlineSessionInfoAccelByteV1>();
-		SessionInfo->SetSessionId(FoundSession.Session_id);
-
-		if(!FoundSession.Server.Ip.IsEmpty())
-		{
-			// HostAddr should always be instantiated to a proper default FInternetAddr instance, but just in case we will check if this is valid
-			bool bIsIpValid = false;
-			if (SessionInfo->GetHostAddr() != nullptr)
-			{
-				SessionInfo->GetHostAddr()->SetIp(*FoundSession.Server.Ip, bIsIpValid);
-				SessionInfo->GetHostAddr()->SetPort(FoundSession.Server.Port);
-			}
-		}
-
-		// For sessions that are P2P, there will be a user ID associated with the session for the user who owns this session
-		// If this is set, then we should set the owner ID and username to that contained in the result, and also set the
-		// remote ID for the session info to the user ID.
-		//
-		// @sessions There may be a case where dedicated servers could have "owning" users, but for now that isn't supported
-		if (!FoundSession.User_id.IsEmpty())
-		{
-			// Create composite ID for the owning user
-			FAccelByteUniqueIdComposite CompositeId;
-			CompositeId.Id = FoundSession.User_id;
-
-			// Create a shared ref for the user composite ID and set the session info
-			TSharedRef<const FUniqueNetIdAccelByteUser> OwnerId = FUniqueNetIdAccelByteUser::Create(CompositeId);
-			Session.OwningUserId = OwnerId;
-			
-			Session.OwningUserName = FoundSession.Username;
-			if(FoundSession.Session_type == SETTING_SEARCH_TYPE_PEER_TO_PEER_RELAY)
-			{
-				SessionInfo->SetRemoteId(FoundSession.User_id);
-			}			
-		}
-
-		Session.SessionInfo = SessionInfo;
-
-		SearchResult.Session = Session;
+		SessionInterface->ConstructGameSessionFromBackendSessionModel(FoundSession, SearchResult.Session);
 		SearchResults.Add(SearchResult);
 	}
 

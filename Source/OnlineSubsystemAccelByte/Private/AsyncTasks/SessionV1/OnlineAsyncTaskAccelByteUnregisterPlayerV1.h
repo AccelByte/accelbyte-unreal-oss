@@ -49,11 +49,11 @@ private:
 	/**
 	 * Handler for when our call to unregister a single player has succeeded on the backend
 	 */
-	void OnUnregisterPlayerFromSessionSuccess(const FAccelByteModelsSessionBrowserAddPlayerResponse& Result);
+	void OnUnregisterPlayerFromSessionSuccess(const FAccelByteModelsSessionBrowserAddPlayerResponse& Result, int32 Index);
 
 	/**
 	 * Handler for when our call to unregister a single player has failed on the backend
 	 */
-	void OnUnregisterPlayerFromSessionError(int32 ErrorCode, const FString& ErrorMessage, FString PlayerId);
+	void OnUnregisterPlayerFromSessionError(int32 ErrorCode, const FString& ErrorMessage, FString PlayerId, int32 Index);
 
 };

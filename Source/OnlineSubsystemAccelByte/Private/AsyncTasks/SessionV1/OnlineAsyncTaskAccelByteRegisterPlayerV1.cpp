@@ -153,8 +153,8 @@ void FOnlineAsyncTaskAccelByteRegisterPlayersV1::RegisterAllPlayers()
 			Session->NumOpenPublicConnections--;
 		}
 
-		const THandler<FAccelByteModelsSessionBrowserAddPlayerResponse> OnRegisterPlayerSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsSessionBrowserAddPlayerResponse>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteRegisterPlayersV1::OnRegisterPlayerSuccess);
-		const FErrorHandler OnRegisterPlayerErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteRegisterPlayersV1::OnRegisterPlayerError, Player->GetAccelByteId());
+		const THandler<FAccelByteModelsSessionBrowserAddPlayerResponse> OnRegisterPlayerSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsSessionBrowserAddPlayerResponse>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteRegisterPlayersV1::OnRegisterPlayerSuccess, PlayerIndex);
+		const FErrorHandler OnRegisterPlayerErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteRegisterPlayersV1::OnRegisterPlayerError, Player->GetAccelByteId(), PlayerIndex);
 		// NOTE(damar): SessionId with dashes is custom match (?)
 		bool bIsCustomMatch = SessionId.Contains(TEXT("-"));
 		if(bIsCustomMatch)
@@ -173,17 +173,18 @@ void FOnlineAsyncTaskAccelByteRegisterPlayersV1::RegisterAllPlayers()
 	}
 }
 
-void FOnlineAsyncTaskAccelByteRegisterPlayersV1::OnRegisterPlayerSuccess(const FAccelByteModelsSessionBrowserAddPlayerResponse& Result)
+void FOnlineAsyncTaskAccelByteRegisterPlayersV1::OnRegisterPlayerSuccess(const FAccelByteModelsSessionBrowserAddPlayerResponse& Result, int32 Index)
 {
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Status: %s"), LOG_BOOL_FORMAT(Result.Status));
 
+	SuccessfullyRegisteredPlayers.Add(Players[Index]);
 	SetLastUpdateTimeToCurrentTime();
-	PendingPlayerRegistrations.Decrement();
+	PendingPlayerRegistrations.Decrement();	
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 
-void FOnlineAsyncTaskAccelByteRegisterPlayersV1::OnRegisterPlayerError(int32 ErrorCode, const FString& ErrorMessage, FString PlayerId)
+void FOnlineAsyncTaskAccelByteRegisterPlayersV1::OnRegisterPlayerError(int32 ErrorCode, const FString& ErrorMessage, FString PlayerId, int32 Index)
 {
 	UE_LOG_AB(Warning, TEXT("Failed to register player '%s' from session! Error code: %d; Error message: %s"), *PlayerId, ErrorCode, *ErrorMessage);
 	PendingPlayerRegistrations.Decrement();

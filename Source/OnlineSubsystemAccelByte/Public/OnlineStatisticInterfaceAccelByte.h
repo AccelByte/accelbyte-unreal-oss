@@ -19,6 +19,8 @@ typedef FOnUserStatItemsResetCompleted::FDelegate FOnUserStatItemsResetCompleted
 
 DECLARE_DELEGATE_TwoParams(FOnlineStatsCreateStatsComplete, const FOnlineError& /*ResultState*/, const TArray<FAccelByteModelsBulkStatItemOperationResult>& /*Result*/);
 
+DECLARE_DELEGATE_TwoParams(FOnUpdateMultipleUserStatItemsComplete, const FOnlineError& /*ResultState*/, const TArray<FAccelByteModelsUpdateUserStatItemsResponse>& /*Result*/);
+
 /**
  * Implementation of Statistic service from AccelByte services
  */
@@ -117,6 +119,15 @@ public:
 	 * @param StatsUserId User to create stats for
 	 */
 	virtual void ResetStats(const int32 LocalUserNum, const FUniqueNetIdRef StatsUserId);
+
+	/**
+	 * Update multiple statistics for multiple users. This request only for Game Server
+	 *
+	 * @param LocalUserNum Index of user(server) that is attempting to create the stats.
+	 * @param BulkUpdateMultipleUserStatItems Updated Statistics.
+	 * @param Delegate Called when the statistics have finished being updated, or when we fail to update the stats
+	 */
+	virtual void UpdateStats(const int32 LocalUserNum, const TArray<FOnlineStatsUserUpdatedStats>& BulkUpdateMultipleUserStatItems, const FOnUpdateMultipleUserStatItemsComplete& Delegate);
 
 	//~ Begin IOnlineStats Interface
 	virtual void QueryStats(const FUniqueNetIdRef LocalUserId, const FUniqueNetIdRef StatsUser, const FOnlineStatsQueryUserStatsComplete& Delegate) override;

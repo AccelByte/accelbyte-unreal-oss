@@ -54,7 +54,7 @@
 #include <algorithm>
 
 #define ONLINE_ERROR_NAMESPACE "FOnlineSessionV2AccelByte"
-#define ACCELBYTE_P2P_TRAVEL_URL_FORMAT TEXT("accelbyte.%s:11223")
+#define ACCELBYTE_P2P_TRAVEL_URL_FORMAT TEXT("accelbyte.%s:%d")
 const FString ClientIdPrefix = FString(TEXT("client-"));
 
 FOnlineSessionInfoAccelByteV2::FOnlineSessionInfoAccelByteV2(const FString& SessionIdStr)
@@ -210,6 +210,11 @@ bool FOnlineSessionInfoAccelByteV2::ContainsMember(const FUniqueNetId& MemberId)
 	return FindMember(MemberId, TempFoundMember);
 }
 
+void FOnlineSessionInfoAccelByteV2::SetP2PChannel(int32 InChannel)
+{
+	P2PChannel = InChannel;
+}
+
 TArray<FAccelByteModelsV2GameSessionTeam> FOnlineSessionInfoAccelByteV2::GetTeamAssignments() const
 {
 	return Teams;
@@ -279,7 +284,7 @@ FString FOnlineSessionInfoAccelByteV2::GetConnectionString() const
 	}
 	else if (GameSessionBackendData->Configuration.Type == EAccelByteV2SessionConfigurationServerType::P2P)
 	{
-		return FString::Printf(ACCELBYTE_P2P_TRAVEL_URL_FORMAT, *PeerId);
+		return FString::Printf(ACCELBYTE_P2P_TRAVEL_URL_FORMAT, *PeerId, P2PChannel);
 	}
 
 	return TEXT("");
@@ -1784,7 +1789,8 @@ void FOnlineSessionV2AccelByte::ConnectToJoinedP2PSession(FName SessionName, EOn
 		return;
 	}
 
-	FAccelByteNetworkUtilitiesModule::Get().RequestConnect(SessionInfo->GetPeerId());
+	const int32 P2PChannel = FMath::RandRange(1024, 4096);
+	FAccelByteNetworkUtilitiesModule::Get().RequestConnect(FString::Printf (TEXT("%s:%d"), *SessionInfo->GetPeerId(), P2PChannel));
 
 	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
 }
@@ -4364,9 +4370,17 @@ void FOnlineSessionV2AccelByte::OnICEConnectionComplete(const FString& PeerId,
 		Result = EOnJoinSessionCompleteResult::UnknownError;
 	}
 
-	AsyncTask(ENamedThreads::GameThread, [this, Action, SessionName, Result] {
+	AsyncTask(ENamedThreads::GameThread, [this, Action, SessionName, Result, PeerId] {
 		if(Action == EOnlineSessionP2PConnectedAction::Join)
         {
+			FNamedOnlineSession* Session = GetNamedSession(SessionName);
+			check(Session != nullptr);
+
+			TSharedPtr<FOnlineSessionInfoAccelByteV2> SessionInfo = StaticCastSharedPtr<FOnlineSessionInfoAccelByteV2>(Session->SessionInfo);
+			check(SessionInfo.IsValid());
+			const TTuple<FString, int32> PeerChannel = FAccelByteNetworkUtilitiesModule::ExtractPeerAndChannel(PeerId);
+			SessionInfo->SetP2PChannel(PeerChannel.Value);
+			
 			TriggerOnJoinSessionCompleteDelegates(SessionName, Result);
         }
 		else if (Action == EOnlineSessionP2PConnectedAction::Update)
@@ -4493,6 +4507,104 @@ void FOnlineSessionV2AccelByte::DisconnectFromWatchdog()
 	// Finally, disconnect the DS watchdog websocket
 	FRegistry::ServerWatchdog.Disconnect();
 
+	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+}
+
+void FOnlineSessionV2AccelByte::InitMetricExporter(const FString& Address, uint16 Port, uint16 IntervalSeconds)
+{
+	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT(""));
+
+	if (!IsRunningDedicatedServer())
+	{
+		AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+		return;
+	}
+
+	FRegistry::ServerMetricExporter.Initialize(Address, Port, IntervalSeconds);
+	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+}
+
+void FOnlineSessionV2AccelByte::SetMetricLabel(const FString& Key, const FString& Value)
+{
+	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT(""));
+
+	if (!IsRunningDedicatedServer())
+	{
+		AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+		return;
+	}
+
+	FRegistry::ServerMetricExporter.SetLabel(Key, Value);
+	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+}
+
+void FOnlineSessionV2AccelByte::EnqueueMetric(const FString& Key, double Value)
+{
+	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT(""));
+
+	if (!IsRunningDedicatedServer())
+	{
+		AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+		return;
+	}
+
+	FRegistry::ServerMetricExporter.EnqueueMetric(Key, Value);
+	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+}
+
+void FOnlineSessionV2AccelByte::EnqueueMetric(const FString& Key, int32 Value)
+{
+	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT(""));
+
+	if (!IsRunningDedicatedServer())
+	{
+		AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+		return;
+	}
+
+	FRegistry::ServerMetricExporter.EnqueueMetric(Key, Value);
+	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+}
+
+void FOnlineSessionV2AccelByte::EnqueueMetric(const FString& Key, const FString& Value)
+{
+	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT(""));
+
+	if (!IsRunningDedicatedServer())
+	{
+		AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+		return;
+	}
+
+	FRegistry::ServerMetricExporter.EnqueueMetric(Key, Value);
+	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+}
+
+void FOnlineSessionV2AccelByte::SetOptionalMetricsEnabled(bool Enable)
+{
+	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT(""));
+
+	if (!IsRunningDedicatedServer())
+	{
+		AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+		return;
+	}
+
+	FRegistry::ServerMetricExporter.SetOptionalMetricsEnabled(Enable);
+	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+}
+
+void FOnlineSessionV2AccelByte::SetMetricCollector(const TSharedPtr<IAccelByteStatsDMetricCollector>& Collector)
+{
+	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT(""));
+
+	if (!IsRunningDedicatedServer())
+	{
+		AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+		return;
+	}
+
+	FRegistry::ServerMetricExporter.SetStatsDMetricCollector(Collector);
 	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
 }
 

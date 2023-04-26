@@ -529,6 +529,11 @@ public:
 	const FAccelByteModelsMatchmakingResult& GetSessionResult() const;
 
 	void SetSessionResult(const FAccelByteModelsMatchmakingResult& InSessionResult);
+
+	void SetP2PChannel(int32 InChannel);
+
+	int32 GetP2PChannel();
+	
 PACKAGE_SCOPE:
 
 	// #AB #TODO (Afif) : make it accessible from game
@@ -548,6 +553,9 @@ private:
 
 	/** @brief Remote ID of the P2P connection peer */
 	FString RemoteId;
+
+	/** @brief Channel of the P2P connection */
+	int32 P2PChannel;
 
 	/** @brief Unique Id for this session */
 	FUniqueNetIdAccelByteResourceRef SessionId = FUniqueNetIdAccelByteResource::Invalid();

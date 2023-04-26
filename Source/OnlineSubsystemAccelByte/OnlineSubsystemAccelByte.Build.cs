@@ -23,7 +23,7 @@ public class OnlineSubsystemAccelByte : ModuleRules
 	public OnlineSubsystemAccelByte(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PrivateDefinitions.Add("ONLINESUBSYSTEMACCELBYTE_PACKAGE=1");
-		PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
+		PCHUsage = ModuleRules.PCHUsageMode.NoSharedPCHs;
 		bAllowConfidentialPlatformDefines = true;
 
 		PrivateIncludePaths.Add(Path.Combine(ModuleDirectory, "Private"));

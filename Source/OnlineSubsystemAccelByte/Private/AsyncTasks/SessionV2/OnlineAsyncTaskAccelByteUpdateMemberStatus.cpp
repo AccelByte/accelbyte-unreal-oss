@@ -47,17 +47,29 @@ void FOnlineAsyncTaskAccelByteUpdateMemberStatus::Finalize()
 	{
 		// Grab our session interface, find the local session instance
 		FOnlineSessionV2AccelBytePtr SessionInterface = nullptr;
-		check(FOnlineSessionV2AccelByte::GetFromSubsystem(Subsystem, SessionInterface));
+		if (!ensureAlways(FOnlineSessionV2AccelByte::GetFromSubsystem(Subsystem, SessionInterface)))
+		{
+			AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to get session interface instance from online subsystem!"));
+			return;
+		}
 
 		FNamedOnlineSession* Session = SessionInterface->GetNamedSession(SessionName);
-		check(Session != nullptr);
+		if (!ensureAlways(Session != nullptr))
+		{
+			AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to get session instance to update stored backfill ticket ID!"));
+			return;
+		}
 
 		// Grab our session information instance, and try and find the member that we just updated status for
 		TSharedPtr<FOnlineSessionInfoAccelByteV2> SessionInfo = StaticCastSharedPtr<FOnlineSessionInfoAccelByteV2>(Session->SessionInfo);
 		check(SessionInfo.IsValid());
 
 		FAccelByteModelsV2SessionUser* FoundMember = nullptr;
-		check(SessionInfo->FindMember(PlayerId.ToSharedRef().Get(), FoundMember));
+		if (!ensureAlways(SessionInfo->FindMember(PlayerId.ToSharedRef().Get(), FoundMember)))
+		{
+			AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to find session member '%s' in session information to update their status!"), *PlayerId->GetAccelByteId());
+			return;
+		}
 
 		// Finally, update their status to reflect the backend status set
 		FoundMember->Status = Status;

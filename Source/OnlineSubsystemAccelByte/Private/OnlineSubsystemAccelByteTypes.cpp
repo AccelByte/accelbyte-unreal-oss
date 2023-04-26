@@ -404,14 +404,9 @@ bool FUniqueNetIdAccelByteUser::IsValid() const
 
 FString FUniqueNetIdAccelByteUser::ToDebugString() const
 {
-	// Convert our ID object to a JSON object string without pretty printing (that option is that last 'false' flag on the method call, sigh)
-	FString OutString;
-	if (!FJsonObjectConverter::UStructToJsonObjectString(CompositeStructure, OutString, 0, 0, 0, nullptr, false))
-	{
-		return ACCELBYTE_INVALID_ID_VALUE;
-	}
-
-	return OutString;
+	// Apin: using FJsonObjectConverter::UStructToJsonObjectString make crashes when OSS shutdown
+	return FString::Printf(TEXT("{\"id\": \"%s\", \"platformType\": \"%s\", \"platformId\": \"%s\"}"),
+		*CompositeStructure.Id, *CompositeStructure.PlatformType, *CompositeStructure.PlatformId);
 }
 
 FString FUniqueNetIdAccelByteUser::GetAccelByteId() const
@@ -606,6 +601,11 @@ void FOnlineSessionInfoAccelByteV1::SetupP2PRelaySessionInfo(const FOnlineSubsys
 	SessionId =  FUniqueNetIdAccelByteResource::Create(MoveTemp(Guid), ACCELBYTE_RESOURCE_ID_TYPE);
 }
 
+void FOnlineSessionInfoAccelByteV1::SetP2PChannel(int32 InChannel)
+{
+	P2PChannel = InChannel;
+}
+
 FString FOnlineSessionInfoAccelByteV1::ToDebugString() const
 {
 	if (!RemoteId.IsEmpty())
@@ -707,6 +707,11 @@ const FAccelByteModelsMatchmakingResult& FOnlineSessionInfoAccelByteV1::GetSessi
 void FOnlineSessionInfoAccelByteV1::SetSessionResult(const FAccelByteModelsMatchmakingResult& InSessionResult)
 {
 	SessionResult = InSessionResult;
+}
+
+int32 FOnlineSessionInfoAccelByteV1::GetP2PChannel()
+{
+	return P2PChannel;
 }
 
 #pragma endregion // FOnlineSessionInfoAccelByte

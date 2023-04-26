@@ -43,7 +43,11 @@ void FOnlineAsyncTaskAccelByteSendV2PartyInvite::TriggerDelegates()
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
 	FOnlineSessionV2AccelBytePtr SessionInterface = nullptr;
-	check(FOnlineSessionV2AccelByte::GetFromSubsystem(Subsystem, SessionInterface));
+	if (!ensureAlways(FOnlineSessionV2AccelByte::GetFromSubsystem(Subsystem, SessionInterface)))
+	{
+		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to get session interface instance from online subsystem!"));
+		return;
+	}
 
 	SessionInterface->TriggerOnSendSessionInviteCompleteDelegates(UserId.ToSharedRef().Get(), SessionName, bWasSuccessful, RecipientId.Get());
 

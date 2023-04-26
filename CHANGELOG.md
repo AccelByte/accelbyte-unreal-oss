@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.10.1](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.10.1%0D0.10.0) (2023-04-26)
+
+
+### Features
+
+* **DS:** expose metric exporter to session interface ([8830406](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/88304060af00212094d7b5ed9e2aa02259f91d0b))
+* **OnlineError:** create OnlineErrorAccelByte as standart error model on oss ([531f1b6](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/531f1b609a3d39a1edc577a7dfe37e616f03b1e5))
+* support build without PCHs ([a9f109c](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/a9f109cdce6757400b6da16b490be235ef77794d))
+
+
+### Bug Fixes
+
+* bump sdk to fix missing header in chat models ([a1242ac](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/a1242ac2ddba41d38778c7dcec5ab2e38082a0ac))
+
 ## [0.10.0](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.10.0%0D0.9.3) (2023-04-10)
 
 

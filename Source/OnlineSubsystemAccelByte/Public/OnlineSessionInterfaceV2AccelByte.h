@@ -5,6 +5,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Runtime/Launch/Resources/Version.h"
 #if ENGINE_MAJOR_VERSION >= 5
 #include "Online/CoreOnline.h"
 #else
@@ -20,7 +21,9 @@
 #include "Models/AccelByteMatchmakingModels.h"
 #include "Models/AccelByteDSHubModels.h"
 #include "AccelByteNetworkingStatus.h"
+#include "Core/StatsD/IAccelByteStatsDMetricCollector.h"
 #include "GameServerApi/AccelByteServerWatchdogApi.h"
+#include "GameServerApi/AccelByteServerMetricExporterApi.h"
 
 class FInternetAddr;
 class FNamedOnlineSession;
@@ -134,6 +137,8 @@ PACKAGE_SCOPE:
 	 */
 	bool ContainsMember(const FUniqueNetId& MemberId);
 
+	void SetP2PChannel(int32 InChannel);
+
 private:
 	/**
 	 * Structure representing the session data on the backend, used for updating session data.
@@ -188,6 +193,8 @@ private:
 
 	/** Map of Members belonging to which party, key is User ID and value is Party ID **/
 	TMap<FString, FString> MemberParties;
+
+	int32 P2PChannel{0};
 
 	/**
 	 * Static cast the given base session pointer to a game session pointer if type is valid
@@ -1064,6 +1071,61 @@ PACKAGE_SCOPE:
 	 * Disconnect a server from the Watchdog, unregistering any delegates bound.
 	 */
 	void DisconnectFromWatchdog();
+
+	/**
+	* Initialize Metric Exporter.
+	* 
+	* @param Address StatsD IPv4 address
+	* @param Port StatsD port
+	* @param IntervalSeconds Interval of exporting metric to StatsD
+	*/
+	void InitMetricExporter(const FString& Address, uint16 Port, uint16 IntervalSeconds = 60);
+
+	/**
+	 * Set Label to a specific Key of metric
+	 * 
+	 * @param Key Key to add label
+	 * @param Value label name for the key
+	 */
+	void SetMetricLabel(const FString& Key, const FString& Value);
+
+	/**
+	* Enqueue Metric
+	* 
+	* @param Key The key of the metric
+	* @param Value Floating number value of the metric
+	*/
+	void EnqueueMetric(const FString& Key, double Value);
+
+	/**
+	 * Enqueue Metric
+	 * 
+	 * @param Key The key of the metric
+	 * @param Value Integer value of the metric
+	 */
+	void EnqueueMetric(const FString& Key, int32 Value);
+
+	/**
+	 * Enqueue Metric
+	 * 
+	 * @param Key The key of the metric
+	 * @param Value String value of the metric
+	 */
+	void EnqueueMetric(const FString& Key, const FString& Value);
+
+	/**
+	* Set Sending optional metrics or not
+	*/
+	void SetOptionalMetricsEnabled(bool Enable);
+
+	/**
+	* Set the StatsD Metric Collector.
+	* By default it will use AccelByteStatsDMetricCollector class.
+	* Should be set if custom collector is needed.
+	*
+	* @param Collector The collector object inherited from IAccelByteStatsDMetricCollector
+	*/
+	void SetMetricCollector(const TSharedPtr<IAccelByteStatsDMetricCollector>& Collector);
 
 private:
 	/** Parent subsystem of this interface instance */

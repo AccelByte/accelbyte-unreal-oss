@@ -4,6 +4,8 @@
 
 #include "OnlineAuthHandlerComponentAccelByte.h"
 #include "OnlineSubsystemAccelByteDefines.h"
+#include "Engine/NetConnection.h"
+#include "GameFramework/PlayerController.h"
 #include "Net/Core/Misc/PacketAudit.h"
 #include "Misc/AES.h"
 #include "OnlineSubsystemUtils.h"

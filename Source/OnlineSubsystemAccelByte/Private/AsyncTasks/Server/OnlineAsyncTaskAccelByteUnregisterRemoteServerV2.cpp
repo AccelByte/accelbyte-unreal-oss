@@ -20,11 +20,14 @@ void FOnlineAsyncTaskAccelByteUnregisterRemoteServerV2::Initialize()
 	const IOnlineSessionPtr SessionInterface = Subsystem->GetSessionInterface();
 	AB_ASYNC_TASK_ENSURE(SessionInterface.IsValid(), "Failed to unregister remote server as our session interface is invalid!");
 
-	FNamedOnlineSession* Session = SessionInterface->GetNamedSession(SessionName);	
-	AB_ASYNC_TASK_ENSURE(Session != nullptr, "Failed to unregister remote server as a session with name '%s' does not exist locally!", *SessionName.ToString())
-
-	const FString SessionId = Session->GetSessionIdStr();
-	AB_ASYNC_TASK_ENSURE(!SessionId.Equals(TEXT("InvalidSession")), "Failed to unregister remote server as our session's local ID is invalid!");
+	// Attempt to get session ID to send along to DSMC when unregistering server. In case this shutdown call is being
+	// made before the server is assigned a session, allow for a blank value.
+	FString SessionId = TEXT("");
+	FNamedOnlineSession* Session = SessionInterface->GetNamedSession(SessionName);
+	if (Session != nullptr && !Session->GetSessionIdStr().Equals("InvalidSession"))
+	{
+		SessionId = Session->GetSessionIdStr();
+	}
 
 	AB_ASYNC_TASK_DEFINE_SDK_DELEGATES(FOnlineAsyncTaskAccelByteUnregisterRemoteServerV2, UnregisterServer, FVoidHandler);
 	FRegistry::ServerDSM.SendShutdownToDSM(false, SessionId, OnUnregisterServerSuccessDelegate, OnUnregisterServerErrorDelegate);

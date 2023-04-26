@@ -11,6 +11,7 @@
 #include "OnlinePartyInterfaceAccelByte.h"
 #include "Core/AccelByteMultiRegistry.h"
 #include "AsyncTasks/Auth/OnlineAsyncTaskAccelByteAuthUser.h"
+#include "Engine/NetConnection.h"
 
 // Headers needed to kick users.
 #include "GameFramework/GameModeBase.h"

@@ -314,6 +314,12 @@ FString FOnlineSubsystemAccelByteUtils::GetLocalTimeOffsetFromUTC()
 	return LocalOffsetTimezone;
 }
 
+FString FOnlineSubsystemAccelByteUtils::GetStringFromStringTable(const FString& StringTable, const int32 Key)
+{
+	const FString StringKey = FString::Printf(TEXT("%d"), Key);
+	return FText::FromStringTable(*StringTable, StringKey).ToString();
+}
+
 EAccelBytePlatformType FOnlineSubsystemAccelByteUtils::GetCurrentAccelBytePlatformType(const FName& NativeSubsystemName)
 {
 	switch (GetAccelByteLoginTypeFromNativeSubsystem(NativeSubsystemName))

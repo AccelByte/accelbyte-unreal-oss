@@ -5,6 +5,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Runtime/Launch/Resources/Version.h"
 #if ENGINE_MAJOR_VERSION >= 5
 #include "Online/CoreOnline.h"
 #else
@@ -495,6 +496,11 @@ public:
 	virtual void SendBanUser(FName SessionName, const FUniqueNetId& PlayerId, int32 InActionID, const FString& InMessage);
 
 	void TriggerOnDedicatedServerNotificationReceived(const FAccelByteModelsDsNotice& Notification);
+
+	/**
+	 * Construct a new session search result instance from a backend representation of a game session
+	 */
+	bool ConstructGameSessionFromBackendSessionModel(const FAccelByteModelsSessionBrowserData& BackendSession, FOnlineSession& OutResult);
 };
 
 typedef TSharedPtr<FOnlineSessionV1AccelByte, ESPMode::ThreadSafe> FOnlineSessionV1AccelBytePtr;

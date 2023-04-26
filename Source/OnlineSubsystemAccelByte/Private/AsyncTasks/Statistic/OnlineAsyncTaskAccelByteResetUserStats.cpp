@@ -178,7 +178,7 @@ void FOnlineAsyncTaskAccelByteResetUserStats::OnResetUserStatItemsSuccess(const 
 
 	UserStatsResetResponse = Result;
 
-	for (const auto& Stat : Result)
+	for (const auto& Stat : UserStatsResetResponse)
 	{
 		float NewValue = float(Stat.Details.JsonObject.Get()->GetIntegerField("currentValue"));
 

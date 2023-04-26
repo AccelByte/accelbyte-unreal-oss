@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 
+#include "Runtime/Launch/Resources/Version.h"
 #if ENGINE_MAJOR_VERSION >= 5
 #include "Online/CoreOnline.h"
 #else
@@ -73,6 +74,13 @@ public:
 	 * Method to calculate a local offset timestamp from UTC
 	 */
 	static FString GetLocalTimeOffsetFromUTC();
+
+	/**
+	 * Query string table using int32 as the Key and FString as the result value
+	 * 
+	 * @param Key the Key to search on the String Table
+	 */
+	static FString GetStringFromStringTable(const FString& StringTable, const int32 Key);
 
 	static EAccelBytePlatformType GetCurrentAccelBytePlatformType(const FName& NativeSubsystemName);
 	

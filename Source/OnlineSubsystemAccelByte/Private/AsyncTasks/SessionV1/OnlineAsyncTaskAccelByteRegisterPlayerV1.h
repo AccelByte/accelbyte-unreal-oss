@@ -69,11 +69,11 @@ private:
 	/**
 	 * Handler for when registering player to session with session manager succeeds
 	 */
-	void OnRegisterPlayerSuccess(const FAccelByteModelsSessionBrowserAddPlayerResponse& Result);
+	void OnRegisterPlayerSuccess(const FAccelByteModelsSessionBrowserAddPlayerResponse& Result, int32 Index);
 
 	/**
 	 * Handler for when registering player to session with session manager fails
 	 */
-	void OnRegisterPlayerError(int32 ErrorCode, const FString& ErrorMessage, FString PlayerId);
+	void OnRegisterPlayerError(int32 ErrorCode, const FString& ErrorMessage, FString PlayerId, int32 Index);
 
 };

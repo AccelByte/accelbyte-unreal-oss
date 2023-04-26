@@ -40,10 +40,18 @@ void FOnlineAsyncTaskAccelByteAcceptBackfillProposal::Finalize()
 		// If we successfully accepted the proposal and we are removing this backfill ticket, then update session settings to
 		// remove there.
 		FOnlineSessionV2AccelBytePtr SessionInterface = nullptr;
-		check(FOnlineSessionV2AccelByte::GetFromSubsystem(Subsystem, SessionInterface));
+		if (!ensureAlways(FOnlineSessionV2AccelByte::GetFromSubsystem(Subsystem, SessionInterface)))
+		{
+			AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to get session interface instance from online subsystem!"));
+			return;
+		}
 
 		FNamedOnlineSession* Session = SessionInterface->GetNamedSession(SessionName);
-		check(Session != nullptr);
+		if (!ensureAlways(Session != nullptr))
+		{
+			AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to get session instance to update stored backfill ticket ID!"));
+			return;
+		}
 
 		Session->SessionSettings.Remove(SETTING_MATCHMAKING_BACKFILL_TICKET_ID);
 	}

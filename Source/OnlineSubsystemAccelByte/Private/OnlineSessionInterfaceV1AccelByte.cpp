@@ -36,6 +36,7 @@
 #include "AsyncTasks/SessionV1/Server/OnlineAsyncTaskAccelByteDequeueJoinableV1Session.h"
 #include "AsyncTasks/SessionV1/Server/OnlineAsyncTaskAccelByteRemoveUserFromV1Session.h"
 #include "AsyncTasks/Server/OnlineAsyncTaskAccelByteBanUser.h"
+#include "AsyncTasks/SessionV1/OnlineAsyncTaskAccelByteFindV1GameSessionById.h"
 
 bool GetConnectionStringFromSessionInfo(TSharedPtr<FOnlineSessionInfoAccelByteV1> SessionInfo, FString& ConnectInfo, int32 PortOverride = 0)
 {
@@ -53,7 +54,7 @@ bool GetConnectionStringFromSessionInfo(TSharedPtr<FOnlineSessionInfoAccelByteV1
 	}
 	else 
 	{
-		ConnectInfo = FString::Printf(ACCELBYTE_URL_PREFIX TEXT("%s:11223"), *SessionInfo->GetRemoteId());
+		ConnectInfo = FString::Printf(ACCELBYTE_URL_PREFIX TEXT("%s:%d"), *SessionInfo->GetRemoteId(), SessionInfo->GetP2PChannel());
 		return true;
 	}
 }
@@ -617,6 +618,7 @@ void FOnlineSessionV1AccelByte::OnSessionCreateSuccess(const FAccelByteModelsSes
 	FNamedOnlineSession* Session = GetNamedSession(SessionName);
 	if (Session == nullptr)
 	{
+		UE_LOG_AB(Error, TEXT("unable create session: Session is null"));
 		TriggerOnCreateSessionCompleteDelegates(SessionName, false);
 		return;
 	}
@@ -624,6 +626,7 @@ void FOnlineSessionV1AccelByte::OnSessionCreateSuccess(const FAccelByteModelsSes
 	TSharedPtr<FOnlineSessionInfoAccelByteV1> AccelByteSessionInfo = StaticCastSharedPtr<FOnlineSessionInfoAccelByteV1>(Session->SessionInfo);
 	if (!AccelByteSessionInfo.IsValid())
 	{
+		UE_LOG_AB(Error, TEXT("unable create session: AccelByteSessionInfo not valid"));
 		TriggerOnCreateSessionCompleteDelegates(SessionName, false);
 		return;
 	}
@@ -940,6 +943,11 @@ bool FOnlineSessionV1AccelByte::FindSessions(const FUniqueNetId& SearchingPlayer
 bool FOnlineSessionV1AccelByte::FindSessionById(const FUniqueNetId& SearchingUserId, const FUniqueNetId& SessionId, const FUniqueNetId& FriendId, const FOnSingleSessionResultCompleteDelegate& CompletionDelegate)
 {
 	// @todo not supported by SDK yet, in subsequent version that we will upgrade to as soon as released
+	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("SearchingPlayerId: %s; SessionId: %s"), *SearchingUserId.ToDebugString(), *SessionId.ToDebugString());
+
+	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteFindV1GameSessionById>(AccelByteSubsystem, SearchingUserId, SessionId, CompletionDelegate);
+
+	AB_OSS_INTERFACE_TRACE_END(TEXT("Sent off async task to find session with ID '%s'!"), *SessionId.ToDebugString());
 	return false;
 }
 
@@ -1047,7 +1055,8 @@ bool FOnlineSessionV1AccelByte::JoinSession(int32 PlayerNum, FName SessionName, 
 			FAccelByteNetworkUtilitiesModule::Get().Setup(ApiClient);
 
 			// Now we can request connection to the remote ID for the session owner
-			FAccelByteNetworkUtilitiesModule::Get().RequestConnect(SessionInfo->GetRemoteId());
+			const int32 P2PChannel = FMath::RandRange(1024, 4096);
+			FAccelByteNetworkUtilitiesModule::Get().RequestConnect(FString::Printf (TEXT("%s:%d"), *SessionInfo->GetRemoteId(), P2PChannel));
 
 			// Register a delegate that will notify that we've joined the session once we've connected to the WebRTC socket
 			const FAccelByteNetworkUtilitiesModule::OnICERequestConnectFinished OnICEConnectionCompleteDelegate = FAccelByteNetworkUtilitiesModule::OnICERequestConnectFinished::CreateRaw(this, &FOnlineSessionV1AccelByte::OnRTCConnected, SessionName);
@@ -1095,6 +1104,13 @@ void FOnlineSessionV1AccelByte::OnRTCConnected(const FString& NetId, const EAcce
 		Result = EOnJoinSessionCompleteResult::UnknownError;
 	}
 
+	FNamedOnlineSession* Session = GetNamedSession(SessionName);
+	check(Session != nullptr);
+
+	TSharedPtr<FOnlineSessionInfoAccelByteV1> SessionInfo = StaticCastSharedPtr<FOnlineSessionInfoAccelByteV1>(Session->SessionInfo);
+	check(SessionInfo.IsValid());
+	const TTuple<FString, int32> PeerChannel = FAccelByteNetworkUtilitiesModule::ExtractPeerAndChannel(NetId);
+	SessionInfo->SetP2PChannel(PeerChannel.Value);
 
 	TriggerOnJoinSessionCompleteDelegates(SessionName, Result);
 }
@@ -1888,4 +1904,90 @@ void FOnlineSessionV1AccelByte::SendBanUser(FName SessionName, const FUniqueNetI
 void FOnlineSessionV1AccelByte::TriggerOnDedicatedServerNotificationReceived(const FAccelByteModelsDsNotice& Notification)
 {
 	OnDedicatedServerNotificationReceived(Notification);
+}
+
+bool FOnlineSessionV1AccelByte::ConstructGameSessionFromBackendSessionModel(
+	const FAccelByteModelsSessionBrowserData& FoundSession, FOnlineSession& Session)
+{
+	// This block contains settings for features that we do not currently support, such as join via presence, invites, etc
+	Session.NumOpenPrivateConnections = FoundSession.Game_session_setting.Current_internal_player;
+	Session.SessionSettings.NumPrivateConnections = FoundSession.Game_session_setting.Max_internal_player;
+	Session.SessionSettings.bAllowJoinViaPresence = false;
+	Session.SessionSettings.bAllowJoinViaPresenceFriendsOnly = false;
+	Session.SessionSettings.bAllowInvites = false;
+	Session.SessionSettings.bUsesPresence = true;
+	Session.SessionSettings.bAntiCheatProtected = false;
+	// End unsupported feature block
+
+	// # AB (Apin) splitgate do differently about player count calculation
+	Session.NumOpenPublicConnections = FoundSession.Game_session_setting.Max_player - FoundSession.Game_session_setting.Current_player;
+	FDefaultValueHelper::ParseInt(FoundSession.Game_version, Session.SessionSettings.BuildUniqueId);
+	Session.SessionSettings.NumPublicConnections = FoundSession.Game_session_setting.Max_player;
+	Session.SessionSettings.bAllowJoinInProgress = FoundSession.Game_session_setting.Allow_join_in_progress;
+	// Differentiating between dedicated and p2p sessions through the session browser is done through a string that will either be
+	// 'p2p' or 'dedicated'. With that in mind, just check in a case insensitive manner if the session is marked as 'dedicated'.
+	Session.SessionSettings.bIsDedicated = (FoundSession.Session_type.Compare(TEXT("dedicated"), ESearchCase::IgnoreCase) == 0);
+	Session.SessionSettings.bIsLANMatch = false;
+	Session.SessionSettings.bShouldAdvertise = true;
+
+	auto Setting = FoundSession.Game_session_setting.Settings;
+	if(Setting.JsonObject.IsValid())
+	{
+		for(const auto &JValue : FoundSession.Game_session_setting.Settings.JsonObject->Values)
+		{
+			switch (JValue.Value->Type)
+			{
+			case EJson::String:						
+				Session.SessionSettings.Set(FName(JValue.Key), JValue.Value->AsString());
+				break;
+			case EJson::Boolean:						
+				Session.SessionSettings.Set(FName(JValue.Key), JValue.Value->AsBool());
+				break;
+			case EJson::Number:						
+				Session.SessionSettings.Set(FName(JValue.Key), JValue.Value->AsNumber());
+				break;
+			default:
+				break;
+			}
+		}
+	}		
+
+	TSharedPtr<FOnlineSessionInfoAccelByteV1> SessionInfo = MakeShared<FOnlineSessionInfoAccelByteV1>();
+	SessionInfo->SetSessionId(FoundSession.Session_id);
+
+	if(!FoundSession.Server.Ip.IsEmpty())
+	{
+		// HostAddr should always be instantiated to a proper default FInternetAddr instance, but just in case we will check if this is valid
+		bool bIsIpValid = false;
+		if (SessionInfo->GetHostAddr() != nullptr)
+		{
+			SessionInfo->GetHostAddr()->SetIp(*FoundSession.Server.Ip, bIsIpValid);
+			SessionInfo->GetHostAddr()->SetPort(FoundSession.Server.Port);
+		}
+	}
+
+	// For sessions that are P2P, there will be a user ID associated with the session for the user who owns this session
+	// If this is set, then we should set the owner ID and username to that contained in the result, and also set the
+	// remote ID for the session info to the user ID.
+	//
+	// @sessions There may be a case where dedicated servers could have "owning" users, but for now that isn't supported
+	if (!FoundSession.User_id.IsEmpty())
+	{
+		// Create composite ID for the owning user
+		FAccelByteUniqueIdComposite CompositeId;
+		CompositeId.Id = FoundSession.User_id;
+
+		// Create a shared ref for the user composite ID and set the session info
+		TSharedRef<const FUniqueNetIdAccelByteUser> OwnerId = FUniqueNetIdAccelByteUser::Create(CompositeId);
+		Session.OwningUserId = OwnerId;
+		
+		Session.OwningUserName = FoundSession.Username;
+		if(FoundSession.Session_type == SETTING_SEARCH_TYPE_PEER_TO_PEER_RELAY)
+		{
+			SessionInfo->SetRemoteId(FoundSession.User_id);
+		}			
+	}
+
+	Session.SessionInfo = SessionInfo;
+	return true;
 }
