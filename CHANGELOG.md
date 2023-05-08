@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.10.3](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.10.3%0D0.10.2) (2023-05-08)
+
+
+### Bug Fixes
+
+* **chat:** prevent crash when OnQueryChatRoomById_TriggerChatRoomMemberJoin returns failed ([7db2fb0](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/7db2fb09cd7e986855babab7fd975507fcec6cc9))
+* FOnlineAsyncTaskAccelByteConnectLobby call lobby connect success handler when lobby is already connected ([9df72bf](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/9df72bf0a4c1d3dfbc9065f8a570d86360bbca93))
+* **presence:** bulk presence will need to requested multiple times if userIds over the limit ([335aed1](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/335aed112849ffdf80b2aaf9d89d6ca18870a62c))
+
 ### [0.10.2](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.10.2%0D0.10.1) (2023-04-28)
 
 ### [0.10.1](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.10.1%0D0.10.0) (2023-04-26)

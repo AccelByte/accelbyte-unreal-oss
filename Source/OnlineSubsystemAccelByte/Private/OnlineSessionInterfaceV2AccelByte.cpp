@@ -18,6 +18,8 @@
 #include "AsyncTasks/SessionV2/OnlineAsyncTaskAccelByteSendV2GameSessionInvite.h"
 #include "AsyncTasks/SessionV2/OnlineAsyncTaskAccelByteRejectV2GameSessionInvite.h"
 #include "AsyncTasks/SessionV2/OnlineAsyncTaskAccelByteUpdateMemberStatus.h"
+#include "AsyncTasks/SessionV2/OnlineAsyncTaskAccelByteInitializePlayerAttributes.h"
+#include "AsyncTasks/SessionV2/OnlineAsyncTaskAccelByteUpdatePlayerAttributes.h"
 #include "AsyncTasks/PartyV2/OnlineAsyncTaskAccelByteCreateV2Party.h"
 #include "AsyncTasks/PartyV2/OnlineAsyncTaskAccelByteLeaveV2Party.h"
 #include "AsyncTasks/PartyV2/OnlineAsyncTaskAccelByteJoinV2Party.h"
@@ -2244,6 +2246,11 @@ bool FOnlineSessionV2AccelByte::StartMatchmaking(const TArray<FSessionMatchmakin
 	CurrentMatchmakingSearchHandle->SearchingPlayerId = LocalPlayers[0].UserId;
 	CurrentMatchmakingSearchHandle->SearchingSessionName = SessionName;
 
+	// #NOTE Previously, we would set search state to InProgress in the FOnlineAsyncTaskAccelByteStartV2Matchmaking::Initialize
+	// method. However, this runs the risk of allowing a second StartMatchmaking call to come in before that method runs
+	// and cause issues. Instead, set to InProgress here to prevent duplicate matchmaking start calls.
+	CurrentMatchmakingSearchHandle->SearchState = EOnlineAsyncTaskState::InProgress;
+
 	SearchSettings = CurrentMatchmakingSearchHandle.ToSharedRef(); // Make sure that the caller also gets the new subclassed search handle
 	CurrentMatchmakingSessionSettings = NewSessionSettings;
 
@@ -2282,9 +2289,19 @@ bool FOnlineSessionV2AccelByte::CancelMatchmaking(const FUniqueNetId& SearchingP
 {
 	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("SearchingPlayerId: %s; SessionName: %s"), *SearchingPlayerId.ToString(), *SessionName.ToString());
 
-	if (!CurrentMatchmakingSearchHandle.IsValid() || CurrentMatchmakingSearchHandle->SearchState != EOnlineAsyncTaskState::InProgress)
+	if (!CurrentMatchmakingSearchHandle.IsValid())
 	{
-		AB_OSS_INTERFACE_TRACE_END(TEXT("A matchmaking query is currently not running. Treating the cancel request as a success to allow game client to clean up local state if stuck."));
+		AB_OSS_INTERFACE_TRACE_END(TEXT("No matchmaking search handle attached to the session interface at this time. Treating the cancel request as a success to allow game client to clean up local state if stuck."));
+		AccelByteSubsystem->ExecuteNextTick([SessionInterface = SharedThis(this), SessionName]() {
+			SessionInterface->TriggerOnCancelMatchmakingCompleteDelegates(SessionName, true);
+		});
+		return true;
+	}
+
+	if (CurrentMatchmakingSearchHandle->SearchState != EOnlineAsyncTaskState::InProgress)
+	{
+		CurrentMatchmakingSearchHandle.Reset();
+		AB_OSS_INTERFACE_TRACE_END(TEXT("Matchmaking search handle attached to session interface is not marked as in progress. Treating the cancel request as a success to allow game client to clean up local state if stuck."));
 		AccelByteSubsystem->ExecuteNextTick([SessionInterface = SharedThis(this), SessionName]() {
 			SessionInterface->TriggerOnCancelMatchmakingCompleteDelegates(SessionName, true);
 		});
@@ -2520,6 +2537,29 @@ void FOnlineSessionV2AccelByte::SetLocalServerIpOverride(const FString& InLocalS
 void FOnlineSessionV2AccelByte::SetLocalServerPortOverride(int32 InLocalServerPortOverride)
 {
 	LocalServerPortOverride = InLocalServerPortOverride;
+}
+
+FOnlineSessionV2AccelBytePlayerAttributes FOnlineSessionV2AccelByte::GetPlayerAttributes(const FUniqueNetId& LocalPlayerId)
+{
+	FOnlineSessionV2AccelBytePlayerAttributes OutAttributes{};
+	FAccelByteModelsV2PlayerAttributes* FoundAttributes = GetInternalPlayerAttributes(LocalPlayerId);
+	if (FoundAttributes != nullptr)
+	{
+		OutAttributes.bEnableCrossplay = FoundAttributes->CrossplayEnabled;
+		OutAttributes.Data = FoundAttributes->Data.JsonObject;
+	}
+
+	return OutAttributes;
+}
+
+bool FOnlineSessionV2AccelByte::UpdatePlayerAttributes(const FUniqueNetId& LocalPlayerId, const FOnlineSessionV2AccelBytePlayerAttributes& NewAttributes, const FOnUpdatePlayerAttributesComplete& Delegate)
+{
+	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("LocalPlayerId: %s"), *LocalPlayerId.ToDebugString());
+
+	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteUpdatePlayerAttributes>(AccelByteSubsystem, LocalPlayerId, NewAttributes, Delegate);
+
+	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+	return true;
 }
 
 bool FOnlineSessionV2AccelByte::FindFriendSession(int32 LocalUserNum, const FUniqueNetId& Friend)
@@ -4202,6 +4242,12 @@ void FOnlineSessionV2AccelByte::OnMatchmakingMatchFoundNotification(FAccelByteMo
 		return;
 	}
 
+	if (!CurrentMatchmakingSearchHandle.IsValid())
+	{
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to handle match found notification as we do not have a valid search handle to save results to!"));
+		return;
+	}
+
 	const FOnSingleSessionResultCompleteDelegate OnFindMatchmakingGameSessionByIdCompleteDelegate = FOnSingleSessionResultCompleteDelegate::CreateThreadSafeSP(SharedThis(this), &FOnlineSessionV2AccelByte::OnFindMatchmakingGameSessionByIdComplete);
 	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteFindV2GameSessionById>(AccelByteSubsystem, PlayerId.ToSharedRef().Get(), SessionUniqueId.ToSharedRef().Get(), OnFindMatchmakingGameSessionByIdCompleteDelegate);
 
@@ -4261,6 +4307,17 @@ void FOnlineSessionV2AccelByte::OnFindMatchmakingGameSessionByIdComplete(int32 L
 {
 	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT(""));
 
+	if (!CurrentMatchmakingSearchHandle.IsValid())
+	{
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to finish matchmaking as we do not have a valid search handle instance!"));
+
+		// #TODO Since we don't have a way to get the session name we were matching for, we just have to default to game
+		// session. Figure out a way to make this more flexible.
+		TriggerOnMatchmakingCompleteDelegates(NAME_GameSession, false);
+
+		return;
+	}
+
 	if (!bWasSuccessful)
 	{
 		FName SessionName = CurrentMatchmakingSearchHandle->SearchingSessionName;
@@ -4270,17 +4327,6 @@ void FOnlineSessionV2AccelByte::OnFindMatchmakingGameSessionByIdComplete(int32 L
 		
 		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to get session information for match found from matchmaking! Considering matchmaking failed from here!"));
 		TriggerOnMatchmakingCompleteDelegates(SessionName, false);
-
-		return;
-	}
-
-	if (!ensure(CurrentMatchmakingSearchHandle.IsValid()))
-	{
-		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to finish matchmaking as we do not have a valid search handle instance!"));
-		
-		// #TODO Since we don't have a way to get the session name we were matching for, we just have to default to game
-		// session. Figure out a way to make this more flexible.
-		TriggerOnMatchmakingCompleteDelegates(NAME_GameSession, false);
 
 		return;
 	}
@@ -4606,6 +4652,36 @@ void FOnlineSessionV2AccelByte::SetMetricCollector(const TSharedPtr<IAccelByteSt
 
 	FRegistry::ServerMetricExporter.SetStatsDMetricCollector(Collector);
 	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+}
+
+void FOnlineSessionV2AccelByte::InitializePlayerAttributes(const FUniqueNetId& LocalPlayerId)
+{
+	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("LocalPlayerId: %s"), *LocalPlayerId.ToDebugString());
+
+	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteInitializePlayerAttributes>(AccelByteSubsystem, LocalPlayerId);
+
+	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+}
+
+FAccelByteModelsV2PlayerAttributes* FOnlineSessionV2AccelByte::GetInternalPlayerAttributes(const FUniqueNetId& LocalPlayerId)
+{
+	return UserIdToPlayerAttributesMap.Find(LocalPlayerId.AsShared());
+}
+
+void FOnlineSessionV2AccelByte::StorePlayerAttributes(const FUniqueNetId& LocalPlayerId, FAccelByteModelsV2PlayerAttributes&& Attributes)
+{
+	// #NOTE: Usage of .Find is usually incorrect since the hash of the ID will be different depending on if platform
+	// type/ID is missing, however since this will only be used for local players this should be fine as we should always
+	// have a local player's platform information.
+	FAccelByteModelsV2PlayerAttributes* FoundAttributes = UserIdToPlayerAttributesMap.Find(LocalPlayerId.AsShared());
+	if (FoundAttributes != nullptr)
+	{
+		*FoundAttributes = MoveTempIfPossible(Attributes);
+	}
+	else
+	{
+		UserIdToPlayerAttributesMap.Add(LocalPlayerId.AsShared(), MoveTempIfPossible(Attributes));
+	}
 }
 
 void FOnlineSessionV2AccelByte::OnWatchdogDrain()

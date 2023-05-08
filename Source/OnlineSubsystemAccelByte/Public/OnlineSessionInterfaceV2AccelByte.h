@@ -333,6 +333,19 @@ struct FSessionMatchmakingUser
  */
 #define USER_ID_TO_MATCHMAKING_USER_ARRAY(UserId) TArray<FSessionMatchmakingUser>{{UserId}}
 
+struct FOnlineSessionV2AccelBytePlayerAttributes
+{
+	/**
+	 * Whether or not crossplay should be enabled for a player. If disabled by the system, this will always be false.
+	 */
+	bool bEnableCrossplay{false};
+
+	/**
+	 * Custom data that should be associated with this player between multiple sessions.
+	 */
+	TSharedPtr<FJsonObject> Data{nullptr};
+};
+
 // Begin custom delegates
 DECLARE_DELEGATE_TwoParams(FOnRestorePartySessionsComplete, const FUniqueNetId& /*LocalUserId*/, const FOnlineError& /*Result*/);
 DECLARE_DELEGATE_TwoParams(FOnRestoreActiveSessionsComplete, const FUniqueNetId& /*LocalUserId*/, const FOnlineError& /*Result*/);
@@ -350,6 +363,7 @@ DECLARE_DELEGATE_OneParam(FOnRevokePartyCodeComplete, bool /*bWasSuccessful*/);
 DECLARE_DELEGATE_TwoParams(FOnKickPlayerComplete, bool /*bWasSuccessful*/, const FUniqueNetId& /*KickedPlayerId*/);
 DECLARE_DELEGATE_OneParam(FOnCreateBackfillTicketComplete, bool /*bWasSuccessful*/);
 DECLARE_DELEGATE_OneParam(FOnDeleteBackfillTicketComplete, bool /*bWasSuccessful*/);
+DECLARE_DELEGATE_TwoParams(FOnUpdatePlayerAttributesComplete, const FUniqueNetId& /*LocalPlayerId*/, bool /*bWasSuccessful*/);
 
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnServerReceivedSession, FName /*SessionName*/);
 typedef FOnServerReceivedSession::FDelegate FOnServerReceivedSessionDelegate;
@@ -712,6 +726,22 @@ public:
 	 * Set an override for a local server name to register with. Only intended for use with local dedicated servers.
 	 */
 	void SetLocalServerPortOverride(int32 InLocalServerPortOverride);
+
+	/**
+	 * Get attributes for the given player. To update the stored values in the session backend service, call UpdatePlayerAttributes.
+	 * 
+	 * @param LocalPlayerId ID of the local player that attributes should be returned for
+	 */
+	FOnlineSessionV2AccelBytePlayerAttributes GetPlayerAttributes(const FUniqueNetId& LocalPlayerId);
+
+	/**
+	 * Sends a request to the session service to update a player's attributes.
+	 * 
+	 * @param LocalPlayerId ID of the local player that attributes should be updated for
+	 * @param NewAttributes Structure describing what attributes should be updated for this player
+	 * @param Delegate Delegate to fire after task to update attributes completes
+	 */
+	bool UpdatePlayerAttributes(const FUniqueNetId& LocalPlayerId, const FOnlineSessionV2AccelBytePlayerAttributes& NewAttributes, const FOnUpdatePlayerAttributesComplete& Delegate=FOnUpdatePlayerAttributesComplete());
 
 	/**
 	 * Delegate fired when we have retrieved information on the session that our server is claimed by on the backend.
@@ -1127,6 +1157,29 @@ PACKAGE_SCOPE:
 	*/
 	void SetMetricCollector(const TSharedPtr<IAccelByteStatsDMetricCollector>& Collector);
 
+	/**
+	 * Makes a call to grab the most recent stored player attributes from the session service, and updates them with the
+	 * current platform. Intended to be called at the end of the login process.
+	 * 
+	 * @param LocalPlayerId ID of the player that we want to initialize attributes for
+	 */
+	void InitializePlayerAttributes(const FUniqueNetId& LocalPlayerId);
+
+	/**
+	 * Get the internal model for a player's attributes.
+	 * 
+	 * @param LocalPlayerId ID of the player that we want to get the internal attributes model for
+	 */
+	FAccelByteModelsV2PlayerAttributes* GetInternalPlayerAttributes(const FUniqueNetId& LocalPlayerId);
+
+	/**
+	 * Stores attributes for a player in this interface. Intended to be used at login.
+	 * 
+	 * @param LocalPlayerId ID of the player that we wish to store attributes for
+	 * @param Attributes Attributes that we wish to store locally for this player, will be moved directly into map
+	 */
+	void StorePlayerAttributes(const FUniqueNetId& LocalPlayerId, FAccelByteModelsV2PlayerAttributes&& Attributes);
+
 private:
 	/** Parent subsystem of this interface instance */
 	FOnlineSubsystemAccelByte* AccelByteSubsystem = nullptr;
@@ -1173,6 +1226,9 @@ private:
 
 	/** Stored override for a local server port to register with. */
 	int32 LocalServerPortOverride{-1};
+
+	/** Attributes for a player using this session interface instance, contains crossplay and platform information */
+	TUniqueNetIdMap<FAccelByteModelsV2PlayerAttributes> UserIdToPlayerAttributesMap{};
 
 	/** Hidden on purpose */
 	FOnlineSessionV2AccelByte() :

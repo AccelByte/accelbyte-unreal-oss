@@ -25,6 +25,12 @@ void FOnlineAsyncTaskAccelByteConnectLobby::Initialize()
 {
 	Super::Initialize();
 
+	if (ApiClient->Lobby.IsConnected())
+	{
+		OnLobbyConnectSuccess();
+		return;
+	}
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("UserId: %s"), *UserId->ToDebugString());
 
 	// Create delegates for successfully as well as unsuccessfully connecting to the AccelByte lobby websocket

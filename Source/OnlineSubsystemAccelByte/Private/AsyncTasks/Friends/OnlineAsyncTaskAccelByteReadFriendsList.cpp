@@ -233,5 +233,21 @@ void FOnlineAsyncTaskAccelByteReadFriendsList::OnGetUserPresenceComplete(const F
 	{
 		AccelByteIdToPresence.Add(Status.UserID, Status);
 	}
-	bHasReceivedAllUserStatus = true;
+
+	if (Statuses.NotProcessed.Num() > 0)
+	{
+		SetLastUpdateTimeToCurrentTime();
+		ApiClient->Lobby.BulkGetUserPresence(Statuses.NotProcessed,
+			TDelegateUtils<THandler<FAccelByteModelsBulkUserStatusNotif>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteReadFriendsList::OnGetUserPresenceComplete),
+			FErrorHandler::CreateLambda([this](int32 Code, FString const& ErrMsg)
+				{
+					AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Could not query friends presence"));
+					CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
+				})
+		);
+	}
+	else
+	{
+		bHasReceivedAllUserStatus = true;
+	}
 }

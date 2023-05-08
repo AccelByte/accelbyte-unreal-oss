@@ -13,6 +13,7 @@
 #include "AsyncTasks/Statistic/OnlineAsyncTaskAccelByteResetUserStats.h"
 #include "AsyncTasks/Statistic/OnlineAsyncTaskAccelByteCreateStatsUser.h"
 #include "AsyncTasks/Statistic/OnlineAsyncTaskAccelByteUpdateStatsUsers.h"
+#include "AsyncTasks/Statistic/OnlineAsyncTaskAccelByteDeleteStatsUsers.h"
 #include "OnlineSubsystemUtils.h"
 
 bool FOnlineStatisticAccelByte::ListUserStatItems(int32 LocalUserNum, const TArray<FString>& StatCodes, const TArray<FString>& Tags, const FString& AdditionalKey, bool bAlwaysRequestToService)
@@ -93,6 +94,43 @@ void FOnlineStatisticAccelByte::EmplaceStats(const TArray<TSharedPtr<const FOnli
 	}
 }
 
+void FOnlineStatisticAccelByte::RemoveStats(const FUniqueNetIdRef StatsUserId, const FString& StatsCode)
+{
+	FScopeLock ScopeLock(&StatsLock);
+
+	TMap<FString, FVariantData> NewStat;
+	int32 UserStatIndex = INDEX_NONE;
+
+	for (const auto& UserStat : UsersStats)
+	{
+		if (UserStat->Account == StatsUserId)
+		{
+			UserStatIndex = UsersStats.Find(UserStat);
+			NewStat.Append(UserStat->Stats);
+			break;
+		}
+	}
+
+	if (UserStatIndex == INDEX_NONE)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("User Id is not found %s"), *StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(StatsUserId)->GetAccelByteId());
+		return;
+	}
+
+	if (NewStat.Remove(StatsCode) > 0)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Removed value with key %s"), *StatsCode);
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Key %s not found in map"), *StatsCode);
+		return;
+	}
+
+	const TSharedRef<const FOnlineStatsUserStats> NewUserStats = MakeShareable(new FOnlineStatsUserStats(StatsUserId, NewStat));
+	UsersStats[UserStatIndex] = NewUserStats;
+}
+
 void FOnlineStatisticAccelByte::ResetStats(const int32 LocalUserNum, const FUniqueNetIdRef StatsUserId)
 {
 #if !UE_BUILD_SHIPPING
@@ -112,6 +150,17 @@ void FOnlineStatisticAccelByte::UpdateStats(const int32 LocalUserNum, const TArr
 	{
 		AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteUpdateStatsUsers>
 			(AccelByteSubsystem, LocalUserNum, BulkUpdateMultipleUserStatItems, Delegate);
+	}
+}
+
+void FOnlineStatisticAccelByte::DeleteStats(const int32 LocalUserNum, const FUniqueNetIdRef StatsUser, const FString& StatNames, const FString& AdditionalKey)
+{
+	UE_LOG_ONLINE_STATS(Display, TEXT("FOnlineStatisticAccelByte::DeleteStats"));
+
+	if (IsRunningDedicatedServer())
+	{
+		AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteDeleteStatsUsers>
+			(AccelByteSubsystem, LocalUserNum, StatsUser, StatNames, AdditionalKey);
 	}
 }
 

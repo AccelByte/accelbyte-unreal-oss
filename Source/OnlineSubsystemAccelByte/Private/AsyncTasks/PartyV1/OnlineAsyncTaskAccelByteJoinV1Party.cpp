@@ -295,7 +295,28 @@ FString FOnlineAsyncTaskAccelByteJoinV1Party::GetPartyInfoForError()
 
 void FOnlineAsyncTaskAccelByteJoinV1Party::OnGetUserPresenceComplete(const FAccelByteModelsBulkUserStatusNotif& Statuses)
 {
-	MemberStatuses = Statuses;
-	CompletionResult = EJoinPartyCompletionResult::Succeeded;
-	CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
+	MemberStatuses.Data.Append(Statuses.Data);
+	MemberStatuses.Away += Statuses.Away;
+	MemberStatuses.Busy += Statuses.Busy;
+	MemberStatuses.Invisible += Statuses.Invisible;
+	MemberStatuses.Online += Statuses.Online;
+	MemberStatuses.Offline += Statuses.Offline;
+
+	if (Statuses.NotProcessed.Num() > 0)
+	{
+		SetLastUpdateTimeToCurrentTime();
+		ApiClient->Lobby.BulkGetUserPresence(Statuses.NotProcessed,
+			TDelegateUtils<THandler<FAccelByteModelsBulkUserStatusNotif>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteJoinV1Party::OnGetUserPresenceComplete),
+			FErrorHandler::CreateLambda([this](int32 Code, FString const& ErrMsg)
+				{
+					AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Could not query party member presence"));
+					CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
+				})
+		);
+	}
+	else
+	{
+		CompletionResult = EJoinPartyCompletionResult::Succeeded;
+		CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
+	}
 }

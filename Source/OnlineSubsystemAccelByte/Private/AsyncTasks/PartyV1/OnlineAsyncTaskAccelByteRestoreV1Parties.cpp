@@ -214,10 +214,25 @@ void FOnlineAsyncTaskAccelByteRestoreV1Parties::OnGetPartyDataError(int32 ErrorC
 void FOnlineAsyncTaskAccelByteRestoreV1Parties::OnGetPartyMemberConnectStatusSuccess(const FAccelByteModelsBulkUserStatusNotif& Statuses)
 {
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
-	PartyMemberStatuses = Statuses;
+	PartyMemberStatuses.Data.Append(Statuses.Data);
+	PartyMemberStatuses.Away += Statuses.Away;
+	PartyMemberStatuses.Busy += Statuses.Busy;
+	PartyMemberStatuses.Invisible += Statuses.Invisible;
+	PartyMemberStatuses.Online += Statuses.Online;
+	PartyMemberStatuses.Offline += Statuses.Offline;
 
-	GetPartyCode();
-	
+	if (Statuses.NotProcessed.Num() > 0)
+	{
+		SetLastUpdateTimeToCurrentTime();
+		THandler<FAccelByteModelsBulkUserStatusNotif> OnQueryPartyMembersStatusCompleteDelegate = TDelegateUtils<THandler<FAccelByteModelsBulkUserStatusNotif>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteRestoreV1Parties::OnGetPartyMemberConnectStatusSuccess);
+		const FErrorHandler OnGetPartyMemberStatusesErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteRestoreV1Parties::OnGetPartyMemberConnectStatusFailed);
+		ApiClient->Lobby.BulkGetUserPresence(Statuses.NotProcessed, OnQueryPartyMembersStatusCompleteDelegate, OnGetPartyMemberStatusesErrorDelegate);
+	}
+	else
+	{
+		GetPartyCode();
+	}
+
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 

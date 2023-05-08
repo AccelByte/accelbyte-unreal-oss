@@ -5,6 +5,7 @@
 #include "OnlineAsyncTaskAccelByteStartV2Matchmaking.h"
 #include "OnlineSessionInterfaceV2AccelByte.h"
 #include "OnlineSubsystemAccelByteSessionSettings.h"
+#include "OnlineSessionSettingsAccelByte.h"
 
 #define ONLINE_ERROR_NAMESPACE "FOnlineAsyncTaskAccelByteStartV2Matchmaking"
 
@@ -24,7 +25,6 @@ void FOnlineAsyncTaskAccelByteStartV2Matchmaking::Initialize()
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("LocalPlayerId: %s; SessionName: %s; MatchPool: %s"), *UserId->ToDebugString(), *SessionName.ToString(), *MatchPool);
 
-	SearchHandle->SearchState = EOnlineAsyncTaskState::InProgress;
 	const bool bHasCachedLatencies = ApiClient->Qos.GetCachedLatencies().Num() > 0;
 	if (!bHasCachedLatencies)
 	{
@@ -124,7 +124,21 @@ void FOnlineAsyncTaskAccelByteStartV2Matchmaking::CreateMatchTicket()
 	const FErrorHandler OnStartMatchmakingErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteStartV2Matchmaking::OnStartMatchmakingError);
 	
 	FAccelByteModelsV2MatchTicketOptionalParams Optionals;
-	Optionals.Latencies = ApiClient->Qos.GetCachedLatencies();	
+	
+	// Check if the caller has specified specific regions to matchmake to. If there are specifically requested regions,
+	// then filter the cached latencies, removing regions that do not match. Otherwise, just attach all latencies to the
+	// request.
+	TArray<TPair<FString, float>> Latencies = ApiClient->Qos.GetCachedLatencies();
+	TArray<FString> RequestedRegions{};
+	if (FOnlineSearchSettingsAccelByte::Get(SearchHandle->QuerySettings, SETTING_GAMESESSION_REQUESTEDREGIONS, RequestedRegions) && RequestedRegions.Num() > 0)
+	{
+		// Filter the latencies array to contain only latency information for the requested regions
+		Latencies = Latencies.FilterByPredicate([&RequestedRegions](const TPair<FString, float>& Latency) {
+			return RequestedRegions.Contains(Latency.Get<0>());
+		});
+	}
+
+	Optionals.Latencies = Latencies;
 	Optionals.SessionId = GetTicketSessionId();
 
 	const TSharedRef<FJsonObject> AttributesJsonObject = SessionInterface->ConvertSearchParamsToJsonObject(SearchHandle->QuerySettings.SearchParams);

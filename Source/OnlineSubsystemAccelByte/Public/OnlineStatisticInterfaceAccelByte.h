@@ -6,6 +6,7 @@
 #include "CoreMinimal.h"
 #include "OnlineSubsystemTypes.h"
 #include "OnlineDelegateMacros.h"
+#include "OnlineSubsystem.h"
 #include "OnlineSubsystemAccelByte.h"
 #include "OnlineUserCacheAccelByte.h"
 #include "Models/AccelByteStatisticModels.h"
@@ -16,6 +17,9 @@ typedef FOnListUserStatItemsCompleted::FDelegate FOnListUserStatItemsCompletedDe
 
 DECLARE_MULTICAST_DELEGATE_FourParams(FOnUserStatItemsResetCompleted, int32 /*LocalUserNum*/, bool /*bWasSuccessful*/, const TArray<FAccelByteModelsUpdateUserStatItemsResponse>&, const FString& /*Error*/);
 typedef FOnUserStatItemsResetCompleted::FDelegate FOnUserStatItemsResetCompletedDelegate;
+
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnUserStatItemsDeleteCompleted, const FOnlineError& /*ResultState*/);
+typedef FOnUserStatItemsDeleteCompleted::FDelegate FOnUserStatItemsDeleteCompletedDelegate;
 
 DECLARE_DELEGATE_TwoParams(FOnlineStatsCreateStatsComplete, const FOnlineError& /*ResultState*/, const TArray<FAccelByteModelsBulkStatItemOperationResult>& /*Result*/);
 
@@ -43,6 +47,13 @@ public:
 	DEFINE_ONLINE_PLAYER_DELEGATE_THREE_PARAM(MAX_LOCAL_PLAYERS, OnListUserStatItemsCompleted, bool, const TArray<FAccelByteModelsFetchUser>&, const FString&);
 
 	DEFINE_ONLINE_PLAYER_DELEGATE_THREE_PARAM(MAX_LOCAL_PLAYERS, OnUserStatItemsResetCompleted, bool, const TArray<FAccelByteModelsUpdateUserStatItemsResponse>&, const FString&);
+
+	/**
+	 * Delegate fired when we delete one statistic for a player.
+	 *
+	 * @param ResultState The Result of statistic deletion process
+	 */
+	DEFINE_ONLINE_DELEGATE_ONE_PARAM(OnUserStatItemsDeleteCompleted, const FOnlineError& /*ResultState*/);
 
 	/* Get the list users stat items */
 	// TODO : make this method as implementation from GetStats
@@ -113,21 +124,39 @@ public:
 	virtual void EmplaceStats(const TArray<TSharedPtr<const FOnlineStatsUserStats>>& InUsersStats);
 
 	/**
+	 * Remove user's cached stats object
+	 *
+	 * @param StatsUserId User to remove stats for
+	 * @param StatsCode The stats id to remove
+	 */
+	virtual void RemoveStats(const FUniqueNetIdRef StatsUserId, const FString& StatsCode);
+
+	/**
 	 * Reset all user statistics.
 	 *
 	 * @param LocalUserNum Index of user(server) that is attempting to create the stats
-	 * @param StatsUserId User to create stats for
+	 * @param StatsUserId User to reset stats for
 	 */
 	virtual void ResetStats(const int32 LocalUserNum, const FUniqueNetIdRef StatsUserId);
 
 	/**
 	 * Update multiple statistics for multiple users. This request only for Game Server
 	 *
-	 * @param LocalUserNum Index of user(server) that is attempting to create the stats.
+	 * @param LocalUserNum Index of user(server) that is attempting to update the stats.
 	 * @param BulkUpdateMultipleUserStatItems Updated Statistics.
 	 * @param Delegate Called when the statistics have finished being updated, or when we fail to update the stats
 	 */
 	virtual void UpdateStats(const int32 LocalUserNum, const TArray<FOnlineStatsUserUpdatedStats>& BulkUpdateMultipleUserStatItems, const FOnUpdateMultipleUserStatItemsComplete& Delegate);
+
+	/**
+	 * Delete one statistic for one user. This request only for Game Server
+	 *
+	 * @param LocalUserNum Index of user(server) that is attempting to delete the stats.
+	 * @param StatsUserId User to delete stat for.
+	 * @param StatsCode The stats id to remove.
+	 * @param AdditionalKey The AdditionalKey relate to statistic.
+	 */
+	virtual void DeleteStats(const int32 LocalUserNum, const FUniqueNetIdRef StatsUserId, const FString& StatCode, const FString & AdditionalKey);
 
 	//~ Begin IOnlineStats Interface
 	virtual void QueryStats(const FUniqueNetIdRef LocalUserId, const FUniqueNetIdRef StatsUser, const FOnlineStatsQueryUserStatsComplete& Delegate) override;

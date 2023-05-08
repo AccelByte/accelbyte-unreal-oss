@@ -735,6 +735,12 @@ void FOnlineChatAccelByte::OnQueryChatRoomInfoComplete(bool bWasSuccessful, TArr
 void FOnlineChatAccelByte::OnQueryChatMemberInfo_TriggerChatRoomMemberJoin(bool bIsSuccessful, TArray<TSharedRef<FAccelByteUserInfo>> UsersQueried, FString RoomId, TSharedPtr<const FUniqueNetId> InUserId, TSharedPtr<const FUniqueNetId> InMemberId)
 {
 	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("RoomId %s MemberId %s"), *RoomId, *InMemberId->ToDebugString());
+
+	if(!bIsSuccessful)
+	{
+		AB_OSS_INTERFACE_TRACE_END(TEXT("Query chat member info on ChatRoomMemberJoin failed"));
+		return;
+	}
 	
 	TriggerOnChatRoomMemberJoinDelegates(*InUserId, RoomId, *InMemberId);
 
@@ -743,7 +749,13 @@ void FOnlineChatAccelByte::OnQueryChatMemberInfo_TriggerChatRoomMemberJoin(bool 
 
 void FOnlineChatAccelByte::OnQueryChatRoomById_TriggerChatRoomMemberJoin(bool bWasSuccessful, FAccelByteChatRoomInfoPtr RoomInfo, int32 LocalUserNum, TSharedPtr<const FUniqueNetId> InUserId, TSharedPtr<const FUniqueNetId> InMemberId)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("RoomId %s MemberId %s"), *RoomInfo->GetRoomId(), *InMemberId->ToDebugString());
+	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("MemberId %s"), *InMemberId->ToDebugString());
+	
+	if(!bWasSuccessful)
+	{
+		AB_OSS_INTERFACE_TRACE_END(TEXT("Query room info on ChatRoomMemberJoin failed"));
+		return;
+	}
 	
 	TriggerOnChatRoomMemberJoinDelegates(*InUserId, RoomInfo->GetRoomId(), *InMemberId);
 
