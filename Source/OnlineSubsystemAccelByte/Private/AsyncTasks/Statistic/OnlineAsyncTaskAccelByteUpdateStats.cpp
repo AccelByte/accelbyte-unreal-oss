@@ -4,16 +4,15 @@
 
 #include "OnlineAsyncTaskAccelByteUpdateStats.h"
 
-FOnlineAsyncTaskAccelByteUpdateStats::FOnlineAsyncTaskAccelByteUpdateStats(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetIdRef InLocalUserId,
-	const TArray<FOnlineStatsUserUpdatedStats>& InUpdatedUserStats, const FOnlineStatsUpdateStatsComplete& InDelegate)
+FOnlineAsyncTaskAccelByteUpdateStats::FOnlineAsyncTaskAccelByteUpdateStats(FOnlineSubsystemAccelByte *const InABInterface
+	, FUniqueNetIdRef const InLocalUserId
+	, TArray<FOnlineStatsUserUpdatedStats> const& InUpdatedUserStats
+	, FOnlineStatsUpdateStatsComplete const& InDelegate)
 	: FOnlineAsyncTaskAccelByte(InABInterface, true)
-	, LocalUserId(InLocalUserId)
 	, UpdatedUserStats(InUpdatedUserStats) 
 	, Delegate(InDelegate)
 {
-	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Construct FOnlineAsyncTaskAccelByteUpdateStats"));
-
-	UserId = FUniqueNetIdAccelByteUser::CastChecked(LocalUserId); 
+	UserId = FUniqueNetIdAccelByteUser::CastChecked(InLocalUserId); 
 	
 	for (auto const& UpdatedUserStat : UpdatedUserStats)
 	{
@@ -28,28 +27,33 @@ FOnlineAsyncTaskAccelByteUpdateStats::FOnlineAsyncTaskAccelByteUpdateStats(FOnli
 		}
 		BulkUpdateUserStatItems.Add(UpdateUserStatItemWithStatCode);
 	}
-
-	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 
 void FOnlineAsyncTaskAccelByteUpdateStats::Initialize()
 {
-	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Initialized"));
 	Super::Initialize();
+	
+	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Initialized"));
 
-	OnBulkUpdateUserStatItemsValueSuccess = TDelegateUtils<THandler<TArray<FAccelByteModelsUpdateUserStatItemsResponse>>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteUpdateStats::HandleBulkUpdateUserStatItemsValue);
-	OnError = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteUpdateStats::HandleAsyncTaskError);
+	OnBulkUpdateUserStatItemsValueSuccess = TDelegateUtils<THandler<TArray<FAccelByteModelsUpdateUserStatItemsResponse>>>::CreateThreadSafeSelfPtr(this
+		, &FOnlineAsyncTaskAccelByteUpdateStats::HandleBulkUpdateUserStatItemsValue);
+	OnError = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this
+		, &FOnlineAsyncTaskAccelByteUpdateStats::HandleAsyncTaskError);
 
 	FString AdditionalKey = TEXT("");	
-	ApiClient->Statistic.BulkUpdateUserStatItemsValue(AdditionalKey, BulkUpdateUserStatItems, OnBulkUpdateUserStatItemsValueSuccess, OnError);
+	ApiClient->Statistic.BulkUpdateUserStatItemsValue(AdditionalKey
+		, BulkUpdateUserStatItems
+		, OnBulkUpdateUserStatItemsValueSuccess
+		, OnError);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 
 void FOnlineAsyncTaskAccelByteUpdateStats::TriggerDelegates()
 {
-	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Trigger Delegates"));
 	Super::TriggerDelegates();
+	
+	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Trigger Delegates"));
 	Delegate.ExecuteIfBound(OnlineError);
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }

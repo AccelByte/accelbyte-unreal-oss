@@ -3,17 +3,14 @@
 // and restrictions contact your company contract manager.
 #pragma once
 
-#include "iostream"
-#include "typeinfo"
 #include "OnlineAsyncTaskManager.h"
 #include "OnlineSubsystemAccelByteModule.h"
 #include "OnlineSubsystemAccelByteInternalHelpers.h"
 #include "OnlineSubsystemAccelByteTypes.h"
 #include "Engine/LocalPlayer.h"
-#include <Core/AccelByteMultiRegistry.h>
-#include <OnlineIdentityInterfaceAccelByte.h>
-#include <OnlineSubsystemAccelByte.h>
-#include <Interfaces/OnlineStatsInterface.h>
+#include "OnlineIdentityInterfaceAccelByte.h"
+#include "OnlineSubsystemAccelByte.h"
+#include "Core/AccelByteMultiRegistry.h"
 
 #define AB_OSS_ASYNC_TASK_TRACE_BEGIN_VERBOSITY(Verbosity, Format, ...) UE_LOG_AB(Verbosity, TEXT(">>> %s::%s (AsyncTask method) was called. Args: ") Format, *GetTaskName(), *FString(__func__), ##__VA_ARGS__)
 #define AB_OSS_ASYNC_TASK_TRACE_BEGIN(Format, ...) AB_OSS_ASYNC_TASK_TRACE_BEGIN_VERBOSITY(Verbose, Format, ##__VA_ARGS__)
@@ -120,7 +117,7 @@ const static inline FString AsyncTaskCompleteStateToString(const EAccelByteAsync
 enum class EAccelByteAsyncTaskFlags : uint8
 {
 	None = 0, // Special state for having no flags set on the task
-	UseTimeout = 1, // Whether to track the task with a timeout that will automaticlaly end once the time limit is reached
+	UseTimeout = 1, // Whether to track the task with a timeout that will automatically end once the time limit is reached
 	ServerTask = 2 // Whether this is a server async task, meaning that we won't have API clients to retrieve
 };
 
@@ -145,10 +142,28 @@ public:
 	 * 
 	 * Child classes that use this constructor will also need to use this convention.
 	 * 
-	 * @param InBShouldUseTimeout Whether any child of this task will by default use a timeout mechanism on Tick
+	 * @param InABSubsystem A pointer to AccelByte OnlineSubsystem instance
+	 * @param bInShouldUseTimeout Whether any child of this task will by default use a timeout mechanism on Tick
 	 */
-	explicit FOnlineAsyncTaskAccelByte(FOnlineSubsystemAccelByte* const InABSubsystem, bool bInShouldUseTimeout=true)
-		: FOnlineAsyncTaskAccelByte(InABSubsystem, (bInShouldUseTimeout) ? ASYNC_TASK_FLAG_BIT(EAccelByteAsyncTaskFlags::UseTimeout) : ASYNC_TASK_FLAG_BIT(EAccelByteAsyncTaskFlags::None))
+	explicit FOnlineAsyncTaskAccelByte(FOnlineSubsystemAccelByte *const InABSubsystem
+		, bool bInShouldUseTimeout = true)
+		: FOnlineAsyncTaskAccelByte(InABSubsystem, 0, (bInShouldUseTimeout) ? ASYNC_TASK_FLAG_BIT(EAccelByteAsyncTaskFlags::UseTimeout) : ASYNC_TASK_FLAG_BIT(EAccelByteAsyncTaskFlags::None))
+	{
+	}
+	
+	/**
+	 * Breaking const placement here as parent class has the InSubsystem defined as 'T* const'. Trying to define as 'const T*' gives error C2664.
+	 * 
+	 * Child classes that use this constructor will also need to use this convention.
+	 *
+	 * @param InABSubsystem A pointer to AccelByte OnlineSubsystem instance
+	 * @param InLocalUserNum Local User Index
+	 * @param bInShouldUseTimeout Whether any child of this task will by default use a timeout mechanism on Tick
+	 */
+	explicit FOnlineAsyncTaskAccelByte(FOnlineSubsystemAccelByte *const InABSubsystem
+		, int32 InLocalUserNum
+		, bool bInShouldUseTimeout = true)
+		: FOnlineAsyncTaskAccelByte(InABSubsystem, InLocalUserNum, (bInShouldUseTimeout) ? ASYNC_TASK_FLAG_BIT(EAccelByteAsyncTaskFlags::UseTimeout) : ASYNC_TASK_FLAG_BIT(EAccelByteAsyncTaskFlags::None))
 	{
 	}
 
@@ -157,10 +172,15 @@ public:
 	 *
 	 * Child classes that use this constructor will also need to use this convention.
 	 *
-	 * @param InBShouldUseTimeout Whether any child of this task will by default use a timeout mechanism on Tick
+	 * @param InABSubsystem A pointer to AccelByte OnlineSubsystem instance
+	 * @param InLocalUserNum Local User Index
+	 * @param InFlags Flags whether any child of this task will by default use a timeout mechanism on Tick
 	 */
-	explicit FOnlineAsyncTaskAccelByte(FOnlineSubsystemAccelByte* const InABSubsystem, uint8 InFlags)
+	explicit FOnlineAsyncTaskAccelByte(FOnlineSubsystemAccelByte *const InABSubsystem
+		, int32 InLocalUserNum
+		, uint8 InFlags)
 		: FOnlineAsyncTaskBasic(InABSubsystem)
+		, LocalUserNum(InLocalUserNum)
 		, Flags(InFlags)
 	{
 		bShouldUseTimeout = HasFlag(EAccelByteAsyncTaskFlags::UseTimeout);
@@ -264,7 +284,7 @@ protected:
 	int32 LocalUserNum = INVALID_CONTROLLERID;
 
 	/*** ID of the user that we want to perform actions with, can also be nullptr in favor of a user index. */
-	TSharedPtr<const FUniqueNetIdAccelByteUser> UserId = nullptr;
+	FUniqueNetIdAccelByteUserPtr UserId = nullptr;
 
 	/** API client that should be used for this task, use GetApiClient to get a valid instance */
 	AccelByte::FApiClientPtr ApiClient;
@@ -358,7 +378,7 @@ protected:
 	/**
 	 * Gets an API client instance for a user specified by either index or ID.
 	 */
-	virtual AccelByte::FApiClientPtr GetApiClient(const TSharedRef<const FUniqueNetIdAccelByteUser>& InUserId)
+	virtual AccelByte::FApiClientPtr GetApiClient(FUniqueNetIdAccelByteUserRef const& InUserId)
 	{
 		if (ApiClient.IsValid())
 		{
@@ -380,7 +400,7 @@ protected:
 	 */
 	void GetOtherUserIdentifiers()
 	{
-		const TSharedPtr<FOnlineIdentityAccelByte, ESPMode::ThreadSafe> IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(Subsystem->GetIdentityInterface());
+		const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(Subsystem->GetIdentityInterface());
 		if (!IdentityInterface.IsValid())
 		{
 			return;
@@ -389,7 +409,7 @@ protected:
 		// If we have a local user num, then we want to get a user ID from that user num
 		if (LocalUserNum != INVALID_CONTROLLERID)
 		{
-			TSharedPtr<const FUniqueNetId> PlayerId = IdentityInterface->GetUniquePlayerId(LocalUserNum);
+			FUniqueNetIdPtr PlayerId = IdentityInterface->GetUniquePlayerId(LocalUserNum);
 			if (PlayerId.IsValid())
 			{
 #ifdef ONLINESUBSYSTEMACCELBYTE_PACKAGE

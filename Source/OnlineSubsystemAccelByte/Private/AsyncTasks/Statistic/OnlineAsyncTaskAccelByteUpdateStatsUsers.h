@@ -8,11 +8,15 @@
 #include "Models/AccelByteStatisticModels.h"
 #include "OnlineStatisticInterfaceAccelByte.h"
 
-class FOnlineAsyncTaskAccelByteUpdateStatsUsers : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteUpdateStatsUsers, ESPMode::ThreadSafe>
+class FOnlineAsyncTaskAccelByteUpdateStatsUsers
+	: public FOnlineAsyncTaskAccelByte
+	, public TSelfPtr<FOnlineAsyncTaskAccelByteUpdateStatsUsers, ESPMode::ThreadSafe>
 {
 public:
-	FOnlineAsyncTaskAccelByteUpdateStatsUsers(FOnlineSubsystemAccelByte* const InABInterface, const int32 InLocalUserNum,
-		const TArray<FOnlineStatsUserUpdatedStats>& InBulkUpdateMultipleUserStatItems, const FOnUpdateMultipleUserStatItemsComplete& InDelegate);
+	FOnlineAsyncTaskAccelByteUpdateStatsUsers(FOnlineSubsystemAccelByte *const InABInterface
+		, int32 InLocalUserNum
+		, TArray<FOnlineStatsUserUpdatedStats> const& InBulkUpdateMultipleUserStatItems
+		, FOnUpdateMultipleUserStatItemsComplete const& InDelegate);
 
 	virtual void Initialize() override;
 	virtual void Finalize() override;
@@ -28,15 +32,15 @@ protected:
 private:
 
 	THandler<TArray<FAccelByteModelsUpdateUserStatItemsResponse>> OnBulkResetMultipleUserStatItemsValueSuccess;
-	void OnBulkUpdateUserStatsSuccess(const TArray<FAccelByteModelsUpdateUserStatItemsResponse>& Result);
+	void OnBulkUpdateUserStatsSuccess(TArray<FAccelByteModelsUpdateUserStatItemsResponse> const& Result);
 
 	FErrorHandler OnError;
-	void OnBulkUpdateUserStatsFailed(int32 Code, FString const& ErrMsg);
+	void OnBulkUpdateUserStatsFailed(int32 Code
+		, FString const& ErrMsg);
 	TArray<TSharedRef<const FOnlineStatsUserStats>> OnlineUsersStatsPairs;
 
 	EAccelByteStatisticUpdateStrategy ConvertUpdateStrategy(FOnlineStatUpdate::EOnlineStatModificationType Strategy);
 
-	int32 LocalUserNum;
 	TArray<FUniqueNetIdRef> StatsUsers;
 	FUniqueNetIdAccelByteUserPtr AccelByteUserId;
 	TMap<FString, FVariantData> Stats;

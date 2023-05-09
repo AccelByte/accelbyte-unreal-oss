@@ -8,11 +8,16 @@
 #include "Models/AccelByteStatisticModels.h"
 #include "OnlineStatisticInterfaceAccelByte.h"
 
-class FOnlineAsyncTaskAccelByteCreateStatsUser : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteCreateStatsUser, ESPMode::ThreadSafe>
+class FOnlineAsyncTaskAccelByteCreateStatsUser
+	: public FOnlineAsyncTaskAccelByte
+	, public TSelfPtr<FOnlineAsyncTaskAccelByteCreateStatsUser, ESPMode::ThreadSafe>
 {
 public:
-	FOnlineAsyncTaskAccelByteCreateStatsUser(FOnlineSubsystemAccelByte* const InABInterface, const int32 InLocalUserNum,
-		const TSharedRef<const FUniqueNetId> InStatsUser, const TArray<FString>& InStatCodes, const FOnlineStatsCreateStatsComplete& InDelegate);
+	FOnlineAsyncTaskAccelByteCreateStatsUser(FOnlineSubsystemAccelByte *const InABInterface
+		, int32 InLocalUserNum
+		, FUniqueNetIdRef const InStatsUser
+		, TArray<FString> const& InStatCodes
+		, FOnlineStatsCreateStatsComplete const& InDelegate);
 
 	virtual void Initialize() override;
 	virtual void TriggerDelegates() override;
@@ -26,14 +31,13 @@ protected:
 
 private:
 	THandler<TArray<FAccelByteModelsBulkStatItemOperationResult>> OnBulkCreateStatItemsSuccess;
-	void HandleBulkCreateStatItems(const TArray<FAccelByteModelsBulkStatItemOperationResult>& Result);
+	void HandleBulkCreateStatItems(TArray<FAccelByteModelsBulkStatItemOperationResult> const& Result);
 
 	FErrorHandler OnError;
-	void HandleAsyncTaskError(int32 Code, const FString& ErrMsg);
+	void HandleAsyncTaskError(int32 Code
+		, FString const& ErrMsg);
 
-	int32 LocalUserNum;
-	FString AccelByteUserId;
-	FUniqueNetIdRef StatsUser;
+	FUniqueNetIdAccelByteUserRef StatsUser;
 	TArray<FString> StatCodes{};
 	FOnlineStatsCreateStatsComplete Delegate;
 	TArray<FAccelByteModelsBulkStatItemOperationResult> CreateStatsResult;

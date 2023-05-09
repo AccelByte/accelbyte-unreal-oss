@@ -4,21 +4,46 @@
 
 #include "OnlineAsyncTaskAccelByteListUserStatItems.h"
 #include "OnlineSubsystemAccelByte.h"
-#include "OnlineIdentityInterfaceAccelByte.h"
 #include "OnlineAgreementInterfaceAccelByte.h"
 
-FOnlineAsyncTaskAccelByteListUserStatItems::FOnlineAsyncTaskAccelByteListUserStatItems(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InLocalUserId,
-	const TArray<FString>& InStatCodes, const TArray<FString>& InTags, const FString& InAdditionalKey, bool bInAlwaysRequestToService)
-	: FOnlineAsyncTaskAccelByte(InABInterface), StatCodes(InStatCodes), Tags(InTags), AdditionalKey(InAdditionalKey), bAlwaysRequestToService(bInAlwaysRequestToService)
+FOnlineAsyncTaskAccelByteListUserStatItems::FOnlineAsyncTaskAccelByteListUserStatItems(FOnlineSubsystemAccelByte *const InABInterface
+	, int32 InLocalUserNum
+	, TArray<FString> const& InStatCodes
+	, TArray<FString> const& InTags
+	, FString const& InAdditionalKey
+	, bool bInAlwaysRequestToService)
+	: FOnlineAsyncTaskAccelByte(InABInterface, InLocalUserNum)
+	, StatCodes(InStatCodes)
+	, Tags(InTags)
+	, AdditionalKey(InAdditionalKey)
+	, bAlwaysRequestToService(bInAlwaysRequestToService)
 {
-	UserId = FUniqueNetIdAccelByteUser::CastChecked(InLocalUserId);
 }
 
 void FOnlineAsyncTaskAccelByteListUserStatItems::Initialize()
 {
 	Super::Initialize();
 
-	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("List user statistic items, UserId: %s"), *UserId->ToDebugString());
+	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("List user statistic items, UserId: %s")
+		, *UserId->ToDebugString());
+		
+	const IOnlineIdentityPtr IdentityInterface = Subsystem->GetIdentityInterface();
+	if (!IdentityInterface.IsValid())
+	{
+		ErrorStr = TEXT("list-user-stat-items-failed-identity-invalid");
+		CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
+		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to get list user statistic items, Identity Interface is invalid!"));
+		return;
+	}
+
+	auto LoginStatus = IdentityInterface->GetLoginStatus(LocalUserNum);
+	if (LoginStatus != ELoginStatus::LoggedIn)
+	{
+		ErrorStr = TEXT("list-user-stat-items-failed-not-logged-in");
+		CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
+		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to get list user statistic items, not logged in!"));
+		return;
+	}
 
 	const FOnlineStatisticAccelBytePtr StatisticInterface = StaticCastSharedPtr<FOnlineStatisticAccelByte>(Subsystem->GetStatsInterface());
 	if (StatisticInterface.IsValid())
@@ -39,11 +64,17 @@ void FOnlineAsyncTaskAccelByteListUserStatItems::Initialize()
 		else
 		{
 			// Create delegates for successfully as well as unsuccessfully querying the user's eligibilities
-		 	OnListUserStatItemsSuccessDelegate = TDelegateUtils<THandler<TArray<FAccelByteModelsFetchUser>>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteListUserStatItems::OnListUserStatItemsSuccess);
-			OnListUserStatItemsErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteListUserStatItems::OnListUserStatItemsError);
+		 	OnListUserStatItemsSuccessDelegate = TDelegateUtils<THandler<TArray<FAccelByteModelsFetchUser>>>::CreateThreadSafeSelfPtr(this
+		 		, &FOnlineAsyncTaskAccelByteListUserStatItems::OnListUserStatItemsSuccess);
+			OnListUserStatItemsErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this
+				, &FOnlineAsyncTaskAccelByteListUserStatItems::OnListUserStatItemsError);
 
 			// Send off a request to query users, as well as connect our delegates for doing so
-			ApiClient->Statistic.ListUserStatItems({}, {}, "", OnListUserStatItemsSuccessDelegate, OnListUserStatItemsErrorDelegate);
+			ApiClient->Statistic.ListUserStatItems({}
+				, {}
+				, TEXT("")
+				, OnListUserStatItemsSuccessDelegate
+				, OnListUserStatItemsErrorDelegate);
 		}
 	}
 
@@ -52,7 +83,8 @@ void FOnlineAsyncTaskAccelByteListUserStatItems::Initialize()
 
 void FOnlineAsyncTaskAccelByteListUserStatItems::TriggerDelegates()
 {
-	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
+	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s")
+		, LOG_BOOL_FORMAT(bWasSuccessful));
 
 	const FOnlineStatisticAccelBytePtr StatisticInterface = StaticCastSharedPtr<FOnlineStatisticAccelByte>(Subsystem->GetStatsInterface());
 	if (StatisticInterface.IsValid())
@@ -65,18 +97,24 @@ void FOnlineAsyncTaskAccelByteListUserStatItems::TriggerDelegates()
 				UsersReturn.Add(User);
 			}
 
-			StatisticInterface->TriggerOnListUserStatItemsCompletedDelegates(LocalUserNum, true, UsersReturn, TEXT(""));
+			StatisticInterface->TriggerOnListUserStatItemsCompletedDelegates(LocalUserNum
+				, true
+				, UsersReturn
+				, TEXT(""));
 		}
 		else
 		{
-			StatisticInterface->TriggerOnListUserStatItemsCompletedDelegates(LocalUserNum, false, TArray<FAccelByteModelsFetchUser>{}, ErrorStr);
+			StatisticInterface->TriggerOnListUserStatItemsCompletedDelegates(LocalUserNum
+				, false
+				, TArray<FAccelByteModelsFetchUser>{}
+				, ErrorStr);
 		}
 	}
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 
-void FOnlineAsyncTaskAccelByteListUserStatItems::OnListUserStatItemsSuccess(const TArray<FAccelByteModelsFetchUser>& Result)
+void FOnlineAsyncTaskAccelByteListUserStatItems::OnListUserStatItemsSuccess(TArray<FAccelByteModelsFetchUser> const& Result)
 {
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 
@@ -90,16 +128,21 @@ void FOnlineAsyncTaskAccelByteListUserStatItems::OnListUserStatItemsSuccess(cons
 		{
 			UsersRef.Add(MakeShared<FAccelByteModelsFetchUser>(User));
 		}
-		StatisticInterface->UsersMap.Emplace(UserId.ToSharedRef(), UsersRef);
+		StatisticInterface->UsersMap.Emplace(UserId.ToSharedRef()
+			, UsersRef);
 	}
 
 	CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
-	AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sending request to query AccelByte List user statistic items for user '%s'!"), *UserId->ToDebugString());
+	AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sending request to query AccelByte List user statistic items for user '%s'!")
+		, *UserId->ToDebugString());
 }
 
-void FOnlineAsyncTaskAccelByteListUserStatItems::OnListUserStatItemsError(int32 ErrorCode, const FString& ErrorMessage)
+void FOnlineAsyncTaskAccelByteListUserStatItems::OnListUserStatItemsError(int32 ErrorCode
+	, FString const& ErrorMessage)
 {
 	ErrorStr = TEXT("request-failed-list-users-stat-items-error");
-	UE_LOG_AB(Warning, TEXT("Failed to get list user list statistic items! Error Code: %d; Error Message: %s"), ErrorCode, *ErrorMessage);
+	UE_LOG_AB(Warning, TEXT("Failed to get list user list statistic items! Error Code: %d; Error Message: %s")
+		, ErrorCode
+		, *ErrorMessage);
 	CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
 }

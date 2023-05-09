@@ -5,6 +5,7 @@
 #include "OnlineAsyncTaskAccelByteQueryEligibilities.h"
 #include "OnlineSubsystemAccelByte.h"
 #include "OnlineIdentityInterfaceAccelByte.h"
+#include "OnlineAgreementInterfaceAccelByte.h"
 
 FOnlineAsyncTaskAccelByteQueryEligibilities::FOnlineAsyncTaskAccelByteQueryEligibilities(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InLocalUserId, bool bInNotAcceptedOnly, bool bInAlwaysRequestToService)
 	: FOnlineAsyncTaskAccelByte(InABInterface)

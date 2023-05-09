@@ -125,10 +125,11 @@ typedef TSharedPtr<FOnlineChatAccelByte, ESPMode::ThreadSafe> FOnlineChatAccelBy
 /** Shared pointer to the AccelByte implementation of the Auth interface */
 typedef TSharedPtr<FOnlineAuthAccelByte, ESPMode::ThreadSafe> FOnlineAuthAccelBytePtr;
 
-typedef TSharedPtr<FOnlineAchievementsAccelByte, ESPMode::ThreadSafe> FOnlineAchievementAccelBytePtr;
+typedef TSharedPtr<FOnlineAchievementsAccelByte, ESPMode::ThreadSafe> FOnlineAchievementsAccelBytePtr;
 
-
-class ONLINESUBSYSTEMACCELBYTE_API FOnlineSubsystemAccelByte final : public FOnlineSubsystemImpl, public TSharedFromThis<FOnlineSubsystemAccelByte, ESPMode::ThreadSafe>
+class ONLINESUBSYSTEMACCELBYTE_API FOnlineSubsystemAccelByte final
+	: public FOnlineSubsystemImpl
+	, public TSharedFromThis<FOnlineSubsystemAccelByte, ESPMode::ThreadSafe>
 {
 public:
 	virtual ~FOnlineSubsystemAccelByte() override = default;
@@ -420,7 +421,7 @@ private:
 	FOnlineAuthAccelBytePtr AuthInterface;
 
 	/** Shared instance of our achievement implementation */
-	FOnlineAchievementAccelBytePtr AchievementInterface;
+	FOnlineAchievementsAccelBytePtr AchievementInterface;
 
 	/** Thread spawned to run the FOnlineAsyncTaskManagerAccelBytePtr instance */
 	TUniquePtr<FRunnableThread> AsyncTaskManagerThread;

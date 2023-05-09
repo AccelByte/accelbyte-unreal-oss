@@ -7,8 +7,7 @@
 #include "AsyncTasks/OnlineAsyncTaskAccelByteUtils.h"
 #include "OnlineSubsystemAccelByteTypes.h"
 #include "Models/AccelByteEcommerceModels.h"
-#include <OnlineIdentityInterfaceAccelByte.h>
-#include <OnlineWalletInterfaceAccelByte.h>
+#include "OnlineIdentityInterfaceAccelByte.h"
 
 /**
  * Task for get currency list

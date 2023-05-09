@@ -6,10 +6,11 @@
 
 #define ONLINE_ERROR_NAMESPACE "FOnlineStatsSystemAccelByte"
 
-FOnlineAsyncTaskAccelByteUpdateStatsUsers::FOnlineAsyncTaskAccelByteUpdateStatsUsers(FOnlineSubsystemAccelByte* const InABInterface, const int32 InLocalUserNum,
-	const TArray<FOnlineStatsUserUpdatedStats>& InBulkUpdateMultipleUserStatItems, const FOnUpdateMultipleUserStatItemsComplete& InDelegate)
-	: FOnlineAsyncTaskAccelByte(InABInterface, true)
-	, LocalUserNum(InLocalUserNum)
+FOnlineAsyncTaskAccelByteUpdateStatsUsers::FOnlineAsyncTaskAccelByteUpdateStatsUsers(FOnlineSubsystemAccelByte* const InABInterface
+	, int32 InLocalUserNum
+	, TArray<FOnlineStatsUserUpdatedStats> const& InBulkUpdateMultipleUserStatItems
+	, const FOnUpdateMultipleUserStatItemsComplete& InDelegate)
+	: FOnlineAsyncTaskAccelByte(InABInterface, InLocalUserNum, true)
 	, BulkUpdateMultipleUserStatItems(InBulkUpdateMultipleUserStatItems)
 	, Delegate(InDelegate)
 {
@@ -46,8 +47,9 @@ FOnlineAsyncTaskAccelByteUpdateStatsUsers::FOnlineAsyncTaskAccelByteUpdateStatsU
 
 void FOnlineAsyncTaskAccelByteUpdateStatsUsers::Initialize()
 {
-	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Initialized"));
 	Super::Initialize();
+	
+	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Initialized"));
 
 	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(Subsystem->GetIdentityInterface());
 	if (!IdentityInterface.IsValid())
@@ -67,13 +69,17 @@ void FOnlineAsyncTaskAccelByteUpdateStatsUsers::Initialize()
 		return;
 	}
 
-	OnBulkResetMultipleUserStatItemsValueSuccess = TDelegateUtils<THandler<TArray<FAccelByteModelsUpdateUserStatItemsResponse>>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteUpdateStatsUsers::OnBulkUpdateUserStatsSuccess);
-	OnError = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteUpdateStatsUsers::OnBulkUpdateUserStatsFailed);
+	OnBulkResetMultipleUserStatItemsValueSuccess = TDelegateUtils<THandler<TArray<FAccelByteModelsUpdateUserStatItemsResponse>>>::CreateThreadSafeSelfPtr(this
+		, &FOnlineAsyncTaskAccelByteUpdateStatsUsers::OnBulkUpdateUserStatsSuccess);
+	OnError = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this
+		, &FOnlineAsyncTaskAccelByteUpdateStatsUsers::OnBulkUpdateUserStatsFailed);
 
 	if (IsRunningDedicatedServer())
 	{
 		FServerApiClientPtr ServerApiClient = FMultiRegistry::GetServerApiClient();
-		ServerApiClient->ServerStatistic.BulkUpdateMultipleUserStatItemsValue(BulkUpdateUserStatItemsRequest, OnBulkResetMultipleUserStatItemsValueSuccess, OnError);
+		ServerApiClient->ServerStatistic.BulkUpdateMultipleUserStatItemsValue(BulkUpdateUserStatItemsRequest
+			, OnBulkResetMultipleUserStatItemsValueSuccess
+			, OnError);
 	}
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
@@ -81,8 +87,9 @@ void FOnlineAsyncTaskAccelByteUpdateStatsUsers::Initialize()
 
 void FOnlineAsyncTaskAccelByteUpdateStatsUsers::Finalize()
 {
-	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Finalize"));
 	Super::Finalize();
+	
+	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Finalize"));
 
 	const FOnlineStatisticAccelBytePtr StatisticInterface = StaticCastSharedPtr<FOnlineStatisticAccelByte>(Subsystem->GetStatsInterface());
 	if (StatisticInterface.IsValid())
@@ -98,15 +105,17 @@ void FOnlineAsyncTaskAccelByteUpdateStatsUsers::Finalize()
 
 void FOnlineAsyncTaskAccelByteUpdateStatsUsers::TriggerDelegates()
 {
-	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Trigger Delegates"));
 	Super::TriggerDelegates();
-	EOnlineErrorResult Result = ((bWasSuccessful) ? EOnlineErrorResult::Success : EOnlineErrorResult::RequestFailure);
+	
+	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Trigger Delegates"));
+	EOnlineErrorResult Result = bWasSuccessful ? EOnlineErrorResult::Success : EOnlineErrorResult::RequestFailure;
 
-	Delegate.ExecuteIfBound(ONLINE_ERROR(Result, ErrorCode, FText::FromString(ErrorMessage)), BulkUpdateUserStatItemsResult);
+	Delegate.ExecuteIfBound(ONLINE_ERROR(Result, ErrorCode, FText::FromString(ErrorMessage))
+		, BulkUpdateUserStatItemsResult);
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 
-void FOnlineAsyncTaskAccelByteUpdateStatsUsers::OnBulkUpdateUserStatsSuccess(const TArray<FAccelByteModelsUpdateUserStatItemsResponse>& Result)
+void FOnlineAsyncTaskAccelByteUpdateStatsUsers::OnBulkUpdateUserStatsSuccess(TArray<FAccelByteModelsUpdateUserStatItemsResponse> const& Result)
 {
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("BulkUpdateUserStatItemsValue Success"));
 	BulkUpdateUserStatItemsResult = Result;
@@ -138,9 +147,12 @@ void FOnlineAsyncTaskAccelByteUpdateStatsUsers::OnBulkUpdateUserStatsSuccess(con
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 
-void FOnlineAsyncTaskAccelByteUpdateStatsUsers::OnBulkUpdateUserStatsFailed(int32 Code, FString const& ErrMsg)
+void FOnlineAsyncTaskAccelByteUpdateStatsUsers::OnBulkUpdateUserStatsFailed(int32 Code
+	, FString const& ErrMsg)
 {
-	AB_OSS_ASYNC_TASK_TRACE_BEGIN_VERBOSITY(Error, TEXT("Code: %d; Message: %s"), Code, *ErrMsg);
+	AB_OSS_ASYNC_TASK_TRACE_BEGIN_VERBOSITY(Error, TEXT("Code: %d; Message: %s")
+		, Code
+		, *ErrMsg);
 
 	ErrorCode = FString::Printf(TEXT("%d"), Code);
 	ErrorMessage = ErrMsg;

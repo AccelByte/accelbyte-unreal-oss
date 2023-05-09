@@ -10,56 +10,70 @@
 
 #define ONLINE_ERROR_NAMESPACE "FOnlineStatsSystemAccelByte"
 
-FOnlineAsyncTaskAccelByteCreateStatsUser::FOnlineAsyncTaskAccelByteCreateStatsUser(FOnlineSubsystemAccelByte* const InABInterface, const int32 InLocalUserNum,
-	const TSharedRef<const FUniqueNetId> InStatsUser, const TArray<FString>& InStatCodes, const FOnlineStatsCreateStatsComplete& InDelegate)
-	: FOnlineAsyncTaskAccelByte(InABInterface, true)
-	, LocalUserNum(InLocalUserNum)
-	, StatsUser(InStatsUser)
+FOnlineAsyncTaskAccelByteCreateStatsUser::FOnlineAsyncTaskAccelByteCreateStatsUser(FOnlineSubsystemAccelByte *const InABInterface
+	, int32 InLocalUserNum
+	, FUniqueNetIdRef const InStatsUser
+	, TArray<FString> const& InStatCodes
+	, FOnlineStatsCreateStatsComplete const& InDelegate)
+	: FOnlineAsyncTaskAccelByte(InABInterface, InLocalUserNum, true)
 	, StatCodes(InStatCodes)
 	, Delegate(InDelegate)
 {
-	AccelByteUserId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(StatsUser)->GetAccelByteId();
+	StatsUser = FUniqueNetIdAccelByteUser::CastChecked(InStatsUser);
 	CreateStatsResult = TArray<FAccelByteModelsBulkStatItemOperationResult>{};
 }
 
 void FOnlineAsyncTaskAccelByteCreateStatsUser::Initialize()
 {
-	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 	Super::Initialize();
+	
+	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
+
+	if (!IsRunningDedicatedServer())
+	{
+		ErrorMessage = TEXT("request-failed-create-user-stats-error-not-ds");
+		CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
+		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to create user stats, not running as Dedicated Server!"));
+		return;
+	}
+
+	if (!StatsUser->IsValid())
+	{
+		ErrorMessage = TEXT("request-failed-create-user-stats-error-user-invalid");
+		CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
+		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to create user stats, selected user is invalid!"));
+		return;
+	}
 
 	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(Subsystem->GetIdentityInterface());
 	if (!IdentityInterface.IsValid())
 	{
-		ErrorMessage = TEXT("request-failed-create-user-stats-error");
+		ErrorMessage = TEXT("request-failed-create-user-stats-error-identity-invalid");
 		CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
-		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to create user stats, identity interface is invalid!"));
+		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to create user stats, Identity Interface is invalid!"));
 		return;
 	}
 
 	auto LoginStatus = IdentityInterface->GetLoginStatus(LocalUserNum);
 	if (LoginStatus != ELoginStatus::LoggedIn)
 	{
-		ErrorMessage = TEXT("request-failed-create-user-stats-error");
+		ErrorMessage = TEXT("request-failed-create-user-stats-error-not-logged-in");
 		CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
-		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to create user stats, user not logged in!"));
+		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to create user stats, not logged in!"));
 		return;
 	}
 
-	OnBulkCreateStatItemsSuccess = TDelegateUtils<THandler<TArray<FAccelByteModelsBulkStatItemOperationResult>>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteCreateStatsUser::HandleBulkCreateStatItems);
-	OnError = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteCreateStatsUser::HandleAsyncTaskError);
-
-	if (IsRunningDedicatedServer())
-	{
-		FServerApiClientPtr ServerApiClient = FMultiRegistry::GetServerApiClient();
-		ServerApiClient->ServerStatistic.CreateUserStatItems(AccelByteUserId,StatCodes, OnBulkCreateStatItemsSuccess, OnError);
-	}
-	else
-	{
-		ErrorMessage = TEXT("request-failed-create-user-stats-error");
-		CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
-		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to create user stats, user not a DS!"));
-		return;
-	}
+	OnBulkCreateStatItemsSuccess = TDelegateUtils<THandler<TArray<FAccelByteModelsBulkStatItemOperationResult>>>::CreateThreadSafeSelfPtr(this
+		, &FOnlineAsyncTaskAccelByteCreateStatsUser::HandleBulkCreateStatItems);
+	OnError = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this
+		, &FOnlineAsyncTaskAccelByteCreateStatsUser::HandleAsyncTaskError);
+	
+	FString AccelByteUserId = StatsUser->GetAccelByteId();
+	FServerApiClientPtr ServerApiClient = FMultiRegistry::GetServerApiClient();
+	ServerApiClient->ServerStatistic.CreateUserStatItems(AccelByteUserId
+		, StatCodes
+		, OnBulkCreateStatItemsSuccess
+		, OnError);
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 
@@ -68,13 +82,14 @@ void FOnlineAsyncTaskAccelByteCreateStatsUser::TriggerDelegates()
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 	Super::TriggerDelegates();
 
-	EOnlineErrorResult Result = ((bWasSuccessful) ? EOnlineErrorResult::Success : EOnlineErrorResult::RequestFailure);
+	EOnlineErrorResult Result = bWasSuccessful ? EOnlineErrorResult::Success : EOnlineErrorResult::RequestFailure;
 
-	Delegate.ExecuteIfBound(ONLINE_ERROR(Result, ErrorCode, FText::FromString(ErrorMessage)), CreateStatsResult);
+	Delegate.ExecuteIfBound(ONLINE_ERROR(Result, ErrorCode, FText::FromString(ErrorMessage))
+		, CreateStatsResult);
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 
-void FOnlineAsyncTaskAccelByteCreateStatsUser::HandleBulkCreateStatItems(const TArray<FAccelByteModelsBulkStatItemOperationResult>& Result)
+void FOnlineAsyncTaskAccelByteCreateStatsUser::HandleBulkCreateStatItems(TArray<FAccelByteModelsBulkStatItemOperationResult> const& Result)
 {
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 	CreateStatsResult = Result;
@@ -83,9 +98,12 @@ void FOnlineAsyncTaskAccelByteCreateStatsUser::HandleBulkCreateStatItems(const T
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 
-void FOnlineAsyncTaskAccelByteCreateStatsUser::HandleAsyncTaskError(int32 Code, FString const& ErrMsg)
+void FOnlineAsyncTaskAccelByteCreateStatsUser::HandleAsyncTaskError(int32 Code
+	, FString const& ErrMsg)
 {
-	AB_OSS_ASYNC_TASK_TRACE_BEGIN_VERBOSITY(Error, TEXT("Code: %d; Message: %s"), Code, *ErrMsg);
+	AB_OSS_ASYNC_TASK_TRACE_BEGIN_VERBOSITY(Error, TEXT("Code: %d; Message: %s")
+		, Code
+		, *ErrMsg);
 
 	ErrorCode = FString::Printf(TEXT("%d"), Code);
 	ErrorMessage = ErrMsg;

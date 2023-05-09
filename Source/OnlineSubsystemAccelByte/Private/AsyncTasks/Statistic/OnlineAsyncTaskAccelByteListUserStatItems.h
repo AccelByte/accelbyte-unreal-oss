@@ -7,22 +7,23 @@
 #include "AsyncTasks/OnlineAsyncTaskAccelByteUtils.h"
 #include "OnlineSubsystemAccelByteTypes.h"
 #include "Models/AccelByteStatisticModels.h"
-#include "OnlineIdentityInterfaceAccelByte.h"
 #include "OnlineStatisticInterfaceAccelByte.h"
 
 /**
  * Task for accept agreement policies
  */
-class FOnlineAsyncTaskAccelByteListUserStatItems : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteListUserStatItems, ESPMode::ThreadSafe>
+class FOnlineAsyncTaskAccelByteListUserStatItems
+	: public FOnlineAsyncTaskAccelByte
+	, public TSelfPtr<FOnlineAsyncTaskAccelByteListUserStatItems, ESPMode::ThreadSafe>
 {
 public:
 
-	FOnlineAsyncTaskAccelByteListUserStatItems(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InLocalUserId, 
-		const TArray<FString>& StatCodes, const TArray<FString>& Tags, const FString& AdditionalKey, bool bAlwaysRequestToService);
-
-	FOnlineAsyncTaskAccelByteListUserStatItems(FOnlineSubsystemAccelByte* const InABInterface, const TSharedRef<const FUniqueNetId> StatsUser,
-		const FOnlineStatsQueryUserStatsComplete& Delegate);
-
+	FOnlineAsyncTaskAccelByteListUserStatItems(FOnlineSubsystemAccelByte *const InABInterface
+		, int32 InLocalUserNum 
+		, TArray<FString> const& StatCodes
+		, TArray<FString> const& Tags
+		, FString const& AdditionalKey
+		, bool bAlwaysRequestToService);
 	virtual void Initialize() override;
 	virtual void TriggerDelegates() override;
 

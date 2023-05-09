@@ -3,16 +3,21 @@
 // and restrictions contact your company contract manager.
 
 #pragma once
+#include "Interfaces/OnlineStatsInterface.h"
 #include "AsyncTasks/OnlineAsyncTaskAccelByte.h"
 #include "AsyncTasks/OnlineAsyncTaskAccelByteUtils.h"
 #include "Models/AccelByteStatisticModels.h"
 
 
-class FOnlineAsyncTaskAccelByteUpdateStats : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteUpdateStats, ESPMode::ThreadSafe>
+class FOnlineAsyncTaskAccelByteUpdateStats
+	: public FOnlineAsyncTaskAccelByte
+	, public TSelfPtr<FOnlineAsyncTaskAccelByteUpdateStats, ESPMode::ThreadSafe>
 {
 public:
-	FOnlineAsyncTaskAccelByteUpdateStats(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetIdRef LocalUserId, const TArray<FOnlineStatsUserUpdatedStats>& UpdatedUserStats,
-		const FOnlineStatsUpdateStatsComplete& Delegate);
+	FOnlineAsyncTaskAccelByteUpdateStats(FOnlineSubsystemAccelByte *const InABInterface
+		, FUniqueNetIdRef const LocalUserId
+		, TArray<FOnlineStatsUserUpdatedStats> const& UpdatedUserStats
+		, FOnlineStatsUpdateStatsComplete const& Delegate);
 
 	virtual void Initialize() override;
 	virtual void TriggerDelegates() override;
@@ -26,14 +31,14 @@ protected:
 
 private:
 
-	void HandleBulkUpdateUserStatItemsValue(const TArray<FAccelByteModelsUpdateUserStatItemsResponse>& Result);
+	void HandleBulkUpdateUserStatItemsValue(TArray<FAccelByteModelsUpdateUserStatItemsResponse> const& Result);
 
 	THandler<TArray<FAccelByteModelsUpdateUserStatItemsResponse>> OnBulkUpdateUserStatItemsValueSuccess;
-	void HandleAsyncTaskError(int32 Code, FString const& ErrMsg);
+	void HandleAsyncTaskError(int32 Code
+		, FString const& ErrMsg);
 	FErrorHandler OnError;
 	FOnlineError OnlineError;
 
-	FUniqueNetIdRef LocalUserId;
 	TArray<FOnlineStatsUserUpdatedStats> UpdatedUserStats;
 	TArray<FAccelByteModelsUpdateUserStatItemWithStatCode> BulkUpdateUserStatItems; 
 	FOnlineStatsUpdateStatsComplete Delegate; 

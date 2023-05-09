@@ -3,19 +3,27 @@
 // and restrictions contact your company contract manager.
 
 #pragma once
+#include "Interfaces/OnlineStatsInterface.h"
 #include "AsyncTasks/OnlineAsyncTaskAccelByte.h"
 #include "AsyncTasks/OnlineAsyncTaskAccelByteUtils.h"
 #include "Models/AccelByteStatisticModels.h"
- 
 
-class FOnlineAsyncTaskAccelByteQueryStatsUsers : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteQueryStatsUsers, ESPMode::ThreadSafe>
+class FOnlineAsyncTaskAccelByteQueryStatsUsers
+	: public FOnlineAsyncTaskAccelByte
+	, public TSelfPtr<FOnlineAsyncTaskAccelByteQueryStatsUsers, ESPMode::ThreadSafe>
 {
 public:
-	FOnlineAsyncTaskAccelByteQueryStatsUsers(FOnlineSubsystemAccelByte* const InABInterface, const TSharedRef<const FUniqueNetId> InLocalUserId,
-		const TArray<FUniqueNetIdRef>& InStatsUsers, const TArray<FString>& InStatNames, const FOnlineStatsQueryUsersStatsComplete& InDelegate);
+	FOnlineAsyncTaskAccelByteQueryStatsUsers(FOnlineSubsystemAccelByte *const InABInterface
+		, FUniqueNetIdRef const InLocalUserId
+		, TArray<FUniqueNetIdRef> const& InStatsUsers
+		, TArray<FString> const& InStatNames
+		, FOnlineStatsQueryUsersStatsComplete const& InDelegate);
 
-	FOnlineAsyncTaskAccelByteQueryStatsUsers(FOnlineSubsystemAccelByte* const InABInterface, const int32 InLocalUserNum,
-		const TArray<FUniqueNetIdRef>& InStatsUsers, const TArray<FString>& InStatNames, const FOnlineStatsQueryUsersStatsComplete& InDelegate);
+	FOnlineAsyncTaskAccelByteQueryStatsUsers(FOnlineSubsystemAccelByte *const InABInterface
+		, int32 InLocalUserNum
+		, TArray<FUniqueNetIdRef> const& InStatsUsers
+		, TArray<FString> const& InStatNames
+		, FOnlineStatsQueryUsersStatsComplete const& InDelegate);
 
 	virtual void Initialize() override;
 	virtual void Finalize() override;
@@ -30,9 +38,10 @@ protected:
 	}
 
 private:
-	void OnGetUserStatItemsSuccess(const FAccelByteModelsUserStatItemPagingSlicedResult& Result);
+	void OnGetUserStatItemsSuccess(FAccelByteModelsUserStatItemPagingSlicedResult const& Result);
 
-	void OnGetUsersStatsItemsError(int32 Code, FString const& ErrMsg);
+	void OnGetUsersStatsItemsError(int32 Code
+		, FString const& ErrMsg);
 	FErrorHandler OnError;
 	TArray<TSharedRef<const FOnlineStatsUserStats>> OnlineUsersStatsPairs;
 	THandler<FAccelByteModelsUserStatItemPagingSlicedResult> OnGetUserStatItemsSuccessHandler;

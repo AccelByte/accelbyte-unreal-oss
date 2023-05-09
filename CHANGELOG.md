@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.10.4](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.10.4%0D0.10.3) (2023-05-09)
+
+
+### Bug Fixes
+
+* missing include headers when the project doesn't use shared precompiled headers ([adf825e](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/adf825e413e93494af3913fb537db84e64b1f6ec))
+
 ### [0.10.3](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.10.3%0D0.10.2) (2023-05-08)
 
 

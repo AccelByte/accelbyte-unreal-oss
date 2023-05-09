@@ -6,9 +6,7 @@
 #include "AsyncTasks/OnlineAsyncTaskAccelByte.h"
 #include "AsyncTasks/OnlineAsyncTaskAccelByteUtils.h"
 #include "OnlineSubsystemAccelByteTypes.h"
-#include "Models/AccelByteAgreementModels.h"
 #include "OnlineIdentityInterfaceAccelByte.h"
-#include "OnlineAgreementInterfaceAccelByte.h"
 
 /**
  * Task for get localized policy content

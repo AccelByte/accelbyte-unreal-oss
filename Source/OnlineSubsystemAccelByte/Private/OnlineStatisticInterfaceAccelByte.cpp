@@ -7,7 +7,6 @@
 #include "OnlineIdentityInterfaceAccelByte.h"
 #include "OnlineSubsystemAccelByteInternalHelpers.h"
 #include "AsyncTasks/Statistic/OnlineAsyncTaskAccelByteListUserStatItems.h"
-#include "AsyncTasks/Statistic/OnlineAsyncTaskAccelByteQueryStatsUser.h"
 #include "AsyncTasks/Statistic/OnlineAsyncTaskAccelByteQueryStatsUsers.h"
 #include "AsyncTasks/Statistic/OnlineAsyncTaskAccelByteUpdateStats.h"
 #include "AsyncTasks/Statistic/OnlineAsyncTaskAccelByteResetUserStats.h"
@@ -16,36 +15,23 @@
 #include "AsyncTasks/Statistic/OnlineAsyncTaskAccelByteDeleteStatsUsers.h"
 #include "OnlineSubsystemUtils.h"
 
-bool FOnlineStatisticAccelByte::ListUserStatItems(int32 LocalUserNum, const TArray<FString>& StatCodes, const TArray<FString>& Tags, const FString& AdditionalKey, bool bAlwaysRequestToService)
+bool FOnlineStatisticAccelByte::ListUserStatItems(int32 LocalUserNum
+	, const TArray<FString>& StatCodes
+	, const TArray<FString>& Tags
+	, const FString& AdditionalKey
+	, bool bAlwaysRequestToService)
 {
-	const IOnlineIdentityPtr IdentityInterface = AccelByteSubsystem->GetIdentityInterface();
-	if (IdentityInterface.IsValid())
-	{
-		// Check whether user is connected or not yet
-		if (IdentityInterface->GetLoginStatus(LocalUserNum) == ELoginStatus::LoggedIn)
-		{
-			const TSharedPtr<const FUniqueNetId> UserIdPtr = IdentityInterface->GetUniquePlayerId(LocalUserNum);
-			TSharedPtr<FUserOnlineAccount> UserAccount;
-			if (UserIdPtr.IsValid())
-			{
-				AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteListUserStatItems>(AccelByteSubsystem, *UserIdPtr.Get(),
-					StatCodes, Tags, AdditionalKey, bAlwaysRequestToService);
-				return true;
-			}
-			const FString ErrorStr = TEXT("list-user-stat-items-failed-userid-invalid");
-			AB_OSS_INTERFACE_TRACE_END(TEXT("UserId is not valid at user index '%d'!"), LocalUserNum);
-			TriggerOnListUserStatItemsCompletedDelegates(LocalUserNum, false, TArray<FAccelByteModelsFetchUser>{}, ErrorStr);
-			return false;
-		}
-	}
-
-	const FString ErrorStr = TEXT("list-user-stat-items-failed-not-logged-in");
-	AB_OSS_INTERFACE_TRACE_END(TEXT("User not logged in at user index '%d'!"), LocalUserNum);
-	TriggerOnListUserStatItemsCompletedDelegates(LocalUserNum, false, TArray<FAccelByteModelsFetchUser>{}, ErrorStr);
-	return false;
+	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteListUserStatItems>(AccelByteSubsystem
+		, LocalUserNum
+		, StatCodes
+		, Tags
+		, AdditionalKey
+		, bAlwaysRequestToService);
+	return true;
 }
 
-bool FOnlineStatisticAccelByte::GetListUserStatItems(int32 LocalUserNum, TArray<TSharedRef<FAccelByteModelsFetchUser>>& OutUsers)
+bool FOnlineStatisticAccelByte::GetListUserStatItems(int32 LocalUserNum
+	, TArray<TSharedRef<FAccelByteModelsFetchUser>>& OutUsers)
 {
 	const IOnlineIdentityPtr IdentityInterface = AccelByteSubsystem->GetIdentityInterface();
 	TArray<TSharedRef<FAccelByteModelsFetchUser>> Users = UsersMap.FindRef(IdentityInterface->GetUniquePlayerId(LocalUserNum)->AsShared());
@@ -60,11 +46,17 @@ bool FOnlineStatisticAccelByte::GetListUserStatItems(int32 LocalUserNum, TArray<
 	return false;
 }
 
-void FOnlineStatisticAccelByte::CreateStats(const int32 LocalUserNum, const FUniqueNetIdRef StatsUser, const TArray<FString>& StatNames, const FOnlineStatsCreateStatsComplete& Delegate)
+void FOnlineStatisticAccelByte::CreateStats(const int32 LocalUserNum
+	, const FUniqueNetIdRef StatsUser
+	, const TArray<FString>& StatNames
+	, const FOnlineStatsCreateStatsComplete& Delegate)
 {
 	UE_LOG_ONLINE_STATS(Display, TEXT("FOnlineStatisticAccelByte::CreateStats"));
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteCreateStatsUser>
-		(AccelByteSubsystem, LocalUserNum, StatsUser, StatNames, Delegate);
+	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteCreateStatsUser>(AccelByteSubsystem
+		, LocalUserNum
+		, StatsUser
+		, StatNames
+		, Delegate);
 }
 
 void FOnlineStatisticAccelByte::EmplaceStats(const TSharedPtr<const FOnlineStatsUserStats>& InUserStats)
@@ -94,7 +86,8 @@ void FOnlineStatisticAccelByte::EmplaceStats(const TArray<TSharedPtr<const FOnli
 	}
 }
 
-void FOnlineStatisticAccelByte::RemoveStats(const FUniqueNetIdRef StatsUserId, const FString& StatsCode)
+void FOnlineStatisticAccelByte::RemoveStats(const FUniqueNetIdRef StatsUserId
+	, const FString& StatsCode)
 {
 	FScopeLock ScopeLock(&StatsLock);
 
@@ -131,93 +124,160 @@ void FOnlineStatisticAccelByte::RemoveStats(const FUniqueNetIdRef StatsUserId, c
 	UsersStats[UserStatIndex] = NewUserStats;
 }
 
-void FOnlineStatisticAccelByte::ResetStats(const int32 LocalUserNum, const FUniqueNetIdRef StatsUserId)
+void FOnlineStatisticAccelByte::ResetStats(const int32 LocalUserNum
+	, const FUniqueNetIdRef StatsUserId)
 {
 #if !UE_BUILD_SHIPPING
 	UE_LOG_ONLINE_STATS(Display, TEXT("FOnlineStatisticAccelByte::ResetStats"));
 
 	TSharedPtr<const FOnlineStatsUserStats> Value = GetStats(StatsUserId);
 
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteResetUserStats>(AccelByteSubsystem, LocalUserNum, StatsUserId, Value);
+	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteResetUserStats>(AccelByteSubsystem
+		, LocalUserNum
+		, StatsUserId
+		, Value);
 #endif // !UE_BUILD_SHIPPING
 }
 
-void FOnlineStatisticAccelByte::UpdateStats(const int32 LocalUserNum, const TArray<FOnlineStatsUserUpdatedStats>& BulkUpdateMultipleUserStatItems, const FOnUpdateMultipleUserStatItemsComplete& Delegate)
+void FOnlineStatisticAccelByte::UpdateStats(const int32 LocalUserNum
+	, const TArray<FOnlineStatsUserUpdatedStats>& BulkUpdateMultipleUserStatItems
+	, const FOnUpdateMultipleUserStatItemsComplete& Delegate)
 {
 	UE_LOG_ONLINE_STATS(Display, TEXT("FOnlineStatisticAccelByte::UpdateStats"));
 
 	if (IsRunningDedicatedServer())
 	{
-		AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteUpdateStatsUsers>
-			(AccelByteSubsystem, LocalUserNum, BulkUpdateMultipleUserStatItems, Delegate);
+		AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteUpdateStatsUsers>(AccelByteSubsystem
+			, LocalUserNum
+			, BulkUpdateMultipleUserStatItems
+			, Delegate);
 	}
 }
 
-void FOnlineStatisticAccelByte::DeleteStats(const int32 LocalUserNum, const FUniqueNetIdRef StatsUser, const FString& StatNames, const FString& AdditionalKey)
+void FOnlineStatisticAccelByte::DeleteStats(const int32 LocalUserNum
+	, const FUniqueNetIdRef StatsUser
+	, const FString& StatNames
+	, const FString& AdditionalKey)
 {
 	UE_LOG_ONLINE_STATS(Display, TEXT("FOnlineStatisticAccelByte::DeleteStats"));
 
 	if (IsRunningDedicatedServer())
 	{
-		AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteDeleteStatsUsers>
-			(AccelByteSubsystem, LocalUserNum, StatsUser, StatNames, AdditionalKey);
+		AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteDeleteStatsUsers>(AccelByteSubsystem
+			, LocalUserNum
+			, StatsUser
+			, StatNames
+			, AdditionalKey);
 	}
 }
 
-void FOnlineStatisticAccelByte::QueryStats(const FUniqueNetIdRef LocalUserId, const FUniqueNetIdRef StatsUser, const TArray<FString>& StatNames, const FOnlineStatsQueryUserStatsComplete& Delegate)
+void FOnlineStatisticAccelByte::QueryStats(const FUniqueNetIdRef LocalUserId
+	, const FUniqueNetIdRef StatsUser
+	, const TArray<FString>& StatsNames
+	, const FOnlineStatsQueryUserStatsComplete& Delegate)
 {
-	QueryStats(0, LocalUserId.Get(), StatsUser, StatNames, Delegate);
+	TArray<FUniqueNetIdRef> StatsUserList {StatsUser};
+	
+	auto QueryUsersStatsDelegate = FOnlineStatsQueryUsersStatsComplete::CreateLambda(
+		[Delegate](const FOnlineError& ResultState, const TArray<TSharedRef<const FOnlineStatsUserStats>>& UsersStatsResult)
+		{
+			if (ResultState.bSucceeded && UsersStatsResult.Num() > 0)
+			{
+				Delegate.ExecuteIfBound(ResultState, UsersStatsResult[0]);
+			}
+			else
+			{
+				Delegate.ExecuteIfBound(ResultState, nullptr);
+			}
+		});
+	
+	QueryStats(LocalUserId
+		, StatsUserList
+		, StatsNames
+		, QueryUsersStatsDelegate);
 }
 
-void FOnlineStatisticAccelByte::QueryStats(const int32 LocalUserNum, const FUniqueNetIdRef StatsUser, const TArray<FString>& StatNames, const FOnlineStatsQueryUserStatsComplete& Delegate)
+void FOnlineStatisticAccelByte::QueryStats(int32 LocalUserNum
+	, const FUniqueNetIdRef StatsUser
+	, const TArray<FString>& StatsNames
+	, const FOnlineStatsQueryUserStatsComplete& Delegate)
 {
-	const IOnlineIdentityPtr IdentityInterface = AccelByteSubsystem->GetIdentityInterface();
-	if (IdentityInterface.IsValid())
-	{
-		const TSharedPtr<const FUniqueNetId> UserIdPtr = IdentityInterface->GetUniquePlayerId(LocalUserNum);
-		QueryStats(LocalUserNum, *UserIdPtr.Get(), StatsUser, StatNames, Delegate);
-	}
-	else
-	{
-		QueryStats(LocalUserNum, *FUniqueNetIdPtr().Get(), StatsUser, StatNames, Delegate);
-	}
+	TArray<FUniqueNetIdRef> StatsUserList {StatsUser};
+	
+	auto QueryUsersStatsDelegate = FOnlineStatsQueryUsersStatsComplete::CreateLambda(
+		[Delegate](const FOnlineError& ResultState, const TArray<TSharedRef<const FOnlineStatsUserStats>>& UsersStatsResult)
+		{
+			if (ResultState.bSucceeded && UsersStatsResult.Num() > 0)
+			{
+				Delegate.ExecuteIfBound(ResultState, UsersStatsResult[0]);
+			}
+			else
+			{
+				Delegate.ExecuteIfBound(ResultState, nullptr);
+			}
+		});
+	
+	QueryStats(LocalUserNum
+		, StatsUserList
+		, StatsNames
+		, QueryUsersStatsDelegate);
 }
 
-void FOnlineStatisticAccelByte::QueryStats(const FUniqueNetIdRef LocalUserId, const FUniqueNetIdRef StatsUser, const FOnlineStatsQueryUserStatsComplete& Delegate)
+void FOnlineStatisticAccelByte::QueryStats(const FUniqueNetIdRef LocalUserId
+	, const FUniqueNetIdRef StatsUser
+	, const FOnlineStatsQueryUserStatsComplete& Delegate)
 {
-	QueryStats(0, LocalUserId.Get(), StatsUser, {}, Delegate);
+	QueryStats(LocalUserId, StatsUser, {}, Delegate);
 };
 
-void FOnlineStatisticAccelByte::QueryStats(const int32 LocalUserNum, const FUniqueNetIdRef StatsUser, const FOnlineStatsQueryUserStatsComplete& Delegate)
+void FOnlineStatisticAccelByte::QueryStats(int32 LocalUserNum
+	, const FUniqueNetIdRef StatsUser
+	, const FOnlineStatsQueryUserStatsComplete& Delegate)
 {
+	QueryStats(LocalUserNum
+		, StatsUser
+		, {}
+		, Delegate);
+}
+
+void FOnlineStatisticAccelByte::QueryStats(const FUniqueNetIdRef LocalUserId
+	, const TArray<FUniqueNetIdRef>& StatsUsers
+	, const TArray<FString>& StatsNames
+	, const FOnlineStatsQueryUsersStatsComplete& Delegate)
+{
+	UE_LOG_ONLINE_STATS(Display, TEXT("FOnlineStatisticAccelByte::QueryStats"));
+	
+	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteQueryStatsUsers>(AccelByteSubsystem
+		, LocalUserId
+		, StatsUsers
+		, StatsNames
+		, Delegate);
+}
+
+void FOnlineStatisticAccelByte::QueryStats(int32 LocalUserNum
+	, const TArray<FUniqueNetIdRef>& StatsUsers
+	, const TArray<FString>& StatsNames
+	, const FOnlineStatsQueryUsersStatsComplete& Delegate)
+{
+	UE_LOG_ONLINE_STATS(Display, TEXT("FOnlineStatisticAccelByte::QueryStats"));
+	
 	const IOnlineIdentityPtr IdentityInterface = AccelByteSubsystem->GetIdentityInterface();
 	if (IdentityInterface.IsValid())
 	{
-		const TSharedPtr<const FUniqueNetId> UserIdPtr = IdentityInterface->GetUniquePlayerId(LocalUserNum);
-		QueryStats(LocalUserNum, *UserIdPtr.Get(), StatsUser, {}, Delegate);
+		FUniqueNetIdPtr UserIdPtr = IdentityInterface->GetUniquePlayerId(LocalUserNum);
+		if (UserIdPtr->IsValid())
+		{
+			QueryStats(UserIdPtr.ToSharedRef(), StatsUsers, StatsNames, Delegate);
+		}
+		else
+		{
+			AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteQueryStatsUsers>(AccelByteSubsystem
+				, LocalUserNum
+				, StatsUsers
+				, StatsNames
+				, Delegate);
+		}
 	}
-	else
-	{
-		QueryStats(LocalUserNum, *FUniqueNetIdPtr().Get(), StatsUser, {}, Delegate);
-	}
-}
-
-void FOnlineStatisticAccelByte::QueryStats(const FUniqueNetIdRef LocalUserId, const TArray<FUniqueNetIdRef>& StatUsers, const TArray<FString>& StatNames, const FOnlineStatsQueryUsersStatsComplete& Delegate)
-{
-	UE_LOG_ONLINE_STATS(Display, TEXT("FOnlineStatisticAccelByte::QueryStats"));
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteQueryStatsUsers>(AccelByteSubsystem, LocalUserId, StatUsers, StatNames, Delegate);
-}
-
-void FOnlineStatisticAccelByte::QueryStats(const int32 LocalUserNum, const TArray<FUniqueNetIdRef>& StatUsers, const TArray<FString>& StatNames, const FOnlineStatsQueryUsersStatsComplete& Delegate)
-{
-	UE_LOG_ONLINE_STATS(Display, TEXT("FOnlineStatisticAccelByte::QueryStats"));
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteQueryStatsUsers>(AccelByteSubsystem, LocalUserNum, StatUsers, StatNames, Delegate);
-}
-
-void FOnlineStatisticAccelByte::QueryStats(const int32 LocalUserNum, const FUniqueNetId& LocalUserId, const FUniqueNetIdRef StatsUser, const TArray<FString>& StatNames, const FOnlineStatsQueryUserStatsComplete& Delegate)
-{
-	UE_LOG_ONLINE_STATS(Display, TEXT("FOnlineStatisticAccelByte::QueryStats"));
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteQueryStatsUser>(AccelByteSubsystem, LocalUserNum, LocalUserId, StatsUser, StatNames, Delegate);
 }
 
 TSharedPtr<const FOnlineStatsUserStats> FOnlineStatisticAccelByte::GetStats(const FUniqueNetIdRef StatsUserId) const

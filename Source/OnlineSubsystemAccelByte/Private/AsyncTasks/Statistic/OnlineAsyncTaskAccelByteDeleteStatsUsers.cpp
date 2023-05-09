@@ -6,52 +6,70 @@
 
 #define ONLINE_ERROR_NAMESPACE "FOnlineStatsSystemAccelByte"
 
-FOnlineAsyncTaskAccelByteDeleteStatsUsers::FOnlineAsyncTaskAccelByteDeleteStatsUsers(FOnlineSubsystemAccelByte* const InABInterface, const int32 InLocalUserNum,
-	const TSharedRef<const FUniqueNetId> InStatsUser, const FString& InStatCode, const FString& InAdditionalKey)
-	: FOnlineAsyncTaskAccelByte(InABInterface, true)
-	, LocalUserNum(InLocalUserNum)
-	, StatsUser(FUniqueNetIdAccelByteUser::CastChecked(InStatsUser))
+FOnlineAsyncTaskAccelByteDeleteStatsUsers::FOnlineAsyncTaskAccelByteDeleteStatsUsers(FOnlineSubsystemAccelByte *const InABInterface
+	, int32 InLocalUserNum
+	, FUniqueNetIdRef const InStatsUser
+	, FString const& InStatCode
+	, FString const& InAdditionalKey)
+	: FOnlineAsyncTaskAccelByte(InABInterface, InLocalUserNum, true)
 	, StatCode(InStatCode)
 	, AdditionalKey(InAdditionalKey)
 {
-	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Construct FOnlineAsyncTaskAccelByteDeleteStatsUsers"));
-
-	AccelByteUserId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(StatsUser)->GetAccelByteId();
-
-	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
+	StatsUser = FUniqueNetIdAccelByteUser::CastChecked(InStatsUser);
 }
 
 void FOnlineAsyncTaskAccelByteDeleteStatsUsers::Initialize()
 {
-	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Initialized"));
 	Super::Initialize();
+	
+	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Initialized"));
+	
+	if (!IsRunningDedicatedServer())
+	{
+		ErrorMessage = TEXT("request-failed-delete-user-stats-error-not-ds");
+		CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
+		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to delete user stats, not running as Dedicated Server!"));
+		return;
+	}
+	
+	if (!StatsUser->IsValid())
+	{
+		ErrorMessage = TEXT("request-failed-delete-user-stats-error-user-invalid");
+		CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
+		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to delete user stats, selected user is invalid!"));
+		return;
+	}
 
 	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(Subsystem->GetIdentityInterface());
 	if (!IdentityInterface.IsValid())
 	{
-		ErrorMessage = TEXT("request-failed-delete-user-stats-error");
+		ErrorMessage = TEXT("request-failed-delete-user-stats-error-identity-invalid");
 		CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
-		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to delete user stats, identity interface is invalid!"));
+		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to delete user stats, Identity Interface is invalid!"));
 		return;
 	}
 
 	auto LoginStatus = IdentityInterface->GetLoginStatus(LocalUserNum);
 	if (LoginStatus != ELoginStatus::LoggedIn)
 	{
-		ErrorMessage = TEXT("request-failed-delete-user-stats-error");
+		ErrorMessage = TEXT("request-failed-delete-user-stats-error-not-logged-in");
 		CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
-		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to delete user stats, user not logged in!"));
+		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to delete user stats, not logged in!"));
 		return;
 	}
 
-	OnDeleteUserStatItemsValueSuccess = TDelegateUtils<FVoidHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteDeleteStatsUsers::OnDeleteUserStatsSuccess);
-	OnError = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteDeleteStatsUsers::OnDeleteUserStatsFailed);
-
-	if (IsRunningDedicatedServer())
-	{
-		FServerApiClientPtr ServerApiClient = FMultiRegistry::GetServerApiClient();
-		ServerApiClient->ServerStatistic.DeleteUserStatItems(AccelByteUserId, StatCode, AdditionalKey, OnDeleteUserStatItemsValueSuccess, OnError);
-	}
+	OnDeleteUserStatItemsValueSuccess = TDelegateUtils<FVoidHandler>::CreateThreadSafeSelfPtr(this
+		, &FOnlineAsyncTaskAccelByteDeleteStatsUsers::OnDeleteUserStatsSuccess);
+	OnError = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this
+		, &FOnlineAsyncTaskAccelByteDeleteStatsUsers::OnDeleteUserStatsFailed);
+	
+	FString AccelByteUserId = StatsUser->GetAccelByteId();
+	FServerApiClientPtr ServerApiClient = FMultiRegistry::GetServerApiClient();
+	ServerApiClient->ServerStatistic.DeleteUserStatItems(AccelByteUserId
+		, StatCode
+		, AdditionalKey
+		, OnDeleteUserStatItemsValueSuccess
+		, OnError);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
@@ -68,7 +86,8 @@ void FOnlineAsyncTaskAccelByteDeleteStatsUsers::Finalize()
 		{
 			for (const auto& UserStats : UserStatsPair->Stats)
 			{
-				StatisticInterface->RemoveStats(UserStatsPair->Account, UserStats.Key);
+				StatisticInterface->RemoveStats(UserStatsPair->Account
+					, UserStats.Key);
 			}
 		}
 	}
@@ -78,7 +97,8 @@ void FOnlineAsyncTaskAccelByteDeleteStatsUsers::Finalize()
 
 void FOnlineAsyncTaskAccelByteDeleteStatsUsers::TriggerDelegates()
 {
-	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
+	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s")
+		, LOG_BOOL_FORMAT(bWasSuccessful));
 
 	const FOnlineStatisticAccelBytePtr StatisticInterface = StaticCastSharedPtr<FOnlineStatisticAccelByte>(Subsystem->GetStatsInterface());
 	if (!ensure(StatisticInterface.IsValid()))
@@ -87,7 +107,7 @@ void FOnlineAsyncTaskAccelByteDeleteStatsUsers::TriggerDelegates()
 		return;
 	}
 
-	EOnlineErrorResult Result = ((bWasSuccessful) ? EOnlineErrorResult::Success : EOnlineErrorResult::RequestFailure);
+	EOnlineErrorResult Result = bWasSuccessful ? EOnlineErrorResult::Success : EOnlineErrorResult::RequestFailure;
 
 	StatisticInterface->TriggerOnUserStatItemsDeleteCompletedDelegates(ONLINE_ERROR(Result, ErrorCode, FText::FromString(ErrorMessage)));
 
@@ -118,9 +138,12 @@ void FOnlineAsyncTaskAccelByteDeleteStatsUsers::OnDeleteUserStatsSuccess()
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 
-void FOnlineAsyncTaskAccelByteDeleteStatsUsers::OnDeleteUserStatsFailed(int32 Code, FString const& ErrMsg)
+void FOnlineAsyncTaskAccelByteDeleteStatsUsers::OnDeleteUserStatsFailed(int32 Code
+	, FString const& ErrMsg)
 {
-	AB_OSS_ASYNC_TASK_TRACE_BEGIN_VERBOSITY(Warning, TEXT("Code: %d; Message: %s"), Code, *ErrMsg);
+	AB_OSS_ASYNC_TASK_TRACE_BEGIN_VERBOSITY(Warning, TEXT("Code: %d; Message: %s")
+		, Code
+		, *ErrMsg);
 
 	ErrorCode = FString::Printf(TEXT("%d"), Code);
 	ErrorMessage = ErrMsg;

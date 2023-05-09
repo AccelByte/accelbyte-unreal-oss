@@ -3,23 +3,26 @@
 // and restrictions contact your company contract manager.
 
 #pragma once
+#include "Interfaces/OnlineStatsInterface.h"
 #include "AsyncTasks/OnlineAsyncTaskAccelByte.h"
 #include "AsyncTasks/OnlineAsyncTaskAccelByteUtils.h"
 #include "Models/AccelByteStatisticModels.h"
 
-class FOnlineAsyncTaskAccelByteResetUserStats : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteResetUserStats, ESPMode::ThreadSafe>
+class FOnlineAsyncTaskAccelByteResetUserStats
+	: public FOnlineAsyncTaskAccelByte
+	, public TSelfPtr<FOnlineAsyncTaskAccelByteResetUserStats, ESPMode::ThreadSafe>
 {
 public:
-	FOnlineAsyncTaskAccelByteResetUserStats(FOnlineSubsystemAccelByte* const InABInterface
-		, const FUniqueNetIdRef InStatsUserId
-		, const TSharedPtr<const FOnlineStatsUserStats> InUserStats
-		, const FOnlineStatsUpdateStatsComplete& InDelegate = nullptr);
+	FOnlineAsyncTaskAccelByteResetUserStats(FOnlineSubsystemAccelByte *const InABInterface
+		, FUniqueNetIdRef InStatsUserId
+		, TSharedPtr<const FOnlineStatsUserStats> InUserStats
+		, FOnlineStatsUpdateStatsComplete const& InDelegate = nullptr);
 
-	FOnlineAsyncTaskAccelByteResetUserStats(FOnlineSubsystemAccelByte* const InABInterface
-		, const int32 InLocalUserNum
-		, const FUniqueNetIdRef InStatsUserId
-		, const TSharedPtr<const FOnlineStatsUserStats> InUserStats
-		, const FOnlineStatsUpdateStatsComplete& InDelegate = nullptr);
+	FOnlineAsyncTaskAccelByteResetUserStats(FOnlineSubsystemAccelByte *const InABInterface
+		, int32 InLocalUserNum
+		, FUniqueNetIdRef InStatsUserId
+		, TSharedPtr<const FOnlineStatsUserStats> InUserStats
+		, FOnlineStatsUpdateStatsComplete const& InDelegate = nullptr);
 
 	virtual void Initialize() override;
 	virtual void Finalize() override;
@@ -34,10 +37,11 @@ protected:
 
 private:
 
-	void OnResetUserStatItemsSuccess(const TArray<FAccelByteModelsUpdateUserStatItemsResponse>& Result);
+	void OnResetUserStatItemsSuccess(TArray<FAccelByteModelsUpdateUserStatItemsResponse> const& Result);
 
 	THandler<TArray<FAccelByteModelsUpdateUserStatItemsResponse>> OnBulkResetMultipleUserStatItemsValueSuccess;
-	void OnResetUserStatItemsFailed(int32 Code, FString const& ErrMsg);
+	void OnResetUserStatItemsFailed(int32 Code
+		, FString const& ErrMsg);
 	FErrorHandler OnError;
 	TSharedPtr<const FOnlineStatsUserStats> OnlineUserStatsPair;
 
