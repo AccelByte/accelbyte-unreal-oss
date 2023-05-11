@@ -7,7 +7,7 @@
 #include "OnlineSessionInterfaceV1AccelByte.h"
 
 FOnlineAsyncTaskAccelByteBanUser::FOnlineAsyncTaskAccelByteBanUser(FOnlineSubsystemAccelByte* const InABInterface, const FString &InUserId, int32 InActionId, const FString &InMessage)
-	: FOnlineAsyncTaskAccelByte(InABInterface, ASYNC_TASK_FLAG_BIT(EAccelByteAsyncTaskFlags::ServerTask))
+	: FOnlineAsyncTaskAccelByte(InABInterface, INVALID_CONTROLLERID, ASYNC_TASK_FLAG_BIT(EAccelByteAsyncTaskFlags::ServerTask))
 	, UserId(InUserId)
 	, ActionId(InActionId)
 	, Message(InMessage)

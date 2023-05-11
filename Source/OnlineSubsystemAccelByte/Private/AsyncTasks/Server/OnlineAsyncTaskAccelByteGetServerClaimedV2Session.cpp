@@ -7,7 +7,7 @@
 #include "GameServerApi/AccelByteServerSessionApi.h"
 
 FOnlineAsyncTaskAccelByteGetServerClaimedV2Session::FOnlineAsyncTaskAccelByteGetServerClaimedV2Session(FOnlineSubsystemAccelByte* const InABInterface, const FName& InSessionName, const FString& InSessionId)
-    : FOnlineAsyncTaskAccelByte(InABInterface, ASYNC_TASK_FLAG_BIT(EAccelByteAsyncTaskFlags::ServerTask))
+    : FOnlineAsyncTaskAccelByte(InABInterface, INVALID_CONTROLLERID, ASYNC_TASK_FLAG_BIT(EAccelByteAsyncTaskFlags::ServerTask))
     , SessionName(InSessionName)
     , SessionId(InSessionId)
 {

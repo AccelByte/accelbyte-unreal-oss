@@ -6,7 +6,7 @@
 #include "OnlineSubsystemAccelByteSessionSettings.h"
 
 FOnlineAsyncTaskAccelByteAcceptBackfillProposal::FOnlineAsyncTaskAccelByteAcceptBackfillProposal(FOnlineSubsystemAccelByte* const InABInterface, const FName& InSessionName, const FAccelByteModelsV2MatchmakingBackfillProposalNotif& InProposal, bool bInStopBackfilling, const FOnAcceptBackfillProposalComplete& InDelegate)
-	: FOnlineAsyncTaskAccelByte(InABInterface, ASYNC_TASK_FLAG_BIT(EAccelByteAsyncTaskFlags::ServerTask))
+	: FOnlineAsyncTaskAccelByte(InABInterface, INVALID_CONTROLLERID, ASYNC_TASK_FLAG_BIT(EAccelByteAsyncTaskFlags::ServerTask))
 	, SessionName(InSessionName)
 	, Proposal(InProposal)
 	, bStopBackfilling(bInStopBackfilling)

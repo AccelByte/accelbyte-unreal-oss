@@ -4,7 +4,7 @@
 FOnlineAsyncTaskAccelByteFindV1GameSessionById::FOnlineAsyncTaskAccelByteFindV1GameSessionById(
 	FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InSearchingPlayerId,
 	const FUniqueNetId& InSessionId, const FOnSingleSessionResultCompleteDelegate& InDelegate):
-	FOnlineAsyncTaskAccelByte(InABInterface, (IsRunningDedicatedServer()) ? ASYNC_TASK_FLAG_BIT(EAccelByteAsyncTaskFlags::ServerTask) : ASYNC_TASK_FLAG_BIT(EAccelByteAsyncTaskFlags::None))
+	FOnlineAsyncTaskAccelByte(InABInterface, INVALID_CONTROLLERID, (IsRunningDedicatedServer()) ? ASYNC_TASK_FLAG_BIT(EAccelByteAsyncTaskFlags::ServerTask) : ASYNC_TASK_FLAG_BIT(EAccelByteAsyncTaskFlags::None))
 	, SessionId(FUniqueNetIdAccelByteResource::CastChecked(InSessionId))
 	, Delegate(InDelegate)
 {

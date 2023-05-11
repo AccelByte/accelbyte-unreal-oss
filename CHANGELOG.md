@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.10.5](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.10.5%0D0.10.4) (2023-05-11)
+
+
+### Bug Fixes
+
+* AsyncTask flags mistakenly assigned as LocalUserNum ([2856180](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/28561800c54802e95a1a7ef84535f8d79ec9c8ca))
+
 ### [0.10.4](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.10.4%0D0.10.3) (2023-05-09)
 
 

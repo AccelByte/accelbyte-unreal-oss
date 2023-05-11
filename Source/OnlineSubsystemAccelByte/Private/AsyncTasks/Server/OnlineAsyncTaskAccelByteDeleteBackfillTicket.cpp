@@ -6,7 +6,7 @@
 #include "OnlineSubsystemAccelByteSessionSettings.h"
 
 FOnlineAsyncTaskAccelByteDeleteBackfillTicket::FOnlineAsyncTaskAccelByteDeleteBackfillTicket(FOnlineSubsystemAccelByte* const InABInterface, const FName& InSessionName, const FOnDeleteBackfillTicketComplete& InDelegate)
-	: FOnlineAsyncTaskAccelByte(InABInterface, ASYNC_TASK_FLAG_BIT(EAccelByteAsyncTaskFlags::ServerTask))
+	: FOnlineAsyncTaskAccelByte(InABInterface, INVALID_CONTROLLERID, ASYNC_TASK_FLAG_BIT(EAccelByteAsyncTaskFlags::ServerTask))
 	, SessionName(InSessionName)
 	, Delegate(InDelegate)
 {

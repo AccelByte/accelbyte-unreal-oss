@@ -147,7 +147,7 @@ public:
 	 */
 	explicit FOnlineAsyncTaskAccelByte(FOnlineSubsystemAccelByte *const InABSubsystem
 		, bool bInShouldUseTimeout = true)
-		: FOnlineAsyncTaskAccelByte(InABSubsystem, 0, (bInShouldUseTimeout) ? ASYNC_TASK_FLAG_BIT(EAccelByteAsyncTaskFlags::UseTimeout) : ASYNC_TASK_FLAG_BIT(EAccelByteAsyncTaskFlags::None))
+		: FOnlineAsyncTaskAccelByte(InABSubsystem, INVALID_CONTROLLERID, (bInShouldUseTimeout) ? ASYNC_TASK_FLAG_BIT(EAccelByteAsyncTaskFlags::UseTimeout) : ASYNC_TASK_FLAG_BIT(EAccelByteAsyncTaskFlags::None))
 	{
 	}
 	

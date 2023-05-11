@@ -6,7 +6,7 @@
 #include "OnlineAuthInterfaceAccelByte.h"
 
 FOnlineAsyncTaskAccelByteAuthUser::FOnlineAsyncTaskAccelByteAuthUser(FOnlineSubsystemAccelByte* const InABInterface, const FString& InUserId, const FOnAuthUSerCompleted& InDelegate)
-	: FOnlineAsyncTaskAccelByte(InABInterface, ASYNC_TASK_FLAG_BIT(EAccelByteAsyncTaskFlags::ServerTask))
+	: FOnlineAsyncTaskAccelByte(InABInterface, INVALID_CONTROLLERID, ASYNC_TASK_FLAG_BIT(EAccelByteAsyncTaskFlags::ServerTask))
 	, UserId(InUserId)
 	, bRequestResult(false)
 	, Delegate(InDelegate)
