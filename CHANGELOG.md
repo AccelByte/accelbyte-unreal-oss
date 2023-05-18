@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.10.6](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.10.6%0D0.10.5) (2023-05-18)
+
+
+### Bug Fixes
+
+* compile warnings on AsyncTask Statistic Interface ([d7f4b4d](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/d7f4b4d8049c0d9a16515743fb85f849e2a271f8))
+
 ### [0.10.5](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.10.5%0D0.10.4) (2023-05-11)
 
 

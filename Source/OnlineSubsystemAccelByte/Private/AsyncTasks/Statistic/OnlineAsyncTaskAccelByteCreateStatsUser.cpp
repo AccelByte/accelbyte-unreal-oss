@@ -12,7 +12,7 @@
 
 FOnlineAsyncTaskAccelByteCreateStatsUser::FOnlineAsyncTaskAccelByteCreateStatsUser(FOnlineSubsystemAccelByte *const InABInterface
 	, int32 InLocalUserNum
-	, FUniqueNetIdRef const InStatsUser
+	, FUniqueNetIdRef const& InStatsUser
 	, TArray<FString> const& InStatCodes
 	, FOnlineStatsCreateStatsComplete const& InDelegate)
 	: FOnlineAsyncTaskAccelByte(InABInterface, InLocalUserNum, true)

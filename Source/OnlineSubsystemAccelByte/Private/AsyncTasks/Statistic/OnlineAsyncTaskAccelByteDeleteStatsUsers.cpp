@@ -8,7 +8,7 @@
 
 FOnlineAsyncTaskAccelByteDeleteStatsUsers::FOnlineAsyncTaskAccelByteDeleteStatsUsers(FOnlineSubsystemAccelByte *const InABInterface
 	, int32 InLocalUserNum
-	, FUniqueNetIdRef const InStatsUser
+	, FUniqueNetIdRef const& InStatsUser
 	, FString const& InStatCode
 	, FString const& InAdditionalKey)
 	: FOnlineAsyncTaskAccelByte(InABInterface, InLocalUserNum, true)
@@ -119,7 +119,7 @@ void FOnlineAsyncTaskAccelByteDeleteStatsUsers::OnDeleteUserStatsSuccess()
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Delete User Stats Success"));
 
 	const FOnlineStatisticAccelBytePtr StatisticInterface = StaticCastSharedPtr<FOnlineStatisticAccelByte>(Subsystem->GetStatsInterface());
-	TSharedPtr<const FOnlineStatsUserStats> CurrentUserStats = StatisticInterface->GetStats(StatsUser);
+	TSharedPtr<const FOnlineStatsUserStats> CurrentUserStats = StatisticInterface->GetStats(StatsUser.ToSharedRef());
 
 	for (const auto& UserStat : CurrentUserStats->Stats)
 	{
@@ -131,7 +131,7 @@ void FOnlineAsyncTaskAccelByteDeleteStatsUsers::OnDeleteUserStatsSuccess()
 		}
 	}
 
-	OnlineUsersStatsPairs.Add(MakeShared<FOnlineStatsUserStats>(StatsUser, Stats));
+	OnlineUsersStatsPairs.Add(MakeShared<FOnlineStatsUserStats>(StatsUser.ToSharedRef(), Stats));
 
 	CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
 

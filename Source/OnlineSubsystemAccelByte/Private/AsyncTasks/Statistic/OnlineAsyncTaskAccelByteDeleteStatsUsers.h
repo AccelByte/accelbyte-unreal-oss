@@ -14,7 +14,7 @@ class FOnlineAsyncTaskAccelByteDeleteStatsUsers
 public:
 	FOnlineAsyncTaskAccelByteDeleteStatsUsers(FOnlineSubsystemAccelByte *const InABInterface
 		, int32 InLocalUserNum
-		, FUniqueNetIdRef const InStatsUser
+		, FUniqueNetIdRef const& InStatsUser
 		, FString const& InStatCode
 		, FString const& InAdditionalKey);
 
@@ -37,13 +37,13 @@ private:
 	FErrorHandler OnError;
 	void OnDeleteUserStatsFailed(int32 Code
 		, FString const& ErrMsg);
-	TArray<TSharedRef<const FOnlineStatsUserStats>> OnlineUsersStatsPairs;
+	TArray<TSharedRef<const FOnlineStatsUserStats>> OnlineUsersStatsPairs{};
 
-	FUniqueNetIdAccelByteUserRef StatsUser;
+	FUniqueNetIdAccelByteUserPtr StatsUser{nullptr};
 	FString StatCode{};
-	FString AdditionalKey;
-	TMap<FString, FVariantData> Stats;
-	FString ErrorCode;
-	FString ErrorMessage;
+	FString AdditionalKey{};
+	TMap<FString, FVariantData> Stats{};
+	FString ErrorCode{};
+	FString ErrorMessage{};
 
 };

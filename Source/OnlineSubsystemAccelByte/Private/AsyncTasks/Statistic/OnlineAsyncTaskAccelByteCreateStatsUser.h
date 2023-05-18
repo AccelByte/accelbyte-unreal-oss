@@ -15,7 +15,7 @@ class FOnlineAsyncTaskAccelByteCreateStatsUser
 public:
 	FOnlineAsyncTaskAccelByteCreateStatsUser(FOnlineSubsystemAccelByte *const InABInterface
 		, int32 InLocalUserNum
-		, FUniqueNetIdRef const InStatsUser
+		, FUniqueNetIdRef const& InStatsUser
 		, TArray<FString> const& InStatCodes
 		, FOnlineStatsCreateStatsComplete const& InDelegate);
 
@@ -37,11 +37,11 @@ private:
 	void HandleAsyncTaskError(int32 Code
 		, FString const& ErrMsg);
 
-	FUniqueNetIdAccelByteUserRef StatsUser;
+	FUniqueNetIdAccelByteUserPtr StatsUser{nullptr};
 	TArray<FString> StatCodes{};
-	FOnlineStatsCreateStatsComplete Delegate;
-	TArray<FAccelByteModelsBulkStatItemOperationResult> CreateStatsResult;
-	FString ErrorCode;
-	FString ErrorMessage;
+	FOnlineStatsCreateStatsComplete Delegate{};
+	TArray<FAccelByteModelsBulkStatItemOperationResult> CreateStatsResult{};
+	FString ErrorCode{};
+	FString ErrorMessage{};
 
 };
