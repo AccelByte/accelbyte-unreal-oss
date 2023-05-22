@@ -7,7 +7,7 @@
 #include "AsyncTasks/OnlineAsyncTaskAccelByte.h"
 #include "AsyncTasks/OnlineAsyncTaskAccelByteUtils.h"
 #include "Models/AccelByteStatisticModels.h"
-
+#include "OnlineStatisticInterfaceAccelByte.h"
 
 class FOnlineAsyncTaskAccelByteUpdateStats
 	: public FOnlineAsyncTaskAccelByte
@@ -20,6 +20,7 @@ public:
 		, FOnlineStatsUpdateStatsComplete const& Delegate);
 
 	virtual void Initialize() override;
+	virtual void Finalize() override;
 	virtual void TriggerDelegates() override;
 
 protected:
@@ -37,10 +38,14 @@ private:
 	void HandleAsyncTaskError(int32 Code
 		, FString const& ErrMsg);
 	FErrorHandler OnError;
-	FOnlineError OnlineError;
+	FString ErrorCode;
+	FString ErrorMessage;
 
 	TArray<FOnlineStatsUserUpdatedStats> UpdatedUserStats;
 	TArray<FAccelByteModelsUpdateUserStatItemWithStatCode> BulkUpdateUserStatItems; 
+	TArray<FAccelByteModelsUpdateUserStatItemsResponse> BulkUpdateStatItemsResponse;
+	TMap<FString, FVariantData> Stats;
+	TArray<TSharedRef<const FOnlineStatsUserStats>> OnlineUsersStatsPairs;
 	FOnlineStatsUpdateStatsComplete Delegate; 
 
 };

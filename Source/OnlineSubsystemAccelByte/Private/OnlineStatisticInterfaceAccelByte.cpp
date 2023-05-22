@@ -349,3 +349,19 @@ void FOnlineStatisticAccelByte::ResetStats(const FUniqueNetIdRef StatsUserId)
 }
 #endif
 
+EAccelByteStatisticUpdateStrategy FOnlineStatisticAccelByte::ConvertUpdateStrategy(FOnlineStatUpdate::EOnlineStatModificationType Strategy)
+{
+	switch (Strategy)
+	{
+	case FOnlineStatUpdate::EOnlineStatModificationType::Largest:
+		return EAccelByteStatisticUpdateStrategy::MAX;
+	case FOnlineStatUpdate::EOnlineStatModificationType::Smallest:
+		return EAccelByteStatisticUpdateStrategy::MIN;
+	case FOnlineStatUpdate::EOnlineStatModificationType::Set:
+		return EAccelByteStatisticUpdateStrategy::OVERRIDE;
+	case FOnlineStatUpdate::EOnlineStatModificationType::Sum:
+		return EAccelByteStatisticUpdateStrategy::INCREMENT;
+	default:
+		return EAccelByteStatisticUpdateStrategy::OVERRIDE;
+	}
+}

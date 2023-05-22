@@ -2183,18 +2183,7 @@ bool FOnlineSessionV2AccelByte::StartMatchmaking(const TArray<TSharedRef<const F
 bool FOnlineSessionV2AccelByte::StartMatchmaking(const TArray<FSessionMatchmakingUser>& LocalPlayers, FName SessionName, const FOnlineSessionSettings& NewSessionSettings, TSharedRef<FOnlineSessionSearch>& SearchSettings, const FOnStartMatchmakingComplete& CompletionDelegate)
 {
 	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("LocalPlayerId: %s; SessionName: %s"), ((LocalPlayers.IsValidIndex(0)) ? *LocalPlayers[0].UserId->ToDebugString() : TEXT("")), *SessionName.ToString());
-
-	// Check if we already have a session stored with the name specified, if so, inform that they have to leave before matchmaking
-	if (GetNamedSession(SessionName) != nullptr)
-	{
-		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Cannot start matchmaking for session '%s' as we are already in a session with that name! Call LeaveSession before starting matchmaking!"), *SessionName.ToString());
-		AccelByteSubsystem->ExecuteNextTick([CompletionDelegate, SessionName]() {
-			FSessionMatchmakingResults EmptyResults{};
-			CompletionDelegate.ExecuteIfBound(SessionName, ONLINE_ERROR(EOnlineErrorResult::InvalidParams), EmptyResults);
-		});
-		return false;
-	}
-
+	
 	// Fail the matchmaking request if we are already matchmaking currently
 	if (SearchSettings->SearchState != EOnlineAsyncTaskState::NotStarted || (CurrentMatchmakingSearchHandle.IsValid() && CurrentMatchmakingSearchHandle->SearchState != EOnlineAsyncTaskState::NotStarted))
 	{
@@ -4178,12 +4167,14 @@ void FOnlineSessionV2AccelByte::UnregisterLeftSessionMember(FNamedOnlineSession*
 
 void FOnlineSessionV2AccelByte::OnMatchmakingStartedNotification(FAccelByteModelsV2StartMatchmakingNotif MatchmakingStartedNotif, int32 LocalUserNum)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT(""));
+	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("LocalUserNum: %d; TicketID: %s; PartyID: %s; Namespace: %s; MatchPool: %s"),
+		LocalUserNum, *MatchmakingStartedNotif.TicketID, *MatchmakingStartedNotif.PartyID, *MatchmakingStartedNotif.Namespace, *MatchmakingStartedNotif.MatchPool);
 
 	if (CurrentMatchmakingSearchHandle.IsValid())
 	{
 		// Since we already have a matchmaking search handle, we don't need to do anything else here and can bail
-		AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+		TriggerOnMatchmakingStartedDelegates();
+		AB_OSS_INTERFACE_TRACE_END(TEXT("CurrentMatchmakingSearchHandle is valid"));
 		return;
 	}
 

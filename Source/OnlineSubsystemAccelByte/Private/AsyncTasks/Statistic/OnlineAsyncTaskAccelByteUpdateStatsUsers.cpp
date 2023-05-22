@@ -34,7 +34,7 @@ FOnlineAsyncTaskAccelByteUpdateStatsUsers::FOnlineAsyncTaskAccelByteUpdateStatsU
 
 			UpdateUserStatItemWithStatCode.StatCode = Stat.Key;
 			UpdateUserStatItemWithStatCode.Value = FCString::Atof(*Value.ToString());
-			UpdateUserStatItemWithStatCode.UpdateStrategy = ConvertUpdateStrategy(UpdateStrategy);
+			UpdateUserStatItemWithStatCode.UpdateStrategy = FOnlineStatisticAccelByte::ConvertUpdateStrategy(UpdateStrategy);
 			UpdateUserStatItemWithStatCode.UserId = AccelByteUserId->GetAccelByteId();
 		}
 		BulkUpdateUserStatItemsRequest.Add(UpdateUserStatItemWithStatCode);
@@ -124,7 +124,12 @@ void FOnlineAsyncTaskAccelByteUpdateStatsUsers::OnBulkUpdateUserStatsSuccess(TAr
 	{
 		for (int i = 0; i < Result.Num(); i++)
 		{
-			float NewValue;
+			if (!Result[i].Success)
+			{
+				continue;
+			}
+
+			float NewValue = 0.0f;
 
 			TSharedPtr<FJsonValue> NewValueJson = Result[i].Details.JsonObject.Get()->TryGetField("currentValue");
 			if (NewValueJson.IsValid())
@@ -162,20 +167,4 @@ void FOnlineAsyncTaskAccelByteUpdateStatsUsers::OnBulkUpdateUserStatsFailed(int3
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 
-EAccelByteStatisticUpdateStrategy FOnlineAsyncTaskAccelByteUpdateStatsUsers::ConvertUpdateStrategy(FOnlineStatUpdate::EOnlineStatModificationType Strategy)
-{
-	switch (Strategy)
-	{
-	case FOnlineStatUpdate::EOnlineStatModificationType::Largest:
-		return EAccelByteStatisticUpdateStrategy::MAX;
-	case FOnlineStatUpdate::EOnlineStatModificationType::Smallest:
-		return EAccelByteStatisticUpdateStrategy::MIN;
-	case FOnlineStatUpdate::EOnlineStatModificationType::Set:
-		return EAccelByteStatisticUpdateStrategy::OVERRIDE;
-	case FOnlineStatUpdate::EOnlineStatModificationType::Sum:
-		return EAccelByteStatisticUpdateStrategy::INCREMENT;
-	default:
-		return EAccelByteStatisticUpdateStrategy::OVERRIDE;
-	}
-}
 #undef ONLINE_ERROR_NAMESPACE

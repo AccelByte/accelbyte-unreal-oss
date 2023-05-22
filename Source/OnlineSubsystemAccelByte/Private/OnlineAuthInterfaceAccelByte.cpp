@@ -97,7 +97,7 @@ bool FOnlineAuthAccelByte::IsSessionValid() const
 {
 	if (IsSessionAuthEnabled() && SessionInterface.IsValid())
 	{
-		const FNamedOnlineSession* NamedSessionPtr = SessionInterface->GetNamedSession(NAME_PartySession);
+		const FNamedOnlineSession* NamedSessionPtr = SessionInterface->GetNamedSession(NAME_GameSession);
 		if (NamedSessionPtr != nullptr)
 		{
 			TSharedPtr<class FOnlineSessionInfo> SessionInfo = NamedSessionPtr->SessionInfo;
@@ -337,7 +337,7 @@ bool FOnlineAuthAccelByte::KickUser(const FString& InUserId, bool bSuppressFailu
 
 		if (SessionInterface.IsValid())
 		{
-			const FNamedOnlineSession* NamedSession = SessionInterface->GetNamedSession(NAME_PartySession);
+			const FNamedOnlineSession* NamedSession = SessionInterface->GetNamedSession(NAME_GameSession);
 			if (NamedSession)
 			{
 				SessionInterface->UnregisterPlayer(NamedSession->SessionName, *KickUserId);
@@ -360,7 +360,7 @@ void FOnlineAuthAccelByte::RemoveUser(const FString& InTargetUser)
 {
 	if (!IsServer() || !IsSessionAuthEnabled())
 	{
-		UE_LOG_AB(Warning, TEXT("AUTH: (%s) this is not the server or disabled"), (IsServer() ? TEXT("DS") : TEXT("CL")), *InTargetUser, AuthUsers.Num());
+		UE_LOG_AB(Warning, TEXT("AUTH: (%s) this is not the server or disabled"), (IsServer() ? TEXT("DS") : TEXT("CL")));
 		return;
 	}
 
@@ -379,7 +379,7 @@ bool FOnlineAuthAccelByte::IsInSessionUser(const FString& InUserId) const
 		return false;
 	}
 
-	const FNamedOnlineSession* NamedSession = SessionInterface->GetNamedSession(NAME_PartySession);
+	const FNamedOnlineSession* NamedSession = SessionInterface->GetNamedSession(NAME_GameSession);
 	if (NamedSession == nullptr)
 	{
 		UE_LOG_AB(Warning, TEXT("AUTH: (%s) Session interface is null."), (IsServer() ? TEXT("DS") : TEXT("CL")));

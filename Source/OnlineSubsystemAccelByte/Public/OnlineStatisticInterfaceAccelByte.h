@@ -208,6 +208,15 @@ public:
 #endif // !UE_BUILD_SHIPPING
 	//~ End  IOnlineStats Interface
 
+	// Statistic Utils
+
+	/**
+	 * Convert Unreal built-in enum to Accelbyte enum for statistic update strategy
+	 *
+	 * @param Strategy the strategy to update the statistic
+	 */
+	static EAccelByteStatisticUpdateStrategy ConvertUpdateStrategy(FOnlineStatUpdate::EOnlineStatModificationType Strategy);
+
 protected:
 	/** Hidden default constructor, the constructor that takes in a subsystem instance should be used instead. */
 	FOnlineStatisticAccelByte()

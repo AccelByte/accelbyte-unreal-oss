@@ -98,6 +98,7 @@ void FOnlineAsyncTaskAccelByteQueryStatsUsers::Initialize()
 
 		if (!ABStatsUser->IsValid())
 		{
+			CountUsers--;
 			continue;
 		}
 
@@ -124,7 +125,6 @@ void FOnlineAsyncTaskAccelByteQueryStatsUsers::Initialize()
 				, OnGetUserStatItemsSuccessHandler
 				, OnError);
 		}
-		CountUsers++;
 	}
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

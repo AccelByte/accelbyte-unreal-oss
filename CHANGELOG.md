@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [0.11.0](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.11.0%0D0.10.6) (2023-05-22)
+
+
+### ⚠ BREAKING CHANGES
+
+* **MMv2:** start matchmaking no longer fails when already in a game session
+
+### Bug Fixes
+
+* **MMv2:** Remove failing start matchmaking request when already in a game session ([6484f0d](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/6484f0d34964e883a0c445940ca25f9e5c6be02f))
+* **MPv2:** only trigger OnMatchmakingStarted when lobby send corresponding notification ([b717a57](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/b717a57be595f0557f09443bc622f5f5bb0edc55))
+* **statistic:** fix some statistic asynctask behavior that make task can't be finished ([6ac3a39](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/6ac3a39dea5f3270637d02c3ff0d7934dcc89197))
+
 ### [0.10.6](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.10.6%0D0.10.5) (2023-05-18)
 
 

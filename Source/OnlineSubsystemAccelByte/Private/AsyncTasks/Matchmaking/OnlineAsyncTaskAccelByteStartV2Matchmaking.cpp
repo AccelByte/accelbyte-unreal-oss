@@ -85,11 +85,6 @@ void FOnlineAsyncTaskAccelByteStartV2Matchmaking::TriggerDelegates()
 		return;
 	}
 
-	if (bWasSuccessful)
-	{
-		SessionInterface->TriggerOnMatchmakingStartedDelegates();
-	}
-
 	FSessionMatchmakingResults EmptyResults; // Results will always be empty as this is just us creating the ticket. Actual results will be filled in the search handle.
 	Delegate.ExecuteIfBound(SessionName, ((bWasSuccessful) ? ONLINE_ERROR(EOnlineErrorResult::Success) : ONLINE_ERROR(EOnlineErrorResult::RequestFailure)), EmptyResults);
 

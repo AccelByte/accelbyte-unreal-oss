@@ -83,7 +83,7 @@ public:
 	static FString GetStringFromStringTable(const FString& StringTable, const int32 Key);
 
 	static EAccelBytePlatformType GetCurrentAccelBytePlatformType(const FName& NativeSubsystemName);
-	
+
 private:
 
 	/**
