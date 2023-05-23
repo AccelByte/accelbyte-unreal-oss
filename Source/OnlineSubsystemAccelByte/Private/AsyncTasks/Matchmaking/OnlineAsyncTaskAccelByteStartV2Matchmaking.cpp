@@ -84,6 +84,12 @@ void FOnlineAsyncTaskAccelByteStartV2Matchmaking::TriggerDelegates()
 		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to trigger delegates for starting matchmaking as our session interface is invalid!"));
 		return;
 	}
+	
+	// Empty session id won't get OnMatchStartedNotif, so trigger OnMatchmakingStarted here
+	if (bWasSuccessful && GetTicketSessionId().IsEmpty())
+	{
+		SessionInterface->TriggerOnMatchmakingStartedDelegates();
+	}
 
 	FSessionMatchmakingResults EmptyResults; // Results will always be empty as this is just us creating the ticket. Actual results will be filled in the search handle.
 	Delegate.ExecuteIfBound(SessionName, ((bWasSuccessful) ? ONLINE_ERROR(EOnlineErrorResult::Success) : ONLINE_ERROR(EOnlineErrorResult::RequestFailure)), EmptyResults);

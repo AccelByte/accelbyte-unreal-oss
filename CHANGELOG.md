@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.11.1](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.11.1%0D0.11.0) (2023-05-23)
+
+
+### Bug Fixes
+
+* **MMv2:** TriggerOnMatchmakingStartedDelegates in StartV2Matchmaking async task when have no party sessionId ([2410bbb](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/2410bbbe14e3f0554ef1f4871942f4956b16487c))
+
 ## [0.11.0](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.11.0%0D0.10.6) (2023-05-22)
 
 
