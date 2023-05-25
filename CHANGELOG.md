@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.11.2](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.11.2%0D0.11.1) (2023-05-25)
+
+
+### Bug Fixes
+
+* **User:** CachedUserInfo might return nullptr ([9115f05](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/9115f055a0de714cfe1b5d9c2bceffe57a50c538))
+
 ### [0.11.1](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.11.1%0D0.11.0) (2023-05-23)
 
 

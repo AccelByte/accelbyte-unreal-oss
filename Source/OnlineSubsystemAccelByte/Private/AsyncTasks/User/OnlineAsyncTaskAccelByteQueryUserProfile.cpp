@@ -134,11 +134,18 @@ void FOnlineAsyncTaskAccelByteQueryUserProfile::Finalize()
 	{
 		FAccelByteUniqueIdComposite UserCompositeId;
 		UserCompositeId.Id = InUserQueried.UserId;
-		const auto CachedUserInfo = UserCache->GetUser(UserCompositeId);
+		TSharedPtr<const FAccelByteUserInfo> CachedUserInfo = UserCache->GetUser(UserCompositeId);
 		TSharedPtr<FUserOnlineAccountAccelByte> Account;
 		if (CachedUserInfo.IsValid())
 		{
 			Account = StaticCastSharedPtr<FUserOnlineAccountAccelByte>(IdentityInterface->GetUserAccount(*CachedUserInfo->Id.Get()));
+		}
+		else
+		{
+			TSharedRef<FAccelByteUserInfo> TempUserInfo = MakeShared<FAccelByteUserInfo>();
+			TempUserInfo->Id = FUniqueNetIdAccelByteUser::Create(UserCompositeId);
+			UserCache->AddUsersToCache({ TempUserInfo });
+			CachedUserInfo = TempUserInfo;
 		}
 
 		if (!Account.IsValid())
