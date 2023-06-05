@@ -142,7 +142,7 @@ void FOnlineAsyncTaskAccelByteStartV2Matchmaking::CreateMatchTicket()
 	Optionals.Latencies = Latencies;
 	Optionals.SessionId = GetTicketSessionId();
 
-	const TSharedRef<FJsonObject> AttributesJsonObject = SessionInterface->ConvertSearchParamsToJsonObject(SearchHandle->QuerySettings.SearchParams);
+	const TSharedRef<FJsonObject> AttributesJsonObject = SessionInterface->ConvertSearchParamsToJsonObject(SearchHandle->QuerySettings);
 	Optionals.Attributes.JsonObject = AttributesJsonObject;
 
 	ApiClient->MatchmakingV2.CreateMatchTicket(MatchPool, OnStartMatchmakingSuccessDelegate, OnStartMatchmakingErrorDelegate, Optionals);

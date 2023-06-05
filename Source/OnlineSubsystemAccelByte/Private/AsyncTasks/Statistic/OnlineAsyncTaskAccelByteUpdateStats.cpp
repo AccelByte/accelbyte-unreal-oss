@@ -14,8 +14,9 @@ FOnlineAsyncTaskAccelByteUpdateStats::FOnlineAsyncTaskAccelByteUpdateStats(FOnli
 	, UpdatedUserStats(InUpdatedUserStats) 
 	, Delegate(InDelegate)
 {
-	UserId = FUniqueNetIdAccelByteUser::CastChecked(InLocalUserId); 
-	
+	UserId = FUniqueNetIdAccelByteUser::CastChecked(InLocalUserId);
+	DetailResponse = false;
+
 	for (auto const& UpdatedUserStat : UpdatedUserStats)
 	{
 		FAccelByteModelsUpdateUserStatItemWithStatCode UpdateUserStatItemWithStatCode;
@@ -25,12 +26,41 @@ FOnlineAsyncTaskAccelByteUpdateStats::FOnlineAsyncTaskAccelByteUpdateStats(FOnli
 			FString Key = Stat.Key;
 			FOnlineStatUpdate const& Value = Stat.Value;
 			FOnlineStatUpdate::EOnlineStatModificationType UpdateStrategy = Stat.Value.GetModificationType();
-			
+
 			UpdateUserStatItemWithStatCode.StatCode = Key;
 			UpdateUserStatItemWithStatCode.Value = FCString::Atof(*Value.ToString());
 			UpdateUserStatItemWithStatCode.UpdateStrategy = FOnlineStatisticAccelByte::ConvertUpdateStrategy(UpdateStrategy);
+			BulkUpdateUserStatItems.Add(UpdateUserStatItemWithStatCode);
 		}
-		BulkUpdateUserStatItems.Add(UpdateUserStatItemWithStatCode);
+	}
+}
+
+FOnlineAsyncTaskAccelByteUpdateStats::FOnlineAsyncTaskAccelByteUpdateStats(FOnlineSubsystemAccelByte *const InABInterface, 
+	FUniqueNetIdRef const InLocalUserId,
+	TArray<FOnlineStatsUserUpdatedStats> const& InUpdatedUserStats,
+	FOnUpdateMultipleUserStatItemsComplete const& InDelegate)
+	: FOnlineAsyncTaskAccelByte(InABInterface, true)
+	, UpdatedUserStats(InUpdatedUserStats)
+	, DelegateDetailResponse(InDelegate)
+{
+	UserId = FUniqueNetIdAccelByteUser::CastChecked(InLocalUserId);
+	DetailResponse = true;
+
+	for (auto const& UpdatedUserStat : UpdatedUserStats)
+	{
+		FAccelByteModelsUpdateUserStatItemWithStatCode UpdateUserStatItemWithStatCode;
+		TSharedPtr<const FUniqueNetIdAccelByteUser> Account = FUniqueNetIdAccelByteUser::CastChecked(UpdatedUserStat.Account);
+		for (auto const& Stat : UpdatedUserStat.Stats)
+		{
+			FString Key = Stat.Key;
+			FOnlineStatUpdate const& Value = Stat.Value;
+			FOnlineStatUpdate::EOnlineStatModificationType UpdateStrategy = Stat.Value.GetModificationType();
+
+			UpdateUserStatItemWithStatCode.StatCode = Key;
+			UpdateUserStatItemWithStatCode.Value = FCString::Atof(*Value.ToString());
+			UpdateUserStatItemWithStatCode.UpdateStrategy = FOnlineStatisticAccelByte::ConvertUpdateStrategy(UpdateStrategy);
+			BulkUpdateUserStatItems.Add(UpdateUserStatItemWithStatCode);
+		}
 	}
 }
 
@@ -72,10 +102,19 @@ void FOnlineAsyncTaskAccelByteUpdateStats::Finalize()
 void FOnlineAsyncTaskAccelByteUpdateStats::TriggerDelegates()
 {
 	Super::TriggerDelegates();
-	
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Trigger Delegates"));
 	EOnlineErrorResult Result = ((bWasSuccessful) ? EOnlineErrorResult::Success : EOnlineErrorResult::RequestFailure);
-	Delegate.ExecuteIfBound(ONLINE_ERROR(Result, ErrorCode, FText::FromString(ErrorMessage)));
+
+	if (DetailResponse)
+	{
+		DelegateDetailResponse.ExecuteIfBound(ONLINE_ERROR(Result, ErrorCode, FText::FromString(ErrorMessage)), BulkUpdateStatItemsResponse);
+	}
+	else
+	{
+		Delegate.ExecuteIfBound(ONLINE_ERROR(Result, ErrorCode, FText::FromString(ErrorMessage)));
+	}
+
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 

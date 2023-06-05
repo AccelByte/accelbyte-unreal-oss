@@ -96,7 +96,7 @@ public:
 PACKAGE_SCOPE:
 	/**
 	 * Update the list of invited players on this session from the backend session data.
-	 * 
+	 *
 	 * @param bOutJoinedMembersChanged Boolean denoting whether the array of joined members has changed
 	 * @param bOutInvitedPlayersChanged Boolean denoting whether the array of invited players has changed
 	 */
@@ -137,7 +137,16 @@ PACKAGE_SCOPE:
 	 */
 	bool ContainsMember(const FUniqueNetId& MemberId);
 
+	/**
+	 * Set the p2p channel for the connection
+	 */
 	void SetP2PChannel(int32 InChannel);
+
+
+	/**
+	 * Check if the session is P2P matchmaking
+	 */
+	bool IsP2PMatchmaking();
 
 private:
 	/**
@@ -418,6 +427,15 @@ typedef FOnWatchdogDrainReceived::FDelegate FOnWatchdogDrainReceivedDelegate;
 
 DECLARE_MULTICAST_DELEGATE_TwoParams(FOnSessionInviteRejected, FName /*SessionName*/, const FUniqueNetId& /*RejecterId*/);
 typedef FOnSessionInviteRejected::FDelegate FOnSessionInviteRejectedDelegate;
+
+DECLARE_MULTICAST_DELEGATE_TwoParams(FOnPlayerAttributesInitialized, const FUniqueNetId& /*LocalUserId*/, bool /*bWasSuccessful*/);
+typedef FOnPlayerAttributesInitialized::FDelegate FOnPlayerAttributesInitializedDelegate;
+
+DECLARE_MULTICAST_DELEGATE_TwoParams(FOnServerQueryGameSessionsComplete, const FAccelByteModelsV2PaginatedGameSessionQueryResult& /*GameSessionsQueryResult*/, const FOnlineError& /*ErrorInfo*/)
+typedef FOnServerQueryGameSessionsComplete::FDelegate FOnServerQueryGameSessionsCompleteDelegate;
+
+DECLARE_MULTICAST_DELEGATE_TwoParams(FOnServerQueryPartySessionsComplete, const FAccelByteModelsV2PaginatedPartyQueryResult& /*PartySessionsQueryResult*/, const FOnlineError& /*ErrorInfo*/)
+typedef FOnServerQueryPartySessionsComplete::FDelegate FOnServerQueryPartySessionsCompleteDelegate;
 //~ End custom delegates
 
 class ONLINESUBSYSTEMACCELBYTE_API FOnlineSessionV2AccelByte : public IOnlineSession, public TSharedFromThis<FOnlineSessionV2AccelByte, ESPMode::ThreadSafe>
@@ -525,7 +543,7 @@ public:
 	 * player is marked as active to figure out if they are still considered to be in any sessions. From here, it is up
 	 * to you if you want to rejoin the session through JoinSession, or leave the session entirely through the custom
 	 * LeaveSession call.
-	 * 
+	 *
 	 * @param LocalUserId ID of the user that we are restoring sessions for
 	 * @param Delegate Handler fired after the restore call either succeeds or fails
 	 */
@@ -600,7 +618,7 @@ public:
 
 	/**
 	 * Promote a member of the party session to leader
-	 * 
+	 *
 	 * @param LocalUserId ID of the user that we are restoring sessions for
 	 * @param Delegate Handler fired after the restore call either succeeds or fails
 	 */
@@ -651,7 +669,7 @@ public:
 	/**
 	 * Method to manually refresh a session's data from the backend. Use to reconcile state between client and backend if
 	 * notifications are missed or other issues arise.
-	 * 
+	 *
 	 * @param SessionName Name of the session that we want to refresh data for
 	 * @param Delegate Delegate fired when we finish refreshing data for this session
 	 * @returns true if call was made to refresh session, false otherwise
@@ -688,7 +706,7 @@ public:
 
 	/**
 	 * Update the status of a member in a session. Intended to be used by the server to mark a player as connected or left.
-	 * 
+	 *
 	 * Requires permission 'ADMIN:NAMESPACE:{namespace}:SESSION:GAME' to be set with action 'UPDATE'.
 	 */
 	bool UpdateMemberStatus(FName SessionName, const FUniqueNetId& PlayerId, const EAccelByteV2SessionMemberStatus& Status, const FOnSessionMemberStatusUpdateComplete& Delegate=FOnSessionMemberStatusUpdateComplete());
@@ -711,7 +729,7 @@ public:
 	 * will be blanked out and joining this party via code will not be possible.
 	 */
 	bool RevokePartyCode(const FUniqueNetId& LocalUserId, FName SessionName, const FOnRevokePartyCodeComplete& Delegate);
-	
+
 	/**
 	 * Set an override for a local server name to register with. Only intended for use with local dedicated servers.
 	 */
@@ -729,19 +747,24 @@ public:
 
 	/**
 	 * Get attributes for the given player. To update the stored values in the session backend service, call UpdatePlayerAttributes.
-	 * 
+	 *
 	 * @param LocalPlayerId ID of the local player that attributes should be returned for
 	 */
 	FOnlineSessionV2AccelBytePlayerAttributes GetPlayerAttributes(const FUniqueNetId& LocalPlayerId);
 
 	/**
 	 * Sends a request to the session service to update a player's attributes.
-	 * 
+	 *
 	 * @param LocalPlayerId ID of the local player that attributes should be updated for
 	 * @param NewAttributes Structure describing what attributes should be updated for this player
 	 * @param Delegate Delegate to fire after task to update attributes completes
 	 */
 	bool UpdatePlayerAttributes(const FUniqueNetId& LocalPlayerId, const FOnlineSessionV2AccelBytePlayerAttributes& NewAttributes, const FOnUpdatePlayerAttributesComplete& Delegate=FOnUpdatePlayerAttributesComplete());
+
+	/**
+	 * Check if the player is the host of the P2P matchmaking match
+	 */
+	bool IsPlayerP2PHost(const FUniqueNetId& LocalUserId, FName SessionName);
 
 	/**
 	 * Delegate fired when we have retrieved information on the session that our server is claimed by on the backend.
@@ -760,7 +783,7 @@ public:
 
 	/**
 	 * Delegate fired when we get a session invite from another player. Includes an AccelByte invite structure to allow for rejecting the invite.
-	 * 
+	 *
 	 * @param UserId ID of the local user that received the invite
 	 * @param FromId ID of the remote user that sent the invite
 	 * @param Invite Invite structure that can be used to either accept or reject the invite
@@ -775,14 +798,14 @@ public:
 	/**
 	 * Delegate fired when the server info for the session referenced changes. Basically is a signal that the server is
 	 * ready to be traveled to.
-	 * 
+	 *
 	 * @param SessionName Name of the session that has had server information change.
 	 */
 	DEFINE_ONLINE_DELEGATE_ONE_PARAM(OnSessionServerUpdate, FName /*SessionName*/);
 
 	/**
 	 * Delegate fired when session failed to get a server.
-	 * 
+	 *
 	 * @param SessionName Name of the session.
 	 * @param ErrorMessage Message of the error
 	 */
@@ -833,7 +856,7 @@ public:
 	DEFINE_ONLINE_DELEGATE_TWO_PARAM(OnSessionUpdateRequestComplete, FName /*SessionName*/, bool /*bWasSuccessful*/);
 
 	/**
-	 * Delegate fired when a session update fails due to a version mismatch 
+	 * Delegate fired when a session update fails due to a version mismatch
 	 */
 	DEFINE_ONLINE_DELEGATE_TWO_PARAM(OnSessionUpdateConflictError, FName /*SessionName*/, FOnlineSessionSettings /*FailedSessionSettings*/);
 
@@ -849,11 +872,26 @@ public:
 	 */
 	DEFINE_ONLINE_DELEGATE_TWO_PARAM(OnSessionInviteRejected, FName /*SessionName*/, const FUniqueNetId& /*RejectedId*/);
 
+	/**
+	 * Delegate fired when a player's attributes have been initialized. Should be fired once toward the end of login.
+	 */
+	DEFINE_ONLINE_DELEGATE_TWO_PARAM(OnPlayerAttributesInitialized, const FUniqueNetId& /*LocalUserId*/, bool /*bWasSuccessful*/);
+
+	/*
+	 * Delegate fired when server query game sessions complete
+	 */
+	DEFINE_ONLINE_DELEGATE_TWO_PARAM(OnServerQueryGameSessionsComplete, const FAccelByteModelsV2PaginatedGameSessionQueryResult& /*GameSessionsQueryResult*/, const FOnlineError& /*ErrorInfo*/)
+
+	/**
+	 * Delegate fired when server query party sessions complete
+	 */
+	DEFINE_ONLINE_DELEGATE_TWO_PARAM(OnServerQueryPartySessionsComplete, const FAccelByteModelsV2PaginatedPartyQueryResult& /*PartySessionsQueryResult*/, const FOnlineError& /*ErrorInfo*/)
+
 #if (ENGINE_MAJOR_VERSION == 4 && ENGINE_MINOR_VERSION <= 25)
 	/**
 	 * Delegate fired when the members in a session have changed. From the UE 4.26+ base session interface delegates.
 	 * Brought back to 4.25 or lower for back compat reasons.
-	 * 
+	 *
 	 * @param SessionName The name of the session that changed
 	 * @param UniqueId The ID of the user whose join state has changed
 	 * @param bJoined if true this is a join event, (if false it is a leave event)
@@ -870,7 +908,7 @@ PACKAGE_SCOPE:
 
 	/**
 	 * Current session search handle that we are using for matchmaking.
-	 * 
+	 *
 	 * #NOTE (Maxwell): Since we only track one handle at a time, we don't support matchmaking for two different session names at the same time.
 	 * This might be something useful down the line, think about if this is possible to support.
 	 */
@@ -922,7 +960,7 @@ PACKAGE_SCOPE:
 	 * Get a string representation of the joinability enum passed in
 	 */
 	FString GetJoinabilityAsString(const EAccelByteV2SessionJoinability& Joinability);
-	
+
 	/**
 	 * Get an AccelByte joinability enum from a string value
 	 */
@@ -991,7 +1029,7 @@ PACKAGE_SCOPE:
 
 	/**
 	 * Remove a restored session instance by it's ID, if an instance exists
-	 * 
+	 *
 	 * @param SessionIdStr Session ID that we are trying to find and remove a restore session instance for
 	 * @return bool true if found and removed, false otherwise
 	 */
@@ -999,7 +1037,7 @@ PACKAGE_SCOPE:
 
 	/**
 	 * Remove an invite from our local list by it's ID. Used when we accept or reject an invite.
-	 * 
+	 *
 	 * @param SessionIdStr Session ID that we are trying to find and remove an invite instance for
 	 * @return bool true if found and removed, false otherwise
 	 */
@@ -1059,11 +1097,11 @@ PACKAGE_SCOPE:
 	 * Read a JSON object into a session settings instance
 	 */
 	FOnlineSessionSettings ReadSessionSettingsFromJsonObject(const TSharedRef<FJsonObject>& Object) const;
-	
+
 	/**
 	 * Convert a session search parameters into a json object that can be used to fill match ticket attributes
 	 */
-	TSharedRef<FJsonObject> ConvertSearchParamsToJsonObject(const FSearchParams& Params) const;
+	TSharedRef<FJsonObject> ConvertSearchParamsToJsonObject(const FOnlineSearchSettings& Params) const;
 
 	/**
 	 * Attempt to connect to a P2P session
@@ -1082,7 +1120,7 @@ PACKAGE_SCOPE:
 
 	/**
 	 * Connect a server to the DS hub, as well as register delegates internally for session management.
-	 * 
+	 *
 	 * @param ServerName Name of the server that is connecting to the DS hub
 	 */
 	void ConnectToDSHub(const FString& ServerName);
@@ -1104,7 +1142,7 @@ PACKAGE_SCOPE:
 
 	/**
 	* Initialize Metric Exporter.
-	* 
+	*
 	* @param Address StatsD IPv4 address
 	* @param Port StatsD port
 	* @param IntervalSeconds Interval of exporting metric to StatsD
@@ -1113,7 +1151,7 @@ PACKAGE_SCOPE:
 
 	/**
 	 * Set Label to a specific Key of metric
-	 * 
+	 *
 	 * @param Key Key to add label
 	 * @param Value label name for the key
 	 */
@@ -1121,7 +1159,7 @@ PACKAGE_SCOPE:
 
 	/**
 	* Enqueue Metric
-	* 
+	*
 	* @param Key The key of the metric
 	* @param Value Floating number value of the metric
 	*/
@@ -1129,7 +1167,7 @@ PACKAGE_SCOPE:
 
 	/**
 	 * Enqueue Metric
-	 * 
+	 *
 	 * @param Key The key of the metric
 	 * @param Value Integer value of the metric
 	 */
@@ -1137,7 +1175,7 @@ PACKAGE_SCOPE:
 
 	/**
 	 * Enqueue Metric
-	 * 
+	 *
 	 * @param Key The key of the metric
 	 * @param Value String value of the metric
 	 */
@@ -1160,25 +1198,45 @@ PACKAGE_SCOPE:
 	/**
 	 * Makes a call to grab the most recent stored player attributes from the session service, and updates them with the
 	 * current platform. Intended to be called at the end of the login process.
-	 * 
+	 *
 	 * @param LocalPlayerId ID of the player that we want to initialize attributes for
 	 */
 	void InitializePlayerAttributes(const FUniqueNetId& LocalPlayerId);
 
 	/**
 	 * Get the internal model for a player's attributes.
-	 * 
+	 *
 	 * @param LocalPlayerId ID of the player that we want to get the internal attributes model for
 	 */
 	FAccelByteModelsV2PlayerAttributes* GetInternalPlayerAttributes(const FUniqueNetId& LocalPlayerId);
 
 	/**
 	 * Stores attributes for a player in this interface. Intended to be used at login.
-	 * 
+	 *
 	 * @param LocalPlayerId ID of the player that we wish to store attributes for
 	 * @param Attributes Attributes that we wish to store locally for this player, will be moved directly into map
 	 */
 	void StorePlayerAttributes(const FUniqueNetId& LocalPlayerId, FAccelByteModelsV2PlayerAttributes&& Attributes);
+
+	/**
+	 * @brief Query game sessions from a server, listen for OnServerQueryGameSessionsComplete delegate for the result.
+	 *
+	 * @param Request Request for the query for filtering the result
+	 * @param Offset Offset of the query
+	 * @param Limit Maximum number of game sessions listed
+	 * @return true if request successfully sent
+	 */
+	bool ServerQueryGameSessions(const FAccelByteModelsV2ServerQueryGameSessionsRequest& Request, int64 Offset = 0, int64 Limit = 20);
+
+	/**
+	 * @brief Query party sessions from a server, listen for OnServerQueryPartySessionsComplete delegate for the result.
+	 *
+	 * @param Request Request for the query for filtering the result
+	 * @param Offset Offset of the query
+	 * @param Limit Maximum number of game sessions listed
+	 * @return true if request successfully sent
+	 */
+	bool ServerQueryPartySessions(const FAccelByteModelsV2QueryPartiesRequest& Request, int64 Offset = 0, int64 Limit = 20);
 
 private:
 	/** Parent subsystem of this interface instance */
@@ -1201,14 +1259,14 @@ private:
 
 	/**
 	 * Pointer to SessionSearch.
-	 * will be set when matchmaking is in progress 
+	 * will be set when matchmaking is in progress
 	 */
 	TSharedPtr<FOnlineSessionSearch> SessionSearchPtr;
 
 	/** Default session setting to use when no CustomSessionSetting is provided */
 	FOnlineSessionSettings DefaultSessionSettings;
 
-	/** 
+	/**
 	 * Session setting provided by user when matchmaking,
 	 * if provided, CustomSessionSetting will be prioritized then DefaultSessionSetting.
 	 * These will be cleared when matchmaking is complete and session search result is constructed

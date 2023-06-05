@@ -884,12 +884,6 @@ bool FOnlineSessionV1AccelByte::CancelMatchmaking(const FUniqueNetId& SearchingP
 				TriggerOnCancelMatchmakingCompleteDelegates(SessionName, false);
 			});
 		}
-		else
-		{
-			AsyncTask(ENamedThreads::GameThread, [this, SessionName]() {
-				TriggerOnCancelMatchmakingCompleteDelegates(SessionName, true);
-			});
-		}
 
 		if (ApiClient.IsValid())
 		{
@@ -1104,6 +1098,8 @@ void FOnlineSessionV1AccelByte::OnRTCConnected(const FString& NetId, const EAcce
 		Result = EOnJoinSessionCompleteResult::UnknownError;
 	}
 
+	FAccelByteNetworkUtilitiesModule::Get().RegisterICERequestConnectFinishedDelegate(nullptr);
+	
 	FNamedOnlineSession* Session = GetNamedSession(SessionName);
 	check(Session != nullptr);
 

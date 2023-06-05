@@ -12,6 +12,7 @@
 #include "UObject/CoreOnline.h"
 #endif
 #include "OnlineSubsystemAccelByte.h"
+#include "OnlineUserCacheAccelByte.h"
 #include "Models/AccelByteChatModels.h"
 #include "Interfaces/OnlineChatInterface.h"
 

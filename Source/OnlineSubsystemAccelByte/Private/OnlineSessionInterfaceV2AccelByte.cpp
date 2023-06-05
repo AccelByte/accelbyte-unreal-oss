@@ -44,6 +44,8 @@
 #include "AsyncTasks/Server/OnlineAsyncTaskAccelByteRejectBackfillProposal.h"
 #include "AsyncTasks/Server/OnlineAsyncTaskAccelByteCreateBackfillTicket.h"
 #include "AsyncTasks/Server/OnlineAsyncTaskAccelByteDeleteBackfillTicket.h"
+#include "AsyncTasks/Server/OnlineAsyncTaskAccelByteServerQueryGameSessionsV2.h"
+#include "AsyncTasks/Server/OnlineAsyncTaskAccelByteServerQueryPartySessionsV2.h"
 #include "OnlineIdentityInterfaceAccelByte.h"
 #include "OnlineSessionInterfaceV1AccelByte.h"
 #include "OnlineSubsystemAccelByte.h"
@@ -215,6 +217,12 @@ bool FOnlineSessionInfoAccelByteV2::ContainsMember(const FUniqueNetId& MemberId)
 void FOnlineSessionInfoAccelByteV2::SetP2PChannel(int32 InChannel)
 {
 	P2PChannel = InChannel;
+}
+
+bool FOnlineSessionInfoAccelByteV2::IsP2PMatchmaking()
+{
+	// currently if the creator is client IAM, then this is a MM match
+	return GetServerType() == EAccelByteV2SessionConfigurationServerType::P2P && GetBackendSessionDataAsGameSession()->CreatedBy.StartsWith(TEXT("client"));
 }
 
 TArray<FAccelByteModelsV2GameSessionTeam> FOnlineSessionInfoAccelByteV2::GetTeamAssignments() const
@@ -460,7 +468,14 @@ void FOnlineSessionInfoAccelByteV2::UpdateConnectionInfo()
 		// of the player that created the session.
 		//
 		// #TODO This doesn't account for if a player drops and we need a new ID for them, may need to figure something out for this...
-		PeerId = GameBackendSessionData->CreatedBy;
+		if(IsP2PMatchmaking())
+		{
+			PeerId = GameBackendSessionData->LeaderID;
+		}
+		else
+		{
+			PeerId = GameBackendSessionData->CreatedBy;
+		}		
 	}
 }
 
@@ -1706,10 +1721,10 @@ FOnlineSessionSettings FOnlineSessionV2AccelByte::ReadSessionSettingsFromJsonObj
 	return OutSettings;
 }
 
-TSharedRef<FJsonObject> FOnlineSessionV2AccelByte::ConvertSearchParamsToJsonObject(const FSearchParams& Params) const
+TSharedRef<FJsonObject> FOnlineSessionV2AccelByte::ConvertSearchParamsToJsonObject(const FOnlineSearchSettings& Params) const
 {
 	TSharedRef<FJsonObject> OutObject = MakeShared<FJsonObject>();
-	for (const TPair<FName, FOnlineSessionSearchParam>& Param : Params)
+	for (const TPair<FName, FOnlineSessionSearchParam>& Param : Params.SearchParams)
 	{
 		if (Param.Key == SETTING_GAMESESSION_CLIENTVERSION)
 		{
@@ -1731,7 +1746,27 @@ TSharedRef<FJsonObject> FOnlineSessionV2AccelByte::ConvertSearchParamsToJsonObje
 		{
 			continue;
 		}
-		
+
+		// If the setting value is a blob, we assume that it represents a serialized array of strings or doubles
+		if (Param.Value.Data.GetType() == EOnlineKeyValuePairDataType::Blob)
+		{
+			const ESessionSettingsAccelByteArrayFieldType ArrayType = FOnlineSearchSettingsAccelByte::GetArrayFieldType(Params, Param.Key);
+			if (ArrayType == ESessionSettingsAccelByteArrayFieldType::STRINGS)
+			{
+				TArray<FString> Array;
+				FOnlineSearchSettingsAccelByte::Get(Params, Param.Key, Array);
+				OutObject->SetArrayField(Param.Key.GetPlainNameString(), ConvertSessionSettingArrayToJson(Array));
+			}
+			else if (ArrayType == ESessionSettingsAccelByteArrayFieldType::DOUBLES)
+			{
+				TArray<double> Array;
+				FOnlineSearchSettingsAccelByte::Get(Params, Param.Key, Array);
+				OutObject->SetArrayField(Param.Key.GetPlainNameString(), ConvertSessionSettingArrayToJson(Array));
+			}
+
+			continue;
+		}
+
 		// Add the setting to the attributes object. With the setting key as the field name, converted to all uppercase to avoid
 		// FName weirdness with casing.
 		// Removing type suffix because key need to be same as what is configured in ruleset.
@@ -2551,6 +2586,24 @@ bool FOnlineSessionV2AccelByte::UpdatePlayerAttributes(const FUniqueNetId& Local
 	return true;
 }
 
+bool FOnlineSessionV2AccelByte::IsPlayerP2PHost(const FUniqueNetId& LocalUserId, FName SessionName)
+{
+	FNamedOnlineSession* Session = GetNamedSession(SessionName);
+	if (Session == nullptr)
+	{
+		return false;
+	}
+
+	TSharedPtr<FOnlineSessionInfoAccelByteV2> SessionInfo = StaticCastSharedPtr<FOnlineSessionInfoAccelByteV2>(Session->SessionInfo);
+	if (!ensure(SessionInfo.IsValid()))
+	{
+		return false;
+	}
+
+	const bool bIsP2PHost = (LocalUserId == SessionInfo->GetLeaderId().ToSharedRef().Get());
+	return SessionInfo->IsP2PMatchmaking() && bIsP2PHost;
+}
+
 bool FOnlineSessionV2AccelByte::FindFriendSession(int32 LocalUserNum, const FUniqueNetId& Friend)
 {
 	IOnlineIdentityPtr IdentityInterface = AccelByteSubsystem->GetIdentityInterface();
@@ -2666,7 +2719,7 @@ bool FOnlineSessionV2AccelByte::GetResolvedConnectString(FName SessionName, FStr
 		UE_LOG_AB(Warning, TEXT("Failed to get resolved connect string for session '%s' as the local session info is invalid!"), *SessionName.ToString());
 		return false;
 	}
-
+	
 	if (!SessionInfo->HasConnectionInfo())
 	{
 		ConnectInfo = TEXT("");
@@ -4407,6 +4460,8 @@ void FOnlineSessionV2AccelByte::OnICEConnectionComplete(const FString& PeerId,
 		Result = EOnJoinSessionCompleteResult::UnknownError;
 	}
 
+	FAccelByteNetworkUtilitiesModule::Get().RegisterICERequestConnectFinishedDelegate(nullptr);
+
 	AsyncTask(ENamedThreads::GameThread, [this, Action, SessionName, Result, PeerId] {
 		if(Action == EOnlineSessionP2PConnectedAction::Join)
         {
@@ -4673,6 +4728,38 @@ void FOnlineSessionV2AccelByte::StorePlayerAttributes(const FUniqueNetId& LocalP
 	{
 		UserIdToPlayerAttributesMap.Add(LocalPlayerId.AsShared(), MoveTempIfPossible(Attributes));
 	}
+}
+
+bool FOnlineSessionV2AccelByte::ServerQueryGameSessions(const FAccelByteModelsV2ServerQueryGameSessionsRequest& Request, int64 Offset, int64 Limit)
+{
+	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT(""));
+
+	if (!IsRunningDedicatedServer())
+	{
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("ServerQueryGameSessions only works for Dedicated Server"));
+		return false;
+	}
+
+	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteServerQueryGameSessionsV2>(AccelByteSubsystem, Request, Offset, Limit);
+
+	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+	return true;
+}
+
+bool FOnlineSessionV2AccelByte::ServerQueryPartySessions(const FAccelByteModelsV2QueryPartiesRequest& Request, int64 Offset, int64 Limit)
+{
+	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT(""));
+
+	if (!IsRunningDedicatedServer())
+	{
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("ServerQueryPartySessions only works for Dedicated Server"));
+		return false;
+	}
+
+	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteServerQueryPartySessionsV2>(AccelByteSubsystem, Request, Offset, Limit);
+
+	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+	return true;
 }
 
 void FOnlineSessionV2AccelByte::OnWatchdogDrain()

@@ -49,6 +49,23 @@ void FOnlineAsyncTaskAccelByteInitializePlayerAttributes::Finalize()
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 
+void FOnlineAsyncTaskAccelByteInitializePlayerAttributes::TriggerDelegates()
+{
+	Super::TriggerDelegates();
+
+	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
+
+	FOnlineSessionV2AccelBytePtr SessionInterface{};
+	if (!ensureAlwaysMsgf(FOnlineSessionV2AccelByte::GetFromSubsystem(Subsystem, SessionInterface), TEXT("Failed to get session interface instance from subsystem")))
+	{
+		return;
+	}
+
+	SessionInterface->TriggerOnPlayerAttributesInitializedDelegates(UserId.ToSharedRef().Get(), bWasSuccessful);
+
+	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
+}
+
 void FOnlineAsyncTaskAccelByteInitializePlayerAttributes::OnGetPlayerCrossplayPrivilege(const FUniqueNetId& LocalUserId, EUserPrivileges::Type Privilege, uint32 PrivilegeResult)
 {
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("LocalUserId: %s; Result: %d"), *LocalUserId.ToDebugString(), PrivilegeResult);

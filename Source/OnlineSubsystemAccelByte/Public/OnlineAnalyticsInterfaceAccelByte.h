@@ -5,14 +5,14 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "OnlineUserCacheAccelByte.h"
-#include "Api/AccelByteGameTelemetryApi.h"
-#include "GameServerApi/AccelByteServerGameTelemetryApi.h"
+#include "OnlineSubsystemAccelByte.h"
+#include "Models/AccelByteGameTelemetryModels.h"
 
 /**
  * Implementation of Analytics service from AccelByte services
  */
-class ONLINESUBSYSTEMACCELBYTE_API FOnlineAnalyticsAccelByte : public TSharedFromThis<FOnlineAnalyticsAccelByte, ESPMode::ThreadSafe>
+class ONLINESUBSYSTEMACCELBYTE_API FOnlineAnalyticsAccelByte
+	: public TSharedFromThis<FOnlineAnalyticsAccelByte, ESPMode::ThreadSafe>
 {
 PACKAGE_SCOPE:
 	FOnlineAnalyticsAccelByte(FOnlineSubsystemAccelByte* InSubsystem)
@@ -29,7 +29,8 @@ public:
 	 * @param OutInterfaceInstance Instance of the interface that we got from the subsystem, or nullptr if not found
 	 * @returns boolean that is true if we could get an instance of the interface, false otherwise
 	 */
-	static bool GetFromWorld(const UWorld* World, TSharedPtr<FOnlineAnalyticsAccelByte, ESPMode::ThreadSafe>& OutInterfaceInstance);
+	static bool GetFromWorld(const UWorld* World
+		, FOnlineAnalyticsAccelBytePtr& OutInterfaceInstance);
 
 	/**
 	 * Convenience method to get an instance of this interface from the subsystem passed in.
@@ -38,7 +39,8 @@ public:
 	 * @param OutInterfaceInstance Instance of the interface that we got from the subsystem, or nullptr if not found
 	 * @returns boolean that is true if we could get an instance of the interface, false otherwise
 	 */
-	static bool GetFromSubsystem(const IOnlineSubsystem* Subsystem, TSharedPtr<FOnlineAnalyticsAccelByte, ESPMode::ThreadSafe>& OutInterfaceInstance);
+	static bool GetFromSubsystem(const IOnlineSubsystem* Subsystem
+		, FOnlineAnalyticsAccelBytePtr& OutInterfaceInstance);
 
 	/**
 	 * Set GameTelemetry or ServerGameTelemetry send event interval from DefaultEngine.ini
@@ -55,7 +57,8 @@ public:
 	 * @param EventNames list of immediate event name 
 	 * @returns boolean that is true if task for setting immediate event lists successfully dispatched
 	 */
-	bool SetTelemetryImmediateEventList(int32 InLocalUserNum, TArray<FString> const& EventNames);
+	bool SetTelemetryImmediateEventList(int32 InLocalUserNum
+		, TArray<FString> const& EventNames);
 
 	/**
 	 * Send GameTelemetry or ServerGameTelemetry event with delegates OnSuccess and OnError
@@ -66,9 +69,10 @@ public:
 	 * @param OnError delegate will be called after event send error
 	 * @returns boolean that is true if task for sending telemetry event successfully dispatched
 	 */
-	bool SendTelemetryEvent(
-		int32 InLocalUserNum, FAccelByteModelsTelemetryBody const& TelemetryBody,
-		AccelByte::FVoidHandler const& OnSuccess, AccelByte::FErrorHandler const& OnError);
+	bool SendTelemetryEvent(int32 InLocalUserNum
+		, FAccelByteModelsTelemetryBody const& TelemetryBody
+		, AccelByte::FVoidHandler const& OnSuccess
+		, AccelByte::FErrorHandler const& OnError);
 
 protected:
 	/** Hidden default constructor, the constructor that takes in a subsystem instance should be used instead. */

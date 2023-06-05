@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.11.3](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.11.3%0D0.11.2) (2023-06-05)
+
+
+### Features
+
+* **session:** add server query game and party sessions in session interface v2 ([98bb66e](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/98bb66eaaec45836b77cfd7201e7a408379a015c))
+
+
+### Bug Fixes
+
+* **MMv1:** Remove trigger OnCancelMatchmakingComplete after receive CancelMatchmakingResponse ([4292b0a](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/4292b0a07e4ce42e76b9a4a3015fa26a30536f72))
+
 ### [0.11.2](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.11.2%0D0.11.1) (2023-05-25)
 
 

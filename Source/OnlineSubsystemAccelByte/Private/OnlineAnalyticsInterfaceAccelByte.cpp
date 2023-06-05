@@ -5,11 +5,12 @@
 #include "OnlineAnalyticsInterfaceAccelByte.h"
 #include "OnlineSubsystemAccelByte.h"
 #include "OnlineSubsystemUtils.h"
-#include "AsyncTasks/Analytics/OnlineAsyncTaskAccelByteSendTelemetry.h"
-#include "AsyncTasks/Analytics/OnlineAsyncTaskAccelByteSetImmediateEventList.h"
-#include "AsyncTasks/Analytics/OnlineAsyncTaskAccelByteSetTelemetryInterval.h"
+#include "OnlineSubsystemAccelByteInternalHelpers.h"
+#include "OnlineIdentityInterfaceAccelByte.h"
+#include "Core/AccelByteMultiRegistry.h"
 
-bool FOnlineAnalyticsAccelByte::GetFromSubsystem(const IOnlineSubsystem* Subsystem, TSharedPtr<FOnlineAnalyticsAccelByte, ESPMode::ThreadSafe>& OutInterfaceInstance)
+bool FOnlineAnalyticsAccelByte::GetFromSubsystem(const IOnlineSubsystem* Subsystem
+	, TSharedPtr<FOnlineAnalyticsAccelByte, ESPMode::ThreadSafe>& OutInterfaceInstance)
 {
 	const FOnlineSubsystemAccelByte* ABSubsystem = static_cast<const FOnlineSubsystemAccelByte*>(Subsystem);
 	if (ABSubsystem == nullptr)
@@ -22,7 +23,9 @@ bool FOnlineAnalyticsAccelByte::GetFromSubsystem(const IOnlineSubsystem* Subsyst
 	return OutInterfaceInstance.IsValid();
 }
 
-bool FOnlineAnalyticsAccelByte::GetFromWorld(const UWorld* World, TSharedPtr<FOnlineAnalyticsAccelByte, ESPMode::ThreadSafe>& OutInterfaceInstance)
+bool FOnlineAnalyticsAccelByte::GetFromWorld(const UWorld* World
+	, TSharedPtr<FOnlineAnalyticsAccelByte
+	, ESPMode::ThreadSafe>& OutInterfaceInstance)
 {
 	const IOnlineSubsystem* Subsystem = Online::GetSubsystem(World);
 	if (Subsystem == nullptr)
@@ -36,51 +39,99 @@ bool FOnlineAnalyticsAccelByte::GetFromWorld(const UWorld* World, TSharedPtr<FOn
 
 bool FOnlineAnalyticsAccelByte::SetTelemetrySendInterval(int32 InLocalUserNum)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("Set telemetry send interval for LocalUserNum: %d"), InLocalUserNum);
+	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("Set Telemetry Send Interval for LocalUserNum: %d"), InLocalUserNum);
 
+	bool bIsSuccess = false;
 	int32 SendTelemetryEventIntervalInSeconds;
-	if(GConfig->GetInt(TEXT("OnlineSubsystemAccelByte"), TEXT("SendTelemetryEventIntervalInSeconds"), SendTelemetryEventIntervalInSeconds, GEngineIni))
+	if (GConfig->GetInt(TEXT("OnlineSubsystemAccelByte"), TEXT("SendTelemetryEventIntervalInSeconds"), SendTelemetryEventIntervalInSeconds, GEngineIni))
 	{
-		AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteSetTelemetryInterval>(
-			AccelByteSubsystem, InLocalUserNum, SendTelemetryEventIntervalInSeconds);
-		AB_OSS_INTERFACE_TRACE_END(TEXT("Dispatching async task to attempt to set telemetry send interval"));
-		return true;
+		if (IsRunningDedicatedServer())
+		{
+			const FServerApiClientPtr ServerApiClient = FMultiRegistry::GetServerApiClient();
+			if (ServerApiClient.IsValid())
+			{
+				ServerApiClient->ServerGameTelemetry.SetBatchFrequency(FTimespan::FromSeconds(SendTelemetryEventIntervalInSeconds));
+				bIsSuccess = true;
+			}
+		}
+		else
+		{
+			const auto ApiClient = AccelByteSubsystem->GetApiClient(InLocalUserNum);
+			if (ApiClient.IsValid())
+			{
+				ApiClient->GameTelemetry.SetBatchFrequency(FTimespan::FromSeconds(SendTelemetryEventIntervalInSeconds));
+				bIsSuccess = true;
+			}
+		}
 	}
 
-	AB_OSS_INTERFACE_TRACE_END(TEXT("SendTelemetryEventIntervalInSeconds is not found in config, using default interval"));
-	return false;
+	AB_OSS_INTERFACE_TRACE_END(TEXT("Set Telemetry Send Interval is finished with status (Success: %s)"), LOG_BOOL_FORMAT(bIsSuccess));
+	return bIsSuccess;
 }
 
 bool FOnlineAnalyticsAccelByte::SetTelemetryImmediateEventList(int32 InLocalUserNum, TArray<FString> const& EventNames)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("Set telemetry immediate event list for LocalUserNum: %d"), InLocalUserNum);
-	if (EventNames.Num() <= 0)
+	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("Set Telemetry Immediate Event List for LocalUserNum: %d"), InLocalUserNum);
+	
+	bool bIsSuccess = false;
+	if (IsUserLoggedIn(InLocalUserNum) && EventNames.Num() > 0)
 	{
-		AB_OSS_INTERFACE_TRACE_END(TEXT("Event list is empty"));
-		return false;
+		if (IsRunningDedicatedServer())
+		{
+			const auto ServerApiClient = FMultiRegistry::GetServerApiClient();
+			if (ServerApiClient.IsValid())
+			{
+				ServerApiClient->ServerGameTelemetry.SetImmediateEventList(EventNames);
+				bIsSuccess = true;
+			}
+		}
+		else
+		{
+			const auto ApiClient = AccelByteSubsystem->GetApiClient(InLocalUserNum);
+			if (ApiClient.IsValid())
+			{
+				ApiClient->GameTelemetry.SetImmediateEventList(EventNames);
+				bIsSuccess = true;
+			}
+		}
 	}
-
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteSetImmediateEventList>(
-		AccelByteSubsystem, InLocalUserNum, EventNames);
-	AB_OSS_INTERFACE_TRACE_END(TEXT("Dispatching async task to attempt to set immediate event list"));
-	return true;
+	
+	AB_OSS_INTERFACE_TRACE_END(TEXT("Set Telemetry Immediate Event List is finished with status (Success: %s)"), LOG_BOOL_FORMAT(bIsSuccess));
+	return bIsSuccess;
 }
 
-bool FOnlineAnalyticsAccelByte::SendTelemetryEvent(
-	int32 InLocalUserNum, FAccelByteModelsTelemetryBody const& TelemetryBody,
-	FVoidHandler const& OnSuccess, FErrorHandler const& OnError)
+bool FOnlineAnalyticsAccelByte::SendTelemetryEvent(int32 InLocalUserNum
+	, FAccelByteModelsTelemetryBody const& TelemetryBody
+	, FVoidHandler const& OnSuccess
+	, FErrorHandler const& OnError)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("Send telemetry event for LocalUserNum: %d"), InLocalUserNum);
+	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("Send Telemetry Event for LocalUserNum: %d"), InLocalUserNum);
+	
+	bool bIsSuccess = false;
 	if (IsUserLoggedIn(InLocalUserNum) && IsValidTelemetry(TelemetryBody))
 	{
-		AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteSendTelemetry>(
-			AccelByteSubsystem, InLocalUserNum, TelemetryBody, OnSuccess, OnError);
-		AB_OSS_INTERFACE_TRACE_END(TEXT("Dispatching async task to attempt to send telemetry event"));
-		return true;
+		if (IsRunningDedicatedServer())
+		{
+			const auto ServerApiClient = FMultiRegistry::GetServerApiClient();
+			if (ServerApiClient.IsValid())
+			{
+				ServerApiClient->ServerGameTelemetry.Send(TelemetryBody, OnSuccess, OnError);
+				bIsSuccess = true;
+			}
+		}
+		else
+		{
+			const auto ApiClient = AccelByteSubsystem->GetApiClient(InLocalUserNum);
+			if (ApiClient.IsValid())
+			{
+				ApiClient->GameTelemetry.Send(TelemetryBody, OnSuccess, OnError);
+				bIsSuccess = true;
+			}
+		}
 	}
 
-	AB_OSS_INTERFACE_TRACE_END(TEXT("Failed to send telemetry event, user not logged in or invalid telemetry"));
-	return false;
+	AB_OSS_INTERFACE_TRACE_END(TEXT("Send Telemetry Event is finished with status (Success: %s)"), LOG_BOOL_FORMAT(bIsSuccess));
+	return bIsSuccess;
 }
 
 bool FOnlineAnalyticsAccelByte::IsUserLoggedIn(const int32 InLocalUserNum) const

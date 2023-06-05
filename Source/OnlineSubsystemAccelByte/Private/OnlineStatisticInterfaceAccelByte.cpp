@@ -154,6 +154,19 @@ void FOnlineStatisticAccelByte::UpdateStats(const int32 LocalUserNum
 	}
 }
 
+void FOnlineStatisticAccelByte::UpdateStats(const FUniqueNetIdRef LocalUserId
+	, const TArray<FOnlineStatsUserUpdatedStats>& UpdatedUserStats
+	, const FOnUpdateMultipleUserStatItemsComplete& Delegate)
+{
+	UE_LOG_ONLINE_STATS(Display, TEXT("FOnlineStatisticAccelByte::UpdateStats"));
+
+	if (!IsRunningDedicatedServer())
+	{
+		AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteUpdateStats>
+			(AccelByteSubsystem, LocalUserId, UpdatedUserStats, Delegate);
+	}
+}
+
 void FOnlineStatisticAccelByte::DeleteStats(const int32 LocalUserNum
 	, const FUniqueNetIdRef StatsUser
 	, const FString& StatNames

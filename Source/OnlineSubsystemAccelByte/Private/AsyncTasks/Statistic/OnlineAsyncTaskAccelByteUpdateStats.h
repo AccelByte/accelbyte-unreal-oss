@@ -19,6 +19,11 @@ public:
 		, TArray<FOnlineStatsUserUpdatedStats> const& UpdatedUserStats
 		, FOnlineStatsUpdateStatsComplete const& Delegate);
 
+	FOnlineAsyncTaskAccelByteUpdateStats(FOnlineSubsystemAccelByte *const InABInterface
+		, FUniqueNetIdRef const InLocalUserId
+		, TArray<FOnlineStatsUserUpdatedStats> const& InUpdatedUserStats
+		, FOnUpdateMultipleUserStatItemsComplete const& InDelegate);
+
 	virtual void Initialize() override;
 	virtual void Finalize() override;
 	virtual void TriggerDelegates() override;
@@ -46,6 +51,8 @@ private:
 	TArray<FAccelByteModelsUpdateUserStatItemsResponse> BulkUpdateStatItemsResponse;
 	TMap<FString, FVariantData> Stats;
 	TArray<TSharedRef<const FOnlineStatsUserStats>> OnlineUsersStatsPairs;
+	bool DetailResponse;
 	FOnlineStatsUpdateStatsComplete Delegate; 
+	FOnUpdateMultipleUserStatItemsComplete DelegateDetailResponse;
 
 };

@@ -17,7 +17,9 @@
 #include "OnlineWalletInterfaceAccelByte.h"
 #include "OnlineCloudSaveInterfaceAccelByte.h"
 #include "OnlineTimeInterfaceAccelByte.h"
+#include "OnlineAnalyticsInterfaceAccelByte.h"
 #include "OnlineStatisticInterfaceAccelByte.h"
+#include "OnlineChatInterfaceAccelByte.h"
 #include "OnlineAuthInterfaceAccelByte.h"
 #include "OnlineSubsystemAccelByteModule.h"
 #include "Api/AccelByteLobbyApi.h"
@@ -33,8 +35,6 @@
 #if WITH_DEV_AUTOMATION_TESTS
 #include "ExecTests/ExecTestBase.h"
 #endif
-#include "OnlineAgreementInterfaceAccelByte.h"
-#include "OnlineChatInterfaceAccelByte.h"
 
 #define LOCTEXT_NAMESPACE "FOnlineSubsystemAccelByte"
 #define PARTY_SESSION_TYPE "party"

@@ -36,8 +36,8 @@ FOnlineAsyncTaskAccelByteUpdateStatsUsers::FOnlineAsyncTaskAccelByteUpdateStatsU
 			UpdateUserStatItemWithStatCode.Value = FCString::Atof(*Value.ToString());
 			UpdateUserStatItemWithStatCode.UpdateStrategy = FOnlineStatisticAccelByte::ConvertUpdateStrategy(UpdateStrategy);
 			UpdateUserStatItemWithStatCode.UserId = AccelByteUserId->GetAccelByteId();
+			BulkUpdateUserStatItemsRequest.Add(UpdateUserStatItemWithStatCode);
 		}
-		BulkUpdateUserStatItemsRequest.Add(UpdateUserStatItemWithStatCode);
 
 		StatsUsers.Add(UpdatedUserStat.Account);
 	}

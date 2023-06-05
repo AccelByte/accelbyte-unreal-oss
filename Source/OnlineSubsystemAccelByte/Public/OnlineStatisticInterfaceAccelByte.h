@@ -175,6 +175,20 @@ public:
 		, const FOnUpdateMultipleUserStatItemsComplete& Delegate);
 
 	/**
+	 * Update multiple statistics for a user. This request only for Game Client
+	 * This endpoint extends from 
+	 * UpdateStats(const FUniqueNetIdRef LocalUserId, const TArray<FOnlineStatsUserUpdatedStats>& UpdatedUserStats, const FOnlineStatsUpdateStatsComplete& Delegate)
+	 * Which is providing the messages in 'Details' field after receiving the response.
+	 *
+	 * @param LocalUserId User to query as (if applicable)
+	 * @param UpdatedUserStats Array of Updated Statistics.
+	 * @param Delegate Called when the statistics have finished being updated, or when we fail to update the stats
+	 */
+	virtual void UpdateStats(const FUniqueNetIdRef LocalUserId, 
+		const TArray<FOnlineStatsUserUpdatedStats>& UpdatedUserStats, 
+		const FOnUpdateMultipleUserStatItemsComplete& Delegate);
+
+	/**
 	 * Delete one statistic for one user. This request only for Game Server
 	 *
 	 * @param LocalUserNum Index of user(server) that is attempting to delete the stats.
