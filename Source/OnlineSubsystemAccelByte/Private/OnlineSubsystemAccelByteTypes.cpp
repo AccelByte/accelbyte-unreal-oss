@@ -437,7 +437,7 @@ bool FUniqueNetIdAccelByteUser::Compare(FUniqueNetId const& Other) const
 {
 	if (Other.GetType() == ACCELBYTE_USER_ID_TYPE)
 	{
-		const FUniqueNetIdAccelByteUserRef OtherCompositeId = CastChecked(Other);
+		const FUniqueNetIdAccelByteUserRef OtherCompositeId = FUniqueNetIdAccelByteUser::CastChecked(Other);
 
 		// First check whether AccelByte IDs match, if they do then these IDs are definitely equal
 		if (GetAccelByteId() == OtherCompositeId->GetAccelByteId())

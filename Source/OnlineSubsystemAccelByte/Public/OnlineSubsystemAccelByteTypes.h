@@ -10,6 +10,7 @@
 #include "Runtime/Launch/Resources/Version.h"
 #include "OnlineSubsystemAccelBytePackage.h"
 #include "Models/AccelByteMatchmakingModels.h"
+#include "OnlineSubsystemAccelByteDefines.h"
 #include "OnlineSubsystemAccelByteTypes.generated.h"
 
 class FOnlineSubsystemAccelByte;
@@ -269,7 +270,7 @@ protected:
 /**
  * Type name for an AccelByte user ID. Used to determine if we can cast the ID to a user type.
  */
-#define ACCELBYTE_USER_ID_TYPE FName(TEXT("AccelByteUser"))
+#define ACCELBYTE_USER_ID_TYPE ACCELBYTE_SUBSYSTEM
 
 class FUniqueNetIdAccelByteUser;
 
