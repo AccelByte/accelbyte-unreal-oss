@@ -29,7 +29,7 @@ FUniqueNetIdPtr FOnlineSubsystemAccelByteUtils::GetPlatformUniqueIdFromUniqueId(
 	// Can't get a valid platform id if the unique id belongs to a different platform
 	if (!IsPlayerOnSamePlatform(UniqueId)) return nullptr;
 
-	if (UniqueId.GetType() == ACCELBYTE_SUBSYSTEM)
+	if (UniqueId.GetType() == ACCELBYTE_USER_ID_TYPE)
 	{
 		FUniqueNetIdAccelByteUserRef AccelByteId = FUniqueNetIdAccelByteUser::CastChecked(UniqueId);
 		return AccelByteId->GetPlatformUniqueId();
@@ -50,8 +50,10 @@ bool FOnlineSubsystemAccelByteUtils::IsPlayerOnSamePlatform(FString UniqueIdStri
 	return IsPlayerOnSamePlatform(UniqueId.Get());
 }
 
-FString FOnlineSubsystemAccelByteUtils::GetAccelByteIdFromUniqueId(const FUniqueNetId& UniqueId) {
-	if (UniqueId.GetType() == ACCELBYTE_SUBSYSTEM) {
+FString FOnlineSubsystemAccelByteUtils::GetAccelByteIdFromUniqueId(const FUniqueNetId& UniqueId)
+{
+	if (UniqueId.GetType() == ACCELBYTE_USER_ID_TYPE)
+	{
 		FUniqueNetIdAccelByteUserRef CompositeId = FUniqueNetIdAccelByteUser::CastChecked(UniqueId);
 		return CompositeId->GetAccelByteId();
 	}
@@ -61,7 +63,7 @@ FString FOnlineSubsystemAccelByteUtils::GetAccelByteIdFromUniqueId(const FUnique
 
 FString FOnlineSubsystemAccelByteUtils::GetPlatformNameFromUniqueId(const FUniqueNetId& UniqueId) 
 {
-	if (UniqueId.GetType() == ACCELBYTE_SUBSYSTEM)
+	if (UniqueId.GetType() == ACCELBYTE_USER_ID_TYPE)
 	{
 		FUniqueNetIdAccelByteUserRef AccelByteId = FUniqueNetIdAccelByteUser::CastChecked(UniqueId);
 		return AccelByteId->GetPlatformType();
@@ -72,7 +74,7 @@ FString FOnlineSubsystemAccelByteUtils::GetPlatformNameFromUniqueId(const FUniqu
 
 FString FOnlineSubsystemAccelByteUtils::GetPlatformIdStringFromUniqueId(const FUniqueNetId& UniqueId) 
 {
-	if (UniqueId.GetType() == ACCELBYTE_SUBSYSTEM) 
+	if (UniqueId.GetType() == ACCELBYTE_USER_ID_TYPE) 
 	{
 		FUniqueNetIdAccelByteUserRef AccelByteId = FUniqueNetIdAccelByteUser::CastChecked(UniqueId);
 		return AccelByteId->GetPlatformId();
@@ -164,7 +166,7 @@ FUniqueNetIdRef FOnlineSubsystemAccelByteUtils::GetAccelByteUserIdFromUniqueId(c
 		return FUniqueNetIdAccelByteUser::Invalid();
 	}
 	
-	if (UniqueId.GetType() == ACCELBYTE_SUBSYSTEM)
+	if (UniqueId.GetType() == ACCELBYTE_USER_ID_TYPE)
 	{
 		return UniqueId.AsShared();
 	}

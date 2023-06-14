@@ -11,7 +11,7 @@ FOnlineAsyncTaskAccelByteUpdatePlayerAttributes::FOnlineAsyncTaskAccelByteUpdate
 	const FUniqueNetId& InLocalUserId,
 	const FOnlineSessionV2AccelBytePlayerAttributes& InAttributesToUpdate,
 	const FOnUpdatePlayerAttributesComplete& InDelegate)
-	: FOnlineAsyncTaskAccelByte(InABInterface, ASYNC_TASK_FLAG_BIT(EAccelByteAsyncTaskFlags::None))
+	: FOnlineAsyncTaskAccelByte(InABInterface, false)
 	, AttributesToUpdate(InAttributesToUpdate)
 	, Delegate(InDelegate)
 {

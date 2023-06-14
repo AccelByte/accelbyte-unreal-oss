@@ -123,8 +123,10 @@ void FOnlineAchievementsAccelByte::WriteAchievements(const FUniqueNetId& PlayerI
 	UE_LOG_AB(Error, TEXT("error. not implemented function. FOnlineAchievementsAccelByte::WriteAchievements"))
 }
 
+#if !UE_BUILD_SHIPPING
 bool FOnlineAchievementsAccelByte::ResetAchievements(const FUniqueNetId& PlayerId)
 {
 	UE_LOG_AB(Error, TEXT("error. not implemented function. FOnlineAchievementsAccelByte::ResetAchievements"))
 	return false;
 }
+#endif //!UE_BUILD_SHIPPING

@@ -31,9 +31,9 @@ FOnlineAsyncTaskAccelByteQueryUserProfile::FOnlineAsyncTaskAccelByteQueryUserPro
 
 	// Iterate through each user ID that we have been requested to query for, convert them to string IDs, and then fire
 	// off a request to get account user profile for each user
-	for (const TSharedRef<const FUniqueNetId>& NetId : InitialUserIds)
+	for (FUniqueNetIdRef const& NetId : InitialUserIds)
 	{
-		if (NetId->GetType() != ACCELBYTE_SUBSYSTEM)
+		if (NetId->GetType() != ACCELBYTE_USER_ID_TYPE)
 		{
 			UE_LOG_AB(Warning, TEXT("NetId passed to FOnlineUserAccelByte::QueryUserProfile (%s) was an invalid type (%s). Query the external mapping first to convert to an AccelByte ID. Skipping this ID!"), *(Subsystem->GetInstanceName().ToString()), *(NetId->GetType().ToString()));
 			continue;
@@ -77,9 +77,9 @@ FOnlineAsyncTaskAccelByteQueryUserProfile::FOnlineAsyncTaskAccelByteQueryUserPro
 
 	// Iterate through each user ID that we have been requested to query for, convert them to string IDs, and then fire
 	// off a request to get account user profile for each user
-	for (const TSharedRef<const FUniqueNetId>& NetId : InitialUserIds)
+	for (FUniqueNetIdRef const& NetId : InitialUserIds)
 	{
-		if (NetId->GetType() != ACCELBYTE_SUBSYSTEM)
+		if (NetId->GetType() != ACCELBYTE_USER_ID_TYPE)
 		{
 			UE_LOG_AB(Warning, TEXT("NetId passed to FOnlineUserAccelByte::QueryUserProfile (%s) was an invalid type (%s). Query the external mapping first to convert to an AccelByte ID. Skipping this ID!"), *(Subsystem->GetInstanceName().ToString()), *(NetId->GetType().ToString()));
 			continue;

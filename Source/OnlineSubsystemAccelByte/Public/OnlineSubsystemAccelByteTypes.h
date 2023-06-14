@@ -21,9 +21,9 @@ class FOnlineSubsystemAccelByte;
 #define ACCELBYTE_INVALID_ID_VALUE TEXT("INVALID")
 
 /**
- * Does a simple check to see if the actual AccelByte ID for the composite is valid.
+ * @brief Does a simple check to see if the actual AccelByte ID for the composite is valid.
  */
-bool ONLINESUBSYSTEMACCELBYTE_API IsAccelByteIDValid(const FString& AccelByteId);
+bool ONLINESUBSYSTEMACCELBYTE_API IsAccelByteIDValid(FString const& AccelByteId);
 
 /**
  * @brief Enum representing the types of authentication that the Identity interface can use with the AccelByte backend.
@@ -65,7 +65,7 @@ enum class EAccelByteChatRoomType : uint8
 };
 
 /**
- * Simple structure to represent the JSON encoded data for an FUniqueNetIdAccelByte.
+ * @brief Simple structure to represent the JSON encoded data for an FUniqueNetIdAccelByte.
  */
 USTRUCT()
 struct FAccelByteUniqueIdComposite
@@ -73,149 +73,220 @@ struct FAccelByteUniqueIdComposite
 	GENERATED_BODY()
 
 	/**
-	 * AccelByte ID for the composite, should always be present
+	 * @brief AccelByte ID for the composite, should always be present
 	 */
 	UPROPERTY()
-	FString Id;
+	FString Id {};
 
 	/**
-	 * Platform type that corresponds to the platform ID in the composite, can be blank
+	 * @brief Platform type that corresponds to the platform ID in the composite, can be blank
 	 */
 	UPROPERTY()
-	FString PlatformType;
+	FString PlatformType {};
 
 	/**
-	 * Platform ID that corresponds to the platform type in the composite, can be blank
+	 * @brief Platform ID that corresponds to the platform type in the composite, can be blank
 	 */
 	UPROPERTY()
-	FString PlatformId;
+	FString PlatformId {};
 
+	/**
+	 * @brief Default constructor.
+	 */
 	FAccelByteUniqueIdComposite() = default;
 
-	explicit FAccelByteUniqueIdComposite(const FString& InId, const FString& InPlatformType = TEXT(""), const FString& InPlatformId = TEXT(""));
+	/**
+	 * @brief Constructor that accepts AccelByte ID, Platform Type and Platform ID.
+	 *
+	 * @param InId The AccelByte ID.
+	 * @param InPlatformType The Platform Type.
+	 * @param InPlatformId The PlatformId.
+	 */
+	explicit FAccelByteUniqueIdComposite(FString const& InId
+		, FString const& InPlatformType = TEXT("")
+		, FString const& InPlatformId = TEXT(""));
 
-	bool operator==(const FAccelByteUniqueIdComposite& OtherComposite) const;
+	bool operator==(FAccelByteUniqueIdComposite const& OtherComposite) const;
 
-	bool operator!=(const FAccelByteUniqueIdComposite& OtherComposite) const;
+	bool operator!=(FAccelByteUniqueIdComposite const& OtherComposite) const;
 
 	FString ToString() const;
 };
 
 /**
- * Type name for an AccelByte resource ID. Used to determine if we can cast the ID to a resource type.
+ * @brief Type name for an AccelByte resource ID. Used to determine if we can cast the ID to a resource type.
  */
 #define ACCELBYTE_RESOURCE_ID_TYPE FName(TEXT("AccelByteResource"))
 
-/**
- * Alias for TSharedPtr<const FUniqueNetIdAccelByteResource>
- */
-using FUniqueNetIdAccelByteResourcePtr = TSharedPtr<const class FUniqueNetIdAccelByteResource>;
+class FUniqueNetIdAccelByteResource;
 
 /**
- * Alias for TSharedRef<const FUniqueNetIdAccelByteResource>
+ * @brief Alias for TSharedPtr<FUniqueNetIdAccelByteResource const>
  */
-using FUniqueNetIdAccelByteResourceRef = TSharedRef<const class FUniqueNetIdAccelByteResource>;
+using FUniqueNetIdAccelByteResourcePtr = TSharedPtr<FUniqueNetIdAccelByteResource const>;
+
+/**
+ * @brief Alias for TSharedRef<FUniqueNetIdAccelByteResource const>
+ */
+using FUniqueNetIdAccelByteResourceRef = TSharedRef<FUniqueNetIdAccelByteResource const>;
 
 /**
  * @brief Unique ID instance for identifying generic AccelByte resources other than users. User IDs should use
  * FUniqueNetIdAccelByteUser as they have extra composite components that are useful for identifying a
  * user on their specific platform.
  */
-class ONLINESUBSYSTEMACCELBYTE_API FUniqueNetIdAccelByteResource : public FUniqueNetIdString
+class ONLINESUBSYSTEMACCELBYTE_API FUniqueNetIdAccelByteResource
+	: public FUniqueNetIdString
 {
 public:
-	UE_DEPRECATED(5.0, "Public constructors of FUniqueNetId types are deprecated. Please use the ::Create(Args) method instead to create a FUniqueNetIdRef")
-	FUniqueNetIdAccelByteResource();
-
-	UE_DEPRECATED(5.0, "Public constructors of FUniqueNetId types are deprecated. Please use the ::Create(Args) method instead to create a FUniqueNetIdRef")
-	explicit FUniqueNetIdAccelByteResource(const FString& InUniqueNetId);
-
-	UE_DEPRECATED(5.0, "Public constructors of FUniqueNetId types are deprecated. Please use the ::Create(Args) method instead to create a FUniqueNetIdRef")
-	explicit FUniqueNetIdAccelByteResource(FString&& InUniqueNetId);
-
-	UE_DEPRECATED(5.0, "Public constructors of FUniqueNetId types are deprecated. Please use the ::Create(Args) method instead to create a FUniqueNetIdRef")
-	explicit FUniqueNetIdAccelByteResource(const FUniqueNetId& Src);
-	
+	/**
+	 * @brief Create a new AccelByte Resource UniqueNetId instance.
+	 *
+	 * @param Args The arguments that will be forwarded to the Constructor.
+	 *
+	 * @return A shared reference of AccelByte Resource UniqueNetId object.
+	 */
 	template<typename... TArgs>
 	static FUniqueNetIdAccelByteResourceRef Create(TArgs&&... Args)
 	{
-		PRAGMA_DISABLE_DEPRECATION_WARNINGS
 		return MakeShareable(new FUniqueNetIdAccelByteResource(Forward<TArgs>(Args)...));
-		PRAGMA_ENABLE_DEPRECATION_WARNINGS
 	}
 	
 	/**
-	 * Takes a const FUniqueNetId reference and converts it to a TSharedRef<FUniqueNetIdAccelByte> if the type matches.
+	 * @brief Takes an UniqueNetId object and converts it to an AccelByte Resource UniqueNetId instance if the type matches.
 	 * Will return an Invalid ID reference if the conversion cannot be made. Prefer the other Cast methods if possible.
 	 *
-	 * @param NetId The NetId to attempt to convert to an FUniqueNetIdAccelByte reference.
+	 * @param InNetId The UniqueNetId object to attempt to convert to an AccelByte Resource UniqueNetId instance.
+	 *
+	 * @return A shared reference of AccelByte Resource UniqueNetId object.
 	 */
-	static FUniqueNetIdAccelByteResourceRef Cast(const FUniqueNetId& NetId);
+	static FUniqueNetIdAccelByteResourceRef Cast(FUniqueNetId const& InNetId);
 
 	/**
-	 * Attempts to convert a FUniqueNetId& to a shared instance of this class. Will return nullptr if the cast cannot be made.
+	 * @brief Attempts to convert an UniqueNetId object to an AccelByte Resource UniqueNetId instance.
+	 * Will return nullptr if the cast cannot be made.
+	 *
+	 * @param InNetId The UniqueNetId object to attempt to convert to an AccelByte Resource UniqueNetId instance.
+	 *
+	 * @return A shared pointer of AccelByte Resource UniqueNetId object.
 	 */
-	static FUniqueNetIdAccelByteResourcePtr TryCast(const FUniqueNetId& InId);
+	static FUniqueNetIdAccelByteResourcePtr TryCast(FUniqueNetId const& InNetId);
 
 	/**
-	 * Attempts to convert a TSharedRef<const FUniqueNetId> to a shared instance of this class. Will return nullptr if the cast cannot be made.
+	 * @brief Attempts to convert a shared reference of UniqueNetId object to an AccelByte Resource UniqueNetId instance.
+	 * Will return nullptr if the cast cannot be made.
+	 *
+	 * @param InNetIdRef The shared reference of UniqueNetId object to attempt to convert to an AccelByte Resource UniqueNetId instance.
+	 *
+	 * @return A shared pointer of AccelByte Resource UniqueNetId object.
 	 */
-	static FUniqueNetIdAccelByteResourcePtr TryCast(const TSharedRef<const FUniqueNetId>& InId);
+	static FUniqueNetIdAccelByteResourcePtr TryCast(FUniqueNetIdRef const& InNetIdRef);
 
 	/**
-	 * @brief Convenience method to construct an invalid instance of a AccelByte net ID
+	 * @brief Convenience method to construct an invalid instance of AccelByte Resource UniqueNetId.
+	 *
+	 * @return A shared reference of AccelByte Resource UniqueNetId object that has Invalid ID.
 	 */
-	static const FUniqueNetIdAccelByteResourceRef Invalid();
+	static FUniqueNetIdAccelByteResourceRef Invalid();
 
 	/**
-	 * Return the type of this unique ID. In this case, it should always be ACCELBYTE_RESOURCE_ID_TYPE.
+	 * @brief Return the type of this unique ID. In this case, it should always be ACCELBYTE_RESOURCE_ID_TYPE.
+	 *
+	 * @return ACCELBYTE_RESOURCE_ID_TYPE.
 	 */
 	virtual FName GetType() const override;
 
 	/**
-	 * Check whether this resource ID is valid or not.
+	 * @brief Check whether this resource ID is valid or not.
 	 */
 	virtual bool IsValid() const override;
 
 PACKAGE_SCOPE:
 	/**
-	 * Attempts to convert an FUniqueNetId& to a resource ID shared reference. Guarded by a check call that will crash if
-	 * an improper ID is attempted to be casted.
+	 * @brief Attempts to convert an UniqueNetId object to an AccelByte Resource UniqueNetId instance.
+	 * Guarded by a check call that will crash if an improper ID is attempted to be casted.
+	 *
+	 * @param InNetId The UniqueNetId object that will be converted to AccelByte Resource UniqueNetId instance.
+	 * 
+	 * @return A shared reference of AccelByte Resource UniqueNetId object.
 	 */
-	static FUniqueNetIdAccelByteResourceRef CastChecked(const FUniqueNetId& InId);
+	static FUniqueNetIdAccelByteResourceRef CastChecked(FUniqueNetId const& InNetId);
 
 	/**
-	 * Attempts to convert a TSharedRef<const FUniqueNetId> to a user ID shared reference. Guarded by a check call that
-	 * will crash if an improper ID is attempted to be casted.
+	 * @brief Attempts to convert a shared reference of UniqueNetId object to an AccelByte Resource UniqueNetId instance. 
+	 * Guarded by a check call that will crash if an improper ID is attempted to be casted.
+	 *
+	 * @param InNetIdRef The shared reference of UniqueNetId object that will be converted to AccelByte Resource UniqueNetId instance.
+	 * 
+	 * @return A shared reference of AccelByte Resource UniqueNetId object.
 	 */
-	static FUniqueNetIdAccelByteResourceRef CastChecked(const TSharedRef<const FUniqueNetId>& InId);
+	static FUniqueNetIdAccelByteResourceRef CastChecked(FUniqueNetIdRef const& InNetIdRef);
 	
 protected:
-	explicit FUniqueNetIdAccelByteResource(FString&& InUniqueNetId, const FName InType);
-	explicit FUniqueNetIdAccelByteResource(const FString& InUniqueNetId, const FName InType);
+	/**
+	 * @brief Default constructor.
+	 */
+	FUniqueNetIdAccelByteResource();
+
+	/**
+	 * @brief Internal constructor that accepts an UniqueNetId string.
+	 *
+	 * @param InNetIdStr The UniqueNetId string.
+	 */
+	explicit FUniqueNetIdAccelByteResource(FString const& InNetIdStr);
+
+	/**
+	 * @brief Internal constructor that pass the ownership of UniqueNetId string.
+	 *
+	 * @param InNetIdStr The UniqueNetId string.
+	 */
+	explicit FUniqueNetIdAccelByteResource(FString && InNetIdStr);
+
+	/**
+	 * @brief Internal constructor that accepts an instance of UniqueNetId.
+	 *
+	 * @param InNetId The UniqueNetId object.
+	 */
+	explicit FUniqueNetIdAccelByteResource(FUniqueNetId const& InNetId);
+
+	/**
+	 * @brief Internal constructor that accepts an UniqueNetId string and its type name.
+	 *
+	 * @param InNetIdStr The UniqueNetId string.
+	 * @param InType The type name of UniqueNetId.
+	 */
+	explicit FUniqueNetIdAccelByteResource(FString const& InNetIdStr, FName const InType);
+
+	/**
+	 * @brief Internal constructor that accepts the ownership of UniqueNetId string and its type name.
+	 *
+	 * @param InNetIdStr The UniqueNetId string.
+	 * @param InType The type name of UniqueNetId.
+	 */
+	explicit FUniqueNetIdAccelByteResource(FString && InNetIdStr, FName const InType);
 };
 
 /**
  * Type name for an AccelByte user ID. Used to determine if we can cast the ID to a user type.
- * 
- * #TODO Feels strange to have the resource ID type be "AccelByteResource" but the user ID type be "ACCELBYTE". Maybe
- * at some point we'd want to define this as `AccelByteUser` instead?
  */
-#define ACCELBYTE_USER_ID_TYPE ACCELBYTE_SUBSYSTEM
+#define ACCELBYTE_USER_ID_TYPE FName(TEXT("AccelByteUser"))
+
+class FUniqueNetIdAccelByteUser;
 
 /**
- * Alias for TSharedPtr<const FUniqueNetIdAccelByteUser>
+ * @brief Alias for TSharedPtr<FUniqueNetIdAccelByteUser const>
  */
-using FUniqueNetIdAccelByteUserPtr = TSharedPtr<const class FUniqueNetIdAccelByteUser>;
+using FUniqueNetIdAccelByteUserPtr = TSharedPtr<FUniqueNetIdAccelByteUser const>;
 
 /**
- * Alias for TSharedRef<const FUniqueNetIdAccelByteUser>
+ * @brief Alias for TSharedRef<FUniqueNetIdAccelByteUser const>
  */
-using FUniqueNetIdAccelByteUserRef = TSharedRef<const class FUniqueNetIdAccelByteUser>;
+using FUniqueNetIdAccelByteUserRef = TSharedRef<FUniqueNetIdAccelByteUser const>;
 
 /**
- * @brief Unique IDs to be used by the AccelByte online subsystem for users. This implementation follows a composite structure, where we
- * not only store the AccelByte ID in a single structure, but also, optionally, the platform name and ID in the same structure.
+ * @brief Unique IDs to be used by the AccelByte online subsystem for users. This implementation follows a composite
+ * structure, where we not only store the AccelByte ID in a single structure, but also, optionally,
+ * the platform name and ID in the same structure.
  *
  * These IDs can be casted to and broken apart to get those IDs as needed, such as for interop with native platform SDKs.
  *
@@ -238,79 +309,83 @@ using FUniqueNetIdAccelByteUserRef = TSharedRef<const class FUniqueNetIdAccelByt
  * However, most of the ID manipulation is handled for you by the OSS, so there shouldn't be a need to crack open these
  * IDs unless you need to make SDK calls yourself.
  */
-class ONLINESUBSYSTEMACCELBYTE_API FUniqueNetIdAccelByteUser : public FUniqueNetIdAccelByteResource
+class ONLINESUBSYSTEMACCELBYTE_API FUniqueNetIdAccelByteUser
+	: public FUniqueNetIdAccelByteResource
 {
 public:
-	UE_DEPRECATED(5.0, "Public constructors of FUniqueNetId types are deprecated. Please use the ::Create(Args) method instead to create a FUniqueNetIdRef")
-	FUniqueNetIdAccelByteUser();
+	/**
+	 * @brief Create a new AccelByte User UniqueNetId instance from a composite ID.
+	 * 
+	 * @param InCompositeId The AccelByte User UniqueNetId in composite structure.
+	 *
+	 * @returns A shared reference of AccelByte User UniqueNetId object.
+	 */
+	static FUniqueNetIdAccelByteUserRef Create(FAccelByteUniqueIdComposite const& InCompositeId);
 
-	UE_DEPRECATED(5.0, "Public constructors of FUniqueNetId types are deprecated. Please use the ::Create(Args) method instead to create a FUniqueNetIdRef")
-	explicit FUniqueNetIdAccelByteUser(const FString& InUniqueNetId);
-
-	UE_DEPRECATED(5.0, "Public constructors of FUniqueNetId types are deprecated. Please use the ::Create(Args) method instead to create a FUniqueNetIdRef")
-	explicit FUniqueNetIdAccelByteUser(FString&& InUniqueNetId);
-
-	UE_DEPRECATED(5.0, "Public constructors of FUniqueNetId types are deprecated. Please use the ::Create(Args) method instead to create a FUniqueNetIdRef")
-	explicit FUniqueNetIdAccelByteUser(const FUniqueNetId& Src);
+	/**
+	 * @brief Create a new AccelByte User UniqueNetId instance from a string of UniqueNetId.
+	 * 
+	 * @param InNetIdStr The UniqueNetId string.
+	 *
+	 * @returns A shared reference of AccelByte User UniqueNetId object.
+	 */
+	static FUniqueNetIdAccelByteUserRef Create(FString const& InNetIdStr);
 	
 	/**
-	 * @brief Tries to create a new FUniqueNetIdAccelByte instance from a composite ID
-	 * 
-	 * @param CompositeId
+	 * @brief Create a new AccelByte User UniqueNetId instance from a generic UniqueNetId.
 	 *
-	 * @return Shared ref of UniqueNetId
+	 * @param InNetId The UniqueNetId object.
+	 *
+	 * @return A shared reference of AccelByte User UniqueNetId object.
 	 */
-	static FUniqueNetIdAccelByteUserRef Create(const FAccelByteUniqueIdComposite& CompositeId);
+	static FUniqueNetIdAccelByteUserRef Create(FUniqueNetId const& InNetId);
 
 	/**
-	 * @brief Tries to create a new FUniqueNetIdAccelByte instance from a composite ID
-	 * 
-	 * @param InUniqueNetId
-	 *
-	 * @return Shared ref of UniqueNetId
-	 */
-	static FUniqueNetIdAccelByteUserRef Create(const FString& InUniqueNetId);
-	
-	/**
-	 * @brief Tries to create a new FUniqueNetIdAccelByte instance from a generic UniqueNetId
-	 * 
-	 * @param bBypassValidCheck Bypasses the check to determine if the AccelByte ID passed in is valid. Defaults to false, or to not bypass the check.
-	 * @param CompositeId
-	 *
-	 * @return Shared pointer of UniqueNetId
-	 */
-	static FUniqueNetIdAccelByteUserRef Create(const FUniqueNetId& Src);
-
-	/**
-	 * @brief Takes a const FUniqueNetId reference and converts it to a TSharedRef<FUniqueNetIdAccelByte> if the type matches.
+	 * @brief Takes an UniqueNetId object and converts it to an AccelByte User UniqueNetId instance if the type matches.
 	 * Will return an Invalid ID reference if the conversion cannot be made. Prefer the other Cast methods if possible.
 	 *
-	 * @param NetId The NetId to attempt to convert to an FUniqueNetIdAccelByte reference.
+	 * @param InNetId The UniqueNetId object to attempt to convert to an AccelByte User UniqueNetId instance.
+	 *
+	 * @return A shared reference of AccelByte User UniqueNetId object.
 	 */
-	static FUniqueNetIdAccelByteUserRef Cast(const FUniqueNetId& NetId);
+	static FUniqueNetIdAccelByteUserRef Cast(FUniqueNetId const& InNetId);
 
 	/**
-	 * Attempts to convert a FUniqueNetId& to a shared instance of this class. Will return nullptr if the cast cannot be made.
+	 * @brief Attempts to convert an UniqueNetId object to an AccelByte User UniqueNetId instance. 
+	 * Will return nullptr if the cast cannot be made.
+	 *
+	 * @param InNetId The UniqueNetId object to attempt to convert to an AccelByte User UniqueNetId instance.
+	 *
+	 * @return A shared pointer of AccelByte User UniqueNetId object.
 	 */
-	static FUniqueNetIdAccelByteUserPtr TryCast(const FUniqueNetId& InId);
+	static FUniqueNetIdAccelByteUserPtr TryCast(FUniqueNetId const& InNetId);
 
 	/**
-	 * Attempts to convert a TSharedRef<const FUniqueNetId> to a shared instance of this class. Will return nullptr if the cast cannot be made.
+	 * @brief Attempts to convert a shared reference of UniqueNetId object to an AccelByte User UniqueNetId instance. 
+	 * Will return nullptr if the cast cannot be made.
+	 *
+	 * @param InNetId The shared reference of UniqueNetId object to attempt to convert to an AccelByte User UniqueNetId instance.
+	 *
+	 * @return A shared pointer of AccelByte User UniqueNetId object.
 	 */
-	static FUniqueNetIdAccelByteUserPtr TryCast(const TSharedRef<const FUniqueNetId>& InId);
+	static FUniqueNetIdAccelByteUserPtr TryCast(FUniqueNetIdRef const& InNetId);
 
 	/**
-	 * @brief Convenience method to construct an invalid instance of a AccelByte net ID
+	 * @brief Convenience method to construct an invalid instance of an AccelByte UniqueNetId.
+	 *
+	 * @return A shared reference of AccelByte User UniqueNetId object that has Invalid ID.
 	 */
 	static FUniqueNetIdAccelByteUserRef Invalid();
 
 	/**
-	 * Return the type of this unique ID. In this case, it should always be ACCELBYTE_USER_ID_TYPE.
+	 * @brief Return the type of this unique ID. In this case, it should always be ACCELBYTE_USER_ID_TYPE.
+	 *
+	 * @returns ACCELBYTE_USER_ID_TYPE.
 	 */
 	virtual FName GetType() const override;
 
 	/**
-	 * @brief Whether or not this ID is a valid FUniqueNetIdAccelByte type. Will do a number of checks including:
+	 * @brief Whether or not this ID is a valid AccelByte UniqueNetId type. Will do a number of checks including:
 	 * - Whether the underlying string value is Base64
 	 * - Whether upon decoding the string value there is a JSON object with id, platformType, and platformId fields
 	 * - Whether the id field in the JSON object is in the correct format for an AccelByte ID
@@ -318,68 +393,96 @@ public:
 	virtual bool IsValid() const override;
 
 	/**
-	 * @brief Returns the JSON representation of our composite ID, useful for debugging
+	 * @brief Returns the JSON representation of AccelByte composite ID, useful for debugging.
+	 *
+	 * @return a string of JSON representation of the composite ID.
 	 */
 	virtual FString ToDebugString() const override;
 
 	/**
 	 * @brief Get the string representation of the AccelByte user ID from the composite ID
+	 *
+	 * @return AccelByte ID in UUID format.
 	 */
 	FString GetAccelByteId() const;
 
 	/**
-	 * @brief Get the string representation of the type of platform for platform ID from the composite ID
+	 * @brief Get the string representation of the type of platform for platform ID from the composite ID.
+	 *
+	 * @return a string representation of the type of platform.
 	 */
 	FString GetPlatformType() const;
 
 	/**
-	 * @brief Get the string representation of the ID of the user for the platform type specified from the composite ID
+	 * @brief Get the string representation of the ID of the user for the platform type specified from the composite ID.
+	 *
+	 * @return Platform user ID. 
 	 */
 	FString GetPlatformId() const;
 
 	/**
-	 * @brief Checks whether or not this composite ID has platform information included
+	 * @brief Checks whether or not this composite ID has platform information included.
+	 *
+	 * @return true if composite ID has platform information and false if no platform information presents.
 	 */
 	bool HasPlatformInformation() const;
 
 	/**
 	 * @brief Tries to convert the platform ID information into that native platform OSS' unique ID type.
+	 *
+	 * @return A pointer to Native Platform UniqueNetId.
 	 */
-	TSharedPtr<const FUniqueNetId> GetPlatformUniqueId() const;
+	FUniqueNetIdPtr GetPlatformUniqueId() const;
 
 	/**
-	 * @brief Gets the underlying composite structure for this unique ID
+	 * @brief Gets the underlying composite structure for this unique ID.
+	 *
+	 * @return AccelByte Unique ID in composite structure.
 	 */
 	FAccelByteUniqueIdComposite GetCompositeStructure() const;
 	
 	/**
-	 * @brief Override equal check operator to check the AccelByte ID first, and then the platform type/ID
+	 * @brief Override equal check operator to check the AccelByte ID first, and then the platform type/ID.
+	 *
+	 * @param Other Another UniqueNetId object.
+	 * 
+	 * @return true if both object has the same ID and false if not the same
 	 */
-	virtual bool Compare(const FUniqueNetId& Other) const override;
+	virtual bool Compare(FUniqueNetId const& Other) const override;
 
 PACKAGE_SCOPE:
-
 	/**
 	 * @brief Internal constructor to set both composite elements and the encoded string at once without extra processing.
+	 *
+	 * @param CompositeId UserId in CompositeId object
+	 * @param EncodedComposite UserId in a Base64 string format
 	 */
-	explicit FUniqueNetIdAccelByteUser(const FAccelByteUniqueIdComposite& CompositeId, const FString& EncodedComposite);
+	explicit FUniqueNetIdAccelByteUser(FAccelByteUniqueIdComposite const& CompositeId, FString const& EncodedComposite);
+	
+	/**
+	 * @brief Attempts to convert an UniqueNetId object to an AccelByte User UniqueNetId instance. 
+	 * Guarded by a check call that will crash if an improper ID is attempted to be casted.
+	 *
+	 * @param InNetId The UniqueNetId object that will be converted to AccelByte User UniqueNetId instance.
+	 *
+	 * @return A shared reference of AccelByte User UniqueNetId object.
+	 */
+	static FUniqueNetIdAccelByteUserRef CastChecked(FUniqueNetId const& InNetId);
 
 	/**
-	 * Attempts to convert an FUniqueNetId& to a resource ID shared reference. Guarded by a check call that will crash if
-	 * an improper ID is attempted to be casted.
+	 * @brief Attempts to convert a shared reference of UniqueNetId object to an AccelByte User UniqueNetId instance.
+	 * Guarded by a check call that will will crash if an improper ID is attempted to be casted.
+	 * 
+	 * @param InNetIdRef The shared reference of UniqueNetId object that will be converted to AccelByte User UniqueNetId instance.
+	 *
+	 * @return A shared reference of AccelByte User UniqueNetId object.
 	 */
-	static FUniqueNetIdAccelByteUserRef CastChecked(const FUniqueNetId& InId);
-
-	/**
-	 * Attempts to convert a TSharedRef<const FUniqueNetId> to a user ID shared reference. Guarded by a check call that
-	 * will crash if an improper ID is attempted to be casted.
-	 */
-	static FUniqueNetIdAccelByteUserRef CastChecked(const TSharedRef<const FUniqueNetId>& InId);
+	static FUniqueNetIdAccelByteUserRef CastChecked(FUniqueNetIdRef const& InNetIdRef);
 
 private:
 
 	/**
-	 * @brief Underlying composite IDs that represent a full AccelByte unique ID
+	 * @brief Underlying composite IDs that represent a full AccelByte UniqueNetId
 	 */
 	FAccelByteUniqueIdComposite CompositeStructure;
 
@@ -399,27 +502,67 @@ private:
 	void DecodeIDElements();
 
 protected:
-	explicit FUniqueNetIdAccelByteUser(FString&& InUniqueNetId, const FName InType);
-	explicit FUniqueNetIdAccelByteUser(const FString& InUniqueNetId, const FName InType);
+	/**
+	 * @brief Default constructor.
+	 */
+	FUniqueNetIdAccelByteUser();
+
+	/**
+	 * @brief Internal constructor that accepts an UniqueNetId string.
+	 *
+	 * @param InNetIdStr The UniqueNetId string.
+	 */
+	explicit FUniqueNetIdAccelByteUser(FString const& InNetIdStr);
+
+	/**
+	 * @brief Internal constructor that pass the ownership of UniqueNetId string.
+	 *
+	 * @param InNetIdStr The UniqueNetId string.
+	 */
+	explicit FUniqueNetIdAccelByteUser(FString && InNetIdStr);
+
+	/**
+	 * @brief Internal constructor that accepts an instance of UniqueNetId.
+	 *
+	 * @param InNetId The UniqueNetId object.
+	 */
+	explicit FUniqueNetIdAccelByteUser(FUniqueNetId const& InNetId);
+
+	/**
+	 * @brief Internal constructor that accepts an UniqueNetId string and its type name.
+	 *
+	 * @param InNetIdStr The UniqueNetId string.
+	 * @param InType The type name of UniqueNetId.
+	 */
+	explicit FUniqueNetIdAccelByteUser(FString const& InNetIdStr, FName const InType);
+
+	/**
+	 * @brief Internal constructor that accepts the ownership of UniqueNetId string and its type name.
+	 *
+	 * @param InNetIdStr The UniqueNetId string.
+	 * @param InType The type name of UniqueNetId.
+	 */
+	explicit FUniqueNetIdAccelByteUser(FString && InNetIdStr, FName const InType);
 };
 
 /**
  * Key functions for indexing a map with a shared reference to an AccelByte User Unique ID as a key.
  */
 template <typename ValueType>
-struct ONLINESUBSYSTEMACCELBYTE_API TUserUniqueIdConstSharedRefMapKeyFuncs : public TDefaultMapKeyFuncs<TSharedRef<const FUniqueNetIdAccelByteUser>, ValueType, false>
+struct ONLINESUBSYSTEMACCELBYTE_API TUserUniqueIdConstSharedRefMapKeyFuncs
+	: public TDefaultMapKeyFuncs<FUniqueNetIdAccelByteUserRef, ValueType, false>
 {
-	static TSharedRef<const FUniqueNetIdAccelByteUser> GetSetKey(const TTuple<TSharedRef<const FUniqueNetIdAccelByteUser>, ValueType> Element)
+	static FUniqueNetIdAccelByteUserRef GetSetKey(TTuple<FUniqueNetIdAccelByteUserRef, ValueType> const Element)
 	{
 		return Element.Key;
 	}
 
-	static uint32 GetKeyHash(const TSharedRef<const FUniqueNetIdAccelByteUser>& Key)
+	static uint32 GetKeyHash(FUniqueNetIdAccelByteUserRef const& Key)
 	{
 		return GetTypeHash(Key.Get());
 	}
 
-	static bool Matches(const TSharedRef<const FUniqueNetIdAccelByteUser>& A, const TSharedRef<const FUniqueNetIdAccelByteUser>& B)
+	static bool Matches(FUniqueNetIdAccelByteUserRef const& A, FUniqueNetIdAccelByteUserRef const& B)
 	{
 		return (A == B) || (A.Get() == B.Get());
 	}
@@ -428,7 +571,7 @@ struct ONLINESUBSYSTEMACCELBYTE_API TUserUniqueIdConstSharedRefMapKeyFuncs : pub
 /**
  * Array of user IDs corresponding to players in a party in this session
  */
-using TPartyMemberArray = TArray<TSharedRef<const FUniqueNetId>>;
+using TPartyMemberArray = TArray<FUniqueNetIdRef>;
 
 /**
  * Array of parties for the session, contains a nested array of user IDs for members
@@ -445,7 +588,8 @@ DECLARE_DELEGATE_OneParam(FOnTeamInformationReceived, const TUniqueNetIdMap<int3
  */
 DECLARE_DELEGATE_OneParam(FOnPartyInformationReceived, const TSessionPartyArray&);
 
-class ONLINESUBSYSTEMACCELBYTE_API FOnlineSessionInfoAccelByteV1 : public FOnlineSessionInfo
+class ONLINESUBSYSTEMACCELBYTE_API FOnlineSessionInfoAccelByteV1
+	: public FOnlineSessionInfo
 {
 public:
 	FOnlineSessionInfoAccelByteV1();

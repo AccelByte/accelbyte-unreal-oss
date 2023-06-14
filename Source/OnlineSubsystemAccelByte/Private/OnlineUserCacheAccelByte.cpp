@@ -216,9 +216,9 @@ TSharedPtr<const FAccelByteUserInfo> FOnlineUserCacheAccelByte::GetUser(const FU
 	FScopeLock ScopeLock(&CacheLock);
 
 	// If this unique ID is an AccelByte composite ID already, then forward to the GetUser using the composite structure
-	if (UserId.GetType() == ACCELBYTE_SUBSYSTEM)
+	if (UserId.GetType() == ACCELBYTE_USER_ID_TYPE)
 	{
-		TSharedRef<const FUniqueNetIdAccelByteUser> AccelByteId = FUniqueNetIdAccelByteUser::CastChecked(UserId);
+		FUniqueNetIdAccelByteUserRef AccelByteId = FUniqueNetIdAccelByteUser::CastChecked(UserId);
 		return GetUser(AccelByteId->GetCompositeStructure());
 	}
 
@@ -295,9 +295,9 @@ void FOnlineUserCacheAccelByte::AddPublicCodeToCache(const FUniqueNetId& UserId,
 	FScopeLock ScopeLock(&CacheLock);
 
 	// If this unique ID is an AccelByte composite ID already, then forward to the GetUser using the composite structure
-	if (UserId.GetType() == ACCELBYTE_SUBSYSTEM)
+	if (UserId.GetType() == ACCELBYTE_USER_ID_TYPE)
 	{
-		TSharedRef<const FUniqueNetIdAccelByteUser> AccelByteId = FUniqueNetIdAccelByteUser::CastChecked(UserId);
+		FUniqueNetIdAccelByteUserRef AccelByteId = FUniqueNetIdAccelByteUser::CastChecked(UserId);
 		AddPublicCodeToCache(AccelByteId->GetCompositeStructure(), PublicCode);
 		return;
 	}
@@ -313,7 +313,9 @@ void FOnlineUserCacheAccelByte::AddPublicCodeToCache(const FUniqueNetId& UserId,
 	else
 	{
 		// Create a new user info
+		FAccelByteUniqueIdComposite CompositeId{UserId.ToString(), UserId.GetType().ToString(), PlatformId};
 		TSharedRef<FAccelByteUserInfo> User = MakeShared<FAccelByteUserInfo>();
+		User->Id = FUniqueNetIdAccelByteUser::Create(CompositeId);
 		User->PublicCode = PublicCode;
 		AddUsersToCache({ User });
 	}
@@ -347,6 +349,7 @@ void FOnlineUserCacheAccelByte::AddPublicCodeToCache(const FAccelByteUniqueIdCom
 	{
 		// Create a new user info
 		TSharedRef<FAccelByteUserInfo> User = MakeShared<FAccelByteUserInfo>();
+		User->Id = FUniqueNetIdAccelByteUser::Create(UserId);
 		User->PublicCode = PublicCode;
 		AddUsersToCache({ User });
 	}

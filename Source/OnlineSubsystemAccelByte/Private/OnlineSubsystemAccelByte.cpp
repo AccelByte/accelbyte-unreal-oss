@@ -624,7 +624,7 @@ int32 FOnlineSubsystemAccelByte::GetLocalUserNumCached()
 
 AccelByte::FApiClientPtr FOnlineSubsystemAccelByte::GetApiClient(const FUniqueNetId& NetId)
 {
-	if (NetId.GetType() != ACCELBYTE_SUBSYSTEM)
+	if (NetId.GetType() != ACCELBYTE_USER_ID_TYPE)
 	{
 		UE_LOG_AB(Warning, TEXT("Failed to retrieve an API client for user '%s'!"), *NetId.ToDebugString());
 		return nullptr;

@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.11.4](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.11.4%0D0.11.3) (2023-06-14)
+
+
+### Bug Fixes
+
+* compile errors on shipping build with Linux platform due to missing override in Achievements Interface ([56e3d9c](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/56e3d9c3c92adce4a5047299a797d71509f51cab))
+* compile warnings due to deprecation warnings on Linux dedicated server ([40f967c](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/40f967c5c7807eba56aaeaf8b92ff23286343b2e))
+* incorrect base constructor params in the AsyncTasks ([b899984](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/b899984d51e8a26939ea87f7f819f4760223b407))
+* **UserCache:** get null on uniqueNetId after logging in using deviceId ([f374a88](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/f374a88a95524dabf22c2f46a6f600774b18e6ca))
+
 ### [0.11.3](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.11.3%0D0.11.2) (2023-06-05)
 
 

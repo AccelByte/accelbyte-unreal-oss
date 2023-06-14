@@ -7,7 +7,7 @@
 #include "OnlineIdentityInterfaceAccelByte.h"
 
 FOnlineAsyncTaskAccelByteInitializePlayerAttributes::FOnlineAsyncTaskAccelByteInitializePlayerAttributes(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InLocalUserId)
-	: FOnlineAsyncTaskAccelByte(InABInterface, ASYNC_TASK_FLAG_BIT(EAccelByteAsyncTaskFlags::None))
+	: FOnlineAsyncTaskAccelByte(InABInterface, false)
 {
 	UserId = FUniqueNetIdAccelByteUser::CastChecked(InLocalUserId);
 }
