@@ -454,14 +454,14 @@ void FOnlineFriendsAccelByte::AddBlockedPlayerToList(int32 LocalUserNum, const T
 	const IOnlineIdentityPtr IdentityInterface = AccelByteSubsystem->GetIdentityInterface();
 	if (!IdentityInterface.IsValid())
 	{
-		UE_LOG_AB(Warning, TEXT("Failed to add blocked player to player %d's list as the identity interface was invalid!"));
+		UE_LOG_AB(Warning, TEXT("Failed to add blocked player to player %d's list as the identity interface was invalid!"), LocalUserNum);
 		return;
 	}
 
 	TSharedPtr<const FUniqueNetId> UserId = IdentityInterface->GetUniquePlayerId(LocalUserNum);
 	if (!UserId.IsValid())
 	{
-		UE_LOG_AB(Warning, TEXT("Failed to add blocked player to player %d's list as we could not get their unique user ID!"));
+		UE_LOG_AB(Warning, TEXT("Failed to add blocked player to player %d's list as we could not get their unique user ID!"), LocalUserNum);
 		return;
 	}
 
@@ -500,14 +500,14 @@ void FOnlineFriendsAccelByte::RemoveBlockedPlayerFromList(int32 LocalUserNum, co
 	const IOnlineIdentityPtr IdentityInterface = AccelByteSubsystem->GetIdentityInterface();
 	if (!IdentityInterface.IsValid())
 	{
-		UE_LOG_AB(Warning, TEXT("Failed to add blocked player to player %d's list as the identity interface was invalid!"));
+		UE_LOG_AB(Warning, TEXT("Failed to add blocked player to player %d's list as the identity interface was invalid!"), LocalUserNum);
 		return;
 	}
 
 	TSharedPtr<const FUniqueNetId> UserId = IdentityInterface->GetUniquePlayerId(LocalUserNum);
 	if (!UserId.IsValid())
 	{
-		UE_LOG_AB(Warning, TEXT("Failed to add blocked player to player %d's list as we could not get their unique user ID!"));
+		UE_LOG_AB(Warning, TEXT("Failed to add blocked player to player %d's list as we could not get their unique user ID!"), LocalUserNum);
 		return;
 	}
 

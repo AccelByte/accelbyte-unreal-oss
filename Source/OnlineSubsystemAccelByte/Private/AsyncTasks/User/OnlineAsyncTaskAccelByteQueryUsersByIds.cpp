@@ -78,7 +78,7 @@ void FOnlineAsyncTaskAccelByteQueryUsersByIds::Initialize()
 {
 	Super::Initialize();
 
-	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""), LOG_BOOL_FORMAT(bWasSuccessful));
+	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 
 	if (UserIds.Num() <= 0)
 	{

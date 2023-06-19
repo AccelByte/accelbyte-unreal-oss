@@ -127,7 +127,7 @@ void FOnlineAsyncTaskAccelByteSyncThirPartyFriend::OnReadNativeFriendListComplet
 		ErrorText = FText::FromString(TEXT("sync-other-platform-friend-failed-query-native-friend-list"));
 		OnlineError = ONLINE_ERROR(EOnlineErrorResult::RequestFailure, FString(), ErrorText);
 		CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
-		AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Failed to query native friend list, ListName: %d, ErrorMessage: %s"), *InListName, *ErrorMessage);
+		AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Failed to query native friend list, ListName: %s, ErrorMessage: %s"), *InListName, *ErrorMessage);
 	}
 
 }

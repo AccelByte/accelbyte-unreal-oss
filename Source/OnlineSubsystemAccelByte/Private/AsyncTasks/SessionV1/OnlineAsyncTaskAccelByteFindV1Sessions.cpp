@@ -89,7 +89,7 @@ void FOnlineAsyncTaskAccelByteFindV1Sessions::OnSessionBrowserFindSuccess(const 
 
 	if (SearchSettings->SearchState != EOnlineAsyncTaskState::InProgress)
 	{
-		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Error, TEXT("Cannot set up session find results if the search is not InProgress! Current state: %s"), *EOnlineAsyncTaskState::ToString(SearchSettings->SearchState));
+		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Error, TEXT("Cannot set up session find results if the search is not InProgress! Current state: %s"), EOnlineAsyncTaskState::ToString(SearchSettings->SearchState));
 		CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
 		return;
 	}

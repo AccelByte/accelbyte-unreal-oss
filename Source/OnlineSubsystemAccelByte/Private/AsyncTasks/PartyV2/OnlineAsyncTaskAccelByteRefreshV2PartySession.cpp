@@ -64,6 +64,15 @@ void FOnlineAsyncTaskAccelByteRefreshV2PartySession::TriggerDelegates()
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
+	if (bWasSuccessful && bWasSessionRemoved)
+	{
+		FOnlineSessionV2AccelBytePtr SessionInterface = nullptr;
+		if (ensureAlways(FOnlineSessionV2AccelByte::GetFromSubsystem(Subsystem, SessionInterface)))
+		{
+			SessionInterface->TriggerOnSessionRemovedDelegates(SessionName);
+		}
+	}
+
 	Delegate.ExecuteIfBound(bWasSuccessful);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
@@ -81,5 +90,14 @@ void FOnlineAsyncTaskAccelByteRefreshV2PartySession::OnRefreshPartySessionSucces
 
 void FOnlineAsyncTaskAccelByteRefreshV2PartySession::OnRefreshPartySessionError(int32 ErrorCode, const FString& ErrorMessage)
 {
+	if (ErrorCode == static_cast<int32>(AccelByte::ErrorCodes::SessionPartyNotFound))
+	{
+		// Party session was not found when we attempted to refresh, treat this as the session being removed
+		UE_LOG_AB(Verbose, TEXT("Party session '%s' was not found when attempting to refresh, treating it as removed!"), *SessionName.ToString());
+		bWasSessionRemoved = true;
+		CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
+		return;
+	}
+
 	AB_ASYNC_TASK_REQUEST_FAILED("Request to refresh party session failed on backend!", ErrorCode, ErrorMessage);
 }

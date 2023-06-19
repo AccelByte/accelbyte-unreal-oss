@@ -40,7 +40,7 @@ void FOnlineAsyncTaskAccelByteLogin::Initialize()
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("LocalUserNum: %d"), LoginUserNum);
 	if (Subsystem->IsMultipleLocalUsersEnabled())
 	{
-		ApiClient = MakeShared<AccelByte::FApiClient, ESPMode::ThreadSafe>();
+		ApiClient = FMultiRegistry::GetApiClient(FString::Printf(TEXT("%d"), LoginUserNum));;
 	}
 	else
 	{
@@ -421,6 +421,7 @@ void FOnlineAsyncTaskAccelByteLogin::OnLoginSuccess()
 	IdentityInterface->AddNewAuthenticatedUser(LoginUserNum, UserId.ToSharedRef(), Account.ToSharedRef());
 	AccelByte::FMultiRegistry::RemoveApiClient(UserId->GetAccelByteId());
 	AccelByte::FMultiRegistry::RegisterApiClient(UserId->GetAccelByteId(), ApiClient);
+	AccelByte::FMultiRegistry::RemoveApiClient(FString::Printf(TEXT("%d"), LoginUserNum));
 
 	// Grab our user interface and kick off a task to get information about the newly logged in player from it, namely
 	// their avatar URL. No need to register a delegate to update the account from the query, the query task will check

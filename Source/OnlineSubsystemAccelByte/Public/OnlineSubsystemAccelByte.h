@@ -51,6 +51,7 @@ class FOnlineChatAccelByte;
 class FOnlineAuthAccelByte;
 class FExecTestBase;
 class FOnlineAchievementsAccelByte;
+class FOnlineVoiceAccelByte;
 
 struct FAccelByteModelsNotificationMessage;
 
@@ -126,6 +127,10 @@ typedef TSharedPtr<FOnlineAuthAccelByte, ESPMode::ThreadSafe> FOnlineAuthAccelBy
 
 typedef TSharedPtr<FOnlineAchievementsAccelByte, ESPMode::ThreadSafe> FOnlineAchievementsAccelBytePtr;
 
+/** Shared ponter to the AccelByte implementation of the Voice Chat interface */
+typedef TSharedPtr<FOnlineVoiceAccelByte, ESPMode::ThreadSafe> FOnlineVoiceAccelBytePtr;
+
+
 class ONLINESUBSYSTEMACCELBYTE_API FOnlineSubsystemAccelByte final
 	: public FOnlineSubsystemImpl
 	, public TSharedFromThis<FOnlineSubsystemAccelByte, ESPMode::ThreadSafe>
@@ -158,6 +163,7 @@ public:
 	virtual IOnlineStatsPtr GetStatsInterface() const override;
 	virtual IOnlineChatPtr GetChatInterface() const override;
 	virtual FOnlineAuthAccelBytePtr GetAuthInterface() const;
+	virtual IOnlineVoicePtr GetVoiceInterface() const override;
 
 #if (ENGINE_MAJOR_VERSION == 4 && ENGINE_MINOR_VERSION <= 25)
 	IOnlineTurnBasedPtr GetTurnBasedInterface() const override;
@@ -247,6 +253,7 @@ PACKAGE_SCOPE:
 		, ChatInterface(nullptr)
 		, AuthInterface(nullptr)
 		, AchievementInterface(nullptr)
+		, VoiceInterface(nullptr)
 		, Language(FGenericPlatformMisc::GetDefaultLanguage())
 	{
 	}
@@ -422,11 +429,16 @@ private:
 	/** Shared instance of our achievement implementation */
 	FOnlineAchievementsAccelBytePtr AchievementInterface;
 
+	/** Shared instance of our voice chat implementation */
+	mutable FOnlineVoiceAccelBytePtr VoiceInterface;
+
 	/** Thread spawned to run the FOnlineAsyncTaskManagerAccelBytePtr instance */
 	TUniquePtr<FRunnableThread> AsyncTaskManagerThread;
 
 	/** Language to be used on AccelByte Service Requests*/
 	FString Language;
+
+	mutable bool bVoiceInterfaceInitialized = false;
 
 #if WITH_DEV_AUTOMATION_TESTS
 	/** An array of console command exec tests that are marked as incomplete. Completed tests will be removed on each tick. */

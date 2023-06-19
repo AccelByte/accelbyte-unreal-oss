@@ -20,6 +20,7 @@
 #include "Api/AccelByteLobbyApi.h"
 #include "AccelByteNetworkUtilities.h"
 #include "OnlineIdentityInterfaceAccelByte.h"
+#include "OnlineVoiceInterfaceAccelByte.h"
 #include "Core/AccelByteMultiRegistry.h"
 #include "OnlinePartyInterfaceAccelByte.h"
 #include "Core/AccelByteError.h"
@@ -174,7 +175,7 @@ void FOnlineSessionV1AccelByte::OnMatchmakingNotificationReceived(const FAccelBy
 		Error.ErrorMessage = TEXT("matchmaking-timeout");
 		TriggerOnMatchmakingFailedDelegates(Error);
 		
-		AB_OSS_INTERFACE_TRACE_END(TEXT("Received a notification that matchmaking has reached a timeout state, aborting!"), *Notification.MatchId);
+		AB_OSS_INTERFACE_TRACE_END(TEXT("Received a notification that matchmaking with matchId '%s' has reached a timeout state, aborting!"), *Notification.MatchId);
 	}
 	else
 	{
@@ -183,7 +184,7 @@ void FOnlineSessionV1AccelByte::OnMatchmakingNotificationReceived(const FAccelBy
 		Error.ErrorMessage = TEXT("game-server-failed-to-start");
 		TriggerOnMatchmakingFailedDelegates(Error);
 
-		AB_OSS_INTERFACE_TRACE_END(TEXT("Received a notification that matchmaking has reached a failure state, aborting!"), *Notification.MatchId);
+		AB_OSS_INTERFACE_TRACE_END(TEXT("Received a notification that matchmaking with matchId '%s' has reached a failure state, aborting!"), *Notification.MatchId);
 	}
 }
 
@@ -798,6 +799,13 @@ bool FOnlineSessionV1AccelByte::DestroySession(FName SessionName, const FOnDestr
 	RemoveNamedSession(Session->SessionName);
 	CompletionDelegate.ExecuteIfBound(SessionName, true);
 	TriggerOnDestroySessionCompleteDelegates(SessionName, true);
+
+	FOnlineVoiceAccelBytePtr VoiceInterface = StaticCastSharedPtr<FOnlineVoiceAccelByte>(AccelByteSubsystem->GetVoiceInterface());
+	if (VoiceInterface.IsValid())
+	{
+		VoiceInterface->RemoveAllTalkers();
+	}
+
 	return true;
 }
 
@@ -879,7 +887,7 @@ bool FOnlineSessionV1AccelByte::CancelMatchmaking(const FUniqueNetId& SearchingP
 	AccelByte::Api::Lobby::FMatchmakingResponse OnCancelMatchmakingSuccess = AccelByte::Api::Lobby::FMatchmakingResponse::CreateLambda([this, ApiClient, PartyLeaderIdString, SessionName](const FAccelByteModelsMatchmakingResponse& Result) {
 		if (Result.Code != TEXT("0"))
 		{
-			UE_LOG_AB(Warning, TEXT("Failed to cancel matchmaking! Error code: %d"), *Result.Code);
+			UE_LOG_AB(Warning, TEXT("Failed to cancel matchmaking! Error code: %s"), *Result.Code);
 			AsyncTask(ENamedThreads::GameThread, [this, SessionName]() {
 				TriggerOnCancelMatchmakingCompleteDelegates(SessionName, false);
 			});
@@ -1267,6 +1275,12 @@ bool FOnlineSessionV1AccelByte::RegisterPlayers(FName SessionName, const TArray<
 			AB_OSS_INTERFACE_TRACE_END(TEXT("There is no new player, skip!"));
 			return true;
 		}
+	}
+
+	FOnlineVoiceAccelBytePtr VoiceInterface = StaticCastSharedPtr<FOnlineVoiceAccelByte>(AccelByteSubsystem->GetVoiceInterface());
+	if (VoiceInterface.IsValid())
+	{
+		VoiceInterface->RegisterTalkers(Players);
 	}
 
 	if (Session->bHosting && Session->SessionSettings.bIsDedicated) 

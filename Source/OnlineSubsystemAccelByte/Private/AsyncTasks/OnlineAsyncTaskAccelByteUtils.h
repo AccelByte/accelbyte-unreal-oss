@@ -44,7 +44,9 @@ public:
 		static_assert(!TIsConst<UserClass>::Value, "Attempting to bind a delegate with a const object pointer and non-const member function.");
 
 		DELEGATE_TEMPLATE_TYPE Result;
-#if !(ENGINE_MAJOR_VERSION == 4 && ENGINE_MINOR_VERSION < 26)
+#if (ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 2)
+		new (Result) TBaseSPMethodDelegateInstance<false, UserClass, ESPMode::ThreadSafe, FuncType, UserPolicy, std::decay_t<VarTypes>...>(StaticCastSharedRef<UserClass>(InUserObjectRef->GetInternalSP()), InFunc, Forward<VarTypes>(Vars)...);
+#elif !(ENGINE_MAJOR_VERSION == 4 && ENGINE_MINOR_VERSION < 26)
 		TBaseSPMethodDelegateInstance<false, UserClass, ESPMode::ThreadSafe, FuncType, UserPolicy, VarTypes...>::Create(Result, InUserObjectRef->GetInternalSP(), InFunc, Vars...);
 #else
 		TBaseSPMethodDelegateInstance<false, UserClass, ESPMode::ThreadSafe, FuncType, VarTypes...>::Create(Result, InUserObjectRef->GetInternalSP(), InFunc, Vars...);
@@ -55,7 +57,9 @@ public:
 	UE_NODISCARD inline static DELEGATE_TEMPLATE_TYPE CreateThreadSafeSelfPtr(TSelfPtr<UserClass, ESPMode::ThreadSafe> *InUserObjectRef, typename TMemFunPtrType<true, UserClass, RetValType(ParamTypes..., VarTypes...)>::Type InFunc, VarTypes... Vars)
 	{
 		DELEGATE_TEMPLATE_TYPE Result;
-#if !(ENGINE_MAJOR_VERSION == 4 && ENGINE_MINOR_VERSION < 26)
+#if (ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 2)
+		new (Result) TBaseSPMethodDelegateInstance<true, const UserClass, ESPMode::ThreadSafe, FuncType, UserPolicy, std::decay_t<VarTypes>...>(StaticCastSharedRef<const UserClass>(InUserObjectRef->GetInternalSP()), InFunc, Forward<VarTypes>(Vars)...);
+#elif !(ENGINE_MAJOR_VERSION == 4 && ENGINE_MINOR_VERSION < 26)
 		TBaseSPMethodDelegateInstance<true, const UserClass, ESPMode::ThreadSafe, FuncType, UserPolicy, VarTypes...>::Create(Result, InUserObjectRef->GetInternalSP(), InFunc, Vars...);
 #else
 		TBaseSPMethodDelegateInstance<true, const UserClass, ESPMode::ThreadSafe, FuncType, VarTypes...>::Create(Result, InUserObjectRef->GetInternalSP(), InFunc, Vars...);

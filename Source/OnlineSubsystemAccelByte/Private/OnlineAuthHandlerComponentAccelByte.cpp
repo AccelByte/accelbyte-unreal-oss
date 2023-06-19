@@ -30,6 +30,8 @@ enum class EAccelByteAuthMsgType : uint8
 	Max
 };
 
+using namespace UE;
+
 struct FAccelByteAuthHeader
 {
 	FAccelByteAuthHeader() : Type(EAccelByteAuthMsgType::Max) {}
@@ -921,7 +923,7 @@ bool FAuthHandlerComponentAccelByte::SendAuthData()
 
 	if (!EncryptAES(TempPacket))
 	{
-		UE_LOG_AB(Warning, TEXT("AUTH HANDLER: AES Encryption skipped as plain text size is too large. send smaller packets for secure data. over '%i' bytes."),
+		UE_LOG_AB(Warning, TEXT("AUTH HANDLER: AES Encryption skipped as plain text size is too large. send smaller packets for secure data. over '%I64d' bytes."),
 			(TempPacket.GetNumBits() - MAX_AES_ENCRYPTION_BITS) / 8);
 
 		return false;

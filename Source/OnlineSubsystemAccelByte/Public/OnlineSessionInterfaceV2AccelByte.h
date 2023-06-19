@@ -16,13 +16,14 @@
 #include "OnlineSubsystemAccelByte.h"
 #include "OnlineSubsystem.h"
 #include "OnlineSubsystemAccelByteTypes.h"
+#include "OnlineErrorAccelByte.h"
 #include "Runtime/Launch/Resources/Version.h"
 #include "Models/AccelByteSessionModels.h"
 #include "Models/AccelByteMatchmakingModels.h"
 #include "Models/AccelByteDSHubModels.h"
 #include "AccelByteNetworkingStatus.h"
 #include "Core/StatsD/IAccelByteStatsDMetricCollector.h"
-#include "GameServerApi/AccelByteServerWatchdogApi.h"
+#include "GameServerApi/AccelByteServerAMSApi.h"
 #include "GameServerApi/AccelByteServerMetricExporterApi.h"
 
 class FInternetAddr;
@@ -422,8 +423,8 @@ typedef FOnSessionUpdateConflictError::FDelegate FOnSessionUpdateConflictErrorDe
 DECLARE_MULTICAST_DELEGATE_FourParams(FOnSendSessionInviteComplete, const FUniqueNetId& /*LocalSenderId*/, FName /*SessionName*/, bool /*bWasSuccessful*/, const FUniqueNetId& /*InviteeId*/);
 typedef FOnSendSessionInviteComplete::FDelegate FOnSendSessionInviteCompleteDelegate;
 
-DECLARE_MULTICAST_DELEGATE(FOnWatchdogDrainReceived);
-typedef FOnWatchdogDrainReceived::FDelegate FOnWatchdogDrainReceivedDelegate;
+DECLARE_MULTICAST_DELEGATE(FOnAMSDrainReceived);
+typedef FOnAMSDrainReceived::FDelegate FOnAMSDrainReceivedDelegate;
 
 DECLARE_MULTICAST_DELEGATE_TwoParams(FOnSessionInviteRejected, FName /*SessionName*/, const FUniqueNetId& /*RejecterId*/);
 typedef FOnSessionInviteRejected::FDelegate FOnSessionInviteRejectedDelegate;
@@ -436,6 +437,16 @@ typedef FOnServerQueryGameSessionsComplete::FDelegate FOnServerQueryGameSessions
 
 DECLARE_MULTICAST_DELEGATE_TwoParams(FOnServerQueryPartySessionsComplete, const FAccelByteModelsV2PaginatedPartyQueryResult& /*PartySessionsQueryResult*/, const FOnlineError& /*ErrorInfo*/)
 typedef FOnServerQueryPartySessionsComplete::FDelegate FOnServerQueryPartySessionsCompleteDelegate;
+
+DECLARE_MULTICAST_DELEGATE_TwoParams(FOnPromoteGameSessionLeaderComplete, const FUniqueNetId& /*PromotedUserId*/, const FOnlineErrorAccelByte& /*Result*/);
+typedef FOnPromoteGameSessionLeaderComplete::FDelegate FOnPromoteGameSessionLeaderCompleteDelegate;
+
+/**
+ * Delegate broadcast when a session that the player is in locally has been removed on the backend. Gives the game an
+ * opportunity to clean up state.
+ */
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnSessionRemoved, FName /*SessionName*/);
+typedef FOnSessionRemoved::FDelegate FOnSessionRemovedDelegate;
 //~ End custom delegates
 
 class ONLINESUBSYSTEMACCELBYTE_API FOnlineSessionV2AccelByte : public IOnlineSession, public TSharedFromThis<FOnlineSessionV2AccelByte, ESPMode::ThreadSafe>
@@ -615,6 +626,15 @@ public:
 	 * Kick a member of the session out of the session.
 	 */
 	bool KickPlayer(const FUniqueNetId& LocalUserId, const FName& SessionName, const FUniqueNetId& PlayerIdToKick, const FOnKickPlayerComplete& Delegate=FOnKickPlayerComplete());
+
+	/**
+	 * Promote a member of the game session to leader
+	 *
+	 * @param LocalUserId ID of the user that we are restoring sessions for
+	 * @param SessionName Name of the game session
+	 * @param PlayerIdToPromote ID of the player to be promoted as game session leader
+	 */
+	bool PromoteGameSessionLeader(const FUniqueNetId& LocalUserId, const FName& SessionName, const FUniqueNetId& PlayerIdToPromote);
 
 	/**
 	 * Promote a member of the party session to leader
@@ -860,7 +880,7 @@ public:
 	 */
 	DEFINE_ONLINE_DELEGATE_TWO_PARAM(OnSessionUpdateConflictError, FName /*SessionName*/, FOnlineSessionSettings /*FailedSessionSettings*/);
 
-	DEFINE_ONLINE_DELEGATE(OnWatchdogDrainReceived);
+	DEFINE_ONLINE_DELEGATE(OnAMSDrainReceived);
 
 	/**
 	 * Delegate fired when a local player has sent an invite to a player
@@ -886,6 +906,17 @@ public:
 	 * Delegate fired when server query party sessions complete
 	 */
 	DEFINE_ONLINE_DELEGATE_TWO_PARAM(OnServerQueryPartySessionsComplete, const FAccelByteModelsV2PaginatedPartyQueryResult& /*PartySessionsQueryResult*/, const FOnlineError& /*ErrorInfo*/)
+
+	/**
+	 * Delegate broadcast when a session that the player is in locally has been removed on the backend. Gives the game an
+	 * opportunity to clean up state.
+	 */
+	DEFINE_ONLINE_DELEGATE_ONE_PARAM(OnSessionRemoved, FName /*SessionName*/);
+
+	/**
+	 * Delegate broadcast when another game session member promoted to be a game session leader.
+	 */
+	DEFINE_ONLINE_DELEGATE_TWO_PARAM(OnPromoteGameSessionLeaderComplete, const FUniqueNetId& /*PromotedUserId*/, const FOnlineErrorAccelByte& /*ErrorInfo*/)
 
 #if (ENGINE_MAJOR_VERSION == 4 && ENGINE_MINOR_VERSION <= 25)
 	/**
@@ -1131,14 +1162,14 @@ PACKAGE_SCOPE:
 	void DisconnectFromDSHub();
 
 	/**
-	 * Send ready message to Watchdog
+	 * Send ready message to AMS
 	 */
-	void SendReadyToWatchdog();
+	void SendReadyToAMS();
 
 	/**
-	 * Disconnect a server from the Watchdog, unregistering any delegates bound.
+	 * Disconnect a server from the AMS, unregistering any delegates bound.
 	 */
-	void DisconnectFromWatchdog();
+	void DisconnectFromAMS();
 
 	/**
 	* Initialize Metric Exporter.
@@ -1360,7 +1391,7 @@ private:
 	 */
 	void EnqueueBackendDataUpdate(const FName& SessionName, const TSharedPtr<FAccelByteModelsV2BaseSession>& SessionData, const bool bIsDSReadyUpdate=false);
 
-	void OnWatchdogDrain();
+	void OnAMSDrain();
 
 protected:
 	FNamedOnlineSession* AddNamedSession(FName SessionName, const FOnlineSessionSettings& SessionSettings) override;

@@ -78,6 +78,15 @@ void FOnlineAsyncTaskAccelByteRefreshV2GameSession::TriggerDelegates()
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
+	if (bWasSuccessful && bWasSessionRemoved)
+	{
+		FOnlineSessionV2AccelBytePtr SessionInterface = nullptr;
+		if (ensureAlways(FOnlineSessionV2AccelByte::GetFromSubsystem(Subsystem, SessionInterface)))
+		{
+			SessionInterface->TriggerOnSessionRemovedDelegates(SessionName);
+		}
+	}
+
 	Delegate.ExecuteIfBound(bWasSuccessful);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
@@ -95,5 +104,14 @@ void FOnlineAsyncTaskAccelByteRefreshV2GameSession::OnRefreshGameSessionSuccess(
 
 void FOnlineAsyncTaskAccelByteRefreshV2GameSession::OnRefreshGameSessionError(int32 ErrorCode, const FString& ErrorMessage)
 {
+	if (ErrorCode == static_cast<int32>(AccelByte::ErrorCodes::SessionGameNotFound))
+	{
+		// Game session was not found when we attempted to refresh, treat this as the session being removed
+		UE_LOG_AB(Verbose, TEXT("Game session '%s' was not found when attempting to refresh, treating it as removed!"), *SessionName.ToString());
+		bWasSessionRemoved = true;
+		CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
+		return;
+	}
+
 	AB_ASYNC_TASK_REQUEST_FAILED("Request to refresh game session failed on backend!", ErrorCode, ErrorMessage);
 }

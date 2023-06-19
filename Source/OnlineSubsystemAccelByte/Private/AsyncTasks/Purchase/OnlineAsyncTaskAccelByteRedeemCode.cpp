@@ -71,7 +71,7 @@ void FOnlineAsyncTaskAccelByteRedeemCode::HandleRedeemCodeComplete(const FAccelB
 
 	for (const auto& Credit : Result.CreditSummaries)
 	{
-		UE_LOG_AB(Log, TEXT("Credit Redeemed to Wallet! WalletId: %s | Amount: %s"), *Credit.WalletId, Credit.Amount);
+		UE_LOG_AB(Log, TEXT("Credit Redeemed to Wallet! WalletId: %s | Amount: %d"), *Credit.WalletId, Credit.Amount);
 	}
 
 	//Receipt.TransactionId = Result.OrderNo;

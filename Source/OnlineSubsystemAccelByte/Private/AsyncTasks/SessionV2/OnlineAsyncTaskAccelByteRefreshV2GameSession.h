@@ -45,6 +45,11 @@ private:
 	 */
 	FAccelByteModelsV2GameSession RefreshedGameSession{};
 
+	/**
+	 * Whether the session was returned as not found by the backend, meaning that it was deleted
+	 */
+	bool bWasSessionRemoved{false};
+
 	AB_ASYNC_TASK_DECLARE_SDK_DELEGATES_WITH_RESULT(RefreshGameSession, FAccelByteModelsV2GameSession);
 	
 };

@@ -41,7 +41,7 @@ void FOnlineAsyncTaskAccelByteStartV1Matchmaking::Initialize()
 
 	if (SearchSettings->SearchState != EOnlineAsyncTaskState::NotStarted)
 	{
-		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Cannot start matchmaking as the search settings handle passed into the matchmaking call is in an invalid state. Should be NotStarted but is %s!"), *EOnlineAsyncTaskState::ToString(SearchSettings->SearchState));
+		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Cannot start matchmaking as the search settings handle passed into the matchmaking call is in an invalid state. Should be NotStarted but is %s!"), EOnlineAsyncTaskState::ToString(SearchSettings->SearchState));
 		CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState);
 		return;
 	}

@@ -219,7 +219,7 @@ bool FOnlineIdentityAccelByte::AutoLogin(int32 LocalUserNum)
 	// attempt auto login using a blank credential, which may end up using a native OSS pass through if that is set up.
 	bool bLoginTaskSpawned = Login(LocalUserNum, Credentials);
 	
-	AB_OSS_INTERFACE_TRACE_END(TEXT("Login has been called from AutoLogin. Async task spawned: "), LOG_BOOL_FORMAT(bLoginTaskSpawned));
+	AB_OSS_INTERFACE_TRACE_END(TEXT("Login has been called from AutoLogin. Async task spawned: %s"), LOG_BOOL_FORMAT(bLoginTaskSpawned));
 	return bLoginTaskSpawned;
 }
 

@@ -58,7 +58,7 @@ void FOnlineAsyncTaskAccelByteUnblockPlayer::OnUnblockPlayerResponse(const FAcce
 	if (Result.Code != TEXT("0"))
 	{
 		ErrorStr = TEXT("unblock-player-request-failed");
-		UE_LOG_AB(Warning, TEXT("Failed to unblock player %s as the request failed on the backend! Error code: %s"), *Result.Code);
+		UE_LOG_AB(Warning, TEXT("Failed to unblock player %s as the request failed on the backend! Error code: %s"), *PlayerId->ToString(), *Result.Code);
 		CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
 	}
 	else

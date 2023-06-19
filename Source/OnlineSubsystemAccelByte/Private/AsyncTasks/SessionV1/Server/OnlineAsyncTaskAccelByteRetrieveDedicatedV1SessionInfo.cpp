@@ -70,7 +70,7 @@ void FOnlineAsyncTaskAccelByteRetrieveDedicatedV1SessionInfo::Initialize()
 		const FOnAuthenticateServerComplete OnAuthenticateServerCompleteDelegate = TDelegateUtils<FOnAuthenticateServerComplete>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteRetrieveDedicatedV1SessionInfo::OnAuthenticateServerComplete);
 		IdentityInterface->AuthenticateAccelByteServer(OnAuthenticateServerCompleteDelegate);
 
-		AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Authenticating server with client credentials to get session information"), *SessionName.ToString());
+		AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Authenticating server with client credentials to get session information, Session name: %s"), *SessionName.ToString());
 		return;
 	}
 

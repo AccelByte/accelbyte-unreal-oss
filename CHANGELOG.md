@@ -2,6 +2,28 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.11.5](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.11.5%0D0.11.4) (2023-06-19)
+
+
+### Features
+
+* **MPv2:** add delegate to handle stale session on refresh ([6fefe26](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/6fefe26467bd36d5805d34ef978d740424207d8e))
+* **MPv2:** add promote game session leader API to session interface ([425c4b0](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/425c4b085ac96bffc48688d9a1439337059e7920))
+* update OSS implementation to support Unreal Engine 5.2 ([ba9b3c0](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/ba9b3c0a94acc86d7564195f8be4881c6441117d))
+* **voicechat:** implement voice chat interface ([4fd2654](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/4fd265485885c9c5f11ab5a4cb9e3237970d69df))
+
+
+### Bug Fixes
+
+* **log:** fix string format ([83e7b96](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/83e7b968f0df57de5c99276d3afeaa9951207c92))
+* **Login:** apiClient became null and causing crash when the loading takes too long ([d44c604](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/d44c6044fe901c8806c55db8f8db6796f84c2555))
+* **MPv2:** ignore sessions still in creating or destroying state when ticking ([41dc042](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/41dc0425e44086e688c58571f8359e9c103cee74))
+
+
+### Refactors
+
+* **AMS:** change ServerWatchdog to ServerAMS ([48b2775](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/48b277519d5271befb0a0ea455ed2bcdc9540ce5))
+
 ### [0.11.4](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.11.4%0D0.11.3) (2023-06-14)
 
 

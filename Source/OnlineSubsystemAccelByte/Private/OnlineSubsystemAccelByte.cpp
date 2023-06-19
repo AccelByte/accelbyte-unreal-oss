@@ -22,6 +22,7 @@
 #include "OnlineChatInterfaceAccelByte.h"
 #include "OnlineAuthInterfaceAccelByte.h"
 #include "OnlineSubsystemAccelByteModule.h"
+#include "OnlineVoiceInterfaceAccelByte.h"
 #include "Api/AccelByteLobbyApi.h"
 #include "Models/AccelByteLobbyModels.h"
 #include "Core/AccelByteWebSocketErrorTypes.h"
@@ -69,6 +70,7 @@ bool FOnlineSubsystemAccelByte::Init()
 	ChatInterface = MakeShared<FOnlineChatAccelByte, ESPMode::ThreadSafe>(this);
 	AuthInterface = MakeShared<FOnlineAuthAccelByte, ESPMode::ThreadSafe>(this);
 	AchievementInterface = MakeShared<FOnlineAchievementsAccelByte, ESPMode::ThreadSafe>(this);
+	VoiceInterface = MakeShared<FOnlineVoiceAccelByte, ESPMode::ThreadSafe>(this);
 	
 	// Create an async task manager and a thread for the manager to process tasks on
 	AsyncTaskManager = MakeShared<FOnlineAsyncTaskManagerAccelByte, ESPMode::ThreadSafe>(this);
@@ -153,6 +155,7 @@ bool FOnlineSubsystemAccelByte::Shutdown()
 	ChatInterface.Reset();
 	AuthInterface.Reset();
 	AchievementInterface.Reset();
+	VoiceInterface.Reset();
 	
 	return true;
 }
@@ -273,6 +276,19 @@ FOnlineAuthAccelBytePtr FOnlineSubsystemAccelByte::GetAuthInterface() const
 	return AuthInterface;
 }
 
+IOnlineVoicePtr FOnlineSubsystemAccelByte::GetVoiceInterface() const
+{
+	if (!bVoiceInterfaceInitialized)
+	{
+		if (!StaticCastSharedPtr<FOnlineVoiceAccelByte>(VoiceInterface)->Init())
+		{
+			VoiceInterface.Reset();
+		}
+		bVoiceInterfaceInitialized = true;
+	}
+	return VoiceInterface;
+}
+
 #if (ENGINE_MAJOR_VERSION == 4 && ENGINE_MINOR_VERSION <= 25)
 IOnlineTurnBasedPtr FOnlineSubsystemAccelByte::GetTurnBasedInterface() const
 {
@@ -351,6 +367,11 @@ bool FOnlineSubsystemAccelByte::Tick(float DeltaTime)
 	if (AuthInterface.IsValid())
 	{
 		AuthInterface->Tick(DeltaTime);
+	}
+
+	if (bVoiceInterfaceInitialized && VoiceInterface.IsValid())
+	{
+		VoiceInterface->Tick(DeltaTime);
 	}
 
 	// If we have automation testing enabled, check if we have any exec tests that are complete and if so, remove them

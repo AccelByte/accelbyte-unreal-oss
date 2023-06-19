@@ -212,7 +212,7 @@ void FOnlineAsyncTaskAccelByteUpdateGameSessionV2::TriggerDelegates()
 
 void FOnlineAsyncTaskAccelByteUpdateGameSessionV2::OnUpdateGameSessionSuccess(const FAccelByteModelsV2GameSession& BackendSessionData)
 {
-	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("UpdatedSessionVersion: %d"), BackendSessionData.Version);
+	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("UpdatedSessionVersion: %I64d"), BackendSessionData.Version);
 
 	NewSessionData = BackendSessionData;
 	CompleteTask(EAccelByteAsyncTaskCompleteState::Success);

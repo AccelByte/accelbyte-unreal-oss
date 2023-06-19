@@ -59,7 +59,7 @@ void FOnlineAsyncTaskAccelByteEnumerateUserFiles::TriggerDelegates()
 
 void FOnlineAsyncTaskAccelByteEnumerateUserFiles::OnGetAllSlotsSuccess(const TArray<FAccelByteModelsSlot>& Results)
 {
-	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Slot amount: %s"), Results.Num());
+	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Slot amount: %d"), Results.Num());
 
 	for (const FAccelByteModelsSlot& Slot : Results)
 	{

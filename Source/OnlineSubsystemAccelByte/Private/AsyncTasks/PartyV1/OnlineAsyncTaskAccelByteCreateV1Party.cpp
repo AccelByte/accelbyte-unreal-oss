@@ -28,7 +28,7 @@ void FOnlineAsyncTaskAccelByteCreateV1Party::Initialize()
 	const FOnlinePartySystemAccelBytePtr PartyInterface = StaticCastSharedPtr<FOnlinePartySystemAccelByte>(Subsystem->GetPartyInterface());
 	if (PartyInterface->IsPlayerInAnyParty(UserId.ToSharedRef().Get()))
 	{
-		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Player '%s' was already in a party when CreateParty was called. Call LeaveParty before attempting to create another party!"));
+		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Player '%s' was already in a party when CreateParty was called. Call LeaveParty before attempting to create another party!"), *UserId->ToString());
 		CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState);
 		return;
 	}
@@ -94,7 +94,7 @@ void FOnlineAsyncTaskAccelByteCreateV1Party::TriggerDelegates()
 
 void FOnlineAsyncTaskAccelByteCreateV1Party::OnGetPartyInfoResponse(const FAccelByteModelsInfoPartyResponse& Result)
 {
-	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("UserId: %s; Get Party Info Response Code: %d"), *UserId->ToDebugString(), *Result.Code);
+	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("UserId: %s; Get Party Info Response Code: %s"), *UserId->ToDebugString(), *Result.Code);
 
 	// If we successfully get party info (code 0 is success), then we have to fail the task since we are already in a party
 	if (Result.Code == TEXT("0"))
@@ -115,7 +115,7 @@ void FOnlineAsyncTaskAccelByteCreateV1Party::OnGetPartyInfoResponse(const FAccel
 
 void FOnlineAsyncTaskAccelByteCreateV1Party::OnCreatePartyResponse(const FAccelByteModelsCreatePartyResponse& Result)
 {
-	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("UserId: %s"), *UserId->ToDebugString(), *Result.Code);
+	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("UserId: %s"), *UserId->ToDebugString());
 
 	if (Result.Code != TEXT("0"))
 	{

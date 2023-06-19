@@ -49,6 +49,7 @@
 #include "OnlineIdentityInterfaceAccelByte.h"
 #include "OnlineSessionInterfaceV1AccelByte.h"
 #include "OnlineSubsystemAccelByte.h"
+#include "OnlineVoiceInterfaceAccelByte.h"
 #include "Api/AccelByteLobbyApi.h"
 #include "OnlineSubsystemAccelByteSessionSettings.h"
 #include "AccelByteNetworkUtilities.h"
@@ -56,6 +57,8 @@
 #include "OnlineSubsystemUtils.h"
 #include "Core/AccelByteUtilities.h"
 #include <algorithm>
+
+#include "AsyncTasks/SessionV2/OnlineAsyncTaskAccelBytePromoteV2GameSessionLeader.h"
 
 #define ONLINE_ERROR_NAMESPACE "FOnlineSessionV2AccelByte"
 #define ACCELBYTE_P2P_TRAVEL_URL_FORMAT TEXT("accelbyte.%s:%d")
@@ -584,6 +587,14 @@ void FOnlineSessionV2AccelByte::Tick(float DeltaTime)
 		if (!ensure(SessionEntry.Value.IsValid()))
 		{
 			UE_LOG_AB(Warning, TEXT("Could not check session for updates as the session is invalid!"));
+			continue;
+		}
+
+		if (SessionEntry.Value->SessionState == EOnlineSessionState::Creating || SessionEntry.Value->SessionState == EOnlineSessionState::Destroying)
+		{
+			// Do not attempt to update a session that is creating or destroying, as those states will not have valid session
+			// info or backend data
+			UE_LOG_AB(VeryVerbose, TEXT("Ignoring updating session named %s as it is still in the %s state."), *SessionEntry.Key.ToString(), EOnlineSessionState::ToString(SessionEntry.Value->SessionState));
 			continue;
 		}
 
@@ -2007,6 +2018,16 @@ bool FOnlineSessionV2AccelByte::StartSession(FName SessionName)
 	AccelByteSubsystem->ExecuteNextTick([SessionInterface = AsShared(), SessionName]() {
 		SessionInterface->TriggerOnStartSessionCompleteDelegates(SessionName, true);
 	});
+
+	EAccelByteV2SessionType SessionType = GetSessionTypeFromSettings(Session->SessionSettings);
+	if (SessionType == EAccelByteV2SessionType::GameSession)
+	{
+		FOnlineVoiceAccelBytePtr VoiceInterface = StaticCastSharedPtr<FOnlineVoiceAccelByte>(AccelByteSubsystem->GetVoiceInterface());
+		if (VoiceInterface.IsValid())
+		{
+			VoiceInterface->RemoveAllTalkers();
+		}
+	}
 	
 	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
 	return true;
@@ -2176,6 +2197,12 @@ bool FOnlineSessionV2AccelByte::DestroySession(FName SessionName, const FOnDestr
 			SessionInterface->TriggerOnDestroySessionCompleteDelegates(SessionName, true);
 		});
 		AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+	}
+
+	FOnlineVoiceAccelBytePtr VoiceInterface = StaticCastSharedPtr<FOnlineVoiceAccelByte>(AccelByteSubsystem->GetVoiceInterface());
+	if (VoiceInterface.IsValid())
+	{
+		VoiceInterface->RemoveAllTalkers();
 	}
 
 	return true;
@@ -2838,6 +2865,16 @@ bool FOnlineSessionV2AccelByte::RegisterPlayers(FName SessionName, const TArray<
 					Session->NumOpenPublicConnections = 0;
 				}
 			}
+
+			const EAccelByteV2SessionType SessionType = GetSessionTypeFromSettings(Session->SessionSettings);
+			if (SessionType == EAccelByteV2SessionType::GameSession && !IsRunningDedicatedServer())
+			{
+				FOnlineVoiceAccelBytePtr VoiceInterface = StaticCastSharedPtr<FOnlineVoiceAccelByte>(AccelByteSubsystem->GetVoiceInterface());
+				if (VoiceInterface.IsValid())
+				{
+					VoiceInterface->RegisterTalker(PlayerToAdd, *Session);
+				}
+			}
 		}
 	}
 
@@ -3115,8 +3152,8 @@ void FOnlineSessionV2AccelByte::RegisterServer(FName SessionName, const FOnRegis
 		return;
 	}
 
-	const AccelByte::GameServerApi::ServerWatchdog::FOnWatchdogDrainReceived OnWatchdogDrainReceivedDelegate = AccelByte::GameServerApi::ServerWatchdog::FOnWatchdogDrainReceived::CreateThreadSafeSP(SharedThis(this), &FOnlineSessionV2AccelByte::OnWatchdogDrain);
-	FRegistry::ServerWatchdog.SetOnWatchdogDrainReceivedDelegate(OnWatchdogDrainReceivedDelegate);
+	const AccelByte::GameServerApi::ServerAMS::FOnAMSDrainReceived OnAMSDrainReceivedDelegate = AccelByte::GameServerApi::ServerAMS::FOnAMSDrainReceived::CreateThreadSafeSP(SharedThis(this), &FOnlineSessionV2AccelByte::OnAMSDrain);
+	FRegistry::ServerAMS.SetOnAMSDrainReceivedDelegate(OnAMSDrainReceivedDelegate);
 
 	// For an Armada-spawned server pod, there will always be a POD_NAME environment variable set. For local servers this
 	// will most likely never be the case. With this, if we have the pod name variable, then register as a non-local server
@@ -3227,6 +3264,34 @@ bool FOnlineSessionV2AccelByte::KickPlayer(const FUniqueNetId& LocalUserId, cons
 
 	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
 	return false;
+}
+
+bool FOnlineSessionV2AccelByte::PromoteGameSessionLeader(const FUniqueNetId& LocalUserId, const FName& SessionName,
+	const FUniqueNetId& PlayerIdToPromote)
+{
+	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("LocalUserId: %s; SessionName: %s; PlayerIdToPromoteAsGameSessionLeader: %s"), *LocalUserId.ToDebugString(), *SessionName.ToString(), *PlayerIdToPromote.ToDebugString());
+
+	const FNamedOnlineSession* Session = GetNamedSession(SessionName);
+	if (Session == nullptr)
+	{
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Cannot promote player from game session as the session does not exist locally!"));
+		return false;
+	}
+
+	const EAccelByteV2SessionType SessionType = GetSessionTypeFromSettings(Session->SessionSettings);
+	switch (SessionType)
+	{
+		case EAccelByteV2SessionType::GameSession:
+			AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelBytePromoteV2GameSessionLeader>(AccelByteSubsystem, LocalUserId, Session->GetSessionIdStr(), PlayerIdToPromote);
+			AB_OSS_INTERFACE_TRACE_END(TEXT("Sent off request to promote player to leader of game session!"));
+			return true;
+
+		case EAccelByteV2SessionType::PartySession:
+		case EAccelByteV2SessionType::Unknown:
+		default:
+			AB_OSS_INTERFACE_TRACE_END(TEXT("Unable to promote game session leader of SessionName: %s as the session is of type %s!"), *SessionName.ToString(), *FAccelByteUtilities::GetUEnumValueAsString(SessionType));
+			return false;
+	}
 }
 
 bool FOnlineSessionV2AccelByte::PromotePartySessionLeader(const FUniqueNetId& LocalUserId, const FName& SessionName, const FUniqueNetId& PlayerIdToPromote, const FOnPromotePartySessionLeaderComplete& Delegate)
@@ -4568,21 +4633,21 @@ void FOnlineSessionV2AccelByte::OnV2BackfillProposalNotification(const FAccelByt
 	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
 }
 
-void FOnlineSessionV2AccelByte::SendReadyToWatchdog()
+void FOnlineSessionV2AccelByte::SendReadyToAMS()
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("Send Ready Message to watchdog"));
+	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("Send Ready Message to AMS"));
 
 	if (!IsRunningDedicatedServer())
 	{
 		AB_OSS_INTERFACE_TRACE_END(TEXT(""));
 		return;
 	}
-	FRegistry::ServerWatchdog.SendReadyMessage();
+	FRegistry::ServerAMS.SendReadyMessage();
 
 	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
 }
 
-void FOnlineSessionV2AccelByte::DisconnectFromWatchdog()
+void FOnlineSessionV2AccelByte::DisconnectFromAMS()
 {
 	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT(""));
 
@@ -4593,11 +4658,11 @@ void FOnlineSessionV2AccelByte::DisconnectFromWatchdog()
 		return;
 	}
 
-	// Unbind any delegates that we want to stop listening to Watchdog for
-	FRegistry::ServerWatchdog.SetOnWatchdogDrainReceivedDelegate(AccelByte::GameServerApi::ServerWatchdog::FOnWatchdogDrainReceived());
+	// Unbind any delegates that we want to stop listening to AMS for
+	FRegistry::ServerAMS.SetOnAMSDrainReceivedDelegate(AccelByte::GameServerApi::ServerAMS::FOnAMSDrainReceived());
 
-	// Finally, disconnect the DS watchdog websocket
-	FRegistry::ServerWatchdog.Disconnect();
+	// Finally, disconnect the DS AMS websocket
+	FRegistry::ServerAMS.Disconnect();
 
 	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
 }
@@ -4762,7 +4827,7 @@ bool FOnlineSessionV2AccelByte::ServerQueryPartySessions(const FAccelByteModelsV
 	return true;
 }
 
-void FOnlineSessionV2AccelByte::OnWatchdogDrain()
+void FOnlineSessionV2AccelByte::OnAMSDrain()
 {
 	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT(""));
 
@@ -4773,7 +4838,7 @@ void FOnlineSessionV2AccelByte::OnWatchdogDrain()
 		return;
 	}
 
-	TriggerOnWatchdogDrainReceivedDelegates();
+	TriggerOnAMSDrainReceivedDelegates();
 
 	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
 }

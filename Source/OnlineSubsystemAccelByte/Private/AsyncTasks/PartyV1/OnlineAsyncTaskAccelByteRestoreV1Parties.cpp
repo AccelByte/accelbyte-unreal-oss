@@ -140,7 +140,7 @@ void FOnlineAsyncTaskAccelByteRestoreV1Parties::OnGetPartyInfoResponse(const FAc
 	// Any other response code besides zero is a failure
 	else if (Result.Code != TEXT("0"))
 	{
-		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to restore party for user '%s' as the call to the backend failed! Response code: %d"), *UserId->ToDebugString(), *Result.Code);
+		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to restore party for user '%s' as the call to the backend failed! Response code: %s"), *UserId->ToDebugString(), *Result.Code);
 		CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
 	}
 	// We were able to successfully get party info, restore it

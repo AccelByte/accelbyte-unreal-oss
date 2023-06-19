@@ -44,6 +44,7 @@ public class OnlineSubsystemAccelByte : ModuleRules
 			"NetCore",
 			"Engine",
 			"Sockets",
+			"Voice",
 			"OnlineSubsystem",
 			"PacketHandler",
 			"Json",
