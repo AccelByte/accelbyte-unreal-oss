@@ -50,9 +50,11 @@ class FOnlineStatisticAccelByte;
 class FOnlineChatAccelByte;
 class FOnlineAuthAccelByte;
 class FExecTestBase;
-class FOnlineAchievementsAccelByte;
+class FOnlineAchievementsAccelByte; 
 class FOnlineVoiceAccelByte;
-
+class IVoiceChat;
+class IVoiceChatUser;
+class FAccelByteVoiceChat;
 struct FAccelByteModelsNotificationMessage;
 
 /** Shared pointer to the AccelByte implementation of the Session interface */
@@ -130,6 +132,9 @@ typedef TSharedPtr<FOnlineAchievementsAccelByte, ESPMode::ThreadSafe> FOnlineAch
 /** Shared ponter to the AccelByte implementation of the Voice Chat interface */
 typedef TSharedPtr<FOnlineVoiceAccelByte, ESPMode::ThreadSafe> FOnlineVoiceAccelBytePtr;
 
+typedef TSharedPtr<IVoiceChat, ESPMode::ThreadSafe> IVoiceChatPtr;
+typedef TSharedPtr<IVoiceChatUser, ESPMode::ThreadSafe> IVoiceChatUserPtr;
+typedef TSharedPtr<FAccelByteVoiceChat, ESPMode::ThreadSafe> FAccelByteVoiceChatPtr;
 
 class ONLINESUBSYSTEMACCELBYTE_API FOnlineSubsystemAccelByte final
 	: public FOnlineSubsystemImpl
@@ -164,6 +169,7 @@ public:
 	virtual IOnlineChatPtr GetChatInterface() const override;
 	virtual FOnlineAuthAccelBytePtr GetAuthInterface() const;
 	virtual IOnlineVoicePtr GetVoiceInterface() const override;
+	IVoiceChatPtr GetVoiceChatInterface();
 
 #if (ENGINE_MAJOR_VERSION == 4 && ENGINE_MINOR_VERSION <= 25)
 	IOnlineTurnBasedPtr GetTurnBasedInterface() const override;
@@ -434,6 +440,7 @@ private:
 
 	/** Thread spawned to run the FOnlineAsyncTaskManagerAccelBytePtr instance */
 	TUniquePtr<FRunnableThread> AsyncTaskManagerThread;
+	IVoiceChatPtr VoiceChatInterface;
 
 	/** Language to be used on AccelByte Service Requests*/
 	FString Language;

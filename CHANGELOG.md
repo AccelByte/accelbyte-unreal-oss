@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.11.6](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.11.6%0D0.11.5) (2023-06-20)
+
+
+### Features
+
+* **VoiceChat:** Implement IVoiceChat wrapper ([ac17c5f](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/ac17c5f4149b6cd03b0c61f7dde11fbc35a150cb))
+
 ### [0.11.5](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.11.5%0D0.11.4) (2023-06-19)
 
 

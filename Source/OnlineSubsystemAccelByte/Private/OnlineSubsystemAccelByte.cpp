@@ -26,7 +26,8 @@
 #include "Api/AccelByteLobbyApi.h"
 #include "Models/AccelByteLobbyModels.h"
 #include "Core/AccelByteWebSocketErrorTypes.h"
-
+#include "VoiceChat/AccelByteVoiceChat.h"
+#include "VoiceChat.h"
 //~ Begin AccelByte Peer to Peer Includes
 #include "AccelByteNetworkUtilities.h"
 #include "Core/AccelByteRegistry.h"
@@ -71,6 +72,7 @@ bool FOnlineSubsystemAccelByte::Init()
 	AuthInterface = MakeShared<FOnlineAuthAccelByte, ESPMode::ThreadSafe>(this);
 	AchievementInterface = MakeShared<FOnlineAchievementsAccelByte, ESPMode::ThreadSafe>(this);
 	VoiceInterface = MakeShared<FOnlineVoiceAccelByte, ESPMode::ThreadSafe>(this);
+	VoiceChatInterface = MakeShared<FAccelByteVoiceChat, ESPMode::ThreadSafe>(this);
 	
 	// Create an async task manager and a thread for the manager to process tasks on
 	AsyncTaskManager = MakeShared<FOnlineAsyncTaskManagerAccelByte, ESPMode::ThreadSafe>(this);
@@ -156,6 +158,7 @@ bool FOnlineSubsystemAccelByte::Shutdown()
 	AuthInterface.Reset();
 	AchievementInterface.Reset();
 	VoiceInterface.Reset();
+	VoiceChatInterface.Reset();
 	
 	return true;
 }
@@ -287,6 +290,11 @@ IOnlineVoicePtr FOnlineSubsystemAccelByte::GetVoiceInterface() const
 		bVoiceInterfaceInitialized = true;
 	}
 	return VoiceInterface;
+}
+
+IVoiceChatPtr FOnlineSubsystemAccelByte::GetVoiceChatInterface()
+{
+	return VoiceChatInterface;
 }
 
 #if (ENGINE_MAJOR_VERSION == 4 && ENGINE_MINOR_VERSION <= 25)

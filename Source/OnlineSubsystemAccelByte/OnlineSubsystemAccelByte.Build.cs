@@ -45,6 +45,7 @@ public class OnlineSubsystemAccelByte : ModuleRules
 			"Engine",
 			"Sockets",
 			"Voice",
+			"VoiceChat",
 			"OnlineSubsystem",
 			"PacketHandler",
 			"Json",
