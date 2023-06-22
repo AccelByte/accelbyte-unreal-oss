@@ -537,7 +537,7 @@ bool FOnlineFriendsAccelByte::GetFromSubsystem(const IOnlineSubsystem* Subsystem
 
 bool FOnlineFriendsAccelByte::GetFromWorld(const UWorld* World, FOnlineFriendsAccelBytePtr& OutInterfaceInstance)
 {
-	const IOnlineSubsystem* Subsystem = Online::GetSubsystem(World);
+	const IOnlineSubsystem* Subsystem = ::Online::GetSubsystem(World);
 	if (Subsystem == nullptr)
 	{
 		OutInterfaceInstance = nullptr;

@@ -516,6 +516,9 @@ public:
 #if ENGINE_MINOR_VERSION >= 1
 	virtual void CancelInvitation(const FUniqueNetId& LocalUserId, const FUniqueNetId& TargetUserId, const FOnlinePartyId& PartyId, const FOnCancelPartyInvitationComplete& Delegate = FOnCancelPartyInvitationComplete()) override;
 #endif
+#if ENGINE_MINOR_VERSION >= 2
+	virtual IOnlinePartyJoinInfoConstPtr MakeJoinInfo(const FUniqueNetId& LocalUserId, const FOnlinePartyId& PartyId) override;
+#endif
 #endif
 	
 	//~ End IOnlinePartySystem methods

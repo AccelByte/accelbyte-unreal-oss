@@ -705,7 +705,7 @@ bool FOnlinePartySystemAccelByte::GetFromSubsystem(const IOnlineSubsystem* Subsy
 
 bool FOnlinePartySystemAccelByte::GetFromWorld(const UWorld* World, FOnlinePartySystemAccelBytePtr& OutInterfaceInstance)
 {
-	const IOnlineSubsystem* Subsystem = Online::GetSubsystem(World);
+	const IOnlineSubsystem* Subsystem = ::Online::GetSubsystem(World);
 	if (Subsystem == nullptr)
 	{
 		OutInterfaceInstance = nullptr;
@@ -1709,6 +1709,13 @@ void FOnlinePartySystemAccelByte::CancelInvitation(const FUniqueNetId& LocalUser
 
 	// Just like ApproveJoinRequest, parties don't have the ability to be joined without invite or have join requests, so we cannot support this
 	UE_LOG_AB(Warning, TEXT("FOnlinePartySystemAccelByte::CancelInvitation is not implemented yet!"));
+}
+#endif
+
+#if ENGINE_MINOR_VERSION >= 2
+IOnlinePartyJoinInfoConstPtr FOnlinePartySystemAccelByte::MakeJoinInfo(const FUniqueNetId& LocalUserId, const FOnlinePartyId& PartyId)
+{
+	return nullptr;
 }
 #endif
 

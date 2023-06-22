@@ -99,6 +99,10 @@ public:
 	virtual void UnregisterOnVoiceChatBeforeRecvAudioRenderedDelegate(FDelegateHandle Handle) override;
 	virtual FString InsecureGetLoginToken(const FString& PlayerName) override;
 	virtual FString InsecureGetJoinToken(const FString& ChannelName, EVoiceChatChannelType ChannelType, TOptional<FVoiceChatChannel3dProperties> Channel3dProperties = TOptional<FVoiceChatChannel3dProperties>()) override;
+#if (ENGINE_MAJOR_VERSION == 5) 
+	virtual void SetChannelPlayerMuted(const FString& ChannelName, const FString& PlayerName, bool bAudioMuted) override;
+	virtual bool IsChannelPlayerMuted(const FString& ChannelName, const FString& PlayerName) const override;
+#endif
 protected:
 
 	/** Instance of the subsystem that created this interface */

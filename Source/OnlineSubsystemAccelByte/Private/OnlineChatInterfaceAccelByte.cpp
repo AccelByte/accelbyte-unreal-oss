@@ -25,7 +25,7 @@ bool FOnlineChatAccelByte::GetFromSubsystem(const IOnlineSubsystem* Subsystem, F
 
 bool FOnlineChatAccelByte::GetFromWorld(const UWorld* World, FOnlineChatAccelBytePtr& OutInterfaceInstance)
 {
-	const IOnlineSubsystem* Subsystem = Online::GetSubsystem(World);
+	const IOnlineSubsystem* Subsystem = ::Online::GetSubsystem(World);
 	if (Subsystem == nullptr)
 	{
 		OutInterfaceInstance = nullptr;

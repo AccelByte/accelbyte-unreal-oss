@@ -20,7 +20,7 @@ bool FOnlineExternalUIAccelByte::GetFromSubsystem(const IOnlineSubsystem* Subsys
 
 bool FOnlineExternalUIAccelByte::GetFromWorld(const UWorld* World, FOnlineExternalUIAccelBytePtr& OutInterfaceInstance)
 {
-	const IOnlineSubsystem* Subsystem = Online::GetSubsystem(World);
+	const IOnlineSubsystem* Subsystem = ::Online::GetSubsystem(World);
 	if (Subsystem == nullptr)
 	{
 		OutInterfaceInstance = nullptr;

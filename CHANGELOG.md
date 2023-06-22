@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.11.7](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.11.7%0D0.11.6) (2023-06-21)
+
+
+### Bug Fixes
+
+* fix compile error on unreal ver 5.2 ([79e6a2e](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/79e6a2e5b1cbb1c2c2282deec0e7de285e4d1d99))
+* missing IVoiceChat method implementation in UE5 ([cf79ade](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/cf79ade6ffc5df697101fb39ebfd4636db06ae45))
+
 ### [0.11.6](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.11.6%0D0.11.5) (2023-06-20)
 
 

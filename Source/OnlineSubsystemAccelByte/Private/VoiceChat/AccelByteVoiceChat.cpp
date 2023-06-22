@@ -495,4 +495,17 @@ FString FAccelByteVoiceChat::InsecureGetJoinToken(const FString& ChannelName, EV
 {
 	return GetVoiceChatUser()->InsecureGetJoinToken(ChannelName, ChannelType, Channel3dProperties);
 }
+
+#if (ENGINE_MAJOR_VERSION == 5)
+void FAccelByteVoiceChat::SetChannelPlayerMuted(const FString& ChannelName, const FString& PlayerName, bool bAudioMuted)
+{
+	return GetVoiceChatUser()->SetChannelPlayerMuted(ChannelName, PlayerName, bAudioMuted);
+}
+
+bool FAccelByteVoiceChat::IsChannelPlayerMuted(const FString & ChannelName, const FString & PlayerName) const
+{
+	return GetVoiceChatUser()->IsChannelPlayerMuted(ChannelName, PlayerName);
+}
+#endif
+
 #pragma endregion IVoiceChatUser
