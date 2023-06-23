@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.11.8](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.11.8%0D0.11.7) (2023-06-23)
+
+
+### Bug Fixes
+
+* incorrect Type in FUniqueNetIdAccelByteUser ([b63a451](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/b63a451fe55004f10f25fe160789a2dc7deafd8a))
+
 ### [0.11.7](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.11.7%0D0.11.6) (2023-06-21)
 
 
