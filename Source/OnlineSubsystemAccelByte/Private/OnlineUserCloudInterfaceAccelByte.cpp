@@ -22,7 +22,7 @@ bool FOnlineUserCloudAccelByte::GetFromSubsystem(const IOnlineSubsystem* Subsyst
 
 bool FOnlineUserCloudAccelByte::GetFromWorld(const UWorld* World, FOnlineUserCloudAccelBytePtr& OutInterfaceInstance)
 {
-	const IOnlineSubsystem* Subsystem = Online::GetSubsystem(World);
+	const IOnlineSubsystem* Subsystem = ::Online::GetSubsystem(World);
 	if (Subsystem == nullptr)
 	{
 		OutInterfaceInstance = nullptr;

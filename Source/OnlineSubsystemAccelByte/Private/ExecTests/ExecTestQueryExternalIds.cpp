@@ -18,7 +18,7 @@ FExecTestQueryExternalIds::FExecTestQueryExternalIds(UWorld* InWorld, const FNam
 
 bool FExecTestQueryExternalIds::Run()
 {
-	IOnlineSubsystem* Subsystem = Online::GetSubsystem(World, SubsystemName);
+	IOnlineSubsystem* Subsystem = ::Online::GetSubsystem(World, SubsystemName);
 
 	if (Subsystem != nullptr)
 	{
@@ -56,7 +56,7 @@ void FExecTestQueryExternalIds::OnQueryExternalIdMappingsComplete(bool bWasSucce
 		return;
 	}
 
-	const IOnlineSubsystem* Subsystem = Online::GetSubsystem(World, SubsystemName);
+	const IOnlineSubsystem* Subsystem = ::Online::GetSubsystem(World, SubsystemName);
 	if (Subsystem == nullptr)
 	{
 		UE_LOG_AB(Error, TEXT("Could not get IOnlineSubsystem interface for FExecTestQueryExternalIds"));

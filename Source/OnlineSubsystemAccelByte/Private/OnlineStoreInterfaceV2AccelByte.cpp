@@ -72,7 +72,7 @@ bool FOnlineStoreV2AccelByte::GetFromSubsystem(const IOnlineSubsystem* Subsystem
 
 bool FOnlineStoreV2AccelByte::GetFromWorld(const UWorld* World, FOnlineStoreV2AccelBytePtr& OutInterfaceInstance)
 {
-	const IOnlineSubsystem* Subsystem = Online::GetSubsystem(World);
+	const IOnlineSubsystem* Subsystem = ::Online::GetSubsystem(World);
 	if (Subsystem == nullptr)
 	{
 		OutInterfaceInstance = nullptr;

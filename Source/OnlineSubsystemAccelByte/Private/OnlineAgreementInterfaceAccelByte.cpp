@@ -26,7 +26,7 @@ bool FOnlineAgreementAccelByte::GetFromSubsystem(const IOnlineSubsystem* Subsyst
 
 bool FOnlineAgreementAccelByte::GetFromWorld(const UWorld* World, FOnlineAgreementAccelBytePtr& OutInterfaceInstance)
 {
-	const IOnlineSubsystem* Subsystem = Online::GetSubsystem(World);
+	const IOnlineSubsystem* Subsystem = ::Online::GetSubsystem(World);
 	if (Subsystem == nullptr)
 	{
 		OutInterfaceInstance = nullptr;

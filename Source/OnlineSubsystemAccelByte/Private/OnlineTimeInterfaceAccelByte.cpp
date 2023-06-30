@@ -27,7 +27,7 @@ bool FOnlineTimeAccelByte::GetFromSubsystem(const IOnlineSubsystem* Subsystem, F
 
 bool FOnlineTimeAccelByte::GetFromWorld(const UWorld* World, FOnlineTimeAccelBytePtr& OutInterfaceInstance)
 {
-	const IOnlineSubsystem* Subsystem = Online::GetSubsystem(World);
+	const IOnlineSubsystem* Subsystem = ::Online::GetSubsystem(World);
 	if (Subsystem == nullptr)
 	{
 		OutInterfaceInstance = nullptr;

@@ -35,7 +35,7 @@ bool FOnlineUserCacheAccelByte::GetFromSubsystem(const IOnlineSubsystem* Subsyst
 
 bool FOnlineUserCacheAccelByte::GetFromWorld(const UWorld* World, FOnlineUserCacheAccelBytePtr& OutInterfaceInstance)
 {
-	const IOnlineSubsystem* Subsystem = Online::GetSubsystem(World);
+	const IOnlineSubsystem* Subsystem = ::Online::GetSubsystem(World);
 	if (Subsystem == nullptr)
 	{
 		OutInterfaceInstance = nullptr;

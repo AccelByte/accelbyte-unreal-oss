@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.11.9](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.11.9%0D0.11.8) (2023-06-30)
+
+
+### Bug Fixes
+
+* fix the ambiguity error on 5.2 ([8ebcf25](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/8ebcf25e167022f16b1bac6e8eb7489b1864399e))
+
 ### [0.11.8](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.11.8%0D0.11.7) (2023-06-23)
 
 

@@ -14,7 +14,7 @@
 
 bool FOnlineWalletAccelByte::GetFromWorld(const UWorld* World, FOnlineWalletAccelBytePtr& OutInterfaceInstance)
 {
-	const IOnlineSubsystem* Subsystem = Online::GetSubsystem(World);
+	const IOnlineSubsystem* Subsystem = ::Online::GetSubsystem(World);
 	if (Subsystem == nullptr)
 	{
 		OutInterfaceInstance = nullptr;

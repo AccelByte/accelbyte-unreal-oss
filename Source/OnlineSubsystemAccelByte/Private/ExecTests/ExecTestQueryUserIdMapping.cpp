@@ -17,7 +17,7 @@ FExecTestQueryUserIdMapping::FExecTestQueryUserIdMapping(UWorld* InWorld, const 
 
 bool FExecTestQueryUserIdMapping::Run()
 {
-	const IOnlineSubsystem* Subsystem = Online::GetSubsystem(World, SubsystemName);
+	const IOnlineSubsystem* Subsystem = ::Online::GetSubsystem(World, SubsystemName);
 	if (Subsystem != nullptr)
 	{
 		const IOnlineIdentityPtr IdentityInterface = Subsystem->GetIdentityInterface();

@@ -548,7 +548,7 @@ bool FOnlineSessionV2AccelByte::GetFromSubsystem(const IOnlineSubsystem* Subsyst
 bool FOnlineSessionV2AccelByte::GetFromWorld(const UWorld* World, FOnlineSessionV2AccelBytePtr& OutInterfaceInstance)
 {
 #if AB_USE_V2_SESSIONS
-	const IOnlineSubsystem* Subsystem = Online::GetSubsystem(World);
+	const IOnlineSubsystem* Subsystem = ::Online::GetSubsystem(World);
 	if (Subsystem == nullptr)
 	{
 		OutInterfaceInstance = nullptr;
