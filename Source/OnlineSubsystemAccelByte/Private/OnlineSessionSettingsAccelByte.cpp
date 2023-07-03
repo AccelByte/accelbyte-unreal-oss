@@ -332,6 +332,20 @@ void FOnlineSessionSettingsAccelByte::Set(FOnlineSessionSettings& SessionSetting
 	SessionSettings.Set(Key, RawArray);
 }
 
+void FOnlineSessionSettingsAccelByte::Set(FSessionSettings& SessionSettings, FName Key, const TArray<FString>& Value)
+{
+	TArray<uint8> ResultArray;
+	ConvertArrayToBytes(Value, ResultArray);
+	SessionSettings.Add(Key, FOnlineSessionSetting(ResultArray));
+}
+
+void FOnlineSessionSettingsAccelByte::Set(FSessionSettings& SessionSettings, FName Key, const TArray<double>& Value)
+{
+	TArray<uint8> ResultArray;
+	ConvertArrayToBytes(Value, ResultArray);
+	SessionSettings.Add(Key, FOnlineSessionSetting(ResultArray));
+}
+
 bool FOnlineSessionSettingsAccelByte::Get(FName Key, TArray<FString>& OutValue) const
 {
 	return Get(*this, Key, OutValue);

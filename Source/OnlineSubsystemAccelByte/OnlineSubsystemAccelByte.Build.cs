@@ -36,7 +36,19 @@ public class OnlineSubsystemAccelByte : ModuleRules
 			"AccelByteNetworkUtilities"
 		});
 
-		PrivateDependencyModuleNames.AddRange(new string[] {
+        if ((
+#if !UE_5_0_OR_LATER
+            Target.Platform == UnrealTargetPlatform.Win32 ||
+#endif
+            Target.Platform == UnrealTargetPlatform.Win64 ||
+            Target.Platform == UnrealTargetPlatform.Linux ||
+            Target.Platform == UnrealTargetPlatform.Mac)
+			&& Target.Type != TargetType.Server)
+        {
+            PublicDependencyModuleNames.Add("Steamworks");
+        }
+
+        PrivateDependencyModuleNames.AddRange(new string[] {
 			"Core",
 			"CoreUObject",
 			"Projects",

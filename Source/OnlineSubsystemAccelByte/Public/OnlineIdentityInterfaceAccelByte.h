@@ -89,6 +89,7 @@ public:
 	virtual FString GetPlayerNickname(const FUniqueNetId& UserId) const override;
 	virtual FString GetAuthToken(int32 LocalUserNum) const override;
 	virtual void RevokeAuthToken(const FUniqueNetId& UserId, const FOnRevokeAuthTokenCompleteDelegate& Delegate) override;
+	virtual void GetLinkedAccountAuthToken(int32 LocalUserNum, const FOnGetLinkedAccountAuthTokenCompleteDelegate& Delegate) const override;
 	virtual void GetUserPrivilege(const FUniqueNetId& UserId, EUserPrivileges::Type Privilege, const FOnGetUserPrivilegeCompleteDelegate& Delegate) override;
 	virtual FPlatformUserId GetPlatformUserIdFromUniqueNetId(const FUniqueNetId& UniqueNetId) const override;
 	virtual FString GetAuthType() const override;
@@ -140,7 +141,7 @@ public:
 	* Which means connection closure is abnormal and client should not reconnect (i.e. ban & access token revocation)
 	*/
 	static bool IsLogoutRequired(int32 WsClosedConnectionStatusCode);
-
+	
 PACKAGE_SCOPE:
 	/**
 	 * Used by the login async task to move data for the newly authenticated user to this identity instance.

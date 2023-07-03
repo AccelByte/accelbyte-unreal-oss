@@ -48,6 +48,19 @@ typedef FOnQueryUserProfileComplete::FDelegate FOnQueryUserProfileCompleteDelega
 DECLARE_MULTICAST_DELEGATE_FourParams(FOnListUserByUserIdComplete, int32 /*LocalUserNum*/, bool /*bWasSuccessful*/, const FListUserDataResponse& /*Data*/, const FOnlineError  & /* OnlineError  */);
 typedef FOnListUserByUserIdComplete::FDelegate FOnListUserByUserIdCompleteDelegate;
 
+DECLARE_MULTICAST_DELEGATE_TwoParams(FOnLinkOtherPlatformComplete, bool /*bWasSuccessful*/, const FOnlineError & /*OnlineError*/);
+typedef FOnLinkOtherPlatformComplete::FDelegate FOnLinkOtherPlatformCompleteDelegate;
+
+DECLARE_MULTICAST_DELEGATE_TwoParams(FOnUnlinkOtherPlatformComplete, bool /*bWasSuccessful*/,  const FOnlineError & /*OnlineError*/);
+typedef FOnUnlinkOtherPlatformComplete::FDelegate FOnUnlinkOtherPlatformCompleteDelegate;
+
+DECLARE_MULTICAST_DELEGATE_TwoParams(FOnLinkOtherPlatformIdComplete, bool /*bWasSuccessful*/, const FOnlineError & /*OnlineError*/);
+typedef FOnLinkOtherPlatformIdComplete::FDelegate FOnLinkOtherPlatformIdCompleteDelegate;
+
+DECLARE_MULTICAST_DELEGATE_TwoParams(FOnUnlinkOtherPlatformIdComplete, bool /*bWasSuccessful*/, const FOnlineError & /*OnlineError*/);
+typedef FOnUnlinkOtherPlatformIdComplete::FDelegate FOnUnlinkOtherPlatformIdCompleteDelegate; 
+
+
 class ONLINESUBSYSTEMACCELBYTE_API FOnlineUserAccelByte : public IOnlineUser, public TSharedFromThis<FOnlineUserAccelByte, ESPMode::ThreadSafe>
 {
 public:
@@ -125,7 +138,35 @@ public:
 	virtual void ListUserByUserId(const int32 LocalUserNum, const TArray<FString>& UserIds);
 	
 	DEFINE_ONLINE_PLAYER_DELEGATE_THREE_PARAM(MAX_LOCAL_PLAYERS, OnListUserByUserIdComplete, bool /*bWasSuccessful*/, const FListUserDataResponse& /* ListUser*/, const FOnlineError & /* OnlineError */);
- 	
+
+	DEFINE_ONLINE_DELEGATE_TWO_PARAM(OnLinkOtherPlatformComplete, bool /*bWasSuccessful*/, const FOnlineError & /*OnlineError*/);
+	/*
+	 * Links user's current account to their other account in other platform.
+	 * Ticket from platform (Platform Token/Authorization Code), can be obtained from Platform OSS or Plugin. 
+	 * The browser will redirect the URL to a site with a code in form of parameter URL.
+	 */
+	void LinkOtherPlatform(const FUniqueNetId& UserId, EAccelBytePlatformType PlatformType, const FString& Ticket);
+		
+	DEFINE_ONLINE_DELEGATE_TWO_PARAM(OnUnlinkOtherPlatformComplete, bool /*bWasSuccessful*/, const FOnlineError & /*OnlineError*/);
+	/*
+	 * Unlinks user's current account from their other account in other platform
+	 */
+	void UnlinkOtherPlatform(const FUniqueNetId& UserId, EAccelBytePlatformType PlatformType);
+
+	DEFINE_ONLINE_DELEGATE_TWO_PARAM(OnLinkOtherPlatformIdComplete, bool /*bWasSuccessful*/, const FOnlineError & /*OnlineError*/);
+	/*
+	 * Links user's current account to their other account in other platform, especially to support OIDC.
+	 * Ticket from platform (Platform Token/Authorization Code), can be obtained from Platform OSS or Plugin.
+	 * The browser will redirect the URL to a site with a code in form of parameter URL.
+	 */
+	void LinkOtherPlatformId(const FUniqueNetId& UserId, const FString& PlatformId, const FString& Ticket);
+
+	/*
+	 * Unlinks user's current account from their other account in other platform, especially to support OIDC
+	 */
+	DEFINE_ONLINE_DELEGATE_TWO_PARAM(OnUnlinkOtherPlatformIdComplete, bool /*bWasSuccessful*/, const FOnlineError & /*OnlineError*/);
+	void UnlinkOtherPlatformId(const FUniqueNetId& UserId, const FString& PlatformId);
+
 PACKAGE_SCOPE:
 
 #if WITH_DEV_AUTOMATION_TESTS

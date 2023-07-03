@@ -2296,6 +2296,7 @@ bool FOnlineSessionV2AccelByte::StartMatchmaking(const TArray<FSessionMatchmakin
 	CurrentMatchmakingSearchHandle = MakeShared<FOnlineSessionSearchAccelByte>(SearchSettings);
 	CurrentMatchmakingSearchHandle->SearchingPlayerId = LocalPlayers[0].UserId;
 	CurrentMatchmakingSearchHandle->SearchingSessionName = SessionName;
+	CurrentMatchmakingSearchHandle->MatchPool = MatchPool;
 
 	// #NOTE Previously, we would set search state to InProgress in the FOnlineAsyncTaskAccelByteStartV2Matchmaking::Initialize
 	// method. However, this runs the risk of allowing a second StartMatchmaking call to come in before that method runs
@@ -4316,6 +4317,7 @@ void FOnlineSessionV2AccelByte::OnMatchmakingStartedNotification(FAccelByteModel
 	CurrentMatchmakingSearchHandle->SearchState = EOnlineAsyncTaskState::InProgress;
 	CurrentMatchmakingSearchHandle->SearchingPlayerId = LocalPlayerId;
 	CurrentMatchmakingSearchHandle->TicketId = MatchmakingStartedNotif.TicketID;
+	CurrentMatchmakingSearchHandle->MatchPool = MatchmakingStartedNotif.MatchPool;
 
 	// #TODO (Maxwell) Revisit this to somehow give developers a way to choose what session name they are matching for if a party
 	// member receives a matchmaking notification. Since matchmaking shouldn't just be limited to game sessions.
@@ -4566,6 +4568,9 @@ void FOnlineSessionV2AccelByte::ConnectToDSHub(const FString& ServerName)
 	const AccelByte::GameServerApi::FOnV2BackfillProposalNotification OnV2BackfillProposalNotificationDelegate = AccelByte::GameServerApi::FOnV2BackfillProposalNotification::CreateThreadSafeSP(SharedThis(this), &FOnlineSessionV2AccelByte::OnV2BackfillProposalNotification);
 	FRegistry::ServerDSHub.SetOnV2BackfillProposalNotificationDelegate(OnV2BackfillProposalNotificationDelegate);
 
+	const AccelByte::GameServerApi::FOnV2SessionMemberChangedNotification OnV2SessionMemberChangedNotification = AccelByte::GameServerApi::FOnV2SessionMemberChangedNotification::CreateThreadSafeSP(SharedThis(this), &FOnlineSessionV2AccelByte::OnV2DsSessionMemberChangedNotification);
+	FRegistry::ServerDSHub.SetOnV2SessionMemberChangedNotificationDelegate(OnV2SessionMemberChangedNotification);
+
 	// Finally, connect to the DS hub websocket
 	FRegistry::ServerDSHub.Connect(ServerName);
 
@@ -4586,7 +4591,8 @@ void FOnlineSessionV2AccelByte::DisconnectFromDSHub()
 	// Unbind any delegates that we want to stop listening to DS hub for
 	FRegistry::ServerDSHub.SetOnServerClaimedNotificationDelegate(AccelByte::GameServerApi::FOnServerClaimedNotification());
 	FRegistry::ServerDSHub.SetOnV2BackfillProposalNotificationDelegate(AccelByte::GameServerApi::FOnV2BackfillProposalNotification());
-
+	FRegistry::ServerDSHub.SetOnV2SessionMemberChangedNotificationDelegate(AccelByte::GameServerApi::FOnV2SessionMemberChangedNotification());
+	
 	// Finally, disconnect the DS hub websocket
 	FRegistry::ServerDSHub.Disconnect();
 
@@ -4630,6 +4636,23 @@ void FOnlineSessionV2AccelByte::OnV2BackfillProposalNotification(const FAccelByt
 
 	TriggerOnBackfillProposalReceivedDelegates(Notification);
 
+	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+}
+
+void FOnlineSessionV2AccelByte::OnV2DsSessionMemberChangedNotification(const FAccelByteModelsV2GameSession& Notification)
+{
+	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("SessionId: %s"), *Notification.ID);
+
+	FNamedOnlineSession* Session = GetNamedSessionById(Notification.ID);
+	if (Session == nullptr)
+	{
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Could not update session with members changed event as we do not have the session stored locally!"));
+		return;
+	}
+
+	// TODO: Potentially unnecessary memory allocation
+	EnqueueBackendDataUpdate(Session->SessionName, MakeShared<FAccelByteModelsV2GameSession>(Notification));
+	
 	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
 }
 

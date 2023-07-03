@@ -10,6 +10,7 @@
 #include "OnlineUserInterfaceAccelByte.h"
 #include "OnlineUserCloudInterfaceAccelByte.h"
 #include "OnlineFriendsInterfaceAccelByte.h"
+#include "OnlineGroupsInterfaceAccelByte.h"
 #include "OnlinePartyInterfaceAccelByte.h"
 #include "OnlinePresenceInterfaceAccelByte.h"
 #include "OnlineUserCacheAccelByte.h"
@@ -20,6 +21,7 @@
 #include "OnlineAnalyticsInterfaceAccelByte.h"
 #include "OnlineStatisticInterfaceAccelByte.h"
 #include "OnlineChatInterfaceAccelByte.h"
+#include "OnlineLeaderboardInterfaceAccelByte.h"
 #include "OnlineAuthInterfaceAccelByte.h"
 #include "OnlineSubsystemAccelByteModule.h"
 #include "OnlineVoiceInterfaceAccelByte.h"
@@ -68,7 +70,9 @@ bool FOnlineSubsystemAccelByte::Init()
 	TimeInterface = MakeShared<FOnlineTimeAccelByte, ESPMode::ThreadSafe>(this);
 	AnalyticsInterface = MakeShared<FOnlineAnalyticsAccelByte, ESPMode::ThreadSafe>(this);
 	StatisticInterface = MakeShared<FOnlineStatisticAccelByte, ESPMode::ThreadSafe>(this);
+	LeaderboardInterface = MakeShared<FOnlineLeaderboardAccelByte, ESPMode::ThreadSafe>(this);
 	ChatInterface = MakeShared<FOnlineChatAccelByte, ESPMode::ThreadSafe>(this);
+	GroupsInterface = MakeShared<FOnlineGroupsAccelByte, ESPMode::ThreadSafe>(this);
 	AuthInterface = MakeShared<FOnlineAuthAccelByte, ESPMode::ThreadSafe>(this);
 	AchievementInterface = MakeShared<FOnlineAchievementsAccelByte, ESPMode::ThreadSafe>(this);
 	VoiceInterface = MakeShared<FOnlineVoiceAccelByte, ESPMode::ThreadSafe>(this);
@@ -154,6 +158,7 @@ bool FOnlineSubsystemAccelByte::Shutdown()
 	TimeInterface.Reset();
 	AnalyticsInterface.Reset();
 	StatisticInterface.Reset();
+	LeaderboardInterface.Reset();
 	ChatInterface.Reset();
 	AuthInterface.Reset();
 	AchievementInterface.Reset();
@@ -269,9 +274,19 @@ IOnlineStatsPtr FOnlineSubsystemAccelByte::GetStatsInterface() const
 	return StatisticInterface;
 }
 
+IOnlineLeaderboardsPtr FOnlineSubsystemAccelByte::GetLeaderboardsInterface() const
+{
+	return LeaderboardInterface;
+}
+
 IOnlineChatPtr FOnlineSubsystemAccelByte::GetChatInterface() const
 {
 	return ChatInterface;
+}
+
+IOnlineGroupsPtr FOnlineSubsystemAccelByte::GetGroupsInterface() const
+{
+	return GroupsInterface;
 }
 
 FOnlineAuthAccelBytePtr FOnlineSubsystemAccelByte::GetAuthInterface() const
@@ -612,7 +627,10 @@ void FOnlineSubsystemAccelByte::OnLobbyConnectionClosed(int32 StatusCode, const 
 	FString LogoutReason = (StatusCode != ClosedAbnormally) ? Reason : TEXT("network-disconnection");
 
 	AccelByte::FApiClientPtr ApiClient = GetApiClient(InLocalUserNum);
-	ApiClient->CredentialsRef->ForgetAll();
+	if (ApiClient.IsValid())
+	{
+		ApiClient->CredentialsRef->ForgetAll();
+	}
 
 #if !AB_USE_V2_SESSIONS
 		TSharedPtr<FUniqueNetIdAccelByteUser const> LocalUserId = StaticCastSharedPtr<FUniqueNetIdAccelByteUser const>(IdentityInterface->GetUniquePlayerId(InLocalUserNum));
@@ -673,6 +691,11 @@ AccelByte::FApiClientPtr FOnlineSubsystemAccelByte::GetApiClient(const FUniqueNe
 
 AccelByte::FApiClientPtr FOnlineSubsystemAccelByte::GetApiClient(int32 LocalUserNum)
 {
+	if (!IdentityInterface.IsValid())
+	{
+		return nullptr;
+	}
+	
 	TSharedPtr<const FUniqueNetId> PlayerId = IdentityInterface->GetUniquePlayerId(LocalUserNum);
 	AccelByte::FApiClientPtr ApiClient;
 

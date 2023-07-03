@@ -18,6 +18,10 @@
 #include "AsyncTasks/User/OnlineAsyncTaskAccelByteQueryUserProfile.h"
 #include "AsyncTasks/User/OnlineAsyncTaskAccelByteCreateUserProfile.h"
 #include "AsyncTasks/User/FOnlineAsyncTaskAccelByteListUserByUserId.h"
+#include "AsyncTasks/User/OnlineAsyncTaskAccelByteLinkOtherPlatform.h"
+#include "AsyncTasks/User/OnlineAsyncTaskAccelByteUnlinkOtherPlatform.h"
+#include "AsyncTasks/User/OnlineAsyncTaskAccelByteLinkOtherPlatformId.h"
+#include "AsyncTasks/User/OnlineAsyncTaskAccelByteUnlinkOtherPlatformId.h"
 #include "OnlineSubsystemUtils.h"
 
 #define ONLINE_ERROR_NAMESPACE "FOnlineUserAccelByte"
@@ -290,5 +294,35 @@ void FOnlineUserAccelByte::ListUserByUserId(const int32 LocalUserNum, const TArr
 	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteListUserByUserId>
 		(AccelByteSubsystem, LocalUserNum, UserIds);
 }
+
+
+void FOnlineUserAccelByte::LinkOtherPlatform(const FUniqueNetId& UserId, EAccelBytePlatformType PlatformType, const FString& Ticket)
+{
+	UE_LOG_AB(Display, TEXT("FOnlineIdentityAccelByte::LinkOtherPlatform"));
+	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteLinkOtherPlatform>
+		(AccelByteSubsystem, UserId, PlatformType, Ticket);
+}
+
+void FOnlineUserAccelByte::UnlinkOtherPlatform(const FUniqueNetId& UserId, EAccelBytePlatformType PlatformType)
+{
+	UE_LOG_AB(Display, TEXT("FOnlineIdentityAccelByte::UnlinkOtherPlatform"));
+	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteUnlinkOtherPlatform>
+		(AccelByteSubsystem, UserId, PlatformType);
+}
+
+void FOnlineUserAccelByte::LinkOtherPlatformId(const FUniqueNetId& UserId, const FString& PlatformId, const FString& Ticket)
+{
+	UE_LOG_AB(Display, TEXT("FOnlineIdentityAccelByte::LinkOtherPlatformId"));
+	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteLinkOtherPlatformId>
+		(AccelByteSubsystem, UserId, PlatformId, Ticket);
+}
+
+void FOnlineUserAccelByte::UnlinkOtherPlatformId(const FUniqueNetId& UserId, const FString& PlatformId)
+{
+	UE_LOG_AB(Display, TEXT("FOnlineIdentityAccelByte::UnlinkOtherPlatformId"));
+	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteUnlinkOtherPlatformId>
+		(AccelByteSubsystem, UserId, PlatformId);
+}
+
 
 #undef ONLINE_ERROR_NAMESPACE

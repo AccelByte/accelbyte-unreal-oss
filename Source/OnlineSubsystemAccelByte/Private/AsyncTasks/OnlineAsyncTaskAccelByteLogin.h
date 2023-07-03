@@ -11,6 +11,9 @@
 #include "OnlineAgreementInterfaceAccelByte.h"
 #include "Engine/Texture.h"
 #include "AccelByteTimerObject.h"
+#if (PLATFORM_WINDOWS || PLATFORM_LINUX || PLATFORM_MAC) && !UE_SERVER
+#include "steam/steam_api.h"
+#endif
 
 namespace AccelByte { class FApiClient; }
 
@@ -19,6 +22,10 @@ namespace AccelByte { class FApiClient; }
  */
 class FOnlineAsyncTaskAccelByteLogin : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteLogin, ESPMode::ThreadSafe>
 {
+#if (PLATFORM_WINDOWS || PLATFORM_LINUX || PLATFORM_MAC) && !UE_SERVER
+private:
+	STEAM_CALLBACK(FOnlineAsyncTaskAccelByteLogin, OnGetAuthSessionTicketResponse, GetAuthSessionTicketResponse_t, OnGetAuthSessionTicketResponseCallback);
+#endif
 public:
 
 	FOnlineAsyncTaskAccelByteLogin(FOnlineSubsystemAccelByte* const InABSubsystem
@@ -37,6 +44,7 @@ protected:
 	}
 
 private:
+
 
 	/**
 	 * User number or the controller index of the player
@@ -84,6 +92,16 @@ private:
 	 * Unique ID of the user account that we logged into on the native platform, will be invalid if we did not login with native platform
 	 */
 	TSharedPtr<const FUniqueNetId> NativePlatformPlayerId = nullptr;
+
+	/*
+	 * Credential for Native platform login
+	 */
+	FOnlineAccountCredentials NativePlatformCredentials;
+
+	/*
+	 * Flag to know whether the login is already performed or not, mainly used on native login on steam, so it won't performed twice from the timer and the callback.
+	 */
+	bool bLoginPerformed{false};
 
 	/**
 	 * Attempts to fire off a login request with a native subsystem, if one is set up and usable.

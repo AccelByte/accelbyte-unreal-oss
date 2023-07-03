@@ -13,6 +13,7 @@
 #include "OnlinePurchaseInterfaceAccelByte.h"
 #include "OnlineStoreInterfaceV2AccelByte.h"
 #include "OnlineChatInterfaceAccelByte.h"
+#include "OnlineGroupsInterfaceAccelByte.h"
 #include "Core/AccelByteApiClient.h"
 #include "Models/AccelByteUserModels.h"
 
@@ -47,7 +48,9 @@ class FOnlineCloudSaveAccelByte;
 class FOnlineTimeAccelByte;
 class FOnlineAnalyticsAccelByte;
 class FOnlineStatisticAccelByte;
+class FOnlineLeaderboardAccelByte;
 class FOnlineChatAccelByte;
+class FOnlineGroupsAccelByte;
 class FOnlineAuthAccelByte;
 class FExecTestBase;
 class FOnlineAchievementsAccelByte; 
@@ -121,8 +124,14 @@ typedef TSharedPtr<FOnlineAnalyticsAccelByte, ESPMode::ThreadSafe> FOnlineAnalyt
 /** Shared pointer to the AccelByte Statistic */
 typedef TSharedPtr<FOnlineStatisticAccelByte, ESPMode::ThreadSafe> FOnlineStatisticAccelBytePtr;
 
+/** Shared pointer to the AccelByte Leaderboard */
+typedef TSharedPtr<FOnlineLeaderboardAccelByte, ESPMode::ThreadSafe> FOnlineLeaderboardAccelBytePtr;
+
 /** Shared pointer to the AccelByte Chat  */
 typedef TSharedPtr<FOnlineChatAccelByte, ESPMode::ThreadSafe> FOnlineChatAccelBytePtr;
+
+/** Shared pointer to the AccelByte Groups  */
+typedef TSharedPtr<FOnlineGroupsAccelByte, ESPMode::ThreadSafe> FOnlineGroupsAccelBytePtr;
 
 /** Shared pointer to the AccelByte implementation of the Auth interface */
 typedef TSharedPtr<FOnlineAuthAccelByte, ESPMode::ThreadSafe> FOnlineAuthAccelBytePtr;
@@ -166,7 +175,9 @@ public:
 	virtual IOnlineTimePtr GetTimeInterface() const override;
 	virtual FOnlineAnalyticsAccelBytePtr GetAnalyticsInterface() const;
 	virtual IOnlineStatsPtr GetStatsInterface() const override;
+	virtual IOnlineLeaderboardsPtr GetLeaderboardsInterface() const override;
 	virtual IOnlineChatPtr GetChatInterface() const override;
+	virtual IOnlineGroupsPtr GetGroupsInterface() const override;
 	virtual FOnlineAuthAccelBytePtr GetAuthInterface() const;
 	virtual IOnlineVoicePtr GetVoiceInterface() const override;
 	IVoiceChatPtr GetVoiceChatInterface();
@@ -256,6 +267,7 @@ PACKAGE_SCOPE:
 		, TimeInterface(nullptr)
 		, AnalyticsInterface(nullptr)
 		, StatisticInterface(nullptr)
+		, LeaderboardInterface(nullptr)
 		, ChatInterface(nullptr)
 		, AuthInterface(nullptr)
 		, AchievementInterface(nullptr)
@@ -426,8 +438,14 @@ private:
 	/** Shared instance of our statistic interface implementation */
 	FOnlineStatisticAccelBytePtr StatisticInterface;
 
+	/** Shared instance of our leaderboard interface implementation */
+	FOnlineLeaderboardAccelBytePtr LeaderboardInterface;
+
 	/** Shared instance of our chat interface implementation */
 	FOnlineChatAccelBytePtr ChatInterface;
+
+	/** Shared instance of our groups interface implementation */
+	FOnlineGroupsAccelBytePtr GroupsInterface;
 
 	/** Shared instance of our auth implementation */
 	FOnlineAuthAccelBytePtr AuthInterface;

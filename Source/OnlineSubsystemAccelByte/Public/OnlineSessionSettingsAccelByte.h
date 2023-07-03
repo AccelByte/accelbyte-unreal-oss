@@ -313,6 +313,24 @@ public:
 	static void Set(FOnlineSessionSettings& SessionSettings, FName Key, const TArray<double>& Value);
 
 	/**
+	 * Sets a key value pair combination that defines a session setting
+	 *
+	 * @param SessionSettings settings object to set the value in
+	 * @param Key key for the setting
+	 * @param Value setting value
+	 */
+	static void Set(FSessionSettings& SessionSettings, FName Key, const TArray<FString>& Value);
+
+	/**
+	 * Sets a key value pair combination that defines a session setting
+	 *
+	 * @param SessionSettings settings object to set the value in
+	 * @param Key key for the setting
+	 * @param Value setting value
+	 */
+	static void Set(FSessionSettings& SessionSettings, FName Key, const TArray<double>& Value);
+
+	/**
 	 * Gets a setting value by its name
 	 *
 	 * @param Key key for the setting

@@ -27,6 +27,9 @@ FOnlineAsyncTaskAccelByteLogin::FOnlineAsyncTaskAccelByteLogin(FOnlineSubsystemA
 	, int32 InLocalUserNum
 	, const FOnlineAccountCredentials& InAccountCredentials)
 	: FOnlineAsyncTaskAccelByte(InABSubsystem)
+#if (PLATFORM_WINDOWS || PLATFORM_LINUX || PLATFORM_MAC) && !UE_SERVER
+	, OnGetAuthSessionTicketResponseCallback(this, &FOnlineAsyncTaskAccelByteLogin::OnGetAuthSessionTicketResponse)
+#endif
 	, LoginUserNum(InLocalUserNum)
 	, AccountCredentials(InAccountCredentials)
 {
@@ -304,18 +307,22 @@ void FOnlineAsyncTaskAccelByteLogin::OnNativeLoginComplete(int32 NativeLocalUser
 		CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState);
 		return;
 	}
-
+	
+	bLoginPerformed = false;
 	// Store the unique ID of the user that we are authenticating with
 	NativePlatformPlayerId = NativeUserId.AsShared();
 
 	// Construct credentials for the login type from the native subsystem, complete with the type set correctly to its name
-	FOnlineAccountCredentials Credentials;
-	Credentials.Type = LoginTypeEnum->GetNameStringByValue(static_cast<int64>(LoginType));
-	Credentials.Token = FGenericPlatformHttp::UrlEncode(NativeIdentityInterface->GetAuthToken(LoginUserNum));
+	NativePlatformCredentials.Type = LoginTypeEnum->GetNameStringByValue(static_cast<int64>(LoginType));
+	NativePlatformCredentials.Token = FGenericPlatformHttp::UrlEncode(NativeIdentityInterface->GetAuthToken(LoginUserNum));
 
-	FTimerDelegate TimerDelegate = FTimerDelegate::CreateLambda([this, Credentials, NativeIdentityInterface]()
-	{ 
-		PerformLogin(Credentials);
+	FTimerDelegate TimerDelegate = FTimerDelegate::CreateLambda([this, NativeIdentityInterface]()
+	{
+		if (!bLoginPerformed)
+		{
+			PerformLogin(NativePlatformCredentials);
+			bLoginPerformed = true;
+		}
 	});
 
 	if (NativeSubsystem->GetSubsystemName().ToString().Equals(TEXT("STEAM"), ESearchCase::IgnoreCase))
@@ -328,7 +335,20 @@ void FOnlineAsyncTaskAccelByteLogin::OnNativeLoginComplete(int32 NativeLocalUser
 	}
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sending login request to AccelByte backend for native user!"));
-} 
+}
+
+#if (PLATFORM_WINDOWS || PLATFORM_LINUX || PLATFORM_MAC) && !UE_SERVER
+void FOnlineAsyncTaskAccelByteLogin::OnGetAuthSessionTicketResponse(GetAuthSessionTicketResponse_t* CallBackParam)
+{
+	UE_LOG_AB(Log, TEXT("Get Auth Session Ticket Response, Result %d"), CallBackParam->m_eResult);
+	if (!bLoginPerformed)
+	{
+		TimerObject.Stop();
+		PerformLogin(NativePlatformCredentials);
+		bLoginPerformed = true;
+	}
+}
+#endif
 
 void FOnlineAsyncTaskAccelByteLogin::PerformLogin(const FOnlineAccountCredentials& Credentials)
 {
@@ -343,7 +363,7 @@ void FOnlineAsyncTaskAccelByteLogin::PerformLogin(const FOnlineAccountCredential
 		AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sending async task to login with Device ID."));
 		break;
 	case EAccelByteLoginType::AccelByte:
-		ApiClient->User.LoginWithUsername(Credentials.Id, Credentials.Token, OnLoginSuccessDelegate, OnLoginErrorOAuthDelegate);
+		ApiClient->User.LoginWithUsernameV3(Credentials.Id, Credentials.Token, OnLoginSuccessDelegate, OnLoginErrorOAuthDelegate);
 		AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sending async task to login with AccelByte credentials."));
 		break;
 	case EAccelByteLoginType::Xbox:
@@ -465,9 +485,12 @@ void FOnlineAsyncTaskAccelByteLogin::OnLoginErrorOAuth(int32 ErrorCode, const FS
 	UE_LOG_AB(Warning, TEXT("Failed to login to the AccelByte backend! Error Code: %d; Error Message: %s"), ErrorCode, *ErrorMessage);
 	ErrorOAuthObject = ErrorObject;
 	ErrorStr = TEXT("login-failed-connect");
-	if (ErrorCode == 1124060) // Permanent ban
+	if (ErrorCode == 400 || ErrorCode == 403) // Permanent ban
+	{
+		if (ErrorObject.UserBan.Reason != EBanReason::EMPTY)
 		{
-		ErrorStr = TEXT("user-banned");
+			ErrorStr = TEXT("user-banned");
 		}
+	}
 	CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
 }

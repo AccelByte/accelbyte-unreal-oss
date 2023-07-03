@@ -16,6 +16,7 @@
 #include "Core/AccelByteWebSocketErrorTypes.h"
 #include "Core/AccelByteCredentials.h"
 #include "Api/AccelByteUserProfileApi.h"
+#include "Core/AccelByteOauth2Api.h"
 #include "OnlineSubsystemAccelByteModule.h"
 #include "GenericPlatform/GenericPlatformMisc.h"
 #include "Interfaces/OnlineExternalUIInterface.h"
@@ -401,6 +402,15 @@ void FOnlineIdentityAccelByte::RevokeAuthToken(const FUniqueNetId& UserId, const
 	});
 }
 
+void FOnlineIdentityAccelByte::GetLinkedAccountAuthToken(int32 LocalUserNum, const FOnGetLinkedAccountAuthTokenCompleteDelegate& Delegate) const
+{
+	FString AccessToken = GetAuthToken(LocalUserNum);
+	const bool bWasSuccessful = !AccessToken.IsEmpty();
+	FExternalAuthToken AuthToken;
+	AuthToken.TokenString = AccessToken;
+	Delegate.ExecuteIfBound(LocalUserNum, bWasSuccessful, AuthToken);
+}
+
 void FOnlineIdentityAccelByte::GetUserPrivilege(const FUniqueNetId& UserId, EUserPrivileges::Type Privilege, const FOnGetUserPrivilegeCompleteDelegate& Delegate)
 {
 	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("UserId: %s"), *UserId.ToDebugString());
@@ -596,8 +606,8 @@ void FOnlineIdentityAccelByte::AddNewAuthenticatedUser(int32 LocalUserNum, const
 
 void FOnlineIdentityAccelByte::OnLogout(const int32 LocalUserNum, bool bWasSuccessful)
 {
-	TriggerOnLogoutCompleteDelegates(LocalUserNum, bWasSuccessful);
 	SetLoginStatus(LocalUserNum, ELoginStatus::NotLoggedIn);
+	TriggerOnLogoutCompleteDelegates(LocalUserNum, bWasSuccessful);
 
 	if (bWasSuccessful)
 	{

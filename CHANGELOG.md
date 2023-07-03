@@ -2,6 +2,40 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.11.10](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.11.10%0D0.11.9) (2023-07-03)
+
+
+### Features
+
+* Add GetLinkedAccountAuthToken in the Identity Interface ([e301422](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/e3014226739e05ae8eb133645220aba796d35fa1))
+* Add some functionalities to set OnlineSessionSettings with array of strings and doubles ([7813570](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/781357020d61418b212b2d573a37383a0a60e5f2))
+* Adding initial WIP Groups Interface that assigns basic leader on create ([95b1df7](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/95b1df71ca0a1affd3a23c6804ef1d3c9bff4dee))
+* exposed linking/unlinking other platform ([1ff659a](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/1ff659a7bbeae834b0ad2976ac411a1dc86f8632))
+* Group Interface Create Group Test ([f1166a1](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/f1166a1575d4b1aaa682f78d7f74b2ef13a1f1cc))
+* Group Interface: Setting return status and cleaning up testing ([dfecc89](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/dfecc899f78b245bbbf53def028fba1b3107f513))
+* GroupInteface error codes ([042d79a](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/042d79ac2f59570704c8f4911e116bda7796b0de))
+* GroupInterface - Removing hardcoded group role id ([813b2d2](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/813b2d2c06b93eac47f05ea9715ae89b23abf105))
+* GroupInterface adding change to update branch names ([c2498c1](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/c2498c13553d486beb74395950e0e846cb8c8e49))
+* GroupInterface adding generic unreal CreateGroup option ([61deade](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/61deade08bfc6ad9ecabfc8dfa9337ee21a9f6da))
+* GroupInterface Create and some cleanup ([055253d](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/055253d58d299f66f0624bab1928bcb354e0d2c7))
+* GroupInterface Create Group ([d6a9a1b](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/d6a9a1bacbceea27e117d9675dfd4a60945d857a))
+* GroupInterface Create Group ([32f1a1e](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/32f1a1efa5d4949a4eea40ff558c231980187eae))
+* GroupInterface CreateGroup ([d9315ce](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/d9315ce326ac2fce9f3e639025b961c21a32a520))
+* GroupInterface CreateGroup ([7b1b0a9](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/7b1b0a9551013f5da1bb967447fbaa9ef3187eb2))
+* GroupInterface creating generic CreateGroup method ([840a6a2](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/840a6a2b3b662c5dd282e0d284f92ac074659c1d))
+* GroupInterface fixing null check ([544b70e](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/544b70ef650437ec8f14816a1b435dfa819dcde6))
+* GroupInterface removing unused variable for jenkins ([df02bba](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/df02bbabeed2a70fc0b0f62ebfdcb767d5042b8b))
+* **Login:** implement steam callback on GetAuthSessionTicket ([32ab627](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/32ab6279a4406cc4f93a8c085b7bd0bfa999d05c))
+* **MMv2:** add matchpool info in current matchmaking search handle ([032bc03](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/032bc03f73314ff76d3d81f41e3683328eb0d877))
+* OSS listen to DSHub SESSION_MEMBER_CHANGED ([a065beb](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/a065beb8e0959b29dbb932e1b0ff95e10adcee4f))
+
+
+### Bug Fixes
+
+* Check Identity Interface validity in the GetApiClient ([e179fde](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/e179fdec034076d8d3384e95365f967b51bed559))
+* move TriggerOnLogoutCompleteDelegates after SetLoginStatus, add guard before use ApiClient on Lobby ConnectionClosed ([a6db8d6](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/a6db8d6182c627ad87a549db22410011cd2ea068))
+* renaming Blacklist to Denylist in Groups Interface due to changes in Unreal Engine 5 ([9e0fe96](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/9e0fe9650e30909cd99e4b008cac6269e85d6849))
+
 ### [0.11.9](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.11.9%0D0.11.8) (2023-06-30)
 
 

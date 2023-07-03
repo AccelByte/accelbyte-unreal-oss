@@ -293,6 +293,10 @@ PACKAGE_SCOPE:
 	 */
 	FName SearchingSessionName{};
 
+	/**
+	 * Name of the match pool used in current matchmaking
+	 */
+	FString MatchPool{};
 };
 
 #if (ENGINE_MAJOR_VERSION == 4 && ENGINE_MINOR_VERSION < 26)
@@ -1357,6 +1361,7 @@ private:
 	//~ Begin Server Notification Handlers
 	void OnServerClaimedNotification(const FAccelByteModelsServerClaimedNotification& Notification);
 	void OnV2BackfillProposalNotification(const FAccelByteModelsV2MatchmakingBackfillProposalNotif& Notification);
+	void OnV2DsSessionMemberChangedNotification(const FAccelByteModelsV2GameSession& Notification);
 	//~ End Server Notification Handlers
 
 	void UpdateSessionMembers(FNamedOnlineSession* Session, const TArray<FAccelByteModelsV2SessionUser>& PreviousMembers, const bool bHasInvitedPlayersChanged);
