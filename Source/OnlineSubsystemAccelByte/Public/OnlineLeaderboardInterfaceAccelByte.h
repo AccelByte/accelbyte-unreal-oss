@@ -61,6 +61,36 @@ public:
 		const UWorld* World,
 		TSharedPtr<FOnlineLeaderboardAccelByte, ESPMode::ThreadSafe>& OutInterfaceInstance);
 
+	/**
+	 * Query multiple ranks for multiple users. This request only for Game Client.
+	 * Note:
+	 *		1. This endpoint only gives Cycle type leaderboard.
+	 *		2. Please use 'Cycle_Point' to name the point column.
+	 *
+	 * @param Players Array of user to get rank for
+	 * @param ReadObject This will contain the request and results when the operation completes.
+	 * @param CycleId The cycle id that player want to know.
+	 */
+	virtual bool ReadLeaderboardsCycle(
+		TArray<FUniqueNetIdRef> const& Players,
+		FOnlineLeaderboardReadRef& ReadObject,
+		FString const& CycleId);
+
+	/**
+	 * Query all user friends' ranks. This request only for Game Client.
+	 * Note:
+	 *		1. This endpoint only gives Cycle type leaderboard.
+	 *		2. Please use 'Cycle_Point' to name the point column.
+	 *
+	 * @param LocalUserNum Index of user that is attempting to query the rank.
+	 * @param ReadObject This will contain the request and results when the operation completes.
+	 * @param CycleId The cycle id that player want to know.
+	 */
+	virtual bool ReadLeaderboardsForFriendsCycle(
+		int32 LocalUserNum,
+		FOnlineLeaderboardReadRef& ReadObject,
+		FString const& CycleId);
+
 	//~ Begin IOnlineAchievement Interface
 
 	/**

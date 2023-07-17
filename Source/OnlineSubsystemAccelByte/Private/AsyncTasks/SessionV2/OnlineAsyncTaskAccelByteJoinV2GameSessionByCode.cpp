@@ -1,22 +1,22 @@
-﻿// Copyright (c) 2022 AccelByte Inc. All Rights Reserved.
+// Copyright (c) 2022 AccelByte Inc. All Rights Reserved.
 // This is licensed software from AccelByte Inc, for limitations
 // and restrictions contact your company contract manager.
 
-#include "OnlineAsyncTaskAccelByteJoinV2PartyByCode.h"
+#include "OnlineAsyncTaskAccelByteJoinV2GameSessionByCode.h"
 
-FOnlineAsyncTaskAccelByteJoinV2PartyByCode::FOnlineAsyncTaskAccelByteJoinV2PartyByCode(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InLocalUserId, const FName& InSessionName, const FString& InPartyCode)
+FOnlineAsyncTaskAccelByteJoinV2GameSessionByCode::FOnlineAsyncTaskAccelByteJoinV2GameSessionByCode(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InLocalUserId, const FName& InSessionName, const FString& InPartyCode)
 	: FOnlineAsyncTaskAccelByte(InABInterface)
 	, SessionName(InSessionName)
-	, PartyCode(InPartyCode)
+	, Code(InPartyCode)
 {
 	UserId = FUniqueNetIdAccelByteUser::CastChecked(InLocalUserId);
 }
 
-void FOnlineAsyncTaskAccelByteJoinV2PartyByCode::Initialize()
+void FOnlineAsyncTaskAccelByteJoinV2GameSessionByCode::Initialize()
 {
 	Super::Initialize();
 
-	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("UserId: %s; SessionName: %s; PartyCode: %s"), *UserId->ToDebugString(), *SessionName.ToString(), *PartyCode);
+	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("UserId: %s; SessionName: %s; PartyCode: %s"), *UserId->ToDebugString(), *SessionName.ToString(), *Code);
 
 	FOnlineSessionV2AccelBytePtr SessionInterface = nullptr;
 	AB_ASYNC_TASK_ENSURE(FOnlineSessionV2AccelByte::GetFromSubsystem(Subsystem, SessionInterface), "Failed to join party by code as our session interface instance is invalid!");
@@ -24,13 +24,13 @@ void FOnlineAsyncTaskAccelByteJoinV2PartyByCode::Initialize()
 	FNamedOnlineSession* JoinedSession = SessionInterface->GetNamedSession(SessionName);
 	AB_ASYNC_TASK_ENSURE(JoinedSession != nullptr, "Failed to join party by code as the session that we are trying to join for is invalid!");
 
-	AB_ASYNC_TASK_DEFINE_SDK_DELEGATES(FOnlineAsyncTaskAccelByteJoinV2PartyByCode, JoinPartyByCode, THandler<FAccelByteModelsV2PartySession>);
-	ApiClient->Session.JoinPartyByCode(PartyCode, OnJoinPartyByCodeSuccessDelegate, OnJoinPartyByCodeErrorDelegate);
+	AB_ASYNC_TASK_DEFINE_SDK_DELEGATES(FOnlineAsyncTaskAccelByteJoinV2GameSessionByCode, JoinGameSessionByCode, THandler<FAccelByteModelsV2GameSession>);
+	ApiClient->Session.JoinGameSessionByCode(Code, OnJoinGameSessionByCodeSuccessDelegate, OnJoinGameSessionByCodeErrorDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 
-void FOnlineAsyncTaskAccelByteJoinV2PartyByCode::Finalize()
+void FOnlineAsyncTaskAccelByteJoinV2GameSessionByCode::Finalize()
 {
 	Super::Finalize();
 
@@ -57,7 +57,7 @@ void FOnlineAsyncTaskAccelByteJoinV2PartyByCode::Finalize()
 	// FNamedOnlineSession. This unfortunately does make an extra call to the join endpoint itself, however this endpoint
 	// is no-op when you are already in the session you are attempting to join, so shouldn't be too huge of an issue.
 	FOnlineSession ConstructedSession{};
-	if (!SessionInterface->ConstructPartySessionFromBackendSessionModel(JoinedPartySession, ConstructedSession))
+	if (!SessionInterface->ConstructGameSessionFromBackendSessionModel(JoinedGameSession, ConstructedSession))
 	{
 		return;
 	}
@@ -69,7 +69,7 @@ void FOnlineAsyncTaskAccelByteJoinV2PartyByCode::Finalize()
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 
-void FOnlineAsyncTaskAccelByteJoinV2PartyByCode::TriggerDelegates()
+void FOnlineAsyncTaskAccelByteJoinV2GameSessionByCode::TriggerDelegates()
 {
 	Super::TriggerDelegates();
 
@@ -93,32 +93,19 @@ void FOnlineAsyncTaskAccelByteJoinV2PartyByCode::TriggerDelegates()
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 
-void FOnlineAsyncTaskAccelByteJoinV2PartyByCode::OnJoinPartyByCodeSuccess(const FAccelByteModelsV2PartySession& PartySession)
+void FOnlineAsyncTaskAccelByteJoinV2GameSessionByCode::OnJoinGameSessionByCodeSuccess(const FAccelByteModelsV2GameSession& GameSession)
 {
-	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("JoinedID: %s"), *PartySession.ID);
+	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("JoinedID: %s"), *GameSession.ID);
 
 	JoinSessionResult = EOnJoinSessionCompleteResult::Success;
-	JoinedPartySession = PartySession;
+	JoinedGameSession = GameSession;
 	CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 
-void FOnlineAsyncTaskAccelByteJoinV2PartyByCode::OnJoinPartyByCodeError(int32 ErrorCode, const FString& ErrorMessage)
+void FOnlineAsyncTaskAccelByteJoinV2GameSessionByCode::OnJoinGameSessionByCodeError(int32 ErrorCode, const FString& ErrorMessage)
 {
-	switch(ErrorCode)
-	{
-		case static_cast<int32>(ErrorCodes::SessionJoinSessionFull):
-			JoinSessionResult = EOnJoinSessionCompleteResult::SessionIsFull;
-			break;
-		// intended fallthrough for BE backward compatibility, old BE use this code when session not exist
-		case static_cast<int32>(ErrorCodes::SessionGameNotFound):
-		case static_cast<int32>(ErrorCodes::PartyNotFound):
-			JoinSessionResult = EOnJoinSessionCompleteResult::SessionDoesNotExist;
-			break;
-		default:
-			JoinSessionResult = EOnJoinSessionCompleteResult::UnknownError;
-	}
-	
-	AB_ASYNC_TASK_REQUEST_FAILED("Failed to join party using code '%s'!", ErrorCode, ErrorMessage, *PartyCode);
+	JoinSessionResult = EOnJoinSessionCompleteResult::UnknownError; // #TODO #SESSIONv2 Maybe expand this to use a better error later?
+	AB_ASYNC_TASK_REQUEST_FAILED("Failed to join party using code '%s'!", ErrorCode, ErrorMessage, *Code);
 }

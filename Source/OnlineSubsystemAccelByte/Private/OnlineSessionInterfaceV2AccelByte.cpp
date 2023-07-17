@@ -58,7 +58,10 @@
 #include "Core/AccelByteUtilities.h"
 #include <algorithm>
 
+#include "AsyncTasks/SessionV2/OnlineAsyncTaskAccelByteGenerateNewV2GameCode.h"
+#include "AsyncTasks/SessionV2/OnlineAsyncTaskAccelByteJoinV2GameSessionByCode.h"
 #include "AsyncTasks/SessionV2/OnlineAsyncTaskAccelBytePromoteV2GameSessionLeader.h"
+#include "AsyncTasks/SessionV2/OnlineTaskAccelByteRevokeV2GameCode.h"
 
 #define ONLINE_ERROR_NAMESPACE "FOnlineSessionV2AccelByte"
 #define ACCELBYTE_P2P_TRAVEL_URL_FORMAT TEXT("accelbyte.%s:%d")
@@ -1109,6 +1112,9 @@ void FOnlineSessionV2AccelByte::FinalizeCreateGameSession(const FName& SessionNa
 		NewSession->NumOpenPrivateConnections = 0;
 	}
 
+	// Populate session code regardless of session joinablity since all session can be joined by code
+	NewSession->SessionSettings.Set(SETTING_SESSION_CODE, BackendSessionInfo.Code);
+
 	// Register ourselves to the session and attempt to set up P2P connection if we are not running a dedicated server
 	if (!IsRunningDedicatedServer())
 	{
@@ -1152,6 +1158,7 @@ void FOnlineSessionV2AccelByte::FinalizeCreatePartySession(const FName& SessionN
 	Session->SessionSettings.NumPrivateConnections = BackendSessionInfo.Configuration.MaxPlayers;
 	Session->NumOpenPrivateConnections = Session->SessionSettings.NumPrivateConnections;
 	Session->SessionSettings.Set(SETTING_PARTYSESSION_CODE, BackendSessionInfo.Code);
+	Session->SessionSettings.Set(SETTING_SESSION_CODE, BackendSessionInfo.Code);
 
 	// Make sure to also register ourselves to the session
 	if (!ensure(Session->LocalOwnerId.IsValid()))
@@ -1172,7 +1179,7 @@ bool FOnlineSessionV2AccelByte::ConstructGameSessionFromBackendSessionModel(cons
 	// First, read attributes from backend model into session settings
 	if (BackendSession.Attributes.JsonObject.IsValid())
 	{
-		OutResult.SessionSettings = ReadSessionSettingsFromJsonObject(BackendSession.Attributes.JsonObject.ToSharedRef());
+		ReadSessionSettingsFromSessionModel(OutResult.SessionSettings, BackendSession);
 	}
 
 	// Add some session attributes to the settings object so that developers can update them if needed
@@ -1229,7 +1236,7 @@ bool FOnlineSessionV2AccelByte::ConstructPartySessionFromBackendSessionModel(con
 	// First, read attributes from backend model into session settings
 	if (BackendSession.Attributes.JsonObject.IsValid())
 	{
-		OutResult.SessionSettings = ReadSessionSettingsFromJsonObject(BackendSession.Attributes.JsonObject.ToSharedRef());
+		ReadSessionSettingsFromSessionModel(OutResult.SessionSettings, BackendSession);
 	}
 
 	// Add some session attributes to the settings object so that developers can update them if needed
@@ -1273,6 +1280,7 @@ void FOnlineSessionV2AccelByte::AddBuiltInGameSessionSettingsToSessionSettings(F
 	OutSettings.Set(SETTING_SESSION_INACTIVE_TIMEOUT, GameSession.Configuration.InactiveTimeout);
 	OutSettings.Set(SETTING_GAMESESSION_CLIENTVERSION, GameSession.Configuration.ClientVersion);
 	OutSettings.Set(SETTING_GAMESESSION_DEPLOYMENT, GameSession.Configuration.Deployment);
+	OutSettings.Set(SETTING_SESSION_CODE, GameSession.Code);
 
 	// If we have an ID for an active backfill ticket set on this session, then set it here
 	if (!GameSession.BackfillTicketID.IsEmpty())
@@ -1291,6 +1299,7 @@ void FOnlineSessionV2AccelByte::AddBuiltInPartySessionSettingsToSessionSettings(
 	OutSettings.Set(SETTING_SESSION_INACTIVE_TIMEOUT, PartySession.Configuration.InactiveTimeout);
 	OutSettings.Set(SETTING_SESSION_INVITE_TIMEOUT, PartySession.Configuration.InactiveTimeout);
 	OutSettings.Set(SETTING_PARTYSESSION_CODE, PartySession.Code);
+	OutSettings.Set(SETTING_SESSION_CODE, PartySession.Code);
 }
 
 bool FOnlineSessionV2AccelByte::ShouldSkipAddingFieldToSessionAttributes(const FName& FieldName) const
@@ -1307,6 +1316,7 @@ bool FOnlineSessionV2AccelByte::ShouldSkipAddingFieldToSessionAttributes(const F
 		FieldName == SETTING_GAMESESSION_SERVERNAME ||
 		FieldName == SETTING_SESSION_SERVER_TYPE ||
 		FieldName == SETTING_PARTYSESSION_CODE ||
+		FieldName == SETTING_SESSION_CODE ||
 		FieldName == SETTING_MATCHMAKING_BACKFILL_TICKET_ID;
 }
 
@@ -1608,128 +1618,217 @@ TSharedRef<FJsonObject> FOnlineSessionV2AccelByte::ConvertSessionSettingsToJsonO
 	return OutObject;
 }
 
-FOnlineSessionSettings FOnlineSessionV2AccelByte::ReadSessionSettingsFromJsonObject(const TSharedRef<FJsonObject>& Object) const
+bool FOnlineSessionV2AccelByte::ReadSessionSettingsFromSessionModel(FOnlineSessionSettings& OutSettings, const FAccelByteModelsV2BaseSession& Session) const
 {
-	FOnlineSessionSettings OutSettings{};
+	// Start off by going through each session member and adding a default session settings object if they do not have one
+	for (const FAccelByteModelsV2SessionUser& Member : Session.Members)
+	{
+		FAccelByteUniqueIdComposite MemberCompositeId{};
+		MemberCompositeId.Id = Member.ID;
+		MemberCompositeId.PlatformType = Member.PlatformID;
+		MemberCompositeId.PlatformId = Member.PlatformUserID;
+		FUniqueNetIdAccelByteUserRef MemberUniqueId = FUniqueNetIdAccelByteUser::Create(MemberCompositeId);
+		OutSettings.MemberSettings.FindOrAdd(MemberUniqueId, FSessionSettings());
+	}
+
+	// Now, go through the attributes object and load attributes into session settings
+	TSharedRef<FJsonObject> OriginalObject = Session.Attributes.JsonObject.ToSharedRef();
+	for (const TPair<FString, TSharedPtr<FJsonValue>>& Attribute : OriginalObject->Values)
+	{
+		if (!Attribute.Value.IsValid())
+		{
+			continue;
+		}
+		// Check JSON field type to determine type on read
+		switch (Attribute.Value->Type)
+		{
+		case EJson::String:
+		{
+			FString StringValue;
+			if (!OriginalObject->TryGetStringField(Attribute.Key, StringValue))
+			{
+				UE_LOG_AB(Warning, TEXT("Failed to read session attribute '%s' as a string, skipping!"), *Attribute.Key);
+				continue;
+			}
+			OutSettings.Set(FName(Attribute.Key), StringValue);
+			break;
+		}
+
+		case EJson::Boolean:
+		{
+			bool BoolValue;
+			if (!OriginalObject->TryGetBoolField(Attribute.Key, BoolValue))
+			{
+				UE_LOG_AB(Warning, TEXT("Failed to read session attribute '%s' as a bool, skipping!"), *Attribute.Key);
+				continue;
+			}
+			OutSettings.Set(FName(Attribute.Key), BoolValue);
+			break;
+		}
+		case EJson::Number:
+		{
+			double NumberValue;
+			if (!OriginalObject->TryGetNumberField(Attribute.Key, NumberValue))
+			{
+				UE_LOG_AB(Warning, TEXT("Failed to read session attribute '%s' as a number, skipping!"), *Attribute.Key);
+				continue;
+			}
+			OutSettings.Set(FName(Attribute.Key), NumberValue);
+			break;
+		}
+		case EJson::Array:
+		{
+			const TArray<TSharedPtr<FJsonValue>>* ArrayValue;
+			if (!OriginalObject->TryGetArrayField(Attribute.Key, ArrayValue))
+			{
+				UE_LOG_AB(Warning, TEXT("Failed to read session attribute '%s' as an array, skipping!"), *Attribute.Key);
+				continue;
+			}
+			if (ArrayValue->Num() == 0)
+			{
+				UE_LOG_AB(Warning, TEXT("Session attribute '%s' is an empty array, skipping!"), *Attribute.Key);
+				continue;
+			}
+			// Using the type of the first field in the array to either continue reading fields as strings or doubles
+			const EJson FirstFieldType = (*ArrayValue)[0].ToSharedRef().Get().Type;
+			if (FirstFieldType == EJson::String)
+			{
+				TArray<FString> AttributeValue;
+				if (!ConvertSessionSettingJsonToArray(ArrayValue, AttributeValue))
+				{
+					UE_LOG_AB(Warning, TEXT("Failed to read session attribute '%s' as an array of strings, skipping!"), *Attribute.Key);
+					continue;
+				}
+				FOnlineSessionSettingsAccelByte::Set(OutSettings, FName(Attribute.Key), AttributeValue);
+				continue;
+			}
+			if (FirstFieldType == EJson::Number)
+			{
+				TArray<double> AttributeValue;
+				if (!ConvertSessionSettingJsonToArray(ArrayValue, AttributeValue))
+				{
+					UE_LOG_AB(Warning, TEXT("Failed to read session attribute '%s' as an array of numbers, skipping!"), *Attribute.Key);
+					continue;
+				}
+				FOnlineSessionSettingsAccelByte::Set(OutSettings, FName(Attribute.Key), AttributeValue);
+				continue;
+			}
+			UE_LOG_AB(Warning, TEXT("Failed to read session attribute '%s' (an array) as either an array of numbers or an array of strings, skipping!"), *Attribute.Key);
+			break;
+		}
+		case EJson::Object:
+		{
+			const TSharedPtr<FJsonObject>* JsonObjectValue;
+			if (!OriginalObject->TryGetObjectField(Attribute.Key, JsonObjectValue))
+			{
+				UE_LOG_AB(Warning, TEXT("Failed to read session attribute '%s' as an object, skipping!"), *Attribute.Key);
+				continue;
+			}
+			if (Attribute.Key.Len() == ACCELBYTE_ID_LENGTH)
+			{
+				const FAccelByteModelsV2SessionUser* FoundMember = Session.Members.FindByPredicate([&](const FAccelByteModelsV2SessionUser& Member) {
+					return Member.ID.Equals(Attribute.Key, ESearchCase::IgnoreCase);
+					});
+				if (FoundMember != nullptr)
+				{
+					FAccelByteUniqueIdComposite MemberCompositeId{};
+					MemberCompositeId.Id = FoundMember->ID;
+					MemberCompositeId.PlatformType = FoundMember->PlatformID;
+					MemberCompositeId.PlatformId = FoundMember->PlatformUserID;
+					FUniqueNetIdAccelByteUserRef MemberUniqueId = FUniqueNetIdAccelByteUser::Create(MemberCompositeId);
+					// Populate settings from the backend into the found member settings for the player
+					FSessionSettings* FoundMemberSettings = OutSettings.MemberSettings.Find(MemberUniqueId);
+					check(FoundMemberSettings != nullptr); // Should be populated above, if anything
+					ReadMemberSettingsFromJsonObject(*FoundMemberSettings, (*JsonObjectValue).ToSharedRef());
+				}
+				break;
+			}
+			else
+			{
+				OutSettings.Set(FName(Attribute.Key), (*JsonObjectValue).ToSharedRef());
+				break;
+			}
+		}
+		default:
+		{
+			UE_LOG_AB(Warning, TEXT("Failed to read session attribute '%s' as variant data, skipping!"), *Attribute.Key);
+			continue;
+		}
+		}
+	}
+	return true;
+}
+
+bool FOnlineSessionV2AccelByte::ReadMemberSettingsFromJsonObject(FSessionSettings& OutSettings, const TSharedRef<FJsonObject>& Object) const
+{
+
 	for (const TPair<FString, TSharedPtr<FJsonValue>>& Attribute : Object->Values)
 	{
 		if (!Attribute.Value.IsValid())
 		{
 			continue;
 		}
-
 		// Check JSON field type to determine type on read
 		switch (Attribute.Value->Type)
 		{
-			case EJson::String:
+		case EJson::String:
+		{
+			FString StringValue;
+			if (!Object->TryGetStringField(Attribute.Key, StringValue))
 			{
-				FString StringValue;
-				if (!Object->TryGetStringField(Attribute.Key, StringValue))
-				{
-					UE_LOG_AB(Warning, TEXT("Failed to read session attribute '%s' as a string, skipping!"), *Attribute.Key);
-					continue;
-				}
-
-				OutSettings.Set(FName(Attribute.Key), StringValue);
-				break;
-			}
-			
-			case EJson::Boolean:
-			{
-				bool BoolValue;
-				if (!Object->TryGetBoolField(Attribute.Key, BoolValue))
-				{
-					UE_LOG_AB(Warning, TEXT("Failed to read session attribute '%s' as a bool, skipping!"), *Attribute.Key);
-					continue;
-				}
-
-				OutSettings.Set(FName(Attribute.Key), BoolValue);
-				break;
-			}
-
-			case EJson::Number: 
-			{
-				double NumberValue;
-				if (!Object->TryGetNumberField(Attribute.Key, NumberValue))
-				{
-					UE_LOG_AB(Warning, TEXT("Failed to read session attribute '%s' as a number, skipping!"), *Attribute.Key);
-					continue;
-				}
-
-				OutSettings.Set(FName(Attribute.Key), NumberValue);
-				break;
-			}
-
-			case EJson::Array:
-			{
-				const TArray<TSharedPtr<FJsonValue>>* ArrayValue;
-				if(!Object->TryGetArrayField(Attribute.Key, ArrayValue))
-				{
-					UE_LOG_AB(Warning, TEXT("Failed to read session attribute '%s' as an array, skipping!"), *Attribute.Key);
-					continue;
-				}
-
-				if (ArrayValue->Num() == 0)
-				{
-					UE_LOG_AB(Warning, TEXT("Session attribute '%s' is an empty array, skipping!"), *Attribute.Key);
-					continue;
-				}
-
-				// Using the type of the first field in the array to either continue reading fields as strings or doubles
-				const EJson FirstFieldType = (*ArrayValue)[0].ToSharedRef().Get().Type;
-				if (FirstFieldType == EJson::String)
-				{
-					TArray<FString> AttributeValue;
-					if(!ConvertSessionSettingJsonToArray(ArrayValue, AttributeValue))
-					{
-						UE_LOG_AB(Warning, TEXT("Failed to read session attribute '%s' as an array of strings, skipping!"), *Attribute.Key);
-						continue;
-					}
-
-					FOnlineSessionSettingsAccelByte::Set(OutSettings, FName(Attribute.Key), AttributeValue);
-					continue;
-				}
-
-				if (FirstFieldType == EJson::Number)
-				{
-					TArray<double> AttributeValue;
-					if (!ConvertSessionSettingJsonToArray(ArrayValue, AttributeValue))
-					{
-						UE_LOG_AB(Warning, TEXT("Failed to read session attribute '%s' as an array of numbers, skipping!"), *Attribute.Key);
-						continue;
-					}
-
-					FOnlineSessionSettingsAccelByte::Set(OutSettings, FName(Attribute.Key), AttributeValue);
-					continue;
-				}
-
-				UE_LOG_AB(Warning, TEXT("Failed to read session attribute '%s' (an array) as either an array of numbers or an array of strings, skipping!"), *Attribute.Key);
-
-				break;
-			}
-
-			case EJson::Object:
-			{
-				const TSharedPtr<FJsonObject>* JsonObjectValue;
-				if (!Object->TryGetObjectField(Attribute.Key, JsonObjectValue))
-				{
-					UE_LOG_AB(Warning, TEXT("Failed to read session attribute '%s' as an object, skipping!"), *Attribute.Key);
-					continue;
-				}
-
-				OutSettings.Set(FName(Attribute.Key), (*JsonObjectValue).ToSharedRef());
-				break;
-			}
-
-			default:
-			{
-				UE_LOG_AB(Warning, TEXT("Failed to read session attribute '%s' as variant data, skipping!"), *Attribute.Key);
+				UE_LOG_AB(Warning, TEXT("Failed to read member setting attribute '%s' as a string, skipping!"), *Attribute.Key);
 				continue;
 			}
+			OutSettings.Add(FName(Attribute.Key), FOnlineSessionSetting(StringValue));
+			break;
+		}
+		case EJson::Boolean:
+		{
+			bool BoolValue;
+			if (!Object->TryGetBoolField(Attribute.Key, BoolValue))
+			{
+				UE_LOG_AB(Warning, TEXT("Failed to read member setting attribute '%s' as a bool, skipping!"), *Attribute.Key);
+				continue;
+			}
+			OutSettings.Add(FName(Attribute.Key), FOnlineSessionSetting(BoolValue));
+			break;
+		}
+		case EJson::Number:
+		{
+			double NumberValue;
+			if (!Object->TryGetNumberField(Attribute.Key, NumberValue))
+			{
+				UE_LOG_AB(Warning, TEXT("Failed to read member setting attribute '%s' as a number, skipping!"), *Attribute.Key);
+				continue;
+			}
+			OutSettings.Add(FName(Attribute.Key), FOnlineSessionSetting(NumberValue));
+			break;
+		}
+		case EJson::Array:
+		{
+			UE_LOG_AB(Warning, TEXT("Array type used with key '%s' not supported for member settings"), *Attribute.Key);
+			break;
+		}
+		case EJson::Object:
+		{
+			const TSharedPtr<FJsonObject>* JsonObjectValue;
+			if (!Object->TryGetObjectField(Attribute.Key, JsonObjectValue))
+			{
+				UE_LOG_AB(Warning, TEXT("Failed to read member setting attribute '%s' as an object, skipping!"), *Attribute.Key);
+				continue;
+			}
+
+			OutSettings.Add(FName(Attribute.Key), FOnlineSessionSetting((*JsonObjectValue).ToSharedRef()));
+			break;
+		}
+		default:
+		{
+			UE_LOG_AB(Warning, TEXT("Failed to read member setting attribute '%s' as variant data, skipping!"), *Attribute.Key);
+			continue;
+		}
 		}
 	}
-
-	return OutSettings;
+	return true;
 }
 
 TSharedRef<FJsonObject> FOnlineSessionV2AccelByte::ConvertSearchParamsToJsonObject(const FOnlineSearchSettings& Params) const
@@ -1918,7 +2017,7 @@ void FOnlineSessionV2AccelByte::UpdateInternalGameSession(const FName& SessionNa
 	// First, read all attributes from the session, as that will overwrite all of the reserved/built-in settings
 	if (UpdatedGameSession.Attributes.JsonObject.IsValid())
 	{
-		Session->SessionSettings = ReadSessionSettingsFromJsonObject(UpdatedGameSession.Attributes.JsonObject.ToSharedRef());
+		ReadSessionSettingsFromSessionModel(Session->SessionSettings, UpdatedGameSession);
 	}
 
 	// After loading in custom attributes, load in reserved/built-in settings
@@ -1972,7 +2071,7 @@ void FOnlineSessionV2AccelByte::UpdateInternalPartySession(const FName& SessionN
 	// First, read all attributes from the session, as that will overwrite all of the reserved/built-in settings
 	if (UpdatedPartySession.Attributes.JsonObject.IsValid())
 	{
-		Session->SessionSettings = ReadSessionSettingsFromJsonObject(UpdatedPartySession.Attributes.JsonObject.ToSharedRef());
+		ReadSessionSettingsFromSessionModel(Session->SessionSettings, UpdatedPartySession);
 	}
 
 	// After reading attributes, reload reserved/built-in settings for the session
@@ -2485,10 +2584,17 @@ bool FOnlineSessionV2AccelByte::JoinSession(const FUniqueNetId& LocalUserId, FNa
 	return true;
 }
 
-bool FOnlineSessionV2AccelByte::JoinSession(const FUniqueNetId& LocalUserId, FName SessionName, const FString& PartyCode)
+bool FOnlineSessionV2AccelByte::JoinSession(const FUniqueNetId& LocalUserId, FName SessionName, const FString& Code, EAccelByteV2SessionType SessionType)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("LocalUserId: %s; SessionName: %s; PartyCode: %s"), *LocalUserId.ToDebugString(), *SessionName.ToString(), *PartyCode);
+	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("LocalUserId: %s; SessionName: %s; SessionType: %s; PartyCode: %s"), *LocalUserId.ToDebugString(), *SessionName.ToString(), *FAccelByteUtilities::GetUEnumValueAsString(SessionType), *Code);
 
+	if(SessionType != EAccelByteV2SessionType::GameSession && SessionType != EAccelByteV2SessionType::PartySession)
+	{
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to join session with code, session type %s not supported to join with code"), *FAccelByteUtilities::GetUEnumValueAsString(SessionType));
+		
+		return false;
+	}
+	
 	// First, ensure that we are not going to clobber an existing session with the given name
 	if (GetNamedSession(SessionName) != nullptr)
 	{
@@ -2510,7 +2616,76 @@ bool FOnlineSessionV2AccelByte::JoinSession(const FUniqueNetId& LocalUserId, FNa
 	NewSession->SessionState = EOnlineSessionState::Creating;
 	NewSession->LocalOwnerId = LocalUserId.AsShared();
 
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteJoinV2PartyByCode>(AccelByteSubsystem, LocalUserId, SessionName, PartyCode);
+	if(SessionType == EAccelByteV2SessionType::PartySession)
+	{
+		AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteJoinV2PartyByCode>(AccelByteSubsystem, LocalUserId, SessionName, Code);
+	}
+	else if(SessionType == EAccelByteV2SessionType::GameSession)
+	{
+		AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteJoinV2GameSessionByCode>(AccelByteSubsystem, LocalUserId, SessionName, Code);
+	}
+
+	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+	return true;
+}
+
+bool FOnlineSessionV2AccelByte::GenerateNewGameCode(const FUniqueNetId& LocalUserId, FName SessionName,
+	const FOnGenerateNewGameCodeComplete& Delegate)
+{
+	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("LocalUserId: %s; SessionName: %s"), *LocalUserId.ToDebugString(), *SessionName.ToString());
+
+	FNamedOnlineSession* Session = GetNamedSession(SessionName);
+	if (Session == nullptr)
+	{
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to generate new code for party with session name '%s' as the session does not exist locally!"), *SessionName.ToString());
+		AccelByteSubsystem->ExecuteNextTick([Delegate]() {
+			Delegate.ExecuteIfBound(false, TEXT(""));
+		});
+		return false;
+	}
+
+	EAccelByteV2SessionType SessionType = GetSessionTypeFromSettings(Session->SessionSettings);
+	if (SessionType != EAccelByteV2SessionType::GameSession)
+	{
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to generate new party code for session with name '%s' as the session is not a game session!"), *SessionName.ToString());
+		AccelByteSubsystem->ExecuteNextTick([Delegate]() {
+			Delegate.ExecuteIfBound(false, TEXT(""));
+		});
+		return false;
+	}
+
+	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGenerateNewV2GameCode>(AccelByteSubsystem, LocalUserId, SessionName, Delegate);
+
+	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+	return true;
+}
+
+bool FOnlineSessionV2AccelByte::RevokeGameCode(const FUniqueNetId& LocalUserId, FName SessionName,
+	const FOnRevokeGameCodeComplete& Delegate)
+{
+	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("LocalUserId: %s; SessionName: %s"), *LocalUserId.ToDebugString(), *SessionName.ToString());
+
+	FNamedOnlineSession* Session = GetNamedSession(SessionName);
+	if (Session == nullptr)
+	{
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to revoke code for game with session name '%s' as the session does not exist locally!"), *SessionName.ToString());
+		AccelByteSubsystem->ExecuteNextTick([Delegate]() {
+			Delegate.ExecuteIfBound(false);
+		});
+		return false;
+	}
+
+	EAccelByteV2SessionType SessionType = GetSessionTypeFromSettings(Session->SessionSettings);
+	if (SessionType != EAccelByteV2SessionType::GameSession)
+	{
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to revoke game code for session with name '%s' as the session is not a game session!"), *SessionName.ToString());
+		AccelByteSubsystem->ExecuteNextTick([Delegate]() {
+			Delegate.ExecuteIfBound(false);
+		});
+		return false;
+	}
+
+	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteRevokeV2GameCode>(AccelByteSubsystem, LocalUserId, SessionName, Delegate);
 
 	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
 	return true;
@@ -2847,6 +3022,23 @@ bool FOnlineSessionV2AccelByte::RegisterPlayers(FName SessionName, const TArray<
 		if (FoundPlayerIndex == INDEX_NONE)
 		{
 			Session->RegisteredPlayers.Emplace(PlayerToAdd);
+
+			// Attempt to find an existing member settings object for this player, and if not found, initialize one
+			const FSessionSettings* FoundMemberSettings = nullptr;
+			for (const TPair<FUniqueNetIdRef, FSessionSettings>& KV : Session->SessionSettings.MemberSettings)
+			{
+				if (KV.Key.Get() == PlayerToAdd.Get())
+				{
+					FoundMemberSettings = &KV.Value;
+					break;
+				}
+			}
+
+			if (FoundMemberSettings == nullptr)
+			{
+				// No member settings object initialized for this user, do so now
+				Session->SessionSettings.MemberSettings.Add(PlayerToAdd, FSessionSettings());
+			}
 
 			// Update session player counts based on join type
 			const bool bClosedSession = SessionData->Configuration.Joinability == EAccelByteV2SessionJoinability::INVITE_ONLY || SessionData->Configuration.Joinability == EAccelByteV2SessionJoinability::CLOSED;

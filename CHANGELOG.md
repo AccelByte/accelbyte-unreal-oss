@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.11.11](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.11.11%0D0.11.10) (2023-07-17)
+
+
+### Features
+
+* implement game session code management in OSS ([a925d0e](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/a925d0eaa411a25be37368a7a3c0ec7d91ea6bad))
+* **MPv2:** implement per-member settings for sessions ([153d6b6](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/153d6b68accc5f3cc3603d9c0179d8441d6ebfad))
+* **MPv2:** SessionV2 join error handling to EOnJoinSessionCompleteResult ([6ef8f84](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/6ef8f84865f1b287fb55d9ad83043b892924b3df))
+
+
+### Bug Fixes
+
+* make sure localUserId still valid when remove party on lobby disconnect ([fb1ce8d](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/fb1ce8d7d8dbb3f4ec9df166847b0cc6235cc22f))
+* move TriggerOnLogoutCompleteDelegates after SetLoginStatus, add guard before use ApiClient on Lobby ConnectionClosed ([0f2ae8d](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/0f2ae8dfb450a5bb1d7e01de8e978eeff487bab2))
+* **MPv2:** avoid unnacesarry ensure triggered when JoinSessionResult not success ([f86e5f7](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/f86e5f7a509929d5bc1e9cb841faa29397f7d692))
+* static cast ErrorCode on JoinGameSessionError ([2a63265](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/2a6326539a742d54162273741142be8e0d502853))
+
 ### [0.11.10](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.11.10%0D0.11.9) (2023-07-03)
 
 

@@ -9,8 +9,27 @@
 FOnlineAsyncTaskAccelByteReadLeaderboards::FOnlineAsyncTaskAccelByteReadLeaderboards(FOnlineSubsystemAccelByte* const InABInterface,
 	int32 InLocalUserNum,
 	const TArray<FUniqueNetIdRef>& InUsers, 
-	const FOnlineLeaderboardReadRef& InReadObject)
+	FOnlineLeaderboardReadRef& InReadObject)
 	: FOnlineAsyncTaskAccelByte(InABInterface, InLocalUserNum, true)
+	, AccelByteUsers(InUsers)
+	, LeaderboardObject(InReadObject)
+{
+	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Construct FOnlineAsyncTaskAccelByteReadLeaderboards"));
+
+	LeaderboardObject->ReadState = EOnlineAsyncTaskState::InProgress;
+
+	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
+}
+
+FOnlineAsyncTaskAccelByteReadLeaderboards::FOnlineAsyncTaskAccelByteReadLeaderboards(FOnlineSubsystemAccelByte* const InABInterface, 
+	int32 InLocalUserNum, 
+	const TArray<FUniqueNetIdRef>& InUsers, 
+	FOnlineLeaderboardReadRef& InReadObject, 
+	bool bIsCycle,
+	const FString& CycleId)
+	: FOnlineAsyncTaskAccelByte(InABInterface, InLocalUserNum, true)
+	, bUseCycle(bIsCycle)
+	, CycleIdValue(CycleId)
 	, AccelByteUsers(InUsers)
 	, LeaderboardObject(InReadObject)
 {
@@ -163,9 +182,25 @@ void FOnlineAsyncTaskAccelByteReadLeaderboards::OnReadLeaderboardsSuccess(FAccel
 					FUniqueNetIdAccelByteUser::CastChecked(IdentityInterface->GetUniquePlayerId(LocalUserNum).ToSharedRef()));
 		}
 
-		// Leaderboard all time
-		LeaderboardRow->Rank = BulkLeaderboardResult.AllTime.Rank;
-		LeaderboardRow->Columns.Add(FName("AllTime_Point"), BulkLeaderboardResult.AllTime.Point);
+		if (bUseCycle)
+		{
+			int32 CycleIndex = FindCycle(BulkLeaderboardResult.Cycles, CycleIdValue);
+
+			if (CycleIndex != INDEX_NONE)
+			{
+				// Leaderboard cycle
+				LeaderboardRow->Rank = BulkLeaderboardResult.Cycles[CycleIndex].Rank;
+				LeaderboardRow->Columns.Add(FName("Cycle_Point"), BulkLeaderboardResult.Cycles[CycleIndex].Point);
+			}
+			
+			AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to read leaderboards, Cycle Id is invalid! Leaderboard will return empty"));
+		}
+		else
+		{
+			// Leaderboard all time
+			LeaderboardRow->Rank = BulkLeaderboardResult.AllTime.Rank;
+			LeaderboardRow->Columns.Add(FName("AllTime_Point"), BulkLeaderboardResult.AllTime.Point);
+		}
 
 		// Put the leaderboard value into read leaderboard object reference (column meta data)
 		for (const auto& ColumnMeta : LeaderboardObject->ColumnMetadata)
@@ -212,6 +247,23 @@ void FOnlineAsyncTaskAccelByteReadLeaderboards::OnReadLeaderboardsFailed(int32 C
 	CountRequests--;
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
+}
+
+int32 FOnlineAsyncTaskAccelByteReadLeaderboards::FindCycle(
+	TArray<FAccelByteModelsCycleRank> const& Cycles, 
+	FString const& CycleId)
+{
+	int32 CycleIndexResult = -1;
+
+	for (int32 i = 0; i < Cycles.Num(); i++)
+	{
+		if (Cycles[i].CycleId == CycleId)
+		{
+			CycleIndexResult = i;
+		}
+	}
+
+	return CycleIndexResult;
 }
 
 #undef ONLINE_ERROR_NAMESPACE

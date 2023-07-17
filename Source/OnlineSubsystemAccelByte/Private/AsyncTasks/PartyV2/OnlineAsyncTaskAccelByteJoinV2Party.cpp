@@ -123,7 +123,20 @@ void FOnlineAsyncTaskAccelByteJoinV2Party::OnJoinPartySuccess(const FAccelByteMo
 
 void FOnlineAsyncTaskAccelByteJoinV2Party::OnJoinPartyError(int32 ErrorCode, const FString& ErrorMessage)
 {
-	JoinSessionResult = EOnJoinSessionCompleteResult::UnknownError; // #TODO #SESSIONv2 Maybe expand this to use a better error later?
+	switch(ErrorCode)
+	{
+		case static_cast<int32>(ErrorCodes::SessionJoinSessionFull):
+			JoinSessionResult = EOnJoinSessionCompleteResult::SessionIsFull;
+			break;
+		// intended fallthrough for BE backward compatibility, old BE use this code when session not exist
+		case static_cast<int32>(ErrorCodes::SessionGameNotFound):
+		case static_cast<int32>(ErrorCodes::PartyNotFound):
+			JoinSessionResult = EOnJoinSessionCompleteResult::SessionDoesNotExist;
+			break;
+		default:
+			JoinSessionResult = EOnJoinSessionCompleteResult::UnknownError;
+	}
+	
 	AB_ASYNC_TASK_REQUEST_FAILED("Failed to join party on backend!", ErrorCode, ErrorMessage);
 }
 

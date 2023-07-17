@@ -634,7 +634,12 @@ void FOnlineSubsystemAccelByte::OnLobbyConnectionClosed(int32 StatusCode, const 
 
 #if !AB_USE_V2_SESSIONS
 		TSharedPtr<FUniqueNetIdAccelByteUser const> LocalUserId = StaticCastSharedPtr<FUniqueNetIdAccelByteUser const>(IdentityInterface->GetUniquePlayerId(InLocalUserNum));
-		PartyInterface->RemovePartyFromInterface(LocalUserId.ToSharedRef());
+
+		// make sure user is valid (still logged in) before removing party in party interface
+		if (LocalUserId.IsValid())
+		{
+			PartyInterface->RemovePartyFromInterface(LocalUserId.ToSharedRef());
+		}
 #endif
 	LogoutDelegate.Unbind();
 	LogoutDelegate = FLogOutFromInterfaceDelegate::CreateLambda([&, InLocalUserNum, LogoutReason]()

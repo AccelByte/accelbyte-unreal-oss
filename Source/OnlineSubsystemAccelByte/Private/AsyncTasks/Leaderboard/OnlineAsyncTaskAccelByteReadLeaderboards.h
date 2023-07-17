@@ -21,7 +21,14 @@ public:
 	FOnlineAsyncTaskAccelByteReadLeaderboards(FOnlineSubsystemAccelByte* const InABInterface,
 		int32 InLocalUserNum,
 		const TArray<FUniqueNetIdRef>& InUsers, 
-		const FOnlineLeaderboardReadRef& InReadObject);
+		FOnlineLeaderboardReadRef& InReadObject);
+
+	FOnlineAsyncTaskAccelByteReadLeaderboards(FOnlineSubsystemAccelByte* const InABInterface,
+		int32 InLocalUserNum,
+		const TArray<FUniqueNetIdRef>& InUsers,
+		FOnlineLeaderboardReadRef& InReadObject,
+		bool bIsCycle,
+		const FString& CycleId);
 
 	virtual void Initialize() override;
 	virtual void Finalize() override;
@@ -44,6 +51,10 @@ private:
 	void OnReadLeaderboardsFailed(int32 Code, FString const& ErrMsg);
 	TArray<TSharedRef<const FOnlineStatsUserStats>> OnlineUsersStatsPairs;
 
+	int32 FindCycle(TArray<FAccelByteModelsCycleRank> const& Cycles, FString const& CycleId);
+
+	bool bUseCycle = false;
+	FString CycleIdValue;
 	int32 CountRequests = 0;
 	TArray<FUniqueNetIdRef> AccelByteUsers;
 	FOnlineLeaderboardReadRef LeaderboardObject;

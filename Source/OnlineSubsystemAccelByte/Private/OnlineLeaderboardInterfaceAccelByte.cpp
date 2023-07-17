@@ -28,6 +28,109 @@ bool FOnlineLeaderboardAccelByte::GetFromWorld(
 	return GetFromSubsystem(Subsystem, OutInterfaceInstance);
 }
 
+bool FOnlineLeaderboardAccelByte::ReadLeaderboardsCycle(
+	TArray<FUniqueNetIdRef> const& Players, 
+	FOnlineLeaderboardReadRef& ReadObject,
+	FString const& CycleId)
+{
+	UE_LOG_ONLINE_LEADERBOARD(Display, TEXT("FOnlineLeaderboardAccelByte::ReadLeaderboardsCycle"));
+
+	if (CycleId.IsEmpty())
+	{
+		UE_LOG_ONLINE_LEADERBOARD(Warning, TEXT("Fail to read leaderboard cycle for players as the cycle id is not valid"));
+		return false;
+	}
+
+	if (Players.Num() > 0)
+	{
+		if (!IsRunningDedicatedServer())
+		{
+			AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteReadLeaderboards>(AccelByteSubsystem, AccelByteSubsystem->GetLocalUserNumCached(), Players, ReadObject, true, CycleId);
+
+			return true;
+		}
+		else
+		{
+			UE_LOG_ONLINE_LEADERBOARD(Warning, TEXT("ReadLeaderboards can only accessed for player"));
+			return false;
+		}
+	}
+	else
+	{
+		UE_LOG_ONLINE_LEADERBOARD(Warning, TEXT("Filtering with total 0 player ids is not supported"));
+		return false;
+	}
+}
+
+bool FOnlineLeaderboardAccelByte::ReadLeaderboardsForFriendsCycle(
+	int32 LocalUserNum, 
+	FOnlineLeaderboardReadRef& ReadObject, 
+	FString const& CycleId)
+{
+	UE_LOG_ONLINE_LEADERBOARD(Display, TEXT("FOnlineLeaderboardAccelByte::ReadLeaderboardsForFriendsCycle"));
+
+	if (IsRunningDedicatedServer())
+	{
+		UE_LOG_ONLINE_LEADERBOARD(Warning, TEXT("ReadLeaderboardsForFriends can only accessed for player"));
+		return false;
+	}
+
+	if (CycleId.IsEmpty())
+	{
+		UE_LOG_ONLINE_LEADERBOARD(Warning, TEXT("Fail to read leaderboard cycle for friends as the cycle id is not valid"));
+		return false;
+	}
+
+	bool bReadFriendLeaderboard = false;
+
+	IOnlineIdentityPtr IdentityInterface = AccelByteSubsystem->GetIdentityInterface();
+	IOnlineFriendsPtr FriendsInterface = AccelByteSubsystem->GetFriendsInterface();
+	IOnlineLeaderboardsPtr LeaderboardInterface = AccelByteSubsystem->GetLeaderboardsInterface();
+
+	if (!IdentityInterface.IsValid())
+	{
+		UE_LOG_ONLINE_LEADERBOARD(Warning, TEXT("Fail to read leaderboard cycle for friends as the identity interface is not valid"));
+		return false;
+	}
+
+	const FUniqueNetIdPtr CurrentUserId = IdentityInterface->GetUniquePlayerId(LocalUserNum);
+	if (!CurrentUserId->IsValid())
+	{
+		UE_LOG_ONLINE_LEADERBOARD(Warning, TEXT("Fail to read leaderboard cycle for friends as the user id is not valid"));
+		return false;
+	}
+
+	if (!FriendsInterface.IsValid())
+	{
+		UE_LOG_ONLINE_LEADERBOARD(Warning, TEXT("Fail to read leaderboard cycle for friends as the friends interface is not valid"));
+		return false;
+	}
+
+	// Get Current User Friend List from Cache
+	TArray <TSharedRef<FOnlineFriend>> FriendList;
+	FriendsInterface->GetFriendsList(
+		LocalUserNum,
+		TEXT(""),
+		FriendList);
+
+	if (FriendList.Num() == 0)
+	{
+		LeaderboardInterface->TriggerOnLeaderboardReadCompleteDelegates(true);
+		UE_LOG_ONLINE_LEADERBOARD(Warning, TEXT("Fail to read friend list as The User Has 0 Friends"));
+		return true;
+	}
+
+	TArray<FUniqueNetIdRef> FriendsUserIds;
+	for (const auto& Friend : FriendList)
+	{
+		FriendsUserIds.Add(Friend->GetUserId());
+	}
+
+	bReadFriendLeaderboard = ReadLeaderboardsCycle(FriendsUserIds, ReadObject, CycleId);
+
+	return bReadFriendLeaderboard;
+}
+
 bool FOnlineLeaderboardAccelByte::ReadLeaderboards(
 	TArray<FUniqueNetIdRef> const& Players,
 	FOnlineLeaderboardReadRef& ReadObject)
@@ -61,6 +164,12 @@ bool FOnlineLeaderboardAccelByte::ReadLeaderboardsForFriends(
 {
 	UE_LOG_ONLINE_LEADERBOARD(Display, TEXT("FOnlineLeaderboardAccelByte::ReadLeaderboardsForFriends"));
 
+	if (IsRunningDedicatedServer())
+	{
+		UE_LOG_ONLINE_LEADERBOARD(Warning, TEXT("ReadLeaderboardsForFriends can only accessed for player"));
+		return false;
+	}
+
 	bool bReadFriendLeaderboard = false;
 
 	IOnlineIdentityPtr IdentityInterface = AccelByteSubsystem->GetIdentityInterface();
@@ -70,12 +179,6 @@ bool FOnlineLeaderboardAccelByte::ReadLeaderboardsForFriends(
 	if (!IdentityInterface.IsValid())
 	{
 		UE_LOG_ONLINE_LEADERBOARD(Warning, TEXT("Fail to read leaderboards for friends as the identity interface is not valid"));
-		return false;
-	}
-
-	if (IsRunningDedicatedServer())
-	{
-		UE_LOG_ONLINE_LEADERBOARD(Warning, TEXT("ReadLeaderboardsForFriends can only accessed for player"));
 		return false;
 	}
 

@@ -17,13 +17,11 @@
 #include "OnlineSubsystem.h"
 #include "OnlineSubsystemAccelByteTypes.h"
 #include "OnlineErrorAccelByte.h"
-#include "Runtime/Launch/Resources/Version.h"
 #include "Models/AccelByteSessionModels.h"
 #include "Models/AccelByteMatchmakingModels.h"
 #include "Models/AccelByteDSHubModels.h"
 #include "AccelByteNetworkingStatus.h"
 #include "Core/StatsD/IAccelByteStatsDMetricCollector.h"
-#include "GameServerApi/AccelByteServerAMSApi.h"
 #include "GameServerApi/AccelByteServerMetricExporterApi.h"
 
 class FInternetAddr;
@@ -374,6 +372,8 @@ DECLARE_DELEGATE_OneParam(FOnRejectBackfillProposalComplete, bool /*bWasSuccessf
 DECLARE_DELEGATE_OneParam(FOnSessionMemberStatusUpdateComplete, bool /*bWasSuccessful*/);
 DECLARE_DELEGATE_TwoParams(FOnGenerateNewPartyCodeComplete, bool /*bWasSuccessful*/, FString /*NewPartyCode*/);
 DECLARE_DELEGATE_OneParam(FOnRevokePartyCodeComplete, bool /*bWasSuccessful*/);
+DECLARE_DELEGATE_TwoParams(FOnGenerateNewGameCodeComplete, bool /*bWasSuccessful*/, FString /*NewGameCode*/);
+DECLARE_DELEGATE_OneParam(FOnRevokeGameCodeComplete, bool /*bWasSuccessful*/);
 DECLARE_DELEGATE_TwoParams(FOnKickPlayerComplete, bool /*bWasSuccessful*/, const FUniqueNetId& /*KickedPlayerId*/);
 DECLARE_DELEGATE_OneParam(FOnCreateBackfillTicketComplete, bool /*bWasSuccessful*/);
 DECLARE_DELEGATE_OneParam(FOnDeleteBackfillTicketComplete, bool /*bWasSuccessful*/);
@@ -736,11 +736,11 @@ public:
 	bool UpdateMemberStatus(FName SessionName, const FUniqueNetId& PlayerId, const EAccelByteV2SessionMemberStatus& Status, const FOnSessionMemberStatusUpdateComplete& Delegate=FOnSessionMemberStatusUpdateComplete());
 
 	/**
-	 * Join a party session using a party code. This code is intended to be generated either by the party leader, or on
-	 * party create, and passed to players to join the session without invites. To access an already generated party
+	 * Join a session using a session code. This code is intended to be generated either by the leader or DSes, on
+	 * session create, and passed to players to join the session without invites. To access an already generated
 	 * code, grab the SETTING_PARTYSESSION_CODE setting out of a party session's settings.
 	 */
-	bool JoinSession(const FUniqueNetId& LocalUserId, FName SessionName, const FString& PartyCode);
+	bool JoinSession(const FUniqueNetId& LocalUserId, FName SessionName, const FString& Code, EAccelByteV2SessionType = EAccelByteV2SessionType::PartySession);
 
 	/**
 	 * Generate a new party code for this party session. Once updated, this new generated code will be reflected in the
@@ -753,6 +753,18 @@ public:
 	 * will be blanked out and joining this party via code will not be possible.
 	 */
 	bool RevokePartyCode(const FUniqueNetId& LocalUserId, FName SessionName, const FOnRevokePartyCodeComplete& Delegate);
+
+	/**
+	 * Generate a new Game code for this game session. Once updated, this new generated code will be reflected in the
+	 * SETTING_PARTYSESSION_CODE session setting.
+	 */
+	bool GenerateNewGameCode(const FUniqueNetId& LocalUserId, FName SessionName, const FOnGenerateNewGameCodeComplete& Delegate);
+
+	/**
+	 * Revoke the code stored on a game for external joins. Once revoked, the SETTING_PARTYSESSION_CODE session setting
+	 * will be blanked out and joining this party via code will not be possible.
+	 */
+	bool RevokeGameCode(const FUniqueNetId& LocalUserId, FName SessionName, const FOnRevokeGameCodeComplete& Delegate);
 
 	/**
 	 * Set an override for a local server name to register with. Only intended for use with local dedicated servers.
@@ -1129,9 +1141,14 @@ PACKAGE_SCOPE:
 	TSharedRef<FJsonObject> ConvertSessionSettingsToJsonObject(const FOnlineSessionSettings& Settings) const;
 
 	/**
-	 * Read a JSON object into a session settings instance
+	 * Read a base session model into a session settings instance
 	 */
-	FOnlineSessionSettings ReadSessionSettingsFromJsonObject(const TSharedRef<FJsonObject>& Object) const;
+	bool ReadSessionSettingsFromSessionModel(FOnlineSessionSettings& OutSettings, const FAccelByteModelsV2BaseSession& Session) const;
+
+	/**
+	 * Read a JSON object into a session member settings instance
+	 */
+	bool ReadMemberSettingsFromJsonObject(FSessionSettings& OutMemberSettings, const TSharedRef<FJsonObject>& Object) const;
 
 	/**
 	 * Convert a session search parameters into a json object that can be used to fill match ticket attributes

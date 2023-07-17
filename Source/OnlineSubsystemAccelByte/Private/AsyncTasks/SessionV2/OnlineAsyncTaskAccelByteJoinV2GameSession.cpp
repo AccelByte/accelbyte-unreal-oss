@@ -111,6 +111,12 @@ void FOnlineAsyncTaskAccelByteJoinV2GameSession::TriggerDelegates()
 
 		SessionInterface->TriggerOnJoinSessionCompleteDelegates(SessionName, JoinSessionResult);
 
+		if(JoinSessionResult != EOnJoinSessionCompleteResult::Success)
+		{
+			AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
+			return;
+		}
+
 		FNamedOnlineSession* JoinedSession = SessionInterface->GetNamedSession(SessionName);
 		if (!ensure(JoinedSession != nullptr))
 		{
@@ -147,7 +153,18 @@ void FOnlineAsyncTaskAccelByteJoinV2GameSession::OnJoinGameSessionSuccess(const 
 
 void FOnlineAsyncTaskAccelByteJoinV2GameSession::OnJoinGameSessionError(int32 ErrorCode, const FString& ErrorMessage)
 {
-	JoinSessionResult = EOnJoinSessionCompleteResult::UnknownError; // #TODO #SESSIONv2 Maybe expand this to use a better error later?
+	switch(ErrorCode)
+	{
+		case static_cast<int32>(ErrorCodes::SessionJoinSessionFull):
+			JoinSessionResult = EOnJoinSessionCompleteResult::SessionIsFull;
+			break;
+		case static_cast<int32>(ErrorCodes::SessionGameNotFound):
+			JoinSessionResult = EOnJoinSessionCompleteResult::SessionDoesNotExist;
+			break;
+		default:
+			JoinSessionResult = EOnJoinSessionCompleteResult::UnknownError;
+	}
+
 	AB_ASYNC_TASK_REQUEST_FAILED("Failed to join game session on backend!", ErrorCode, ErrorMessage);
 }
 
