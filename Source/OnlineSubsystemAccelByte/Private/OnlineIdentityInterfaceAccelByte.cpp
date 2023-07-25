@@ -209,7 +209,7 @@ bool FOnlineIdentityAccelByte::AutoLogin(int32 LocalUserNum)
 
 	// Check if we have an environment variable set named "JUSTICE_AUTHORIZATION_CODE", which if so will initiate a
 	// launcher login and reset the type to be a "launcher" login
-	const FString LauncherCode = FPlatformMisc::GetEnvironmentVariable(TEXT("JUSTICE_AUTHORIZATION_CODE"));
+	const FString LauncherCode = FAccelByteUtilities::GetAuthorizationCode();
 
 	if (!LauncherCode.IsEmpty())
 	{

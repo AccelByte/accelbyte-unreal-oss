@@ -89,7 +89,7 @@ void FOnlineAsyncTaskAccelByteLogin::Initialize()
 		UE_LOG_AB(Log, TEXT("Login type passed to Login call was blank - using AccelByte email/password type as default!"));
 	}
 
-	const FString LauncherCode = FPlatformMisc::GetEnvironmentVariable(TEXT("JUSTICE_AUTHORIZATION_CODE"));
+	const FString LauncherCode = FAccelByteUtilities::GetAuthorizationCode();
 	if (!LauncherCode.IsEmpty())
 	{
 		LoginType = EAccelByteLoginType::Launcher;

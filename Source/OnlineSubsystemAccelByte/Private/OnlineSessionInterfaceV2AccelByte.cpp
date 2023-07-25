@@ -46,6 +46,7 @@
 #include "AsyncTasks/Server/OnlineAsyncTaskAccelByteDeleteBackfillTicket.h"
 #include "AsyncTasks/Server/OnlineAsyncTaskAccelByteServerQueryGameSessionsV2.h"
 #include "AsyncTasks/Server/OnlineAsyncTaskAccelByteServerQueryPartySessionsV2.h"
+#include "AsyncTasks/Server/OnlineAsyncTaskAccelByteSendReadyToAMS.h"
 #include "OnlineIdentityInterfaceAccelByte.h"
 #include "OnlineSessionInterfaceV1AccelByte.h"
 #include "OnlineSubsystemAccelByte.h"
@@ -567,6 +568,7 @@ bool FOnlineSessionV2AccelByte::GetFromWorld(const UWorld* World, FOnlineSession
 
 void FOnlineSessionV2AccelByte::Init()
 {
+	GConfig->GetBool(TEXT("OnlineSubsystemAccelByte"), TEXT("bServerUseAMS"), bServerUseAMS, GEngineIni);
 	if (IsRunningDedicatedServer())
 	{
 		const FOnServerReceivedSessionDelegate OnServerReceivedSessionDelegate = FOnServerReceivedSessionDelegate::CreateThreadSafeSP(SharedThis(this), &FOnlineSessionV2AccelByte::OnServerReceivedSessionComplete_Internal);
@@ -3345,8 +3347,16 @@ void FOnlineSessionV2AccelByte::RegisterServer(FName SessionName, const FOnRegis
 		return;
 	}
 
-	const AccelByte::GameServerApi::ServerAMS::FOnAMSDrainReceived OnAMSDrainReceivedDelegate = AccelByte::GameServerApi::ServerAMS::FOnAMSDrainReceived::CreateThreadSafeSP(SharedThis(this), &FOnlineSessionV2AccelByte::OnAMSDrain);
-	FRegistry::ServerAMS.SetOnAMSDrainReceivedDelegate(OnAMSDrainReceivedDelegate);
+	if (IsServerUseAMS())
+	{
+		const AccelByte::GameServerApi::ServerAMS::FOnAMSDrainReceived OnAMSDrainReceivedDelegate = AccelByte::GameServerApi::ServerAMS::FOnAMSDrainReceived::CreateThreadSafeSP(SharedThis(this), &FOnlineSessionV2AccelByte::OnAMSDrain);
+		FRegistry::ServerAMS.SetOnAMSDrainReceivedDelegate(OnAMSDrainReceivedDelegate);
+		ConnectToDSHub(FRegistry::ServerSettings.DSId);
+		AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteSendReadyToAMS>(AccelByteSubsystem, Delegate);
+		AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+		return;
+	}
+
 
 	// For an Armada-spawned server pod, there will always be a POD_NAME environment variable set. For local servers this
 	// will most likely never be the case. With this, if we have the pod name variable, then register as a non-local server
@@ -3376,6 +3386,11 @@ void FOnlineSessionV2AccelByte::UnregisterServer(FName SessionName, const FOnUnr
 		return;
 	}
 
+	if (IsServerUseAMS())
+	{
+		AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+		return;
+	}
 	// For an Armada-spawned server pod, there will always be a POD_NAME environment variable set. For local servers this
 	// will most likely never be the case. With this, if we have the pod name variable, then register as a non-local server
 	// otherwise, register as a local server.
@@ -5042,6 +5057,11 @@ bool FOnlineSessionV2AccelByte::ServerQueryPartySessions(const FAccelByteModelsV
 	return true;
 }
 
+bool FOnlineSessionV2AccelByte::IsServerUseAMS() const
+{
+	return bServerUseAMS;
+}
+
 void FOnlineSessionV2AccelByte::OnAMSDrain()
 {
 	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT(""));
@@ -5054,6 +5074,8 @@ void FOnlineSessionV2AccelByte::OnAMSDrain()
 	}
 
 	TriggerOnAMSDrainReceivedDelegates();
+	DisconnectFromAMS();
+	DisconnectFromDSHub();
 
 	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
 }

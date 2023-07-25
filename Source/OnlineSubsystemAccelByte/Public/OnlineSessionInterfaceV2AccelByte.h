@@ -1289,6 +1289,13 @@ PACKAGE_SCOPE:
 	 * @return true if request successfully sent
 	 */
 	bool ServerQueryPartySessions(const FAccelByteModelsV2QueryPartiesRequest& Request, int64 Offset = 0, int64 Limit = 20);
+	
+	/**
+	 * @brief Get whether Server is using AMS or not
+	 *
+	 * @return true if Server is using AMS
+	 */
+	bool IsServerUseAMS() const;
 
 private:
 	/** Parent subsystem of this interface instance */
@@ -1339,6 +1346,8 @@ private:
 
 	/** Attributes for a player using this session interface instance, contains crossplay and platform information */
 	TUniqueNetIdMap<FAccelByteModelsV2PlayerAttributes> UserIdToPlayerAttributesMap{};
+
+	bool bServerUseAMS = false;
 
 	/** Hidden on purpose */
 	FOnlineSessionV2AccelByte() :

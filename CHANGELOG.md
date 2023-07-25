@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.11.12](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.11.12%0D0.11.11) (2023-07-25)
+
+
+### Features
+
+* **AMS:** add config to enable/disable AMS ([090cc7b](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/090cc7b185b34d389c061f3533741f1a6ec9c1f6))
+* **AMS:** send ready message async on registering server ([7202fb9](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/7202fb9eeca8a31cae666563b04208d94377afa4))
+* **launcher:** get auth code either from command line or environment variable ([05f2e16](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/05f2e16620216a1b347ea8007c0cfe8d37d89dcb))
+
 ### [0.11.11](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.11.11%0D0.11.10) (2023-07-17)
 
 
