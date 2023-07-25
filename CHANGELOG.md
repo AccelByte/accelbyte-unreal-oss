@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.9.2-launcher](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.9.2-launcher%0D0.9.2) (2023-07-25)
+
+
+### Features
+
+* **launcher:** get auth code either from command line or environment variable
+
 ### [0.9.2](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.9.2%0D0.9.1) (2023-03-20)
 
 
