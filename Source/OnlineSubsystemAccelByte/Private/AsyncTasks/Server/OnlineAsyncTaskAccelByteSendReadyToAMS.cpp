@@ -2,7 +2,7 @@
 // This is licensed software from AccelByte Inc, for limitations
 // and restrictions contact your company contract manager.
 
-#include "OnlineAsyncTaskAccelByteSendReadytoAMS.h"
+#include "OnlineAsyncTaskAccelByteSendReadyToAMS.h"
 #include "OnlineSubsystemAccelByte.h"
 #if AB_USE_V2_SESSIONS
 #include "OnlineSessionInterfaceV2AccelByte.h"

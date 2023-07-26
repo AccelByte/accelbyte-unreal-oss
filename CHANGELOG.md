@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.11.13](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.11.13%0D0.11.12) (2023-07-26)
+
+
+### Bug Fixes
+
+* fix typo include file ([7dc16b7](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/7dc16b7dd8f1f21accfba42715d31f87e49c1f76))
+
 ### [0.11.12](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.11.12%0D0.11.11) (2023-07-25)
 
 
