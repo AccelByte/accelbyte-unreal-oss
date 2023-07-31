@@ -120,11 +120,15 @@ public:
 		FOnlineLeaderboardReadRef& ReadObject) override;
 
 	/**
-	 * Work in progress.
-	 *
-	 * @param Rank 
-	 * @param Range 
-	 * @param ReadObject 
+	 * @brief Query leaderboard ranks around a pivoted rank.
+	 * 
+	 * This endpoint will fetch a set amount of ranks based on the pivoted rank and the range.
+	 * Note:
+	 *		1. This endpoint only gives All Time type leaderboard.
+	 *		
+	 * @param Rank A rank you want to pivot at.
+	 * @param Range The number of ranks to be retrieved below and above the pivoted rank.
+	 * @param ReadObject This will contain the request and results when the operation completes.
 	 */
 	virtual bool ReadLeaderboardsAroundRank(
 		int32 Rank,
@@ -132,16 +136,59 @@ public:
 		FOnlineLeaderboardReadRef& ReadObject) override;
 
 	/**
-	 * Work in progress.
+	 * @brief Query leaderboard ranks around a pivoted rank.
 	 *
-	 * @param Rank
-	 * @param Range
-	 * @param ReadObject
+	 * This endpoint will fetch a set amount of ranks based on the pivoted rank and the range.
+	 * Note:
+	 *		1. This endpoint only gives Cycle type leaderboard.
+	 * 
+	 * @param Rank  A rank you want to pivot at.
+	 * @param Range The number of ranks to be retrieved below and above the pivoted rank.
+	 * @param CycleId The cycle of the leaderboard to retrieve the ranks at.
+	 * @param ReadObject This will contain the request and results when the operation completes.
+	 * @return 
+	 */
+	virtual bool ReadLeaderboardCycleAroundRank(
+			int32 Rank,
+			uint32 Range,
+			FString const& CycleId,
+			FOnlineLeaderboardReadRef& ReadObject);
+
+	/**
+	 * @brief Query leaderboard ranks in the range a specific user rank.
+	 *
+	 * This endpoint will fetch a set amount of ranks closed to a specific user rank.
+	 * Note:
+	 *		1. This endpoint only gives All Time type leaderboard.
+	 * 
+	 *
+	 * @param Player The pivoted player
+	 * @param Range The amount of rank to be retrieved. This means the OSS will fetch ranks below and above the user rank in the amount of the range.
+	 * @param ReadObject This will contain the request and results when the operation completes.
 	 */
 	virtual bool ReadLeaderboardsAroundUser(
 		FUniqueNetIdRef Player,
 		uint32 Range,
 		FOnlineLeaderboardReadRef& ReadObject) override;
+
+	/**
+	 * @brief Query leaderboard ranks in the range a specific user rank.
+	 *
+	 * This endpoint will fetch a set amount of ranks closed to a specific user rank.
+	 * Note:
+	 *		1. This endpoint only gives Cycle type leaderboard.
+	 * 
+	 *
+	 * @param Player The pivoted player
+	 * @param Range The amount of rank to be retrieved. This means the OSS will fetch ranks below and above the user rank in the amount of the range.
+	 * @param CycleId The cycle of the leaderboard to retrieve the ranks at.
+	 * @param ReadObject This will contain the request and results when the operation completes.
+	 */
+	virtual bool ReadLeaderboardCycleAroundUser(
+		FUniqueNetIdRef Player,
+		uint32 Range,
+		FString const& CycleId,
+		FOnlineLeaderboardReadRef& ReadObject);
 
 	/**
 	 * Is not supported.

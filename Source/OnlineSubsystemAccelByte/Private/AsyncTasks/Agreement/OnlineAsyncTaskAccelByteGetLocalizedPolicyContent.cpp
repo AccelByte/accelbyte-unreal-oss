@@ -7,6 +7,8 @@
 #include "OnlineIdentityInterfaceAccelByte.h"
 #include "OnlineAgreementInterfaceAccelByte.h"
 
+#define ONLINE_ERROR_NAMESPACE "FOnlineAccelByteGetLocalizedPolicyContent"
+
 FOnlineAsyncTaskAccelByteGetLocalizedPolicyContent::FOnlineAsyncTaskAccelByteGetLocalizedPolicyContent(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InLocalUserId, const FString& InBasePolicyId, const FString& InLocaleCode, bool bInAlwaysRequestToService)
 	: FOnlineAsyncTaskAccelByte(InABInterface)
 	, BasePolicyId(InBasePolicyId)
@@ -134,10 +136,12 @@ void FOnlineAsyncTaskAccelByteGetLocalizedPolicyContent::TriggerDelegates()
 		if (bWasSuccessful)
 		{
 			AgreementInterface->TriggerOnGetLocalizedPolicyContentCompletedDelegates(LocalUserNum, true, LocalizedPolicyContent, TEXT(""));
+			AgreementInterface->TriggerAccelByteOnGetLocalizedPolicyContentCompletedDelegates(LocalUserNum, true, LocalizedPolicyContent, ONLINE_ERROR_ACCELBYTE(TEXT(""), EOnlineErrorResult::Success));
 		}
 		else
 		{
 			AgreementInterface->TriggerOnGetLocalizedPolicyContentCompletedDelegates(LocalUserNum, false, TEXT(""), ErrorStr);
+			AgreementInterface->TriggerAccelByteOnGetLocalizedPolicyContentCompletedDelegates(LocalUserNum, false, TEXT(""), ONLINE_ERROR_ACCELBYTE(FOnlineErrorAccelByte::PublicGetErrorKey(ErrorCode, ErrorStr)));
 		}
 	}
 
@@ -170,9 +174,11 @@ void FOnlineAsyncTaskAccelByteGetLocalizedPolicyContent::OnGetLocalizedPolicyCon
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sending request to get localized policy content for user '%s'!"), *UserId->ToDebugString());
 }
 
-void FOnlineAsyncTaskAccelByteGetLocalizedPolicyContent::OnGetLocalizedPolicyContentError(int32 ErrorCode, const FString& ErrorMessage)
+void FOnlineAsyncTaskAccelByteGetLocalizedPolicyContent::OnGetLocalizedPolicyContentError(int32 InErrorCode, const FString& ErrorMessage)
 {
+	ErrorCode = InErrorCode;
 	ErrorStr = TEXT("request-failed-get-localized-content-error");
 	UE_LOG_AB(Warning, TEXT("Failed to get localized policy content! Error Code: %d; Error Message: %s"), ErrorCode, *ErrorMessage);
 	CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
 }
+#undef ONLINE_ERROR_NAMESPACE

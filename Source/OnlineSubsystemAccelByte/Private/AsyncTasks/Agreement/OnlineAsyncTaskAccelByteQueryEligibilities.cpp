@@ -7,6 +7,8 @@
 #include "OnlineIdentityInterfaceAccelByte.h"
 #include "OnlineAgreementInterfaceAccelByte.h"
 
+#define ONLINE_ERROR_NAMESPACE "FOnlineAccelByteQueryEligibilities"
+
 FOnlineAsyncTaskAccelByteQueryEligibilities::FOnlineAsyncTaskAccelByteQueryEligibilities(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InLocalUserId, bool bInNotAcceptedOnly, bool bInAlwaysRequestToService)
 	: FOnlineAsyncTaskAccelByte(InABInterface)
 	, bNotAcceptedOnly(bInNotAcceptedOnly)
@@ -73,10 +75,12 @@ void FOnlineAsyncTaskAccelByteQueryEligibilities::TriggerDelegates()
 			}
 
 			AgreementInterface->TriggerOnQueryEligibilitiesCompletedDelegates(LocalUserNum, true, EligibilitiesReturn, TEXT(""));
+			AgreementInterface->TriggerAccelByteOnQueryEligibilitiesCompletedDelegates(LocalUserNum, true, EligibilitiesReturn, ONLINE_ERROR_ACCELBYTE(TEXT(""), EOnlineErrorResult::Success));
 		}
 		else
 		{
 			AgreementInterface->TriggerOnQueryEligibilitiesCompletedDelegates(LocalUserNum, false, TArray<FAccelByteModelsRetrieveUserEligibilitiesResponse>{}, ErrorStr);
+			AgreementInterface->TriggerAccelByteOnQueryEligibilitiesCompletedDelegates(LocalUserNum, false, TArray<FAccelByteModelsRetrieveUserEligibilitiesResponse>{}, ONLINE_ERROR_ACCELBYTE(FOnlineErrorAccelByte::PublicGetErrorKey(ErrorCode, ErrorStr)));
 		}
 	}
 
@@ -104,9 +108,12 @@ void FOnlineAsyncTaskAccelByteQueryEligibilities::OnQueryEligibilitiesSuccess(co
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sending request to query AccelByte eligible agreements for user '%s'!"), *UserId->ToDebugString());
 }
 
-void FOnlineAsyncTaskAccelByteQueryEligibilities::OnQueryEligibilitiesError(int32 ErrorCode, const FString& ErrorMessage)
+void FOnlineAsyncTaskAccelByteQueryEligibilities::OnQueryEligibilitiesError(int32 InErrorCode, const FString& ErrorMessage)
 {
+	ErrorCode = InErrorCode;
 	ErrorStr = TEXT("request-failed-query-eligibilities-error");
 	UE_LOG_AB(Warning, TEXT("Failed to query user's eligible agreements! Error Code: %d; Error Message: %s"), ErrorCode, *ErrorMessage);
 	CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
 }
+
+#undef ONLINE_ERROR_NAMESPACE

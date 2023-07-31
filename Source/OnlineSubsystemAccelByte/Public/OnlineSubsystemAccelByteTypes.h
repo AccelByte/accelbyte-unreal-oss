@@ -11,6 +11,7 @@
 #include "Runtime/Launch/Resources/Version.h"
 #include "OnlineSubsystemAccelBytePackage.h"
 #include "Models/AccelByteMatchmakingModels.h"
+#include "OnlineAsyncTaskManager.h"
 #include "OnlineStats.h"
 #include "OnlineSubsystemAccelByteTypes.generated.h"
 
@@ -843,6 +844,31 @@ private:
 	bool bIsConnectedToLobby{false};
 
 	bool bIsConnectedToChat{false};
+};
+
+UENUM(BlueprintType)
+enum class ETypeOfOnlineAsyncTask :uint8
+{
+	Serial = 0,
+	Parallel = 1
+};
+
+class FOnlineAsyncTaskAccelByte;
+
+/**
+ * Information that will be passed when CreateAndDispatch Online Task
+ */
+struct ONLINESUBSYSTEMACCELBYTE_API FOnlineAsyncTaskInfo
+{
+	FOnlineAsyncTaskInfo() {}
+
+	FOnlineAsyncTaskInfo(ETypeOfOnlineAsyncTask InType, bool inBool):
+		Type(InType),
+		bCreateEpicForThis(inBool)
+	{}
+
+	ETypeOfOnlineAsyncTask Type = ETypeOfOnlineAsyncTask::Serial;
+	bool bCreateEpicForThis = false;
 };
 
 // 4.27 feature (https://docs.unrealengine.com/4.27/en-US/WhatsNew/Builds/ReleaseNotes/4_27/)

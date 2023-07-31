@@ -3,8 +3,8 @@
 // and restrictions contact your company contract manager.
 #pragma once
 
-#include "OnlineAsyncTaskAccelByte.h"
-#include "OnlineAsyncTaskAccelByteUtils.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByte.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteUtils.h"
 #include "OnlineSubsystemAccelByteTypes.h"
 #include "OnlineIdentityInterfaceAccelByte.h"
 #include "OnlinePartyInterfaceAccelByte.h"

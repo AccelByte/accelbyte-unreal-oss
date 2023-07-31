@@ -192,8 +192,10 @@ void FOnlineAsyncTaskAccelByteReadLeaderboards::OnReadLeaderboardsSuccess(FAccel
 				LeaderboardRow->Rank = BulkLeaderboardResult.Cycles[CycleIndex].Rank;
 				LeaderboardRow->Columns.Add(FName("Cycle_Point"), BulkLeaderboardResult.Cycles[CycleIndex].Point);
 			}
-			
-			AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to read leaderboards, Cycle Id is invalid! Leaderboard will return empty"));
+			else
+			{
+				AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to read leaderboards, Cycle Id is invalid! Leaderboard will return empty"));
+			}
 		}
 		else
 		{

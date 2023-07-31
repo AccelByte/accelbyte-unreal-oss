@@ -3,8 +3,8 @@
 // and restrictions contact your company contract manager.
 #pragma once
 
-#include "OnlineAsyncTaskAccelByteUtils.h"
-#include "OnlineAsyncTaskAccelByte.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteUtils.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByte.h"
 #include "OnlineSubsystemAccelByteTypes.h"
 #include "OnlineIdentityInterfaceAccelByte.h"
 #include "OnlineUserInterfaceAccelByte.h"
@@ -65,6 +65,11 @@ private:
 	 * Object representing the error code that occurred
 	 */
 	FErrorOAuthInfo  ErrorOAuthObject;
+
+	/**
+	 * Digit code representing the error that occurred
+	 */
+	int32 ErrorCode;
 
 	/**
 	 * Type of login that we wish to do on the backend

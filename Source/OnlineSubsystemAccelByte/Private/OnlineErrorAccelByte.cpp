@@ -16,6 +16,8 @@
 #define ACCELBYTE_ERROR_CODE_TABLE_NAMESPACE "ErrorCodeStringTable"
 #define ACCELBYTE_ERROR_KEY_TABLE_ID "ErrorKey"
 #define ACCELBYTE_ERROR_KEY_TABLE_NAMESPACE "ErrorKeyStringTable"
+#define ACCELBYTE_DEFAULT_ERROR_KEY_TABLE_ID "DefaultErrorKey"
+#define ACCELBYTE_DEFAULT_ERROR_KEY_TABLE_NAMESPACE "DefaultErrorKeyStringTable"
 
 /** Creates and registers a new string table instance, loading strings from the given file (the path is relative to the AccelByteOSS plugin's content directory). */
 #define LOCTABLE_FROMFILE_ACCELBYTE(ID, NAMESPACE, FILEPATH) \
@@ -28,6 +30,8 @@ FOnlineErrorAccelByte::FOnlineErrorAccelByte(EOnlineErrorResult InResult, const 
 }
 
 bool FOnlineErrorAccelByte::bIsTablesRegistered = false;
+const FString FOnlineErrorAccelByte::DefaultLanguage = TEXT("en");
+FString FOnlineErrorAccelByte::Language = TEXT("");
 
 FOnlineErrorAccelByte FOnlineErrorAccelByte::CreateError(const FString& ErrorNamespace, const int32 ErrorCode, EOnlineErrorResult Result)
 {
@@ -82,10 +86,27 @@ FOnlineErrorAccelByte FOnlineErrorAccelByte::CreateError(const FString& ErrorNam
 	return *Error.Get();
 }
 
+FString FOnlineErrorAccelByte::PublicGetErrorKey(const int32 ErrorCode, const FString& DefaultErrorKey)
+{
+	FString ErrorKey = GetErrorKey(ErrorCode);
+	if (ErrorKey.Equals(*FStringTableEntry::GetPlaceholderSourceString()))
+	{
+		ErrorKey = DefaultErrorKey.IsEmpty()? DefaultErrorCode(EOnlineErrorResult::Unknown) : DefaultErrorKey;
+	}
+	return ErrorKey;
+}
+
 FText FOnlineErrorAccelByte::GetErrorText(const FString& ErrorKey)
 {
 	RegisterTables();
 	FText ErrorText = FText::FromStringTable(ACCELBYTE_ERROR_KEY_TABLE_ID, ErrorKey);
+	if (Language != DefaultLanguage)
+	{
+		if (ErrorText.EqualTo(FText::FromString(*FStringTableEntry::GetPlaceholderSourceString())))
+		{
+			ErrorText = FText::FromStringTable(ACCELBYTE_DEFAULT_ERROR_KEY_TABLE_ID, ErrorKey);
+		}
+	}
 	return ErrorText;
 }
 
@@ -101,13 +122,15 @@ void FOnlineErrorAccelByte::RegisterTables()
 	if (!bIsTablesRegistered)
 	{
 		const FString ContentDir = IPluginManager::Get().FindPlugin("OnlineSubsystemAccelByte")->GetContentDir();
-		FString Language = FInternationalization::Get().GetCurrentLanguage()->GetTwoLetterISOLanguageName();
+		Language = FInternationalization::Get().GetCurrentLanguage()->GetTwoLetterISOLanguageName();
 		if (!FPaths::FileExists(FString::Printf(TEXT("%s/Localization/AccelByteErrorMessages_%s.csv"), *ContentDir, *Language)))
 		{
-			Language = TEXT("en");
+			Language = DefaultLanguage;
 		}
 		const FString LocalizationPath = FString::Printf(TEXT("Localization/AccelByteErrorMessages_%s.csv"), *Language);
+		const FString DefaultLangPath = FString::Printf(TEXT("Localization/AccelByteErrorMessages_%s.csv"), *DefaultLanguage);
 
+		LOCTABLE_FROMFILE_ACCELBYTE(ACCELBYTE_DEFAULT_ERROR_KEY_TABLE_ID, ACCELBYTE_DEFAULT_ERROR_KEY_TABLE_NAMESPACE, DefaultLangPath);
 		LOCTABLE_FROMFILE_ACCELBYTE(ACCELBYTE_ERROR_KEY_TABLE_ID, ACCELBYTE_ERROR_KEY_TABLE_NAMESPACE, LocalizationPath);
 		LOCTABLE_FROMFILE_ACCELBYTE(ACCELBYTE_ERROR_CODE_TABLE_ID, ACCELBYTE_ERROR_CODE_TABLE_NAMESPACE, TEXT("AccelByteErrorCodes.csv"));
 		bIsTablesRegistered = true;

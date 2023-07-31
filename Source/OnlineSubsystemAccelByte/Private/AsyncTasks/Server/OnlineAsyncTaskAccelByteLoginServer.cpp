@@ -6,6 +6,8 @@
 #include "GameServerApi/AccelByteServerOauth2Api.h"
 #include "OnlineIdentityInterfaceAccelByte.h"
 
+#define ONLINE_ERROR_NAMESPACE "FOnlineAccelByteServerLogin"
+
 FOnlineAsyncTaskAccelByteLoginServer::FOnlineAsyncTaskAccelByteLoginServer(FOnlineSubsystemAccelByte* const InABInterface, int32 InLocalUserNum)
     : FOnlineAsyncTaskAccelByte(InABInterface, INVALID_CONTROLLERID, ASYNC_TASK_FLAG_BIT(EAccelByteAsyncTaskFlags::ServerTask))
 {
@@ -57,6 +59,7 @@ void FOnlineAsyncTaskAccelByteLoginServer::TriggerDelegates()
 
     // #NOTE Deliberately passing an invalid user ID here as server's do not have user IDs. This shouldn't cause any issues for auto login.
 	IdentityInterface->TriggerOnLoginCompleteDelegates(LocalUserNum, bWasSuccessful, FUniqueNetIdAccelByteUser::Invalid().Get(), ErrorString);
+    IdentityInterface->TriggerAccelByteOnLoginCompleteDelegates(LocalUserNum, bWasSuccessful, FUniqueNetIdAccelByteUser::Invalid().Get(), ONLINE_ERROR_ACCELBYTE(FOnlineErrorAccelByte::PublicGetErrorKey(ErrorCode, ErrorString), bWasSuccessful ? EOnlineErrorResult::Success : EOnlineErrorResult::RequestFailure));
 
     AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
@@ -70,9 +73,12 @@ void FOnlineAsyncTaskAccelByteLoginServer::OnLoginServerSuccess()
     AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 
-void FOnlineAsyncTaskAccelByteLoginServer::OnLoginServerError(int32 ErrorCode, const FString& ErrorMessage)
+void FOnlineAsyncTaskAccelByteLoginServer::OnLoginServerError(int32 InErrorCode, const FString& ErrorMessage)
 {
-    UE_LOG_AB(Warning, TEXT("Failed to authenticate server with AccelByte! Error code: %d; Error message: %s"), ErrorCode, *ErrorMessage);
-    CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
+    UE_LOG_AB(Warning, TEXT("Failed to authenticate server with AccelByte! Error code: %d; Error message: %s"), InErrorCode, *ErrorMessage);
+    ErrorCode = InErrorCode;
     ErrorString = TEXT("server-login-failed");
+    CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
 }
+
+#undef ONLINE_ERROR_NAMESPACE

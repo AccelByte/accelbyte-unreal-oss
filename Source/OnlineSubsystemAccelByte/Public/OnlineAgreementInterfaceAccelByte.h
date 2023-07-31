@@ -9,6 +9,7 @@
 #include "OnlineSubsystemAccelByte.h"
 #include "OnlineUserCacheAccelByte.h"
 #include "Models/AccelByteAgreementModels.h"
+#include "OnlineErrorAccelByte.h"
 
 DECLARE_MULTICAST_DELEGATE(FOnUserNotComplied);
 typedef FOnUserNotComplied::FDelegate FOnUserNotCompliedDelegate;
@@ -21,6 +22,15 @@ typedef FOnGetLocalizedPolicyContentCompleted::FDelegate FOnGetLocalizedPolicyCo
 
 DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnAcceptAgreementPoliciesCompleted, int32 /*LocalUserNum*/, bool /*bWasSuccessful*/, const FString& /*Error*/);
 typedef FOnAcceptAgreementPoliciesCompleted::FDelegate FOnAcceptAgreementPoliciesCompletedDelegate;
+
+DECLARE_MULTICAST_DELEGATE_FourParams(FAccelByteOnQueryEligibilitiesCompleted, int32 /*LocalUserNum*/, bool /*bWasSuccessful*/, const TArray<FAccelByteModelsRetrieveUserEligibilitiesResponse>& /*Response*/, const FOnlineErrorAccelByte& /*Error*/);
+typedef FAccelByteOnQueryEligibilitiesCompleted::FDelegate FAccelByteOnQueryEligibilitiesCompletedDelegate;
+
+DECLARE_MULTICAST_DELEGATE_FourParams(FAccelByteOnGetLocalizedPolicyContentCompleted, int32 /*LocalUserNum*/, bool /*bWasSuccessful*/, const FString& /*Response*/, const FOnlineErrorAccelByte& /*Error*/);
+typedef FAccelByteOnGetLocalizedPolicyContentCompleted::FDelegate FAccelByteOnGetLocalizedPolicyContentCompletedDelegate;
+
+DECLARE_MULTICAST_DELEGATE_ThreeParams(FAccelByteOnAcceptAgreementPoliciesCompleted, int32 /*LocalUserNum*/, bool /*bWasSuccessful*/, const FOnlineErrorAccelByte& /*Error*/);
+typedef FAccelByteOnAcceptAgreementPoliciesCompleted::FDelegate FAccelByteOnAcceptAgreementPoliciesCompletedDelegate;
 
 struct ONLINESUBSYSTEMACCELBYTE_API FABLocalizedPolicyContent
 {
@@ -75,6 +85,10 @@ public:
 	DEFINE_ONLINE_PLAYER_DELEGATE_THREE_PARAM(MAX_LOCAL_PLAYERS, OnQueryEligibilitiesCompleted, bool, const TArray<FAccelByteModelsRetrieveUserEligibilitiesResponse>&, const FString&);
 	DEFINE_ONLINE_PLAYER_DELEGATE_THREE_PARAM(MAX_LOCAL_PLAYERS, OnGetLocalizedPolicyContentCompleted, bool, const FString&, const FString&);
 	DEFINE_ONLINE_PLAYER_DELEGATE_TWO_PARAM(MAX_LOCAL_PLAYERS, OnAcceptAgreementPoliciesCompleted, bool, const FString&);
+
+	DEFINE_ONLINE_PLAYER_DELEGATE_THREE_PARAM(MAX_LOCAL_PLAYERS, AccelByteOnQueryEligibilitiesCompleted, bool, const TArray<FAccelByteModelsRetrieveUserEligibilitiesResponse>&, const FOnlineErrorAccelByte&);
+	DEFINE_ONLINE_PLAYER_DELEGATE_THREE_PARAM(MAX_LOCAL_PLAYERS, AccelByteOnGetLocalizedPolicyContentCompleted, bool, const FString&, const FOnlineErrorAccelByte&);
+	DEFINE_ONLINE_PLAYER_DELEGATE_TWO_PARAM(MAX_LOCAL_PLAYERS, AccelByteOnAcceptAgreementPoliciesCompleted, bool, const FOnlineErrorAccelByte&);
 
 	/**
 	 * @brief Query user's eligibilities

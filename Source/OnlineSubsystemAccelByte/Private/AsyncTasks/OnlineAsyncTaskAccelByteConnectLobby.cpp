@@ -14,6 +14,8 @@
 #include "OnlineSessionInterfaceV1AccelByte.h"
 #endif
 
+#define ONLINE_ERROR_NAMESPACE "FOnlineAccelByteLobbyConnect"
+
 FOnlineAsyncTaskAccelByteConnectLobby::FOnlineAsyncTaskAccelByteConnectLobby(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InLocalUserId)
 	: FOnlineAsyncTaskAccelByte(InABInterface)
 {
@@ -56,6 +58,7 @@ void FOnlineAsyncTaskAccelByteConnectLobby::TriggerDelegates()
 	if (IdentityInterface.IsValid())
 	{
 		IdentityInterface->TriggerOnConnectLobbyCompleteDelegates(LocalUserNum, bWasSuccessful, *UserId.Get(), ErrorStr);
+		IdentityInterface->TriggerAccelByteOnConnectLobbyCompleteDelegates(LocalUserNum, bWasSuccessful, *UserId.Get(), ONLINE_ERROR_ACCELBYTE(ErrorStr, bWasSuccessful ? EOnlineErrorResult::Success : EOnlineErrorResult::RequestFailure));
 	}
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
@@ -161,3 +164,5 @@ void FOnlineAsyncTaskAccelByteConnectLobby::UnbindDelegates()
 	OnLobbyConnectErrorDelegate.Unbind();
 	OnLobbyDisconnectedNotifDelegate.Unbind();
 }
+
+#undef ONLINE_ERROR_NAMESPACE

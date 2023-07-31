@@ -50,7 +50,11 @@ private:
 	 */
 	FOnAcceptBackfillProposalComplete Delegate{};
 
-	AB_ASYNC_TASK_DECLARE_SDK_DELEGATES(AcceptBackfillProposal);
+	/**
+	 * Store game session info from accept backfill response for updating internal game session.
+	 */
+	FAccelByteModelsV2GameSession GameSessionInfo;
 
+	AB_ASYNC_TASK_DECLARE_SDK_DELEGATES_WITH_RESULT(AcceptBackfillProposal, FAccelByteModelsV2GameSession);
 };
 

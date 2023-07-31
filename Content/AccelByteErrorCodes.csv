@@ -1,2 +1,5 @@
 Key,SourceString,Comment
 "0","unknown-error",""
+"40041","legal-failed-policy-not-found"
+"40035","legal-failed-invalid-localize-policy-version-id"
+"40045","legal-failed-user-id-needed"

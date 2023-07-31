@@ -27,6 +27,14 @@ public:
      */
     static FOnlineErrorAccelByte CreateError(const FString& ErrorNamespace, FOnlineError ErrorInfo);
 
+    /**
+     * @brief Public function to get ErrorKey from an ErrorCode
+     * 
+     * @param ErrorCode the ErrorCode(usually from BE) to search on the Table
+     * @param DefaultErrorKey ErrorKey to put if the ErrorCode not found on the table
+     */
+    static FString PublicGetErrorKey(const int32 ErrorCode, const FString& DefaultErrorKey = TEXT(""));
+
 private:
     explicit FOnlineErrorAccelByte(EOnlineErrorResult InResult, const FString& InErrorCode, const FText& InErrorMessage);
 
@@ -54,6 +62,9 @@ private:
      */
     static bool bIsTablesRegistered;
 
+    static FString Language;
+
+    static const FString DefaultLanguage;
 };
 
 /** must be defined to a valid namespace for using ONLINE_ERROR factory macro */

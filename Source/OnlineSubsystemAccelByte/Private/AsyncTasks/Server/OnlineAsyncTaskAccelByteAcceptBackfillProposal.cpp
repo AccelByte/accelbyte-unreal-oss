@@ -11,6 +11,7 @@ FOnlineAsyncTaskAccelByteAcceptBackfillProposal::FOnlineAsyncTaskAccelByteAccept
 	, Proposal(InProposal)
 	, bStopBackfilling(bInStopBackfilling)
 	, Delegate(InDelegate)
+	, GameSessionInfo()
 {
 }
 
@@ -23,7 +24,7 @@ void FOnlineAsyncTaskAccelByteAcceptBackfillProposal::Initialize()
 	AccelByte::FServerApiClientPtr ServerApiClient = AccelByte::FMultiRegistry::GetServerApiClient();
 	AB_ASYNC_TASK_ENSURE(ServerApiClient.IsValid(), "Failed to accept backfill proposal for session as we could not get a server API client!");
 
-	AB_ASYNC_TASK_DEFINE_SDK_DELEGATES(FOnlineAsyncTaskAccelByteAcceptBackfillProposal, AcceptBackfillProposal, FVoidHandler);
+	AB_ASYNC_TASK_DEFINE_SDK_DELEGATES(FOnlineAsyncTaskAccelByteAcceptBackfillProposal, AcceptBackfillProposal, THandler<FAccelByteModelsV2GameSession>);
 	ServerApiClient->ServerMatchmakingV2.AcceptBackfillProposal(Proposal.BackfillTicketID, Proposal.ProposalID, bStopBackfilling, OnAcceptBackfillProposalSuccessDelegate, OnAcceptBackfillProposalErrorDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
@@ -35,7 +36,7 @@ void FOnlineAsyncTaskAccelByteAcceptBackfillProposal::Finalize()
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
-	if (bWasSuccessful && bStopBackfilling)
+	if (bWasSuccessful)
 	{
 		// If we successfully accepted the proposal and we are removing this backfill ticket, then update session settings to
 		// remove there.
@@ -53,7 +54,14 @@ void FOnlineAsyncTaskAccelByteAcceptBackfillProposal::Finalize()
 			return;
 		}
 
-		Session->SessionSettings.Remove(SETTING_MATCHMAKING_BACKFILL_TICKET_ID);
+		if (bStopBackfilling)
+		{
+			Session->SessionSettings.Remove(SETTING_MATCHMAKING_BACKFILL_TICKET_ID);
+		}
+
+		// We don't care about this out flag in this case
+		bool bIsConnectingToP2P;
+		SessionInterface->UpdateInternalGameSession(SessionName, GameSessionInfo, bIsConnectingToP2P);
 	}
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
@@ -70,10 +78,11 @@ void FOnlineAsyncTaskAccelByteAcceptBackfillProposal::TriggerDelegates()
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 
-void FOnlineAsyncTaskAccelByteAcceptBackfillProposal::OnAcceptBackfillProposalSuccess()
+void FOnlineAsyncTaskAccelByteAcceptBackfillProposal::OnAcceptBackfillProposalSuccess(const FAccelByteModelsV2GameSession& Result)
 {
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 
+	GameSessionInfo = Result;
 	CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

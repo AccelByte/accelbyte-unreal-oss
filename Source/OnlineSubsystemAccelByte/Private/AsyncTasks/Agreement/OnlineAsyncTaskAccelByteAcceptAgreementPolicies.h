@@ -48,6 +48,11 @@ private:
 	 */
 	FString ErrorStr;
 
+	/**
+	 * Digit code representing the error that occurred
+	 */
+	int32 ErrorCode;
+
 	bool bRequestResult;
 	bool bIsMandatory;
 

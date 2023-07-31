@@ -25,6 +25,8 @@
 #include "OnlineAuthInterfaceAccelByte.h"
 #include "OnlineSubsystemAccelByteModule.h"
 #include "OnlineVoiceInterfaceAccelByte.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByte.h"
+#include "AsyncTasks/OnlineAsyncEpicTaskAccelByte.h"
 #include "Api/AccelByteLobbyApi.h"
 #include "Models/AccelByteLobbyModels.h"
 #include "Core/AccelByteWebSocketErrorTypes.h"
@@ -447,6 +449,93 @@ FString FOnlineSubsystemAccelByte::GetNativeAppId()
 	return NativeSubsystem->GetAppId();
 }
 
+FOnlineAsyncEpicTaskAccelByte* FOnlineSubsystemAccelByte::CreateAndDispatchEpic(int32 LocalUserNum, const FVoidHandler& InDelegate)
+{
+	FOnlineAsyncEpicTaskAccelByte* NewTask = new FOnlineAsyncEpicTaskAccelByte(this, LocalUserNum, InDelegate);
+
+	uint32 EpicID = EpicCounter.Increment();
+	NewTask->SetEpicID(EpicID);
+	FOnlineAsyncTask* Upcast = static_cast<FOnlineAsyncTask*>(NewTask);
+	AsyncTaskManager->CheckMaxParallelTasks();
+	AsyncTaskManager->AddToParallelTasks(Upcast);
+
+	return NewTask;
+}
+
+void FOnlineSubsystemAccelByte::CreateAndDispatchAsyncTaskImplementation(FOnlineAsyncTaskInfo TaskInfo, FOnlineAsyncTask* NewTask)
+{
+	FOnlineAsyncTaskAccelByte* AccelByteNewTask = NewTask == nullptr ? nullptr : static_cast<FOnlineAsyncTaskAccelByte*>(NewTask);
+
+	if (AccelByteNewTask == nullptr)
+	{
+		UE_LOG_AB(Warning, TEXT("Cannot cast to AccelByte Async Task"));
+		return;
+	}
+
+	if (ParentTaskForUpcomingTask != nullptr)
+	{
+		AccelByteNewTask->SetParentTask(ParentTaskForUpcomingTask);
+		//TODO cyclic checking 
+		//recursively check GetParentTask(...) , collect it, and detect it etc.
+	}
+
+	if (IsUpcomingEpicAlreadySet())
+	{
+		AccelByteNewTask->SetEpicForThisTask(EpicForUpcomingTask);
+		EnqueueTaskToEpic(EpicForUpcomingTask, AccelByteNewTask, TaskInfo.Type);
+		return;
+	}
+
+	// If epic already set, we won't force to create an Epic
+	if (TaskInfo.bCreateEpicForThis)
+	{
+		FScopeLock Lock(this->GetEpicTaskLock());
+		SetUpcomingEpic(CreateAndDispatchEpic(AccelByteNewTask->GetLocalUserNum(), FVoidHandler::CreateLambda([]() {})));
+		AccelByteNewTask->SetEpicForThisTask(EpicForUpcomingTask);
+		EnqueueTaskToEpic(EpicForUpcomingTask, AccelByteNewTask, TaskInfo.Type);
+		ResetEpicHasBeenSet();
+		return;
+	}
+
+	switch (TaskInfo.Type)
+	{
+	case ETypeOfOnlineAsyncTask::Parallel:
+		AsyncTaskManager->CheckMaxParallelTasks();
+		AsyncTaskManager->AddToParallelTasks(NewTask);
+		break;
+	case ETypeOfOnlineAsyncTask::Serial:
+		AsyncTaskManager->AddToInQueue(NewTask);
+		break;
+	default:
+		break;
+	}
+}
+
+bool FOnlineSubsystemAccelByte::IsUpcomingEpicAlreadySet()
+{
+	return EpicForUpcomingTask != nullptr;
+}
+
+void FOnlineSubsystemAccelByte::SetUpcomingEpic(FOnlineAsyncEpicTaskAccelByte* Epic)
+{
+	EpicForUpcomingTask = Epic;
+}
+
+void FOnlineSubsystemAccelByte::SetUpcomingParentTask(FOnlineAsyncTaskAccelByte* Parent)
+{
+	ParentTaskForUpcomingTask = Parent;
+}
+
+void FOnlineSubsystemAccelByte::ResetEpicHasBeenSet()
+{
+	EpicForUpcomingTask = nullptr;
+}
+
+void FOnlineSubsystemAccelByte::ResetParentTaskHasBeenSet()
+{
+	ParentTaskForUpcomingTask = nullptr;
+}
+
 bool FOnlineSubsystemAccelByte::GetAccelBytePlatformTypeFromAuthType(const FString& InAuthType, EAccelBytePlatformType& Result)
 {
 	if (InAuthType.Equals(TEXT("STEAM"), ESearchCase::IgnoreCase))
@@ -724,6 +813,29 @@ FString FOnlineSubsystemAccelByte::GetLanguage()
 void FOnlineSubsystemAccelByte::SetLanguage(const FString& InLanguage)
 {
 	Language = InLanguage;
+}
+
+void FOnlineSubsystemAccelByte::AddTaskToOutQueue(FOnlineAsyncTaskAccelByte* Task)
+{
+	check(AsyncTaskManager.IsValid());
+	FOnlineAsyncItem* Upcasting = static_cast<FOnlineAsyncItem*>(Task);
+	return AsyncTaskManager->AddToOutQueue(Upcasting);
+}
+
+void FOnlineSubsystemAccelByte::EnqueueTaskToEpic(FOnlineAsyncTaskAccelByte* TaskPtr, ETypeOfOnlineAsyncTask TaskType)
+{
+	if (EpicForUpcomingTask != nullptr)
+	{
+		this->EpicForUpcomingTask->Enqueue(TaskType, TaskPtr);
+	}
+}
+
+void FOnlineSubsystemAccelByte::EnqueueTaskToEpic(FOnlineAsyncEpicTaskAccelByte* EpicPtr, FOnlineAsyncTaskAccelByte* TaskPtr, ETypeOfOnlineAsyncTask TaskType)
+{
+	if (EpicForUpcomingTask != nullptr)
+	{
+		EpicPtr->Enqueue(TaskType, TaskPtr);
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

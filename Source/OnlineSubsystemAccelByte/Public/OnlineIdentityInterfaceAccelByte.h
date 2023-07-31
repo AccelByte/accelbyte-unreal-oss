@@ -17,6 +17,7 @@
 #include "OnlineSubsystemAccelByteTypes.h"
 #include "Core/AccelByteMultiRegistry.h"
 #include "Core/AccelByteUtilities.h"
+#include "OnlineErrorAccelByte.h"
 
 class FOnlineAccountCredentialsAccelByte : public FOnlineAccountCredentials
 {
@@ -41,6 +42,15 @@ typedef FOnConnectLobbyComplete::FDelegate FOnConnectLobbyCompleteDelegate;
 
 DECLARE_MULTICAST_DELEGATE_FourParams(FOnLoginWithOAuthErrorComplete, int32 /*LocalUserNum*/, bool /*bWasSuccessful*/, const FUniqueNetId& /*UserId*/, const FErrorOAuthInfo& /*Error*/);
 typedef FOnLoginWithOAuthErrorComplete::FDelegate FOnLoginWithOAuthErrorCompleteDelegate;
+
+DECLARE_MULTICAST_DELEGATE_FourParams(FAccelByteOnLoginComplete, int32 /*LocalUserNum*/, bool /*bWasSuccessful*/, const FUniqueNetId& /*UserId*/, const FOnlineErrorAccelByte& /*Error*/);
+typedef FAccelByteOnLoginComplete::FDelegate FAccelByteOnLoginCompleteDelegate;
+
+DECLARE_MULTICAST_DELEGATE_ThreeParams(FAccelByteOnLogoutComplete, int32 /*LocalUserNum*/, bool /*bWasSuccessful*/, const FOnlineErrorAccelByte& /*Error*/);
+typedef FAccelByteOnLogoutComplete::FDelegate FAccelByteOnLogoutCompleteDelegate;
+
+DECLARE_MULTICAST_DELEGATE_FourParams(FAccelByteOnConnectLobbyComplete, int32 /*LocalUserNum*/, bool /*bWasSuccessful*/, const FUniqueNetId& /*UserId*/, const FOnlineErrorAccelByte& /*Error*/);
+typedef FAccelByteOnConnectLobbyComplete::FDelegate FAccelByteOnConnectLobbyCompleteDelegate;
 
 /**
  * AccelByte service implementation of the online identity interface
@@ -132,7 +142,36 @@ public:
 	DEFINE_ONLINE_PLAYER_DELEGATE_THREE_PARAM(MAX_LOCAL_PLAYERS, OnConnectLobbyComplete, bool /*bWasSuccessful*/, const FUniqueNetId& /*UserId*/, const FString& /*Error*/);
 
 	DEFINE_ONLINE_PLAYER_DELEGATE_THREE_PARAM(MAX_LOCAL_PLAYERS, OnLoginWithOAuthErrorComplete, bool /*bWasSuccessful*/, const FUniqueNetId& /*UserId*/, const FErrorOAuthInfo& /*Error Object*/);
+
+	/**
+	 * Called when user account login has completed after calling Login() or AutoLogin()
+	 *
+	 * @param LocalUserNum the controller number of the associated user
+	 * @param bWasSuccessful true if server was contacted and a valid result received
+	 * @param UserId the user id received from the server on successful login
+	 * @param Error Information about the error condition
+	 */
+	DEFINE_ONLINE_PLAYER_DELEGATE_THREE_PARAM(MAX_LOCAL_PLAYERS, AccelByteOnLoginComplete, bool /*bWasSuccessful*/, const FUniqueNetId& /*UserId*/, const FOnlineErrorAccelByte& /*Error*/);
+
+	/**
+	 * Delegate used in notifying the that manual logout completed
+	 *
+	 * @param LocalUserNum the controller number of the associated user
+	 * @param bWasSuccessful whether the async call completed properly or not
+	 * @param Error Information about the error condition
+	 */
+	DEFINE_ONLINE_PLAYER_DELEGATE_TWO_PARAM(MAX_LOCAL_PLAYERS, AccelByteOnLogoutComplete, bool /*bWasSuccessful*/, const FOnlineErrorAccelByte& /*Error*/);
  
+	/**
+	 * Called when user account login succesfully connected to lobby
+	 *
+	 * @param LocalUserNum the controller number of the associated user
+	 * @param bWasSuccessful true if server was contacted and a valid result received
+	 * @param UserId the user id received from the server on successful connect
+	 * @param Error Information about the error condition
+	 */
+	DEFINE_ONLINE_PLAYER_DELEGATE_THREE_PARAM(MAX_LOCAL_PLAYERS, AccelByteOnConnectLobbyComplete, bool /*bWasSuccessful*/, const FUniqueNetId& /*UserId*/, const FOnlineErrorAccelByte& /*Error*/);
+
 	bool ConnectAccelByteLobby(int32 LocalUserNum);
 
 	/**

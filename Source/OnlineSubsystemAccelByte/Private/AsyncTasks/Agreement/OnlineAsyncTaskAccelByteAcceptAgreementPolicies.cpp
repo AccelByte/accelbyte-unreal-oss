@@ -7,6 +7,7 @@
 #include "OnlineIdentityInterfaceAccelByte.h"
 #include "OnlineAgreementInterfaceAccelByte.h"
 
+#define ONLINE_ERROR_NAMESPACE "FOnlineAccelByteAcceptAgreementPolicies"
 FOnlineAsyncTaskAccelByteAcceptAgreementPolicies::FOnlineAsyncTaskAccelByteAcceptAgreementPolicies(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InLocalUserId, const TArray<FABAcceptAgreementPoliciesRequest>& InDocumentsToAccept)
 	: FOnlineAsyncTaskAccelByte(InABInterface)
 	, DocumentsToAccept(InDocumentsToAccept)
@@ -128,11 +129,13 @@ void FOnlineAsyncTaskAccelByteAcceptAgreementPolicies::TriggerDelegates()
 			else
 			{
 				AgreementInterface->TriggerOnAcceptAgreementPoliciesCompletedDelegates(LocalUserNum, bRequestResult, TEXT(""));
+				AgreementInterface->TriggerAccelByteOnAcceptAgreementPoliciesCompletedDelegates(LocalUserNum, bRequestResult, ONLINE_ERROR_ACCELBYTE(TEXT(""), bRequestResult? EOnlineErrorResult::Success : EOnlineErrorResult::RequestFailure));
 			}
 		}
 		else
 		{
 			AgreementInterface->TriggerOnAcceptAgreementPoliciesCompletedDelegates(LocalUserNum, false, ErrorStr);
+			AgreementInterface->TriggerAccelByteOnAcceptAgreementPoliciesCompletedDelegates(LocalUserNum, false, ONLINE_ERROR_ACCELBYTE(FOnlineErrorAccelByte::PublicGetErrorKey(ErrorCode, ErrorStr)));
 		}
 	}
 
@@ -149,9 +152,11 @@ void FOnlineAsyncTaskAccelByteAcceptAgreementPolicies::OnAcceptAgreementPolicies
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Request to accept agreement policies for user '%s' Success!"), *UserId->ToDebugString());
 }
 
-void FOnlineAsyncTaskAccelByteAcceptAgreementPolicies::OnAcceptAgreementPoliciesError(int32 ErrorCode, const FString& ErrorMessage)
+void FOnlineAsyncTaskAccelByteAcceptAgreementPolicies::OnAcceptAgreementPoliciesError(int32 InErrorCode, const FString& ErrorMessage)
 {
+	ErrorCode = InErrorCode;
 	ErrorStr = TEXT("request-failed-accept-agreement-policies-error");
 	UE_LOG_AB(Warning, TEXT("Failed to accept agreement policies! Error Code: %d; Error Message: %s"), ErrorCode, *ErrorMessage);
 	CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
 }
+#undef ONLINE_ERROR_NAMESPACE

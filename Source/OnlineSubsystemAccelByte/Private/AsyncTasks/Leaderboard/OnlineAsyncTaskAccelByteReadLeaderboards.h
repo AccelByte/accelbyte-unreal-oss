@@ -5,14 +5,10 @@
 #pragma once
 #include "AsyncTasks/OnlineAsyncTaskAccelByte.h"
 #include "AsyncTasks/OnlineAsyncTaskAccelByteUtils.h"
-#include "Models/AccelByteStatisticModels.h"
 #include "OnlineLeaderboardInterfaceAccelByte.h"
 
 #include "Online.h"
 #include "OnlineStats.h"
-#include "Interfaces/OnlineLeaderboardInterface.h"
-#include "OnlineSubsystemTypes.h"
-#include "OnlineSubsystem.h"
 #include "OnlineSubsystemAccelByteTypes.h"
 
 class FOnlineAsyncTaskAccelByteReadLeaderboards : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteReadLeaderboards, ESPMode::ThreadSafe>

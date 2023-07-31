@@ -59,6 +59,7 @@
 #include "Core/AccelByteUtilities.h"
 #include <algorithm>
 
+#include "AsyncTasks/Matchmaking/OnlineAsyncTaskAccelByteGetMyV2MatchmakingTickets.h"
 #include "AsyncTasks/SessionV2/OnlineAsyncTaskAccelByteGenerateNewV2GameCode.h"
 #include "AsyncTasks/SessionV2/OnlineAsyncTaskAccelByteJoinV2GameSessionByCode.h"
 #include "AsyncTasks/SessionV2/OnlineAsyncTaskAccelBytePromoteV2GameSessionLeader.h"
@@ -578,8 +579,15 @@ void FOnlineSessionV2AccelByte::Init()
 
 void FOnlineSessionV2AccelByte::Tick(float DeltaTime)
 {
-	// If this flag has not been set, we don't need to do anything
-	if (!bReceivedSessionUpdate)
+	// Check if we have any canceled ticket IDs and if we have elapsed the time before clearing the tracked array, if so, clear it
+	const double CurrentTimeSeconds = FPlatformTime::Seconds();
+	if (CanceledTicketIds.Num() > 0 && CurrentTimeSeconds > LastCanceledTicketIdAddedTimeSeconds + ClearCanceledTicketIdsTimeInSeconds)
+	{
+		CanceledTicketIds.Empty();
+	}
+
+	// If we have no sessions with a pending update, then bail out
+	if (SessionsWithPendingQueuedUpdates.Num() <= 0)
 	{
 		return;
 	}
@@ -589,6 +597,16 @@ void FOnlineSessionV2AccelByte::Tick(float DeltaTime)
 	// Check for updates and apply them to each stored session
 	for (TPair<FName, TSharedPtr<FNamedOnlineSession>>& SessionEntry : Sessions)
 	{
+		int32 PendingUpdateIndex = SessionsWithPendingQueuedUpdates.IndexOfByPredicate([SessionName = SessionEntry.Key](const FName& PendingUpdateSessionName) {
+			return PendingUpdateSessionName.IsEqual(SessionName);
+		});
+
+		if (PendingUpdateIndex == INDEX_NONE)
+		{
+			// Session does not have an update pending, bail out
+			continue;
+		}
+
 		if (!ensure(SessionEntry.Value.IsValid()))
 		{
 			UE_LOG_AB(Warning, TEXT("Could not check session for updates as the session is invalid!"));
@@ -600,6 +618,8 @@ void FOnlineSessionV2AccelByte::Tick(float DeltaTime)
 			// Do not attempt to update a session that is creating or destroying, as those states will not have valid session
 			// info or backend data
 			UE_LOG_AB(VeryVerbose, TEXT("Ignoring updating session named %s as it is still in the %s state."), *SessionEntry.Key.ToString(), EOnlineSessionState::ToString(SessionEntry.Value->SessionState));
+
+			// #NOTE Intentionally not removing pending update here to account for a race condition between websocket notification and join/create completion
 			continue;
 		}
 
@@ -607,6 +627,9 @@ void FOnlineSessionV2AccelByte::Tick(float DeltaTime)
 		if (!ensure(SessionInfo.IsValid()))
 		{
 			UE_LOG_AB(Warning, TEXT("Could not check session for updates as the session doesn't have a valid session info object!"));
+
+			// Remove the pending update as we do not have a way to retrieve the latest update data
+			SessionsWithPendingQueuedUpdates.RemoveAt(PendingUpdateIndex);
 			continue;
 		}
 
@@ -614,6 +637,9 @@ void FOnlineSessionV2AccelByte::Tick(float DeltaTime)
 		if (!ensure(ExistingBackendData.IsValid()))
 		{
 			UE_LOG_AB(Warning, TEXT("Could not check session for updates as the session info doesn't have a valid backend session data object!"));
+
+			// Remove the pending update as we do not have a way to compare existing data with latest update
+			SessionsWithPendingQueuedUpdates.RemoveAt(PendingUpdateIndex);
 			continue;
 		}
 
@@ -623,6 +649,7 @@ void FOnlineSessionV2AccelByte::Tick(float DeltaTime)
 		if (!bHasUpdateToApply)
 		{
 			SessionInfo->SetLatestBackendSessionDataUpdate(nullptr);
+			SessionsWithPendingQueuedUpdates.RemoveAt(PendingUpdateIndex);
 			continue;
 		}
 
@@ -671,9 +698,10 @@ void FOnlineSessionV2AccelByte::Tick(float DeltaTime)
 			TriggerOnUpdateSessionCompleteDelegates(SessionEntry.Value->SessionName, true);
 			TriggerOnSessionUpdateReceivedDelegates(SessionEntry.Value->SessionName);
 		}
-	}
 
-	bReceivedSessionUpdate = false;
+		// Clear the pending update entry to signal that the update is finished
+		SessionsWithPendingQueuedUpdates.RemoveAt(PendingUpdateIndex);
+	}
 }
 
 void FOnlineSessionV2AccelByte::RegisterSessionNotificationDelegates(const FUniqueNetId& PlayerId)
@@ -979,20 +1007,6 @@ bool FOnlineSessionV2AccelByte::CreatePartySession(const FUniqueNetId& HostingPl
 		AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("SessionName: %s"), *SessionName.ToString());
 	}
 
-	// Check whether or not our join type is set to something other than invite only, if so throw a warning and kill the task
-	FString SessionJoinTypeString = TEXT("");
-	NewSessionSettings.Get(SETTING_SESSION_JOIN_TYPE, SessionJoinTypeString);
-
-	const EAccelByteV2SessionJoinability Joinability = GetJoinabilityFromString(SessionJoinTypeString);
-	if (Joinability != EAccelByteV2SessionJoinability::EMPTY && Joinability != EAccelByteV2SessionJoinability::INVITE_ONLY)
-	{
-		UE_LOG_AB(Warning, TEXT("Failed to create party as SETTING_SESSION_JOIN_TYPE setting is set to a value other than INVITE_ONLY!"));
-		AccelByteSubsystem->ExecuteNextTick([SessionInterface = SharedThis(this), SessionName]() {
-			SessionInterface->TriggerOnCreateSessionCompleteDelegates(SessionName, false);
-		});
-		return false;
-	}
-
 	// Create new session instance for this party that we are trying to create, and reflect state that we are creating
 	FNamedOnlineSession* NewSession = AddNamedSession(SessionName, NewSessionSettings);
 	NewSession->SessionState = EOnlineSessionState::Creating;
@@ -1277,9 +1291,9 @@ void FOnlineSessionV2AccelByte::AddBuiltInGameSessionSettingsToSessionSettings(F
 	OutSettings.Set(SETTING_SESSION_MATCHPOOL, GameSession.MatchPool);
 	OutSettings.Set(SETTING_SESSION_SERVER_TYPE, GetServerTypeAsString(GameSession.Configuration.Type));
 	OutSettings.Set(SETTING_SESSION_JOIN_TYPE, GetJoinabilityAsString(GameSession.Configuration.Joinability));
-	OutSettings.Set(SETTING_SESSION_MINIMUM_PLAYERS, GameSession.Configuration.MinPlayers);
-	OutSettings.Set(SETTING_SESSION_INVITE_TIMEOUT, GameSession.Configuration.InviteTimeout);
-	OutSettings.Set(SETTING_SESSION_INACTIVE_TIMEOUT, GameSession.Configuration.InactiveTimeout);
+	OutSettings.Set(SETTING_SESSION_MINIMUM_PLAYERS, static_cast<int32>(GameSession.Configuration.MinPlayers));
+	OutSettings.Set(SETTING_SESSION_INVITE_TIMEOUT, static_cast<int32>(GameSession.Configuration.InviteTimeout));
+	OutSettings.Set(SETTING_SESSION_INACTIVE_TIMEOUT, static_cast<int32>(GameSession.Configuration.InactiveTimeout));
 	OutSettings.Set(SETTING_GAMESESSION_CLIENTVERSION, GameSession.Configuration.ClientVersion);
 	OutSettings.Set(SETTING_GAMESESSION_DEPLOYMENT, GameSession.Configuration.Deployment);
 	OutSettings.Set(SETTING_SESSION_CODE, GameSession.Code);
@@ -1297,9 +1311,9 @@ void FOnlineSessionV2AccelByte::AddBuiltInPartySessionSettingsToSessionSettings(
 {
 	OutSettings.Set(SETTING_SESSION_TYPE, SETTING_SESSION_TYPE_PARTY_SESSION);
 	OutSettings.Set(SETTING_SESSION_JOIN_TYPE, GetJoinabilityAsString(PartySession.Configuration.Joinability));
-	OutSettings.Set(SETTING_SESSION_MINIMUM_PLAYERS, PartySession.Configuration.MinPlayers);
-	OutSettings.Set(SETTING_SESSION_INACTIVE_TIMEOUT, PartySession.Configuration.InactiveTimeout);
-	OutSettings.Set(SETTING_SESSION_INVITE_TIMEOUT, PartySession.Configuration.InactiveTimeout);
+	OutSettings.Set(SETTING_SESSION_MINIMUM_PLAYERS, static_cast<int32>(PartySession.Configuration.MinPlayers));
+	OutSettings.Set(SETTING_SESSION_INACTIVE_TIMEOUT, static_cast<int32>(PartySession.Configuration.InactiveTimeout));
+	OutSettings.Set(SETTING_SESSION_INVITE_TIMEOUT, static_cast<int32>(PartySession.Configuration.InviteTimeout));
 	OutSettings.Set(SETTING_PARTYSESSION_CODE, PartySession.Code);
 	OutSettings.Set(SETTING_SESSION_CODE, PartySession.Code);
 }
@@ -1630,7 +1644,13 @@ bool FOnlineSessionV2AccelByte::ReadSessionSettingsFromSessionModel(FOnlineSessi
 		MemberCompositeId.PlatformType = Member.PlatformID;
 		MemberCompositeId.PlatformId = Member.PlatformUserID;
 		FUniqueNetIdAccelByteUserRef MemberUniqueId = FUniqueNetIdAccelByteUser::Create(MemberCompositeId);
-		OutSettings.MemberSettings.FindOrAdd(MemberUniqueId, FSessionSettings());
+		
+		FSessionSettings FoundMemberSettings{};
+		bool bSettingsFound = FindPlayerMemberSettings(OutSettings, MemberUniqueId.Get(), FoundMemberSettings);
+		if (!bSettingsFound)
+		{
+			OutSettings.MemberSettings.Add(MemberUniqueId, FSessionSettings());
+		}
 	}
 
 	// Now, go through the attributes object and load attributes into session settings
@@ -1730,7 +1750,8 @@ bool FOnlineSessionV2AccelByte::ReadSessionSettingsFromSessionModel(FOnlineSessi
 			{
 				const FAccelByteModelsV2SessionUser* FoundMember = Session.Members.FindByPredicate([&](const FAccelByteModelsV2SessionUser& Member) {
 					return Member.ID.Equals(Attribute.Key, ESearchCase::IgnoreCase);
-					});
+				});
+
 				if (FoundMember != nullptr)
 				{
 					FAccelByteUniqueIdComposite MemberCompositeId{};
@@ -1738,10 +1759,14 @@ bool FOnlineSessionV2AccelByte::ReadSessionSettingsFromSessionModel(FOnlineSessi
 					MemberCompositeId.PlatformType = FoundMember->PlatformID;
 					MemberCompositeId.PlatformId = FoundMember->PlatformUserID;
 					FUniqueNetIdAccelByteUserRef MemberUniqueId = FUniqueNetIdAccelByteUser::Create(MemberCompositeId);
+
 					// Populate settings from the backend into the found member settings for the player
-					FSessionSettings* FoundMemberSettings = OutSettings.MemberSettings.Find(MemberUniqueId);
-					check(FoundMemberSettings != nullptr); // Should be populated above, if anything
-					ReadMemberSettingsFromJsonObject(*FoundMemberSettings, (*JsonObjectValue).ToSharedRef());
+					FSessionSettings FoundMemberSettings{};
+					bool bSettingsFound = FindPlayerMemberSettings(OutSettings, MemberUniqueId.Get(), FoundMemberSettings);
+					if (ensureAlways(bSettingsFound))
+					{
+						ReadMemberSettingsFromJsonObject(FoundMemberSettings, (*JsonObjectValue).ToSharedRef());
+					}
 				}
 				break;
 			}
@@ -2807,6 +2832,52 @@ bool FOnlineSessionV2AccelByte::IsPlayerP2PHost(const FUniqueNetId& LocalUserId,
 
 	const bool bIsP2PHost = (LocalUserId == SessionInfo->GetLeaderId().ToSharedRef().Get());
 	return SessionInfo->IsP2PMatchmaking() && bIsP2PHost;
+}
+
+bool FOnlineSessionV2AccelByte::FindPlayerMemberSettings(FOnlineSessionSettings& InSettings, const FUniqueNetId& PlayerId, FSessionSettings& OutMemberSettings) const
+{
+	// #NOTE Due to the way that our user IDs are set up, hashes may be different, such as if one ID has platform
+	// information, and the other lacks that information. However, we mostly just care about matching on the player's
+	// AccelByte ID anyway. With this in mind, iterate through the map entries and find the one that matches the correct
+	// AccelByte ID, and return it to the player.
+	FUniqueNetIdAccelByteUserRef AccelBytePlayerId = FUniqueNetIdAccelByteUser::CastChecked(PlayerId);
+	for (const TPair<FUniqueNetIdRef, FSessionSettings>& MemberPair : InSettings.MemberSettings)
+	{
+		FUniqueNetIdAccelByteUserRef FoundMemberAccelByteId = FUniqueNetIdAccelByteUser::CastChecked(MemberPair.Key);
+		if (AccelBytePlayerId->GetAccelByteId().Equals(FoundMemberAccelByteId->GetAccelByteId()))
+		{
+			OutMemberSettings = MemberPair.Value;
+			return true;
+		}
+	}
+
+	return false;
+}
+
+bool FOnlineSessionV2AccelByte::GetMyActiveMatchTicket(const FUniqueNetId& LocalUserId, FName SessionName, const FString& MatchPool)
+{
+	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("LocalUserId: %s; SessionName: %s, MatchPool: %s"), *LocalUserId.ToDebugString(), *SessionName.ToString(), *MatchPool);
+	if(CurrentMatchmakingSearchHandle.IsValid() && CurrentMatchmakingSearchHandle->SearchState == EOnlineAsyncTaskState::InProgress)
+	{
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Cannot get active match ticket as we are already currently matchmaking!"));
+		AccelByteSubsystem->ExecuteNextTick([SessionInterface = SharedThis(this), SessionName]() {
+			SessionInterface->TriggerOnGetMyActiveMatchTicketCompleteDelegates(false, SessionName, nullptr);
+		});
+		return false;
+	}
+
+	if(MatchPool.IsEmpty())
+	{
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Cannot get active match ticket as the matchpool parameter is empty!"));
+		AccelByteSubsystem->ExecuteNextTick([SessionInterface = SharedThis(this), SessionName]() {
+			SessionInterface->TriggerOnGetMyActiveMatchTicketCompleteDelegates(false, SessionName, nullptr);
+		});
+		return false;
+	}
+
+	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGetMyV2MatchmakingTickets>(AccelByteSubsystem, LocalUserId, SessionName, MatchPool);
+	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+	return true;
 }
 
 bool FOnlineSessionV2AccelByte::FindFriendSession(int32 LocalUserNum, const FUniqueNetId& Friend)
@@ -3886,9 +3957,11 @@ void FOnlineSessionV2AccelByte::EnqueueBackendDataUpdate(const FName& SessionNam
 		SessionInfo->SetDSReadyUpdateReceived(true);
 	}
 
-	if (!bReceivedSessionUpdate)
+	// If we should update, or if we have an update with new server information, signal in the array that we have a
+	// pending update to process
+	if (bShouldUpdate || bIsDSReadyUpdate)
 	{
-		bReceivedSessionUpdate = bShouldUpdate || bIsDSReadyUpdate;
+		SessionsWithPendingQueuedUpdates.AddUnique(SessionName);
 	}
 
 	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
@@ -4496,6 +4569,16 @@ void FOnlineSessionV2AccelByte::OnMatchmakingStartedNotification(FAccelByteModel
 	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("LocalUserNum: %d; TicketID: %s; PartyID: %s; Namespace: %s; MatchPool: %s"),
 		LocalUserNum, *MatchmakingStartedNotif.TicketID, *MatchmakingStartedNotif.PartyID, *MatchmakingStartedNotif.Namespace, *MatchmakingStartedNotif.MatchPool);
 
+	bool bIsTicketCanceled = CanceledTicketIds.ContainsByPredicate([&MatchmakingStartedNotif](const FString& TicketId) {
+		return TicketId.Equals(MatchmakingStartedNotif.TicketID);
+	});
+
+	if (bIsTicketCanceled)
+	{
+		AB_OSS_INTERFACE_TRACE_END(TEXT("Ignoring matchmaking start notification as we explicitly canceled this ticket."));
+		return;
+	}
+
 	if (CurrentMatchmakingSearchHandle.IsValid())
 	{
 		// Since we already have a matchmaking search handle, we don't need to do anything else here and can bail
@@ -4607,6 +4690,9 @@ void FOnlineSessionV2AccelByte::OnMatchmakingCanceledNotification(FAccelByteMode
 		AB_OSS_INTERFACE_TRACE_END(TEXT("Failed to handle matchmaking canceled notification as no matchmaking search handle was found!"));
 		return;
 	}
+
+	// Add ticket ID to the canceled array
+	AddCanceledTicketId(CurrentMatchmakingSearchHandle->TicketId);
 
 	// Clear current matchmaking handle, and mark as failed
 	FName SessionName = CurrentMatchmakingSearchHandle->SearchingSessionName;
@@ -5057,6 +5143,12 @@ bool FOnlineSessionV2AccelByte::ServerQueryPartySessions(const FAccelByteModelsV
 	return true;
 }
 
+void FOnlineSessionV2AccelByte::AddCanceledTicketId(const FString& TicketId)
+{
+	LastCanceledTicketIdAddedTimeSeconds = FPlatformTime::Seconds();
+	CanceledTicketIds.Add(TicketId);
+}
+	
 bool FOnlineSessionV2AccelByte::IsServerUseAMS() const
 {
 	return bServerUseAMS;

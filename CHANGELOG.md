@@ -2,6 +2,30 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.11.14](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.11.14%0D0.11.13) (2023-07-31)
+
+
+### Features
+
+* implement online error accelbyte to identity and agreement interface ([b3286c6](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/b3286c647e6cc3841681e43d5cbfdd5051c5924e))
+* introduce CreateAndDispatch generic and Epic Task manager ([43b553f](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/43b553f973d32806c35b214cbd56afb57aa0bb49))
+* **MPv2:** call new accept backfill proposal from SDK and update internal game session after accepting backfill ([b0469fd](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/b0469fd97b7534f7e52d63ecd1c70fb9275b61be))
+* redirect readme to docs portal ([e9bb731](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/e9bb731ecf23739c9a6b81a127d98bc78787a4d7))
+* **SessionV2:** add GetMyActiveMatchTicket ([ee736d7](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/ee736d7286bc39b02200d72bbcfa7fe83e90e39a))
+
+
+### Bug Fixes
+
+* **MMv2:** fix potential hang in matchmaking process when notifications arrive out of order ([71a3023](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/71a30236461f525eee986ad1ef1c4a6f092c625f))
+* **MMv2:** potential case where matchmaking start notification would come after cancel, leading to stuck state ([046a22e](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/046a22ef2454f934e85e40b82cc037b5dfc94f51))
+* **MPv2:** potential crash when attempting to fill member settings ([437e698](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/437e6986504ffc4fb5fe673280208b54da1e9456))
+* skip adding teams in session update request when joinability is closed ([b453291](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/b45329181940bf5922b209236545388cbef0df14))
+
+
+### Refactors
+
+* Remove invite_only joinable validation check when creating v2 party session. ([6eee4c5](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/6eee4c5eb185f8da7dc1f1d5130f2edc2ae668bf))
+
 ### [0.11.13](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.11.13%0D0.11.12) (2023-07-26)
 
 

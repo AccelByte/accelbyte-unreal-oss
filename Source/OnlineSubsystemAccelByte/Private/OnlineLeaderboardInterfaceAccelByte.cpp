@@ -4,7 +4,9 @@
 #include "OnlineLeaderboardInterfaceAccelByte.h"
 #include "OnlineIdentityInterfaceAccelByte.h"
 #include "OnlineSubsystemUtils.h"
+#include "AsyncTasks/Leaderboard/OnlineAsyncTaskAccelByteReadLeaderboardAroundUser.h"
 #include "AsyncTasks/Leaderboard/OnlineAsyncTaskAccelByteReadLeaderboards.h"
+#include "AsyncTasks/Leaderboard/OnlineAsyncTaskAccelByteReadLeaderboardsAroundRank.h"
 
 bool FOnlineLeaderboardAccelByte::GetFromSubsystem(
 	const IOnlineSubsystem* Subsystem,
@@ -90,6 +92,12 @@ bool FOnlineLeaderboardAccelByte::ReadLeaderboardsForFriendsCycle(
 	if (!IdentityInterface.IsValid())
 	{
 		UE_LOG_ONLINE_LEADERBOARD(Warning, TEXT("Fail to read leaderboard cycle for friends as the identity interface is not valid"));
+		return false;
+	}
+
+	if (IsRunningDedicatedServer())
+	{
+		UE_LOG_ONLINE_LEADERBOARD(Warning, TEXT("ReadLeaderboardsForFriends can only accessed for player"));
 		return false;
 	}
 
@@ -225,8 +233,82 @@ bool FOnlineLeaderboardAccelByte::ReadLeaderboardsAroundRank(
 	uint32 Range,
 	FOnlineLeaderboardReadRef& ReadObject)
 {
-	UE_LOG_AB(Warning, TEXT("warning. not implemented function. FOnlineLeaderboardAccelByte::ReadLeaderboardsAroundRank"));
-	return false;
+	UE_LOG_ONLINE_LEADERBOARD(Display, TEXT("FOnlineLeaderboardAccelByte::ReadLeaderboardsAroundRank"));
+
+	if(IsRunningDedicatedServer())
+	{
+		UE_LOG_ONLINE_LEADERBOARD(Warning, TEXT("ReadLeaderboardsAroundRank can only accessed for player"));
+		return false;
+	}
+
+	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteReadLeaderboardsAroundRank>(
+		AccelByteSubsystem,
+		AccelByteSubsystem->GetLocalUserNumCached(),
+		ReadObject,
+		Rank,
+		Range,
+		false,
+		TEXT(""));
+	
+	return true;
+}
+
+bool FOnlineLeaderboardAccelByte::ReadLeaderboardCycleAroundRank(
+	int32 Rank,
+	uint32 Range,
+	FString const& CycleId,
+	FOnlineLeaderboardReadRef& ReadObject)
+{
+	UE_LOG_ONLINE_LEADERBOARD(Display, TEXT("FOnlineLeaderboardAccelByte::ReadLeaderboardsAroundRank"));
+
+	if (CycleId.IsEmpty())
+	{
+		UE_LOG_ONLINE_LEADERBOARD(Warning, TEXT("Fail to read leaderboard cycle around rank as the cycle id is not valid"));
+		return false;
+	}
+	
+	if(IsRunningDedicatedServer())
+	{
+		UE_LOG_ONLINE_LEADERBOARD(Warning, TEXT("ReadLeaderboardsAroundRank can only accessed for player"));
+		return false;
+	}
+
+	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteReadLeaderboardsAroundRank>(
+		AccelByteSubsystem,
+		AccelByteSubsystem->GetLocalUserNumCached(),
+		ReadObject,
+		Rank,
+		Range,
+		true,
+		CycleId);
+	
+	return true;
+}
+
+bool FOnlineLeaderboardAccelByte::ReadLeaderboardCycleAroundUser(
+	FUniqueNetIdRef Player,
+	uint32 Range,
+	FString const& CycleId,
+	FOnlineLeaderboardReadRef& ReadObject)
+{
+	UE_LOG_ONLINE_LEADERBOARD(Display, TEXT("FOnlineLeaderboardAccelByte::ReadLeaderboardsAroundUser"));
+
+	if(IsRunningDedicatedServer())
+	{
+		UE_LOG_ONLINE_LEADERBOARD(Warning, TEXT("ReadLeaderboardsAroundRank can only accessed for player"));
+		return false;
+	}
+
+	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteReadLeaderboardAroundUser>(
+		AccelByteSubsystem,
+		AccelByteSubsystem->GetLocalUserNumCached(),
+		Player,
+		ReadObject,
+		Range,
+		true,
+		CycleId);
+	
+	return true;
 }
 
 bool FOnlineLeaderboardAccelByte::ReadLeaderboardsAroundUser(
@@ -234,7 +316,22 @@ bool FOnlineLeaderboardAccelByte::ReadLeaderboardsAroundUser(
 	uint32 Range,
 	FOnlineLeaderboardReadRef& ReadObject)
 {
-	UE_LOG_AB(Warning, TEXT("warning. feature is not available. Calling ReadLeaderboards for single player specified with 0 range"));
+	UE_LOG_ONLINE_LEADERBOARD(Display, TEXT("FOnlineLeaderboardAccelByte::ReadLeaderboardsAroundUser"));
+
+	if(IsRunningDedicatedServer())
+	{
+		UE_LOG_ONLINE_LEADERBOARD(Warning, TEXT("ReadLeaderboardsAroundRank can only accessed for player"));
+		return false;
+	}
+
+	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteReadLeaderboardAroundUser>(
+		AccelByteSubsystem,
+		AccelByteSubsystem->GetLocalUserNumCached(),
+		Player,
+		ReadObject,
+		Range,
+		false,
+		TEXT(""));
 	return true;
 }
 

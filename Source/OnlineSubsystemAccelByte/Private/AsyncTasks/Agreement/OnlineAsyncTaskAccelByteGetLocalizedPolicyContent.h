@@ -51,6 +51,11 @@ private:
 	 */
 	FString ErrorStr;
 
+	/**
+	 * Digit code representing the error that occurred
+	 */
+	int32 ErrorCode;
+
 	FString BasePolicyId;
 	FString LocaleCode;
 	FString BaseUrl;

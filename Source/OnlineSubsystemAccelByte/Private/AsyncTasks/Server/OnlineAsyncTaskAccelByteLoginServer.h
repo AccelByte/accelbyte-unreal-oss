@@ -29,6 +29,9 @@ private:
 	/** String representing the error that occurred as a key */
 	FString ErrorString{};
 
+	/** Digit code representing the error that occurred*/
+	int32 ErrorCode;
+
 	void OnLoginServerSuccess();
 	void OnLoginServerError(int32 ErrorCode, const FString& ErrorMessage);
 

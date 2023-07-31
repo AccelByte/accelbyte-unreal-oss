@@ -28,12 +28,6 @@ void FOnlineAsyncTaskAccelByteCreateV2Party::Initialize()
 	AB_ASYNC_TASK_ENSURE(SessionInterface.IsValid(), "Failed to create party as our session interface is invalid!");
 
 	JoinType = SessionInterface->GetJoinabiltyFromSessionSettings(NewSessionSettings);
-	if (JoinType != EAccelByteV2SessionJoinability::EMPTY && JoinType != EAccelByteV2SessionJoinability::INVITE_ONLY)
-	{
-		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Attempted to override party joinability with a value other than INVITE_ONLY! Parties are only able to be invite only!"));
-		CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState);
-		return;
-	}
 
 	// Next, we want to send off a request to check on the backend if we are in a party. This way we can validate in case
 	// we're in one, but we haven't restored our state. This will tell the developer to call RestoreParties to restore

@@ -445,6 +445,9 @@ typedef FOnServerQueryPartySessionsComplete::FDelegate FOnServerQueryPartySessio
 DECLARE_MULTICAST_DELEGATE_TwoParams(FOnPromoteGameSessionLeaderComplete, const FUniqueNetId& /*PromotedUserId*/, const FOnlineErrorAccelByte& /*Result*/);
 typedef FOnPromoteGameSessionLeaderComplete::FDelegate FOnPromoteGameSessionLeaderCompleteDelegate;
 
+DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnGetMyActiveMatchTicketComplete, bool /*bWasSuccessful*/, FName /*SessionName*/, TSharedPtr<FOnlineSessionSearch>& /*SearchHandler*/);
+typedef FOnGetMyActiveMatchTicketComplete::FDelegate FOnGetMyActiveMatchTicketCompleteDelegate;
+
 /**
  * Delegate broadcast when a session that the player is in locally has been removed on the backend. Gives the game an
  * opportunity to clean up state.
@@ -803,6 +806,27 @@ public:
 	bool IsPlayerP2PHost(const FUniqueNetId& LocalUserId, FName SessionName);
 
 	/**
+	 * Attempt to find a specific player's member settings entry within a FOnlineSessionSettings instance.
+	 *
+	 * @param InSettings Settings instance that we are attempting to find within
+	 * @param PlayerId ID of the player that you are attempting to find a settings entry for
+	 * @param OutMemberSettings Settings for the player that were found
+	 * @return bool true if found, false otherwise
+	 */
+	bool FindPlayerMemberSettings(FOnlineSessionSettings& InSettings, const FUniqueNetId& PlayerId, FSessionSettings& OutMemberSettings) const;
+
+	/**
+	 * Query the backend for active matchmaking tickets, Listen to OnGetMyActiveMatchTicketComplete for the result.
+	 * if active ticket is found, it will fill CurrentMatchmakingSearchHandle so ticket can be cancelled with CancelMatchmaking call.
+	 *
+	 * @param LocalUserId ID of the player that you are attempting to find active match ticket for
+	 * @param SessionName Session name we are searching active match ticket for
+	 * @param MatchPool Match pool we are going to search active ticket for
+	 * @return true if query request is sent, false otherwise
+	 */
+	bool GetMyActiveMatchTicket(const FUniqueNetId& LocalUserId, FName SessionName, const FString& MatchPool);
+
+	/**
 	 * Delegate fired when we have retrieved information on the session that our server is claimed by on the backend.
 	 *
 	 * @param SessionName the name that our server session is stored under
@@ -922,6 +946,12 @@ public:
 	 * Delegate fired when server query party sessions complete
 	 */
 	DEFINE_ONLINE_DELEGATE_TWO_PARAM(OnServerQueryPartySessionsComplete, const FAccelByteModelsV2PaginatedPartyQueryResult& /*PartySessionsQueryResult*/, const FOnlineError& /*ErrorInfo*/)
+
+	/**
+	 * Delegate fired when get my active match ticket complete,
+	 * SearchHandle will be invalid if no active ticket is found.
+	 */
+	DEFINE_ONLINE_DELEGATE_THREE_PARAM(OnGetMyActiveMatchTicketComplete, bool /*bWasSuccessful*/, FName /*SessionName*/, TSharedPtr<FOnlineSessionSearch> /*SearchHandle*/)
 
 	/**
 	 * Delegate broadcast when a session that the player is in locally has been removed on the backend. Gives the game an
@@ -1297,6 +1327,11 @@ PACKAGE_SCOPE:
 	 */
 	bool IsServerUseAMS() const;
 
+	/**
+	 * Add a canceled ticket ID to this interface instance for tracking
+	 */
+	void AddCanceledTicketId(const FString& TicketId);
+
 private:
 	/** Parent subsystem of this interface instance */
 	FOnlineSubsystemAccelByte* AccelByteSubsystem = nullptr;
@@ -1310,8 +1345,8 @@ private:
 	/** Flag denoting whether there is already a task in progress to get a session associated with a server */
 	bool bIsGettingServerClaimedSession{ false };
 
-	/** Flag denoting whether there has been an update to any of the sessions in the interface */
-	bool bReceivedSessionUpdate{ false };
+	/** Array of session names that have an update queued from the backend */
+	TArray<FName> SessionsWithPendingQueuedUpdates{};
 
 	/** Array of delegates that are awaiting server session retrieval before executing */
 	TArray<TFunction<void()>> SessionCallsAwaitingServerSession;
@@ -1347,6 +1382,15 @@ private:
 	/** Attributes for a player using this session interface instance, contains crossplay and platform information */
 	TUniqueNetIdMap<FAccelByteModelsV2PlayerAttributes> UserIdToPlayerAttributesMap{};
 
+	/** Array of ticket IDs that we have explicitly canceled, used to prevent race condition between cancel and start notification */
+	TArray<FString> CanceledTicketIds{};
+
+	/** Time that we last added a ticket ID to the list of canceled IDs */
+	double LastCanceledTicketIdAddedTimeSeconds = 0.0;
+
+	/** Time in seconds that we clear the array of canceled ticket IDs (default to five minutes) */
+	double ClearCanceledTicketIdsTimeInSeconds = 300.0;
+	
 	bool bServerUseAMS = false;
 
 	/** Hidden on purpose */

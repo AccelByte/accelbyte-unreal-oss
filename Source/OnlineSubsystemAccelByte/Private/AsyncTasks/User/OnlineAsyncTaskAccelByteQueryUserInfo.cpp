@@ -66,7 +66,7 @@ void FOnlineAsyncTaskAccelByteQueryUserInfo::Initialize()
 
 	const FOnQueryUsersComplete OnQueryUsersCompleteDelegate = TDelegateUtils<FOnQueryUsersComplete>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryUserInfo::OnQueryUsersComplete);
 	UserCache->QueryUsersByAccelByteIds(LocalUserNum, UserIdsToQuery, OnQueryUsersCompleteDelegate);
-
+	
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 

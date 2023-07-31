@@ -23,6 +23,8 @@
 // in ms
 #define STEAM_LOGIN_DELAY 2000
 
+#define ONLINE_ERROR_NAMESPACE "FOnlineAccelByteLogin"
+
 FOnlineAsyncTaskAccelByteLogin::FOnlineAsyncTaskAccelByteLogin(FOnlineSubsystemAccelByte* const InABSubsystem
 	, int32 InLocalUserNum
 	, const FOnlineAccountCredentials& InAccountCredentials)
@@ -136,12 +138,14 @@ void FOnlineAsyncTaskAccelByteLogin::TriggerDelegates()
 				ErrorOAuthObject.ErrorMessage= ErrorStr;
 				ErrorOAuthObject.Error_description = ErrorStr;
 				IdentityInterface->TriggerOnLoginWithOAuthErrorCompleteDelegates(LoginUserNum, false, ReturnId.Get(), ErrorOAuthObject);
+				IdentityInterface->TriggerAccelByteOnLoginCompleteDelegates(LoginUserNum, bWasSuccessful, ReturnId.Get(), ONLINE_ERROR_ACCELBYTE(ErrorStr));
 			}
 		}
 		else
 		{
 			IdentityInterface->TriggerOnLoginCompleteDelegates(LoginUserNum, bWasSuccessful, ReturnId.Get(), ErrorStr);
 			IdentityInterface->TriggerOnLoginWithOAuthErrorCompleteDelegates(LoginUserNum, bWasSuccessful, ReturnId.Get(), ErrorOAuthObject);
+			IdentityInterface->TriggerAccelByteOnLoginCompleteDelegates(LoginUserNum, bWasSuccessful, ReturnId.Get(), ONLINE_ERROR_ACCELBYTE(FOnlineErrorAccelByte::PublicGetErrorKey(ErrorCode, ErrorStr), bWasSuccessful ? EOnlineErrorResult::Success : EOnlineErrorResult::RequestFailure));
 		}
 	}
 
@@ -469,20 +473,10 @@ void FOnlineAsyncTaskAccelByteLogin::OnLoginSuccess()
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 
-void FOnlineAsyncTaskAccelByteLogin::OnLoginError(int32 ErrorCode, const FString& ErrorMessage)
+void FOnlineAsyncTaskAccelByteLogin::OnLoginErrorOAuth(int32 InErrorCode, const FString& ErrorMessage, const FErrorOAuthInfo& ErrorObject)
 {
-	UE_LOG_AB(Warning, TEXT("Failed to login to the AccelByte backend! Error Code: %d; Error Message: %s"), ErrorCode, *ErrorMessage);
-	ErrorStr = TEXT("login-failed-connect");
-	if (ErrorCode == 1124060) // Permanent ban
-	{
-		ErrorStr = TEXT("user-banned");
-	}
-	CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
-}
-
-void FOnlineAsyncTaskAccelByteLogin::OnLoginErrorOAuth(int32 ErrorCode, const FString& ErrorMessage, const FErrorOAuthInfo& ErrorObject)
-{
-	UE_LOG_AB(Warning, TEXT("Failed to login to the AccelByte backend! Error Code: %d; Error Message: %s"), ErrorCode, *ErrorMessage);
+	UE_LOG_AB(Warning, TEXT("Failed to login to the AccelByte backend! Error Code: %d; Error Message: %s"), InErrorCode, *ErrorMessage);
+	ErrorCode = InErrorCode;
 	ErrorOAuthObject = ErrorObject;
 	ErrorStr = TEXT("login-failed-connect");
 	if (ErrorCode == 400 || ErrorCode == 403) // Permanent ban
@@ -494,3 +488,5 @@ void FOnlineAsyncTaskAccelByteLogin::OnLoginErrorOAuth(int32 ErrorCode, const FS
 	}
 	CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
 }
+
+#undef ONLINE_ERROR_NAMESPACE

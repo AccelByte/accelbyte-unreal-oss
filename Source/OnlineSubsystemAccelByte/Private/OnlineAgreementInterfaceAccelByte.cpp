@@ -36,6 +36,7 @@ bool FOnlineAgreementAccelByte::GetFromWorld(const UWorld* World, FOnlineAgreeme
 	return GetFromSubsystem(Subsystem, OutInterfaceInstance);
 }
 
+#define ONLINE_ERROR_NAMESPACE "FOnlineAccelByteQueryEligibilities"
 bool FOnlineAgreementAccelByte::QueryEligibleAgreements(int32 LocalUserNum, bool bNotAcceptedOnly, bool bAlwaysRequestToService)
 {
 	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("LocalUserNum: %d"), LocalUserNum);
@@ -60,7 +61,8 @@ bool FOnlineAgreementAccelByte::QueryEligibleAgreements(int32 LocalUserNum, bool
 				const FString ErrorStr = TEXT("query-eligibilities-failed-userid-invalid");
 				AB_OSS_INTERFACE_TRACE_END(TEXT("UserId is not valid at user index '%d'!"), LocalUserNum);
 				TriggerOnQueryEligibilitiesCompletedDelegates(LocalUserNum, false, TArray<FAccelByteModelsRetrieveUserEligibilitiesResponse>{}, ErrorStr);
-				
+				TriggerAccelByteOnQueryEligibilitiesCompletedDelegates(LocalUserNum, true, TArray<FAccelByteModelsRetrieveUserEligibilitiesResponse>{}, ONLINE_ERROR_ACCELBYTE(ErrorStr));
+
 				return false;
 			}
 		}
@@ -69,9 +71,11 @@ bool FOnlineAgreementAccelByte::QueryEligibleAgreements(int32 LocalUserNum, bool
 	const FString ErrorStr = TEXT("query-eligibilities-failed-not-logged-in");
 	AB_OSS_INTERFACE_TRACE_END(TEXT("User not logged in at user index '%d'!"), LocalUserNum);
 	TriggerOnQueryEligibilitiesCompletedDelegates(LocalUserNum, false, TArray<FAccelByteModelsRetrieveUserEligibilitiesResponse>{}, ErrorStr);
+	TriggerAccelByteOnQueryEligibilitiesCompletedDelegates(LocalUserNum, true, TArray<FAccelByteModelsRetrieveUserEligibilitiesResponse>{}, ONLINE_ERROR_ACCELBYTE(ErrorStr));
 
 	return false;
 }
+#undef ONLINE_ERROR_NAMESPACE
 
 bool FOnlineAgreementAccelByte::GetEligibleAgreements(int32 LocalUserNum, TArray<TSharedRef<FAccelByteModelsRetrieveUserEligibilitiesResponse>>& OutEligibilites)
 {
@@ -88,6 +92,7 @@ bool FOnlineAgreementAccelByte::GetEligibleAgreements(int32 LocalUserNum, TArray
 	return false;
 }
 
+#define ONLINE_ERROR_NAMESPACE "FOnlineAccelByteGetLocalizedPolicyContent"
 bool FOnlineAgreementAccelByte::GetLocalizedPolicyContent(int32 LocalUserNum, const FString& BasePolicyId, const FString& LocaleCode, bool bAlwaysRequestToService)
 {
 	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("Get Localized content, BasePolicy: %s, LocalUserNum: %d"), *BasePolicyId, LocalUserNum);
@@ -112,6 +117,7 @@ bool FOnlineAgreementAccelByte::GetLocalizedPolicyContent(int32 LocalUserNum, co
 				const FString ErrorStr = TEXT("get-localized-content-failed-userid-invalid");
 				AB_OSS_INTERFACE_TRACE_END(TEXT("UserId is not valid at user index '%d'!"), LocalUserNum);
 				TriggerOnGetLocalizedPolicyContentCompletedDelegates(LocalUserNum, false, TEXT(""), ErrorStr);
+				TriggerAccelByteOnGetLocalizedPolicyContentCompletedDelegates(LocalUserNum, false, TEXT(""), ONLINE_ERROR_ACCELBYTE(ErrorStr));
 
 				return false;
 			}
@@ -121,10 +127,12 @@ bool FOnlineAgreementAccelByte::GetLocalizedPolicyContent(int32 LocalUserNum, co
 	const FString ErrorStr = TEXT("get-localized-content-failed-not-logged-in");
 	AB_OSS_INTERFACE_TRACE_END(TEXT("User not logged in at user index '%d'!"), LocalUserNum);
 	TriggerOnGetLocalizedPolicyContentCompletedDelegates(LocalUserNum, false, TEXT(""), ErrorStr);
+	TriggerAccelByteOnGetLocalizedPolicyContentCompletedDelegates(LocalUserNum, false, TEXT(""), ONLINE_ERROR_ACCELBYTE(ErrorStr));
 
 	return false;
 	
 }
+#undef ONLINE_ERROR_NAMESPACE
 
 bool FOnlineAgreementAccelByte::GetLocalizedPolicyContentFromCache(const FString& BasePolicyId, const FString& LocaleCode, FString& OutLocalizedPolicyContent)
 {
@@ -143,6 +151,7 @@ bool FOnlineAgreementAccelByte::GetLocalizedPolicyContentFromCache(const FString
 	return false;
 }
 
+#define ONLINE_ERROR_NAMESPACE "FOnlineAccelByteAcceptAgreementPolicies"
 bool FOnlineAgreementAccelByte::AcceptAgreementPolicies(int32 LocalUserNum, const TArray<FABAcceptAgreementPoliciesRequest>& DocumentsToAccept)
 {
 	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("Accept Agreement Policies, LocalUserNum: %d"), LocalUserNum);
@@ -167,6 +176,7 @@ bool FOnlineAgreementAccelByte::AcceptAgreementPolicies(int32 LocalUserNum, cons
 				const FString ErrorStr = TEXT("accept-policies-failed-userid-invalid");
 				AB_OSS_INTERFACE_TRACE_END(TEXT("UserId is not valid at user index '%d'!"), LocalUserNum);
 				TriggerOnAcceptAgreementPoliciesCompletedDelegates(LocalUserNum, false, ErrorStr);
+				TriggerAccelByteOnAcceptAgreementPoliciesCompletedDelegates(LocalUserNum, false, ONLINE_ERROR_ACCELBYTE(ErrorStr));
 
 				return false;
 			}
@@ -176,6 +186,8 @@ bool FOnlineAgreementAccelByte::AcceptAgreementPolicies(int32 LocalUserNum, cons
 	const FString ErrorStr = TEXT("accept-policies-failed-not-logged-in");
 	AB_OSS_INTERFACE_TRACE_END(TEXT("User not logged in at user index '%d'!"), LocalUserNum);
 	TriggerOnAcceptAgreementPoliciesCompletedDelegates(LocalUserNum, false, ErrorStr);
+	TriggerAccelByteOnAcceptAgreementPoliciesCompletedDelegates(LocalUserNum, false, ONLINE_ERROR_ACCELBYTE(ErrorStr));
 
 	return false;
 }
+#undef ONLINE_ERROR_NAMESPACE

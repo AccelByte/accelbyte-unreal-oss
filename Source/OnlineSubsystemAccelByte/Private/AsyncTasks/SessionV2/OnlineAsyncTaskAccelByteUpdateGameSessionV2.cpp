@@ -150,7 +150,14 @@ void FOnlineAsyncTaskAccelByteUpdateGameSessionV2::Initialize()
 	}
 
 	// #NOTE Team assignments will override the session's members list on the backend!
-	UpdateRequest.Teams = SessionInfo->GetTeamAssignments();
+	// skip adding teams in update request if it's a closed session, or the request will be denied by backend.
+	const bool bIsUpdatingNotToClosed = JoinType != EAccelByteV2SessionJoinability::CLOSED;
+	const bool bIsNotUpdatingJoinability = JoinType == EAccelByteV2SessionJoinability::EMPTY;
+	const bool bIsSessionCurrentlyNotClosed = GameSessionBackendData->Configuration.Joinability != EAccelByteV2SessionJoinability::CLOSED;
+	if(bIsUpdatingNotToClosed || (bIsNotUpdatingJoinability && bIsSessionCurrentlyNotClosed))
+	{
+		UpdateRequest.Teams = SessionInfo->GetTeamAssignments();
+	}
 
 	// Send the API call based on whether we are a server or a client
 	const THandler<FAccelByteModelsV2GameSession> OnUpdateGameSessionSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsV2GameSession>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteUpdateGameSessionV2::OnUpdateGameSessionSuccess);

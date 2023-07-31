@@ -1,4 +1,4 @@
-// Copyright (c) 2022 AccelByte Inc. All Rights Reserved.
+﻿// Copyright (c) 2022 AccelByte Inc. All Rights Reserved.
 // This is licensed software from AccelByte Inc, for limitations
 // and restrictions contact your company contract manager.
 
@@ -55,9 +55,14 @@ class FOnlineAuthAccelByte;
 class FExecTestBase;
 class FOnlineAchievementsAccelByte; 
 class FOnlineVoiceAccelByte;
+
 class IVoiceChat;
 class IVoiceChatUser;
 class FAccelByteVoiceChat;
+
+class FOnlineAsyncEpicTaskAccelByte;
+class FOnlineAsyncTaskAccelByte;
+
 struct FAccelByteModelsNotificationMessage;
 
 /** Shared pointer to the AccelByte implementation of the Session interface */
@@ -276,32 +281,42 @@ PACKAGE_SCOPE:
 	{
 	}
 
+	/** Create and enqueue an Epic to the task manager's ParallelTasks queue */
+	FOnlineAsyncEpicTaskAccelByte* CreateAndDispatchEpic(int32 LocalUserNum, const FVoidHandler& InDelegate);
+
+	/** Wrap the actual implementation to the source file to prevent function call to a forward-declared class (FOnlineAsyncEpicTaskAccelByte) */
+	void CreateAndDispatchAsyncTaskImplementation(FOnlineAsyncTaskInfo TaskInfo, FOnlineAsyncTask* CreatedTask);
+
+	/** Create and queue an async task to the tasks queue */
+	template <typename TOnlineAsyncTask, typename... TArguments>
+	FORCEINLINE void CreateAndDispatchAsyncTask(FOnlineAsyncTaskInfo TaskInfo, TArguments&&... Arguments)
+	{
+		// compile time check to make sure that the template type passed in derives from FOnlineAsyncTask
+		static_assert(TIsDerivedFrom<TOnlineAsyncTask, FOnlineAsyncTaskAccelByte>::IsDerived, "Type passed to CreateAndDispatchAsyncTask must derive from FOnlineAsyncTask");
+
+		check(AsyncTaskManager.IsValid());
+
+		TOnlineAsyncTask* NewTask = new TOnlineAsyncTask(Forward<TArguments>(Arguments)...);
+		
+		CreateAndDispatchAsyncTaskImplementation(TaskInfo, NewTask);
+	}
+
 	/** Create and queue an async task to the parallel tasks queue */
 	template <typename TOnlineAsyncTask, typename... TArguments>
 	FORCEINLINE void CreateAndDispatchAsyncTaskParallel(TArguments&&... Arguments)
 	{
-		// compile time check to make sure that the template type passed in derives from FOnlineAsyncTask
-		static_assert(TIsDerivedFrom<TOnlineAsyncTask, FOnlineAsyncTask>::IsDerived, "Type passed to CreateAndDispatchAsyncTaskParallel must derive from FOnlineAsyncTask");
-
-		check(AsyncTaskManager.IsValid());
-
-		AsyncTaskManager->CheckMaxParallelTasks();
-
-		TOnlineAsyncTask* NewTask = new TOnlineAsyncTask(Forward<TArguments>(Arguments)...);
-		AsyncTaskManager->AddToParallelTasks(NewTask);
+		FOnlineAsyncTaskInfo TaskInfo;
+		TaskInfo.Type = ETypeOfOnlineAsyncTask::Parallel;
+		CreateAndDispatchAsyncTask<TOnlineAsyncTask>(TaskInfo, Forward<TArguments>(Arguments)...);
 	}
 
 	/** Create and queue an async task to the in queue */
 	template <typename TOnlineAsyncTask, typename... TArguments>
 	FORCEINLINE void CreateAndDispatchAsyncTaskSerial(TArguments&&... Arguments)
 	{
-		// compile time check to make sure that the template type passed in derives from FOnlineAsyncTask
-		static_assert(TIsDerivedFrom<TOnlineAsyncTask, FOnlineAsyncTask>::IsDerived, "Type passed to CreateAndDispatchAsyncTaskParallel must derive from FOnlineAsyncTask");
-
-		check(AsyncTaskManager.IsValid());
-
-		TOnlineAsyncTask* NewTask = new TOnlineAsyncTask(Forward<TArguments>(Arguments)...);
-		AsyncTaskManager->AddToInQueue(NewTask);
+		FOnlineAsyncTaskInfo TaskInfo;
+		TaskInfo.Type = ETypeOfOnlineAsyncTask::Serial;
+		CreateAndDispatchAsyncTask<TOnlineAsyncTask>(TaskInfo, Forward<TArguments>(Arguments)...);
 	}
 
 	/** Create and queue an async event to be processed in the OutQueue */
@@ -316,6 +331,39 @@ PACKAGE_SCOPE:
 		TOnlineAsyncEvent* NewEvent = new TOnlineAsyncEvent(Forward<TArguments>(Arguments)...);
 		AsyncTaskManager->AddToOutQueue(NewEvent);
 	}
+
+	/** Obtain the reference to Lock and set the upcoming Epic. To prevent racing condition.*/
+	FCriticalSection* GetEpicTaskLock() { return &EpicTaskLock; } 
+	
+	/** Obtain the reference to Lock and set the upcoming Parent Task. To prevent racing condition.*/
+	FCriticalSection* GetUpcomingParentTaskLock() { return &UpcomingTaskParentLock; }
+	
+	/** To check the whether an Epic already set or not */
+	bool IsUpcomingEpicAlreadySet();
+
+	/** Register an Epic to the subsystem.
+	* Therefore, every upcoming task created will be considered as sub-task of this Epic.
+	* It can be set by another async task using an existing Epic, or create a new Epic.
+	*/
+	void SetUpcomingEpic(FOnlineAsyncEpicTaskAccelByte* Epic);
+
+	/** Register an AsyncTask to the subsystem as a parent task.
+	* Therefore, every upcoming task created will be considered as child of this parent task.
+	* It willl set by another async task when it creates a child task through execute critical section.
+	*/
+	void SetUpcomingParentTask(FOnlineAsyncTaskAccelByte* Parent);
+
+	/** Unregister Epic that has been registered to the subsystem. */
+	void ResetEpicHasBeenSet();
+	/** Unregister Async Task/parent task that has been registered to the subsystem. */
+	void ResetParentTaskHasBeenSet();
+
+	/** Used by Epic to remove the task from Epic’s container for completion (OutQueue) by the subsystem’s AsyncTaskManager. */
+	void AddTaskToOutQueue(FOnlineAsyncTaskAccelByte* Task);
+
+	/** Used by subsystem to Enqueue a sub-task/child task into the currently assigned Epic */
+	void EnqueueTaskToEpic(FOnlineAsyncEpicTaskAccelByte* EpicPtr, FOnlineAsyncTaskAccelByte* TaskPtr, ETypeOfOnlineAsyncTask TaskType);
+	void EnqueueTaskToEpic(FOnlineAsyncTaskAccelByte* TaskPtr, ETypeOfOnlineAsyncTask TaskType);
 
 #if WITH_DEV_AUTOMATION_TESTS
 	/**
@@ -469,6 +517,21 @@ private:
 	/** An array of console command exec tests that are marked as incomplete. Completed tests will be removed on each tick. */
 	TArray<TSharedPtr<FExecTestBase>> ActiveExecTests;
 #endif
+
+	/** This is lock to prevent a racing condition when adding and reading Epic */
+	FCriticalSection EpicTaskLock;
+	
+	/** This is lock to prevent a racing condition when adding the UpcomingTaskParent */
+	FCriticalSection UpcomingTaskParentLock;
+
+	/** The address of Epic that will be set to the upcoming async task creation */
+	FOnlineAsyncEpicTaskAccelByte* EpicForUpcomingTask = nullptr;
+
+	/** The address of Parent Task that will be set to the upcoming async task creation */
+	FOnlineAsyncTaskAccelByte* ParentTaskForUpcomingTask = nullptr;
+
+	/** The number will be incremented safely for each created Epic number */
+	FThreadSafeCounter EpicCounter;
 
 	/**
 	 * @p2p Delegate handler fired when we get a successful login from the OSS on the first user. Used to initialize our network manager.

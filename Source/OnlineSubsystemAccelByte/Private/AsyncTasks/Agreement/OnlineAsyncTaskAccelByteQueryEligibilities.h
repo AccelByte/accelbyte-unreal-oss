@@ -53,6 +53,11 @@ private:
 	 */
 	FString ErrorStr;
 
+	/**
+	 * Digit code representing the error that occurred
+	 */
+	int32 ErrorCode;
+
 	bool bNotAcceptedOnly;
 	bool bAlwaysRequestToService;
 };

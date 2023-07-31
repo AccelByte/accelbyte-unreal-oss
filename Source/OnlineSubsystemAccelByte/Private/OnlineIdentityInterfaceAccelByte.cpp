@@ -56,6 +56,7 @@ bool FOnlineIdentityAccelByte::GetFromWorld(const UWorld* World, FOnlineIdentity
 	return GetFromSubsystem(Subsystem, OutInterfaceInstance);
 }
 
+#define ONLINE_ERROR_NAMESPACE "FOnlineAccelByteLogin"
 bool FOnlineIdentityAccelByte::Login(int32 LocalUserNum, const FOnlineAccountCredentials& AccountCredentials)
 {
 	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("LocalUserNum: %d; Type: %s; Id: %s"), LocalUserNum, *AccountCredentials.Type, *AccountCredentials.Id);
@@ -71,6 +72,7 @@ bool FOnlineIdentityAccelByte::Login(int32 LocalUserNum, const FOnlineAccountCre
 		FErrorOAuthInfo ErrorOAuthInfo { (int32)ErrorCodes::InvalidRequest, ErrorStr,
 		FString::Printf(TEXT("%d"), ErrorCodes::InvalidRequest), ErrorStr };
 		TriggerOnLoginWithOAuthErrorCompleteDelegates(LocalUserNum, false, FUniqueNetIdAccelByteUser::Invalid().Get(), ErrorOAuthInfo);
+		TriggerAccelByteOnLoginCompleteDelegates(LocalUserNum, false, FUniqueNetIdAccelByteUser::Invalid().Get(), ONLINE_ERROR_ACCELBYTE(ErrorStr));
 		return false;
 	}
 
@@ -96,6 +98,7 @@ bool FOnlineIdentityAccelByte::Login(int32 LocalUserNum, const FOnlineAccountCre
 		FErrorOAuthInfo ErrorOAuthInfo { (int32)ErrorCodes::InvalidRequest, ErrorStr,
 			FString::Printf(TEXT("%d"), ErrorCodes::InvalidRequest), ErrorStr };
 		TriggerOnLoginWithOAuthErrorCompleteDelegates(LocalUserNum, false, *UserIdPtr, ErrorOAuthInfo);
+		TriggerAccelByteOnLoginCompleteDelegates(LocalUserNum, false, *UserIdPtr, ONLINE_ERROR_ACCELBYTE(ErrorStr));
 		return false;
 	}
 
@@ -103,6 +106,7 @@ bool FOnlineIdentityAccelByte::Login(int32 LocalUserNum, const FOnlineAccountCre
 	AB_OSS_INTERFACE_TRACE_END(TEXT("Dispatching async task to attempt to login!"));
 	return true;
 }
+#undef ONLINE_ERROR_NAMESPACE
 
 bool FOnlineIdentityAccelByte::Logout(int32 LocalUserNum)
 {
@@ -169,6 +173,7 @@ bool FOnlineIdentityAccelByte::Logout(int32 LocalUserNum, FString Reason)
 	return true;
 }
 
+#define ONLINE_ERROR_NAMESPACE "FOnlineAccelByteLogin"
 bool FOnlineIdentityAccelByte::AutoLogin(int32 LocalUserNum)
 {
 	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("LocalUserNum: %d"), LocalUserNum);
@@ -185,6 +190,7 @@ bool FOnlineIdentityAccelByte::AutoLogin(int32 LocalUserNum)
 		{
 			const FString ErrorStr = TEXT("login-failed-already-logged-in");
 			TriggerOnLoginCompleteDelegates(LocalUserNum, false, FUniqueNetIdAccelByteUser::Invalid().Get(), ErrorStr);
+			TriggerAccelByteOnLoginCompleteDelegates(LocalUserNum, false, FUniqueNetIdAccelByteUser::Invalid().Get(), ONLINE_ERROR_ACCELBYTE(ErrorStr));
 
 			AB_OSS_INTERFACE_TRACE_END(TEXT("User already logged in at user index '%d'!"), LocalUserNum)
 			return false;
@@ -223,6 +229,7 @@ bool FOnlineIdentityAccelByte::AutoLogin(int32 LocalUserNum)
 	AB_OSS_INTERFACE_TRACE_END(TEXT("Login has been called from AutoLogin. Async task spawned: %s"), LOG_BOOL_FORMAT(bLoginTaskSpawned));
 	return bLoginTaskSpawned;
 }
+#undef ONLINE_ERROR_NAMESPACE
 
 TSharedPtr<FUserOnlineAccount> FOnlineIdentityAccelByte::GetUserAccount(const FUniqueNetId& UserId) const
 {
@@ -558,6 +565,7 @@ bool FOnlineIdentityAccelByte::IsServerAuthenticated(int32 LocalUserNum)
 	return GetLoginStatus(LocalUserNum) == ELoginStatus::LoggedIn;
 }
 
+#define ONLINE_ERROR_NAMESPACE "FOnlineAccelByteLobbyConnect"
 bool FOnlineIdentityAccelByte::ConnectAccelByteLobby(int32 LocalUserNum)
 {
 	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("LocalUserNum: %d"), LocalUserNum);
@@ -580,6 +588,7 @@ bool FOnlineIdentityAccelByte::ConnectAccelByteLobby(int32 LocalUserNum)
 			AB_OSS_INTERFACE_TRACE_END(TEXT("User already connected to lobby at user index '%d'!"), LocalUserNum);
 
 			TriggerOnConnectLobbyCompleteDelegates(LocalUserNum, false, FUniqueNetIdAccelByteUser::Invalid().Get(), ErrorStr);
+			TriggerAccelByteOnConnectLobbyCompleteDelegates(LocalUserNum, false, FUniqueNetIdAccelByteUser::Invalid().Get(), ONLINE_ERROR_ACCELBYTE(ErrorStr));
 			return false;
 		}
 		
@@ -592,8 +601,10 @@ bool FOnlineIdentityAccelByte::ConnectAccelByteLobby(int32 LocalUserNum)
 	AB_OSS_INTERFACE_TRACE_END(TEXT("User not logged in at user index '%d'!"), LocalUserNum);
 
 	TriggerOnConnectLobbyCompleteDelegates(LocalUserNum, false, FUniqueNetIdAccelByteUser::Invalid().Get(), ErrorStr);
+	TriggerAccelByteOnConnectLobbyCompleteDelegates(LocalUserNum, false, FUniqueNetIdAccelByteUser::Invalid().Get(), ONLINE_ERROR_ACCELBYTE(ErrorStr));
 	return false;
 }
+#undef ONLINE_ERROR_NAMESPACE
 
 void FOnlineIdentityAccelByte::AddNewAuthenticatedUser(int32 LocalUserNum, const TSharedRef<const FUniqueNetId>& UserId, const TSharedRef<FUserOnlineAccount>& Account)
 {
@@ -604,10 +615,12 @@ void FOnlineIdentityAccelByte::AddNewAuthenticatedUser(int32 LocalUserNum, const
 	NetIdToOnlineAccountMap.Add(UserId, Account);
 }
 
+#define ONLINE_ERROR_NAMESPACE "FOnlineAccelByteLogout"
 void FOnlineIdentityAccelByte::OnLogout(const int32 LocalUserNum, bool bWasSuccessful)
 {
 	SetLoginStatus(LocalUserNum, ELoginStatus::NotLoggedIn);
 	TriggerOnLogoutCompleteDelegates(LocalUserNum, bWasSuccessful);
+	TriggerAccelByteOnLogoutCompleteDelegates(LocalUserNum, bWasSuccessful, ONLINE_ERROR_ACCELBYTE(bWasSuccessful? TEXT("") : TEXT("error-failed-to-logout"), bWasSuccessful? EOnlineErrorResult::Success : EOnlineErrorResult::RequestFailure));
 
 	if (bWasSuccessful)
 	{
@@ -615,6 +628,7 @@ void FOnlineIdentityAccelByte::OnLogout(const int32 LocalUserNum, bool bWasSucce
 		RemoveUserFromMappings(LocalUserNum);
 	}
 }
+#undef ONLINE_ERROR_NAMESPACE
 
 void FOnlineIdentityAccelByte::RemoveUserFromMappings(const int32 LocalUserNum)
 {
