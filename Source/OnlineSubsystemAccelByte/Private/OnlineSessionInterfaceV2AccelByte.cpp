@@ -4108,6 +4108,12 @@ void FOnlineSessionV2AccelByte::OnGameSessionUpdatedNotification(FAccelByteModel
 	FNamedOnlineSession* Session = GetNamedSessionById(UpdatedGameSession.ID);
 	if (Session == nullptr)
 	{
+		if (HandleAutoJoinGameSession(UpdatedGameSession, LocalUserNum))
+		{
+			AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Synced auto joined game session from backend"));
+			return;
+		}
+
 		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Could not update session with with new attributes as we do not have the session stored locally!"));
 		return;
 	}
@@ -4158,6 +4164,12 @@ void FOnlineSessionV2AccelByte::OnDsStatusChangedNotification(FAccelByteModelsV2
 	FNamedOnlineSession* Session = GetNamedSessionById(DsStatusChangeEvent.SessionID);
 	if (Session == nullptr)
 	{
+		if (HandleAutoJoinGameSession(DsStatusChangeEvent.Session, LocalUserNum))
+		{
+			AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Synced auto joined game session from backend"));
+			return;
+		}
+
 		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Could not update session with new DS status as session does not exist locally!"));
 		return;
 	}
@@ -5170,6 +5182,68 @@ void FOnlineSessionV2AccelByte::OnAMSDrain()
 	DisconnectFromDSHub();
 
 	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+}
+
+bool FOnlineSessionV2AccelByte::HandleAutoJoinGameSession(const FAccelByteModelsV2GameSession& GameSession, const int32 LocalUserNum)
+{
+	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("Checking if added to auto join game session from backend"));
+
+	if (!GameSession.Configuration.AutoJoin)
+	{
+		AB_OSS_INTERFACE_TRACE_END(TEXT("Game session ID %s is not auto joinable"), *GameSession.ID);
+		return false;
+	}
+
+	// Check if this game session update is auto joined in the backend
+	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystem->GetIdentityInterface());
+	if (!ensure(IdentityInterface.IsValid()))
+	{
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to handle posible auto joined game session as our identity interface is invalid!"));
+		return false;
+	}
+
+	const TSharedRef<const FUniqueNetIdAccelByteUser> UserUniqueNetId = FUniqueNetIdAccelByteUser::Create(IdentityInterface->GetUniquePlayerId(LocalUserNum).ToSharedRef().Get());
+	const FString UserID = UserUniqueNetId.Get().GetAccelByteId();
+
+	const FAccelByteModelsV2SessionUser* FoundMember = GameSession.Members.FindByPredicate(
+		[UserID](const FAccelByteModelsV2SessionUser& Member)
+		{
+			return Member.ID == UserID && Member.StatusV2 == EAccelByteV2SessionMemberStatus::JOINED;
+		});
+
+	if (FoundMember != nullptr)
+	{
+		FOnlineSession AutoJoinedSession;
+		ConstructGameSessionFromBackendSessionModel(GameSession, AutoJoinedSession);
+		FNamedOnlineSession* NewSession = AddNamedSession(NAME_GameSession, AutoJoinedSession);
+		NewSession->SessionState = EOnlineSessionState::Pending;
+
+		const FNamedOnlineSession* JoinedSession = GetNamedSession(NAME_GameSession);
+		if (JoinedSession != nullptr)
+		{
+			const TSharedPtr<FOnlineSessionInfoAccelByteV2> SessionInfo = StaticCastSharedPtr<FOnlineSessionInfoAccelByteV2>(JoinedSession->SessionInfo);
+			if (!SessionInfo.IsValid())
+			{
+				AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to handle auto joined game session as failed to cast FOnlineSessionInfo to FOnlineSessionInfoAccelByteV2"));
+				return false;
+			}
+
+			TriggerOnJoinSessionCompleteDelegates(NAME_GameSession, EOnJoinSessionCompleteResult::Success);
+			if(SessionInfo->HasConnectionInfo())
+			{
+				TriggerOnSessionServerUpdateDelegates(NAME_GameSession);
+			}
+
+			AB_OSS_INTERFACE_TRACE_END(TEXT("Successfully synced auto join game session from backend"));
+			return true;
+		}
+
+		AB_OSS_INTERFACE_TRACE_END(TEXT("Failed to handle auto joined game session as internal game session not synced properly!"));
+		return false;
+	}
+
+	AB_OSS_INTERFACE_TRACE_END(TEXT("The current user num %d (UserID: %s)  is not a member of the game session!"), LocalUserNum, *UserID);
+	return false;
 }
 
 #undef ONLINE_ERROR_NAMESPACE

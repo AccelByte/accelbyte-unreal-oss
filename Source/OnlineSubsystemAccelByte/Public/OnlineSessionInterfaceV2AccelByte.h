@@ -1468,6 +1468,14 @@ private:
 
 	void OnAMSDrain();
 
+	/**
+	 * @brief Handler for auto join game session from backend.
+	 * @param GameSession game session information from the backend.
+	 * @param LocalUserNum Local user num.
+	 * @return true if successfully synced auto join game session from backend.
+	 */
+	bool HandleAutoJoinGameSession(const FAccelByteModelsV2GameSession& GameSession, int32 LocalUserNum);
+
 protected:
 	FNamedOnlineSession* AddNamedSession(FName SessionName, const FOnlineSessionSettings& SessionSettings) override;
 	FNamedOnlineSession* AddNamedSession(FName SessionName, const FOnlineSession& Session) override;

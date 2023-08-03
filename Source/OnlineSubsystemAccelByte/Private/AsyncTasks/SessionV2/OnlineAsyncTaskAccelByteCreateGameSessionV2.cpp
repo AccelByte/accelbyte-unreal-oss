@@ -123,6 +123,16 @@ void FOnlineAsyncTaskAccelByteCreateGameSessionV2::Initialize()
 		CreateRequest.TextChat = TextChat;
 	}
 
+	FString AutoJoinUserIDs = TEXT("");
+	if (NewSessionSettings.Get(SETTING_SESSION_TEAMS, AutoJoinUserIDs))
+	{
+		FAccelByteModelsV2GameSessionTeamsSetting TeamsSetting;
+		FJsonObjectConverter::JsonObjectStringToUStruct(AutoJoinUserIDs, &TeamsSetting);
+
+		CreateRequest.Teams = TeamsSetting.Teams;
+		NewSessionSettings.Remove(SETTING_SESSION_TEAMS);
+	}
+
 	CreateRequest.Attributes.JsonObject = SessionInterface->ConvertSessionSettingsToJsonObject(NewSessionSettings);
 
 	AB_ASYNC_TASK_DEFINE_SDK_DELEGATES(FOnlineAsyncTaskAccelByteCreateGameSessionV2, CreateGameSession, THandler<FAccelByteModelsV2GameSession>);
