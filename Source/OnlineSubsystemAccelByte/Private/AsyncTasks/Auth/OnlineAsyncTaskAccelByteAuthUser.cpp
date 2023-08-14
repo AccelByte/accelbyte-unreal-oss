@@ -3,9 +3,8 @@
 // and restrictions contact your company contract manager.
 
 #include "OnlineAsyncTaskAccelByteAuthUser.h"
-#include "OnlineAuthInterfaceAccelByte.h"
 
-FOnlineAsyncTaskAccelByteAuthUser::FOnlineAsyncTaskAccelByteAuthUser(FOnlineSubsystemAccelByte* const InABInterface, const FString& InUserId, const FOnAuthUSerCompleted& InDelegate)
+FOnlineAsyncTaskAccelByteAuthUser::FOnlineAsyncTaskAccelByteAuthUser(FOnlineSubsystemAccelByte* const InABInterface, const FString& InUserId, const FOnAuthUserCompleted& InDelegate)
 	: FOnlineAsyncTaskAccelByte(InABInterface, INVALID_CONTROLLERID, ASYNC_TASK_FLAG_BIT(EAccelByteAsyncTaskFlags::ServerTask))
 	, UserId(InUserId)
 	, bRequestResult(false)
@@ -27,6 +26,8 @@ void FOnlineAsyncTaskAccelByteAuthUser::Initialize()
 
 void FOnlineAsyncTaskAccelByteAuthUser::TriggerDelegates()
 {
+	Super::TriggerDelegates();
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 
 	Delegate.ExecuteIfBound(bRequestResult, UserId);
@@ -34,32 +35,26 @@ void FOnlineAsyncTaskAccelByteAuthUser::TriggerDelegates()
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 
-void FOnlineAsyncTaskAccelByteAuthUser::OnAuthSuccess(const FGetUserBansResponse& InResult)
+void FOnlineAsyncTaskAccelByteAuthUser::OnAuthSuccess(const FGetUserBansResponse& Result)
 {
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
-	if (InResult.Data.Num() == 0)
+	if (Result.Data.Num() == 0)
 	{
 		bRequestResult = true;
 	}
 	else
 	{
 		bRequestResult = false;
-
-#if !UE_BUILD_SHIPPING
-		FBanUserResponse ResultData = InResult.Data[0];
-		UE_LOG_AB(Warning, TEXT("(%d) Failed to Authenticate for user '%s': Res:UserId{%s}, Ban{%s}, BanId{%s}, Reason{%d}, Namespace{%s}, Enabled{%s}")
-			, InResult.Data.Num(), *UserId, *ResultData.UserId, *ResultData.Ban, *ResultData.BanId, ResultData.Reason, *ResultData.Namespace, (ResultData.Enabled ? TEXT("True") : TEXT("False")));
-#endif
 	}
 
 	CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
-	AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sending request to query AccelByte Authentication for user '%s' (lists: %d)!"), *UserId, InResult.Data.Num());
+	AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sending request to query AccelByte Authentication for user '%s' (lists: %d)!"), *UserId, Result.Data.Num());
 }
 
-void FOnlineAsyncTaskAccelByteAuthUser::OnAuthError(int32 InErrorCode, const FString& InErrorMessage)
+void FOnlineAsyncTaskAccelByteAuthUser::OnAuthError(int32 ErrorCode, const FString& ErrorMessage)
 {
 	bRequestResult = false;
 
-	UE_LOG_AB(Warning, TEXT("Failed to Authenticate for user '%s'; Error Code: %d; Error Message: %s"), *UserId, InErrorCode, *InErrorMessage);
+	UE_LOG_AB(Warning, TEXT("Failed to Authenticate for user '%s'; Error Code: %d; Error Message: %s"), *UserId, ErrorCode, *ErrorMessage);
 	CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
 }

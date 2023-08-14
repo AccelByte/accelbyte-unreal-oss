@@ -30,6 +30,8 @@ public:
 		const FUniqueNetId& InOwnerId,
 		const FDateTime InTimeCreated,
 		const FDateTime InTimeLastUpdated,
+		const FString InABAdminRoleId,
+		const FString InABMemberRoleId,
 		const FAccelByteModelsGroupInformation InABGroupInfo);
 
 	/** Destructor */
@@ -38,7 +40,9 @@ public:
 	static FAccelByteGroupsInfoRef Create(const FUniqueNetIdRef& InSenderUserId,
 										  const FString InNamespace,
 										  const FUniqueNetId& InOwnerId,
-										  const FAccelByteModelsGroupInformation InABGroupInfo);
+										  const FAccelByteModelsGroupInformation InABGroupInfo,
+										  const FString AdminRoleId,
+										  const FString MemberRoleId);
 
 	//~ Begin IGroupInfo overrides
 	virtual FUniqueNetIdRef GetGroupId() const override;
@@ -47,6 +51,8 @@ public:
 
 	/* Deprecated. Use GetABDisplayInfo. */
 	virtual const FGroupDisplayInfo& GetDisplayInfo() const override;
+	virtual FString GetAdminRoleId();
+	virtual FString GetMemberRoleId();
 
 	virtual uint32 GetSize() const override;
 	virtual const FDateTime& GetCreatedAt() const override;
@@ -65,6 +71,8 @@ PACKAGE_SCOPE:
 	//~ End IGroupInfo variables
 
 	FAccelByteModelsGroupInformation ABGroupInfo{};
+	FString ABAdminRoleId{};
+	FString ABMemberRoleId{};
 };
 
 /**
@@ -111,6 +119,17 @@ public:
 	 */
 	virtual void CreateGroup(const FUniqueNetId& ContextUserId, const FGroupDisplayInfo& InGroupInfo, const FOnGroupsRequestCompleted& OnCompleted) override;
 
+	virtual void JoinGroup(const FUniqueNetId& ContextUserId, const FAccelByteGroupsInfo& InGroupInfo, const FOnGroupsRequestCompleted& OnCompleted);
+
+	virtual void JoinGroup(const FUniqueNetId& ContextUserId, const FUniqueNetId& GroupId, const FOnGroupsRequestCompleted& OnCompleted) override;
+
+	virtual void LeaveGroup(const FUniqueNetId& ContextUserId, const FAccelByteGroupsInfo& InGroupInfo, const FOnGroupsRequestCompleted& OnCompleted);
+
+	virtual void LeaveGroup(const FUniqueNetId& ContextUserId, const FUniqueNetId& GroupId, const FOnGroupsRequestCompleted& OnCompleted) override;
+
+	virtual void AcceptInvite(const int32 AdminLocalUserNum, const FUniqueNetId& MemberUserId, const FAccelByteGroupsInfo& InGroupInfo, const FOnGroupsRequestCompleted& OnCompleted);
+
+	virtual void AcceptInvite(const FUniqueNetId& ContextUserId, const FUniqueNetId& GroupId, const FOnGroupsRequestCompleted& OnCompleted) override;
 	/**
 	 * Checks to see if the current group is valid
 	 *
@@ -159,14 +178,15 @@ protected:
 	FOnlineSubsystemAccelByte* AccelByteSubsystem = nullptr;
 
 	// Unused overrides
+	// CreateGroup--
 	virtual void FindGroups(const FUniqueNetId& ContextUserId, const FGroupSearchOptions& SearchOptions, const FOnFindGroupsCompleted& OnCompleted) override {}
 	virtual void QueryGroupInfo(const FUniqueNetId& ContextUserId, const FUniqueNetId& GroupId, const FOnGroupsRequestCompleted& OnCompleted) override {}
 	virtual void QueryGroupNameExist(const FUniqueNetId& ContextUserId, const FString& GroupName, const FOnGroupsRequestCompleted& OnCompleted) override {}
 	virtual TSharedPtr<const IGroupInfo> GetCachedGroupInfo(const FUniqueNetId& ContextUserId, const FUniqueNetId& GroupId) { return nullptr; }
-	virtual void JoinGroup(const FUniqueNetId& ContextUserId, const FUniqueNetId& GroupId, const FOnGroupsRequestCompleted& OnCompleted) override {}
-	virtual void LeaveGroup(const FUniqueNetId& ContextUserId, const FUniqueNetId& GroupId, const FOnGroupsRequestCompleted& OnCompleted) override {}
+	// JoinGroup--
+	// LeaveGroup--
 	virtual void CancelRequest(const FUniqueNetId& ContextUserId, const FUniqueNetId& GroupId, const FOnGroupsRequestCompleted& OnCompleted) override {}
-	virtual void AcceptInvite(const FUniqueNetId& ContextUserId, const FUniqueNetId& GroupId, const FOnGroupsRequestCompleted& OnCompleted) override {}
+	// AcceptInvite--
 	virtual void DeclineInvite(const FUniqueNetId& ContextUserId, const FUniqueNetId& GroupId, const FOnGroupsRequestCompleted& OnCompleted) override {}
 	virtual void QueryGroupRoster(const FUniqueNetId& ContextUserId, const FUniqueNetId& GroupId, const FOnGroupsRequestCompleted& OnCompleted) override {}
 	virtual TSharedPtr<const IGroupRoster> GetCachedGroupRoster(const FUniqueNetId& ContextUserId, const FUniqueNetId& GroupId) override { return nullptr; }
@@ -192,13 +212,8 @@ protected:
 	virtual TSharedPtr<const IGroupInvites> GetCachedGroupInvites(const FUniqueNetId& ContextUserId, const FUniqueNetId& GroupId) override { return nullptr; }
 	virtual void QueryGroupRequests(const FUniqueNetId& ContextUserId, const FUniqueNetId& GroupId, const FOnGroupsRequestCompleted& OnCompleted) override {}
 	virtual TSharedPtr<const IGroupRequests> GetCachedGroupRequests(const FUniqueNetId& ContextUserId, const FUniqueNetId& GroupId) override { return nullptr; }
-#if ENGINE_MAJOR_VERSION >= 5
-	virtual void QueryGroupDenylist(const FUniqueNetId& ContextUserId, const FUniqueNetId& GroupId, const FOnGroupsRequestCompleted& OnCompleted) override {}
-	virtual TSharedPtr<const IGroupDenylist> GetCachedGroupDenylist(const FUniqueNetId& ContextUserId, const FUniqueNetId& GroupId) override { return nullptr; }
-#else
 	virtual void QueryGroupBlacklist(const FUniqueNetId& ContextUserId, const FUniqueNetId& GroupId, const FOnGroupsRequestCompleted& OnCompleted) override {}
 	virtual TSharedPtr<const IGroupBlacklist> GetCachedGroupBlacklist(const FUniqueNetId& ContextUserId, const FUniqueNetId& GroupId) override { return nullptr; }
-#endif
 	virtual void QueryIncomingApplications(const FUniqueNetId& ContextUserId, const FUniqueNetId& UserId, const FOnGroupsRequestCompleted& OnCompleted) override {}
 	virtual void QueryConfigHeadcount(const FUniqueNetId& ContextUserId, const FOnGroupsRequestCompleted& OnCompleted) override {}
 	virtual void QueryConfigMembership(const FUniqueNetId& ContextUserId, const FOnGroupsRequestCompleted& OnCompleted) override {}

@@ -1767,14 +1767,14 @@ bool FOnlineSessionV2AccelByte::ReadSessionSettingsFromSessionModel(FOnlineSessi
 					{
 						ReadMemberSettingsFromJsonObject(FoundMemberSettings, (*JsonObjectValue).ToSharedRef());
 					}
+					
+					break;
 				}
-				break;
 			}
-			else
-			{
-				OutSettings.Set(FName(Attribute.Key), (*JsonObjectValue).ToSharedRef());
-				break;
-			}
+				
+			// if attribute key is not a member, then add it to session setting.
+			OutSettings.Set(FName(Attribute.Key), (*JsonObjectValue).ToSharedRef());
+			break;
 		}
 		default:
 		{
@@ -5160,7 +5160,7 @@ void FOnlineSessionV2AccelByte::AddCanceledTicketId(const FString& TicketId)
 	LastCanceledTicketIdAddedTimeSeconds = FPlatformTime::Seconds();
 	CanceledTicketIds.Add(TicketId);
 }
-	
+
 bool FOnlineSessionV2AccelByte::IsServerUseAMS() const
 {
 	return bServerUseAMS;
@@ -5217,6 +5217,7 @@ bool FOnlineSessionV2AccelByte::HandleAutoJoinGameSession(const FAccelByteModels
 		ConstructGameSessionFromBackendSessionModel(GameSession, AutoJoinedSession);
 		FNamedOnlineSession* NewSession = AddNamedSession(NAME_GameSession, AutoJoinedSession);
 		NewSession->SessionState = EOnlineSessionState::Pending;
+		NewSession->LocalOwnerId = UserUniqueNetId;
 
 		const FNamedOnlineSession* JoinedSession = GetNamedSession(NAME_GameSession);
 		if (JoinedSession != nullptr)

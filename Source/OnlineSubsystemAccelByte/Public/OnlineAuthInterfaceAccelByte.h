@@ -14,30 +14,6 @@
 #include "Core/AccelByteApiClient.h"
 #include "GameServerApi/AccelByteServerUserApi.h"
 
-struct FAccelByteAuthUserData
-{
-	FAccelByteAuthUserData() {}
-	~FAccelByteAuthUserData() {}
-
-	FString UserId;
-
-	void SerializeData(FArchive& Ar)
-	{
-		Ar << UserId;
-	}
-
-	friend FArchive& operator<<(FArchive& Ar, FAccelByteAuthUserData& AuthData)
-	{
-		AuthData.SerializeData(Ar);
-		return Ar;
-	}
-
-	void Empty()
-	{
-		UserId.Empty();
-	}
-};
-
 /** AccelByte Authentication Interface.
  *
  *  For the most part, this is fully automated. You simply just need to add the packet handler and your server will now
@@ -50,8 +26,9 @@ enum class EAccelByteAuthStatus : uint8
 	AuthFail = 1 << 1,
 	ValidationStarted = 1 << 2,
 	KickUser = 1 << 3,
+	PendingSession = 1 << 4,
 	FailKick = AuthFail | KickUser,
-	HasOrIsPendingAuth = AuthSuccess | ValidationStarted
+	HasOrIsPendingAuth = AuthSuccess | ValidationStarted | PendingSession
 };
 
 ENUM_CLASS_FLAGS(EAccelByteAuthStatus);
@@ -64,10 +41,11 @@ PACKAGE_SCOPE:
 	/** Data pertaining the current authentication state of the users in the game */
 	struct FAuthUser
 	{
-		FAuthUser() : Status(EAccelByteAuthStatus::None), ErrorCode(0) { }
+		FAuthUser() : Status(EAccelByteAuthStatus::None), PendingTimestamp(0.0), ErrorCode(0) { }
 		void SetFail(const int32 InErrorCode, const FString& InErrorMessage) { ErrorCode = InErrorCode; ErrorMessage = InErrorMessage; }
 
 		EAccelByteAuthStatus Status;
+		double PendingTimestamp;
 		int32 ErrorCode;
 		FString ErrorMessage;
 	};
@@ -78,15 +56,16 @@ PACKAGE_SCOPE:
 	SharedAuthUserPtr GetUser(const FString& InUserId);
 	SharedAuthUserPtr GetOrCreateUser(const FString& InUserId);
 
-	bool GetAuthData(FString& UserId);
-
 	/** Authenticate User */
-	bool AuthenticateUser(const FAccelByteAuthUserData& InUserData);
+	bool UpdateJwks();
+	bool VerifyAuthToken(const FString& AuthToken, FString& UserId);
+	bool AuthenticateUser(const FString& InUserId);
 	void OnAuthSuccess(const FString& InUserId);
 	void OnAuthFail(const FString& InUserId, const int32 InErrorCode, const FString& InErrorMessage);
 	EAccelByteAuthStatus GetAuthStatus(const FString& InUserId);
 	void MarkUserForKick(const FString& InUserId);
 	bool KickUser(const FString& InUserId, bool bSuppressFailure);
+
 	bool Tick(float DeltaTime);
 
 protected:
@@ -95,6 +74,7 @@ protected:
 private:
 	typedef TMap<FString, SharedAuthUserPtr> AccelByteAuthentications;
 	AccelByteAuthentications AuthUsers;
+	FJwkSet JwkSet;
 
 	/** Utility functions */
 	FORCEINLINE bool IsServer() const
@@ -102,7 +82,9 @@ private:
 		return OnlineSubsystem != nullptr && OnlineSubsystem->IsServer();
 	}
 
-	bool IsInSessionUser(const FString& InUserId) const;
+	bool IsSessionValid() const;
+	bool IsInSessionUser(const FString& InUserId);
+	bool CheckUserState(const FString& InUserId);
 	void RemoveUser(const FString& InTargetUser);
 
 	/** Pointer to the AccelByte OSS instance that instantiated this online user interface. */
@@ -110,7 +92,8 @@ private:
 
 	/** Settings */
 	bool bEnabled;
-	float LastTimestamp;
+	double LastTimestamp;
+	bool bRequestJwks;
 
 	FOnlineSessionAccelBytePtr SessionInterface;
 
@@ -119,15 +102,13 @@ PACKAGE_SCOPE:
 
 	/** Setting Getters */
 	bool IsSessionAuthEnabled() const { return bEnabled; }
-	bool IsSessionValid() const;
 
 public:
 	virtual ~FOnlineAuthAccelByte();
 
-	static int32 GetMaxTokenSizeInBytes();
-
 	/**
 	 * Handler for when we finish querying for all pending authonication
 	 */
-	void OnAuthUserCompleted(bool bWasSuccessful, const FString& UserId);
+	void OnJwksCompleted(const FJwkSet& InJwkSet);
+	void OnAuthUserCompleted(bool bWasSuccessful, const FString& InUserId);
 };

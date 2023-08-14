@@ -151,11 +151,10 @@ void FOnlineAsyncTaskAccelByteQueryUserProfile::Finalize()
 		if (!Account.IsValid())
 		{
 			Account = MakeShared<FUserOnlineAccountAccelByte>(CachedUserInfo->Id.ToSharedRef());
-			Account->SetDisplayName(ApiClient->CredentialsRef->GetUserDisplayName());
-			Account->SetAccessToken(ApiClient->CredentialsRef->GetAccessToken());
-
 			if (UserId.Get() == CachedUserInfo->Id.Get())
 			{
+				Account->SetDisplayName(ApiClient->CredentialsRef->GetUserDisplayName());
+				Account->SetAccessToken(ApiClient->CredentialsRef->GetAccessToken());
 				IdentityInterface->AddNewAuthenticatedUser(LocalUserNum, CachedUserInfo->Id.ToSharedRef(), Account.ToSharedRef());
 			}
 		}

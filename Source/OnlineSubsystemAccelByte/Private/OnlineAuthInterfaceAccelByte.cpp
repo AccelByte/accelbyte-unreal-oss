@@ -9,9 +9,13 @@
 #include "OnlineSessionInterfaceV1AccelByte.h"
 #include "OnlineSessionInterfaceV2AccelByte.h"
 #include "OnlinePartyInterfaceAccelByte.h"
+#include "Core/AccelByteUtilities.h"
 #include "Core/AccelByteMultiRegistry.h"
+#include "AsyncTasks/Auth/OnlineAsyncTaskAccelByteJwks.h"
 #include "AsyncTasks/Auth/OnlineAsyncTaskAccelByteAuthUser.h"
 #include "Engine/NetConnection.h"
+#include "JsonUtilities.h"
+#include "Misc/Base64.h"
 
 // Headers needed to kick users.
 #include "GameFramework/GameModeBase.h"
@@ -24,14 +28,17 @@
 #include "Misc/AES.h"
 #include "PacketHandler.h"
 
-// AccelByte tells us this number in documentation, however there's no define within the SDK
-#define ACCELBYTE_AUTH_MAX_TOKEN_LENGTH_IN_BYTES (MAX_PACKET_SIZE - FAES::AESBlockSize - 1)
-#define ACCELBYTE_KICK_INTERVAL 1.0f
+using namespace UE;
+using AccelByte::FErrorHandler;
+
+#define ACCELBYTE_KICK_INTERVAL 1.0
+#define ACCELBYTE_PENDING_KICK_TIMEOUT 10.0
 
 FOnlineAuthAccelByte::FOnlineAuthAccelByte(FOnlineSubsystemAccelByte* InSubsystem) :
 	OnlineSubsystem(InSubsystem),
 	bEnabled(false),
-	LastTimestamp(0.0f),
+	LastTimestamp(0.0),
+	bRequestJwks(false),
 	SessionInterface(nullptr)
 {
 	const FString AccelByteModuleName(TEXT("AuthHandlerComponentAccelByte"));
@@ -78,7 +85,8 @@ FOnlineAuthAccelByte::FOnlineAuthAccelByte(FOnlineSubsystemAccelByte* InSubsyste
 FOnlineAuthAccelByte::FOnlineAuthAccelByte() :
 	OnlineSubsystem(nullptr),
 	bEnabled(false),
-	LastTimestamp(0.0f),
+	LastTimestamp(0.0),
+	bRequestJwks(false),
 	SessionInterface(nullptr)
 {
 }
@@ -86,11 +94,6 @@ FOnlineAuthAccelByte::FOnlineAuthAccelByte() :
 FOnlineAuthAccelByte::~FOnlineAuthAccelByte()
 {
 	AuthUsers.Empty();
-}
-
-int32 FOnlineAuthAccelByte::GetMaxTokenSizeInBytes()
-{
-	return ACCELBYTE_AUTH_MAX_TOKEN_LENGTH_IN_BYTES;
 }
 
 bool FOnlineAuthAccelByte::IsSessionValid() const
@@ -135,78 +138,89 @@ FOnlineAuthAccelByte::SharedAuthUserPtr FOnlineAuthAccelByte::GetOrCreateUser(co
 	return AuthUserPtr;
 }
 
-bool FOnlineAuthAccelByte::GetAuthData(FString& UserId)
+bool FOnlineAuthAccelByte::UpdateJwks()
 {
-	if (!IsSessionValid())
+	if (JwkSet.keys.Num() > 0)
 	{
-		return false;
+		return true;
 	}
 
-	if (!IsServer())
+	if (!bRequestJwks)
 	{
-		const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(OnlineSubsystem->GetIdentityInterface());
-		if (!ensure(IdentityInterface.IsValid()))
-		{
-			UE_LOG_AB(Warning, TEXT("AUTH: Failed to finalize server login as our identity interface is invalid!"));
-			return false;
-		}
+		bRequestJwks = true;
+		// Create the JWKS in the list if we don't already have them.
+		OnlineSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteJwks>(OnlineSubsystem,
+			FOnJwksCompleted::CreateLambda([this](const FJwkSet& InJwkSet) {
+				OnJwksCompleted(InJwkSet);
+				}));
+	}
 
-		const TSharedPtr<const FUniqueNetId> UserIdPtr = IdentityInterface->GetUniquePlayerId(0);
-		if (UserIdPtr.IsValid())
-		{
-			const FUniqueNetIdAccelByteUserRef AccelByteUserId = FUniqueNetIdAccelByteUser::CastChecked(*UserIdPtr);
-			UserId = AccelByteUserId->GetAccelByteId();
+	return false;
+}
 
-			if (!UserId.IsEmpty())
+bool FOnlineAuthAccelByte::VerifyAuthToken(const FString& AuthToken, FString& UserId)
+{
+	FJwt Jwt(AuthToken);
+
+	// Verify the JWT with the RSA public key
+	for (const FJsonObjectWrapper& Key : JwkSet.keys)
+	{
+		const FRsaPublicKey PublicKey(Key.JsonObject->GetStringField("n"), Key.JsonObject->GetStringField("e"));
+		const EJwtResult VerifyResult = Jwt.VerifyWith(PublicKey);
+		if (VerifyResult == EJwtResult::Ok)
+		{
+			// Extract the userId from the payload
+			TSharedPtr<FJsonObject> Payload = Jwt.Payload();
+			if (Payload.IsValid())
 			{
-				return true;
+				if (Payload->TryGetStringField(TEXT("sub"), UserId))
+				{
+					// userId successfully extracted from the payload
+					return true;
+				}
+				else
+				{
+					// Handle invalid userId
+					UE_LOG_AB(Warning, TEXT("AUTH: (%s) The field name is not 'sub' for userId."), (IsServer() ? TEXT("DS") : TEXT("CL")));
+				}
 			}
 			else
 			{
-				UE_LOG_AB(Warning, TEXT("AUTH: (CL) GetAuthData: user id is empty."));
+				// Handle invalid Payload
+				UE_LOG_AB(Warning, TEXT("AUTH: (%s) Payload is invalid."), (IsServer() ? TEXT("DS") : TEXT("CL")));
 			}
+		}
+		else
+		{
+			// Handle invalid VerifyResult
+			UE_LOG_AB(Warning, TEXT("AUTH: (%s) Fail to verify result(%d)."), (IsServer() ? TEXT("DS") : TEXT("CL")), VerifyResult);
 		}
 	}
 
 	return false;
 }
 
-bool FOnlineAuthAccelByte::AuthenticateUser(const FAccelByteAuthUserData& InUserData)
+void FOnlineAuthAccelByte::OnJwksCompleted(const FJwkSet& InJwkSet)
+{
+	JwkSet = InJwkSet;
+	bRequestJwks = false;
+}
+
+bool FOnlineAuthAccelByte::AuthenticateUser(const FString& InUserId)
 {
 	// this is working on a dedicated server.
 	if (IsServer() && IsSessionAuthEnabled())
 	{
-		SharedAuthUserPtr TargetUser = GetOrCreateUser(InUserData.UserId);
+		SharedAuthUserPtr TargetUser = GetOrCreateUser(InUserId);
 		if (TargetUser.IsValid())
 		{
-			if (IsInSessionUser(InUserData.UserId))
+			if (IsInSessionUser(InUserId))
 			{
-
-				if (EnumHasAnyFlags(TargetUser->Status, EAccelByteAuthStatus::HasOrIsPendingAuth))
-				{
-					UE_LOG_AB(Log, TEXT("AUTH: The user (%s) has authenticated or is currently authenticating. Skipping reauth"), *InUserData.UserId);
-					return true;
-				}
-
-				if (EnumHasAnyFlags(TargetUser->Status, EAccelByteAuthStatus::FailKick))
-				{
-					UE_LOG_AB(Log, TEXT("AUTH: If the user (%s) has already failed auth, do not attempt to re-auth them."), *InUserData.UserId);
-					return false;
-				}
-
-				// Create the user in the list if we don't already have them.
-				OnlineSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteAuthUser>(OnlineSubsystem, InUserData.UserId,
-					FOnAuthUSerCompleted::CreateLambda([this](bool bWasSuccessful, const FString& UserId) {
-						OnAuthUserCompleted(bWasSuccessful, UserId);
-						}));
-
-				TargetUser->Status |= EAccelByteAuthStatus::ValidationStarted;
-
-				return true;
+				return CheckUserState(InUserId);
 			}
 			else
 			{
-				UE_LOG_AB(Warning, TEXT("AUTH: This user (%s) didn't join a session."), *InUserData.UserId);
+				UE_LOG_AB(Warning, TEXT("AUTH: This user (%s) didn't join a session."), *InUserId);
 				TargetUser->Status = EAccelByteAuthStatus::KickUser;
 				return false;
 			}
@@ -214,10 +228,45 @@ bool FOnlineAuthAccelByte::AuthenticateUser(const FAccelByteAuthUserData& InUser
 	}
 	else
 	{
-		UE_LOG_AB(Warning, TEXT("AUTH: (%s) The user (%s) is not in session"), (IsServer() ? TEXT("DS") : TEXT("CL")), *InUserData.UserId);
+		UE_LOG_AB(Warning, TEXT("AUTH: (%s) The user (%s) is not in session"), (IsServer() ? TEXT("DS") : TEXT("CL")), *InUserId);
 	}
 
 	return false;
+}
+
+bool FOnlineAuthAccelByte::CheckUserState(const FString& InUserId)
+{
+	SharedAuthUserPtr TargetUser = GetUser(InUserId);
+
+	if (!TargetUser.IsValid())
+	{
+		// If we are missing an user here, this means that they were recently deleted or we never knew about them.
+		UE_LOG_AB(Warning, TEXT("AUTH: (%s) Could not find user data on result callback for %s, were they were recently deleted?"), (IsServer() ? TEXT("DS") : TEXT("CL")),
+			*InUserId);
+		return false;
+	}
+
+	if (EnumHasAnyFlags(TargetUser->Status, EAccelByteAuthStatus::HasOrIsPendingAuth))
+	{
+		UE_LOG_AB(Log, TEXT("AUTH: The user (%s) is currently authenticating.(%f)"), *InUserId, (FPlatformTime::Seconds() - TargetUser->PendingTimestamp));
+		return true;
+	}
+
+	if (EnumHasAnyFlags(TargetUser->Status, EAccelByteAuthStatus::FailKick))
+	{
+		UE_LOG_AB(Log, TEXT("AUTH: If the user (%s) has already failed auth, do not attempt to re-auth them."), *InUserId);
+		return false;
+	}
+
+	// Create the user in the list if we don't already have them.
+	OnlineSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteAuthUser>(OnlineSubsystem, InUserId,
+		FOnAuthUserCompleted::CreateLambda([this](bool bWasSuccessful, const FString& UserId) {
+			OnAuthUserCompleted(bWasSuccessful, UserId);
+			}));
+
+	TargetUser->Status |= EAccelByteAuthStatus::ValidationStarted;
+
+	return true;
 }
 
 void FOnlineAuthAccelByte::OnAuthSuccess(const FString& InUserId)
@@ -235,15 +284,15 @@ void FOnlineAuthAccelByte::OnAuthSuccess(const FString& InUserId)
 	TargetUser->Status |= EAccelByteAuthStatus::AuthSuccess;
 }
 
-void FOnlineAuthAccelByte::OnAuthUserCompleted(bool bWasSuccessful, const FString& UserId)
+void FOnlineAuthAccelByte::OnAuthUserCompleted(bool bWasSuccessful, const FString& InUserId)
 {
 	if (bWasSuccessful)
 	{
-		OnAuthSuccess(UserId);
+		OnAuthSuccess(InUserId);
 	}
 	else
 	{
-		OnAuthFail(UserId, 0, "Baned User.");
+		OnAuthFail(InUserId, 0, "Baned User.");
 	}
 }
 
@@ -367,22 +416,38 @@ void FOnlineAuthAccelByte::RemoveUser(const FString& InTargetUser)
 	AuthUsers.Remove(InTargetUser);
 }
 
-bool FOnlineAuthAccelByte::IsInSessionUser(const FString& InUserId) const
+bool FOnlineAuthAccelByte::IsInSessionUser(const FString& InUserId)
+
 {
-	if (!IsSessionValid())
+	if (!SessionInterface.IsValid())
 	{
+		UE_LOG_AB(Warning, TEXT("AUTH: (%s) Session interface is invalid."), (IsServer() ? TEXT("DS") : TEXT("CL")));
 		return false;
 	}
 
-	if (!SessionInterface.IsValid())
+	SharedAuthUserPtr AuthUser = GetUser(InUserId);
+	if (!AuthUser.IsValid())
 	{
+		// If we are missing an user here, this means that they were recently deleted or we never knew about them.
+		UE_LOG_AB(Warning, TEXT("AUTH: (%s) The user(%s) has something wrong."), (IsServer() ? TEXT("DS") : TEXT("CL")), *InUserId);
 		return false;
+	}
+
+	if (!IsSessionValid())
+	{
+		if (!EnumHasAnyFlags(AuthUser->Status, EAccelByteAuthStatus::PendingSession))
+		{
+			AuthUser->Status |= EAccelByteAuthStatus::PendingSession;
+			AuthUser->PendingTimestamp = FPlatformTime::Seconds();
+			UE_LOG_AB(Warning, TEXT("AUTH: (%s) The user(%s) is pending for session information."), (IsServer() ? TEXT("DS") : TEXT("CL")), *InUserId);
+		}
+		return true;
 	}
 
 	const FNamedOnlineSession* NamedSession = SessionInterface->GetNamedSession(NAME_GameSession);
 	if (NamedSession == nullptr)
 	{
-		UE_LOG_AB(Warning, TEXT("AUTH: (%s) Session interface is null."), (IsServer() ? TEXT("DS") : TEXT("CL")));
+		UE_LOG_AB(Warning, TEXT("AUTH: (%s) NamedSession is null."), (IsServer() ? TEXT("DS") : TEXT("CL")));
 		return false;
 	}
 
@@ -394,12 +459,21 @@ bool FOnlineAuthAccelByte::IsInSessionUser(const FString& InUserId) const
 			TSharedRef<const FUniqueNetIdAccelByteUser> Player = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(Member);
 			if (Player->GetAccelByteId() == InUserId)
 			{
+				// Remove the pending session flag
+				AuthUser->Status &= ~EAccelByteAuthStatus::PendingSession;
 				return true;
 			}
 		}
 	}
 
-	return false;
+	if (!EnumHasAnyFlags(AuthUser->Status, EAccelByteAuthStatus::PendingSession))
+	{
+		AuthUser->Status |= EAccelByteAuthStatus::PendingSession;
+		AuthUser->PendingTimestamp = FPlatformTime::Seconds();
+		UE_LOG_AB(Warning, TEXT("AUTH: (%s) The user(%s) is pending for session information."), (IsServer() ? TEXT("DS") : TEXT("CL")), *InUserId);
+	}
+
+	return true;
 }
 
 bool FOnlineAuthAccelByte::Tick(float DeltaTime)
@@ -412,7 +486,7 @@ bool FOnlineAuthAccelByte::Tick(float DeltaTime)
 	float CurTime = FPlatformTime::Seconds();
 	if (LastTimestamp != 0.0)
 	{
-		if (CurTime - LastTimestamp < ACCELBYTE_KICK_INTERVAL)
+		if ((CurTime - LastTimestamp) < ACCELBYTE_KICK_INTERVAL)
 		{
 			return true;
 		}
@@ -437,8 +511,31 @@ bool FOnlineAuthAccelByte::Tick(float DeltaTime)
 				}
 				CurUser->Status |= EAccelByteAuthStatus::KickUser;
 			}
+			else if (EnumHasAnyFlags(CurUser->Status, EAccelByteAuthStatus::PendingSession))
+			{
+				if (IsInSessionUser(CurUserId))
+				{
+					if ((LastTimestamp - CurUser->PendingTimestamp) > ACCELBYTE_PENDING_KICK_TIMEOUT)
+					{
+						CurUser->Status &= ~EAccelByteAuthStatus::PendingSession;
+						CurUser->Status |= EAccelByteAuthStatus::KickUser;
+					}
+					else if (!CheckUserState(CurUserId))
+					{
+						CurUser->Status &= ~EAccelByteAuthStatus::PendingSession;
+						CurUser->Status |= EAccelByteAuthStatus::KickUser;
+					}
+				}
+				else
+				{
+					CurUser->Status &= ~EAccelByteAuthStatus::PendingSession;
+					CurUser->Status |= EAccelByteAuthStatus::KickUser;
+				}
+			}
 		}
 	}
+
+	UpdateJwks();
 
 	return true;
 }

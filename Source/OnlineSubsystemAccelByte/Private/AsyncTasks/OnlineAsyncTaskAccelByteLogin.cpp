@@ -45,7 +45,7 @@ void FOnlineAsyncTaskAccelByteLogin::Initialize()
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("LocalUserNum: %d"), LoginUserNum);
 	if (Subsystem->IsMultipleLocalUsersEnabled())
 	{
-		ApiClient = FMultiRegistry::GetApiClient(FString::Printf(TEXT("%d"), LoginUserNum));;
+		ApiClient = FMultiRegistry::GetApiClient(FString::Printf(TEXT("%d"), LoginUserNum));
 	}
 	else
 	{
@@ -75,14 +75,8 @@ void FOnlineAsyncTaskAccelByteLogin::Initialize()
 			CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState);
 			return;
 		}
-
-		LoginType = static_cast<EAccelByteLoginType>(Result);
 		
-		if(LoginType == EAccelByteLoginType::ExchangeCode)
-		{
-			LoginWithNativeSubsystem();
-			return;
-		}
+		LoginType = static_cast<EAccelByteLoginType>(Result);
 	}
 	else
 	{
@@ -201,12 +195,22 @@ void FOnlineAsyncTaskAccelByteLogin::LoginWithNativeSubsystem()
 		AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Login UI opened for native platform, allowing user to select account to log in to."));
 		return;
 	}
-
+	
 	// If we don't have a log in UI, then just send off a request to log in with blank credentials (default native account)
 	FOnLoginCompleteDelegate NativeLoginComplete = TDelegateUtils<FOnLoginCompleteDelegate>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteLogin::OnNativeLoginComplete);
 	NativeIdentityInterface->AddOnLoginCompleteDelegate_Handle(LoginUserNum, NativeLoginComplete);
-	NativeIdentityInterface->Login(LoginUserNum, FOnlineAccountCredentials());
+	
+	// Add Type credential parameter for EOS.
+	FOnlineAccountCredentials AccountCredential;
+	if (NativeSubsystem->GetSubsystemName().ToString().Equals(TEXT("EOS"), ESearchCase::IgnoreCase))
+	{
+		FAccelByteUtilities::GetValueFromCommandLineSwitch(TEXT("AUTH_TYPE"), AccountCredential.Type);
+		FAccelByteUtilities::GetValueFromCommandLineSwitch(TEXT("AUTH_LOGIN"), AccountCredential.Id);
+		FAccelByteUtilities::GetValueFromCommandLineSwitch(TEXT("AUTH_PASSWORD"), AccountCredential.Token);
+	}
 
+	NativeIdentityInterface->Login(LoginUserNum, AccountCredential);
+	
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sending login request to native subsystem!"));
 }
 
@@ -250,7 +254,7 @@ void FOnlineAsyncTaskAccelByteLogin::OnNativeLoginUIClosed(TSharedPtr<const FUni
 
 	FOnLoginCompleteDelegate NativeLoginComplete = TDelegateUtils<FOnLoginCompleteDelegate>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteLogin::OnNativeLoginComplete);
 	NativeIdentityInterface->AddOnLoginCompleteDelegate_Handle(ControllerIndex, NativeLoginComplete);
-
+	
 	// Add Type credential parameter for EOS.
 	if(NativeSubsystem->GetSubsystemName().ToString().Equals(TEXT("EOS"),ESearchCase::IgnoreCase))
 	{

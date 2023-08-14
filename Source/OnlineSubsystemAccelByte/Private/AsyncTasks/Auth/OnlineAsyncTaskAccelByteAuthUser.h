@@ -8,7 +8,7 @@
 #include "AsyncTasks/OnlineAsyncTaskAccelByte.h"
 #include "AsyncTasks/OnlineAsyncTaskAccelByteUtils.h"
 
-DECLARE_DELEGATE_TwoParams(FOnAuthUSerCompleted, bool /*bWasSuccessful*/, const FString& /*UserId*/);
+DECLARE_DELEGATE_TwoParams(FOnAuthUserCompleted, bool /*bWasSuccessful*/, const FString& /*UserId*/);
 
 /**
  * Ban User to DS service.
@@ -18,9 +18,8 @@ DECLARE_DELEGATE_TwoParams(FOnAuthUSerCompleted, bool /*bWasSuccessful*/, const 
 class FOnlineAsyncTaskAccelByteAuthUser : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteAuthUser, ESPMode::ThreadSafe>
 {
 public:
-	//FGetUserBansResponse, FBanUserResponse
 	/** Constructor to setup the Dedicated Server task */
-	FOnlineAsyncTaskAccelByteAuthUser(FOnlineSubsystemAccelByte* const InABInterface, const FString& InUserId, const FOnAuthUSerCompleted& InDelegate);
+	FOnlineAsyncTaskAccelByteAuthUser(FOnlineSubsystemAccelByte* const InABInterface, const FString& InUserId, const FOnAuthUserCompleted& InDelegate);
 
 	virtual void Initialize() override;
 	virtual void TriggerDelegates() override;
@@ -36,7 +35,7 @@ private:
 	FString UserId;
 
 	bool bRequestResult;
-	FOnAuthUSerCompleted Delegate;
+	FOnAuthUserCompleted Delegate;
 
 	void OnAuthSuccess(const FGetUserBansResponse& Result);
 	void OnAuthError(int32 ErrorCode, const FString& ErrorMessage);

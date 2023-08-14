@@ -39,6 +39,8 @@ private:
 		Uninitialized = 0,
 		SentKey,
 		RecvedKey,
+		WaitForJwks,
+		ReadyJwks,
 		WaitForAuth,
 		SentAuth,
 		AuthFail,
@@ -89,10 +91,14 @@ private:
 	/* AES decrypt incoming packets */
 	bool DecryptAES(FBitReader& Packet);
 
-	bool SetAuthData(FString& UserId);
-	bool SendAuthData();
-
+	/** Authenticate User */
+	bool SetAuthData(FString& AuthToken);
+	void SendAuthData();
+	bool SendAuthData(TArray<uint8>& Packet, uint32& SegmentsNum);
 	void RecvAuthData(FBitReader& Packet);
+
+	void VerifyAuthToken();
+	void OnVerifyAuthToken();
 	void OnAuthenticateUser();
 
 	void SendAuthResult();
@@ -104,14 +110,16 @@ private:
 	void LoadSettings();
 	void SetComponentReady();
 
-	void SendPacket(FBitWriter& OutPacket);
+	void SendPacket(FBitWriter& Packet);
 
 	bool IsServer() const;
 
-	void SetCryptor(bool bIsServer);
+	void SetCryptor();
 
 	void Clear();
 	void NetCleanUp();
+
+	static int32 GetMaxTokenSizeInBytes();
 
 private:
 	/* State of the handler */
@@ -137,15 +145,17 @@ private:
 	FOnlineSubsystemAccelByte* OnlineSubsystem;
 
 private:
+	uint32 RecvSegCount;
 	bool bIsEnabled;
-	float LastTimestamp;
+	double LastTimestamp;
 	bool bEnabledEncryption;
+	bool bOriginRequiresReliability;
 
-	FAccelByteAuthUserData AuthUserData;
+	FString UserId;
+	FString AuthData;
 
 	FOnlineAuthAccelBytePtr AuthInterface;
 };
-
 
 /**
  * Factory class for loading HandlerComponent's contained within Engine

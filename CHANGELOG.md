@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.11.16](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.11.16%0D0.11.15) (2023-08-14)
+
+
+### Features
+
+* **AuthHandler:** AccelByte AuthHandlerComponent to verify players using JWT (Access token) ([1d348a0](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/1d348a0826f632f3b9535157f83700cf1eed4d2c))
+* GroupInterface LeaveGroup ([79d5766](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/79d5766e9266c13bd9658d77708c67421af09428))
+* Support EOS integration as native platform in AB OSS ([afc62ba](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/afc62ba70c2f7c76a1076263e0bed182a8b643cf))
+
+
+### Bug Fixes
+
+* fix missing session attribute with key length equal to an AccelByte ID ([97937e3](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/97937e30eff307979c592c22148f9ccfb63b4033))
+* fix typo include file ([fa7effb](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/fa7effbc774e13e2a3f7df090ec1f5fcb716e9f3))
+* incorrect display name on user cache ([c0cc1e0](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/c0cc1e09b4b566223c9dd4cfd4acfbc432b5793a))
+* **MPv2:** set LocalOwnerId for auto joined game session ([bf6d440](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/bf6d440da88d9b11e9f8991cbc89289333dad1cc))
+
 ### [0.11.15](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.11.15%0D0.11.14) (2023-08-03)
 
 

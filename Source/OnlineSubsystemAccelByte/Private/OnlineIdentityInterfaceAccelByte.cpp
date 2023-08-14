@@ -208,11 +208,6 @@ bool FOnlineIdentityAccelByte::AutoLogin(int32 LocalUserNum)
 
 	FOnlineAccountCredentials Credentials;
 
-	// Try and parse the command line for the authentication type, as well as its ID and token
-	FParse::Value(FCommandLine::Get(), TEXT("-AUTH_TYPE="), Credentials.Type);
-	FParse::Value(FCommandLine::Get(), TEXT("-AUTH_LOGIN="), Credentials.Id);
-	FParse::Value(FCommandLine::Get(), TEXT("-AUTH_PASSWORD="), Credentials.Token);
-
 	// Check if we have an environment variable set named "JUSTICE_AUTHORIZATION_CODE", which if so will initiate a
 	// launcher login and reset the type to be a "launcher" login
 	const FString LauncherCode = FAccelByteUtilities::GetAuthorizationCode();

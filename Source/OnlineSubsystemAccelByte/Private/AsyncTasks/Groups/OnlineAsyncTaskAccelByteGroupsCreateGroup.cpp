@@ -50,7 +50,7 @@ void FOnlineAsyncTaskAccelByteGroupsCreateGroup::TriggerDelegates()
 	FUniqueNetIdPtr GenericUserId = StaticCastSharedPtr<const FUniqueNetId>(UserId);
 	if (!ensure(GenericUserId.IsValid()))
 	{
-		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to create group as our user ID is not valid!"));
+		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to create group, user ID is not valid!"));
 		return;
 	}
 
@@ -69,20 +69,7 @@ void FOnlineAsyncTaskAccelByteGroupsCreateGroup::Finalize()
 	FOnlineGroupsAccelBytePtr GroupsInterface;
 	if(!ensure(FOnlineGroupsAccelByte::GetFromSubsystem(Subsystem, GroupsInterface)))
 	{
-		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to create group as our groups interface instance is not valid!"));
-		return;
-	}
-
-	if (GroupsInterface->IsGroupValid())
-	{
-		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to create group as we are already in a group!"));
-		return;
-	}
-
-	// Bail if we don't have any user/leader data
-	if (GroupInfo.GetABDisplayInfo().GroupMembers.Num() <= 0)
-	{
-		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to create group as no group user information was received!"));
+		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to create group, groups interface instance is not valid!"));
 		return;
 	}
 
@@ -105,7 +92,9 @@ void FOnlineAsyncTaskAccelByteGroupsCreateGroup::Finalize()
 		GroupInfo.SenderUserId,
 		GroupInfo.Namespace,
 		GroupInfo.OwnerId->AsShared().Get(),
-		ABGroupInfo);
+		ABGroupInfo,
+		GroupInfo.ABAdminRoleId,
+		GroupInfo.ABMemberRoleId);
 
 	GroupsInterface->SetCurrentGroupData(AccelByteGroupsInfo);
 
@@ -116,19 +105,25 @@ void FOnlineAsyncTaskAccelByteGroupsCreateGroup::OnCreateGroupSuccess(const FAcc
 {
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("GroupId: %s"), *Result.GroupId);
 
-	CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
-	UniqueNetIdAccelByteResource = FUniqueNetIdAccelByteResource::Create(Result.GroupId);
-
 	// Success = 201
 	httpStatus = 201;
+
+	GroupInfo.ABGroupInfo = Result;
+
+	CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
+	UniqueNetIdAccelByteResource = FUniqueNetIdAccelByteResource::Create(Result.GroupId);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 
 void FOnlineAsyncTaskAccelByteGroupsCreateGroup::OnCreateGroupError(int32 ErrorCode, const FString& ErrorMessage)
 {
+	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
+
+	httpStatus = ErrorCode;
+
 	ErrorString = ErrorMessage;
 	CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
 
-	httpStatus = ErrorCode;
+	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }

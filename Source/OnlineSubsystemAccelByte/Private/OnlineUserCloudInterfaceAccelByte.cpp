@@ -34,6 +34,8 @@ bool FOnlineUserCloudAccelByte::GetFromWorld(const UWorld* World, FOnlineUserClo
 
 void FOnlineUserCloudAccelByte::EnumerateUserFiles(const FUniqueNetId& UserId)
 {
+	FReport::LogDeprecated(FString(__FUNCTION__), TEXT("Cloud Storage is deprecated - please use Binary Cloudsave for the replacement"));
+
 	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("UserId: %s"), *UserId.ToDebugString());
 
 	check(AccelByteSubsystem != nullptr);
@@ -44,6 +46,8 @@ void FOnlineUserCloudAccelByte::EnumerateUserFiles(const FUniqueNetId& UserId)
 
 void FOnlineUserCloudAccelByte::AddCloudHeaders(const TSharedRef<const FUniqueNetIdAccelByteUser>& UserId, const TMap<FString, FCloudFileHeader>& InFileNamesToCloudHeaders)
 {
+	FReport::LogDeprecated(FString(__FUNCTION__), TEXT("Cloud Storage is deprecated - please use Binary Cloudsave for the replacement"));
+
 	// Check if we already have a header map associated with the user
 	FFileNameToFileHeaderMap* FoundHeaders = UserIdToFileNameFileHeaderMap.Find(UserId);
 	if (FoundHeaders != nullptr)
@@ -60,6 +64,8 @@ void FOnlineUserCloudAccelByte::AddCloudHeaders(const TSharedRef<const FUniqueNe
 
 void FOnlineUserCloudAccelByte::AddFileContentsToReadCache(const TSharedRef<const FUniqueNetIdAccelByteUser>& UserId, const FString& FileName, TArray<uint8>&& FileContents)
 {
+	FReport::LogDeprecated(FString(__FUNCTION__), TEXT("Cloud Storage is deprecated - please use Binary Cloudsave for the replacement"));
+
 	// Check if we already have a file read cache associated with the user
 	FFileNameToFileContentsMap* FoundReadCache = UserIdToFileNameFileContentsMap.Find(UserId);
 	if (FoundReadCache != nullptr)
@@ -84,6 +90,8 @@ void FOnlineUserCloudAccelByte::AddFileContentsToReadCache(const TSharedRef<cons
 
 void FOnlineUserCloudAccelByte::AddSlotIdToCache(const TSharedRef<const FUniqueNetIdAccelByteUser>& UserId, const FString& FileName, const FString& SlotId)
 {
+	FReport::LogDeprecated(FString(__FUNCTION__), TEXT("Cloud Storage is deprecated - please use Binary Cloudsave for the replacement"));
+
 	FFileNameToSlotIdMap* FoundSlotCache = UserIdToFileNameSlotIdMap.Find(UserId);
 	if (FoundSlotCache != nullptr && !FoundSlotCache->Contains(FileName))
 	{
@@ -99,6 +107,8 @@ void FOnlineUserCloudAccelByte::AddSlotIdToCache(const TSharedRef<const FUniqueN
 
 void FOnlineUserCloudAccelByte::RemoveSlotIdFromCache(const TSharedRef<const FUniqueNetIdAccelByteUser>& UserId, const FString& FileName)
 {
+	FReport::LogDeprecated(FString(__FUNCTION__), TEXT("Cloud Storage is deprecated - please use Binary Cloudsave for the replacement"));
+
 	FFileNameToSlotIdMap* FoundSlotCache = UserIdToFileNameSlotIdMap.Find(UserId);
 	if (FoundSlotCache != nullptr && FoundSlotCache->Contains(FileName))
 	{
@@ -108,6 +118,8 @@ void FOnlineUserCloudAccelByte::RemoveSlotIdFromCache(const TSharedRef<const FUn
 
 FString FOnlineUserCloudAccelByte::GetSlotIdFromCache(const TSharedRef<const FUniqueNetIdAccelByteUser>& UserId, const FString& FileName)
 {
+	FReport::LogDeprecated(FString(__FUNCTION__), TEXT("Cloud Storage is deprecated - please use Binary Cloudsave for the replacement"));
+
 	FFileNameToSlotIdMap* FoundSlotCache = UserIdToFileNameSlotIdMap.Find(UserId);
 	if (FoundSlotCache != nullptr)
 	{
@@ -123,6 +135,8 @@ FString FOnlineUserCloudAccelByte::GetSlotIdFromCache(const TSharedRef<const FUn
 
 bool FOnlineUserCloudAccelByte::ReadUserFile(const FUniqueNetId& UserId, const FString& FileName)
 {
+	FReport::LogDeprecated(FString(__FUNCTION__), TEXT("Cloud Storage is deprecated - please use Binary Cloudsave for the replacement"));
+
 	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("UserId: %s; FileName: %s"), *UserId.ToDebugString(), *FileName);
 
 	check(AccelByteSubsystem != nullptr);
@@ -134,6 +148,8 @@ bool FOnlineUserCloudAccelByte::ReadUserFile(const FUniqueNetId& UserId, const F
 
 bool FOnlineUserCloudAccelByte::GetFileContents(const FUniqueNetId& UserId, const FString& FileName, TArray<uint8>& FileContents)
 {
+	FReport::LogDeprecated(FString(__FUNCTION__), TEXT("Cloud Storage is deprecated - please use Binary Cloudsave for the replacement"));
+
 	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("UserId: %s; FileName: %s"), *UserId.ToDebugString(), *FileName);
 
 	// Check if we have a cache of files read for this user
@@ -159,6 +175,8 @@ bool FOnlineUserCloudAccelByte::GetFileContents(const FUniqueNetId& UserId, cons
 
 bool FOnlineUserCloudAccelByte::ClearFiles(const FUniqueNetId& UserId)
 {
+	FReport::LogDeprecated(FString(__FUNCTION__), TEXT("Cloud Storage is deprecated - please use Binary Cloudsave for the replacement"));
+
 	FFileNameToFileContentsMap* FoundContentsMap = UserIdToFileNameFileContentsMap.Find(FUniqueNetIdAccelByteUser::CastChecked(UserId));
 	if (FoundContentsMap != nullptr)
 	{
@@ -171,6 +189,8 @@ bool FOnlineUserCloudAccelByte::ClearFiles(const FUniqueNetId& UserId)
 
 bool FOnlineUserCloudAccelByte::ClearFile(const FUniqueNetId& UserId, const FString& FileName)
 {
+	FReport::LogDeprecated(FString(__FUNCTION__), TEXT("Cloud Storage is deprecated - please use Binary Cloudsave for the replacement"));
+
 	FFileNameToFileContentsMap* FoundContentsMap = UserIdToFileNameFileContentsMap.Find(FUniqueNetIdAccelByteUser::CastChecked(UserId));
 	if (FoundContentsMap != nullptr)
 	{
@@ -186,6 +206,8 @@ bool FOnlineUserCloudAccelByte::ClearFile(const FUniqueNetId& UserId, const FStr
 
 void FOnlineUserCloudAccelByte::GetUserFileList(const FUniqueNetId& UserId, TArray<FCloudFileHeader>& UserFiles)
 {
+	FReport::LogDeprecated(FString(__FUNCTION__), TEXT("Cloud Storage is deprecated - please use Binary Cloudsave for the replacement"));
+
 	FFileNameToFileHeaderMap* UserCloudFiles = UserIdToFileNameFileHeaderMap.Find(FUniqueNetIdAccelByteUser::CastChecked(UserId));
 	if (UserCloudFiles != nullptr)
 	{
@@ -196,12 +218,16 @@ void FOnlineUserCloudAccelByte::GetUserFileList(const FUniqueNetId& UserId, TArr
 
 void FOnlineUserCloudAccelByte::DumpCloudState(const FUniqueNetId& UserId)
 {
+	FReport::LogDeprecated(FString(__FUNCTION__), TEXT("Cloud Storage is deprecated - please use Binary Cloudsave for the replacement"));
+
 	// at some point we may want this to log how many slots the user has used and how many the maximum is? along with maximum size per slot?
 	UE_LOG_AB(Warning, TEXT("AccelByte OSS UserCloud implementation currently does not support DumpCloudState."));
 }
 
 void FOnlineUserCloudAccelByte::DumpCloudFileState(const FUniqueNetId& UserId, const FString& FileName)
 {
+	FReport::LogDeprecated(FString(__FUNCTION__), TEXT("Cloud Storage is deprecated - please use Binary Cloudsave for the replacement"));
+
 	UE_LOG_AB(Log, TEXT("State for file '%s' owned by user '%s':"), *FileName, *UserId.ToDebugString());
 
 	// First try and dump information about the header of the file that is owned by the user
@@ -245,6 +271,8 @@ void FOnlineUserCloudAccelByte::DumpCloudFileState(const FUniqueNetId& UserId, c
 
 bool FOnlineUserCloudAccelByte::WriteUserFile(const FUniqueNetId& UserId, const FString& FileName, TArray<uint8>& FileContents, bool bCompressBeforeUpload)
 {
+	FReport::LogDeprecated(FString(__FUNCTION__), TEXT("Cloud Storage is deprecated - please use Binary Cloudsave for the replacement"));
+
 	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("UserId: %s; FileName: %s; FileContents Size: %d; bCompressBeforeUpload: %s"), *UserId.ToDebugString(), *FileName, FileContents.Num(), LOG_BOOL_FORMAT(bCompressBeforeUpload));
 
 	check(AccelByteSubsystem != nullptr);
@@ -256,6 +284,8 @@ bool FOnlineUserCloudAccelByte::WriteUserFile(const FUniqueNetId& UserId, const 
 
 void FOnlineUserCloudAccelByte::CancelWriteUserFile(const FUniqueNetId& UserId, const FString& FileName)
 {
+	FReport::LogDeprecated(FString(__FUNCTION__), TEXT("Cloud Storage is deprecated - please use Binary Cloudsave for the replacement"));
+
 	// I don't believe that canceling requests is supported by the SDK currently?
 	UE_LOG_AB(Warning, TEXT("AccelByte OSS UserCloud implementation currently does not support CancelWriteUserFile."));
 	AccelByteSubsystem->ExecuteNextTick([UserCloudInterface = AsShared(), NetId = UserId.AsShared(), FileName]() {
@@ -265,6 +295,8 @@ void FOnlineUserCloudAccelByte::CancelWriteUserFile(const FUniqueNetId& UserId, 
 
 bool FOnlineUserCloudAccelByte::DeleteUserFile(const FUniqueNetId& UserId, const FString& FileName, bool bShouldCloudDelete, bool bShouldLocallyDelete)
 {
+	FReport::LogDeprecated(FString(__FUNCTION__), TEXT("Cloud Storage is deprecated - please use Binary Cloudsave for the replacement"));
+
 	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("UserId: %s; FileName: %s; bShouldCloudDelete: %s; bShouldLocallyDelete: %s"), *UserId.ToDebugString(), *FileName, LOG_BOOL_FORMAT(bShouldCloudDelete), LOG_BOOL_FORMAT(bShouldLocallyDelete));
 
 	check(AccelByteSubsystem != nullptr);
@@ -276,6 +308,8 @@ bool FOnlineUserCloudAccelByte::DeleteUserFile(const FUniqueNetId& UserId, const
 
 bool FOnlineUserCloudAccelByte::RequestUsageInfo(const FUniqueNetId& UserId)
 {
+	FReport::LogDeprecated(FString(__FUNCTION__), TEXT("Cloud Storage is deprecated - please use Binary Cloudsave for the replacement"));
+
 	// SDK nor backend I don't think has a way to see how many slots/how much space a user is using relative to the
 	// configured limits? I think technically I could run GetAllSlots and get the file size for each slot as the
 	// "total used", however I don't think I'll be able to get the quota value?

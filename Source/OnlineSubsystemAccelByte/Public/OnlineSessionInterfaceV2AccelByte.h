@@ -1319,18 +1319,18 @@ PACKAGE_SCOPE:
 	 * @return true if request successfully sent
 	 */
 	bool ServerQueryPartySessions(const FAccelByteModelsV2QueryPartiesRequest& Request, int64 Offset = 0, int64 Limit = 20);
-	
+
+	/**
+	 * Add a canceled ticket ID to this interface instance for tracking
+	 */
+	void AddCanceledTicketId(const FString& TicketId);
+
 	/**
 	 * @brief Get whether Server is using AMS or not
 	 *
 	 * @return true if Server is using AMS
 	 */
 	bool IsServerUseAMS() const;
-
-	/**
-	 * Add a canceled ticket ID to this interface instance for tracking
-	 */
-	void AddCanceledTicketId(const FString& TicketId);
 
 private:
 	/** Parent subsystem of this interface instance */
@@ -1390,7 +1390,7 @@ private:
 
 	/** Time in seconds that we clear the array of canceled ticket IDs (default to five minutes) */
 	double ClearCanceledTicketIdsTimeInSeconds = 300.0;
-	
+
 	bool bServerUseAMS = false;
 
 	/** Hidden on purpose */
