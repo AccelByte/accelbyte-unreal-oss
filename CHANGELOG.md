@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.11.17](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.11.17%0D0.11.16) (2023-08-23)
+
+
+### Bug Fixes
+
+* missing functions in Group Interface for Unreal Engine 5 ([7ad889d](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/7ad889d0b84b1a35bc95d7f3250b2a43e3a9347e))
+
 ### [0.11.16](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.11.16%0D0.11.15) (2023-08-14)
 
 
