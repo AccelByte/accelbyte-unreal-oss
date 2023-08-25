@@ -3,6 +3,7 @@
 // and restrictions contact your company contract manager.
 
 #include "OnlinePartyInterfaceAccelByte.h"
+#include "Runtime/Launch/Resources/Version.h"
 #include "OnlineSubsystemAccelByte.h"
 #include "OnlineError.h"
 #include "Api/AccelByteLobbyApi.h"

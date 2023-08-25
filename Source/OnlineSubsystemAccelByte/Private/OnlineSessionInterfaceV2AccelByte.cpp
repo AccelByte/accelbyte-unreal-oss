@@ -3,6 +3,7 @@
 // and restrictions contact your company contract manager.
 
 #include "OnlineSessionInterfaceV2AccelByte.h"
+#include "Runtime/Launch/Resources/Version.h"
 #include "OnlineSubsystemAccelByteSessionSettings.h"
 #include "OnlineSubsystemAccelByteInternalHelpers.h"
 #include "Interfaces/OnlineIdentityInterface.h"

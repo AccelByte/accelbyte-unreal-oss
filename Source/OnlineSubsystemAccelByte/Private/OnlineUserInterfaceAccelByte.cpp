@@ -290,7 +290,7 @@ bool FOnlineUserAccelByte::TestExec(UWorld* InWorld, const TCHAR* Cmd, FOutputDe
 
 void FOnlineUserAccelByte::ListUserByUserId(const int32 LocalUserNum, const TArray<FString>& UserIds)
 {
-	UE_LOG_ONLINE_STATS(Display, TEXT("FOnlineUserAccelByte::ListUserByUserId"));
+	UE_LOG_AB(Display, TEXT("FOnlineUserAccelByte::ListUserByUserId"));
 	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteListUserByUserId>
 		(AccelByteSubsystem, LocalUserNum, UserIds);
 }

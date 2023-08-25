@@ -3,6 +3,12 @@
 // and restrictions contact your company contract manager.
 
 #include "OnlineAsyncTaskAccelByteRegisterDedicatedV1Session.h"
+#include "Runtime/Launch/Resources/Version.h"
+#include "Engine.h"
+#include "Engine/World.h"
+#if ENGINE_MAJOR_VERSION >= 5
+#include "Online/OnlineSessionNames.h"
+#endif // ENGINE_MAJOR_VERSION >= 5
 #include "OnlineSubsystemAccelByte.h"
 #include "OnlineIdentityInterfaceAccelByte.h"
 #include "Core/AccelByteRegistry.h"

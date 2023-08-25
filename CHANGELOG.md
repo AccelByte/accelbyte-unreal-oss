@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.11.18](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.11.18%0D0.11.17) (2023-08-25)
+
+
+### Bug Fixes
+
+* missing headers on several files using Unreal Engine 5.2 ([2f05c1d](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/2f05c1d693d7fe1f1e044eb97538d6604966bf2e))
+
 ### [0.11.17](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.11.17%0D0.11.16) (2023-08-23)
 
 

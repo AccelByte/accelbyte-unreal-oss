@@ -10,6 +10,7 @@
 #include "Online.h"
 #include "OnlineStats.h"
 #include "OnlineSubsystemAccelByteTypes.h"
+#include "Interfaces/OnlineStatsInterface.h"
 
 class FOnlineAsyncTaskAccelByteReadLeaderboards : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteReadLeaderboards, ESPMode::ThreadSafe>
 {

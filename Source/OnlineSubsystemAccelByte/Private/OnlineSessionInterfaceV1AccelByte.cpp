@@ -3,6 +3,11 @@
 // and restrictions contact your company contract manager.
 
 #include "OnlineSessionInterfaceV1AccelByte.h"
+#include "Runtime/Launch/Resources/Version.h"
+#if ENGINE_MAJOR_VERSION >= 5
+#include "Online/OnlineBase.h"
+#include "Online/OnlineSessionNames.h"
+#endif // ENGINE_MAJOR_VERSION >= 5
 #include "OnlineSubsystemAccelByteTypes.h"
 #include "OnlineSubsystemAccelByte.h"
 #include "OnlineSubsystemAccelByteModule.h"
