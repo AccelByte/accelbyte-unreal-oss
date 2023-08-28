@@ -7,7 +7,9 @@
 #include "AsyncTasks/OnlineAsyncTaskAccelByteUtils.h"
 #include "Interfaces/OnlineStoreInterfaceV2.h"
 
-class FOnlineAsyncTaskAccelByteQueryChildCategories : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteQueryChildCategories, ESPMode::ThreadSafe>
+class FOnlineAsyncTaskAccelByteQueryChildCategories
+	: public FOnlineAsyncTaskAccelByte
+	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteQueryChildCategories, ESPMode::ThreadSafe>
 {
 public:
 	FOnlineAsyncTaskAccelByteQueryChildCategories(FOnlineSubsystemAccelByte* const InABSubsystem, const FUniqueNetId& InUserId, const FString& InCategoryPath, const FOnQueryOnlineStoreCategoriesComplete& InDelegate);

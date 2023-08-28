@@ -9,7 +9,9 @@
 #include "OnlineSubsystemAccelByteTypes.h"
 #include "OnlineSessionInterfaceV1AccelByte.h"
 
-class FOnlineAsyncTaskAccelByteStartV1Matchmaking : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteStartV1Matchmaking, ESPMode::ThreadSafe>
+class FOnlineAsyncTaskAccelByteStartV1Matchmaking
+	: public FOnlineAsyncTaskAccelByte
+	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteStartV1Matchmaking, ESPMode::ThreadSafe>
 {
 public:
 

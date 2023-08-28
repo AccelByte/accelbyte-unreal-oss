@@ -11,7 +11,9 @@
 /**
  * Fill out information about your async task here.
  */
-class FOnlineAsyncTaskAccelByteLeaveV2GameSession : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteLeaveV2GameSession, ESPMode::ThreadSafe>
+class FOnlineAsyncTaskAccelByteLeaveV2GameSession
+	: public FOnlineAsyncTaskAccelByte
+	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteLeaveV2GameSession, ESPMode::ThreadSafe>
 {
 public:
 

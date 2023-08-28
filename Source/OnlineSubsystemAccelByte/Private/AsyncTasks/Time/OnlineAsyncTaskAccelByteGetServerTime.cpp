@@ -7,6 +7,8 @@
 #include "OnlineTimeInterfaceAccelByte.h"
 #include "Models/AccelByteGeneralModels.h"
 
+using namespace AccelByte;
+
 FOnlineAsyncTaskAccelByteGetServerTime::FOnlineAsyncTaskAccelByteGetServerTime(FOnlineSubsystemAccelByte* const InABInterface)
 	: FOnlineAsyncTaskAccelByte(InABInterface, true)
 	, LocalCachedServerTime(MakeShared<FDateTime>())

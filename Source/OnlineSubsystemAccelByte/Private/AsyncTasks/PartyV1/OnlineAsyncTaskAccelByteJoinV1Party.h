@@ -16,7 +16,9 @@ struct FAccelByteModelsUserStats;
 /**
  * Async task to join a party from join info with an invite token
  */
-class FOnlineAsyncTaskAccelByteJoinV1Party : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteJoinV1Party, ESPMode::ThreadSafe>
+class FOnlineAsyncTaskAccelByteJoinV1Party
+	: public FOnlineAsyncTaskAccelByte
+	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteJoinV1Party, ESPMode::ThreadSafe>
 {
 public:
 

@@ -7,7 +7,9 @@
 #include "AsyncTasks/OnlineAsyncTaskAccelByteUtils.h"
 #include "OnlineFriendsInterfaceAccelByte.h"
 
-class FOnlineAsyncTaskAccelByteSyncThirPartyFriend : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteSyncThirPartyFriend, ESPMode::ThreadSafe>
+class FOnlineAsyncTaskAccelByteSyncThirPartyFriend
+	: public FOnlineAsyncTaskAccelByte
+	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteSyncThirPartyFriend, ESPMode::ThreadSafe>
 {
 public:
 	/**	Task to sync third party platform friend, it takes third party user ids and send bulk friend request if the user ids is linked to AccelByte */

@@ -13,7 +13,9 @@
  * Async task fired by FOnlineUserAccelByte::QueryExternalIdMappings to query the backend to map a platform user ID to
  * an AccelByte user ID.
  */
-class FOnlineAsyncTaskAccelByteQueryExternalIdMappings : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteQueryExternalIdMappings, ESPMode::ThreadSafe>
+class FOnlineAsyncTaskAccelByteQueryExternalIdMappings
+	: public FOnlineAsyncTaskAccelByte
+	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteQueryExternalIdMappings, ESPMode::ThreadSafe>
 {
 public:
 

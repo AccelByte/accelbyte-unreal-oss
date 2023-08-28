@@ -13,7 +13,9 @@
 /**
  * Async task to get information about all files that a user has in their cloud store
  */
-class FOnlineAsyncTaskAccelByteEnumerateUserFiles : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteEnumerateUserFiles, ESPMode::ThreadSafe>
+class FOnlineAsyncTaskAccelByteEnumerateUserFiles
+	: public FOnlineAsyncTaskAccelByte
+	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteEnumerateUserFiles, ESPMode::ThreadSafe>
 {
 public:
 

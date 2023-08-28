@@ -11,7 +11,9 @@
 #include "Models/AccelByteUserModels.h"
 #include "OnlineUserCacheAccelByte.h"
 
-class FOnlineAsyncTaskAccelByteQueryUserProfile : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteQueryUserProfile, ESPMode::ThreadSafe>
+class FOnlineAsyncTaskAccelByteQueryUserProfile
+	: public FOnlineAsyncTaskAccelByte
+	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteQueryUserProfile, ESPMode::ThreadSafe>
 {
 public:
 

@@ -11,7 +11,7 @@
 
 class FOnlineAsyncTaskAccelByteUpdateStats
 	: public FOnlineAsyncTaskAccelByte
-	, public TSelfPtr<FOnlineAsyncTaskAccelByteUpdateStats, ESPMode::ThreadSafe>
+	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteUpdateStats, ESPMode::ThreadSafe>
 {
 public:
 	FOnlineAsyncTaskAccelByteUpdateStats(FOnlineSubsystemAccelByte *const InABInterface

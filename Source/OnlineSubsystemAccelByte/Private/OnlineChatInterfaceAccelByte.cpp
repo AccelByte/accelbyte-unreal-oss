@@ -17,6 +17,8 @@
 #include "AsyncTasks/Chat/OnlineAsyncTaskAccelByteChatSendPersonalChat.h"
 #include "AsyncTasks/Chat/OnlineAsyncTaskAccelByteChatSendRoomChat.h"
 
+using namespace AccelByte;
+
 bool FOnlineChatAccelByte::GetFromSubsystem(const IOnlineSubsystem* Subsystem, FOnlineChatAccelBytePtr& OutInterfaceInstance)
 {
 	OutInterfaceInstance = StaticCastSharedPtr<FOnlineChatAccelByte>(Subsystem->GetChatInterface());
@@ -141,7 +143,10 @@ bool FOnlineChatAccelByte::JoinPublicRoom(
 
 	// TODO: Store the supplied nickname
 
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteChatJoinPublicRoom>(AccelByteSubsystem, UserId, RoomId);
+	FOnlineAsyncTaskInfo TaskInfo;
+	TaskInfo.Type = ETypeOfOnlineAsyncTask::Parallel;
+	TaskInfo.bCreateEpicForThis = true;
+	AccelByteSubsystem->CreateAndDispatchAsyncTask<FOnlineAsyncTaskAccelByteChatJoinPublicRoom>(TaskInfo, AccelByteSubsystem, UserId, RoomId);
 
 	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
 
@@ -537,7 +542,11 @@ void FOnlineChatAccelByte::RegisterChatDelegates(const FUniqueNetId& PlayerId)
 	QueryTopicRequest.Offset = 0;
 	QueryTopicRequest.Limit = 200;
 	const FOnChatQueryRoomComplete OnQueryTopicResponse = FOnChatQueryRoomComplete::CreateThreadSafeSP(SharedThis(this), &FOnlineChatAccelByte::OnQueryChatRoomInfoComplete);
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteChatQueryRoom>(AccelByteSubsystem, PlayerId, QueryTopicRequest, OnQueryTopicResponse);
+
+	FOnlineAsyncTaskInfo TaskInfo;
+	TaskInfo.Type = ETypeOfOnlineAsyncTask::Parallel;
+	TaskInfo.bCreateEpicForThis = true;
+	AccelByteSubsystem->CreateAndDispatchAsyncTask<FOnlineAsyncTaskAccelByteChatQueryRoom>(TaskInfo, AccelByteSubsystem, PlayerId, QueryTopicRequest, OnQueryTopicResponse);
 
 	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
 }
@@ -594,8 +603,12 @@ void FOnlineChatAccelByte::OnAddToTopicNotification(const FAccelByteModelsChatUp
 	{
 		UE_LOG_AB(Verbose, TEXT("ChatRoomInfo not found by room ID %s!"), *AddTopicEvent.TopicId);
 		// we don't have room data locally
+
 		const FOnChatQueryRoomByIdComplete OnQueryTopicResponse = FOnChatQueryRoomByIdComplete::CreateThreadSafeSP(SharedThis(this), &FOnlineChatAccelByte::OnQueryChatRoomById_TriggerChatRoomMemberJoin, UserIdPtr, SenderUserId);
-		AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteChatQueryRoomById>(AccelByteSubsystem, *UserIdPtr, AddTopicEvent.TopicId, OnQueryTopicResponse);
+		FOnlineAsyncTaskInfo TaskInfo;
+		TaskInfo.Type = ETypeOfOnlineAsyncTask::Parallel;
+		TaskInfo.bCreateEpicForThis = true;
+		AccelByteSubsystem->CreateAndDispatchAsyncTask<FOnlineAsyncTaskAccelByteChatQueryRoomById>(TaskInfo, AccelByteSubsystem, *UserIdPtr, AddTopicEvent.TopicId, OnQueryTopicResponse);
 	}
 	else
 	{

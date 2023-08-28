@@ -6,7 +6,9 @@
 #include "AsyncTasks/OnlineAsyncTaskAccelByte.h"
 #include "AsyncTasks/OnlineAsyncTaskAccelByteUtils.h"
 
-class FOnlineAsyncTaskAccelByteQueryOfferByFilter : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteQueryOfferByFilter, ESPMode::ThreadSafe>
+class FOnlineAsyncTaskAccelByteQueryOfferByFilter
+	: public FOnlineAsyncTaskAccelByte
+	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteQueryOfferByFilter, ESPMode::ThreadSafe>
 {
 public:
 	FOnlineAsyncTaskAccelByteQueryOfferByFilter(FOnlineSubsystemAccelByte* const InABSubsystem, const FUniqueNetId& InUserId, const FOnlineStoreFilter& InFilter,

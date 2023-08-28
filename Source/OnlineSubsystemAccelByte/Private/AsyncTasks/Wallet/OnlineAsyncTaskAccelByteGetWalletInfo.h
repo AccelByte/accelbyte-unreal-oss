@@ -13,7 +13,9 @@
 /**
  * Task for get wallet info
  */
-class FOnlineAsyncTaskAccelByteGetWalletInfo : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteGetWalletInfo, ESPMode::ThreadSafe>
+class FOnlineAsyncTaskAccelByteGetWalletInfo
+	: public FOnlineAsyncTaskAccelByte
+	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteGetWalletInfo, ESPMode::ThreadSafe>
 {
 public:
 

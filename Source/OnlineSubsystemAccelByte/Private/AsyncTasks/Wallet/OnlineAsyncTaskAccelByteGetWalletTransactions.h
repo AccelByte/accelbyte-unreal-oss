@@ -13,7 +13,9 @@
 /**
  * Task for get wallet transaction list
  */
-class FOnlineAsyncTaskAccelByteGetWalletTransactions : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteGetWalletTransactions, ESPMode::ThreadSafe>
+class FOnlineAsyncTaskAccelByteGetWalletTransactions
+	: public FOnlineAsyncTaskAccelByte
+	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteGetWalletTransactions, ESPMode::ThreadSafe>
 {
 public:
 

@@ -4,6 +4,7 @@
 
 #include "OnlineAsyncTaskAccelByteQueryCategories.h"
 
+using namespace AccelByte;
 
 FOnlineAsyncTaskAccelByteQueryCategories::FOnlineAsyncTaskAccelByteQueryCategories(
 	FOnlineSubsystemAccelByte* const InABSubsystem, const FUniqueNetId& InUserId, const FOnQueryOnlineStoreCategoriesComplete& InDelegate) 

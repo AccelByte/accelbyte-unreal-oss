@@ -42,6 +42,8 @@
 #include "ExecTests/ExecTestBase.h"
 #endif
 
+using namespace AccelByte;
+
 #define LOCTEXT_NAMESPACE "FOnlineSubsystemAccelByte"
 #define PARTY_SESSION_TYPE "party"
 

@@ -4,18 +4,18 @@
 
 #include "OnlineAsyncTaskAccelByteGroupsAcceptInvite.h"
 
+using namespace AccelByte;
+
 FOnlineAsyncTaskAccelByteGroupsAcceptInvite::FOnlineAsyncTaskAccelByteGroupsAcceptInvite(
 	FOnlineSubsystemAccelByte* const InABInterface,
-	const int32& GroupAdmin,
-	const FUniqueNetId& GroupMemberUserId,
+	const FUniqueNetId& UserIdInviteToAccept,
 	const FAccelByteGroupsInfo& InGroupInfo,
 	const FOnGroupsRequestCompleted& InDelegate)
 	: FOnlineAsyncTaskAccelByte(InABInterface)
-	, MemberId(FUniqueNetIdAccelByteUser::CastChecked(GroupMemberUserId))
 	, GroupInfo(InGroupInfo)
 	, Delegate(InDelegate)
 {
-	LocalUserNum = GroupAdmin;
+	UserId = FUniqueNetIdAccelByteUser::CastChecked(UserIdInviteToAccept);
 }
 
 void FOnlineAsyncTaskAccelByteGroupsAcceptInvite::Initialize()
@@ -27,7 +27,7 @@ void FOnlineAsyncTaskAccelByteGroupsAcceptInvite::Initialize()
 	OnSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsMemberRequestGroupResponse>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteGroupsAcceptInvite::OnAcceptInviteSuccess);
 	OnErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteGroupsAcceptInvite::OnAcceptInviteError);
 
-	ApiClient->Group.AcceptV2GroupJoinRequest(MemberId->GetAccelByteId(), GroupInfo.ABGroupInfo.GroupId, OnSuccessDelegate, OnErrorDelegate);
+	ApiClient->Group.AcceptGroupInvitation(GroupInfo.ABGroupInfo.GroupId, OnSuccessDelegate, OnErrorDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
@@ -37,13 +37,6 @@ void FOnlineAsyncTaskAccelByteGroupsAcceptInvite::TriggerDelegates()
 	Super::TriggerDelegates();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
-
-	FUniqueNetIdPtr GenericUserId = StaticCastSharedPtr<const FUniqueNetId>(UserId);
-	if (!ensure(GenericUserId.IsValid()))
-	{
-		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to accept invite, user ID is not valid!"));
-		return;
-	}
 
 	FGroupsResult result(httpStatus, ErrorString, UniqueNetIdAccelByteResource);
 	Delegate.ExecuteIfBound(result);
@@ -67,7 +60,6 @@ void FOnlineAsyncTaskAccelByteGroupsAcceptInvite::Finalize()
 	if (bWasSuccessful == false)
 		return;
 
-	// Cannot accept invite if user is not in a group
 	if (GroupsInterface->IsGroupValid() == false)
 	{
 		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to accept invite, not in a group!"));
@@ -89,12 +81,11 @@ void FOnlineAsyncTaskAccelByteGroupsAcceptInvite::Finalize()
 		return;
 	}
 
-	bool found = false;
 	for (int i = 0; i < CurrentGroupData->ABGroupInfo.GroupMembers.Num(); i++)
 	{
 		if (CurrentGroupData->ABGroupInfo.GroupMembers[i].UserId == AccelByteModelsMemberRequestGroupResponse.UserId)
 		{
-			found = true;
+			AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to accept invite, player already exists in group!"));
 			break;
 		}
 	}
@@ -103,12 +94,6 @@ void FOnlineAsyncTaskAccelByteGroupsAcceptInvite::Finalize()
 	FAccelByteModelsGroupMember AccelByteModelsGroupMember;
 	AccelByteModelsGroupMember.MemberRoleId.Add(CurrentGroupData->ABMemberRoleId);
 	AccelByteModelsGroupMember.UserId = AccelByteModelsMemberRequestGroupResponse.UserId;
-
-	if (found)
-	{
-		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to accept invite, player already exists in group!"));
-		return;
-	}
 	
 	// Add the player to the current group
 	CurrentGroupData->ABGroupInfo.GroupMembers.Add(AccelByteModelsGroupMember);
@@ -119,23 +104,18 @@ void FOnlineAsyncTaskAccelByteGroupsAcceptInvite::Finalize()
 void FOnlineAsyncTaskAccelByteGroupsAcceptInvite::OnAcceptInviteSuccess(const FAccelByteModelsMemberRequestGroupResponse& Result)
 {
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("GroupId: %s"), *Result.GroupId);
-
-	CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
 	UniqueNetIdAccelByteResource = FUniqueNetIdAccelByteResource::Create(Result.GroupId);
-
-	// Success = 200
-	httpStatus = 200;
-
+	httpStatus = 200;// Success = 200
 	AccelByteModelsMemberRequestGroupResponse = Result;
-
+	CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 
 void FOnlineAsyncTaskAccelByteGroupsAcceptInvite::OnAcceptInviteError(int32 ErrorCode, const FString& ErrorMessage)
 {
+	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
+	httpStatus = ErrorCode;
 	ErrorString = ErrorMessage;
 	CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
-
-	// Failure = not 200
-	httpStatus = 0;
+	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }

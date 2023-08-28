@@ -1,5 +1,11 @@
-﻿#include "OnlineAsyncTaskAccelByteFindV1GameSessionById.h"
+﻿// Copyright (c) 2023 AccelByte Inc. All Rights Reserved.
+// This is licensed software from AccelByte Inc, for limitations
+// and restrictions contact your company contract manager.
+
+#include "OnlineAsyncTaskAccelByteFindV1GameSessionById.h"
 #include "OnlineSessionInterfaceV1AccelByte.h"
+
+using namespace AccelByte;
 
 FOnlineAsyncTaskAccelByteFindV1GameSessionById::FOnlineAsyncTaskAccelByteFindV1GameSessionById(
 	FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InSearchingPlayerId,

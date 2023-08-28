@@ -11,7 +11,9 @@
 /**
  * Server async task to update the status of a member of a session.
  */
-class FOnlineAsyncTaskAccelByteUpdateMemberStatus : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteUpdateMemberStatus, ESPMode::ThreadSafe>
+class FOnlineAsyncTaskAccelByteUpdateMemberStatus
+	: public FOnlineAsyncTaskAccelByte
+	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteUpdateMemberStatus, ESPMode::ThreadSafe>
 {
 public:
 

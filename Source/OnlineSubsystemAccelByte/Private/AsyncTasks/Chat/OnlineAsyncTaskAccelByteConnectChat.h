@@ -7,7 +7,9 @@
 #include "AsyncTasks/OnlineAsyncTaskAccelByte.h"
 #include "AsyncTasks/OnlineAsyncTaskAccelByteUtils.h"
 
-class FOnlineAsyncTaskAccelByteConnectChat : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteConnectChat, ESPMode::ThreadSafe>
+class FOnlineAsyncTaskAccelByteConnectChat
+	: public FOnlineAsyncTaskAccelByte
+	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteConnectChat, ESPMode::ThreadSafe>
 {
 	public:
 

@@ -4,6 +4,8 @@
 
 #include "OnlineAsyncTaskAccelByteGroupsCreateGroup.h"
 
+using namespace AccelByte;
+
 FOnlineAsyncTaskAccelByteGroupsCreateGroup::FOnlineAsyncTaskAccelByteGroupsCreateGroup(
 	FOnlineSubsystemAccelByte* const InABInterface,
 	const FUniqueNetId& InContextUserId,
@@ -46,13 +48,6 @@ void FOnlineAsyncTaskAccelByteGroupsCreateGroup::TriggerDelegates()
 	Super::TriggerDelegates();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
-
-	FUniqueNetIdPtr GenericUserId = StaticCastSharedPtr<const FUniqueNetId>(UserId);
-	if (!ensure(GenericUserId.IsValid()))
-	{
-		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to create group, user ID is not valid!"));
-		return;
-	}
 
 	FGroupsResult result(httpStatus, ErrorString, UniqueNetIdAccelByteResource);
 	Delegate.ExecuteIfBound(result);
@@ -104,26 +99,18 @@ void FOnlineAsyncTaskAccelByteGroupsCreateGroup::Finalize()
 void FOnlineAsyncTaskAccelByteGroupsCreateGroup::OnCreateGroupSuccess(const FAccelByteModelsGroupInformation& Result)
 {
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("GroupId: %s"), *Result.GroupId);
-
-	// Success = 201
-	httpStatus = 201;
-
-	GroupInfo.ABGroupInfo = Result;
-
-	CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
 	UniqueNetIdAccelByteResource = FUniqueNetIdAccelByteResource::Create(Result.GroupId);
-
+	httpStatus = 200;// Success = 200
+	GroupInfo.ABGroupInfo = Result;
+	CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 
 void FOnlineAsyncTaskAccelByteGroupsCreateGroup::OnCreateGroupError(int32 ErrorCode, const FString& ErrorMessage)
 {
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
-
 	httpStatus = ErrorCode;
-
 	ErrorString = ErrorMessage;
 	CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
-
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }

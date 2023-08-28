@@ -12,7 +12,9 @@
 /**
  * Async task to restore both party & game sessions if the user exits a game while still in a party or game session.
  */
-class FOnlineAsyncTaskAccelByteRestoreAllV2Sessions : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteRestoreAllV2Sessions, ESPMode::ThreadSafe>
+class FOnlineAsyncTaskAccelByteRestoreAllV2Sessions
+	: public FOnlineAsyncTaskAccelByte
+	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteRestoreAllV2Sessions, ESPMode::ThreadSafe>
 {
 public:
 

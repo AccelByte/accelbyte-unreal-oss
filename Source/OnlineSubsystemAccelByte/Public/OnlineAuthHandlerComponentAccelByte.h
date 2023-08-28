@@ -16,8 +16,6 @@
 #include "HandlerComponentFactory.h"
 #include "OnlineAuthHandlerComponentAccelByte.generated.h"
 
-using namespace AccelByte;
-
 class FAuthHandlerComponentAccelByte : public HandlerComponent {
 public:
 	FAuthHandlerComponentAccelByte();
@@ -126,12 +124,12 @@ private:
 	EState State;
 
 	/** handler for encrypting with the RSA key */
-	FRSAEncryptionOpenSSL RSACrypto;
+	AccelByte::FRSAEncryptionOpenSSL RSACrypto;
 
 	/** handler for encrypting with the AES key */
-	FAESEncryptionOpenSSL AESCrypto;
+	AccelByte::FAESEncryptionOpenSSL AESCrypto;
 
-	typedef int32(FRSAEncryptionOpenSSL::* PF_CRYPTO)(const TArrayView<const uint8>, TArray<uint8>&);
+	typedef int32(AccelByte::FRSAEncryptionOpenSSL::* PF_CRYPTO)(const TArrayView<const uint8>, TArray<uint8>&);
 
 	PF_CRYPTO RSAEncryptor;
 	PF_CRYPTO RSADecryptor;

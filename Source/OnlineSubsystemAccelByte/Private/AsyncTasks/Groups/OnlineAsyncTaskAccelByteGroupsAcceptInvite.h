@@ -8,13 +8,14 @@
 #include "AsyncTasks/OnlineAsyncTaskAccelByte.h"
 #include "AsyncTasks/OnlineAsyncTaskAccelByteUtils.h"
 
-class FOnlineAsyncTaskAccelByteGroupsAcceptInvite : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteGroupsAcceptInvite, ESPMode::ThreadSafe>
+class FOnlineAsyncTaskAccelByteGroupsAcceptInvite
+	: public FOnlineAsyncTaskAccelByte
+	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteGroupsAcceptInvite, ESPMode::ThreadSafe>
 {
 public:
 	FOnlineAsyncTaskAccelByteGroupsAcceptInvite(
 		FOnlineSubsystemAccelByte* const InABInterface,
-		const int32& GroupAdmin,
-		const FUniqueNetId& GroupMemberUserId,
+		const FUniqueNetId& UserIdInviteToAccept,
 		const FAccelByteGroupsInfo& InGroupInfo,
 		const FOnGroupsRequestCompleted& InDelegate);
 
@@ -35,7 +36,6 @@ private:
 	void OnAcceptInviteError(int32 ErrorCode, const FString& ErrorMessage);
 	FErrorHandler OnErrorDelegate;
 
-	TSharedRef<const FUniqueNetIdAccelByteUser> MemberId;
 	FAccelByteGroupsInfo GroupInfo;
 	FAccelByteModelsMemberRequestGroupResponse AccelByteModelsMemberRequestGroupResponse;
 	FOnGroupsRequestCompleted Delegate;

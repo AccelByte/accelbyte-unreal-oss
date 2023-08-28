@@ -19,7 +19,9 @@ struct FAccelByteModelsServerSessionResponse;
  * when a player tries to connect to the server for the first time, get session information at that point. This is because
  * session information isn't created on server registration, rather when the dedicated server is claimed by a matchmaking request.
  */
-class FOnlineAsyncTaskAccelByteRetrieveDedicatedV1SessionInfo : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteRetrieveDedicatedV1SessionInfo, ESPMode::ThreadSafe>
+class FOnlineAsyncTaskAccelByteRetrieveDedicatedV1SessionInfo
+	: public FOnlineAsyncTaskAccelByte
+	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteRetrieveDedicatedV1SessionInfo, ESPMode::ThreadSafe>
 {
 public:
 

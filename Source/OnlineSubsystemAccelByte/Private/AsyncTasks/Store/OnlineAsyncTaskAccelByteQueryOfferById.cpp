@@ -4,6 +4,8 @@
 
 #include "OnlineAsyncTaskAccelByteQueryOfferById.h"
 
+using namespace AccelByte;
+
 FOnlineAsyncTaskAccelByteQueryOfferById::FOnlineAsyncTaskAccelByteQueryOfferById(FOnlineSubsystemAccelByte* const InABSubsystem, const FUniqueNetId& InUserId, const TArray<FUniqueOfferId>& InOfferIds, const FOnQueryOnlineStoreOffersComplete& InDelegate)
 	: FOnlineAsyncTaskAccelByte(InABSubsystem)
 	, OfferIds(InOfferIds)

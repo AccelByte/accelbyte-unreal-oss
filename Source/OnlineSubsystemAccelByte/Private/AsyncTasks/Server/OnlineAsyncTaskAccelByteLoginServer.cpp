@@ -6,6 +6,8 @@
 #include "GameServerApi/AccelByteServerOauth2Api.h"
 #include "OnlineIdentityInterfaceAccelByte.h"
 
+using namespace AccelByte;
+
 #define ONLINE_ERROR_NAMESPACE "FOnlineAccelByteServerLogin"
 
 FOnlineAsyncTaskAccelByteLoginServer::FOnlineAsyncTaskAccelByteLoginServer(FOnlineSubsystemAccelByte* const InABInterface, int32 InLocalUserNum)

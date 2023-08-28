@@ -8,6 +8,8 @@
 #include "Core/AccelByteRegistry.h"
 #include "Api/AccelByteLobbyApi.h"
 
+using namespace AccelByte;
+
 FOnlineAsyncTaskAccelByteSetUserPresence::FOnlineAsyncTaskAccelByteSetUserPresence(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InLocalUserId, const FOnlineUserPresenceStatus& InStatus, const IOnlinePresence::FOnPresenceTaskCompleteDelegate& InDelegate)
 	: FOnlineAsyncTaskAccelByte(InABInterface, true)
 	, LocalCachedPresenceStatus(MakeShared<FOnlineUserPresenceStatus>(InStatus))

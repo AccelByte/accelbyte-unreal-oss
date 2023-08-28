@@ -7,6 +7,8 @@
 #include "OnlineIdentityInterfaceAccelByte.h"
 #include "OnlineWalletInterfaceAccelByte.h"
 
+using namespace AccelByte;
+
 FOnlineAsyncTaskAccelByteGetWalletInfo::FOnlineAsyncTaskAccelByteGetWalletInfo(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InLocalUserId, const FString& InCurrencyCode, bool bInAlwaysRequestToService)
 	: FOnlineAsyncTaskAccelByte(InABInterface)
 	, CurrencyCode(InCurrencyCode)

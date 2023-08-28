@@ -11,7 +11,9 @@
 #include "OnlineStats.h"
 #include "OnlineSubsystemAccelByteTypes.h"
 
-class FOnlineAsyncTaskAccelByteReadLeaderboardAroundUser : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteReadLeaderboardAroundUser, ESPMode::ThreadSafe>
+class FOnlineAsyncTaskAccelByteReadLeaderboardAroundUser
+	: public FOnlineAsyncTaskAccelByte
+	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteReadLeaderboardAroundUser, ESPMode::ThreadSafe>
 {
 public:
 	FOnlineAsyncTaskAccelByteReadLeaderboardAroundUser(FOnlineSubsystemAccelByte* const InABInterface,

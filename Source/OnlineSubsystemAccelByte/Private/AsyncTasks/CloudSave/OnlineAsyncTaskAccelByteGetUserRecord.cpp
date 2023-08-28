@@ -7,6 +7,8 @@
 #include "OnlineCloudSaveInterfaceAccelByte.h"
 #include "OnlineError.h"
 
+using namespace AccelByte;
+
 #define ONLINE_ERROR_NAMESPACE "FOnlineAsyncTaskAccelByteGetUserRecord"
 
 FOnlineAsyncTaskAccelByteGetUserRecord::FOnlineAsyncTaskAccelByteGetUserRecord(FOnlineSubsystemAccelByte* const InABInterface, const int32 InLocalUserNum, const FUniqueNetId& InLocalUserId, const FString& InKey, bool IsPublic, const FString& InRecordUserId)

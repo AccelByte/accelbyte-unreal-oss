@@ -4,6 +4,8 @@
 
 #include "OnlineAsyncTaskAccelByteUpdateStats.h"
 
+using namespace AccelByte;
+
 #define ONLINE_ERROR_NAMESPACE "FOnlineStatsSystemAccelByte"
 
 FOnlineAsyncTaskAccelByteUpdateStats::FOnlineAsyncTaskAccelByteUpdateStats(FOnlineSubsystemAccelByte *const InABInterface

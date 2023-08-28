@@ -12,7 +12,9 @@ struct FAccelByteModelsChatQueryTopicResponse;
 
 DECLARE_DELEGATE_ThreeParams(FOnChatQueryRoomByIdComplete, bool /*bWasSuccessful*/, FAccelByteChatRoomInfoPtr /*Result*/, int32 /*LocalUserNum*/);
 
-class FOnlineAsyncTaskAccelByteChatQueryRoomById : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteChatQueryRoomById, ESPMode::ThreadSafe>
+class FOnlineAsyncTaskAccelByteChatQueryRoomById
+	: public FOnlineAsyncTaskAccelByte
+	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteChatQueryRoomById, ESPMode::ThreadSafe>
 {
 public:
 	FOnlineAsyncTaskAccelByteChatQueryRoomById(

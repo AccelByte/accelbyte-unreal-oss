@@ -5,6 +5,8 @@
 #include "OnlineAsyncTaskAccelByteReadLeaderboardsAroundRank.h"
 #include "Core/Public/Containers/Array.h"
 
+using namespace AccelByte;
+
 FOnlineAsyncTaskAccelByteReadLeaderboardsAroundRank::FOnlineAsyncTaskAccelByteReadLeaderboardsAroundRank(FOnlineSubsystemAccelByte* const InABInterface,
      int InLocalUserNum,
      const FOnlineLeaderboardReadRef& InReadObject,

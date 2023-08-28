@@ -9,7 +9,9 @@
 #include "Interfaces/OnlineSessionInterface.h"
 #include "OnlineSessionSettings.h"
 
-class FOnlineAsyncTaskAccelByteFindV1GameSessionById : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteFindV1GameSessionById, ESPMode::ThreadSafe>
+class FOnlineAsyncTaskAccelByteFindV1GameSessionById
+	: public FOnlineAsyncTaskAccelByte
+	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteFindV1GameSessionById, ESPMode::ThreadSafe>
 {
 public:
 

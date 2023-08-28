@@ -6,9 +6,9 @@
 #include "AsyncTasks/OnlineAsyncTaskAccelByte.h"
 #include "AsyncTasks/OnlineAsyncTaskAccelByteUtils.h"
 
-class FOnlineAsyncTaskAccelByteQueryAchievement : public FOnlineAsyncTaskAccelByte,
-                                                  public TSelfPtr<
-	                                                  FOnlineAsyncTaskAccelByteQueryAchievement, ESPMode::ThreadSafe>
+class FOnlineAsyncTaskAccelByteQueryAchievement
+	: public FOnlineAsyncTaskAccelByte
+	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteQueryAchievement, ESPMode::ThreadSafe>
 {
 public:
 	FOnlineAsyncTaskAccelByteQueryAchievement(

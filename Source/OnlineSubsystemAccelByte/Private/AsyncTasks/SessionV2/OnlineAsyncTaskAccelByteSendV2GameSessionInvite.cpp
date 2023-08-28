@@ -7,6 +7,8 @@
 #include "Core/AccelByteRegistry.h"
 #include "OnlineSessionInterfaceV2AccelByte.h"
 
+using namespace AccelByte;
+
 FOnlineAsyncTaskAccelByteSendV2GameSessionInvite::FOnlineAsyncTaskAccelByteSendV2GameSessionInvite(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InLocalUserId, const FName& InSessionName, const FUniqueNetId& InRecipientId)
 	// Initialize as a server task if we are running a dedicated server, as this doubles as a server task. Otherwise, use
 	// no flags to indicate that it's a client task.

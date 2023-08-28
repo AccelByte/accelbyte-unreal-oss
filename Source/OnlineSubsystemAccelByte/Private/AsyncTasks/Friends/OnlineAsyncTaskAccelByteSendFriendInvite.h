@@ -13,7 +13,9 @@
 /**
  * Task to send a friend request to a user
  */
-class FOnlineAsyncTaskAccelByteSendFriendInvite : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteSendFriendInvite, ESPMode::ThreadSafe>
+class FOnlineAsyncTaskAccelByteSendFriendInvite
+	: public FOnlineAsyncTaskAccelByte
+	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteSendFriendInvite, ESPMode::ThreadSafe>
 {
 public:
 

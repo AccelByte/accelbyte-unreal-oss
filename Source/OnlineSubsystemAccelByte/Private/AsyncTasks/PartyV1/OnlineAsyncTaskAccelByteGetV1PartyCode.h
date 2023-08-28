@@ -22,7 +22,9 @@ DECLARE_DELEGATE_FourParams(FOnPartyCodeGenerated, bool /*1*/, const FString& /*
 /**
  * Fill out information about your async task here.
  */
-class FOnlineAsyncTaskAccelByteGetV1PartyCode : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteGetV1PartyCode, ESPMode::ThreadSafe>
+class FOnlineAsyncTaskAccelByteGetV1PartyCode
+	: public FOnlineAsyncTaskAccelByte
+	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteGetV1PartyCode, ESPMode::ThreadSafe>
 {
 public:
 

@@ -11,7 +11,9 @@
 /**
  * Task for getting game record
  */
-class FOnlineAsyncTaskAccelByteGetGameRecord : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteGetGameRecord, ESPMode::ThreadSafe>
+class FOnlineAsyncTaskAccelByteGetGameRecord
+	: public FOnlineAsyncTaskAccelByte
+	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteGetGameRecord, ESPMode::ThreadSafe>
 {
 public:
 	FOnlineAsyncTaskAccelByteGetGameRecord(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InLocalUserId, const FString& InKey, bool bInAlwaysRequestToService);

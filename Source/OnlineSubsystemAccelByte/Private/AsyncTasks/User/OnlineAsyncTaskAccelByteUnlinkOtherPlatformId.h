@@ -6,7 +6,9 @@
 #include "AsyncTasks/OnlineAsyncTaskAccelByte.h"
 #include "AsyncTasks/OnlineAsyncTaskAccelByteUtils.h"
 
-class FOnlineAsyncTaskAccelByteUnlinkOtherPlatformId : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteUnlinkOtherPlatformId, ESPMode::ThreadSafe>
+class FOnlineAsyncTaskAccelByteUnlinkOtherPlatformId
+	: public FOnlineAsyncTaskAccelByte
+	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteUnlinkOtherPlatformId, ESPMode::ThreadSafe>
 {
 public:
 	FOnlineAsyncTaskAccelByteUnlinkOtherPlatformId(FOnlineSubsystemAccelByte* const InABSubsystem, const FUniqueNetId& InUserId, const FString& InPlatformId);

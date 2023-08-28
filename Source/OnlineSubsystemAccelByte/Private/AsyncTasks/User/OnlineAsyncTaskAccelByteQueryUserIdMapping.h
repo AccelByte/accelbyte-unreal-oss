@@ -10,7 +10,9 @@
 #include "OnlineUserInterfaceAccelByte.h"
 #include "Models/AccelByteUserModels.h"
 
-class FOnlineAsyncTaskAccelByteQueryUserIdMapping : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteQueryUserIdMapping, ESPMode::ThreadSafe>
+class FOnlineAsyncTaskAccelByteQueryUserIdMapping
+	: public FOnlineAsyncTaskAccelByte
+	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteQueryUserIdMapping, ESPMode::ThreadSafe>
 {
 public:
 

@@ -11,7 +11,9 @@
 /**
  * Task to send a request to backend that we wish to join the session associated with SessionName
  */
-class FOnlineAsyncTaskAccelByteJoinV2GameSession : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteJoinV2GameSession, ESPMode::ThreadSafe>
+class FOnlineAsyncTaskAccelByteJoinV2GameSession
+	: public FOnlineAsyncTaskAccelByte
+	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteJoinV2GameSession, ESPMode::ThreadSafe>
 {
 public:
 

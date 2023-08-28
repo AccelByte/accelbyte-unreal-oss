@@ -11,7 +11,9 @@
 /**
  * Task for deleting user record
  */
-class FOnlineAsyncTaskAccelByteDeleteUserRecord : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteDeleteUserRecord, ESPMode::ThreadSafe>
+class FOnlineAsyncTaskAccelByteDeleteUserRecord
+	: public FOnlineAsyncTaskAccelByte
+	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteDeleteUserRecord, ESPMode::ThreadSafe>
 {
 public:
 	FOnlineAsyncTaskAccelByteDeleteUserRecord(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InLocalUserId, const FString& InKey);

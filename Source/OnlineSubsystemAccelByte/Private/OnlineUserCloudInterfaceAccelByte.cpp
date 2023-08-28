@@ -9,6 +9,8 @@
 #include "AsyncTasks/UserCloud/OnlineAsyncTaskAccelByteDeleteUserFile.h"
 #include "OnlineSubsystemUtils.h"
 
+using namespace AccelByte;
+
 FOnlineUserCloudAccelByte::FOnlineUserCloudAccelByte(FOnlineSubsystemAccelByte* InSubsystem)
 	: AccelByteSubsystem(InSubsystem)
 {

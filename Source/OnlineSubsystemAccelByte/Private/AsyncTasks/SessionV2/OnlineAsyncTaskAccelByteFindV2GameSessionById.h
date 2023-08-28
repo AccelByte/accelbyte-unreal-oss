@@ -12,7 +12,9 @@
 /**
  * Find a single session by its ID
  */
-class FOnlineAsyncTaskAccelByteFindV2GameSessionById : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteFindV2GameSessionById, ESPMode::ThreadSafe>
+class FOnlineAsyncTaskAccelByteFindV2GameSessionById
+	: public FOnlineAsyncTaskAccelByte
+	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteFindV2GameSessionById, ESPMode::ThreadSafe>
 {
 public:
 

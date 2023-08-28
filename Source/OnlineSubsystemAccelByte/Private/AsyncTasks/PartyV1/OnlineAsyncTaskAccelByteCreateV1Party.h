@@ -12,7 +12,9 @@
 /**
  * Async task to create a party for the user on the backend
  */
-class FOnlineAsyncTaskAccelByteCreateV1Party : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteCreateV1Party, ESPMode::ThreadSafe>
+class FOnlineAsyncTaskAccelByteCreateV1Party
+	: public FOnlineAsyncTaskAccelByte
+	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteCreateV1Party, ESPMode::ThreadSafe>
 {
 public:
 

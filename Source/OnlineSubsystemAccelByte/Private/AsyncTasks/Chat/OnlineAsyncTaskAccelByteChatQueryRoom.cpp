@@ -4,6 +4,8 @@
 
 #include "OnlineAsyncTaskAccelByteChatQueryRoom.h"
 
+using namespace AccelByte;
+
 FOnlineAsyncTaskAccelByteChatQueryRoom::FOnlineAsyncTaskAccelByteChatQueryRoom(
 	FOnlineSubsystemAccelByte* const InABInterface,
 	const FUniqueNetId& InLocalUserId,
@@ -102,8 +104,12 @@ void FOnlineAsyncTaskAccelByteChatQueryRoom::OnQueryRoomSuccess(const FAccelByte
 		return;
 	}
 
-	FOnQueryUsersComplete OnQueryUsersCompleteDelegate = TDelegateUtils<FOnQueryUsersComplete>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteChatQueryRoom::OnQueryMemberInformationComplete);
-	UserStore->QueryUsersByAccelByteIds(LocalUserNum, UserIds, OnQueryUsersCompleteDelegate);
+	// query topic to get members
+	this->ExecuteCriticalSectionAction(FVoidHandler::CreateLambda([&]()
+		{
+			FOnQueryUsersComplete OnQueryUsersCompleteDelegate = TDelegateUtils<FOnQueryUsersComplete>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteChatQueryRoom::OnQueryMemberInformationComplete);
+			UserStore->QueryUsersByAccelByteIds(LocalUserNum, UserIds, OnQueryUsersCompleteDelegate);
+		}));
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }

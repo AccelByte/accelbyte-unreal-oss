@@ -11,7 +11,9 @@
 /**
  * Request that the backend generate a new party code for the party session passed in
  */
-class FOnlineAsyncTaskAccelByteGenerateNewV2PartyCode : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteGenerateNewV2PartyCode, ESPMode::ThreadSafe>
+class FOnlineAsyncTaskAccelByteGenerateNewV2PartyCode
+	: public FOnlineAsyncTaskAccelByte
+	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteGenerateNewV2PartyCode, ESPMode::ThreadSafe>
 {
 public:
 

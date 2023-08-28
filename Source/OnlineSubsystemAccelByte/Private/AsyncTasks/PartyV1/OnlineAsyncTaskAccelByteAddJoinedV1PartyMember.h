@@ -11,7 +11,9 @@
 /**
  * Fill out information about your async task here.
  */
-class FOnlineAsyncTaskAccelByteAddJoinedV1PartyMember : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteAddJoinedV1PartyMember, ESPMode::ThreadSafe>
+class FOnlineAsyncTaskAccelByteAddJoinedV1PartyMember
+	: public FOnlineAsyncTaskAccelByte
+	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteAddJoinedV1PartyMember, ESPMode::ThreadSafe>
 {
 public:
 

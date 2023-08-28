@@ -2,6 +2,41 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.11.19](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.11.19%0D0.11.18) (2023-08-28)
+
+
+### Features
+
+* add FOnlineSessionV2AccelByte::ContainedMember to check if a player is a session member in DS ([25bfbca](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/25bfbca0b9443358cd1847e443246310fc75f89d))
+* **AsyncTask:** refactor achievement, agreement,auth, chat along with the interface ([1edf3b0](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/1edf3b0b724c0a545f3e7a150d90e0d7036728fb))
+* GroupInterface Invite ([487356a](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/487356a6eb2537d698f503062e71c586ec8d576b))
+* GroupInterface Invite ([62f711e](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/62f711eb8dd9e50582b6c2065dbe96bc0ef2ffb2))
+* GroupInterface Invite ([e49cf88](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/e49cf8817c6e3ce00c5d4464a259ab6d238f522b))
+* GroupInterface Promote Demote Kick Member ([c5789bc](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/c5789bcf6bd9ae7fbf385aaf1bdcb792d6e32369))
+* GroupInterface Promote, Demote, Kick, Invite ([783e065](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/783e0650b2abb2de2a02abccef2b9a388c43585b))
+* GroupInterface Promote, Demote, Kick, Invite ([744252c](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/744252cf16986f755aec88c1740ed08c01f7c6ef))
+* GroupInterface Promote, Demote, Kick, Invite, Delete ([b82dae4](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/b82dae45688f5a62ba8c17ac057d347e7b7c8a68))
+* GroupInterface Promote, Demote, Kick, Invite, Delete ([0b4a63b](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/0b4a63be3014e458052021eaf21ceb49b832dc8c))
+* handle error when friend request limit reached ([6193431](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/6193431975fa4408ba8c1675c60cfa3d7761e9ed))
+* **UserAsyncTask:** refactor and use Epic Task ([768797b](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/768797b7eb85a5485dee78aa2747cf47c4abf097))
+
+
+### Bug Fixes
+
+* **AsyncTaskLogin:** wrong passed variable ([ef50b1e](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/ef50b1ea55a9f320bb5a9852b17e2b98a3631f9f))
+* change I64d to lli ([1a3f315](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/1a3f315c1344af291fd10650c1e2da6a56351497))
+* if ams flag enabled, the server cannot register as local server. ([0099b9f](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/0099b9f46df6b6f70389b352437a9e6778edbca7))
+* incorrect display name on user cache ([4c4726e](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/4c4726e27ac273277eec57727ece9c1437254c95))
+* **partyInterface:** add scopelock to prevent incoming PartyLeaveNotif causes racing condition ([0930946](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/0930946f928f4e344ce6a744130a95048e8b55fc))
+* **QueryUserInfo:** public code is overridden an become empty due to missing field ([2f2ae77](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/2f2ae7798d9bfdcafee9113f782eb4e6a4395bd4))
+* remove 'using namespace' in public header ([c219edc](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/c219edcb936ed3e16662af66a51a7ec98edba7e0))
+* **Statistics:** Change the flow after updating multiple stat item ([3387918](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/3387918aa5adca6c2379ac239b2e73bfb757b430))
+
+
+### Refactors
+
+* renamed FOnlineSessionV2AccelByte::ContainedMember to SessionContainsMember ([b1d8b23](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/b1d8b23ec256aaf4800bafb0561488fe506191ca))
+
 ### [0.11.18](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.11.18%0D0.11.17) (2023-08-25)
 
 

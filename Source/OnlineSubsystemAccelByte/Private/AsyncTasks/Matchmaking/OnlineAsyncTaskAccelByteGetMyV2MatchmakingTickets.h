@@ -10,7 +10,9 @@
 #include "Models/AccelByteMatchmakingModels.h"
 #include "OnlineSessionInterfaceV2AccelByte.h"
 
-class FOnlineAsyncTaskAccelByteGetMyV2MatchmakingTickets : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteGetMyV2MatchmakingTickets, ESPMode::ThreadSafe>
+class FOnlineAsyncTaskAccelByteGetMyV2MatchmakingTickets
+	: public FOnlineAsyncTaskAccelByte
+	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteGetMyV2MatchmakingTickets, ESPMode::ThreadSafe>
 {
 public:
 	FOnlineAsyncTaskAccelByteGetMyV2MatchmakingTickets(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InPlayerId, const FName InSessionName, const FString& InMatchPool);

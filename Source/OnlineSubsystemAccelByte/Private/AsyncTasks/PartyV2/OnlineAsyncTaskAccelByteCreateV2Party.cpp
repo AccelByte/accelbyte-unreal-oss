@@ -13,6 +13,8 @@
 #include "OnlineSubsystemSessionSettings.h"
 #include "OnlineSubsystemAccelByteSessionSettings.h"
 
+using namespace AccelByte;
+
 FOnlineAsyncTaskAccelByteCreateV2Party::FOnlineAsyncTaskAccelByteCreateV2Party(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InLocalUserId, const FName& InSessionName, const FOnlineSessionSettings& InNewSessionSettings)
 	: FOnlineAsyncTaskAccelByte(InABInterface)
 	, SessionName(InSessionName)

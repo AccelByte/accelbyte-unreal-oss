@@ -48,7 +48,9 @@ struct MockAsyncTaskParameter
 	uint32 ChildCount = 0;
 };
 
-class ONLINESUBSYSTEMACCELBYTE_API FMockAsyncTaskAccelByte : public  FOnlineAsyncTaskAccelByte, public TSelfPtr<FMockAsyncTaskAccelByte, ESPMode::ThreadSafe>
+class ONLINESUBSYSTEMACCELBYTE_API FMockAsyncTaskAccelByte
+	: public  FOnlineAsyncTaskAccelByte
+	, public AccelByte::TSelfPtr<FMockAsyncTaskAccelByte, ESPMode::ThreadSafe>
 {
 public:
 	/// <summary>

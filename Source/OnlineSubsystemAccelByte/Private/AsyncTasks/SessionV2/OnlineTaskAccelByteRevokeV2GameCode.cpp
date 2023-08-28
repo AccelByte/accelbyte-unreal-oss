@@ -4,6 +4,8 @@
 
 #include "OnlineTaskAccelByteRevokeV2GameCode.h"
 
+using namespace AccelByte;
+
 FOnlineAsyncTaskAccelByteRevokeV2GameCode::FOnlineAsyncTaskAccelByteRevokeV2GameCode(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InLocalUserId, const FName& InSessionName, const FOnRevokeGameCodeComplete& InDelegate)
 	: FOnlineAsyncTaskAccelByte(InABInterface)
 	, SessionName(InSessionName)

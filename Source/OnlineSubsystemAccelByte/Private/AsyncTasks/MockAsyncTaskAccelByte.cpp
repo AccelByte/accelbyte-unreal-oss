@@ -8,6 +8,8 @@
 #include "OnlineSubsystemAccelByteDefines.h"
 #include "Core/AccelByteError.h"
 
+using namespace AccelByte;
+
 #define ONLINE_ERROR_NAMESPACE "FOnlineMockAsyncTaskTestAccelByte"
 
 FMockAsyncTaskAccelByte::FMockAsyncTaskAccelByte(

@@ -19,6 +19,8 @@
 #include "Engine.h"
 #include "Engine/World.h"
 
+using namespace AccelByte;
+
 FOnlineAsyncTaskAccelByteRegisterDedicatedV1Session::FOnlineAsyncTaskAccelByteRegisterDedicatedV1Session(FOnlineSubsystemAccelByte* const InABInterface, int32 InHostingPlayerNum, FName InSessionName, const FOnlineSessionSettings& InNewSessionSettings, bool InRegisterToSessionBrowser)
 	: FOnlineAsyncTaskAccelByte(InABInterface)
 	, HostingPlayerNum(InHostingPlayerNum)

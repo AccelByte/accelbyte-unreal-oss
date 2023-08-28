@@ -11,6 +11,8 @@
 #include "OnlineSubsystemUtils.h"
 #include "OnlineUserInterfaceAccelByte.h"
 
+using namespace AccelByte;
+
 FOnlineAsyncTaskAccelByteJoinV1Party::FOnlineAsyncTaskAccelByteJoinV1Party(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InLocalUserId, const IOnlinePartyJoinInfo& InOnlinePartyJoinInfo, const FOnJoinPartyComplete& InDelegate)
 	: FOnlineAsyncTaskAccelByte(InABInterface, true)
 	, OnlinePartyJoinInfo(InOnlinePartyJoinInfo)

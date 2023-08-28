@@ -1188,6 +1188,7 @@ bool FOnlinePartySystemAccelByte::RemovePartyFromInterface(const TSharedRef<cons
 
 bool FOnlinePartySystemAccelByte::RemovePartyFromInterface(const TSharedRef<const FUniqueNetIdAccelByteUser>& UserId, const TSharedRef<const FOnlinePartyIdAccelByte>& PartyId)
 {
+	FScopeLock MapLock(&this->UserIdToPartiesMapLock);
 	FPartyIDToPartyMap* FoundPartyMap = UserIdToPartiesMap.Find(UserId);
 	if (FoundPartyMap != nullptr)
 	{

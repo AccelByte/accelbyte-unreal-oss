@@ -7,6 +7,8 @@
 #include "OnlineFriendsInterfaceAccelByte.h"
 #include "OnlineUserCacheAccelByte.h"
 
+using namespace AccelByte;
+
 FOnlineAsyncTaskAccelByteAddFriendToList::FOnlineAsyncTaskAccelByteAddFriendToList(FOnlineSubsystemAccelByte* const InABInterface, int32 InLocalUserNum, const FUniqueNetId& InFriendOwnerId, const FUniqueNetId& InFriendId, const EInviteStatus::Type& InInviteStatus)
 	: FOnlineAsyncTaskAccelByte(InABInterface)
 	, FriendOwnerId(FUniqueNetIdAccelByteUser::CastChecked(InFriendOwnerId))

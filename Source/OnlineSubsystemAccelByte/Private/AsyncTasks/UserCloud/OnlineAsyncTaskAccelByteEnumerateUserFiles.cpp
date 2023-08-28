@@ -8,6 +8,8 @@
 #include "Core/AccelByteRegistry.h"
 #include "Api/AccelByteCloudStorageApi.h"
 
+using namespace AccelByte;
+
 FOnlineAsyncTaskAccelByteEnumerateUserFiles::FOnlineAsyncTaskAccelByteEnumerateUserFiles(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InUserId)
 	: FOnlineAsyncTaskAccelByte(InABInterface)
 {

@@ -11,7 +11,9 @@
 struct FAccelByteChatRoomConfig;
 struct FAccelByteModelsChatActionTopicResponse;
 
-class FOnlineAsyncTaskAccelByteChatExitRoom : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteChatExitRoom, ESPMode::ThreadSafe>
+class FOnlineAsyncTaskAccelByteChatExitRoom
+	: public FOnlineAsyncTaskAccelByte
+	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteChatExitRoom, ESPMode::ThreadSafe>
 {
 public:
 	FOnlineAsyncTaskAccelByteChatExitRoom(

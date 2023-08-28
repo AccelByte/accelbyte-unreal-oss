@@ -8,6 +8,8 @@
 #include "Api/AccelByteLobbyApi.h"
 #include "OnlineError.h"
 
+using namespace AccelByte;
+
 #define ONLINE_ERROR_NAMESPACE "FOnlinePartySystemAccelByte"
 
 FOnlineAsyncTaskAccelByteRestoreV1Parties::FOnlineAsyncTaskAccelByteRestoreV1Parties(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InLocalUserId, const FOnRestorePartiesComplete& InCompletionDelegate)

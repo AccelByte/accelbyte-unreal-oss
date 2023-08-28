@@ -4,6 +4,8 @@
 
 #include "OnlineAsyncTaskAccelByteAuthUser.h"
 
+using namespace AccelByte;
+
 FOnlineAsyncTaskAccelByteAuthUser::FOnlineAsyncTaskAccelByteAuthUser(FOnlineSubsystemAccelByte* const InABInterface, const FString& InUserId, const FOnAuthUserCompleted& InDelegate)
 	: FOnlineAsyncTaskAccelByte(InABInterface, INVALID_CONTROLLERID, ASYNC_TASK_FLAG_BIT(EAccelByteAsyncTaskFlags::ServerTask))
 	, UserId(InUserId)

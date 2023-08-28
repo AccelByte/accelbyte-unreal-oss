@@ -14,7 +14,9 @@
  * Task to cancel a friend request to a user
  * Note: This is a custom functionality
  */
-class FOnlineAsyncTaskAccelByteRescindFriendInvite : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteRescindFriendInvite, ESPMode::ThreadSafe>
+class FOnlineAsyncTaskAccelByteRescindFriendInvite
+	: public FOnlineAsyncTaskAccelByte
+	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteRescindFriendInvite, ESPMode::ThreadSafe>
 {
 public:
 

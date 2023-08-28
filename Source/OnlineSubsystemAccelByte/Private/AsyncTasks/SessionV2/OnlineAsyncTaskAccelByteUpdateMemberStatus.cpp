@@ -6,6 +6,8 @@
 #include "GameServerApi/AccelByteServerSessionApi.h"
 #include "Core/AccelByteRegistry.h"
 
+using namespace AccelByte;
+
 FOnlineAsyncTaskAccelByteUpdateMemberStatus::FOnlineAsyncTaskAccelByteUpdateMemberStatus(FOnlineSubsystemAccelByte* const InABInterface, FName InSessionName, const FUniqueNetId& InPlayerId, const EAccelByteV2SessionMemberStatus& InStatus, const FOnSessionMemberStatusUpdateComplete& InDelegate)
 	: FOnlineAsyncTaskAccelByte(InABInterface, INVALID_CONTROLLERID, ASYNC_TASK_FLAG_BIT(EAccelByteAsyncTaskFlags::ServerTask))
 	, SessionName(InSessionName)

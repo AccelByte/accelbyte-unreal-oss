@@ -12,7 +12,9 @@
 /**
  * Fill out information about your async task here.
  */
-class FOnlineAsyncTaskAccelByteKickV1PartyMember : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteKickV1PartyMember, ESPMode::ThreadSafe>
+class FOnlineAsyncTaskAccelByteKickV1PartyMember
+	: public FOnlineAsyncTaskAccelByte
+	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteKickV1PartyMember, ESPMode::ThreadSafe>
 {
 public:
 

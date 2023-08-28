@@ -10,7 +10,7 @@
 
 class FOnlineAsyncTaskAccelByteQueryStatsUsers
 	: public FOnlineAsyncTaskAccelByte
-	, public TSelfPtr<FOnlineAsyncTaskAccelByteQueryStatsUsers, ESPMode::ThreadSafe>
+	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteQueryStatsUsers, ESPMode::ThreadSafe>
 {
 public:
 	FOnlineAsyncTaskAccelByteQueryStatsUsers(FOnlineSubsystemAccelByte *const InABInterface

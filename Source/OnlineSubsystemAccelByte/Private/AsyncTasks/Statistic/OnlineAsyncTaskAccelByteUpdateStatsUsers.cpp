@@ -4,6 +4,8 @@
 
 #include "OnlineAsyncTaskAccelByteUpdateStatsUsers.h"
 
+using namespace AccelByte;
+
 #define ONLINE_ERROR_NAMESPACE "FOnlineStatsSystemAccelByte"
 
 FOnlineAsyncTaskAccelByteUpdateStatsUsers::FOnlineAsyncTaskAccelByteUpdateStatsUsers(FOnlineSubsystemAccelByte* const InABInterface
@@ -120,31 +122,37 @@ void FOnlineAsyncTaskAccelByteUpdateStatsUsers::OnBulkUpdateUserStatsSuccess(TAr
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("BulkUpdateUserStatItemsValue Success"));
 	BulkUpdateUserStatItemsResult = Result;
 
-	if (Result.Num() > 0)
+	for (int i = 0; i < Result.Num(); i++)
 	{
-		for (int i = 0; i < Result.Num(); i++)
+		if (!Result[i].Success)
 		{
-			if (!Result[i].Success)
-			{
-				continue;
-			}
+			continue;
+		}
 
-			float NewValue = 0.0f;
+		for (auto const& StatUser : StatsUsers)
+		{
+			AccelByteUserId = FUniqueNetIdAccelByteUser::CastChecked(StatUser);
 
-			TSharedPtr<FJsonValue> NewValueJson = Result[i].Details.JsonObject.Get()->TryGetField("currentValue");
-			if (NewValueJson.IsValid())
+			if (AccelByteUserId->GetAccelByteId() == Result[i].UserId)
 			{
-				if (!NewValueJson->IsNull())
+				// Begin Process
+
+				float NewValue = 0.0f;
+
+				TSharedPtr<FJsonValue> NewValueJson = Result[i].Details.JsonObject.Get()->TryGetField("currentValue");
+				if (NewValueJson.IsValid() && !NewValueJson->IsNull())
 				{
 					NewValue = NewValueJson->AsNumber();
 				}
+
+				FString Key = Result[i].StatCode;
+				FVariantData Value = NewValue;
+				Stats.Add(Key, Value);
+
+				OnlineUsersStatsPairs.Add(MakeShared<FOnlineStatsUserStats>(StatUser, Stats));
+
+				break;
 			}
-
-			FString Key = Result[i].StatCode;
-			FVariantData Value = NewValue;
-			Stats.Add(Key, Value);
-
-			OnlineUsersStatsPairs.Add(MakeShared<FOnlineStatsUserStats>(BulkUpdateMultipleUserStatItems[i].Account, Stats));
 		}
 	}
 

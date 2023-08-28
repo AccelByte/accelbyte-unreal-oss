@@ -13,7 +13,9 @@
 /**
  * Task for query user's eligibilities
  */
-class FOnlineAsyncTaskAccelByteQueryEligibilities : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteQueryEligibilities, ESPMode::ThreadSafe>
+class FOnlineAsyncTaskAccelByteQueryEligibilities
+	: public FOnlineAsyncTaskAccelByte
+	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteQueryEligibilities, ESPMode::ThreadSafe>
 {
 public:
 

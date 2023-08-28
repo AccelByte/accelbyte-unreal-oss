@@ -11,7 +11,9 @@
 /**
  * Async task to delete a user file from a CloudStorage slot.
  */
-class FOnlineAsyncTaskAccelByteDeleteUserFile : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteDeleteUserFile, ESPMode::ThreadSafe>
+class FOnlineAsyncTaskAccelByteDeleteUserFile
+	: public FOnlineAsyncTaskAccelByte
+	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteDeleteUserFile, ESPMode::ThreadSafe>
 {
 public:
 

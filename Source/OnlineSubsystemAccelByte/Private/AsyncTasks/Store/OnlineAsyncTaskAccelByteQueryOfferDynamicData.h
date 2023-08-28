@@ -7,7 +7,9 @@
 #include "AsyncTasks/OnlineAsyncTaskAccelByteUtils.h"
 #include "Models/AccelByteEcommerceModels.h"
 
-class FOnlineAsyncTaskAccelByteQueryOfferDynamicData : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteQueryOfferDynamicData, ESPMode::ThreadSafe>
+class FOnlineAsyncTaskAccelByteQueryOfferDynamicData
+	: public FOnlineAsyncTaskAccelByte
+	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteQueryOfferDynamicData, ESPMode::ThreadSafe>
 {
 public:
 	FOnlineAsyncTaskAccelByteQueryOfferDynamicData(FOnlineSubsystemAccelByte* const InABSubsystem, const FUniqueNetId& InUserId, const FUniqueOfferId& InOfferId,

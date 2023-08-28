@@ -4,6 +4,8 @@
 
 #include "OnlineAsyncTaskAccelByteGroupsLeaveGroup.h"
 
+using namespace AccelByte;
+
 FOnlineAsyncTaskAccelByteGroupsLeaveGroup::FOnlineAsyncTaskAccelByteGroupsLeaveGroup(
 	FOnlineSubsystemAccelByte* const InABInterface,
 	const FUniqueNetId& InContextUserId,
@@ -36,13 +38,6 @@ void FOnlineAsyncTaskAccelByteGroupsLeaveGroup::TriggerDelegates()
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 
-	FUniqueNetIdPtr GenericUserId = StaticCastSharedPtr<const FUniqueNetId>(UserId);
-	if (!ensure(GenericUserId.IsValid()))
-	{
-		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to leave group, user ID is not valid!"));
-		return;
-	}
-
 	FGroupsResult result(httpStatus, ErrorString, UniqueNetIdAccelByteResource);
 	Delegate.ExecuteIfBound(result);
 
@@ -65,7 +60,6 @@ void FOnlineAsyncTaskAccelByteGroupsLeaveGroup::Finalize()
 	if (bWasSuccessful == false)
 		return;
 
-	// Cannot leave group if user is not in a group
 	if (GroupsInterface->IsGroupValid() == false)
 	{
 		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to leave group, not in a group!"));
@@ -87,6 +81,7 @@ void FOnlineAsyncTaskAccelByteGroupsLeaveGroup::Finalize()
 		return;
 	}
 
+	// Leave the group
 	for (int i = 0; i < CurrentGroupData->ABGroupInfo.GroupMembers.Num(); i++)
 	{
 		if (CurrentGroupData->ABGroupInfo.GroupMembers[i].UserId == AccelByteModelsMemberRequestGroupResponse.UserId)
@@ -96,29 +91,28 @@ void FOnlineAsyncTaskAccelByteGroupsLeaveGroup::Finalize()
 		}
 	}
 
+	// System automatically deletes group data if no members remain
+	if (CurrentGroupData->ABGroupInfo.GroupMembers.Num() == 0)
+		GroupsInterface->DeleteLocalGroupData();
+
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 
 void FOnlineAsyncTaskAccelByteGroupsLeaveGroup::OnLeaveGroupSuccess(const FAccelByteModelsMemberRequestGroupResponse& Result)
 {
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("GroupId: %s"), *Result.GroupId);
-
-	CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
 	UniqueNetIdAccelByteResource = FUniqueNetIdAccelByteResource::Create(Result.GroupId);
-
-	// Success = 200
-	httpStatus = 200;
-
+	httpStatus = 200;// Success = 200
 	AccelByteModelsMemberRequestGroupResponse = Result;
-
+	CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 
 void FOnlineAsyncTaskAccelByteGroupsLeaveGroup::OnLeaveGroupError(int32 ErrorCode, const FString& ErrorMessage)
 {
+	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
+	httpStatus = ErrorCode;
 	ErrorString = ErrorMessage;
 	CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
-
-	// Failure = not 200
-	httpStatus = 0;
+	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }

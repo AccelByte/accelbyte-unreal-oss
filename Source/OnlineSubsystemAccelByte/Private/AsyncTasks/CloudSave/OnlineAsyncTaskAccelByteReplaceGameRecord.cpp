@@ -9,6 +9,8 @@
 #include "AsyncTasks/Server/OnlineAsyncTaskAccelByteLoginServer.h"
 #include "OnlineError.h"
 
+using namespace AccelByte;
+
 #define ONLINE_ERROR_NAMESPACE "FOnlineAsyncTaskAccelByteReplaceGameRecord"
 
 FOnlineAsyncTaskAccelByteReplaceGameRecord::FOnlineAsyncTaskAccelByteReplaceGameRecord(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InLocalUserId, const FString& InKey, const FJsonObject& InGameRecordObj)

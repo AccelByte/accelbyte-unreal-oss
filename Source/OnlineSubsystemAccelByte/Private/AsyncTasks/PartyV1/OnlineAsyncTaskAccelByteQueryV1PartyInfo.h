@@ -39,7 +39,9 @@ DECLARE_DELEGATE_TwoParams(FOnQueryPartyInfoComplete, bool /*bWasSuccessful*/, c
 /**
  * Task to get basic information relating to a party, such as party member information and party storage.
  */
-class FOnlineAsyncTaskAccelByteQueryV1PartyInfo : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteQueryV1PartyInfo, ESPMode::ThreadSafe>
+class FOnlineAsyncTaskAccelByteQueryV1PartyInfo
+	: public FOnlineAsyncTaskAccelByte
+	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteQueryV1PartyInfo, ESPMode::ThreadSafe>
 {
 public:
 

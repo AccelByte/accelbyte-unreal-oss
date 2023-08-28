@@ -7,6 +7,8 @@
 #include "Core/AccelByteRegistry.h"
 #include "Api/AccelByteEntitlementApi.h"
 
+using namespace AccelByte;
+
 FOnlineAsyncTaskAccelByteSyncPlatformPurchase::FOnlineAsyncTaskAccelByteSyncPlatformPurchase(FOnlineSubsystemAccelByte* const InABInterface, int32 InLocalUserNum, FAccelByteModelsEntitlementSyncBase InEntitlementSyncBase, const FOnRequestCompleted& InDelegate)
 	: FOnlineAsyncTaskAccelByte(InABInterface)
 	, EntitlementSyncBase(InEntitlementSyncBase)

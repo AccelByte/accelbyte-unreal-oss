@@ -7,6 +7,8 @@
 #include "OnlineIdentityInterfaceAccelByte.h"
 #include "OnlineAgreementInterfaceAccelByte.h"
 
+using namespace AccelByte;
+
 #define ONLINE_ERROR_NAMESPACE "FOnlineAccelByteQueryEligibilities"
 
 FOnlineAsyncTaskAccelByteQueryEligibilities::FOnlineAsyncTaskAccelByteQueryEligibilities(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InLocalUserId, bool bInNotAcceptedOnly, bool bInAlwaysRequestToService)

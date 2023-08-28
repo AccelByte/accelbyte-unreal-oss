@@ -31,6 +31,8 @@
 #include "OnlineSubsystemUtils.h"
 #include "AsyncTasks/Chat/OnlineAsyncTaskAccelByteConnectChat.h"
 
+using namespace AccelByte;
+
 /** Begin FOnlineIdentityAccelByte */
 FOnlineIdentityAccelByte::FOnlineIdentityAccelByte(FOnlineSubsystemAccelByte* InSubsystem)
 	: AccelByteSubsystem(InSubsystem)
@@ -103,7 +105,11 @@ bool FOnlineIdentityAccelByte::Login(int32 LocalUserNum, const FOnlineAccountCre
 		return false;
 	}
 
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteLogin>(AccelByteSubsystem, LocalUserNum, AccountCredentials);
+	FOnlineAsyncTaskInfo TaskInfo;
+	TaskInfo.Type = ETypeOfOnlineAsyncTask::Parallel;
+	TaskInfo.bCreateEpicForThis = true;
+
+	AccelByteSubsystem->CreateAndDispatchAsyncTask<FOnlineAsyncTaskAccelByteLogin>(TaskInfo, AccelByteSubsystem, LocalUserNum, AccountCredentials);
 	AB_OSS_INTERFACE_TRACE_END(TEXT("Dispatching async task to attempt to login!"));
 	return true;
 }

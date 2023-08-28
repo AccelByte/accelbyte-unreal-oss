@@ -9,6 +9,8 @@
 #include "OnlineUserCacheAccelByte.h"
 #include "Core/AccelByteRegistry.h"
 
+using namespace AccelByte;
+
 FOnlineAsyncTaskAccelByteRegisterPlayersV1::FOnlineAsyncTaskAccelByteRegisterPlayersV1(FOnlineSubsystemAccelByte* const InABInterface, const FName& InSessionName, const TArray<TSharedRef<const FUniqueNetId>>& InPlayers, bool InBWasInvited, bool InBIsSpectator)
 	: FOnlineAsyncTaskAccelByte(InABInterface, true)
 	, SessionName(InSessionName)

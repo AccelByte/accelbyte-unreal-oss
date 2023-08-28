@@ -11,7 +11,9 @@
 struct FAccelByteChatRoomConfig;
 struct FAccelByteModelsChatActionTopicResponse;
 
-class FOnlineAsyncTaskAccelByteChatSendRoomChat : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteChatSendRoomChat, ESPMode::ThreadSafe>
+class FOnlineAsyncTaskAccelByteChatSendRoomChat
+	: public FOnlineAsyncTaskAccelByte
+	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteChatSendRoomChat, ESPMode::ThreadSafe>
 {
 public:
 	FOnlineAsyncTaskAccelByteChatSendRoomChat(

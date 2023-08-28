@@ -10,6 +10,8 @@
 #include "OnlineIdentityInterfaceAccelByte.h"
 #include "Interfaces/OnlineUserInterface.h"
 
+using namespace AccelByte;
+
 #define ACCELBYTE_QUERY_TYPE TEXT("ACCELBYTE")
 
 FOnlineAsyncTaskAccelByteQueryUsersByIds::FOnlineAsyncTaskAccelByteQueryUsersByIds

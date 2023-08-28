@@ -6,6 +6,8 @@
 
 #include "Interfaces/OnlineAchievementsInterface.h"
 
+using namespace AccelByte;
+
 FOnlineAsyncTaskAccelByteQueryUserAchievements::FOnlineAsyncTaskAccelByteQueryUserAchievements(
 	FOnlineSubsystemAccelByte* const InABSubsystem,
 	FUniqueNetId const& InPlayerId,

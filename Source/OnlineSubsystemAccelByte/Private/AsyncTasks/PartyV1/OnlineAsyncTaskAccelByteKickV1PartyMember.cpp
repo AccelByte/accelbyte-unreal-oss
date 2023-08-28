@@ -8,6 +8,8 @@
 #include "Core/AccelByteRegistry.h"
 #include "Api/AccelByteLobbyApi.h"
 
+using namespace AccelByte;
+
 FOnlineAsyncTaskAccelByteKickV1PartyMember::FOnlineAsyncTaskAccelByteKickV1PartyMember(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InLocalUserId, const FOnlinePartyId& InPartyId, const FUniqueNetId& InTargetMemberId, const FOnKickPartyMemberComplete& InDelegate)
 	: FOnlineAsyncTaskAccelByte(InABInterface)
 	, PartyId(StaticCastSharedRef<const FOnlinePartyIdAccelByte>(InPartyId.AsShared()))

@@ -11,7 +11,9 @@
 /**
  * Async Task for sending an invite to a user to join a game related session
  */
-class FOnlineAsyncTaskAccelByteSendV2GameSessionInvite : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteSendV2GameSessionInvite, ESPMode::ThreadSafe>
+class FOnlineAsyncTaskAccelByteSendV2GameSessionInvite
+	: public FOnlineAsyncTaskAccelByte
+	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteSendV2GameSessionInvite, ESPMode::ThreadSafe>
 {
 public:
 

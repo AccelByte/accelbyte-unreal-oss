@@ -8,6 +8,8 @@
 #include "Core/AccelByteRegistry.h"
 #include "Api/AccelByteCloudStorageApi.h"
 
+using namespace AccelByte;
+
 FOnlineAsyncTaskAccelByteWriteUserFile::FOnlineAsyncTaskAccelByteWriteUserFile(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InUserId, const FString& InFileName, const TArray<uint8>& InFileContents, bool InBCompressBeforeUpload)
 	: FOnlineAsyncTaskAccelByte(InABInterface, true)
 	, FileName(InFileName)

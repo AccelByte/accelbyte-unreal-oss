@@ -11,7 +11,9 @@
 /**
  * Revoke the party code currently associated with the given party session
  */
-class FOnlineAsyncTaskAccelByteRevokeV2GameCode : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteRevokeV2GameCode, ESPMode::ThreadSafe>
+class FOnlineAsyncTaskAccelByteRevokeV2GameCode
+	: public FOnlineAsyncTaskAccelByte
+	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteRevokeV2GameCode, ESPMode::ThreadSafe>
 {
 public:
 

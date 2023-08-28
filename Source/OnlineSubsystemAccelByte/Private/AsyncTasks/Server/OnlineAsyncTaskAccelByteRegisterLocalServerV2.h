@@ -11,7 +11,9 @@
 /**
  * Register a locally hosted server to Armada for a session to claim
  */
-class FOnlineAsyncTaskAccelByteRegisterLocalServerV2 : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteRegisterLocalServerV2, ESPMode::ThreadSafe>
+class FOnlineAsyncTaskAccelByteRegisterLocalServerV2
+	: public FOnlineAsyncTaskAccelByte
+	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteRegisterLocalServerV2, ESPMode::ThreadSafe>
 {
 public:
 

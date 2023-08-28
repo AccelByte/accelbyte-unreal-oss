@@ -5,6 +5,8 @@
 #include "OnlineAsyncTaskAccelByteFindV2PartyById.h"
 #include "OnlineSessionInterfaceV2AccelByte.h"
 
+using namespace AccelByte;
+
 FOnlineAsyncTaskAccelByteFindV2PartyById::FOnlineAsyncTaskAccelByteFindV2PartyById(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InSearchingPlayerId, const FUniqueNetId& InSessionId, const FOnSingleSessionResultCompleteDelegate& InDelegate)
     : FOnlineAsyncTaskAccelByte(InABInterface)
 	, SessionId(FUniqueNetIdAccelByteResource::CastChecked(InSessionId))

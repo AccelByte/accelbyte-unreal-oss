@@ -8,6 +8,8 @@
 #include "OnlineError.h"
 #include "OnlineIdentityInterfaceAccelByte.h"
 
+using namespace AccelByte;
+
 #define ONLINE_ERROR_NAMESPACE "FOnlineStatsSystemAccelByte"
 
 FOnlineAsyncTaskAccelByteCreateStatsUser::FOnlineAsyncTaskAccelByteCreateStatsUser(FOnlineSubsystemAccelByte *const InABInterface

@@ -6,6 +6,8 @@
 
 #include "OnlineAsyncTaskAccelByteChatQueryRoomById.h"
 
+using namespace AccelByte;
+
 FOnlineAsyncTaskAccelByteChatJoinPublicRoom::FOnlineAsyncTaskAccelByteChatJoinPublicRoom(
 	FOnlineSubsystemAccelByte* const InABInterface,
 	const FUniqueNetId& InLocalUserId,
@@ -97,11 +99,13 @@ void FOnlineAsyncTaskAccelByteChatJoinPublicRoom::OnJoinPublicRoomSuccess(const 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("TopicId: %s"), *Response.TopicId);
 
 	// query topic to get members
-	const FOnChatQueryRoomByIdComplete OnJoinPublicRoomSuccessDelegate =
-		TDelegateUtils<FOnChatQueryRoomByIdComplete>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteChatJoinPublicRoom::OnQueryTopicByIdAfterJoinRoomSuccess);
-	const FErrorHandler OnJoinPublicRoomErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteChatJoinPublicRoom::OnJoinPublicRoomError);
-
-	Subsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteChatQueryRoomById>(Subsystem, UserId.ToSharedRef().Get(), Response.TopicId, OnJoinPublicRoomSuccessDelegate);
+	this->ExecuteCriticalSectionAction(FVoidHandler::CreateLambda([this, TopicId = Response.TopicId]()
+		{
+			const FOnChatQueryRoomByIdComplete OnJoinPublicRoomSuccessDelegate =
+				TDelegateUtils<FOnChatQueryRoomByIdComplete>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteChatJoinPublicRoom::OnQueryTopicByIdAfterJoinRoomSuccess);
+			const FErrorHandler OnJoinPublicRoomErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteChatJoinPublicRoom::OnJoinPublicRoomError);
+			Subsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteChatQueryRoomById>(Subsystem, UserId.ToSharedRef().Get(), TopicId, OnJoinPublicRoomSuccessDelegate);
+		}));
 	
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }

@@ -10,7 +10,9 @@
 /**
  * Task to query the backend for the session ID of the dedicated session that should be registered with this server
  */
-class FOnlineAsyncTaskAccelByteGetDedicatedV1SessionId : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteGetDedicatedV1SessionId, ESPMode::ThreadSafe>
+class FOnlineAsyncTaskAccelByteGetDedicatedV1SessionId
+	: public FOnlineAsyncTaskAccelByte
+	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteGetDedicatedV1SessionId, ESPMode::ThreadSafe>
 {
 public:
 

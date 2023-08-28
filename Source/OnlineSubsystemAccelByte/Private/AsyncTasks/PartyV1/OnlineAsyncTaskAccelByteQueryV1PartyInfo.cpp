@@ -6,6 +6,8 @@
 #include "OnlineSubsystemAccelByteUtils.h"
 #include "OnlineUserInterfaceAccelByte.h"
 
+using namespace AccelByte;
+
 FOnlineAsyncTaskAccelByteQueryV1PartyInfo::FOnlineAsyncTaskAccelByteQueryV1PartyInfo(FOnlineSubsystemAccelByte* const InABInterface, int32 InLocalUserNum, const FString& InPartyId, const TArray<FString>& InMembers, const FOnQueryPartyInfoComplete& InDelegate)
 	: FOnlineAsyncTaskAccelByte(InABInterface, true)
 	, PartyId(InPartyId)

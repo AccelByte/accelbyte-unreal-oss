@@ -12,7 +12,9 @@
 /**
  * Async task to kick a player from a party session
  */
-class FOnlineAsyncTaskAccelByteKickV2Party : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteKickV2Party, ESPMode::ThreadSafe>
+class FOnlineAsyncTaskAccelByteKickV2Party
+	: public FOnlineAsyncTaskAccelByte
+	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteKickV2Party, ESPMode::ThreadSafe>
 {
 public:
 

@@ -66,6 +66,8 @@
 #include "AsyncTasks/SessionV2/OnlineAsyncTaskAccelBytePromoteV2GameSessionLeader.h"
 #include "AsyncTasks/SessionV2/OnlineTaskAccelByteRevokeV2GameCode.h"
 
+using namespace AccelByte;
+
 #define ONLINE_ERROR_NAMESPACE "FOnlineSessionV2AccelByte"
 #define ACCELBYTE_P2P_TRAVEL_URL_FORMAT TEXT("accelbyte.%s:%d")
 const FString ClientIdPrefix = FString(TEXT("client-"));
@@ -2881,6 +2883,21 @@ bool FOnlineSessionV2AccelByte::GetMyActiveMatchTicket(const FUniqueNetId& Local
 	return true;
 }
 
+bool FOnlineSessionV2AccelByte::SessionContainsMember(const FUniqueNetId& UserId, FName SessionName)
+{
+	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("UserId: %s, SessionName: %s"), *UserId.ToDebugString(), *SessionName.ToString());
+	FNamedOnlineSession* Session = GetNamedSession(SessionName);
+
+	if(Session == nullptr)
+	{
+		AB_OSS_INTERFACE_TRACE_END(TEXT("Named session not found"));
+		return false;
+	}
+
+	TSharedPtr<FOnlineSessionInfoAccelByteV2> ABSessionInfo = StaticCastSharedPtr<FOnlineSessionInfoAccelByteV2>(Session->SessionInfo);
+	return ABSessionInfo->ContainsMember(UserId);
+}
+
 bool FOnlineSessionV2AccelByte::FindFriendSession(int32 LocalUserNum, const FUniqueNetId& Friend)
 {
 	IOnlineIdentityPtr IdentityInterface = AccelByteSubsystem->GetIdentityInterface();
@@ -3418,19 +3435,19 @@ void FOnlineSessionV2AccelByte::RegisterServer(FName SessionName, const FOnRegis
 		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to register server to Armada as the current game instance is not a dedicated server!"));
 		return;
 	}
-
-	if (IsServerUseAMS())
+	
+	// Check if the server using AMS, if yes then try to connect to AMS
+	if (IsServerUseAMS() && !FRegistry::ServerSettings.DSId.IsEmpty())
 	{
 		const AccelByte::GameServerApi::ServerAMS::FOnAMSDrainReceived OnAMSDrainReceivedDelegate = AccelByte::GameServerApi::ServerAMS::FOnAMSDrainReceived::CreateThreadSafeSP(SharedThis(this), &FOnlineSessionV2AccelByte::OnAMSDrain);
 		FRegistry::ServerAMS.SetOnAMSDrainReceivedDelegate(OnAMSDrainReceivedDelegate);
 		ConnectToDSHub(FRegistry::ServerSettings.DSId);
 		AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteSendReadyToAMS>(AccelByteSubsystem, Delegate);
-		AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+		AB_OSS_INTERFACE_TRACE_END(TEXT("Registering cloud server to AMS!"));
 		return;
 	}
 
-
-	// For an Armada-spawned server pod, there will always be a POD_NAME environment variable set. For local servers this
+	// If not using AMS, for an Armada-spawned server pod, there will always be a POD_NAME environment variable set. For local servers this
 	// will most likely never be the case. With this, if we have the pod name variable, then register as a non-local server
 	// otherwise, register as a local server.
 	const FString PodName = FPlatformMisc::GetEnvironmentVariable(TEXT("POD_NAME"));
@@ -3451,18 +3468,29 @@ void FOnlineSessionV2AccelByte::UnregisterServer(FName SessionName, const FOnUnr
 {
 	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT(""));
 
-	// Only dedicated servers should be able to register to Armada
+	// Only dedicated servers should be able to register to Armada or AMS
 	if (!IsRunningDedicatedServer())
 	{
 		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to register server to Armada as the current game instance is not a dedicated server!"));
 		return;
 	}
 
-	if (IsServerUseAMS())
+	if (IsServerUseAMS() && !FRegistry::ServerSettings.DSId.IsEmpty())
 	{
-		AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+		// Disconnect from DS hub & from AMS
+		DisconnectFromAMS();
+		DisconnectFromDSHub();
+
+		// Trigger UnregisterServer delegate
+		AccelByteSubsystem->ExecuteNextTick([SessionInterface = AsShared(), SessionName, Delegate]()
+		{
+			Delegate.ExecuteIfBound(true);
+		});
+
+		AB_OSS_INTERFACE_TRACE_END(TEXT("Unregistering cloud server from AMS!"));
 		return;
 	}
+	
 	// For an Armada-spawned server pod, there will always be a POD_NAME environment variable set. For local servers this
 	// will most likely never be the case. With this, if we have the pod name variable, then register as a non-local server
 	// otherwise, register as a local server.
@@ -4804,28 +4832,28 @@ void FOnlineSessionV2AccelByte::TeardownAccelByteP2PConnection()
 }
 
 void FOnlineSessionV2AccelByte::OnICEConnectionComplete(const FString& PeerId,
-	const EAccelByteP2PConnectionStatus& Status, FName SessionName, EOnlineSessionP2PConnectedAction Action)
+	const NetworkUtilities::EAccelByteP2PConnectionStatus& Status, FName SessionName, EOnlineSessionP2PConnectedAction Action)
 {
 	UE_LOG_AB(Log, TEXT("FOnlineSessionV2AccelByte::OnICEConnectionComplete"))
 	EOnJoinSessionCompleteResult::Type Result;
 	
 	switch (Status)
 	{
-	case EAccelByteP2PConnectionStatus::Success:
+	case NetworkUtilities::EAccelByteP2PConnectionStatus::Success:
 		Result = EOnJoinSessionCompleteResult::Success;
 		break;
 
-	case EAccelByteP2PConnectionStatus::SignalingServerDisconnected:
-	case EAccelByteP2PConnectionStatus::HostResponseTimeout:
-	case EAccelByteP2PConnectionStatus::PeerIsNotHosting:
+	case NetworkUtilities::EAccelByteP2PConnectionStatus::SignalingServerDisconnected:
+	case NetworkUtilities::EAccelByteP2PConnectionStatus::HostResponseTimeout:
+	case NetworkUtilities::EAccelByteP2PConnectionStatus::PeerIsNotHosting:
 		Result = EOnJoinSessionCompleteResult::SessionDoesNotExist;
 		break;
 
-	case EAccelByteP2PConnectionStatus::JuiceGatherFailed:
-	case EAccelByteP2PConnectionStatus::JuiceGetLocalDescriptionFailed:
-	case EAccelByteP2PConnectionStatus::JuiceConnectionFailed:
-	case EAccelByteP2PConnectionStatus::FailedGettingTurnServer:
-	case EAccelByteP2PConnectionStatus::FailedGettingTurnServerCredential:
+	case NetworkUtilities::EAccelByteP2PConnectionStatus::JuiceGatherFailed:
+	case NetworkUtilities::EAccelByteP2PConnectionStatus::JuiceGetLocalDescriptionFailed:
+	case NetworkUtilities::EAccelByteP2PConnectionStatus::JuiceConnectionFailed:
+	case NetworkUtilities::EAccelByteP2PConnectionStatus::FailedGettingTurnServer:
+	case NetworkUtilities::EAccelByteP2PConnectionStatus::FailedGettingTurnServerCredential:
 		Result = EOnJoinSessionCompleteResult::CouldNotRetrieveAddress;
 		break;
 

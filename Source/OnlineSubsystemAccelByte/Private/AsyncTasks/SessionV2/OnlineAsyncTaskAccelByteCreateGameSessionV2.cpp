@@ -13,6 +13,8 @@
 #include "OnlineSubsystemAccelByteSessionSettings.h"
 #include "OnlineSubsystemSessionSettings.h"
 
+using namespace AccelByte;
+
 FOnlineAsyncTaskAccelByteCreateGameSessionV2::FOnlineAsyncTaskAccelByteCreateGameSessionV2(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InHostingPlayerId, const FName& InSessionName, const FOnlineSessionSettings& InNewSessionSettings)
 	// Initialize as a server task if we are running a dedicated server, as this doubles as a server task. Otherwise, use
 	// no flags to indicate that it's a client task.

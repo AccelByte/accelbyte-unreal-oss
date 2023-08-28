@@ -14,7 +14,9 @@ struct FAccelByteModelsSessionBrowserRecentPlayerGetResult;
 /**
  * Task for blocking a player on the AccelByte backend
  */
-class FOnlineAsyncTaskAccelByteGetRecentPlayer : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteGetRecentPlayer, ESPMode::ThreadSafe>
+class FOnlineAsyncTaskAccelByteGetRecentPlayer
+	: public FOnlineAsyncTaskAccelByte
+	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteGetRecentPlayer, ESPMode::ThreadSafe>
 {
 public:
 

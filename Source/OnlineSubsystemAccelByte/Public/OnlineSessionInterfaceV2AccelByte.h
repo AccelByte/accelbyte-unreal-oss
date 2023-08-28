@@ -92,6 +92,16 @@ public:
 	/** Get PartyID a sesion member belong to, returns empty string if not found */
 	FString GetMemberPartyId(const FUniqueNetIdRef& UserId) const;
 
+	/**
+	 * Attempt to find a member of this session by their ID
+	 */
+	bool FindMember(const FUniqueNetId& MemberId, FAccelByteModelsV2SessionUser*& OutMember);
+
+	/**
+	 * Check if this session contains a member with the provided ID at all
+	 */
+	bool ContainsMember(const FUniqueNetId& MemberId);
+
 PACKAGE_SCOPE:
 	/**
 	 * Update the list of invited players on this session from the backend session data.
@@ -125,16 +135,6 @@ PACKAGE_SCOPE:
 
 	/** Get the value for the "is latest update a DS ready update" flag */
 	bool GetDSReadyUpdateReceived() const;
-
-	/**
-	 * Attempt to find a member of this session by their ID
-	 */
-	bool FindMember(const FUniqueNetId& MemberId, FAccelByteModelsV2SessionUser*& OutMember);
-
-	/**
-	 * Check if this session contains a member with the provided ID at all
-	 */
-	bool ContainsMember(const FUniqueNetId& MemberId);
 
 	/**
 	 * Set the p2p channel for the connection
@@ -827,6 +827,15 @@ public:
 	bool GetMyActiveMatchTicket(const FUniqueNetId& LocalUserId, FName SessionName, const FString& MatchPool);
 
 	/**
+	 * Check if a userId is a member in a named session
+	 *
+	 * @param UserId ID of the player that you are attempting to search in a session
+	 * @param SessionName Session name we are searching the user in
+	 * @return true if UserId is part of session member, false otherwise.
+	 */
+	bool SessionContainsMember(const FUniqueNetId& UserId, FName SessionName);
+
+	/**
 	 * Delegate fired when we have retrieved information on the session that our server is claimed by on the backend.
 	 *
 	 * @param SessionName the name that our server session is stored under
@@ -1275,7 +1284,7 @@ PACKAGE_SCOPE:
 	*
 	* @param Collector The collector object inherited from IAccelByteStatsDMetricCollector
 	*/
-	void SetMetricCollector(const TSharedPtr<IAccelByteStatsDMetricCollector>& Collector);
+	void SetMetricCollector(const TSharedPtr<AccelByte::IAccelByteStatsDMetricCollector>& Collector);
 
 	/**
 	 * Makes a call to grab the most recent stored player attributes from the session service, and updates them with the
@@ -1454,7 +1463,7 @@ private:
 	/**
 	 * Delegate handler when we finish connecting to a P2P ICE session
 	 */
-	void OnICEConnectionComplete(const FString& PeerId, const NetworkUtilities::EAccelByteP2PConnectionStatus& Status, FName SessionName, EOnlineSessionP2PConnectedAction Action);
+	void OnICEConnectionComplete(const FString& PeerId, const AccelByte::NetworkUtilities::EAccelByteP2PConnectionStatus& Status, FName SessionName, EOnlineSessionP2PConnectedAction Action);
 
 	/**
 	 * Internal method to get a named session as a const pointer.

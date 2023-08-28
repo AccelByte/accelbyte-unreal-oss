@@ -9,6 +9,8 @@
 #include "OnlineSubsystemAccelByte.h"
 #include "Models/AccelByteUserModels.h"
 
+using namespace AccelByte;
+
 FOnlineAsyncTaskAccelByteQueryExternalIdMappings::FOnlineAsyncTaskAccelByteQueryExternalIdMappings
 	( FOnlineSubsystemAccelByte* const InABSubsystem
 	, const FUniqueNetId& InUserId

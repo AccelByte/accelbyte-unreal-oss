@@ -5,6 +5,8 @@
 #include "OnlineAsyncTaskAccelByteRegisterRemoteServerV2.h"
 #include "Engine/Engine.h"
 
+using namespace AccelByte;
+
 FOnlineAsyncTaskAccelByteRegisterRemoteServerV2::FOnlineAsyncTaskAccelByteRegisterRemoteServerV2(FOnlineSubsystemAccelByte* const InABInterface, const FName& InSessionName, const FOnRegisterServerComplete& InDelegate)
     : FOnlineAsyncTaskAccelByte(InABInterface, INVALID_CONTROLLERID, ASYNC_TASK_FLAG_BIT(EAccelByteAsyncTaskFlags::ServerTask))
     , SessionName(InSessionName)

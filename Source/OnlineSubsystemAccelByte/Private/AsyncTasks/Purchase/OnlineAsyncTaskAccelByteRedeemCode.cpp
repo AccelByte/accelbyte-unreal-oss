@@ -1,6 +1,12 @@
-﻿#include "OnlineAsyncTaskAccelByteRedeemCode.h"
+﻿// Copyright (c) 2022 - 2023 AccelByte Inc. All Rights Reserved.
+// This is licensed software from AccelByte Inc, for limitations
+// and restrictions contact your company contract manager.
+
+#include "OnlineAsyncTaskAccelByteRedeemCode.h"
 
 #include "OnlinePurchaseInterfaceAccelByte.h"
+
+using namespace AccelByte;
 
 FOnlineAsyncTaskAccelByteRedeemCode::FOnlineAsyncTaskAccelByteRedeemCode(FOnlineSubsystemAccelByte* const InABSubsystem, const FUniqueNetId& InUserId, const FRedeemCodeRequest& InRedeemCodeRequest, const FOnPurchaseRedeemCodeComplete& InDelegate)
 	: FOnlineAsyncTaskAccelByte(InABSubsystem)

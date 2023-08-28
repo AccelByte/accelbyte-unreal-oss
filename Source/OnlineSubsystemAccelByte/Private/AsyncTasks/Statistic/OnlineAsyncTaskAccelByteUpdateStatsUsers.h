@@ -10,7 +10,7 @@
 
 class FOnlineAsyncTaskAccelByteUpdateStatsUsers
 	: public FOnlineAsyncTaskAccelByte
-	, public TSelfPtr<FOnlineAsyncTaskAccelByteUpdateStatsUsers, ESPMode::ThreadSafe>
+	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteUpdateStatsUsers, ESPMode::ThreadSafe>
 {
 public:
 	FOnlineAsyncTaskAccelByteUpdateStatsUsers(FOnlineSubsystemAccelByte *const InABInterface
@@ -38,8 +38,6 @@ private:
 	void OnBulkUpdateUserStatsFailed(int32 Code
 		, FString const& ErrMsg);
 	TArray<TSharedRef<const FOnlineStatsUserStats>> OnlineUsersStatsPairs;
-
-	EAccelByteStatisticUpdateStrategy ConvertUpdateStrategy(FOnlineStatUpdate::EOnlineStatModificationType Strategy);
 
 	TArray<FUniqueNetIdRef> StatsUsers;
 	FUniqueNetIdAccelByteUserPtr AccelByteUserId;

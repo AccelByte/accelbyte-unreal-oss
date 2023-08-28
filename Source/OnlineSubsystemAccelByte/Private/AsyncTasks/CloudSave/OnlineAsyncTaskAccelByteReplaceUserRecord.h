@@ -11,7 +11,9 @@
 /**
  * Task for replacing user record
  */
-class FOnlineAsyncTaskAccelByteReplaceUserRecord : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteReplaceUserRecord, ESPMode::ThreadSafe>
+class FOnlineAsyncTaskAccelByteReplaceUserRecord
+	: public FOnlineAsyncTaskAccelByte
+	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteReplaceUserRecord, ESPMode::ThreadSafe>
 {
 public:
 	FOnlineAsyncTaskAccelByteReplaceUserRecord(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InLocalUserId, const FString& InKey, const FJsonObject& InUserRecordObj, bool IsPublic);

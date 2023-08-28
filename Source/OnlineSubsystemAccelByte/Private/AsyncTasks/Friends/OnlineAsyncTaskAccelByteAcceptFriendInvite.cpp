@@ -9,6 +9,8 @@
 #include "Api/AccelByteLobbyApi.h"
 #include <OnlineIdentityInterfaceAccelByte.h>
 
+using namespace AccelByte;
+
 FOnlineAsyncTaskAccelByteAcceptFriendInvite::FOnlineAsyncTaskAccelByteAcceptFriendInvite(FOnlineSubsystemAccelByte* const InABInterface, int32 InLocalUserNum, const FUniqueNetId& InFriendId, const FString& InListName, const FOnAcceptInviteComplete& InDelegate)
 	: FOnlineAsyncTaskAccelByte(InABInterface)
 	, FriendId(FUniqueNetIdAccelByteUser::CastChecked(InFriendId))

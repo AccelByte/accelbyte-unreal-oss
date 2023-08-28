@@ -12,7 +12,9 @@
 /**
  * Task used by real time notification methods to add a new friend entry to the friends list based on invite status
  */
-class FOnlineAsyncTaskAccelByteAddFriendToList : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteAddFriendToList, ESPMode::ThreadSafe>
+class FOnlineAsyncTaskAccelByteAddFriendToList
+	: public FOnlineAsyncTaskAccelByte
+	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteAddFriendToList, ESPMode::ThreadSafe>
 {
 public:
 

@@ -10,6 +10,8 @@
 #include "Misc/AES.h"
 #include "OnlineSubsystemUtils.h"
 
+using namespace AccelByte;
+
 /** The maximum size (bits) for a packet */
 #define MAX_PACKET_BITS ((MAX_PACKET_SIZE) * 8)
 
@@ -1015,7 +1017,7 @@ bool FAuthHandlerComponentAccelByte::SendAuthData(TArray<uint8>& Packet, uint32&
 
 	if (!EncryptAES(TempPacket))
 	{
-		UE_LOG_AB(Warning, TEXT("AUTH HANDLER: AES Encryption skipped as plain text size is too large. send smaller packets for secure data. over '%i' bytes."),
+		UE_LOG_AB(Warning, TEXT("AUTH HANDLER: AES Encryption skipped as plain text size is too large. send smaller packets for secure data. over '%lli' bytes."),
 			(TempPacket.GetNumBits() - MAX_AES_ENCRYPTION_BITS) / 8);
 
 		return false;

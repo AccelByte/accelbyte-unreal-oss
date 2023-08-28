@@ -13,7 +13,9 @@
 /**
  * Task to query game sessions on backend.
  */
-class FOnlineAsyncTaskAccelByteFindGameSessionsV2 : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteFindGameSessionsV2, ESPMode::ThreadSafe>
+class FOnlineAsyncTaskAccelByteFindGameSessionsV2
+	: public FOnlineAsyncTaskAccelByte
+	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteFindGameSessionsV2, ESPMode::ThreadSafe>
 {
 public:
 

@@ -12,7 +12,9 @@
 /**
  * Async Task to join a party session 
  */
-class FOnlineAsyncTaskAccelByteJoinV2Party : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteJoinV2Party, ESPMode::ThreadSafe>
+class FOnlineAsyncTaskAccelByteJoinV2Party
+	: public FOnlineAsyncTaskAccelByte
+	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteJoinV2Party, ESPMode::ThreadSafe>
 {
 public:
 

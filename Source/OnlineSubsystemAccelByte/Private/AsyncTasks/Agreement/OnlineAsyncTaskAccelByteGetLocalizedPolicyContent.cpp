@@ -7,6 +7,8 @@
 #include "OnlineIdentityInterfaceAccelByte.h"
 #include "OnlineAgreementInterfaceAccelByte.h"
 
+using namespace AccelByte;
+
 #define ONLINE_ERROR_NAMESPACE "FOnlineAccelByteGetLocalizedPolicyContent"
 
 FOnlineAsyncTaskAccelByteGetLocalizedPolicyContent::FOnlineAsyncTaskAccelByteGetLocalizedPolicyContent(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InLocalUserId, const FString& InBasePolicyId, const FString& InLocaleCode, bool bInAlwaysRequestToService)

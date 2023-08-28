@@ -12,7 +12,9 @@
 /**
  * Async task to attempt to accept a friend request from a user on the backend.
  */
-class FOnlineAsyncTaskAccelByteAcceptFriendInvite : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteAcceptFriendInvite, ESPMode::ThreadSafe>
+class FOnlineAsyncTaskAccelByteAcceptFriendInvite
+	: public FOnlineAsyncTaskAccelByte
+	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteAcceptFriendInvite, ESPMode::ThreadSafe>
 {
 public:
 

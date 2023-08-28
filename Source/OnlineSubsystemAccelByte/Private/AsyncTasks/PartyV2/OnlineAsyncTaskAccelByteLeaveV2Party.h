@@ -11,7 +11,9 @@
 /**
  * Async task to leave a party related session
  */
-class FOnlineAsyncTaskAccelByteLeaveV2Party : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteLeaveV2Party, ESPMode::ThreadSafe>
+class FOnlineAsyncTaskAccelByteLeaveV2Party
+	: public FOnlineAsyncTaskAccelByte
+	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteLeaveV2Party, ESPMode::ThreadSafe>
 {
 public:
 

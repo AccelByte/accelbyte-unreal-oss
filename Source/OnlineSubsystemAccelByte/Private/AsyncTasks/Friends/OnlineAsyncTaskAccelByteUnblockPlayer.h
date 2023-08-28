@@ -11,7 +11,9 @@
 /**
  * Task for unblocking a player on the AccelByte backend.
  */
-class FOnlineAsyncTaskAccelByteUnblockPlayer : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteUnblockPlayer, ESPMode::ThreadSafe>
+class FOnlineAsyncTaskAccelByteUnblockPlayer
+	: public FOnlineAsyncTaskAccelByte
+	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteUnblockPlayer, ESPMode::ThreadSafe>
 {
 public:
 

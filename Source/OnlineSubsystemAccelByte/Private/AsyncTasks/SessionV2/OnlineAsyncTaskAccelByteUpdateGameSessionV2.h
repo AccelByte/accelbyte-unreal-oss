@@ -11,7 +11,9 @@
 /**
  * Update a V2 game session instance with new settings
  */
-class FOnlineAsyncTaskAccelByteUpdateGameSessionV2 : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteUpdateGameSessionV2, ESPMode::ThreadSafe>
+class FOnlineAsyncTaskAccelByteUpdateGameSessionV2
+	: public FOnlineAsyncTaskAccelByte
+	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteUpdateGameSessionV2, ESPMode::ThreadSafe>
 {
 public:
 

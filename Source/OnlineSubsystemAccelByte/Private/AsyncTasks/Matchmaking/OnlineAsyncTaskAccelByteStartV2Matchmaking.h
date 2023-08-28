@@ -11,7 +11,9 @@
 #include "Models/AccelByteMatchmakingModels.h"
 #include "OnlineSessionInterfaceV2AccelByte.h"
 
-class FOnlineAsyncTaskAccelByteStartV2Matchmaking : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteStartV2Matchmaking, ESPMode::ThreadSafe>
+class FOnlineAsyncTaskAccelByteStartV2Matchmaking
+	: public FOnlineAsyncTaskAccelByte
+	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteStartV2Matchmaking, ESPMode::ThreadSafe>
 {
 public:
 	FOnlineAsyncTaskAccelByteStartV2Matchmaking(FOnlineSubsystemAccelByte* const InABInterface, const TSharedRef<FOnlineSessionSearchAccelByte>& InSearchHandle, const FName& InSessionName, const FString& InMatchPool, const FOnStartMatchmakingComplete& InDelegate);

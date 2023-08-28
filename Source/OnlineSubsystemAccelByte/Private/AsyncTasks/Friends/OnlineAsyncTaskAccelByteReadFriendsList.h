@@ -14,7 +14,9 @@
 /**
  * Async task to try and read the user's friends list from the backend through the Lobby websocket.
  */
-class FOnlineAsyncTaskAccelByteReadFriendsList : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteReadFriendsList, ESPMode::ThreadSafe>
+class FOnlineAsyncTaskAccelByteReadFriendsList
+	: public FOnlineAsyncTaskAccelByte
+	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteReadFriendsList, ESPMode::ThreadSafe>
 {
 public:
 

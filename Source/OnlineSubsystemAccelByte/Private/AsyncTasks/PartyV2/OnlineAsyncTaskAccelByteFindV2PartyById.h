@@ -13,7 +13,9 @@
 /**
  * Try and find a single party session by its ID
  */
-class FOnlineAsyncTaskAccelByteFindV2PartyById : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteFindV2PartyById, ESPMode::ThreadSafe>
+class FOnlineAsyncTaskAccelByteFindV2PartyById
+	: public FOnlineAsyncTaskAccelByte
+	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteFindV2PartyById, ESPMode::ThreadSafe>
 {
 public:
 

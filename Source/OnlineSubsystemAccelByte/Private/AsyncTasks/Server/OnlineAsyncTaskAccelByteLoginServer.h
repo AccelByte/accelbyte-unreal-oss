@@ -10,7 +10,9 @@
 /**
  * Async task to log in a dedicated server
  */
-class FOnlineAsyncTaskAccelByteLoginServer : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteLoginServer, ESPMode::ThreadSafe>
+class FOnlineAsyncTaskAccelByteLoginServer
+	: public FOnlineAsyncTaskAccelByte
+	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteLoginServer, ESPMode::ThreadSafe>
 {
 public:
 	FOnlineAsyncTaskAccelByteLoginServer(FOnlineSubsystemAccelByte* const InABInterface, int32 InLocalUserNum);

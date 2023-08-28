@@ -11,7 +11,9 @@
 /**
  * Task for sending an invite to a user to join a party
  */
-class FOnlineAsyncTaskAccelByteSendV1PartyInvite : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteSendV1PartyInvite, ESPMode::ThreadSafe>
+class FOnlineAsyncTaskAccelByteSendV1PartyInvite
+	: public FOnlineAsyncTaskAccelByte
+	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteSendV1PartyInvite, ESPMode::ThreadSafe>
 {
 public:
 

@@ -6,6 +6,8 @@
 
 #include "AsyncTasks/OnlineAsyncTaskAccelByteUtils.h"
 
+using namespace AccelByte;
+
 FOnlineAsyncTaskAccelByteConnectChat::FOnlineAsyncTaskAccelByteConnectChat(
 	FOnlineSubsystemAccelByte* const InABInterface,
 	const FUniqueNetId& InLocalUserId)

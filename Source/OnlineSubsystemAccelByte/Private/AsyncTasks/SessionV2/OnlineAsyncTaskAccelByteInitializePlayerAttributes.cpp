@@ -6,6 +6,8 @@
 #include "AsyncTasks/OnlineAsyncTaskAccelByteUtils.h"
 #include "OnlineIdentityInterfaceAccelByte.h"
 
+using namespace AccelByte;
+
 FOnlineAsyncTaskAccelByteInitializePlayerAttributes::FOnlineAsyncTaskAccelByteInitializePlayerAttributes(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InLocalUserId)
 	: FOnlineAsyncTaskAccelByte(InABInterface, false)
 {

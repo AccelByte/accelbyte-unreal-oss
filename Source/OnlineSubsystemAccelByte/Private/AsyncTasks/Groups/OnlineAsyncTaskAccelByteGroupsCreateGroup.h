@@ -8,7 +8,9 @@
 #include "AsyncTasks/OnlineAsyncTaskAccelByte.h"
 #include "AsyncTasks/OnlineAsyncTaskAccelByteUtils.h"
 
-class FOnlineAsyncTaskAccelByteGroupsCreateGroup : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteGroupsCreateGroup, ESPMode::ThreadSafe>
+class FOnlineAsyncTaskAccelByteGroupsCreateGroup
+	: public FOnlineAsyncTaskAccelByte
+	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteGroupsCreateGroup, ESPMode::ThreadSafe>
 {
 public:
 	FOnlineAsyncTaskAccelByteGroupsCreateGroup(

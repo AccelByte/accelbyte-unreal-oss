@@ -9,7 +9,9 @@
 #include "OnlineSubsystemAccelByteTypes.h"
 #include "OnlineSessionInterfaceV1AccelByte.h"
 
-class FOnlineAsyncTaskAccelByteRegisterDedicatedV1Session : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteRegisterDedicatedV1Session, ESPMode::ThreadSafe>
+class FOnlineAsyncTaskAccelByteRegisterDedicatedV1Session
+	: public FOnlineAsyncTaskAccelByte
+	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteRegisterDedicatedV1Session, ESPMode::ThreadSafe>
 {
 public:
 

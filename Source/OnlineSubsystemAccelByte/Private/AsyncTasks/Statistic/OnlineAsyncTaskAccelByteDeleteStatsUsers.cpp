@@ -4,6 +4,8 @@
 
 #include "OnlineAsyncTaskAccelByteDeleteStatsUsers.h"
 
+using namespace AccelByte;
+
 #define ONLINE_ERROR_NAMESPACE "FOnlineStatsSystemAccelByte"
 
 FOnlineAsyncTaskAccelByteDeleteStatsUsers::FOnlineAsyncTaskAccelByteDeleteStatsUsers(FOnlineSubsystemAccelByte *const InABInterface

@@ -9,6 +9,8 @@
 #include "Api/AccelByteUserApi.h"
 #include "OnlineError.h"
 
+using namespace AccelByte;
+
 #define ONLINE_ERROR_NAMESPACE "FOnlineUserAccelByte"
 
 FOnlineAsyncTaskAccelByteCreateUserProfile::FOnlineAsyncTaskAccelByteCreateUserProfile

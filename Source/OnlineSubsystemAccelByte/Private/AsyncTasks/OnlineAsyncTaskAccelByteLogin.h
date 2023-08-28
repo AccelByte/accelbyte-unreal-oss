@@ -20,7 +20,9 @@ namespace AccelByte { class FApiClient; }
 /**
  * Async task to authenticate a user with the AccelByte backend, either using a native platform account, or a user specified account
  */
-class FOnlineAsyncTaskAccelByteLogin : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteLogin, ESPMode::ThreadSafe>
+class FOnlineAsyncTaskAccelByteLogin
+	: public FOnlineAsyncTaskAccelByte
+	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteLogin, ESPMode::ThreadSafe>
 {
 #if (PLATFORM_WINDOWS || PLATFORM_LINUX || PLATFORM_MAC) && !UE_SERVER
 private:

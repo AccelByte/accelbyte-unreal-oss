@@ -4,6 +4,8 @@
 
 #include "OnlineAsyncTaskAccelByteServerQueryGameSessionsV2.h"
 
+using namespace AccelByte;
+
 #define ONLINE_ERROR_NAMESPACE "FOnlineAsyncTaskAccelByteServerQueryGameSessionV2"
 
 FOnlineAsyncTaskAccelByteServerQueryGameSessionsV2::FOnlineAsyncTaskAccelByteServerQueryGameSessionsV2(FOnlineSubsystemAccelByte* const InABInterface, const FAccelByteModelsV2ServerQueryGameSessionsRequest& InRequest, int64 InOffset, int64 InLimit)

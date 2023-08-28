@@ -13,7 +13,9 @@
 /**
  * Async Task to reject a game session invite
  */
-class FOnlineAsyncTaskAccelByteRejectV2GameSessionInvite : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteRejectV2GameSessionInvite, ESPMode::ThreadSafe>
+class FOnlineAsyncTaskAccelByteRejectV2GameSessionInvite
+	: public FOnlineAsyncTaskAccelByte
+	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteRejectV2GameSessionInvite, ESPMode::ThreadSafe>
 {
 public:
 	FOnlineAsyncTaskAccelByteRejectV2GameSessionInvite(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InLocalUserId, const FOnlineSessionSearchResult& InInvitedSession, const FOnRejectSessionInviteComplete& InDelegate);

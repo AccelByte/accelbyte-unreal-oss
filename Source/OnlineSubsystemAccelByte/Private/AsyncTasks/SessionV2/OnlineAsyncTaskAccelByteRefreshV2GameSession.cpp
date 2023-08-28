@@ -6,6 +6,8 @@
 #include "OnlineSessionInterfaceV2AccelByte.h"
 #include "Api/AccelByteSessionApi.h"
 
+using namespace AccelByte;
+
 FOnlineAsyncTaskAccelByteRefreshV2GameSession::FOnlineAsyncTaskAccelByteRefreshV2GameSession(FOnlineSubsystemAccelByte* const InABInterface, const FName& InSessionName, const FOnRefreshSessionComplete& InDelegate)
 	// Initialize as a server task if we are running a server task, as this doubles as a server task. Otherwise, use no flags 
 	: FOnlineAsyncTaskAccelByte(InABInterface, INVALID_CONTROLLERID, (IsRunningDedicatedServer()) ? ASYNC_TASK_FLAG_BIT(EAccelByteAsyncTaskFlags::ServerTask) : ASYNC_TASK_FLAG_BIT(EAccelByteAsyncTaskFlags::None))

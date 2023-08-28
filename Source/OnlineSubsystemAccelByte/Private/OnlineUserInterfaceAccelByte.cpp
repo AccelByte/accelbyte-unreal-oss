@@ -95,7 +95,11 @@ bool FOnlineUserAccelByte::QueryUserInfo(int32 LocalUserNum, const TArray<TShare
 		});
 		return false;
 	}
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteQueryUserInfo>(AccelByteSubsystem, LocalUserNum, UserIds, OnQueryUserInfoCompleteDelegates[LocalUserNum]);
+
+	FOnlineAsyncTaskInfo TaskInfo;
+	TaskInfo.Type = ETypeOfOnlineAsyncTask::Parallel;
+	TaskInfo.bCreateEpicForThis = true;
+	AccelByteSubsystem->CreateAndDispatchAsyncTask<FOnlineAsyncTaskAccelByteQueryUserInfo>(TaskInfo, AccelByteSubsystem, LocalUserNum, UserIds, OnQueryUserInfoCompleteDelegates[LocalUserNum]);
 
 	AB_OSS_INTERFACE_TRACE_END(TEXT("Created and dispatched async task to query user information for %d IDs!"), UserIds.Num());
 	return true;

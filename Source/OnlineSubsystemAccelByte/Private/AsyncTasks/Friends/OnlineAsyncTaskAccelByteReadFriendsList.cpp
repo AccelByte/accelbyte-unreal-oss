@@ -10,6 +10,8 @@
 #include "Api/AccelByteLobbyApi.h"
 #include "Api/AccelByteUserApi.h"
 
+using namespace AccelByte;
+
 FOnlineAsyncTaskAccelByteReadFriendsList::FOnlineAsyncTaskAccelByteReadFriendsList(FOnlineSubsystemAccelByte* const InABInterface, int32 InLocalUserNum, const FString& InListName, const FOnReadFriendsListComplete& InDelegate)
 	: FOnlineAsyncTaskAccelByte(InABInterface, true)
 	, ListName(InListName)

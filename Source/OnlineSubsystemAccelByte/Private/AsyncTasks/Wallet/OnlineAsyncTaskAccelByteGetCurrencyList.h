@@ -12,7 +12,9 @@
 /**
  * Task for get currency list
  */
-class FOnlineAsyncTaskAccelByteGetCurrencyList : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteGetCurrencyList, ESPMode::ThreadSafe>
+class FOnlineAsyncTaskAccelByteGetCurrencyList
+	: public FOnlineAsyncTaskAccelByte
+	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteGetCurrencyList, ESPMode::ThreadSafe>
 {
 public:
 

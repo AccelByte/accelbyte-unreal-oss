@@ -4,6 +4,8 @@
 
 #include "OnlineAsyncTaskAccelByteChatExitRoom.h"
 
+using namespace AccelByte;
+
 FOnlineAsyncTaskAccelByteChatExitRoom::FOnlineAsyncTaskAccelByteChatExitRoom(
 	FOnlineSubsystemAccelByte* const InABInterface,
 	const FUniqueNetId& InLocalUserId,

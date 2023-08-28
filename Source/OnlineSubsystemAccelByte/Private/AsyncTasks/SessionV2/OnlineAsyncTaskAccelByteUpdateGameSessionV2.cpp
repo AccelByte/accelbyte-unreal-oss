@@ -10,6 +10,8 @@
 #include "Api/AccelByteSessionApi.h"
 #include "OnlineAsyncTaskAccelByteRefreshV2GameSession.h"
 
+using namespace AccelByte;
+
 FOnlineAsyncTaskAccelByteUpdateGameSessionV2::FOnlineAsyncTaskAccelByteUpdateGameSessionV2(FOnlineSubsystemAccelByte* const InABInterface, const FName& InSessionName, const FOnlineSessionSettings& InNewSessionSettings)
 	// Initialize as a server task if we are running a dedicated server, as this doubles as a server task. Otherwise, use
 	// no flags to indicate that it's a client task.
@@ -219,7 +221,7 @@ void FOnlineAsyncTaskAccelByteUpdateGameSessionV2::TriggerDelegates()
 
 void FOnlineAsyncTaskAccelByteUpdateGameSessionV2::OnUpdateGameSessionSuccess(const FAccelByteModelsV2GameSession& BackendSessionData)
 {
-	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("UpdatedSessionVersion: %I64d"), BackendSessionData.Version);
+	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("UpdatedSessionVersion: %lli"), BackendSessionData.Version);
 
 	NewSessionData = BackendSessionData;
 	CompleteTask(EAccelByteAsyncTaskCompleteState::Success);

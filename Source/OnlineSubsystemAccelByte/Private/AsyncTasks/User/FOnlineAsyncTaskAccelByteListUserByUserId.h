@@ -9,7 +9,9 @@
 #include "OnlineIdentityInterfaceAccelByte.h"
 #include "OnlineUserInterfaceAccelByte.h"
 
-class FOnlineAsyncTaskAccelByteListUserByUserId : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteListUserByUserId, ESPMode::ThreadSafe>
+class FOnlineAsyncTaskAccelByteListUserByUserId
+	: public FOnlineAsyncTaskAccelByte
+	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteListUserByUserId, ESPMode::ThreadSafe>
 {
 public:
 	FOnlineAsyncTaskAccelByteListUserByUserId(FOnlineSubsystemAccelByte* const InABInterface, const int32 InLocalUserNum,

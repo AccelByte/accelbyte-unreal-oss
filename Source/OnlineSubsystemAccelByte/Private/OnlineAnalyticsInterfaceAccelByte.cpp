@@ -9,6 +9,8 @@
 #include "OnlineIdentityInterfaceAccelByte.h"
 #include "Core/AccelByteMultiRegistry.h"
 
+using namespace AccelByte;
+
 bool FOnlineAnalyticsAccelByte::GetFromSubsystem(const IOnlineSubsystem* Subsystem
 	, TSharedPtr<FOnlineAnalyticsAccelByte, ESPMode::ThreadSafe>& OutInterfaceInstance)
 {

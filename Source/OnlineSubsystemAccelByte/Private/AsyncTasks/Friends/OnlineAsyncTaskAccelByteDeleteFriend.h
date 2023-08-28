@@ -11,7 +11,9 @@
 /**
  * Async task to attempt to delete a friend from the user's friends list on the backend.
  */
-class FOnlineAsyncTaskAccelByteDeleteFriend : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteDeleteFriend, ESPMode::ThreadSafe>
+class FOnlineAsyncTaskAccelByteDeleteFriend
+	: public FOnlineAsyncTaskAccelByte
+	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteDeleteFriend, ESPMode::ThreadSafe>
 {
 public:
 

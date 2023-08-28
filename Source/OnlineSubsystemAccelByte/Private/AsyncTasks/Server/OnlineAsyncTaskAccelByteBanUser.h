@@ -13,7 +13,9 @@
  *
  * For dedicated sessions, this requires the permission "ADMIN:NAMESPACE:{namespace}:ACTION" action=4 (UPDATE) on your server OAuth client.
  */
-class FOnlineAsyncTaskAccelByteBanUser : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteBanUser, ESPMode::ThreadSafe>
+class FOnlineAsyncTaskAccelByteBanUser
+	: public FOnlineAsyncTaskAccelByte
+	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteBanUser, ESPMode::ThreadSafe>
 {
 public:
 

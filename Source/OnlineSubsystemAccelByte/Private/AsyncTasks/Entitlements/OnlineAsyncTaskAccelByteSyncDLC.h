@@ -11,7 +11,9 @@
 /**
  * Async task to Synchronize DLC using the DLC sync API call respective to the user's platform.
  */
-class FOnlineAsyncTaskAccelByteSyncDLC : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteSyncDLC, ESPMode::ThreadSafe>
+class FOnlineAsyncTaskAccelByteSyncDLC
+	: public FOnlineAsyncTaskAccelByte
+	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteSyncDLC, ESPMode::ThreadSafe>
 {
 public:
 

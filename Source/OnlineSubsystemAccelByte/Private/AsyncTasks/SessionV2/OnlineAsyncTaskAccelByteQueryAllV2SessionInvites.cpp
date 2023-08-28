@@ -4,6 +4,8 @@
 
 #include "OnlineAsyncTaskAccelByteQueryAllV2SessionInvites.h"
 
+using namespace AccelByte;
+
 FOnlineAsyncTaskAccelByteQueryAllV2SessionInvites::FOnlineAsyncTaskAccelByteQueryAllV2SessionInvites(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InPlayerId)
 	: FOnlineAsyncTaskAccelByte(InABInterface)
 {

@@ -11,7 +11,9 @@
 /**
  * Async task to read file contents from a slot in the CloudStorage API.
  */
-class FOnlineAsyncTaskAccelByteReadUserFile : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteReadUserFile, ESPMode::ThreadSafe>
+class FOnlineAsyncTaskAccelByteReadUserFile
+	: public FOnlineAsyncTaskAccelByte
+	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteReadUserFile, ESPMode::ThreadSafe>
 {
 public:
 

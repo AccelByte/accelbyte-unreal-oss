@@ -7,6 +7,8 @@
 #include "OnlineSubsystemAccelByteDefines.h"
 #include "Core/AccelByteError.h"
 
+using namespace AccelByte;
+
 FOnlineAsyncTaskAccelByteQueryUserInfo::FOnlineAsyncTaskAccelByteQueryUserInfo
 	( FOnlineSubsystemAccelByte* const InABSubsystem
 	, int32 InLocalUserNum
@@ -63,9 +65,11 @@ void FOnlineAsyncTaskAccelByteQueryUserInfo::Initialize()
 		CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState);
 		return;
 	}
-
-	const FOnQueryUsersComplete OnQueryUsersCompleteDelegate = TDelegateUtils<FOnQueryUsersComplete>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryUserInfo::OnQueryUsersComplete);
-	UserCache->QueryUsersByAccelByteIds(LocalUserNum, UserIdsToQuery, OnQueryUsersCompleteDelegate);
+	this->ExecuteCriticalSectionAction(FVoidHandler::CreateLambda([this, UserCache]()
+		{
+			const FOnQueryUsersComplete OnQueryUsersCompleteDelegate = TDelegateUtils<FOnQueryUsersComplete>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryUserInfo::OnQueryUsersComplete);
+			UserCache->QueryUsersByAccelByteIds(LocalUserNum, UserIdsToQuery, OnQueryUsersCompleteDelegate);
+		}));
 	
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
@@ -79,6 +83,7 @@ void FOnlineAsyncTaskAccelByteQueryUserInfo::Finalize()
 	{
 		// Construct the user information instance and add the ID of the user to our QueriedUserIds array that will be passed to the completion delegate
 		TSharedRef<FUserOnlineAccountAccelByte> User = MakeShared<FUserOnlineAccountAccelByte>(QueriedUser->Id.ToSharedRef(), QueriedUser->DisplayName);
+		User->SetPublicCode(QueriedUser->PublicCode);
 		User->SetUserAttribute(ACCELBYTE_ACCOUNT_GAME_AVATAR_URL, QueriedUser->GameAvatarUrl);
 		User->SetUserAttribute(ACCELBYTE_ACCOUNT_PUBLISHER_AVATAR_URL, QueriedUser->PublisherAvatarUrl);
 
@@ -108,6 +113,7 @@ void FOnlineAsyncTaskAccelByteQueryUserInfo::Finalize()
 			IdentityAccount->SetDisplayName(QueriedUser->DisplayName);
 			IdentityAccount->SetUserAttribute(ACCELBYTE_ACCOUNT_GAME_AVATAR_URL, QueriedUser->GameAvatarUrl);
 			IdentityAccount->SetUserAttribute(ACCELBYTE_ACCOUNT_PUBLISHER_AVATAR_URL, QueriedUser->PublisherAvatarUrl);
+			IdentityAccount->SetPublicCode(QueriedUser->PublicCode);
 		}
 	}
 

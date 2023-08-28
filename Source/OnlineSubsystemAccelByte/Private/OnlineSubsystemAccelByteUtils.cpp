@@ -198,11 +198,6 @@ EAccelByteLoginType FOnlineSubsystemAccelByteUtils::GetAccelByteLoginTypeFromNat
 	{
 		return EAccelByteLoginType::Steam;
 	}
-	
-	else if (SubsystemStr.Equals(TEXT("EOS"), ESearchCase::IgnoreCase))
-	{
-		return EAccelByteLoginType::EOS;
-	}
 
 	UE_LOG_AB(Warning, TEXT("Failed to convert subsystem '%s' to a usable login type for the AccelByte OSS! Most likely this subsystem is unsupported"), *SubsystemStr);
 	return EAccelByteLoginType::None;

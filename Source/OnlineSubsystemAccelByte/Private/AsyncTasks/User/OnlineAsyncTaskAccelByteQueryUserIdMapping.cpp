@@ -8,6 +8,8 @@
 #include "Core/AccelByteError.h"
 #include "Api/AccelByteUserApi.h"
 
+using namespace AccelByte;
+
 FOnlineAsyncTaskAccelByteQueryUserIdMapping::FOnlineAsyncTaskAccelByteQueryUserIdMapping
 	( FOnlineSubsystemAccelByte* const InABSubsystem
 	, const FUniqueNetId& InUserId

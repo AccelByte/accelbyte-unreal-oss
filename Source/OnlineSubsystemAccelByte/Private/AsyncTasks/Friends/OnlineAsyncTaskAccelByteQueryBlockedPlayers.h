@@ -13,7 +13,9 @@
 /**
  * Task to get a list of all users that the user has blocked
  */
-class FOnlineAsyncTaskAccelByteQueryBlockedPlayers : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteQueryBlockedPlayers, ESPMode::ThreadSafe>
+class FOnlineAsyncTaskAccelByteQueryBlockedPlayers
+	: public FOnlineAsyncTaskAccelByte
+	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteQueryBlockedPlayers, ESPMode::ThreadSafe>
 {
 public:
 

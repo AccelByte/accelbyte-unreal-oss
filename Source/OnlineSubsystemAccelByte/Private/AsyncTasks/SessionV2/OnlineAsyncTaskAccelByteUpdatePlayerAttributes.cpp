@@ -7,6 +7,8 @@
 #include "Serialization/JsonSerializer.h"
 #include "Serialization/JsonWriter.h"
 
+using namespace AccelByte;
+
 FOnlineAsyncTaskAccelByteUpdatePlayerAttributes::FOnlineAsyncTaskAccelByteUpdatePlayerAttributes(FOnlineSubsystemAccelByte* const InABInterface, 
 	const FUniqueNetId& InLocalUserId,
 	const FOnlineSessionV2AccelBytePlayerAttributes& InAttributesToUpdate,

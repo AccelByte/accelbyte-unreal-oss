@@ -11,7 +11,9 @@
 /**
  * Async task to attempt to reject a friend request from the backend.
  */
-class FOnlineAsyncTaskAccelByteRejectFriendInvite : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteRejectFriendInvite, ESPMode::ThreadSafe>
+class FOnlineAsyncTaskAccelByteRejectFriendInvite
+	: public FOnlineAsyncTaskAccelByte
+	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteRejectFriendInvite, ESPMode::ThreadSafe>
 {
 public:
 

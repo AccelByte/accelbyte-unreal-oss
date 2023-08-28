@@ -12,7 +12,9 @@
 /**
  * Async task to get the session that has claimed this server instance
  */
-class FOnlineAsyncTaskAccelByteGetServerClaimedV2Session : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteGetServerClaimedV2Session, ESPMode::ThreadSafe>
+class FOnlineAsyncTaskAccelByteGetServerClaimedV2Session
+	: public FOnlineAsyncTaskAccelByte
+	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteGetServerClaimedV2Session, ESPMode::ThreadSafe>
 {
 public:
 

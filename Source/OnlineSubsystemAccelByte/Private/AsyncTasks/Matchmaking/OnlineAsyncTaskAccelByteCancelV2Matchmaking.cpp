@@ -6,6 +6,8 @@
 #include "OnlineSessionInterfaceV2AccelByte.h"
 #include "Core/AccelByteError.h"
 
+using namespace AccelByte;
+
 FOnlineAsyncTaskAccelByteCancelV2Matchmaking::FOnlineAsyncTaskAccelByteCancelV2Matchmaking(FOnlineSubsystemAccelByte* const InABInterface, const TSharedRef<FOnlineSessionSearchAccelByte>& InSearchHandle, const FName& InSessionName)
 	: FOnlineAsyncTaskAccelByte(InABInterface)
 	, SearchHandle(InSearchHandle)

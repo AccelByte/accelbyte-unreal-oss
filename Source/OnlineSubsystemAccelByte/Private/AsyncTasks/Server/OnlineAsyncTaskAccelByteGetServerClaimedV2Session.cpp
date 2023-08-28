@@ -6,6 +6,8 @@
 #include "OnlineSessionInterfaceV2AccelByte.h"
 #include "GameServerApi/AccelByteServerSessionApi.h"
 
+using namespace AccelByte;
+
 FOnlineAsyncTaskAccelByteGetServerClaimedV2Session::FOnlineAsyncTaskAccelByteGetServerClaimedV2Session(FOnlineSubsystemAccelByte* const InABInterface, const FName& InSessionName, const FString& InSessionId)
     : FOnlineAsyncTaskAccelByte(InABInterface, INVALID_CONTROLLERID, ASYNC_TASK_FLAG_BIT(EAccelByteAsyncTaskFlags::ServerTask))
     , SessionName(InSessionName)

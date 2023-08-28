@@ -11,7 +11,9 @@
 /**
  * Unregister a locally hosted server from Armada
  */
-class FOnlineAsyncTaskAccelByteUnregisterLocalServerV2 : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteUnregisterLocalServerV2, ESPMode::ThreadSafe>
+class FOnlineAsyncTaskAccelByteUnregisterLocalServerV2
+	: public FOnlineAsyncTaskAccelByte
+	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteUnregisterLocalServerV2, ESPMode::ThreadSafe>
 {
 public:
 

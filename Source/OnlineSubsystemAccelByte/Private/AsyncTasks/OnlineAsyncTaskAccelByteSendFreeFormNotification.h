@@ -9,7 +9,9 @@
 /**
  * Async task to send free form notification.
  */
-class FOnlineAsyncTaskAccelByteSendFreeFormNotification : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteSendFreeFormNotification, ESPMode::ThreadSafe>
+class FOnlineAsyncTaskAccelByteSendFreeFormNotification
+	: public FOnlineAsyncTaskAccelByte
+	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteSendFreeFormNotification, ESPMode::ThreadSafe>
 {
 public:
 

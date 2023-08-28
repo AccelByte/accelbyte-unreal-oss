@@ -4,6 +4,8 @@
 
 #include "OnlineAsyncTaskAccelByteQueryOfferBySku.h"
 
+using namespace AccelByte;
+
 FOnlineAsyncTaskAccelByteQueryOfferBySku::FOnlineAsyncTaskAccelByteQueryOfferBySku(
 	FOnlineSubsystemAccelByte* const InABSubsystem, const FUniqueNetId& InUserId, const FString& InSku,
 	const FOnQueryOnlineStoreOffersComplete& InDelegate) 

@@ -11,7 +11,9 @@
 /**
  * Register a server spawned in the cloud to Armada for a session to claim
  */
-class FOnlineAsyncTaskAccelByteRegisterRemoteServerV2 : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteRegisterRemoteServerV2, ESPMode::ThreadSafe>
+class FOnlineAsyncTaskAccelByteRegisterRemoteServerV2
+	: public FOnlineAsyncTaskAccelByte
+	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteRegisterRemoteServerV2, ESPMode::ThreadSafe>
 {
 public:
 

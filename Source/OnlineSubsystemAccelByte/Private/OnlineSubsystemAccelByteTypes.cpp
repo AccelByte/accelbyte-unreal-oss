@@ -14,30 +14,7 @@
 
 bool IsAccelByteIDValid(FString const& AccelByteId)
 {
-	// delete the "-client" prefix, session service will add this prefix if a session is created by non user client ID
-	FString ProcessedAccelByteId = AccelByteId;
-	ProcessedAccelByteId.RemoveFromStart(TEXT("client-"));
-	
-	// Replace the - with empty. The session ID from Session Browser still using vanilla UUID
-	ProcessedAccelByteId = ProcessedAccelByteId.Replace(TEXT("-"), TEXT(""));
-	if (ProcessedAccelByteId.Len() != ACCELBYTE_ID_LENGTH)
-	{
-		return false;
-	}
-
-	// Iterate through the character array to make sure that the ID is a valid UUID hex string. Subtract one from the
-	// length of the array so that we don't include the null terminator that the array has.
-	TArray<TCHAR> CharArray = ProcessedAccelByteId.GetCharArray();
-	for (int64 Index = 0; Index < CharArray.Num() - 1; Index++)
-	{
-		const TCHAR& Character = CharArray[Index];
-		if (!CheckTCharIsHex(Character))
-		{
-			return false;
-		}
-	}
-
-	return true;
+	return FAccelByteUtilities::IsAccelByteIDValid(AccelByteId);
 }
 
 #pragma region FAccelByteUniqueIdComposite

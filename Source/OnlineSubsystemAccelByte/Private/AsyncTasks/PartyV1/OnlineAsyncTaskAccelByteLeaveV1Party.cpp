@@ -7,6 +7,8 @@
 #include "OnlinePartyInterfaceAccelByte.h"
 #include "OnlineSessionInterfaceV1AccelByte.h"
 
+using namespace AccelByte;
+
 FOnlineAsyncTaskAccelByteLeaveV1Party::FOnlineAsyncTaskAccelByteLeaveV1Party(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InLocalUserId, const FOnlinePartyId& InPartyId, bool InBSynchronizeLeave, const FOnLeavePartyComplete& InDelegate)
 	: FOnlineAsyncTaskAccelByte(InABInterface)
 	, PartyId(StaticCastSharedRef<const FOnlinePartyIdAccelByte>(InPartyId.AsShared()))

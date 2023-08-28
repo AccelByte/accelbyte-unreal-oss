@@ -11,7 +11,9 @@
 /**
  * Async task to query user presence using Locker API.
  */
-class FOnlineAsyncTaskAccelByteQueryUserPresence : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteQueryUserPresence, ESPMode::ThreadSafe>
+class FOnlineAsyncTaskAccelByteQueryUserPresence
+	: public FOnlineAsyncTaskAccelByte
+	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteQueryUserPresence, ESPMode::ThreadSafe>
 {
 public:
 

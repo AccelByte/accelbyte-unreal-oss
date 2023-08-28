@@ -4,6 +4,8 @@
 
 #include "OnlineAsyncTaskAccelByteSyncThirPartyFriend.h"
 
+using namespace AccelByte;
+
 #define ONLINE_ERROR_NAMESPACE "FOnlineAsyncTaskAccelByteSyncThirPartyFriend"
 
 FOnlineAsyncTaskAccelByteSyncThirPartyFriend::FOnlineAsyncTaskAccelByteSyncThirPartyFriend(FOnlineSubsystemAccelByte* const InABInterface, int32 InLocalUserNum, const FString& InNativeFriendListName, const FString& InAccelByteFriendListName)

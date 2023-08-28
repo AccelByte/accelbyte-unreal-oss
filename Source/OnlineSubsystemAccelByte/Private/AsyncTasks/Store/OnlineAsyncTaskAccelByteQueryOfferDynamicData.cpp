@@ -4,6 +4,8 @@
 
 #include "OnlineAsyncTaskAccelByteQueryOfferDynamicData.h"
 
+using namespace AccelByte;
+
 FOnlineAsyncTaskAccelByteQueryOfferDynamicData::FOnlineAsyncTaskAccelByteQueryOfferDynamicData(
 	FOnlineSubsystemAccelByte* const InABSubsystem, const FUniqueNetId& InUserId, const FUniqueOfferId& InOfferId,
 	const FOnQueryOnlineStoreOffersComplete& InDelegate) 

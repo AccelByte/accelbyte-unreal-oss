@@ -4,6 +4,8 @@
 
 #include "OnlineAsyncTaskAccelByteReadLeaderboards.h"
 
+using namespace AccelByte;
+
 #define ONLINE_ERROR_NAMESPACE "FOnlineLeaderboardSystemAccelByte"
 
 FOnlineAsyncTaskAccelByteReadLeaderboards::FOnlineAsyncTaskAccelByteReadLeaderboards(FOnlineSubsystemAccelByte* const InABInterface,

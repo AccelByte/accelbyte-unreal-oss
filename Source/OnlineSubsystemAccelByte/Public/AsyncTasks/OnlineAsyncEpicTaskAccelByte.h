@@ -14,7 +14,9 @@
 #include "OnlineError.h"
 #include "OnlineSubsystemTypes.h"
 
-class FOnlineAsyncEpicTaskAccelByte : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncEpicTaskAccelByte, ESPMode::ThreadSafe>
+class FOnlineAsyncEpicTaskAccelByte
+	: public FOnlineAsyncTaskAccelByte
+	, public AccelByte::TSelfPtr<FOnlineAsyncEpicTaskAccelByte, ESPMode::ThreadSafe>
 {
 	uint32 EpicID = 0;
 	TDoubleLinkedList<TArray<FOnlineAsyncTaskAccelByte*>> TaskContainer;

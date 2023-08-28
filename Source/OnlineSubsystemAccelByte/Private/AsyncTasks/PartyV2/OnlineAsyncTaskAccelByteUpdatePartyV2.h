@@ -13,7 +13,9 @@ class FOnlineAsyncTaskAccelByteRefreshV2PartySession;
 /**
  * Update a V2 party session instance with new settings
  */
-class FOnlineAsyncTaskAccelByteUpdatePartyV2 : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteUpdatePartyV2, ESPMode::ThreadSafe>
+class FOnlineAsyncTaskAccelByteUpdatePartyV2
+	: public FOnlineAsyncTaskAccelByte
+	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteUpdatePartyV2, ESPMode::ThreadSafe>
 {
 public:
 

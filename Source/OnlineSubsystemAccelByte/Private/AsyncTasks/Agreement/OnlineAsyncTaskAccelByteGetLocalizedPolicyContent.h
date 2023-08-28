@@ -11,7 +11,9 @@
 /**
  * Task for get localized policy content
  */
-class FOnlineAsyncTaskAccelByteGetLocalizedPolicyContent : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteGetLocalizedPolicyContent, ESPMode::ThreadSafe>
+class FOnlineAsyncTaskAccelByteGetLocalizedPolicyContent
+	: public FOnlineAsyncTaskAccelByte
+	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteGetLocalizedPolicyContent, ESPMode::ThreadSafe>
 {
 public:
 

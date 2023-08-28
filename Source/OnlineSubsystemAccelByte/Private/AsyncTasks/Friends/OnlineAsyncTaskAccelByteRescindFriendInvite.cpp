@@ -8,6 +8,8 @@
 #include "Core/AccelByteRegistry.h"
 #include "Api/AccelByteLobbyApi.h"
 
+using namespace AccelByte;
+
 FOnlineAsyncTaskAccelByteRescindFriendInvite::FOnlineAsyncTaskAccelByteRescindFriendInvite(FOnlineSubsystemAccelByte* const InABInterface, int32 InLocalUserNum, const FUniqueNetId& InFriendId, const FString& InListName, const FOnSendInviteComplete& InDelegate)
 	: FOnlineAsyncTaskAccelByte(InABInterface)
 	, FriendId(FUniqueNetIdAccelByteUser::CastChecked(InFriendId))

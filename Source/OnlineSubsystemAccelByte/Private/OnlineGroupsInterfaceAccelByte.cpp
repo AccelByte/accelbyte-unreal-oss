@@ -4,6 +4,17 @@
 #include "AsyncTasks/Groups/OnlineAsyncTaskAccelByteGroupsJoinGroup.h"
 #include "AsyncTasks/Groups/OnlineAsyncTaskAccelByteGroupsLeaveGroup.h"
 #include "AsyncTasks/Groups/OnlineAsyncTaskAccelByteGroupsAcceptInvite.h"
+#include "AsyncTasks/Groups/OnlineAsyncTaskAccelByteGroupsDeclineInvite.h"
+#include "AsyncTasks/Groups/OnlineAsyncTaskAccelByteGroupsCancelInvite.h"
+#include "AsyncTasks/Groups/OnlineAsyncTaskAccelByteGroupsAcceptUser.h"
+#include "AsyncTasks/Groups/OnlineAsyncTaskAccelByteGroupsDeclineUser.h"
+#include "AsyncTasks/Groups/OnlineAsyncTaskAccelByteGroupsInviteUser.h"
+#include "AsyncTasks/Groups/OnlineAsyncTaskAccelByteGroupsRemoveMember.h"
+#include "AsyncTasks/Groups/OnlineAsyncTaskAccelByteGroupsPromoteMember.h"
+#include "AsyncTasks/Groups/OnlineAsyncTaskAccelByteGroupsDemoteMember.h"
+#include "AsyncTasks/Groups/OnlineAsyncTaskAccelByteGroupsQueryGroupInvites.h"
+#include "AsyncTasks/Groups/OnlineAsyncTaskAccelByteGroupsDeleteGroup.h"
+
 
 /**
 * Begin FAccelByteGroupsInfo
@@ -25,26 +36,26 @@ FAccelByteGroupsInfo::FAccelByteGroupsInfo(
 	, ABGroupInfo(InABGroupInfo)
 	, ABAdminRoleId(InABAdminRoleId)
 	, ABMemberRoleId(InABMemberRoleId)
-{   
+{
 	OwnerId = FUniqueNetIdAccelByteUser::CastChecked(InOwnerId);
 }
 
 FAccelByteGroupsInfoRef FAccelByteGroupsInfo::Create(const FUniqueNetIdRef& InSenderUserId,
-													 const FString InNamespace,
-													 const FUniqueNetId& InOwnerId,
-													 const FAccelByteModelsGroupInformation InABGroupInfo,
-													 const FString AdminRoleId,
-													 const FString MemberRoleId)
+	const FString InNamespace,
+	const FUniqueNetId& InOwnerId,
+	const FAccelByteModelsGroupInformation InABGroupInfo,
+	const FString AdminRoleId,
+	const FString MemberRoleId)
 {
 	FDateTime InTimeCreated = FDateTime::Now();
 	FDateTime InTimeLastUpdated = FDateTime::Now();
 
 	return MakeShared<FAccelByteGroupsInfo>(
-		InSenderUserId, 
-		InNamespace, 
-		InOwnerId, 
-		InTimeCreated, 
-		InTimeLastUpdated, 
+		InSenderUserId,
+		InNamespace,
+		InOwnerId,
+		InTimeCreated,
+		InTimeLastUpdated,
 		AdminRoleId,
 		MemberRoleId,
 		InABGroupInfo);
@@ -113,19 +124,14 @@ bool FOnlineGroupsAccelByte::GetFromSubsystem(const IOnlineSubsystem* Subsystem,
 	return OutInterfaceInstance.IsValid();
 }
 
-void FOnlineGroupsAccelByte::CreateGroup(const FUniqueNetId& ContextUserId, const FAccelByteGroupsInfo& InGroupInfo, const FOnGroupsRequestCompleted& OnCompleted)
+void FOnlineGroupsAccelByte::CreateGroup(const FUniqueNetId& UserIdCreatingGroup, const FAccelByteGroupsInfo& InGroupInfo, const FOnGroupsRequestCompleted& OnCompleted)
 {
 	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT(""));
 
-	if (InGroupInfo.ABGroupInfo.ConfigurationCode.IsEmpty() || 
-		InGroupInfo.ABGroupInfo.GroupName.IsEmpty() ||
-		InGroupInfo.ABGroupInfo.GroupRegion.IsEmpty() ||
-		InGroupInfo.ABGroupInfo.GroupType == EAccelByteGroupType::NONE)
-	{
-		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Missing mandatory group details. ConfigurationCode, GroupName, GroupRegion, & GroupType must be filled."));
-	}
+	if (!VerifyGroupInfo(InGroupInfo))
+		return;
 
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGroupsCreateGroup>(AccelByteSubsystem, ContextUserId, InGroupInfo, OnCompleted);
+	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGroupsCreateGroup>(AccelByteSubsystem, UserIdCreatingGroup, InGroupInfo, OnCompleted);
 
 	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
 }
@@ -134,24 +140,21 @@ void FOnlineGroupsAccelByte::CreateGroup(const FUniqueNetId& ContextUserId, cons
 {
 	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT(""));
 
-	// #NOTE Not doing anything, as none of the fields in FGroupDisplayInfo are supported by the backend. So a call to this method would be redundant
+	// #NOTE Not doing anything, GroupId is not enough information to identify a user, group configuration, and group roles
 
 	AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Cannot configure group using FGroupDisplayInfo as its fields are not supported! Please supply an instance of FAccelByteGroupsInfo instead!"));
 }
 
-void FOnlineGroupsAccelByte::JoinGroup(const FUniqueNetId& ContextUserId, const FAccelByteGroupsInfo& InGroupInfo, const FOnGroupsRequestCompleted& OnCompleted)
+
+
+void FOnlineGroupsAccelByte::JoinGroup(const FUniqueNetId& UserIdJoiningGroup, const FAccelByteGroupsInfo& InGroupInfo, const FOnGroupsRequestCompleted& OnCompleted)
 {
 	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT(""));
 
-	if (InGroupInfo.ABGroupInfo.ConfigurationCode.IsEmpty() ||
-		InGroupInfo.ABGroupInfo.GroupName.IsEmpty() ||
-		InGroupInfo.ABGroupInfo.GroupRegion.IsEmpty() ||
-		InGroupInfo.ABGroupInfo.GroupType == EAccelByteGroupType::NONE)
-	{
-		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Missing mandatory group details. ConfigurationCode, GroupName, GroupRegion, & GroupType must be filled."));
-	}
+	if (!VerifyGroupInfo(InGroupInfo))
+		return;
 
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGroupsJoinGroup>(AccelByteSubsystem, ContextUserId, InGroupInfo, OnCompleted);
+	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGroupsJoinGroup>(AccelByteSubsystem, UserIdJoiningGroup, InGroupInfo, OnCompleted);
 
 	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
 }
@@ -165,19 +168,16 @@ void FOnlineGroupsAccelByte::JoinGroup(const FUniqueNetId& ContextUserId, const 
 	AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Cannot configure group using GroupId as its fields are not supported! Please supply an instance of FAccelByteGroupsInfo instead!"));
 }
 
-void FOnlineGroupsAccelByte::LeaveGroup(const FUniqueNetId& ContextUserId, const FAccelByteGroupsInfo& InGroupInfo, const FOnGroupsRequestCompleted& OnCompleted)
+
+
+void FOnlineGroupsAccelByte::LeaveGroup(const FUniqueNetId& UserIdLeavingGroup, const FAccelByteGroupsInfo& InGroupInfo, const FOnGroupsRequestCompleted& OnCompleted)
 {
 	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT(""));
 
-	if (InGroupInfo.ABGroupInfo.ConfigurationCode.IsEmpty() ||
-		InGroupInfo.ABGroupInfo.GroupName.IsEmpty() ||
-		InGroupInfo.ABGroupInfo.GroupRegion.IsEmpty() ||
-		InGroupInfo.ABGroupInfo.GroupType == EAccelByteGroupType::NONE)
-	{
-		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Missing mandatory group details. ConfigurationCode, GroupName, GroupRegion, & GroupType must be filled."));
-	}
+	if (!VerifyGroupInfo(InGroupInfo))
+		return;
 
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGroupsLeaveGroup>(AccelByteSubsystem, ContextUserId, InGroupInfo, OnCompleted);
+	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGroupsLeaveGroup>(AccelByteSubsystem, UserIdLeavingGroup, InGroupInfo, OnCompleted);
 
 	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
 }
@@ -191,17 +191,16 @@ void FOnlineGroupsAccelByte::LeaveGroup(const FUniqueNetId& ContextUserId, const
 	AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Cannot configure group using GroupId as its fields are not supported! Please supply an instance of FAccelByteGroupsInfo instead!"));
 }
 
-void FOnlineGroupsAccelByte::AcceptInvite(const int32 AdminLocalUserNum, const FUniqueNetId& MemberUserId, const FAccelByteGroupsInfo& InGroupInfo, const FOnGroupsRequestCompleted& OnCompleted)
-{
-	if (InGroupInfo.ABGroupInfo.ConfigurationCode.IsEmpty() ||
-		InGroupInfo.ABGroupInfo.GroupName.IsEmpty() ||
-		InGroupInfo.ABGroupInfo.GroupRegion.IsEmpty() ||
-		InGroupInfo.ABGroupInfo.GroupType == EAccelByteGroupType::NONE)
-	{
-		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Missing mandatory group details. ConfigurationCode, GroupName, GroupRegion, & GroupType must be filled."));
-	}
 
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGroupsAcceptInvite>(AccelByteSubsystem, AdminLocalUserNum, MemberUserId, InGroupInfo, OnCompleted);
+
+void FOnlineGroupsAccelByte::AcceptInvite(const FUniqueNetId& UserIdAcceptedIntoGroup, const FAccelByteGroupsInfo& InGroupInfo, const FOnGroupsRequestCompleted& OnCompleted)
+{
+	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT(""));
+
+	if (!VerifyGroupInfo(InGroupInfo))
+		return;
+
+	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGroupsAcceptInvite>(AccelByteSubsystem, UserIdAcceptedIntoGroup, InGroupInfo, OnCompleted);
 
 	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
 }
@@ -214,6 +213,238 @@ void FOnlineGroupsAccelByte::AcceptInvite(const FUniqueNetId& ContextUserId, con
 
 	AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Cannot configure group using GroupId as its fields are not supported! Please supply an instance of FAccelByteGroupsInfo instead!"));
 }
+
+
+
+void FOnlineGroupsAccelByte::DeclineInvite(const FUniqueNetId& UserIdToDecline, const FAccelByteGroupsInfo& InGroupInfo, const FOnGroupsRequestCompleted& OnCompleted)
+{
+	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT(""));
+
+	if (!VerifyGroupInfo(InGroupInfo))
+		return;
+
+	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGroupsDeclineInvite>(AccelByteSubsystem, UserIdToDecline, InGroupInfo, OnCompleted);
+
+	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+}
+
+void FOnlineGroupsAccelByte::DeclineInvite(const FUniqueNetId& ContextUserId, const FUniqueNetId& GroupId, const FOnGroupsRequestCompleted& OnCompleted)
+{
+	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT(""));
+
+	// #NOTE Not doing anything, GroupId is not enough information to identify a user, group configuration, and group roles
+
+	AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Cannot configure group using GroupId as its fields are not supported! Please supply an instance of FAccelByteGroupsInfo instead!"));
+}
+
+
+
+void FOnlineGroupsAccelByte::CancelInvite(const FUniqueNetId& AdminUserId, const FString& UserIdToCancel, const FAccelByteGroupsInfo& InGroupInfo, const FOnGroupsRequestCompleted& OnCompleted)
+{
+	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT(""));
+
+	if (!VerifyGroupInfo(InGroupInfo))
+		return;
+
+	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGroupsCancelInvite>(AccelByteSubsystem, AdminUserId, UserIdToCancel, InGroupInfo, OnCompleted);
+
+	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+}
+
+void FOnlineGroupsAccelByte::CancelInvite(const FUniqueNetId& ContextUserId, const FUniqueNetId& GroupId, const FUniqueNetId& UserId, const FOnGroupsRequestCompleted& OnCompleted)
+{
+	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT(""));
+
+	// #NOTE Not doing anything, GroupId is not enough information to identify a user, group configuration, and group roles
+
+	AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Cannot configure group using GroupId as its fields are not supported! Please supply an instance of FAccelByteGroupsInfo instead!"));
+}
+
+
+
+void FOnlineGroupsAccelByte::AcceptUser(const int32 AdminLocalUserNum, const FUniqueNetId& UserIdToAccept, const FAccelByteGroupsInfo& InGroupInfo, const FOnGroupsRequestCompleted& OnCompleted)
+{
+	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT(""));
+
+	if (!VerifyGroupInfo(InGroupInfo))
+		return;
+
+	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGroupsAcceptUser>(AccelByteSubsystem, AdminLocalUserNum, UserIdToAccept, InGroupInfo, OnCompleted);
+
+	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+}
+
+void FOnlineGroupsAccelByte::AcceptUser(const FUniqueNetId& ContextUserId, const FUniqueNetId& GroupId, const FUniqueNetId& UserId, const FOnGroupsRequestCompleted& OnCompleted)
+{
+	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT(""));
+
+	// #NOTE Not doing anything, GroupId is not enough information to identify a user, group configuration, and group roles
+
+	AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Cannot configure group using GroupId as its fields are not supported! Please supply an instance of FAccelByteGroupsInfo instead!"));
+}
+
+
+
+void FOnlineGroupsAccelByte::DeclineUser(const int32 AdminLocalUserNum, const FUniqueNetId& UserIdToDecline, const FAccelByteGroupsInfo& InGroupInfo, const FOnGroupsRequestCompleted& OnCompleted)
+{
+	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT(""));
+
+	if (!VerifyGroupInfo(InGroupInfo))
+		return;
+
+	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGroupsDeclineUser>(AccelByteSubsystem, AdminLocalUserNum, UserIdToDecline, InGroupInfo, OnCompleted);
+
+	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+}
+
+void FOnlineGroupsAccelByte::DeclineUser(const FUniqueNetId& ContextUserId, const FUniqueNetId& GroupId, const FUniqueNetId& UserId, const FOnGroupsRequestCompleted& OnCompleted)
+{
+	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT(""));
+
+	// #NOTE Not doing anything, GroupId is not enough information to identify a user, group configuration, and group roles
+
+	AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Cannot configure group using GroupId as its fields are not supported! Please supply an instance of FAccelByteGroupsInfo instead!"));
+}
+
+
+
+void FOnlineGroupsAccelByte::InviteUser(const FUniqueNetId& InviterUserId, const FUniqueNetId& InvitedUserId, const FAccelByteGroupsInfo& InGroupInfo, const FOnGroupsRequestCompleted& OnCompleted)
+{
+	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT(""));
+
+	if (!VerifyGroupInfo(InGroupInfo))
+		return;
+
+	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGroupsInviteUser>(AccelByteSubsystem, InviterUserId, InvitedUserId, InGroupInfo, OnCompleted);
+
+	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+}
+
+void FOnlineGroupsAccelByte::InviteUser(const FUniqueNetId& ContextUserId, const FUniqueNetId& GroupId, const FUniqueNetId& UserId, bool bAllowBlocked, const FOnGroupsRequestCompleted& OnCompleted)
+{
+	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT(""));
+
+	// #NOTE Not doing anything, GroupId is not enough information to identify a user, group configuration, and group roles
+
+	AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Cannot configure group using GroupId as its fields are not supported! Please supply an instance of FAccelByteGroupsInfo instead!"));
+}
+
+
+
+void FOnlineGroupsAccelByte::RemoveUser(const int32 AdminLocalUserNum, const FUniqueNetId& MemberUserIdToKick, const FAccelByteGroupsInfo& InGroupInfo, const FOnGroupsRequestCompleted& OnCompleted)
+{
+	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT(""));
+
+	if (!VerifyGroupInfo(InGroupInfo))
+		return;
+
+	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGroupsRemoveMember>(AccelByteSubsystem, AdminLocalUserNum, MemberUserIdToKick, InGroupInfo, OnCompleted);
+
+	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+}
+
+void FOnlineGroupsAccelByte::RemoveUser(const FUniqueNetId& ContextUserId, const FUniqueNetId& GroupId, const FUniqueNetId& UserId, const FOnGroupsRequestCompleted& OnCompleted)
+{
+	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT(""));
+
+	// #NOTE Not doing anything, GroupId is not enough information to identify a user, group configuration, and group roles
+
+	AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Cannot configure group using GroupId as its fields are not supported! Please supply an instance of FAccelByteGroupsInfo instead!"));
+}
+
+
+
+void FOnlineGroupsAccelByte::PromoteUser(const int32 AdminLocalUserNum, const FUniqueNetId& MemberUserIdToPromote, const FAccelByteGroupsInfo& InGroupInfo, const FString& MemberRoleId, const FOnGroupsRequestCompleted& OnCompleted)
+{
+	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT(""));
+
+	if (!VerifyGroupInfo(InGroupInfo))
+		return;
+
+	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGroupsPromoteMember>(AccelByteSubsystem, AdminLocalUserNum, MemberUserIdToPromote, InGroupInfo, MemberRoleId, OnCompleted);
+
+	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+}
+
+void FOnlineGroupsAccelByte::PromoteUser(const FUniqueNetId& ContextUserId, const FUniqueNetId& GroupId, const FUniqueNetId& UserId, const FOnGroupsRequestCompleted& OnCompleted)
+{
+	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT(""));
+
+	// #NOTE Not doing anything, GroupId is not enough information to identify a user, group configuration, and group roles
+
+	AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Cannot configure group using GroupId as its fields are not supported! Please supply an instance of FAccelByteGroupsInfo instead!"));
+}
+
+
+
+void FOnlineGroupsAccelByte::DemoteUser(const int32 AdminLocalUserNum, const FUniqueNetId& MemberUserIdToDemote, const FAccelByteGroupsInfo& InGroupInfo, const FString& MemberRoleId, const FOnGroupsRequestCompleted& OnCompleted)
+{
+	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT(""));
+
+	if (!VerifyGroupInfo(InGroupInfo))
+		return;
+
+	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGroupsDemoteMember>(AccelByteSubsystem, AdminLocalUserNum, MemberUserIdToDemote, InGroupInfo, MemberRoleId, OnCompleted);
+
+	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+}
+
+void FOnlineGroupsAccelByte::DemoteUser(const FUniqueNetId& ContextUserId, const FUniqueNetId& GroupId, const FUniqueNetId& UserId, const FOnGroupsRequestCompleted& OnCompleted)
+{
+	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT(""));
+
+	// #NOTE Not doing anything, GroupId is not enough information to identify a user, group configuration, and group roles
+
+	AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Cannot configure group using GroupId as its fields are not supported! Please supply an instance of FAccelByteGroupsInfo instead!"));
+}
+
+
+
+void FOnlineGroupsAccelByte::QueryGroupInvites(const FUniqueNetId& ContextUserId, const FAccelByteModelsLimitOffsetRequest& AccelByteModelsLimitOffsetRequest, const FAccelByteGroupsInfo& InGroupInfo, const FOnGroupsRequestCompleted& OnCompleted)
+{
+	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT(""));
+
+	if (!VerifyGroupInfo(InGroupInfo))
+		return;
+
+	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGroupsQueryGroupInvites>(AccelByteSubsystem, ContextUserId, AccelByteModelsLimitOffsetRequest, InGroupInfo, OnCompleted);
+
+	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+}
+
+void FOnlineGroupsAccelByte::QueryGroupInvites(const FUniqueNetId& ContextUserId, const FUniqueNetId& GroupId, const FOnGroupsRequestCompleted& OnCompleted)
+{
+	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT(""));
+
+	// #NOTE Not doing anything, GroupId is not enough information to identify a user, group configuration, and group roles
+
+	AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Cannot configure group using GroupId as its fields are not supported! Please supply an instance of FAccelByteGroupsInfo instead!"));
+}
+
+
+
+void FOnlineGroupsAccelByte::DeleteGroup(const int32 AdminLocalUserNum, const FAccelByteGroupsInfo& InGroupInfo, const FOnGroupsRequestCompleted& OnCompleted)
+{
+	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT(""));
+
+	if (!VerifyGroupInfo(InGroupInfo))
+		return;
+
+	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGroupsDeleteGroup>(AccelByteSubsystem, AdminLocalUserNum, InGroupInfo, OnCompleted);
+
+	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+}
+
+void FOnlineGroupsAccelByte::DeleteGroup(const FUniqueNetId& ContextUserId, const FUniqueNetId& GroupId, const FOnGroupsRequestCompleted& OnCompleted)
+{
+	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT(""));
+
+	// #NOTE Not doing anything, GroupId is not enough information to identify a user, group configuration, and group roles
+
+	AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Cannot configure group using GroupId as its fields are not supported! Please supply an instance of FAccelByteGroupsInfo instead!"));
+}
+
+
 
 bool FOnlineGroupsAccelByte::IsGroupValid() const
 {
@@ -231,6 +462,11 @@ void FOnlineGroupsAccelByte::GetCurrentGroupMembers(TArray<FAccelByteModelsGroup
 	}
 }
 
+FAccelByteGroupsInfoPtr FOnlineGroupsAccelByte::GetCurrentGroupData()
+{
+	return CurrentGroup;
+}
+
 void FOnlineGroupsAccelByte::SetCurrentGroupData(const FAccelByteGroupsInfoRef& InGroupInfo)
 {
 	CurrentGroup = InGroupInfo;
@@ -242,9 +478,18 @@ void FOnlineGroupsAccelByte::DeleteLocalGroupData()
 		CurrentGroup.Reset();
 }
 
-FAccelByteGroupsInfoPtr FOnlineGroupsAccelByte::GetCurrentGroupData()
+bool FOnlineGroupsAccelByte::VerifyGroupInfo(const FAccelByteGroupsInfo& InGroupInfo)
 {
-	return CurrentGroup;
+	if (InGroupInfo.ABGroupInfo.ConfigurationCode.IsEmpty() ||
+		InGroupInfo.ABGroupInfo.GroupName.IsEmpty() ||
+		InGroupInfo.ABGroupInfo.GroupRegion.IsEmpty() ||
+		InGroupInfo.ABGroupInfo.GroupType == EAccelByteGroupType::NONE)
+	{
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Missing mandatory group details. ConfigurationCode, GroupName, GroupRegion, & GroupType must be filled."));
+		return false;
+	}
+
+	return true;
 }
 /**
 * End FOnlineGroupsAccelByte

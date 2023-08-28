@@ -13,7 +13,9 @@
 /**
  * Task for updating party storage for a party
  */
-class FOnlineAsyncTaskAccelByteUpdateV1PartyData : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteUpdateV1PartyData, ESPMode::ThreadSafe>
+class FOnlineAsyncTaskAccelByteUpdateV1PartyData
+	: public FOnlineAsyncTaskAccelByte
+	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteUpdateV1PartyData, ESPMode::ThreadSafe>
 {
 public:
 

@@ -10,7 +10,9 @@
 #include "OnlineUserInterfaceAccelByte.h"
 #include "Models/AccelByteUserModels.h"
 
-class FOnlineAsyncTaskAccelByteCreateUserProfile : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteCreateUserProfile, ESPMode::ThreadSafe>
+class FOnlineAsyncTaskAccelByteCreateUserProfile
+	: public FOnlineAsyncTaskAccelByte
+	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteCreateUserProfile, ESPMode::ThreadSafe>
 {
 public:
 

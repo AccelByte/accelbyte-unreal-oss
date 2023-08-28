@@ -4,6 +4,8 @@
 
 #include "OnlineAsyncTaskAccelByteLeaveV2GameSession.h"
 
+using namespace AccelByte;
+
 FOnlineAsyncTaskAccelByteLeaveV2GameSession::FOnlineAsyncTaskAccelByteLeaveV2GameSession(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InLocalUserId, const FString& InSessionId, const FOnLeaveSessionComplete& InDelegate)
 	: FOnlineAsyncTaskAccelByte(InABInterface)
 	, SessionId(InSessionId)

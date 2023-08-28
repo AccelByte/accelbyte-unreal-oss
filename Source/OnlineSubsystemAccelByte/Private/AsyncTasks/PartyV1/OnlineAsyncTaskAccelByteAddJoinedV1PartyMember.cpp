@@ -7,6 +7,8 @@
 #include "OnlinePartyInterfaceAccelByte.h"
 #include "OnlineUserCacheAccelByte.h"
 
+using namespace AccelByte;
+
 FOnlineAsyncTaskAccelByteAddJoinedV1PartyMember::FOnlineAsyncTaskAccelByteAddJoinedV1PartyMember(FOnlineSubsystemAccelByte* const InABInterface, const TSharedRef<const FUniqueNetIdAccelByteUser>& InLocalUserId, const TSharedRef<FOnlinePartyAccelByte>& InParty, const FString& InJoinedAccelByteId)
 	: FOnlineAsyncTaskAccelByte(InABInterface, true)
 	, Party(InParty)

@@ -11,7 +11,9 @@
 /**
  * Unregister a server in the cloud from the DSM
  */
-class FOnlineAsyncTaskAccelByteUnregisterRemoteServerV2 : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteUnregisterRemoteServerV2, ESPMode::ThreadSafe>
+class FOnlineAsyncTaskAccelByteUnregisterRemoteServerV2
+	: public FOnlineAsyncTaskAccelByte
+	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteUnregisterRemoteServerV2, ESPMode::ThreadSafe>
 {
 public:
 

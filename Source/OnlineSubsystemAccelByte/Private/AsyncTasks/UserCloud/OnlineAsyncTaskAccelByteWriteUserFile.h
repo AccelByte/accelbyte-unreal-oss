@@ -10,7 +10,9 @@
 /**
  * Async task to write a file to a slot using the CloudStorage API.
  */
-class FOnlineAsyncTaskAccelByteWriteUserFile : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteWriteUserFile, ESPMode::ThreadSafe>
+class FOnlineAsyncTaskAccelByteWriteUserFile
+	: public FOnlineAsyncTaskAccelByte
+	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteWriteUserFile, ESPMode::ThreadSafe>
 {
 public:
 

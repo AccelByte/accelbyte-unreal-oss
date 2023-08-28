@@ -9,6 +9,8 @@
 #include "OnlineIdentityInterfaceAccelByte.h"
 #include "Core/AccelByteError.h"
 
+using namespace AccelByte;
+
 #define ONLINE_ERROR_NAMESPACE "FOnlineUserSystemAccelByte"
 
 FOnlineAsyncTaskAccelByteListUserByUserId::FOnlineAsyncTaskAccelByteListUserByUserId(FOnlineSubsystemAccelByte* const InABInterface, const int32 InLocalUserNum,

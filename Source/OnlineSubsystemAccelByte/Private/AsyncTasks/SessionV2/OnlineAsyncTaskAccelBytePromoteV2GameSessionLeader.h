@@ -9,7 +9,9 @@
 #include "OnlineSubsystemAccelByteTypes.h"
 #include "OnlineErrorAccelByte.h"
 
-class FOnlineAsyncTaskAccelBytePromoteV2GameSessionLeader : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelBytePromoteV2GameSessionLeader, ESPMode::ThreadSafe>
+class FOnlineAsyncTaskAccelBytePromoteV2GameSessionLeader
+	: public FOnlineAsyncTaskAccelByte
+	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelBytePromoteV2GameSessionLeader, ESPMode::ThreadSafe>
 {
 public:
 

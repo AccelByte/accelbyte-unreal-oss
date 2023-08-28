@@ -7,6 +7,8 @@
 #include "OnlineIdentityInterfaceAccelByte.h"
 #include "OnlineAgreementInterfaceAccelByte.h"
 
+using namespace AccelByte;
+
 #define ONLINE_ERROR_NAMESPACE "FOnlineAccelByteAcceptAgreementPolicies"
 FOnlineAsyncTaskAccelByteAcceptAgreementPolicies::FOnlineAsyncTaskAccelByteAcceptAgreementPolicies(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InLocalUserId, const TArray<FABAcceptAgreementPoliciesRequest>& InDocumentsToAccept)
 	: FOnlineAsyncTaskAccelByte(InABInterface)

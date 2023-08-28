@@ -18,6 +18,8 @@
 #include "OnlineSubsystemAccelByteUtils.h"
 #include "OnlineUserInterfaceAccelByte.h"
 
+using namespace AccelByte;
+
 /**
  * Index of the player that is acting as host of this matchmaking session
  */

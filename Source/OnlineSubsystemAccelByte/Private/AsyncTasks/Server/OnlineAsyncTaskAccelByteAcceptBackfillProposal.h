@@ -12,7 +12,9 @@
 /**
  * Task to accept a backfill proposal received from matchmaking
  */
-class FOnlineAsyncTaskAccelByteAcceptBackfillProposal : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteAcceptBackfillProposal, ESPMode::ThreadSafe>
+class FOnlineAsyncTaskAccelByteAcceptBackfillProposal
+	: public FOnlineAsyncTaskAccelByte
+	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteAcceptBackfillProposal, ESPMode::ThreadSafe>
 {
 public:
 

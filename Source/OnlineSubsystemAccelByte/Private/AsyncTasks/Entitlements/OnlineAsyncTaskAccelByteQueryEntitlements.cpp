@@ -3,6 +3,8 @@
 #include "OnlineEntitlementsInterfaceAccelByte.h"
 #include "Interfaces/OnlineEntitlementsInterface.h"
 
+using namespace AccelByte;
+
 FOnlineAsyncTaskAccelByteQueryEntitlements::FOnlineAsyncTaskAccelByteQueryEntitlements(FOnlineSubsystemAccelByte* const InABSubsystem, const FUniqueNetId& InUserId, const FString& InNamespace, const FPagedQuery& InPage)
 	: FOnlineAsyncTaskAccelByte(InABSubsystem),
 	Namespace(InNamespace),
@@ -89,7 +91,7 @@ void FOnlineAsyncTaskAccelByteQueryEntitlements::HandleQueryEntitlementSuccess(F
 			Params.ParseIntoArray(ParamsArray, TEXT("&"));
 			int32 Offset = -1;
 			int32 Limit = -1;
-			for(FString Param : ParamsArray)
+			for(const FString& Param : ParamsArray)
 			{
 				FString Key;
 				FString Value;

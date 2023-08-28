@@ -4,6 +4,8 @@
 
 #include "OnlineAsyncTaskAccelByteQueryAchievement.h"
 
+using namespace AccelByte;
+
 using QueryAchievementSuccessHandler = THandler<FAccelByteModelsPaginatedPublicAchievement>;
 
 FOnlineAsyncTaskAccelByteQueryAchievement::FOnlineAsyncTaskAccelByteQueryAchievement(

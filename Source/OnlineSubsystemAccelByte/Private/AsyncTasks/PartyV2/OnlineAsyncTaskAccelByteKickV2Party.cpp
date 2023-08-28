@@ -6,6 +6,8 @@
 #include "Runtime/Launch/Resources/Version.h"
 #include "OnlineSessionInterfaceV2AccelByte.h"
 
+using namespace AccelByte;
+
 FOnlineAsyncTaskAccelByteKickV2Party::FOnlineAsyncTaskAccelByteKickV2Party(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InLocalUserId, const FName& InSessionName, const FUniqueNetId& InPlayerIdToKick, const FOnKickPlayerComplete& InDelegate)
 	: FOnlineAsyncTaskAccelByte(InABInterface)
 	, SessionName(InSessionName)

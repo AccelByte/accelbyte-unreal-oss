@@ -4,6 +4,8 @@
 
 #include "OnlineAsyncTaskAccelByteJwks.h"
 
+using namespace AccelByte;
+
 FOnlineAsyncTaskAccelByteJwks::FOnlineAsyncTaskAccelByteJwks(FOnlineSubsystemAccelByte* const InABInterface, const FOnJwksCompleted& InDelegate)
 	: FOnlineAsyncTaskAccelByte(InABInterface, INVALID_CONTROLLERID, ASYNC_TASK_FLAG_BIT(EAccelByteAsyncTaskFlags::ServerTask))
 	, Delegate(InDelegate)

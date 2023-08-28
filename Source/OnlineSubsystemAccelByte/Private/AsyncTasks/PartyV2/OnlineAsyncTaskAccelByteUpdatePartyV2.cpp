@@ -7,6 +7,8 @@
 #include "OnlineSubsystemAccelByteSessionSettings.h"
 #include "OnlineAsyncTaskAccelByteRefreshV2PartySession.h"
 
+using namespace AccelByte;
+
 FOnlineAsyncTaskAccelByteUpdatePartyV2::FOnlineAsyncTaskAccelByteUpdatePartyV2(FOnlineSubsystemAccelByte* const InABInterface, const FName& InSessionName, const FOnlineSessionSettings& InNewSessionSettings)
 	: FOnlineAsyncTaskAccelByte(InABInterface)
 	, SessionName(InSessionName)
@@ -127,7 +129,7 @@ void FOnlineAsyncTaskAccelByteUpdatePartyV2::TriggerDelegates()
 
 void FOnlineAsyncTaskAccelByteUpdatePartyV2::OnUpdatePartySessionSuccess(const FAccelByteModelsV2PartySession& BackendSessionData)
 {
-	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("UpdatedSessionVersion: %I64d"), BackendSessionData.Version);
+	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("UpdatedSessionVersion: %lli"), BackendSessionData.Version);
 
 	NewSessionData = BackendSessionData;
 	CompleteTask(EAccelByteAsyncTaskCompleteState::Success);

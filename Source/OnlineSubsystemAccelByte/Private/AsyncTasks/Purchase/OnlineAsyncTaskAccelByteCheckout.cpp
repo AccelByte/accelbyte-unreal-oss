@@ -3,6 +3,8 @@
 #include "OnlinePurchaseInterfaceAccelByte.h"
 #include "OnlineError.h"
 
+using namespace AccelByte;
+
 #define ONLINE_ERROR_NAMESPACE "FOnlineStoreSystemAccelByte"
 
 FOnlineAsyncTaskAccelByteCheckout::FOnlineAsyncTaskAccelByteCheckout(

@@ -11,7 +11,9 @@
 /**
  * Task for send ready message to AMS
  */
-class FOnlineAsyncTaskAccelByteSendReadyToAMS : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteSendReadyToAMS, ESPMode::ThreadSafe>
+class FOnlineAsyncTaskAccelByteSendReadyToAMS
+	: public FOnlineAsyncTaskAccelByte
+	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteSendReadyToAMS, ESPMode::ThreadSafe>
 {
 public:
 

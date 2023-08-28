@@ -13,7 +13,9 @@
 /**
  * Task for accept agreement policies
  */
-class FOnlineAsyncTaskAccelByteAcceptAgreementPolicies : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteAcceptAgreementPolicies, ESPMode::ThreadSafe>
+class FOnlineAsyncTaskAccelByteAcceptAgreementPolicies
+	: public FOnlineAsyncTaskAccelByte
+	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteAcceptAgreementPolicies, ESPMode::ThreadSafe>
 {
 public:
 

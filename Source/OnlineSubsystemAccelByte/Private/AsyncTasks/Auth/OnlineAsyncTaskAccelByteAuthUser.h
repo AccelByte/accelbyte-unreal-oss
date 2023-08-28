@@ -15,7 +15,9 @@ DECLARE_DELEGATE_TwoParams(FOnAuthUserCompleted, bool /*bWasSuccessful*/, const 
  *
  * For dedicated sessions, this requires the permission "ADMIN:NAMESPACE:{namespace}:BAN:USER:{userId} [READ]".
  */
-class FOnlineAsyncTaskAccelByteAuthUser : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteAuthUser, ESPMode::ThreadSafe>
+class FOnlineAsyncTaskAccelByteAuthUser
+	: public FOnlineAsyncTaskAccelByte
+	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteAuthUser, ESPMode::ThreadSafe>
 {
 public:
 	/** Constructor to setup the Dedicated Server task */

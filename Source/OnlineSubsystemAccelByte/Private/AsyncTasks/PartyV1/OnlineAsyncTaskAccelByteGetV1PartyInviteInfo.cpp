@@ -7,6 +7,8 @@
 #include "Core/AccelByteRegistry.h"
 #include "Api/AccelByteUserApi.h"
 
+using namespace AccelByte;
+
 FOnlineAsyncTaskAccelByteGetV1PartyInviteInfo::FOnlineAsyncTaskAccelByteGetV1PartyInviteInfo(FOnlineSubsystemAccelByte* const InABInterface, const TSharedRef<const FUniqueNetIdAccelByteUser>& InUserId, const FAccelByteModelsPartyGetInvitedNotice& InNotification)
 	: FOnlineAsyncTaskAccelByte(InABInterface)
 	, Notification(InNotification)

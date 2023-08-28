@@ -11,7 +11,9 @@
 /**
  * Async task for retrieving player attributes from the session service, and updating current platform and crossplay preferences if necessary.
  */
-class FOnlineAsyncTaskAccelByteInitializePlayerAttributes : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteInitializePlayerAttributes, ESPMode::ThreadSafe>
+class FOnlineAsyncTaskAccelByteInitializePlayerAttributes
+	: public FOnlineAsyncTaskAccelByte
+	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteInitializePlayerAttributes, ESPMode::ThreadSafe>
 {
 public:
 

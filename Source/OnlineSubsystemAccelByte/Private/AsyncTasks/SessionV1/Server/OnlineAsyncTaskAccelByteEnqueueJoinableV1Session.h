@@ -11,7 +11,9 @@
 /**
  * Task to enqueue a dedicated session as joinable on the backend, allows for backfilling through matchmaking
  */
-class FOnlineAsyncTaskAccelByteEnqueueJoinableV1Session : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteEnqueueJoinableV1Session, ESPMode::ThreadSafe>
+class FOnlineAsyncTaskAccelByteEnqueueJoinableV1Session
+	: public FOnlineAsyncTaskAccelByte
+	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteEnqueueJoinableV1Session, ESPMode::ThreadSafe>
 {
 public:
 

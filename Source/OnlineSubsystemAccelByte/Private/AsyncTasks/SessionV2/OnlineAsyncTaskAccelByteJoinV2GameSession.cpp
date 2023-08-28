@@ -6,6 +6,8 @@
 #include "OnlineSessionInterfaceV2AccelByte.h"
 #include "OnlineSubsystemAccelByteTypes.h"
 
+using namespace AccelByte;
+
 FOnlineAsyncTaskAccelByteJoinV2GameSession::FOnlineAsyncTaskAccelByteJoinV2GameSession(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InLocalUserId, const FName& InSessionName, bool bInIsRestoreSession)
 	: FOnlineAsyncTaskAccelByte(InABInterface)
 	, SessionName(InSessionName)

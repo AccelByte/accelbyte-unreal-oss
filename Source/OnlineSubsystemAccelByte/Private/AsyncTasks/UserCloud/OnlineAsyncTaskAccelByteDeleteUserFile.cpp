@@ -8,6 +8,8 @@
 #include "Core/AccelByteRegistry.h"
 #include "Api/AccelByteCloudStorageApi.h"
 
+using namespace AccelByte;
+
 FOnlineAsyncTaskAccelByteDeleteUserFile::FOnlineAsyncTaskAccelByteDeleteUserFile(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InUserId, const FString& InFileName, bool InBShouldCloudDelete, bool InBShouldLocallyDelete)
 	: FOnlineAsyncTaskAccelByte(InABInterface)
 	, FileName(InFileName)

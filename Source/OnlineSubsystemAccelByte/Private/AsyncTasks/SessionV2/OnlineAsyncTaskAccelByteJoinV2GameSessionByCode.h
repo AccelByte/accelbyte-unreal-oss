@@ -11,7 +11,9 @@
 /**
  * Attempt to join a game session using a code. Will pass to the regular join party endpoint if successful.
  */
-class FOnlineAsyncTaskAccelByteJoinV2GameSessionByCode : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteJoinV2GameSessionByCode, ESPMode::ThreadSafe>
+class FOnlineAsyncTaskAccelByteJoinV2GameSessionByCode
+	: public FOnlineAsyncTaskAccelByte
+	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteJoinV2GameSessionByCode, ESPMode::ThreadSafe>
 {
 public:
 

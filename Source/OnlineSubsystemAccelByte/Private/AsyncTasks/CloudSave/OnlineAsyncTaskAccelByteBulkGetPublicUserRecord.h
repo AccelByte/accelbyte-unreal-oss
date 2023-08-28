@@ -11,7 +11,9 @@
 /**
  * Task for getting another user record
  */
-class FOnlineAsyncTaskAccelByteBulkGetPublicUserRecord : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteBulkGetPublicUserRecord, ESPMode::ThreadSafe>
+class FOnlineAsyncTaskAccelByteBulkGetPublicUserRecord
+	: public FOnlineAsyncTaskAccelByte
+	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteBulkGetPublicUserRecord, ESPMode::ThreadSafe>
 {
 public:
 	FOnlineAsyncTaskAccelByteBulkGetPublicUserRecord(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InLocalUserId, const FString& InKey, const TArray<FString>& InUserIds);

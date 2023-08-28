@@ -12,7 +12,9 @@
 /**
  * Async task to refresh local game session data with data from the backend
  */
-class FOnlineAsyncTaskAccelByteRefreshV2GameSession : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteRefreshV2GameSession, ESPMode::ThreadSafe>
+class FOnlineAsyncTaskAccelByteRefreshV2GameSession
+	: public FOnlineAsyncTaskAccelByte
+	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteRefreshV2GameSession, ESPMode::ThreadSafe>
 {
 public:
 

@@ -39,11 +39,11 @@ public:
 	virtual ~FAccelByteGroupsInfo() {};
 
 	static FAccelByteGroupsInfoRef Create(const FUniqueNetIdRef& InSenderUserId,
-										  const FString InNamespace,
-										  const FUniqueNetId& InOwnerId,
-										  const FAccelByteModelsGroupInformation InABGroupInfo,
-										  const FString AdminRoleId,
-										  const FString MemberRoleId);
+		const FString InNamespace,
+		const FUniqueNetId& InOwnerId,
+		const FAccelByteModelsGroupInformation InABGroupInfo,
+		const FString AdminRoleId,
+		const FString MemberRoleId);
 
 	//~ Begin IGroupInfo overrides
 	virtual FUniqueNetIdRef GetGroupId() const override;
@@ -74,6 +74,7 @@ PACKAGE_SCOPE:
 	FAccelByteModelsGroupInformation ABGroupInfo{};
 	FString ABAdminRoleId{};
 	FString ABMemberRoleId{};
+	FAccelByteModelsGetMemberRequestsListResponse QueryGroupInviteReults{};
 };
 
 /**
@@ -90,83 +91,62 @@ PACKAGE_SCOPE:
 public:
 
 	virtual ~FOnlineGroupsAccelByte() override = default;
-	
-	/**
-	 * Convenience method to get an instance of this interface from the subsystem passed in.
-	 *
-	 * @param Subsystem Subsystem instance that we wish to get this interface from
-	 * @param OutInterfaceInstance Instance of the interface that we got from the subsystem, or nullptr if not found
-	 * @returns boolean that is true if we could get an instance of the interface, false otherwise
-	 */
+
 	static bool GetFromSubsystem(const IOnlineSubsystem* Subsystem, TSharedPtr<FOnlineGroupsAccelByte, ESPMode::ThreadSafe>& OutInterfaceInstance);
 
-	/**
-	 * Create a new group containing the given user.
-	 *
-	 * @param ContextUserId ID of the user creating the group
-	 * @param InGroupInfo Group information used for creating the group
-	 * @param OnCompleted Callback delegate which will receive the results of the created group
-	 *
-	 */
-	virtual void CreateGroup(const FUniqueNetId& ContextUserId, const FAccelByteGroupsInfo& InGroupInfo, const FOnGroupsRequestCompleted& OnCompleted);
-	
-	/**
-	 * Create a new chat room containing the given user. Deprecated.
-	 *
-	 * @param ContextUserId ID of the user creating the group
-	 * @param InGroupInfo Group information used for creating the group
-	 * @param OnCompleted Callback delegate which will receive the results of the created group
-	 *
-	 */
+	virtual void CreateGroup(const FUniqueNetId& UserIdCreatingGroup, const FAccelByteGroupsInfo& InGroupInfo, const FOnGroupsRequestCompleted& OnCompleted);
 	virtual void CreateGroup(const FUniqueNetId& ContextUserId, const FGroupDisplayInfo& InGroupInfo, const FOnGroupsRequestCompleted& OnCompleted) override;
 
-	virtual void JoinGroup(const FUniqueNetId& ContextUserId, const FAccelByteGroupsInfo& InGroupInfo, const FOnGroupsRequestCompleted& OnCompleted);
-
+	virtual void JoinGroup(const FUniqueNetId& UserIdJoiningGroup, const FAccelByteGroupsInfo& InGroupInfo, const FOnGroupsRequestCompleted& OnCompleted);
 	virtual void JoinGroup(const FUniqueNetId& ContextUserId, const FUniqueNetId& GroupId, const FOnGroupsRequestCompleted& OnCompleted) override;
 
-	virtual void LeaveGroup(const FUniqueNetId& ContextUserId, const FAccelByteGroupsInfo& InGroupInfo, const FOnGroupsRequestCompleted& OnCompleted);
-
+	virtual void LeaveGroup(const FUniqueNetId& UserIdLeavingGroup, const FAccelByteGroupsInfo& InGroupInfo, const FOnGroupsRequestCompleted& OnCompleted);
 	virtual void LeaveGroup(const FUniqueNetId& ContextUserId, const FUniqueNetId& GroupId, const FOnGroupsRequestCompleted& OnCompleted) override;
 
-	virtual void AcceptInvite(const int32 AdminLocalUserNum, const FUniqueNetId& MemberUserId, const FAccelByteGroupsInfo& InGroupInfo, const FOnGroupsRequestCompleted& OnCompleted);
-
+	virtual void AcceptInvite(const FUniqueNetId& UserIdAcceptedIntoGroup, const FAccelByteGroupsInfo& InGroupInfo, const FOnGroupsRequestCompleted& OnCompleted);
 	virtual void AcceptInvite(const FUniqueNetId& ContextUserId, const FUniqueNetId& GroupId, const FOnGroupsRequestCompleted& OnCompleted) override;
-	/**
-	 * Checks to see if the current group is valid
-	 *
-	 * @return Boolean true is group is valid
-	 *
-	 */
+
+	virtual void DeclineInvite(const FUniqueNetId& UserIdToDecline, const FAccelByteGroupsInfo& InGroupInfo, const FOnGroupsRequestCompleted& OnCompleted);
+	virtual void DeclineInvite(const FUniqueNetId& ContextUserId, const FUniqueNetId& GroupId, const FOnGroupsRequestCompleted& OnCompleted) override;
+
+	virtual void CancelInvite(const FUniqueNetId& AdminUserId, const FString& UserIdToCancel, const FAccelByteGroupsInfo& InGroupInfo, const FOnGroupsRequestCompleted& OnCompleted);
+	virtual void CancelInvite(const FUniqueNetId& ContextUserId, const FUniqueNetId& GroupId, const FUniqueNetId& UserId, const FOnGroupsRequestCompleted& OnCompleted) override;
+
+	virtual void AcceptUser(const int32 AdminLocalUserNum, const FUniqueNetId& UserIdToAccept, const FAccelByteGroupsInfo& InGroupInfo, const FOnGroupsRequestCompleted& OnCompleted);
+	virtual void AcceptUser(const FUniqueNetId& ContextUserId, const FUniqueNetId& GroupId, const FUniqueNetId& UserId, const FOnGroupsRequestCompleted& OnCompleted) override;
+
+	virtual void DeclineUser(const int32 AdminLocalUserNum, const FUniqueNetId& UserIdToDecline, const FAccelByteGroupsInfo& InGroupInfo, const FOnGroupsRequestCompleted& OnCompleted);
+	virtual void DeclineUser(const FUniqueNetId& ContextUserId, const FUniqueNetId& GroupId, const FUniqueNetId& UserId, const FOnGroupsRequestCompleted& OnCompleted) override;
+
+	virtual void InviteUser(const FUniqueNetId& InviterUserId, const FUniqueNetId& InvitedUserId, const FAccelByteGroupsInfo& InGroupInfo, const FOnGroupsRequestCompleted& OnCompleted);
+	virtual void InviteUser(const FUniqueNetId& ContextUserId, const FUniqueNetId& GroupId, const FUniqueNetId& UserId, bool bAllowBlocked, const FOnGroupsRequestCompleted& OnCompleted) override;
+	virtual void InviteUser(const FUniqueNetId& ContextUserId, const FUniqueNetId& GroupId, const FUniqueNetId& UserId, const FOnGroupsRequestCompleted& OnCompleted) override { InviteUser(ContextUserId, GroupId, UserId, false, OnCompleted); }
+
+	virtual void RemoveUser(const int32 AdminLocalUserNum, const FUniqueNetId& MemberUserIdToKick, const FAccelByteGroupsInfo& InGroupInfo, const FOnGroupsRequestCompleted& OnCompleted);
+	virtual void RemoveUser(const FUniqueNetId& ContextUserId, const FUniqueNetId& GroupId, const FUniqueNetId& UserId, const FOnGroupsRequestCompleted& OnCompleted) override;
+
+	virtual void PromoteUser(const int32 AdminLocalUserNum, const FUniqueNetId& MemberUserIdToPromote, const FAccelByteGroupsInfo& InGroupInfo, const FString& MemberRoleId, const FOnGroupsRequestCompleted& OnCompleted);
+	virtual void PromoteUser(const FUniqueNetId& ContextUserId, const FUniqueNetId& GroupId, const FUniqueNetId& UserId, const FOnGroupsRequestCompleted& OnCompleted) override;
+
+	virtual void DemoteUser(const int32 AdminLocalUserNum, const FUniqueNetId& MemberUserIdToDemote, const FAccelByteGroupsInfo& InGroupInfo, const FString& MemberRoleId, const FOnGroupsRequestCompleted& OnCompleted);
+	virtual void DemoteUser(const FUniqueNetId& ContextUserId, const FUniqueNetId& GroupId, const FUniqueNetId& UserId, const FOnGroupsRequestCompleted& OnCompleted) override;
+
+	virtual void QueryGroupInvites(const FUniqueNetId& ContextUserId, const FAccelByteModelsLimitOffsetRequest& AccelByteModelsLimitOffsetRequest, const FAccelByteGroupsInfo& InGroupInfo, const FOnGroupsRequestCompleted& OnCompleted);
+	virtual void QueryGroupInvites(const FUniqueNetId& ContextUserId, const FUniqueNetId& GroupId, const FOnGroupsRequestCompleted& OnCompleted) override;
+
+	virtual void DeleteGroup(const int32 AdminLocalUserNum, const FAccelByteGroupsInfo& InGroupInfo, const FOnGroupsRequestCompleted& OnCompleted);
+	virtual void DeleteGroup(const FUniqueNetId& ContextUserId, const FUniqueNetId& GroupId, const FOnGroupsRequestCompleted& OnCompleted) override;
+
+	// Helper Functions
 	bool IsGroupValid() const;
 
-	/**
-	 * Gets a list of all the group members currently in the group
-	 *
-	 * @param GroupMembers Out parameter for the list of members
-	 *
-	 */
 	void GetCurrentGroupMembers(TArray<FAccelByteModelsGroupMember>& GroupMembers) const;
 
-	/**
-	 * Sets the pointer for the current group data
-	 *
-	 * @param InGroupInfo Incoming group data
-	 *
-	 */
+	FAccelByteGroupsInfoPtr GetCurrentGroupData();
 	void SetCurrentGroupData(const FAccelByteGroupsInfoRef& InGroupInfo);
-
-	/**
-	 * Hacky function that stands in for LeaveGroup until it exists
-	 */
 	void DeleteLocalGroupData();
 
-	/**
-	 * Gets the pointer for the current group data
-	 *
-	 * @return FAccelByteGroupsInfoPtr for the current group, returns null of no group is set
-	 *
-	 */
-	FAccelByteGroupsInfoPtr GetCurrentGroupData();
+	bool VerifyGroupInfo(const FAccelByteGroupsInfo& InGroupInfo);
 
 protected:
 
@@ -188,7 +168,7 @@ protected:
 	// LeaveGroup--
 	virtual void CancelRequest(const FUniqueNetId& ContextUserId, const FUniqueNetId& GroupId, const FOnGroupsRequestCompleted& OnCompleted) override {}
 	// AcceptInvite--
-	virtual void DeclineInvite(const FUniqueNetId& ContextUserId, const FUniqueNetId& GroupId, const FOnGroupsRequestCompleted& OnCompleted) override {}
+	// DeclineInvite--
 	virtual void QueryGroupRoster(const FUniqueNetId& ContextUserId, const FUniqueNetId& GroupId, const FOnGroupsRequestCompleted& OnCompleted) override {}
 	virtual TSharedPtr<const IGroupRoster> GetCachedGroupRoster(const FUniqueNetId& ContextUserId, const FUniqueNetId& GroupId) override { return nullptr; }
 	virtual void QueryUserMembership(const FUniqueNetId& ContextUserId, const FUniqueNetId& UserId, const FOnGroupsRequestCompleted& OnCompleted) override {}
@@ -199,17 +179,17 @@ protected:
 	virtual void QueryIncomingInvitations(const FUniqueNetId& ContextUserId, const FUniqueNetId& UserId, const FOnGroupsRequestCompleted& OnCompleted) override {}
 	virtual TSharedPtr<const IInvitations> GetCachedInvitations(const FUniqueNetId& ContextUserId, const FUniqueNetId& UserId) override { return nullptr; }
 	virtual void UpdateGroupInfo(const FUniqueNetId& ContextUserId, const FUniqueNetId& GroupId, const FGroupDisplayInfo& GroupInfo, const FOnGroupsRequestCompleted& OnCompleted) override {}
-	virtual void AcceptUser(const FUniqueNetId& ContextUserId, const FUniqueNetId& GroupId, const FUniqueNetId& UserId, const FOnGroupsRequestCompleted& OnCompleted) override {}
-	virtual void DeclineUser(const FUniqueNetId& ContextUserId, const FUniqueNetId& GroupId, const FUniqueNetId& UserId, const FOnGroupsRequestCompleted& OnCompleted) override {}
-	virtual void InviteUser(const FUniqueNetId& ContextUserId, const FUniqueNetId& GroupId, const FUniqueNetId& UserId, bool bAllowBlocked, const FOnGroupsRequestCompleted& OnCompleted) override {}
-	virtual void InviteUser(const FUniqueNetId& ContextUserId, const FUniqueNetId& GroupId, const FUniqueNetId& UserId, const FOnGroupsRequestCompleted& OnCompleted) override { InviteUser(ContextUserId, GroupId, UserId, false, OnCompleted); }
-	virtual void CancelInvite(const FUniqueNetId& ContextUserId, const FUniqueNetId& GroupId, const FUniqueNetId& UserId, const FOnGroupsRequestCompleted& OnCompleted) override {}
-	virtual void RemoveUser(const FUniqueNetId& ContextUserId, const FUniqueNetId& GroupId, const FUniqueNetId& UserId, const FOnGroupsRequestCompleted& OnCompleted) override {}
-	virtual void PromoteUser(const FUniqueNetId& ContextUserId, const FUniqueNetId& GroupId, const FUniqueNetId& UserId, const FOnGroupsRequestCompleted& OnCompleted) override {}
-	virtual void DemoteUser(const FUniqueNetId& ContextUserId, const FUniqueNetId& GroupId, const FUniqueNetId& UserId, const FOnGroupsRequestCompleted& OnCompleted) override {}
+	// AcceptUser
+	// DeclineUser
+	// InviteUser-FuncA
+	// InviteUser-FuncB
+	// CancelInvite--
+	// RemoveUser--
+	// PromoteUser--
+	// DemoteUser--
 	virtual void BlockUser(const FUniqueNetId& ContextUserId, const FUniqueNetId& GroupId, const FUniqueNetId& UserId, const FOnGroupsRequestCompleted& OnCompleted) override {}
 	virtual void UnblockUser(const FUniqueNetId& ContextUserId, const FUniqueNetId& GroupId, const FUniqueNetId& UserId, const FOnGroupsRequestCompleted& OnCompleted) override {}
-	virtual void QueryGroupInvites(const FUniqueNetId& ContextUserId, const FUniqueNetId& GroupId, const FOnGroupsRequestCompleted& OnCompleted) override {}
+	// QueryGroupInvites--
 	virtual TSharedPtr<const IGroupInvites> GetCachedGroupInvites(const FUniqueNetId& ContextUserId, const FUniqueNetId& GroupId) override { return nullptr; }
 	virtual void QueryGroupRequests(const FUniqueNetId& ContextUserId, const FUniqueNetId& GroupId, const FOnGroupsRequestCompleted& OnCompleted) override {}
 	virtual TSharedPtr<const IGroupRequests> GetCachedGroupRequests(const FUniqueNetId& ContextUserId, const FUniqueNetId& GroupId) override { return nullptr; }
@@ -226,7 +206,7 @@ protected:
 	virtual TSharedPtr<const FGroupConfigEntryInt> GetCachedConfigInt(const FString& Key) override { return nullptr; }
 	virtual TSharedPtr<const FGroupConfigEntryBool> GetCachedConfigBool(const FString& Key) override { return nullptr; }
 	virtual void TransferGroup(const FUniqueNetId& ContextUserId, const FUniqueNetId& GroupId, const FUniqueNetId& NewOwnerId, const FOnGroupsRequestCompleted& OnCompleted) override {}
-	virtual void DeleteGroup(const FUniqueNetId& ContextUserId, const FUniqueNetId& GroupId, const FOnGroupsRequestCompleted& OnCompleted) override {}
+	// DeleteGroup--
 	virtual void SetNamespace(const FString& Ns) override {}
 	virtual const FString& GetNamespace() const override { return CurrentGroup->Namespace; }
 

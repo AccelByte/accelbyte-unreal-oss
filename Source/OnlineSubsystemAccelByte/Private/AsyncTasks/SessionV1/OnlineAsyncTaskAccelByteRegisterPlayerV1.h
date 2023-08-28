@@ -17,7 +17,9 @@ struct FAccelByteModelsServerSessionResponse;
  * 
  * For dedicated sessions, this requires the permission ADMIN:NAMESPACE:{namespace}:MATCHMAKING:CHANNEL [CREATE] on your server OAuth client.
  */
-class FOnlineAsyncTaskAccelByteRegisterPlayersV1 : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteRegisterPlayersV1, ESPMode::ThreadSafe>
+class FOnlineAsyncTaskAccelByteRegisterPlayersV1
+	: public FOnlineAsyncTaskAccelByte
+	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteRegisterPlayersV1, ESPMode::ThreadSafe>
 {
 public:
 

@@ -12,7 +12,9 @@
 /**
  * Async task to restore parties if the user exits a game while still in a party. Does not work if Auto Kick on Disconnect is enabled in the admin portal.
  */
-class FOnlineAsyncTaskAccelByteRestoreV1Parties : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteRestoreV1Parties, ESPMode::ThreadSafe>
+class FOnlineAsyncTaskAccelByteRestoreV1Parties
+	: public FOnlineAsyncTaskAccelByte
+	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteRestoreV1Parties, ESPMode::ThreadSafe>
 {
 public:
 

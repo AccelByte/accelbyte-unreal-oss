@@ -9,7 +9,9 @@
 #include "OnlineSessionSettings.h"
 #include "Models/AccelByteSessionModels.h"
 
-class FOnlineAsyncTaskAccelByteCreateGameSessionV2 : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteCreateGameSessionV2, ESPMode::ThreadSafe>
+class FOnlineAsyncTaskAccelByteCreateGameSessionV2
+	: public FOnlineAsyncTaskAccelByte
+	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteCreateGameSessionV2, ESPMode::ThreadSafe>
 {
 public:
 

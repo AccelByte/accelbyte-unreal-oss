@@ -11,6 +11,8 @@
 #include "Interfaces/OnlineUserInterface.h"
 #include "Models/AccelByteSessionBrowserModels.h"
 
+using namespace AccelByte;
+
 FOnlineAsyncTaskAccelByteGetRecentPlayer::FOnlineAsyncTaskAccelByteGetRecentPlayer(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InUserId, const FString &InNamespace)
 	: FOnlineAsyncTaskAccelByte(InABInterface)
 	, Namespace(InNamespace)

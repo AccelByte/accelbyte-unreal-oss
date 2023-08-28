@@ -8,6 +8,8 @@
 #include "Core/AccelByteRegistry.h"
 #include "Api/AccelByteLobbyApi.h"
 
+using namespace AccelByte;
+
 FOnlineAsyncTaskAccelByteUnblockPlayer::FOnlineAsyncTaskAccelByteUnblockPlayer(FOnlineSubsystemAccelByte* const InABInterface, int32 InLocalUserNum, const FUniqueNetId& InPlayerId)
 	: FOnlineAsyncTaskAccelByte(InABInterface)
 	, PlayerId(FUniqueNetIdAccelByteUser::CastChecked(InPlayerId))

@@ -7,6 +7,8 @@
 #include "OnlineIdentityInterfaceAccelByte.h"
 #include "Core/AccelByteUtilities.h"
 
+using namespace AccelByte;
+
 FOnlineAsyncTaskAccelByteRemoveUserFromV1Session::FOnlineAsyncTaskAccelByteRemoveUserFromV1Session(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InLocalUserId, const FString& InChannelName, const FString& InMatchId, const FOnRemoveUserFromSessionComplete& InDelegate)
 	: FOnlineAsyncTaskAccelByte(InABInterface)
 	, ChannelName(InChannelName)

@@ -4,6 +4,8 @@
 
 #include "OnlineAsyncTaskAccelByteGenerateNewV2GameCode.h"
 
+using namespace AccelByte;
+
 FOnlineAsyncTaskAccelByteGenerateNewV2GameCode::FOnlineAsyncTaskAccelByteGenerateNewV2GameCode(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InLocalUserId, const FName& InSessionName, const FOnGenerateNewPartyCodeComplete& InDelegate)
 	: FOnlineAsyncTaskAccelByte(InABInterface)
 	, SessionName(InSessionName)

@@ -14,7 +14,9 @@
  *
  * For dedicated sessions, this requires the permission ADMIN:NAMESPACE:{namespace}:MATCHMAKING:CHANNEL [DELETE] on your server OAuth client.
  */
-class FOnlineAsyncTaskAccelByteUnregisterPlayersV1 : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteUnregisterPlayersV1, ESPMode::ThreadSafe>
+class FOnlineAsyncTaskAccelByteUnregisterPlayersV1
+	: public FOnlineAsyncTaskAccelByte
+	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteUnregisterPlayersV1, ESPMode::ThreadSafe>
 {
 public:
 

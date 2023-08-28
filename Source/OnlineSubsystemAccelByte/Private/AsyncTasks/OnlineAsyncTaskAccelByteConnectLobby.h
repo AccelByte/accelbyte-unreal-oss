@@ -12,7 +12,9 @@
 /**
  * Task for connect AccelByte Lobby
  */
-class FOnlineAsyncTaskAccelByteConnectLobby : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteConnectLobby, ESPMode::ThreadSafe>
+class FOnlineAsyncTaskAccelByteConnectLobby
+	: public FOnlineAsyncTaskAccelByte
+	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteConnectLobby, ESPMode::ThreadSafe>
 {
 public:
 

@@ -4,6 +4,8 @@
 
 #include "OnlineAsyncTaskAccelByteQueryOfferByFilter.h"
 
+using namespace AccelByte;
+
 FOnlineAsyncTaskAccelByteQueryOfferByFilter::FOnlineAsyncTaskAccelByteQueryOfferByFilter(FOnlineSubsystemAccelByte* const InABSubsystem, const FUniqueNetId& InUserId, const FOnlineStoreFilter& InFilter, const FOnQueryOnlineStoreOffersComplete& InDelegate)
 	: FOnlineAsyncTaskAccelByte(InABSubsystem)
 	, Filter(InFilter)
@@ -129,7 +131,7 @@ void FOnlineAsyncTaskAccelByteQueryOfferByFilter::GetNextOffset(FString const& N
 	{
 		TArray<FString> ParamsArray;
 		Params.ParseIntoArray(ParamsArray, TEXT("&"));
-		for(FString Param : ParamsArray)
+		for(const FString& Param : ParamsArray)
 		{
 			FString Key;
 			FString Value;

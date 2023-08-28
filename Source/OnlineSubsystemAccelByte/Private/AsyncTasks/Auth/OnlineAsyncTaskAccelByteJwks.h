@@ -15,7 +15,9 @@ DECLARE_DELEGATE_OneParam(FOnJwksCompleted, const FJwkSet&);
  *
  * For dedicated sessions.
  */
-class FOnlineAsyncTaskAccelByteJwks : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteJwks, ESPMode::ThreadSafe>
+class FOnlineAsyncTaskAccelByteJwks
+	: public FOnlineAsyncTaskAccelByte
+	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteJwks, ESPMode::ThreadSafe>
 {
 public:
 	/** Constructor to setup the Dedicated Server task */

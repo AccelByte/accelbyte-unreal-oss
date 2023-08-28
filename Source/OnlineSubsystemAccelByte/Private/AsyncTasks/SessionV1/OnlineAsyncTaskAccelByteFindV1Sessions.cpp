@@ -12,6 +12,8 @@
 #include "Misc/DefaultValueHelper.h"
 #include "OnlineSubsystemAccelByteDefines.h"
 
+using namespace AccelByte;
+
 FOnlineAsyncTaskAccelByteFindV1Sessions::FOnlineAsyncTaskAccelByteFindV1Sessions(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InSearchingPlayerId, const TSharedRef<FOnlineSessionSearch>& InSearchSettings)
 	: FOnlineAsyncTaskAccelByte(InABInterface, true)
 	, SearchSettings(InSearchSettings)

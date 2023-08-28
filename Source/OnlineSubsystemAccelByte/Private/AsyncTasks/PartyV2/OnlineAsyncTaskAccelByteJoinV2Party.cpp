@@ -8,6 +8,8 @@
 #include "Core/AccelByteRegistry.h"
 #include "OnlineSessionInterfaceV2AccelByte.h"
 
+using namespace AccelByte;
+
 FOnlineAsyncTaskAccelByteJoinV2Party::FOnlineAsyncTaskAccelByteJoinV2Party(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InLocalUserId, const FName& InSessionName, bool bInIsRestoreSession)
 	: FOnlineAsyncTaskAccelByte(InABInterface)
 	, SessionName(InSessionName)

@@ -13,7 +13,9 @@
  * Async task to update dedicated or P2P game sessions through the SessionBrowser APIs.
  * it will only update the max player and current player
  */
-class FOnlineAsyncTaskAccelByteUpdateV1GameSession : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteUpdateV1GameSession, ESPMode::ThreadSafe>
+class FOnlineAsyncTaskAccelByteUpdateV1GameSession
+	: public FOnlineAsyncTaskAccelByte
+	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteUpdateV1GameSession, ESPMode::ThreadSafe>
 {
 public:
 

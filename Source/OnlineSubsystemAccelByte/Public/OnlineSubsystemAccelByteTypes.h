@@ -5,6 +5,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Core/AccelByteUtilities.h"
 #include "OnlineSubsystemTypes.h"
 #include "IPAddress.h"
 #include "OnlineSubsystemAccelByteDefines.h"
@@ -16,9 +17,6 @@
 #include "OnlineSubsystemAccelByteTypes.generated.h"
 
 class FOnlineSubsystemAccelByte;
-
-// AccelByte IDs have a max length of 32, as they are UUIDs that are striped of their hyphens
-#define ACCELBYTE_ID_LENGTH 32
 
 // Value to represent an invalid NetID, mostly to ease debugging
 #define ACCELBYTE_INVALID_ID_VALUE TEXT("INVALID")

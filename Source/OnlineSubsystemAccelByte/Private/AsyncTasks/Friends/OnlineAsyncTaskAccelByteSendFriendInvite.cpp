@@ -7,6 +7,8 @@
 #include "OnlineFriendsInterfaceAccelByte.h"
 #include "Api/AccelByteLobbyApi.h"
 
+using namespace AccelByte;
+
 FOnlineAsyncTaskAccelByteSendFriendInvite::FOnlineAsyncTaskAccelByteSendFriendInvite(FOnlineSubsystemAccelByte* const InABInterface, int32 InLocalUserNum, const FUniqueNetId& InFriendId, const FString& InListName, const FOnSendInviteComplete& InDelegate)
 	: FOnlineAsyncTaskAccelByte(InABInterface)
 	, FriendId(FUniqueNetIdAccelByteUser::CastChecked(InFriendId))
@@ -169,16 +171,30 @@ void FOnlineAsyncTaskAccelByteSendFriendInvite::OnRequestFriendResponse(const FA
 {
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("FriendId: %s"), *InvitedFriend->GetUserId()->ToDebugString());
 
-	if (Result.Code != TEXT("0"))
+	bool bSuccess {false};
+	const int32 ErrorCode = FCString::Atoi(*Result.Code);
+	switch (ErrorCode)
 	{
-		ErrorStr = TEXT("friend-request-failed");
-		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to send friend request to user %s! Error code: %s"), *InvitedFriend->GetUserId()->ToDebugString(), *Result.Code);
-		CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
-	}
-	else
-	{
-		CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
+		case 0:
+			bSuccess = true;
+			break;
+		case static_cast<int32>(ErrorCodes::FriendRequesteeMaxFriendsLimitReached):
+			ErrorStr = TEXT("friend-request-failed-requestee-max-friend-limit-reached");
+			break;
+		case static_cast<int32>(ErrorCodes::FriendRequesterMaxFriendsLimitReached):
+			ErrorStr = TEXT("friend-request-failed-requester-max-friend-limit-reached");
+			break;
+		default:
+			ErrorStr = TEXT("friend-request-failed");
 	}
 
-	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
+	if(bSuccess)
+	{
+		CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
+		AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
+		return;
+	}
+	
+	AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to send friend request to user %s! Error code: %s, Message: %s"), *InvitedFriend->GetUserId()->ToDebugString(), *Result.Code, *ErrorStr);
+	CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
 }

@@ -12,7 +12,9 @@
 #include "OnlineSubsystemAccelByteTypes.h"
 #include "Interfaces/OnlineStatsInterface.h"
 
-class FOnlineAsyncTaskAccelByteReadLeaderboards : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteReadLeaderboards, ESPMode::ThreadSafe>
+class FOnlineAsyncTaskAccelByteReadLeaderboards
+	: public FOnlineAsyncTaskAccelByte
+	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteReadLeaderboards, ESPMode::ThreadSafe>
 {
 public:
 	FOnlineAsyncTaskAccelByteReadLeaderboards(FOnlineSubsystemAccelByte* const InABInterface,

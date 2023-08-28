@@ -5,6 +5,8 @@
 #include "OnlineAsyncTaskAccelByteFindV2GameSessionById.h"
 #include "OnlineSessionInterfaceV2AccelByte.h"
 
+using namespace AccelByte;
+
 FOnlineAsyncTaskAccelByteFindV2GameSessionById::FOnlineAsyncTaskAccelByteFindV2GameSessionById(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InSearchingPlayerId, const FUniqueNetId& InSessionId, const FOnSingleSessionResultCompleteDelegate& InDelegate)
 	// Initialize as a server task if we are running a dedicated server, as this doubles as a server task. Otherwise, use
 	// no flags to indicate that it is a client task.

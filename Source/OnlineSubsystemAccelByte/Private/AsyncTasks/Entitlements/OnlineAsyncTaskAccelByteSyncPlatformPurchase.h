@@ -11,7 +11,9 @@
 /**
  * Async task for syncing platform purchases. Currently supports Steam, Xbox and Playstation.
  */
-class FOnlineAsyncTaskAccelByteSyncPlatformPurchase : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteSyncPlatformPurchase, ESPMode::ThreadSafe>
+class FOnlineAsyncTaskAccelByteSyncPlatformPurchase
+	: public FOnlineAsyncTaskAccelByte
+	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteSyncPlatformPurchase, ESPMode::ThreadSafe>
 {
 public:
 

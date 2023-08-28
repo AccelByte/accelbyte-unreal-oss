@@ -9,7 +9,9 @@
 #include "OnlineSubsystemAccelByteTypes.h"
 #include "OnlineSessionInterfaceV1AccelByte.h"
 
-class FOnlineAsyncTaskAccelByteRemoveUserFromV1Session : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteRemoveUserFromV1Session, ESPMode::ThreadSafe>
+class FOnlineAsyncTaskAccelByteRemoveUserFromV1Session
+	: public FOnlineAsyncTaskAccelByte
+	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteRemoveUserFromV1Session, ESPMode::ThreadSafe>
 {
 public:
 

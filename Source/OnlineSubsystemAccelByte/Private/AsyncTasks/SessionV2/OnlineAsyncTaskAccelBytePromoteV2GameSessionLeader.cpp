@@ -4,6 +4,8 @@
 
 #include "OnlineAsyncTaskAccelBytePromoteV2GameSessionLeader.h"
 
+using namespace AccelByte;
+
 #define ONLINE_ERROR_NAMESPACE TEXT("FOnlineAsyncTaskAccelBytePromoteV2GameSessionLeader")
 
 FOnlineAsyncTaskAccelBytePromoteV2GameSessionLeader::FOnlineAsyncTaskAccelBytePromoteV2GameSessionLeader(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InLocalUserId, const FString& InSessionId,	const FUniqueNetId& InTargetMemberId)

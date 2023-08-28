@@ -7,6 +7,8 @@
 #include "OnlineUserCloudInterfaceAccelByte.h"
 #include "Api/AccelByteCloudStorageApi.h"
 
+using namespace AccelByte;
+
 FOnlineAsyncTaskAccelByteReadUserFile::FOnlineAsyncTaskAccelByteReadUserFile(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InUserId, const FString& InFileName)
 	: FOnlineAsyncTaskAccelByte(InABInterface)
 	, FileName(InFileName)

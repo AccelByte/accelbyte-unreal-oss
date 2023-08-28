@@ -15,13 +15,15 @@
 #include "OnlineSessionInterfaceV2AccelByte.h"
 #include "OnlineSubsystemAccelByteUtils.h"
 
+using namespace AccelByte;
+
 // According to https://demo.accelbyte.io/basic/apidocs/#/UserProfile/getMyProfileInfo, 11440 is "user profile not found"
 // with this in mind, if we get this code back, we just want to create the user profile with default values, as this
 // most likely means the user hasn't signed in yet
 #define USER_PROFILE_NOT_FOUND_ERROR 11440
 
 // in ms
-#define STEAM_LOGIN_DELAY 2000
+#define STEAM_LOGIN_DELAY 5000
 
 #define ONLINE_ERROR_NAMESPACE "FOnlineAccelByteLogin"
 
@@ -209,7 +211,10 @@ void FOnlineAsyncTaskAccelByteLogin::LoginWithNativeSubsystem()
 		FAccelByteUtilities::GetValueFromCommandLineSwitch(TEXT("AUTH_PASSWORD"), AccountCredential.Token);
 	}
 
-	NativeIdentityInterface->Login(LoginUserNum, AccountCredential);
+	this->ExecuteCriticalSectionAction(FVoidHandler::CreateLambda([this, AccountCredential, NativeIdentityInterface]()
+		{
+			NativeIdentityInterface->Login(this->LoginUserNum, AccountCredential);
+		}));
 	
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sending login request to native subsystem!"));
 }
@@ -262,11 +267,17 @@ void FOnlineAsyncTaskAccelByteLogin::OnNativeLoginUIClosed(TSharedPtr<const FUni
 		{
 			AccountCredentials.Type = TEXT("AccountPortal");
 		}
-		NativeIdentityInterface->Login(ControllerIndex, AccountCredentials);
+		this->ExecuteCriticalSectionAction(FVoidHandler::CreateLambda([this, NativeIdentityInterface, ControllerIndex]()
+			{
+				NativeIdentityInterface->Login(ControllerIndex, this->AccountCredentials);
+			}));
 	}
 	else
 	{
-		NativeIdentityInterface->Login(ControllerIndex, FOnlineAccountCredentials());
+		this->ExecuteCriticalSectionAction(FVoidHandler::CreateLambda([this, NativeIdentityInterface, ControllerIndex]()
+			{
+				NativeIdentityInterface->Login(ControllerIndex, FOnlineAccountCredentials());
+			}));
 	}
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sending login request to native subsystem!"));

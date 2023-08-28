@@ -4,6 +4,8 @@
 
 #include "OnlineAsyncTaskAccelByteReadLeaderboardAroundUser.h"
 
+using namespace AccelByte;
+
 FOnlineAsyncTaskAccelByteReadLeaderboardAroundUser::FOnlineAsyncTaskAccelByteReadLeaderboardAroundUser(
 	FOnlineSubsystemAccelByte* const InABInterface,
 	int32 InLocalUserNum,

@@ -9,6 +9,8 @@
 #include "Core/AccelByteRegistry.h"
 #include "Core/AccelByteError.h"
 
+using namespace AccelByte;
+
 FOnlineAsyncTaskAccelByteEnqueueJoinableV1Session::FOnlineAsyncTaskAccelByteEnqueueJoinableV1Session(FOnlineSubsystemAccelByte* const InABInterface, const FName& InSessionName, const FOnEnqueueJoinableSessionComplete& InDelegate)
 	: FOnlineAsyncTaskAccelByte(InABInterface)
 	, SessionName(InSessionName)

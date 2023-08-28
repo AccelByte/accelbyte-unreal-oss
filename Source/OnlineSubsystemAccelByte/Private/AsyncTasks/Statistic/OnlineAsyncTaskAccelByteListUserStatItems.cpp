@@ -6,6 +6,8 @@
 #include "OnlineSubsystemAccelByte.h"
 #include "OnlineAgreementInterfaceAccelByte.h"
 
+using namespace AccelByte;
+
 FOnlineAsyncTaskAccelByteListUserStatItems::FOnlineAsyncTaskAccelByteListUserStatItems(FOnlineSubsystemAccelByte *const InABInterface
 	, int32 InLocalUserNum
 	, TArray<FString> const& InStatCodes

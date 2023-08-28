@@ -12,7 +12,9 @@
 /**
  * Async task to set user presence using Lobby API.
  */
-class FOnlineAsyncTaskAccelByteSetUserPresence : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteSetUserPresence, ESPMode::ThreadSafe>
+class FOnlineAsyncTaskAccelByteSetUserPresence
+	: public FOnlineAsyncTaskAccelByte
+	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteSetUserPresence, ESPMode::ThreadSafe>
 {
 public:
 

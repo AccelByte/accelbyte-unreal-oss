@@ -11,7 +11,9 @@
 /**
  * Async task to promote a member of a party to leader on the backend
  */
-class FOnlineAsyncTaskAccelBytePromoteV2PartyLeader : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelBytePromoteV2PartyLeader, ESPMode::ThreadSafe>
+class FOnlineAsyncTaskAccelBytePromoteV2PartyLeader
+	: public FOnlineAsyncTaskAccelByte
+	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelBytePromoteV2PartyLeader, ESPMode::ThreadSafe>
 {
 public:
 

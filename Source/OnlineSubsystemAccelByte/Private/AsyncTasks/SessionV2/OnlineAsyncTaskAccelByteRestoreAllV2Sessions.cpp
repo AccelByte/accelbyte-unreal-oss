@@ -7,6 +7,8 @@
 #include "OnlineError.h"
 #include "OnlineSessionInterfaceV2AccelByte.h"
 
+using namespace AccelByte;
+
 #define ONLINE_ERROR_NAMESPACE "FOnlineAsyncTaskAccelByteRestoreAllV2Sessions"
 
 FOnlineAsyncTaskAccelByteRestoreAllV2Sessions::FOnlineAsyncTaskAccelByteRestoreAllV2Sessions(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InLocalUserId, const FOnRestoreActiveSessionsComplete& InCompletionDelegate)

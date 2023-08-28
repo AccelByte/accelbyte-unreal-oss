@@ -573,6 +573,9 @@ protected:
 	/** Map of user IDs to a map of party IDs and their associated party objects */
 	FUserIDToPartiesMap UserIdToPartiesMap;
 
+	/** Use this lock to prevent racing condition when accessing the UserIdToPartiesMap */
+	FCriticalSection UserIdToPartiesMapLock;
+
 	/** Map of user IDs associated with an array of party invites */
 	FUserIdToPartyInvitesMap UserIdToPartyInvitesMap;
 

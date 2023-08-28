@@ -4,6 +4,8 @@
 
 #include "OnlineAsyncTaskAccelByteChatSendRoomChat.h"
 
+using namespace AccelByte;
+
 FOnlineAsyncTaskAccelByteChatSendRoomChat::FOnlineAsyncTaskAccelByteChatSendRoomChat(
 	FOnlineSubsystemAccelByte* const InABInterface,
 	const FUniqueNetId& InLocalUserId,

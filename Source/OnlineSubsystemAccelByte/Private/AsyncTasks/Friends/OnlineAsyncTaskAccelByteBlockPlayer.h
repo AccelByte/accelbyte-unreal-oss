@@ -11,7 +11,9 @@
 /**
  * Task for blocking a player on the AccelByte backend
  */
-class FOnlineAsyncTaskAccelByteBlockPlayer : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteBlockPlayer, ESPMode::ThreadSafe>
+class FOnlineAsyncTaskAccelByteBlockPlayer
+	: public FOnlineAsyncTaskAccelByte
+	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteBlockPlayer, ESPMode::ThreadSafe>
 {
 public:
 

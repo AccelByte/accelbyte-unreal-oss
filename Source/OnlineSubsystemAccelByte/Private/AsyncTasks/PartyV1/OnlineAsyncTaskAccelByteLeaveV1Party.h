@@ -11,7 +11,9 @@
 /**
  * Task for leaving a party
  */
-class FOnlineAsyncTaskAccelByteLeaveV1Party : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteLeaveV1Party, ESPMode::ThreadSafe>
+class FOnlineAsyncTaskAccelByteLeaveV1Party
+	: public FOnlineAsyncTaskAccelByte
+	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteLeaveV1Party, ESPMode::ThreadSafe>
 {
 public:
 

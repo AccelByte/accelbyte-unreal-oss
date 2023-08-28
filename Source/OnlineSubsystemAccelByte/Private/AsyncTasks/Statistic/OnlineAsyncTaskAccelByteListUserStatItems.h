@@ -14,7 +14,7 @@
  */
 class FOnlineAsyncTaskAccelByteListUserStatItems
 	: public FOnlineAsyncTaskAccelByte
-	, public TSelfPtr<FOnlineAsyncTaskAccelByteListUserStatItems, ESPMode::ThreadSafe>
+	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteListUserStatItems, ESPMode::ThreadSafe>
 {
 public:
 

@@ -7,6 +7,8 @@
 #include "Models/AccelByteEcommerceModels.h"
 #include "OnlineStoreInterfaceV2AccelByte.h"
 
+using namespace AccelByte;
+
 FOnlineAsyncTaskAccelByteSyncDLC::FOnlineAsyncTaskAccelByteSyncDLC(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InUserId, const FOnRequestCompleted& InDelegate)
 	: FOnlineAsyncTaskAccelByte(InABInterface)
 	, Error(TEXT(""))

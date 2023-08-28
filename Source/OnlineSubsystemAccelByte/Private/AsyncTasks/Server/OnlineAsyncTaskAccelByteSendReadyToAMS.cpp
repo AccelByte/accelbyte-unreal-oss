@@ -10,6 +10,8 @@
 #include "OnlineSessionInterfaceV1AccelByte.h"
 #endif
 
+using namespace AccelByte;
+
 FOnlineAsyncTaskAccelByteSendReadyToAMS::FOnlineAsyncTaskAccelByteSendReadyToAMS(FOnlineSubsystemAccelByte* const InABInterface, const FOnRegisterServerComplete& InDelegate)
 	: FOnlineAsyncTaskAccelByte(InABInterface)
 	, Delegate(InDelegate)

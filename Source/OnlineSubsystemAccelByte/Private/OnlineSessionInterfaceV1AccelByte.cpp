@@ -44,6 +44,8 @@
 #include "AsyncTasks/Server/OnlineAsyncTaskAccelByteBanUser.h"
 #include "AsyncTasks/SessionV1/OnlineAsyncTaskAccelByteFindV1GameSessionById.h"
 
+using namespace AccelByte;
+
 bool GetConnectionStringFromSessionInfo(TSharedPtr<FOnlineSessionInfoAccelByteV1> SessionInfo, FString& ConnectInfo, int32 PortOverride = 0)
 {
 	// Check whether we have a Remote P2P relay ID in the session info. If we do not, then we just want to return the connection string as an
@@ -1083,27 +1085,27 @@ bool FOnlineSessionV1AccelByte::JoinSession(int32 PlayerNum, FName SessionName, 
 	}
 }
 
-void FOnlineSessionV1AccelByte::OnRTCConnected(const FString& NetId, const EAccelByteP2PConnectionStatus& Status, FName SessionName)
+void FOnlineSessionV1AccelByte::OnRTCConnected(const FString& NetId, const NetworkUtilities::EAccelByteP2PConnectionStatus& Status, FName SessionName)
 {
 	EOnJoinSessionCompleteResult::Type Result;
 	
 	switch (Status)
 	{
-	case EAccelByteP2PConnectionStatus::Success:
+	case NetworkUtilities::EAccelByteP2PConnectionStatus::Success:
 		Result = EOnJoinSessionCompleteResult::Success;
 		break;
 
-	case EAccelByteP2PConnectionStatus::SignalingServerDisconnected:
-	case EAccelByteP2PConnectionStatus::HostResponseTimeout:
-	case EAccelByteP2PConnectionStatus::PeerIsNotHosting:
+	case NetworkUtilities::EAccelByteP2PConnectionStatus::SignalingServerDisconnected:
+	case NetworkUtilities::EAccelByteP2PConnectionStatus::HostResponseTimeout:
+	case NetworkUtilities::EAccelByteP2PConnectionStatus::PeerIsNotHosting:
 		Result = EOnJoinSessionCompleteResult::SessionDoesNotExist;
 		break;
 
-	case EAccelByteP2PConnectionStatus::JuiceGatherFailed:
-	case EAccelByteP2PConnectionStatus::JuiceGetLocalDescriptionFailed:
-	case EAccelByteP2PConnectionStatus::JuiceConnectionFailed:
-	case EAccelByteP2PConnectionStatus::FailedGettingTurnServer:
-	case EAccelByteP2PConnectionStatus::FailedGettingTurnServerCredential:
+	case NetworkUtilities::EAccelByteP2PConnectionStatus::JuiceGatherFailed:
+	case NetworkUtilities::EAccelByteP2PConnectionStatus::JuiceGetLocalDescriptionFailed:
+	case NetworkUtilities::EAccelByteP2PConnectionStatus::JuiceConnectionFailed:
+	case NetworkUtilities::EAccelByteP2PConnectionStatus::FailedGettingTurnServer:
+	case NetworkUtilities::EAccelByteP2PConnectionStatus::FailedGettingTurnServerCredential:
 		Result = EOnJoinSessionCompleteResult::CouldNotRetrieveAddress;
 		break;
 

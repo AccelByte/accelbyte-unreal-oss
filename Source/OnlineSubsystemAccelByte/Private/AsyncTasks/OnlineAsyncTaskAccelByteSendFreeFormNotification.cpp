@@ -5,6 +5,8 @@
 #include "OnlineAsyncTaskAccelByteSendFreeFormNotification.h"
 #include "OnlineUserInterfaceAccelByte.h"
 
+using namespace AccelByte;
+
 FOnlineAsyncTaskAccelByteSendFreeFormNotification::FOnlineAsyncTaskAccelByteSendFreeFormNotification(FOnlineSubsystemAccelByte* const InABInterface, int32 InLocalUserNum, const FString& InReceiver, const FString& InTopic, const FString& InData)
 	: FOnlineAsyncTaskAccelByte(InABInterface)
 	, Receiver(InReceiver)

@@ -9,7 +9,7 @@
 
 class FOnlineAsyncTaskAccelByteDeleteStatsUsers
 	: public FOnlineAsyncTaskAccelByte
-	, public TSelfPtr<FOnlineAsyncTaskAccelByteDeleteStatsUsers, ESPMode::ThreadSafe>
+	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteDeleteStatsUsers, ESPMode::ThreadSafe>
 {
 public:
 	FOnlineAsyncTaskAccelByteDeleteStatsUsers(FOnlineSubsystemAccelByte *const InABInterface

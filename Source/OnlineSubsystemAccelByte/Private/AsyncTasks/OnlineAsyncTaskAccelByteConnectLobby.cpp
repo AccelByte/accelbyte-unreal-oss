@@ -14,6 +14,8 @@
 #include "OnlineSessionInterfaceV1AccelByte.h"
 #endif
 
+using namespace AccelByte;
+
 #define ONLINE_ERROR_NAMESPACE "FOnlineAccelByteLobbyConnect"
 
 FOnlineAsyncTaskAccelByteConnectLobby::FOnlineAsyncTaskAccelByteConnectLobby(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InLocalUserId)

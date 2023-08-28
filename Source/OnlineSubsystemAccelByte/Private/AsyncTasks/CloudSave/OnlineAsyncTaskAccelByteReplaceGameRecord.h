@@ -11,7 +11,9 @@
 /**
  * Task for replacing game record
  */
-class FOnlineAsyncTaskAccelByteReplaceGameRecord : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteReplaceGameRecord, ESPMode::ThreadSafe>
+class FOnlineAsyncTaskAccelByteReplaceGameRecord
+	: public FOnlineAsyncTaskAccelByte
+	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteReplaceGameRecord, ESPMode::ThreadSafe>
 {
 public:
 	FOnlineAsyncTaskAccelByteReplaceGameRecord(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InLocalUserId, const FString& InKey, const FJsonObject& InGameRecordObj);

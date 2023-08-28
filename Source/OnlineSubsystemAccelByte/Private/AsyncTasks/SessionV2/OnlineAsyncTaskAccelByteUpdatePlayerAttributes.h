@@ -13,7 +13,9 @@
  * Async task for updating player attributes on the session service. Specifically only updates crossplay and data
  * attributes for the player.
  */
-class FOnlineAsyncTaskAccelByteUpdatePlayerAttributes : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteUpdatePlayerAttributes, ESPMode::ThreadSafe>
+class FOnlineAsyncTaskAccelByteUpdatePlayerAttributes
+	: public FOnlineAsyncTaskAccelByte
+	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteUpdatePlayerAttributes, ESPMode::ThreadSafe>
 {
 public:
 

@@ -8,7 +8,9 @@
 #include "OnlineSubsystemAccelByteTypes.h"
 #include "OnlineSessionInterfaceV2AccelByte.h"
 
-class FOnlineAsyncTaskAccelByteServerQueryGameSessionsV2  : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteServerQueryGameSessionsV2, ESPMode::ThreadSafe>
+class FOnlineAsyncTaskAccelByteServerQueryGameSessionsV2
+	: public FOnlineAsyncTaskAccelByte
+	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteServerQueryGameSessionsV2, ESPMode::ThreadSafe>
 {
 public:
 	FOnlineAsyncTaskAccelByteServerQueryGameSessionsV2(FOnlineSubsystemAccelByte* const InABInterface,

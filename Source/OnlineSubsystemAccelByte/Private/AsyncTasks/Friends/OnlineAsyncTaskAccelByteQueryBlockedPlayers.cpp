@@ -8,6 +8,8 @@
 #include "Api/AccelByteUserApi.h"
 #include <OnlineFriendsInterfaceAccelByte.h>
 
+using namespace AccelByte;
+
 FOnlineAsyncTaskAccelByteQueryBlockedPlayers::FOnlineAsyncTaskAccelByteQueryBlockedPlayers(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InUserId)
 	: FOnlineAsyncTaskAccelByte(InABInterface)
 {

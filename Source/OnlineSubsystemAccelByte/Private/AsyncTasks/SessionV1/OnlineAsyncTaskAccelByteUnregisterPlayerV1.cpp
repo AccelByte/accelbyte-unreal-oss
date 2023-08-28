@@ -8,6 +8,8 @@
 #include "OnlineSubsystemAccelByteUtils.h"
 #include "Core/AccelByteRegistry.h"
 
+using namespace AccelByte;
+
 FOnlineAsyncTaskAccelByteUnregisterPlayersV1::FOnlineAsyncTaskAccelByteUnregisterPlayersV1(FOnlineSubsystemAccelByte* const InABInterface, const FName& InSessionName, const TArray<TSharedRef<const FUniqueNetId>>& InPlayers)
 	: FOnlineAsyncTaskAccelByte(InABInterface, true)
 	, SessionName(InSessionName)

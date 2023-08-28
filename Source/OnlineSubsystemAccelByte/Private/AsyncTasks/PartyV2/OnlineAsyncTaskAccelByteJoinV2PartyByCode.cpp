@@ -4,6 +4,8 @@
 
 #include "OnlineAsyncTaskAccelByteJoinV2PartyByCode.h"
 
+using namespace AccelByte;
+
 FOnlineAsyncTaskAccelByteJoinV2PartyByCode::FOnlineAsyncTaskAccelByteJoinV2PartyByCode(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InLocalUserId, const FName& InSessionName, const FString& InPartyCode)
 	: FOnlineAsyncTaskAccelByte(InABInterface)
 	, SessionName(InSessionName)

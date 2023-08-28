@@ -4,6 +4,8 @@
 
 #include "OnlineAsyncTaskAccelByteUnregisterLocalServerV2.h"
 
+using namespace AccelByte;
+
 FOnlineAsyncTaskAccelByteUnregisterLocalServerV2::FOnlineAsyncTaskAccelByteUnregisterLocalServerV2(FOnlineSubsystemAccelByte* const InABInterface, const FOnUnregisterServerComplete& InDelegate)
     : FOnlineAsyncTaskAccelByte(InABInterface, INVALID_CONTROLLERID, ASYNC_TASK_FLAG_BIT(EAccelByteAsyncTaskFlags::ServerTask))
     , Delegate(InDelegate)

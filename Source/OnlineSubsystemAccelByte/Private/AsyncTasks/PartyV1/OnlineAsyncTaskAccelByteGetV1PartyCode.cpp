@@ -6,6 +6,8 @@
 #include "OnlineSubsystemAccelByteUtils.h"
 #include "OnlineUserInterfaceAccelByte.h"
 
+using namespace AccelByte;
+
 FOnlineAsyncTaskAccelByteGetV1PartyCode::FOnlineAsyncTaskAccelByteGetV1PartyCode(FOnlineSubsystemAccelByte* const InABInterface, const TSharedRef<const FUniqueNetIdAccelByteUser>& InUserId, const FString& InPartyId, const FOnPartyCodeGenerated& InDelegate)
 	: FOnlineAsyncTaskAccelByte(InABInterface, true),
 	PartyId(InPartyId),

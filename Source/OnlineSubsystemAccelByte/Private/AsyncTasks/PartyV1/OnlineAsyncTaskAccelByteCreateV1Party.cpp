@@ -9,6 +9,8 @@
 #include "Core/AccelByteRegistry.h"
 #include "Api/AccelByteLobbyApi.h"
 
+using namespace AccelByte;
+
 FOnlineAsyncTaskAccelByteCreateV1Party::FOnlineAsyncTaskAccelByteCreateV1Party(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InLocalUserId, const FOnlinePartyTypeId InPartyTypeId, const FPartyConfiguration& InPartyConfig, const FOnCreatePartyComplete& InDelegate)
 	: FOnlineAsyncTaskAccelByte(InABInterface)
 	, PartyTypeId(InPartyTypeId)

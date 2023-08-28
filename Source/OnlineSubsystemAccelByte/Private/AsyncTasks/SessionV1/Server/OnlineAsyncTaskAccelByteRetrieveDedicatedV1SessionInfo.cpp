@@ -8,6 +8,8 @@
 #include "Core/AccelByteRegistry.h"
 #include "Models/AccelByteDSMModels.h"
 
+using namespace AccelByte;
+
 FOnlineAsyncTaskAccelByteRetrieveDedicatedV1SessionInfo::FOnlineAsyncTaskAccelByteRetrieveDedicatedV1SessionInfo(FOnlineSubsystemAccelByte* const InABInterface, FName InSessionName, const FOnQueryDedicatedSessionInfoComplete& InDelegate)
 	: FOnlineAsyncTaskAccelByte(InABInterface)
 	, SessionName(InSessionName)

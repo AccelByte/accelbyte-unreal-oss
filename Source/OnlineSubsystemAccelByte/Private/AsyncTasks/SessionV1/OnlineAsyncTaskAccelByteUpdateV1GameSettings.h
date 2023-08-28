@@ -12,7 +12,9 @@
 /**
  * Async task to update dedicated or P2P game settings through the SessionBrowser APIs.
  */
-class FOnlineAsyncTaskAccelByteUpdateV1GameSettings : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteUpdateV1GameSettings, ESPMode::ThreadSafe>
+class FOnlineAsyncTaskAccelByteUpdateV1GameSettings
+	: public FOnlineAsyncTaskAccelByte
+	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteUpdateV1GameSettings, ESPMode::ThreadSafe>
 {
 public:
 

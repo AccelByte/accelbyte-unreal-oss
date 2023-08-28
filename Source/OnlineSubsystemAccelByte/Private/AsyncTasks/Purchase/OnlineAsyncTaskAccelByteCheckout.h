@@ -7,7 +7,9 @@
 #include "AsyncTasks/OnlineAsyncTaskAccelByteUtils.h"
 #include "Interfaces/OnlinePurchaseInterface.h"
 
-class FOnlineAsyncTaskAccelByteCheckout : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteCheckout, ESPMode::ThreadSafe>
+class FOnlineAsyncTaskAccelByteCheckout
+	: public FOnlineAsyncTaskAccelByte
+	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteCheckout, ESPMode::ThreadSafe>
 {
 public:
 	FOnlineAsyncTaskAccelByteCheckout(FOnlineSubsystemAccelByte* const InABSubsystem, const FUniqueNetId& InUserId, const FPurchaseCheckoutRequest& InCheckoutRequest, const FOnPurchaseCheckoutComplete& InDelegate);

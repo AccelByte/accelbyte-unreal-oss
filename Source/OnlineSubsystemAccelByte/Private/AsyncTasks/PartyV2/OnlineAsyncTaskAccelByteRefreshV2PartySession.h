@@ -12,7 +12,9 @@
 /**
  * Async task to refresh local party session data with data from the backend
  */
-class FOnlineAsyncTaskAccelByteRefreshV2PartySession : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteRefreshV2PartySession, ESPMode::ThreadSafe>
+class FOnlineAsyncTaskAccelByteRefreshV2PartySession
+	: public FOnlineAsyncTaskAccelByte
+	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteRefreshV2PartySession, ESPMode::ThreadSafe>
 {
 public:
 

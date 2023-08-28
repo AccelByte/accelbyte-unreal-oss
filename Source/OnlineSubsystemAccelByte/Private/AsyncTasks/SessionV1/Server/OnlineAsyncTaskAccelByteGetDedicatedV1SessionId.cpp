@@ -8,6 +8,8 @@
 #include "Core/AccelByteRegistry.h"
 #include "GameServerApi/AccelByteServerDSMApi.h"
 
+using namespace AccelByte;
+
 FOnlineAsyncTaskAccelByteGetDedicatedV1SessionId::FOnlineAsyncTaskAccelByteGetDedicatedV1SessionId(FOnlineSubsystemAccelByte* const InABInterface, const FName& InSessionName)
 	: FOnlineAsyncTaskAccelByte(InABInterface)
 	, SessionName(InSessionName)

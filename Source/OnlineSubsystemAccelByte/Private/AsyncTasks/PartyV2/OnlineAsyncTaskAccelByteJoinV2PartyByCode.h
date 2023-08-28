@@ -11,7 +11,9 @@
 /**
  * Attempt to join a party session using a code. Will pass to the regular join party endpoint if successful.
  */
-class FOnlineAsyncTaskAccelByteJoinV2PartyByCode : public FOnlineAsyncTaskAccelByte, public TSelfPtr<FOnlineAsyncTaskAccelByteJoinV2PartyByCode, ESPMode::ThreadSafe>
+class FOnlineAsyncTaskAccelByteJoinV2PartyByCode
+	: public FOnlineAsyncTaskAccelByte
+	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteJoinV2PartyByCode, ESPMode::ThreadSafe>
 {
 public:
 

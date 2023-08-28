@@ -7,6 +7,8 @@
 #include "OnlineSessionSettingsAccelByte.h"
 #include "OnlineSubsystemAccelByteSessionSettings.h"
 
+using namespace AccelByte;
+
 EAccelByteV2SessionQueryComparisonOp OSSComparisonOpToAccelByteOp(const EOnlineComparisonOp::Type& OssOp)
 {
 	switch (OssOp)
