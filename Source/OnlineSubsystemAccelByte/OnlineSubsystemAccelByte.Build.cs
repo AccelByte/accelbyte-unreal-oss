@@ -25,7 +25,11 @@ public class OnlineSubsystemAccelByte : ModuleRules
 		PrivateDefinitions.Add("ONLINESUBSYSTEMACCELBYTE_PACKAGE=1");
 		
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
+#if UE_5_2_OR_LATER
+		IWYUSupport = IWYUSupport.Full;
+#else
 		bEnforceIWYU = true;
+#endif
 		bAllowConfidentialPlatformDefines = true;
 
 		PrivateIncludePaths.Add(Path.Combine(ModuleDirectory, "Private"));

@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.11.20](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.11.20%0D0.11.19) (2023-09-08)
+
+
+### Bug Fixes
+
+* deprecation warning for IWYU support in Unreal Engine 5.2 ([03800e7](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/03800e74dfb99c8c3e68c5d5b631f0d814ec2357))
+
 ### [0.11.19](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.11.19%0D0.11.18) (2023-08-28)
 
 
