@@ -749,7 +749,10 @@ void FOnlinePartySystemAccelByte::OnReceivedPartyInviteNotification(const FAccel
 {
 	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("UserId: %s; PartyId: %s; Inviter: %s"), *UserId->ToDebugString(), *Notification.PartyId, *Notification.From);
 
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGetV1PartyInviteInfo>(AccelByteSubsystem, UserId, Notification);
+	FOnlineAsyncTaskInfo TaskInfo;
+	TaskInfo.bCreateEpicForThis = true;
+	TaskInfo.Type = ETypeOfOnlineAsyncTask::Parallel;
+	AccelByteSubsystem->CreateAndDispatchAsyncTask<FOnlineAsyncTaskAccelByteGetV1PartyInviteInfo>(TaskInfo, AccelByteSubsystem, UserId, Notification);
 
 	UE_LOG(LogAccelByteOSSParty, Verbose, TEXT("Invite to party '%s' recieved from user '%s'!"), *Notification.PartyId, *Notification.From)
 
@@ -794,7 +797,10 @@ void FOnlinePartySystemAccelByte::OnPartyJoinNotification(const FAccelByteModels
 	TSharedPtr<FOnlinePartyAccelByte> Party = GetFirstPartyForUser(UserId);
 	if (Party.IsValid())
 	{
-		AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteAddJoinedV1PartyMember>(AccelByteSubsystem, UserId, Party.ToSharedRef(), Notification.UserId);
+		FOnlineAsyncTaskInfo TaskInfo;
+		TaskInfo.bCreateEpicForThis = true;
+		TaskInfo.Type = ETypeOfOnlineAsyncTask::Parallel;
+		AccelByteSubsystem->CreateAndDispatchAsyncTask<FOnlineAsyncTaskAccelByteAddJoinedV1PartyMember>(TaskInfo, AccelByteSubsystem, UserId, Party.ToSharedRef(), Notification.UserId);
 	}
 	else
 	{
@@ -807,7 +813,10 @@ void FOnlinePartySystemAccelByte::OnPartyJoinNotification(const FAccelByteModels
 			TSharedPtr<FOnlinePartyAccelByte> Party = GetFirstPartyForUser(UserId);
 			if (Party.IsValid())
 			{
-				AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteAddJoinedV1PartyMember>(AccelByteSubsystem, UserId, Party.ToSharedRef(), JoinedUserId);
+				FOnlineAsyncTaskInfo TaskInfo;
+				TaskInfo.bCreateEpicForThis = true;
+				TaskInfo.Type = ETypeOfOnlineAsyncTask::Parallel;
+				AccelByteSubsystem->CreateAndDispatchAsyncTask<FOnlineAsyncTaskAccelByteAddJoinedV1PartyMember>(TaskInfo, AccelByteSubsystem, UserId, Party.ToSharedRef(), JoinedUserId);
 			}
 			else
 			{
@@ -1427,11 +1436,15 @@ void FOnlinePartySystemAccelByte::RestoreParties(const FUniqueNetId& LocalUserId
 		return;
 	}
 
+
+	FOnlineAsyncTaskInfo TaskInfo;
+	TaskInfo.bCreateEpicForThis = true;
+	TaskInfo.Type = ETypeOfOnlineAsyncTask::Parallel;
 	// Note that this functionality really doesn't restore any party information on the backend, as that is not supported.
 	// Rather, if you have not toggled "Auto Kick on Disconnect" on in the Lobby configuration in the admin portal, you will
 	// still be in a party by this point, meaning that we can just send off a task to get party information when this is
 	// called in an attempt to "restore" our party.
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteRestoreV1Parties>(AccelByteSubsystem, LocalUserId, CompletionDelegate);
+	AccelByteSubsystem->CreateAndDispatchAsyncTask<FOnlineAsyncTaskAccelByteRestoreV1Parties>(TaskInfo, AccelByteSubsystem, LocalUserId, CompletionDelegate);
 }
 
 void FOnlinePartySystemAccelByte::RestoreInvites(const FUniqueNetId& LocalUserId, const FOnRestoreInvitesComplete& CompletionDelegate)
@@ -1513,7 +1526,10 @@ bool FOnlinePartySystemAccelByte::JoinParty(const FUniqueNetId& LocalUserId, con
 		return false;
 	}
 
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteJoinV1Party>(AccelByteSubsystem, LocalUserId, OnlinePartyJoinInfo, Delegate);
+	FOnlineAsyncTaskInfo TaskInfo;
+	TaskInfo.bCreateEpicForThis = true;
+	TaskInfo.Type = ETypeOfOnlineAsyncTask::Parallel;
+	AccelByteSubsystem->CreateAndDispatchAsyncTask<FOnlineAsyncTaskAccelByteJoinV1Party>(TaskInfo, AccelByteSubsystem, LocalUserId, OnlinePartyJoinInfo, Delegate);
 	return true;
 }
 
@@ -1524,7 +1540,10 @@ bool FOnlinePartySystemAccelByte::JoinParty(const FUniqueNetId& LocalUserId, con
 		return false;
 	}
 
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteJoinV1Party>(AccelByteSubsystem, LocalUserId, InPartyCode, Delegate);
+	FOnlineAsyncTaskInfo TaskInfo;
+	TaskInfo.bCreateEpicForThis = true;
+	TaskInfo.Type = ETypeOfOnlineAsyncTask::Parallel;
+	AccelByteSubsystem->CreateAndDispatchAsyncTask<FOnlineAsyncTaskAccelByteJoinV1Party>(TaskInfo, AccelByteSubsystem, LocalUserId, InPartyCode, Delegate);
 	return true;
 }
 

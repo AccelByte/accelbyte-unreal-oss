@@ -2,6 +2,28 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.11.21](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.11.21%0D0.11.20) (2023-09-11)
+
+
+### Features
+
+* **accelByteSubsystem:** init localUserNumCached to -1 before no one login, set localUserNumCached after successfully logged in as server, reset it to -1 when user logged out ([91053ce](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/91053cea18f83122df556d48173489a4c039cecd))
+* add FOnlineSessionV2AccelByte::ContainedMember to check if a player is a session member in DS ([6f7eacd](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/6f7eacdc5c49054b6a89c89991dab0a77ceedef4))
+* add predefined event interface ([5f40f14](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/5f40f1432ad51db65ee370da7a792da2de046f6c))
+* **MPv2:** implement session storage for leader and member ([267a6d6](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/267a6d667f3c80c78f30ddf39c010169d1707b50))
+* **predefinedEvent:** send event payload for sdkInitialized, LoginSucceded, LoginFailed, AgreementNotAccepted, AgreementAccepted ([f7a4e35](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/f7a4e35a785ba4e118d48232320465144c430117))
+
+
+### Bug Fixes
+
+* move commit hash of sdk ([bc8198c](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/bc8198c9a14b9f62a54ef36af9168fbfb128ca87))
+* **Statistics:** Change the flow after updating multiple stat item ([4322d73](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/4322d73a83c27a50e37bf7c93775ac14dc73a4c4))
+
+
+### Refactors
+
+* renamed FOnlineSessionV2AccelByte::ContainedMember to SessionContainsMember ([0ab7f4c](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/0ab7f4cc724a938e92babee3ec24414568cb1be2))
+
 ### [0.11.20](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.11.20%0D0.11.19) (2023-09-08)
 
 

@@ -77,9 +77,12 @@ bool FOnlineAsyncTaskAccelByteSyncThirPartyFriend::QueryNativeFriendList()
 		return false;
 	}
 
-	NativeFriendInterface->ReadFriendsList(LocalUserNum, NativeFriendListName, FOnReadFriendsListComplete::CreateLambda([this](int32 InLocalUserNum, bool bInWasSuccessful, const FString& InListName, const FString& ErrorMessage)
+	Super::ExecuteCriticalSectionAction(FVoidHandler::CreateLambda([&]()
 	{
-		OnReadNativeFriendListComplete(InLocalUserNum, bInWasSuccessful, InListName, ErrorMessage);
+		NativeFriendInterface->ReadFriendsList(LocalUserNum, NativeFriendListName, FOnReadFriendsListComplete::CreateLambda([this](int32 InLocalUserNum, bool bInWasSuccessful, const FString& InListName, const FString& ErrorMessage)
+		{
+			OnReadNativeFriendListComplete(InLocalUserNum, bInWasSuccessful, InListName, ErrorMessage);
+		}));
 	}));
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

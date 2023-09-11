@@ -50,10 +50,13 @@ void FOnlineAsyncTaskAccelByteQueryV1PartyInfo::Initialize()
 	DailyPlayStreakQueriesRemaining.Set(Members.Num());
 	RanksQueriesRemaining.Set(Members.Num());
 
-	// Finally, we want to send a request to get party storage for this party, so that we can save it to party data
-	const AccelByte::Api::Lobby::FPartyDataUpdateNotif OnGetPartyStorageSuccessDelegate = TDelegateUtils<AccelByte::Api::Lobby::FPartyDataUpdateNotif>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryV1PartyInfo::OnGetPartyStorageSuccess);
-	const FErrorHandler OnGetPartyStorageErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryV1PartyInfo::OnGetPartyStorageError);
-	ApiClient->Lobby.GetPartyStorage(PartyId, OnGetPartyStorageSuccessDelegate, OnGetPartyStorageErrorDelegate);
+	Super::ExecuteCriticalSectionAction(FVoidHandler::CreateLambda([&]()
+	{
+		// Finally, we want to send a request to get party storage for this party, so that we can save it to party data
+		const AccelByte::Api::Lobby::FPartyDataUpdateNotif OnGetPartyStorageSuccessDelegate = TDelegateUtils<AccelByte::Api::Lobby::FPartyDataUpdateNotif>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryV1PartyInfo::OnGetPartyStorageSuccess);
+		const FErrorHandler OnGetPartyStorageErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryV1PartyInfo::OnGetPartyStorageError);
+		ApiClient->Lobby.GetPartyStorage(PartyId, OnGetPartyStorageSuccessDelegate, OnGetPartyStorageErrorDelegate);
+	}));
 
     AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }

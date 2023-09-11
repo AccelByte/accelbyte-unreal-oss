@@ -30,8 +30,11 @@ void FOnlineAsyncTaskAccelByteGetV1PartyInviteInfo::Initialize()
 		return;
 	}
 
-	FOnQueryUsersComplete OnQueryNotificationSenderCompleteDelegate = TDelegateUtils<FOnQueryUsersComplete>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteGetV1PartyInviteInfo::OnQueryNotificationSenderComplete);
-	UserStore->QueryUsersByAccelByteIds(LocalUserNum, { Notification.From }, OnQueryNotificationSenderCompleteDelegate, true);
+	Super::ExecuteCriticalSectionAction(FVoidHandler::CreateLambda([&]()
+	{
+		FOnQueryUsersComplete OnQueryNotificationSenderCompleteDelegate = TDelegateUtils<FOnQueryUsersComplete>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteGetV1PartyInviteInfo::OnQueryNotificationSenderComplete);
+		UserStore->QueryUsersByAccelByteIds(LocalUserNum, { Notification.From }, OnQueryNotificationSenderCompleteDelegate, true);
+	}));
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }

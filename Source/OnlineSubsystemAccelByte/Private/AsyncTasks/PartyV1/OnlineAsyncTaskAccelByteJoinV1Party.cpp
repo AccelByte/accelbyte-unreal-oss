@@ -217,8 +217,11 @@ void FOnlineAsyncTaskAccelByteJoinV1Party::OnJoinPartyResponse(const FAccelByteM
 	// Set the party info member to be that of the result that we got from the backend
 	PartyInfo = Result;
 
-	FOnQueryPartyInfoComplete OnQueryPartyInfoCompleteDelegate = TDelegateUtils<FOnQueryPartyInfoComplete>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteJoinV1Party::OnQueryPartyInfoComplete);
-	Subsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteQueryV1PartyInfo>(Subsystem, UserId.ToSharedRef().Get(), Result.PartyId, Result.Members, OnQueryPartyInfoCompleteDelegate);
+	Super::ExecuteCriticalSectionAction(FVoidHandler::CreateLambda([&]()
+		{
+		FOnQueryPartyInfoComplete OnQueryPartyInfoCompleteDelegate = TDelegateUtils<FOnQueryPartyInfoComplete>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteJoinV1Party::OnQueryPartyInfoComplete);
+		Subsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteQueryV1PartyInfo>(Subsystem, UserId.ToSharedRef().Get(), Result.PartyId, Result.Members, OnQueryPartyInfoCompleteDelegate);
+		}));
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }

@@ -43,6 +43,7 @@ void FOnlineAsyncTaskAccelByteLoginServer::Finalize()
         }
 
         IdentityInterface->AddAuthenticatedServer(LocalUserNum);
+        Subsystem->SetLocalUserNumCached(LocalUserNum);
     }
 
     AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

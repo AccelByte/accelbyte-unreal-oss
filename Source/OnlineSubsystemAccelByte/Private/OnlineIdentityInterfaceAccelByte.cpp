@@ -642,6 +642,10 @@ void FOnlineIdentityAccelByte::RemoveUserFromMappings(const int32 LocalUserNum)
 		AccelByte::FMultiRegistry::RemoveApiClient(AccelByteUser->GetAccelByteId());
 		NetIdToLocalUserNumMap.Remove(*UniqueId);
 		NetIdToOnlineAccountMap.Remove(*UniqueId);
+		if (AccelByteSubsystem->GetLocalUserNumCached() == LocalUserNum)
+		{
+			AccelByteSubsystem->ResetLocalUserNumCached();
+		}
 		LocalUserNumToNetIdMap.Remove(LocalUserNum);
 	}
 }
@@ -651,6 +655,7 @@ void FOnlineIdentityAccelByte::OnGetNativeUserPrivilegeComplete(const FUniqueNet
 	OriginalDelegate.ExecuteIfBound(AccelByteId.Get(), Privilege, PrivilegeResults);
 }
 
+#define ONLINE_ERROR_NAMESPACE "FOnlineAccelByteLogin"
 void FOnlineIdentityAccelByte::OnAuthenticateAccelByteServerSuccess(int32 LocalUserNum)
 {
 	for (FOnAuthenticateServerComplete& Delegate : ServerAuthDelegates)
@@ -664,6 +669,11 @@ void FOnlineIdentityAccelByte::OnAuthenticateAccelByteServerSuccess(int32 LocalU
 	// #TODO (Maxwell): This is some super nasty code to avoid duplicate server authentication, again this should just be apart of AutoLogin...
 	bIsAuthenticatingServer = false;
 	bIsServerAuthenticated = true;
+
+	AccelByteSubsystem->SetLocalUserNumCached(LocalUserNum);
+
+	TriggerOnLoginCompleteDelegates(LocalUserNum, true, FUniqueNetIdAccelByteUser::Invalid().Get(), TEXT(""));
+	TriggerAccelByteOnLoginCompleteDelegates(LocalUserNum, true, FUniqueNetIdAccelByteUser::Invalid().Get(), ONLINE_ERROR_ACCELBYTE(TEXT(""), EOnlineErrorResult::Success));
 }
 
 void FOnlineIdentityAccelByte::OnAuthenticateAccelByteServerError(int32 ErrorCode, const FString& ErrorMessage)
@@ -681,6 +691,7 @@ void FOnlineIdentityAccelByte::OnAuthenticateAccelByteServerError(int32 ErrorCod
 	bIsAuthenticatingServer = false;
 	bIsServerAuthenticated = false;
 }
+#undef ONLINE_ERROR_NAMESPACE
 
 bool FOnlineIdentityAccelByte::IsLogoutRequired(int32 StatusCode)
 {

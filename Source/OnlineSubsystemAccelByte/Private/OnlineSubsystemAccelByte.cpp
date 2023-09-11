@@ -25,6 +25,7 @@
 #include "OnlineAuthInterfaceAccelByte.h"
 #include "OnlineSubsystemAccelByteModule.h"
 #include "OnlineVoiceInterfaceAccelByte.h"
+#include "OnlinePredefinedEventInterfaceAccelByte.h"
 #include "AsyncTasks/OnlineAsyncTaskAccelByte.h"
 #include "AsyncTasks/OnlineAsyncEpicTaskAccelByte.h"
 #include "Api/AccelByteLobbyApi.h"
@@ -37,6 +38,7 @@
 #include "Core/AccelByteRegistry.h"
 #include "Models/AccelByteUserModels.h"
 //~ End AccelByte Peer to Peer Includes
+#include "Interfaces/IPluginManager.h"
 
 #if WITH_DEV_AUTOMATION_TESTS
 #include "ExecTests/ExecTestBase.h"
@@ -81,6 +83,7 @@ bool FOnlineSubsystemAccelByte::Init()
 	AchievementInterface = MakeShared<FOnlineAchievementsAccelByte, ESPMode::ThreadSafe>(this);
 	VoiceInterface = MakeShared<FOnlineVoiceAccelByte, ESPMode::ThreadSafe>(this);
 	VoiceChatInterface = MakeShared<FAccelByteVoiceChat, ESPMode::ThreadSafe>(this);
+	PredefinedEventInterface = MakeShared<FOnlinePredefinedEventAccelByte, ESPMode::ThreadSafe>(this);
 	
 	// Create an async task manager and a thread for the manager to process tasks on
 	AsyncTaskManager = MakeShared<FOnlineAsyncTaskManagerAccelByte, ESPMode::ThreadSafe>(this);
@@ -98,7 +101,9 @@ bool FOnlineSubsystemAccelByte::Init()
 	GConfig->GetBool(TEXT("OnlineSubsystemAccelByte"), TEXT("bAutoChatConnectAfterLoginSuccess"), bIsAutoChatConnectAfterLoginSuccess, GEngineIni);
 
 	GConfig->GetBool(TEXT("OnlineSubsystemAccelByte"), TEXT("bMultipleLocalUsersEnabled"), bIsMultipleLocalUsersEnabled, GEngineIni);
-	
+
+	PluginInitializedTime = FDateTime::UtcNow();
+
 	return true;
 }
 
@@ -168,6 +173,7 @@ bool FOnlineSubsystemAccelByte::Shutdown()
 	AchievementInterface.Reset();
 	VoiceInterface.Reset();
 	VoiceChatInterface.Reset();
+	PredefinedEventInterface.Reset();
 	
 	return true;
 }
@@ -316,6 +322,11 @@ IVoiceChatPtr FOnlineSubsystemAccelByte::GetVoiceChatInterface()
 	return VoiceChatInterface;
 }
 
+FOnlinePredefinedEventAccelBytePtr FOnlineSubsystemAccelByte::GetPredefinedEventInterface() const
+{
+	return PredefinedEventInterface;
+}
+
 #if (ENGINE_MAJOR_VERSION == 4 && ENGINE_MINOR_VERSION <= 25)
 IOnlineTurnBasedPtr FOnlineSubsystemAccelByte::GetTurnBasedInterface() const
 {
@@ -341,6 +352,11 @@ bool FOnlineSubsystemAccelByte::IsAutoConnectChat() const
 bool FOnlineSubsystemAccelByte::IsMultipleLocalUsersEnabled() const
 {
 	return bIsMultipleLocalUsersEnabled;
+}
+
+bool FOnlineSubsystemAccelByte::IsLocalUserNumCached() const
+{
+	return bIsLocalUserNumCached;
 }
 
 bool FOnlineSubsystemAccelByte::Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar)
@@ -693,12 +709,15 @@ void FOnlineSubsystemAccelByte::OnLobbyConnectedCallback(int32 LocalUserNum, boo
 {
 	AccelByte::FApiClientPtr ApiClient = GetApiClient(LocalUserNum);
 	
-	auto OnLobbyConnectionClosedDelegate = AccelByte::Api::Lobby::FConnectionClosed::CreateThreadSafeSP(AsShared(), &FOnlineSubsystemAccelByte::OnLobbyConnectionClosed, LocalUserNum);
-	ApiClient->Lobby.SetConnectionClosedDelegate(OnLobbyConnectionClosedDelegate);
-	
-	// #NOTE (Wiwing): Overwrite connect Lobby success delegate for reconnection
-	auto OnLobbyReconnectionDelegate = Api::Lobby::FConnectSuccess::CreateThreadSafeSP(AsShared(), &FOnlineSubsystemAccelByte::OnLobbyReconnected, LocalUserNum);
-	ApiClient->Lobby.SetConnectSuccessDelegate(OnLobbyReconnectionDelegate);
+	if (ApiClient.IsValid())
+	{
+		auto OnLobbyConnectionClosedDelegate = AccelByte::Api::Lobby::FConnectionClosed::CreateThreadSafeSP(AsShared(), &FOnlineSubsystemAccelByte::OnLobbyConnectionClosed, LocalUserNum);
+		ApiClient->Lobby.SetConnectionClosedDelegate(OnLobbyConnectionClosedDelegate);
+
+		// #NOTE (Wiwing): Overwrite connect Lobby success delegate for reconnection
+		auto OnLobbyReconnectionDelegate = Api::Lobby::FConnectSuccess::CreateThreadSafeSP(AsShared(), &FOnlineSubsystemAccelByte::OnLobbyReconnected, LocalUserNum);
+		ApiClient->Lobby.SetConnectSuccessDelegate(OnLobbyReconnectionDelegate);
+	}
 }
 
 
@@ -773,13 +792,29 @@ void FOnlineSubsystemAccelByte::OnLobbyReconnected(int32 InLocalUserNum)
 #endif
 }
 
+void FOnlineSubsystemAccelByte::ResetLocalUserNumCached()
+{
+	FScopeLock ScopeLock(&LocalUserNumCachedLock);
+	LocalUserNumCached = -1;
+	bIsLocalUserNumCached = false;
+}
+
 void FOnlineSubsystemAccelByte::SetLocalUserNumCached(int32 InLocalUserNum)
 {
+	FScopeLock ScopeLock(&LocalUserNumCachedLock);
 	LocalUserNumCached = InLocalUserNum;
+	bIsLocalUserNumCached = true;
+	OnLocalUserNumCachedDelegate.Broadcast();
+	if (!bIsInitializedEventSent)
+	{
+		SendInitializedEvent();
+		bIsInitializedEventSent = true;
+	}
 }
 
 int32 FOnlineSubsystemAccelByte::GetLocalUserNumCached()
 {
+	FScopeLock ScopeLock(&LocalUserNumCachedLock);
 	return LocalUserNumCached;
 }
 
@@ -833,6 +868,30 @@ FString FOnlineSubsystemAccelByte::GetLanguage()
 void FOnlineSubsystemAccelByte::SetLanguage(const FString& InLanguage)
 {
 	Language = InLanguage;
+}
+
+void FOnlineSubsystemAccelByte::SendInitializedEvent()
+{
+	FAccelByteModelsSDKInitializedPayload SDKInitializedPayload{};
+	for (const auto& AccelBytePlugin : AccelBytePluginList)
+	{
+		const TSharedPtr<IPlugin> Plugin = IPluginManager::Get().FindPlugin(AccelBytePlugin);
+
+		if (Plugin.IsValid())
+		{
+			FAccelByteModelsPluginInfo PluginInfo{};
+			PluginInfo.Name = AccelBytePlugin;
+			PluginInfo.Version = Plugin->GetDescriptor().VersionName;
+			SDKInitializedPayload.Plugins.Add(PluginInfo);
+		}
+	}
+
+	PredefinedEventInterface->SendEvent(LocalUserNumCached, MakeShared<FAccelByteModelsSDKInitializedPayload>(SDKInitializedPayload), PluginInitializedTime);
+}
+
+FOnlineSubsystemAccelByte::FOnLocalUserNumCachedDelegate& FOnlineSubsystemAccelByte::OnLocalUserNumCached()
+{
+	return OnLocalUserNumCachedDelegate;
 }
 
 void FOnlineSubsystemAccelByte::AddTaskToOutQueue(FOnlineAsyncTaskAccelByte* Task)

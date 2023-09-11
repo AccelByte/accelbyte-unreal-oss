@@ -102,6 +102,21 @@ public:
 	 */
 	bool ContainsMember(const FUniqueNetId& MemberId);
 
+	/** Set session leader storage. */
+	void SetSessionLeaderStorage(const FJsonObjectWrapper& Data);
+
+	/** Set session member storage. */
+	void SetSessionMemberStorage(const FUniqueNetIdRef& UserId, const FJsonObjectWrapper& Data);
+
+	/** Get session leader storage. */
+	bool GetSessionLeaderStorage(FJsonObjectWrapper& OutStorage) const;
+
+	/** Get session member storage. */
+	bool GetSessionMemberStorage(const FUniqueNetIdRef& UserId, FJsonObjectWrapper& OutStorage) const;
+
+	/** Get all session member storage. */
+	bool GetAllSessionMemberStorage(TUniqueNetIdMap<FJsonObjectWrapper>& OutStorage) const;
+
 PACKAGE_SCOPE:
 	/**
 	 * Update the list of invited players on this session from the backend session data.
@@ -140,7 +155,6 @@ PACKAGE_SCOPE:
 	 * Set the p2p channel for the connection
 	 */
 	void SetP2PChannel(int32 InChannel);
-
 
 	/**
 	 * Check if the session is P2P matchmaking
@@ -213,6 +227,12 @@ private:
 	 * Static cast the given base session pointer to a party session pointer if type is valid
 	 */
 	TSharedPtr<FAccelByteModelsV2PartySession> StaticCastAsPartySession(const TSharedPtr<FAccelByteModelsV2BaseSession>& InBaseSession) const;
+
+	/** Session leader storage. */
+	FJsonObjectWrapper SessionLeaderStorage;
+
+	/** Session members storage. */
+	TUniqueNetIdMap<FJsonObjectWrapper> SessionMembersStorages;
 };
 
 /**
@@ -418,6 +438,12 @@ typedef FOnKickedFromSession::FDelegate FOnKickedFromSessionDelegate;
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnSessionUpdateReceived, FName /*SessionName*/);
 typedef FOnSessionUpdateReceived::FDelegate FOnSessionUpdateReceivedDelegate;
 
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnSessionLeaderStorageUpdateReceived, FName /*SessionName*/);
+typedef FOnSessionLeaderStorageUpdateReceived::FDelegate FOnSessionLeaderStorageUpdateReceivedDelegate;
+
+DECLARE_MULTICAST_DELEGATE_TwoParams(FOnSessionMemberStorageUpdateReceived, FName /*SessionName*/, const FUniqueNetId& /*UpdatedMemberId*/);
+typedef FOnSessionMemberStorageUpdateReceived::FDelegate FOnSessionMemberStorageUpdateReceivedDelegate;
+
 DECLARE_MULTICAST_DELEGATE_TwoParams(FOnSessionUpdateRequestComplete, FName /*SessionName*/, bool /*bWasSuccessful*/);
 typedef FOnSessionUpdateRequestComplete::FDelegate FOnSessionUpdateRequestCompleteDelegate;
 
@@ -447,6 +473,12 @@ typedef FOnPromoteGameSessionLeaderComplete::FDelegate FOnPromoteGameSessionLead
 
 DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnGetMyActiveMatchTicketComplete, bool /*bWasSuccessful*/, FName /*SessionName*/, TSharedPtr<FOnlineSessionSearch>& /*SearchHandler*/);
 typedef FOnGetMyActiveMatchTicketComplete::FDelegate FOnGetMyActiveMatchTicketCompleteDelegate;
+
+DECLARE_MULTICAST_DELEGATE_TwoParams(FOnUpdateSessionLeaderStorageComplete, FName /*SessionName*/, const FOnlineError& /*ErrorInfo*/);
+typedef FOnUpdateSessionLeaderStorageComplete::FDelegate FOnUpdateSessionLeaderStorageCompleteDelegate;
+
+DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnUpdateSessionMemberStorageComplete, FName /*SessionName*/, const FUniqueNetId& /*UpdatedUserId*/, const FOnlineError& /*ErrorInfo*/);
+typedef FOnUpdateSessionMemberStorageComplete::FDelegate FOnUpdateSessionMemberStorageCompleteDelegate;
 
 /**
  * Delegate broadcast when a session that the player is in locally has been removed on the backend. Gives the game an
@@ -816,6 +848,30 @@ public:
 	bool FindPlayerMemberSettings(FOnlineSessionSettings& InSettings, const FUniqueNetId& PlayerId, FSessionSettings& OutMemberSettings) const;
 
 	/**
+	 * Update session leader storage, only session leader that can use this.
+	 * This will overwrite the current session storage if successful.
+	 * Listen to UpdateSessionLeaderStorageComplete event for detailed information if the storage successfully updated in backend.
+	 *
+	 * @param LocalUserId UniqueNetId of user who will perform session leader storage update.
+	 * @param SessionName The name of the session NAME_GameSession or NAME_PartySession.
+	 * @param Data The JSON data for updating the leader storage.
+	 * @return true if it successfully dispatch task to update the leader session storage.
+	 */
+	bool UpdateSessionLeaderStorage(const FUniqueNetId& LocalUserId, FName SessionName, FJsonObjectWrapper const& Data);
+
+	/**
+	 * Update session member storage.
+	 * This will overwrite the current session storage if successful.
+	 * Listen to OnUpdateSessionMemberStorageComplete event for detailed information if the storage successfully updated in backend.
+	 *
+	 * @param LocalUserId UniqueNetId of user who will perform session leader storage update.
+	 * @param SessionName The name of the session NAME_GameSession or NAME_PartySession.
+	 * @param Data The JSON data for updating the member session storage.
+	 * @return true if it successfully dispatch task to update the member session storage.
+	 */
+	bool UpdateSessionMemberStorage(const FUniqueNetId& LocalUserId, FName SessionName, FJsonObjectWrapper const& Data);
+
+	/**
 	 * Query the backend for active matchmaking tickets, Listen to OnGetMyActiveMatchTicketComplete for the result.
 	 * if active ticket is found, it will fill CurrentMatchmakingSearchHandle so ticket can be cancelled with CancelMatchmaking call.
 	 *
@@ -972,6 +1028,26 @@ public:
 	 * Delegate broadcast when another game session member promoted to be a game session leader.
 	 */
 	DEFINE_ONLINE_DELEGATE_TWO_PARAM(OnPromoteGameSessionLeaderComplete, const FUniqueNetId& /*PromotedUserId*/, const FOnlineErrorAccelByte& /*ErrorInfo*/)
+
+	/**
+	 * Delegate fired when session leader storage has received an update
+	 */
+	DEFINE_ONLINE_DELEGATE_ONE_PARAM(OnSessionLeaderStorageUpdateReceived, FName /*SessionName*/);
+
+	/**
+	 * Delegate fired when a session member's storage has received an update
+	 */
+	DEFINE_ONLINE_DELEGATE_TWO_PARAM(OnSessionMemberStorageUpdateReceived, FName /*SessionName*/, const FUniqueNetId& /*UpdatedUserId*/);
+
+	/**
+	 * Delegate fired when session leader storage has received an update
+	 */
+	DEFINE_ONLINE_DELEGATE_TWO_PARAM(OnUpdateSessionLeaderStorageComplete, FName /*SessionName*/, const FOnlineError& /*ErrorInfo*/);
+
+	/**
+	 * Delegate fired when a session member's storage has received an update
+	 */
+	DEFINE_ONLINE_DELEGATE_THREE_PARAM(OnUpdateSessionMemberStorageComplete, FName /*SessionName*/, const FUniqueNetId& /*UpdatedUserId*/, const FOnlineError& /*ErrorInfo*/);
 
 #if (ENGINE_MAJOR_VERSION == 4 && ENGINE_MINOR_VERSION <= 25)
 	/**
@@ -1442,6 +1518,10 @@ private:
 	void OnV2BackfillProposalNotification(const FAccelByteModelsV2MatchmakingBackfillProposalNotif& Notification);
 	void OnV2DsSessionMemberChangedNotification(const FAccelByteModelsV2GameSession& Notification);
 	//~ End Server Notification Handlers
+
+	//~ Begin Session Storage Notification Handler
+	void OnSessionStorageChangedNotification(FAccelByteModelsV2SessionStorageChangedEvent Notification, int32 LocalUserNum);
+	//~ End Session Storage Notification Handler
 
 	void UpdateSessionMembers(FNamedOnlineSession* Session, const TArray<FAccelByteModelsV2SessionUser>& PreviousMembers, const bool bHasInvitedPlayersChanged);
 

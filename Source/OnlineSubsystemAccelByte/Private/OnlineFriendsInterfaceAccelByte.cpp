@@ -205,12 +205,18 @@ void FOnlineFriendsAccelByte::OnFriendRequestAcceptedNotificationReceived(const 
 		}
 		else
 		{
-			AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteAddFriendToList>(AccelByteSubsystem, LocalUserNum, UserId.ToSharedRef().Get(), FriendId.Get(), EInviteStatus::Accepted);
+			FOnlineAsyncTaskInfo TaskInfo;
+			TaskInfo.bCreateEpicForThis = true;
+			TaskInfo.Type = ETypeOfOnlineAsyncTask::Parallel;
+			AccelByteSubsystem->CreateAndDispatchAsyncTask<FOnlineAsyncTaskAccelByteAddFriendToList>(TaskInfo, AccelByteSubsystem, LocalUserNum, UserId.ToSharedRef().Get(), FriendId.Get(), EInviteStatus::Accepted);
 		}
 	}
 	else
 	{
-		AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteAddFriendToList>(AccelByteSubsystem, LocalUserNum, UserId.ToSharedRef().Get(), FriendId.Get(), EInviteStatus::Accepted);
+		FOnlineAsyncTaskInfo TaskInfo;
+		TaskInfo.bCreateEpicForThis = true;
+		TaskInfo.Type = ETypeOfOnlineAsyncTask::Parallel;
+		AccelByteSubsystem->CreateAndDispatchAsyncTask<FOnlineAsyncTaskAccelByteAddFriendToList>(TaskInfo, AccelByteSubsystem, LocalUserNum, UserId.ToSharedRef().Get(), FriendId.Get(), EInviteStatus::Accepted);
 	}
 }
 
@@ -237,7 +243,11 @@ void FOnlineFriendsAccelByte::OnFriendRequestReceivedNotificationReceived(const 
 	FriendCompositeId.Id = Notification.friendId;
 	TSharedRef<const FUniqueNetIdAccelByteUser> FriendId = FUniqueNetIdAccelByteUser::Create(FriendCompositeId);
 
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteAddFriendToList>(AccelByteSubsystem, LocalUserNum, UserId.ToSharedRef().Get(), FriendId.Get(), EInviteStatus::PendingInbound);
+
+	FOnlineAsyncTaskInfo TaskInfo;
+	TaskInfo.bCreateEpicForThis = true;
+	TaskInfo.Type = ETypeOfOnlineAsyncTask::Parallel;
+	AccelByteSubsystem->CreateAndDispatchAsyncTask<FOnlineAsyncTaskAccelByteAddFriendToList>(TaskInfo, AccelByteSubsystem, LocalUserNum, UserId.ToSharedRef().Get(), FriendId.Get(), EInviteStatus::PendingInbound);
 }
 
 void FOnlineFriendsAccelByte::OnUnfriendNotificationReceived(const FAccelByteModelsUnfriendNotif& Notification, int32 LocalUserNum)
@@ -549,7 +559,10 @@ bool FOnlineFriendsAccelByte::GetFromWorld(const UWorld* World, FOnlineFriendsAc
 
 bool FOnlineFriendsAccelByte::ReadFriendsList(int32 LocalUserNum, const FString& ListName, const FOnReadFriendsListComplete& Delegate)
 {
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteReadFriendsList>(AccelByteSubsystem, LocalUserNum, ListName, Delegate);
+	FOnlineAsyncTaskInfo TaskInfo;
+	TaskInfo.bCreateEpicForThis = true;
+	TaskInfo.Type = ETypeOfOnlineAsyncTask::Parallel;
+	AccelByteSubsystem->CreateAndDispatchAsyncTask<FOnlineAsyncTaskAccelByteReadFriendsList>(TaskInfo, AccelByteSubsystem, LocalUserNum, ListName, Delegate);
 	return true;
 }
 
@@ -567,13 +580,19 @@ bool FOnlineFriendsAccelByte::DeleteFriendsList(int32 LocalUserNum, const FStrin
 
 bool FOnlineFriendsAccelByte::SendInvite(int32 LocalUserNum, const FUniqueNetId& FriendId, const FString& ListName, const FOnSendInviteComplete& Delegate)
 {
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteSendFriendInvite>(AccelByteSubsystem, LocalUserNum, FriendId, ListName, Delegate);
+	FOnlineAsyncTaskInfo TaskInfo;
+	TaskInfo.bCreateEpicForThis = true;
+	TaskInfo.Type = ETypeOfOnlineAsyncTask::Parallel;
+	AccelByteSubsystem->CreateAndDispatchAsyncTask<FOnlineAsyncTaskAccelByteSendFriendInvite>(TaskInfo, AccelByteSubsystem, LocalUserNum, FriendId, ListName, Delegate);
 	return true;
 }
 
 bool FOnlineFriendsAccelByte::SendInvite(int32 LocalUserNum, const FString& InFriendCode, const FString& ListName, const FOnSendInviteComplete& Delegate)
 {
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteSendFriendInvite>(AccelByteSubsystem, LocalUserNum, InFriendCode, ListName, Delegate);
+	FOnlineAsyncTaskInfo TaskInfo;
+	TaskInfo.bCreateEpicForThis = true;
+	TaskInfo.Type = ETypeOfOnlineAsyncTask::Parallel;
+	AccelByteSubsystem->CreateAndDispatchAsyncTask<FOnlineAsyncTaskAccelByteSendFriendInvite>(TaskInfo, AccelByteSubsystem, LocalUserNum, InFriendCode, ListName, Delegate);
 	return true;
 }
 
@@ -597,13 +616,20 @@ bool FOnlineFriendsAccelByte::IsPlayerBlocked(const FUniqueNetId& InUserId, cons
 
 bool FOnlineFriendsAccelByte::SyncThirdPartyPlatformFriend(int32 LocalUserNum, const FString& NativeFriendListName, const FString& AccelByteFriendListName)
 {
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteSyncThirPartyFriend>(AccelByteSubsystem, LocalUserNum, NativeFriendListName, AccelByteFriendListName);
+	FOnlineAsyncTaskInfo TaskInfo;
+	TaskInfo.bCreateEpicForThis = true;
+	TaskInfo.Type = ETypeOfOnlineAsyncTask::Parallel;
+	AccelByteSubsystem->CreateAndDispatchAsyncTask<FOnlineAsyncTaskAccelByteSyncThirPartyFriend>(TaskInfo, AccelByteSubsystem, LocalUserNum, NativeFriendListName, AccelByteFriendListName);
 	return true;
 }
 
 bool FOnlineFriendsAccelByte::AcceptInvite(int32 LocalUserNum, const FUniqueNetId& FriendId, const FString& ListName, const FOnAcceptInviteComplete& Delegate)
 {
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteAcceptFriendInvite>(AccelByteSubsystem, LocalUserNum, FriendId, ListName, Delegate);
+	FOnlineAsyncTaskInfo TaskInfo;
+	TaskInfo.bCreateEpicForThis = true;
+	TaskInfo.Type = ETypeOfOnlineAsyncTask::Parallel;
+
+	AccelByteSubsystem->CreateAndDispatchAsyncTask<FOnlineAsyncTaskAccelByteAcceptFriendInvite>(TaskInfo, AccelByteSubsystem, LocalUserNum, FriendId, ListName, Delegate);
 	return true;
 }
 
@@ -648,13 +674,19 @@ void FOnlineFriendsAccelByte::AddRecentPlayers(const FUniqueNetId& UserId, const
 
 bool FOnlineFriendsAccelByte::QueryRecentPlayers(const FUniqueNetId& UserId, const FString& Namespace)
 {
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGetRecentPlayer>(AccelByteSubsystem, UserId, Namespace);
+	FOnlineAsyncTaskInfo TaskInfo;
+	TaskInfo.bCreateEpicForThis = true;
+	TaskInfo.Type = ETypeOfOnlineAsyncTask::Parallel;
+	AccelByteSubsystem->CreateAndDispatchAsyncTask<FOnlineAsyncTaskAccelByteGetRecentPlayer>(TaskInfo, AccelByteSubsystem, UserId, Namespace);
 	return true;
 }
 
 bool FOnlineFriendsAccelByte::BlockPlayer(int32 LocalUserNum, const FUniqueNetId& PlayerId)
 {
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteBlockPlayer>(AccelByteSubsystem, LocalUserNum, PlayerId);
+	FOnlineAsyncTaskInfo TaskInfo;
+	TaskInfo.bCreateEpicForThis = true;
+	TaskInfo.Type = ETypeOfOnlineAsyncTask::Parallel;
+	AccelByteSubsystem->CreateAndDispatchAsyncTask<FOnlineAsyncTaskAccelByteBlockPlayer>(TaskInfo, AccelByteSubsystem, LocalUserNum, PlayerId);
 	return true;
 }
 
@@ -666,7 +698,10 @@ bool FOnlineFriendsAccelByte::UnblockPlayer(int32 LocalUserNum, const FUniqueNet
 
 bool FOnlineFriendsAccelByte::QueryBlockedPlayers(const FUniqueNetId& UserId)
 {
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteQueryBlockedPlayers>(AccelByteSubsystem, UserId);
+	FOnlineAsyncTaskInfo TaskInfo;
+	TaskInfo.bCreateEpicForThis = true;
+	TaskInfo.Type = ETypeOfOnlineAsyncTask::Parallel;
+	AccelByteSubsystem->CreateAndDispatchAsyncTask<FOnlineAsyncTaskAccelByteQueryBlockedPlayers>(TaskInfo, AccelByteSubsystem, UserId);
 	return true;
 }
 

@@ -68,7 +68,7 @@ void FOnlineAsyncTaskAccelByteRedeemCode::HandleRedeemCodeComplete(const FAccelB
 		ReceiptOfferEntry.Namespace = Entitlement.Namespace;
 		ReceiptOfferEntry.OfferId = Entitlement.ItemId;
 		FPurchaseReceipt::FLineItemInfo ItemInfo;
-		ItemInfo.ItemName = Offer.IsValid() ? *Offer->DynamicFields.Find("Name") : TEXT("");
+		ItemInfo.ItemName = Entitlement.Name;
 		ItemInfo.UniqueId = Entitlement.Id;
 		ReceiptOfferEntry.LineItems.Add(ItemInfo);
 
@@ -77,7 +77,7 @@ void FOnlineAsyncTaskAccelByteRedeemCode::HandleRedeemCodeComplete(const FAccelB
 
 	for (const auto& Credit : Result.CreditSummaries)
 	{
-		UE_LOG_AB(Log, TEXT("Credit Redeemed to Wallet! WalletId: %s | Amount: %d"), *Credit.WalletId, Credit.Amount);
+		UE_LOG_AB(Log, TEXT("Credit Redeemed to Wallet! WalletId: %s | Amount: %s %d"), *Credit.WalletId, *Credit.CurrencyCode, Credit.Amount);
 	}
 
 	//Receipt.TransactionId = Result.OrderNo;

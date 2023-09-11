@@ -7,6 +7,7 @@
 #include "AsyncTasks/OnlineAsyncTaskAccelByteUtils.h"
 #include "OnlineSubsystemAccelByteTypes.h"
 #include "Models/AccelByteAgreementModels.h"
+#include "Models/AccelBytePredefinedEventModels.h"
 #include "OnlineIdentityInterfaceAccelByte.h"
 #include "OnlineAgreementInterfaceAccelByte.h"
 
@@ -22,6 +23,7 @@ public:
 	FOnlineAsyncTaskAccelByteQueryEligibilities(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InLocalUserId, bool bInNotAcceptedOnly, bool bInAlwaysRequestToService);
 
 	virtual void Initialize() override;
+	virtual void Finalize() override;
 	virtual void TriggerDelegates() override;
 
 protected:
@@ -59,6 +61,11 @@ private:
 	 * Digit code representing the error that occurred
 	 */
 	int32 ErrorCode;
+
+	/**
+	 * List of documents not yet accepted by user, will be send to the analytics
+	 */
+	FAccelByteModelsUserAgreementNotAcceptedPayload NotAcceptedAgreementPayload{};
 
 	bool bNotAcceptedOnly;
 	bool bAlwaysRequestToService;

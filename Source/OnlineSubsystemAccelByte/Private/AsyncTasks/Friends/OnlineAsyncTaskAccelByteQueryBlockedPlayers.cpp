@@ -79,8 +79,11 @@ void FOnlineAsyncTaskAccelByteQueryBlockedPlayers::OnGetListOfBlockedUsersSucces
 		return;
 	}
 
-	FOnQueryUsersComplete OnQueryBlockedPlayersCompleteDelegate = TDelegateUtils<FOnQueryUsersComplete>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryBlockedPlayers::OnQueryBlockedPlayersComplete);
-	UserStore->QueryUsersByAccelByteIds(UserId.ToSharedRef().Get(), BlockedUserIds, OnQueryBlockedPlayersCompleteDelegate, true);
+	Super::ExecuteCriticalSectionAction(FVoidHandler::CreateLambda([&]()
+	{
+		FOnQueryUsersComplete OnQueryBlockedPlayersCompleteDelegate = TDelegateUtils<FOnQueryUsersComplete>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryBlockedPlayers::OnQueryBlockedPlayersComplete);
+		UserStore->QueryUsersByAccelByteIds(UserId.ToSharedRef().Get(), BlockedUserIds, OnQueryBlockedPlayersCompleteDelegate, true);
+	}));
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sent off %d requests to get information on blocked users."), Result.Data.Num());
 }

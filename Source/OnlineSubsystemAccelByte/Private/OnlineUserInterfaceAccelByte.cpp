@@ -53,6 +53,10 @@ bool FOnlineUserAccelByte::GetFromSubsystem(const IOnlineSubsystem* Subsystem, F
 
 bool FOnlineUserAccelByte::CreateUserProfile(const FUniqueNetId& UserId)
 {
+	if (!UserId.IsValid())
+	{
+		return false;
+	}
 	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("UserId: %s"), *UserId.ToDebugString());
 
 	check(AccelByteSubsystem != nullptr);
@@ -240,11 +244,11 @@ TSharedPtr<const FUniqueNetId> FOnlineUserAccelByte::GetExternalIdMapping(const 
 
 void FOnlineUserAccelByte::PostLoginBulkGetUserProfileCompleted(int32 LocalUserNum, bool bWasSuccessful, const TArray<FUniqueNetIdRef>& UserIds, const FOnlineError& ErrorStr)
 {
-	if (UserIds.Num() == 0)
-	{
-		check(AccelByteSubsystem != nullptr);
+	check(AccelByteSubsystem != nullptr);
 
-		const auto UserId = AccelByteSubsystem->GetIdentityInterface()->GetUniquePlayerId(LocalUserNum);
+	const auto UserId = AccelByteSubsystem->GetIdentityInterface()->GetUniquePlayerId(LocalUserNum);
+	if (UserIds.Num() == 0 && UserId.IsValid())
+	{
 		CreateUserProfile(*UserId.Get());
 	}
 

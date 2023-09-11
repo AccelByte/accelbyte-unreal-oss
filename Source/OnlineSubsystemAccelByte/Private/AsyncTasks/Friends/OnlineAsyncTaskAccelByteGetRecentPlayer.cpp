@@ -82,8 +82,11 @@ void FOnlineAsyncTaskAccelByteGetRecentPlayer::OnGetRecentPlayerSuccess(const FA
 		return;
 	}
 
-	FOnQueryUsersComplete OnQueryRecentPlayersCompleteDelegate = TDelegateUtils<FOnQueryUsersComplete>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteGetRecentPlayer::OnQueryRecentPlayersComplete);
-	UserStore->QueryUsersByAccelByteIds(LocalUserNum, UsersToQuery, OnQueryRecentPlayersCompleteDelegate, true);
+	Super::ExecuteCriticalSectionAction(FVoidHandler::CreateLambda([&]()
+	{
+		FOnQueryUsersComplete OnQueryRecentPlayersCompleteDelegate = TDelegateUtils<FOnQueryUsersComplete>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteGetRecentPlayer::OnQueryRecentPlayersComplete);
+		UserStore->QueryUsersByAccelByteIds(LocalUserNum, UsersToQuery, OnQueryRecentPlayersCompleteDelegate, true);
+	}));
 }
 
 void FOnlineAsyncTaskAccelByteGetRecentPlayer::OnGetRecentPlayerError(int32 ErrorCode, const FString& ErrorMessage)

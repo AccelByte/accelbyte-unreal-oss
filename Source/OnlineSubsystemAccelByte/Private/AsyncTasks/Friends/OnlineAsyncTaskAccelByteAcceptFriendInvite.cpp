@@ -102,7 +102,10 @@ void FOnlineAsyncTaskAccelByteAcceptFriendInvite::OnAcceptFriendResponseDelegate
 	}
 	else
 	{
-		Subsystem->GetPresenceInterface()->QueryPresence(*FriendId, TDelegateUtils<IOnlinePresence::FOnPresenceTaskCompleteDelegate>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteAcceptFriendInvite::OnGetUserPresenceComplete));
+		Super::ExecuteCriticalSectionAction(FVoidHandler::CreateLambda([&]()
+		{
+			Subsystem->GetPresenceInterface()->QueryPresence(*FriendId, TDelegateUtils<IOnlinePresence::FOnPresenceTaskCompleteDelegate>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteAcceptFriendInvite::OnGetUserPresenceComplete));
+		}));
 	}
 }
 

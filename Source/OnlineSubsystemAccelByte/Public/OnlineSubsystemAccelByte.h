@@ -52,8 +52,9 @@ class FOnlineLeaderboardAccelByte;
 class FOnlineChatAccelByte;
 class FOnlineGroupsAccelByte;
 class FOnlineAuthAccelByte;
-class FExecTestBase;
 class FOnlineAchievementsAccelByte; 
+class FOnlinePredefinedEventAccelByte;
+class FExecTestBase;
 class FOnlineVoiceAccelByte;
 
 class IVoiceChat;
@@ -146,6 +147,9 @@ typedef TSharedPtr<FOnlineAchievementsAccelByte, ESPMode::ThreadSafe> FOnlineAch
 /** Shared ponter to the AccelByte implementation of the Voice Chat interface */
 typedef TSharedPtr<FOnlineVoiceAccelByte, ESPMode::ThreadSafe> FOnlineVoiceAccelBytePtr;
 
+/** Shared ponter to the AccelByte implementation of the Predefined Event interface */
+typedef TSharedPtr<FOnlinePredefinedEventAccelByte, ESPMode::ThreadSafe> FOnlinePredefinedEventAccelBytePtr;
+
 typedef TSharedPtr<IVoiceChat, ESPMode::ThreadSafe> IVoiceChatPtr;
 typedef TSharedPtr<IVoiceChatUser, ESPMode::ThreadSafe> IVoiceChatUserPtr;
 typedef TSharedPtr<FAccelByteVoiceChat, ESPMode::ThreadSafe> FAccelByteVoiceChatPtr;
@@ -154,6 +158,8 @@ class ONLINESUBSYSTEMACCELBYTE_API FOnlineSubsystemAccelByte final
 	: public FOnlineSubsystemImpl
 	, public TSharedFromThis<FOnlineSubsystemAccelByte, ESPMode::ThreadSafe>
 {
+	DECLARE_MULTICAST_DELEGATE(FOnLocalUserNumCachedDelegate);
+
 public:
 	virtual ~FOnlineSubsystemAccelByte() override = default;
 
@@ -185,6 +191,7 @@ public:
 	virtual IOnlineGroupsPtr GetGroupsInterface() const override;
 	virtual FOnlineAuthAccelBytePtr GetAuthInterface() const;
 	virtual IOnlineVoicePtr GetVoiceInterface() const override;
+	virtual FOnlinePredefinedEventAccelBytePtr GetPredefinedEventInterface() const;
 	IVoiceChatPtr GetVoiceChatInterface();
 
 #if (ENGINE_MAJOR_VERSION == 4 && ENGINE_MINOR_VERSION <= 25)
@@ -228,6 +235,7 @@ public:
 	 */
 	FString GetNativeAppId();
 	
+	void ResetLocalUserNumCached();
 	void SetLocalUserNumCached(int32 InLocalUserNum);
 	int32 GetLocalUserNumCached();
 
@@ -248,6 +256,9 @@ public:
 	FString GetLanguage();
 
 	void SetLanguage(const FString & InLanguage);
+
+
+	FOnLocalUserNumCachedDelegate& OnLocalUserNumCached();
 	
 PACKAGE_SCOPE:
 	/** Disable the default constructor, instances of the OSS are only to be managed by the factory spawned by the module */
@@ -259,6 +270,7 @@ PACKAGE_SCOPE:
 	 */
 	explicit FOnlineSubsystemAccelByte(FName InInstanceName)
 		: FOnlineSubsystemImpl(ACCELBYTE_SUBSYSTEM, InInstanceName)
+		, LocalUserNumCached(-1)
 		, SessionInterface(nullptr)
 		, IdentityInterface(nullptr)
 		, ExternalUIInterface(nullptr)
@@ -277,7 +289,14 @@ PACKAGE_SCOPE:
 		, AuthInterface(nullptr)
 		, AchievementInterface(nullptr)
 		, VoiceInterface(nullptr)
+		, PredefinedEventInterface(nullptr)
 		, Language(FGenericPlatformMisc::GetDefaultLanguage())
+		, AccelBytePluginList(TArray<FString>
+			{
+				"AccelByteUe4Sdk",
+				"OnlineSubsystemAccelByte",
+				"AccelByteNetworkUtilities"
+			})
 	{
 	}
 
@@ -421,13 +440,22 @@ PACKAGE_SCOPE:
 	
 	bool IsMultipleLocalUsersEnabled() const;
 
+	bool IsLocalUserNumCached() const;
+
 private:
 	bool bIsAutoLobbyConnectAfterLoginSuccess = false;
 	bool bIsAutoChatConnectAfterLoginSuccess = false;
 	bool bIsMultipleLocalUsersEnabled = false;
-	
+
+	bool bIsInitializedEventSent = false;
+	FDateTime PluginInitializedTime;
+
+	/** Used to track whether there is already user cached */
+	bool bIsLocalUserNumCached = false;
+
 	/** Used to store the currently logged in account's LocalUserNum value */
 	int32 LocalUserNumCached;
+	mutable FCriticalSection LocalUserNumCachedLock;
 
 	/** Shared instance of our session implementation */
 	FOnlineSessionAccelBytePtr SessionInterface;
@@ -504,6 +532,9 @@ private:
 	/** Shared instance of our voice chat implementation */
 	mutable FOnlineVoiceAccelBytePtr VoiceInterface;
 
+	/** Shared instance of our predefined event implementation */
+	FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface;
+
 	/** Thread spawned to run the FOnlineAsyncTaskManagerAccelBytePtr instance */
 	TUniquePtr<FRunnableThread> AsyncTaskManagerThread;
 	IVoiceChatPtr VoiceChatInterface;
@@ -533,6 +564,8 @@ private:
 	/** The number will be incremented safely for each created Epic number */
 	FThreadSafeCounter EpicCounter;
 
+	const TArray<FString> AccelBytePluginList;
+
 	/**
 	 * @p2p Delegate handler fired when we get a successful login from the OSS on the first user. Used to initialize our network manager.
 	 */
@@ -546,9 +579,12 @@ private:
 
 	void OnLobbyReconnected(int32 InLocalUserNum);
 
+	void SendInitializedEvent();
+
 	DECLARE_DELEGATE(FLogOutFromInterfaceDelegate)
 	FLogOutFromInterfaceDelegate LogoutDelegate {};
 
+	FOnLocalUserNumCachedDelegate OnLocalUserNumCachedDelegate;
 };
 
 /** Shared pointer to the AccelByte implementation of the OnlineSubsystem */

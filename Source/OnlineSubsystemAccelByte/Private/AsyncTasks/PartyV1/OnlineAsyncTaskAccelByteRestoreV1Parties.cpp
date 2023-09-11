@@ -152,8 +152,11 @@ void FOnlineAsyncTaskAccelByteRestoreV1Parties::OnGetPartyInfoResponse(const FAc
 		PartyInfo = Result;
 		bUserHasPartyToRestore = true;
 
-		FOnQueryPartyInfoComplete OnQueryPartyInfoCompleteDelegate = TDelegateUtils<FOnQueryPartyInfoComplete>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteRestoreV1Parties::OnQueryPartyInfoComplete);
-		Subsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteQueryV1PartyInfo>(Subsystem, UserId.ToSharedRef().Get(), Result.PartyId, Result.Members, OnQueryPartyInfoCompleteDelegate);
+		Super::ExecuteCriticalSectionAction(FVoidHandler::CreateLambda([&]()
+		{
+			FOnQueryPartyInfoComplete OnQueryPartyInfoCompleteDelegate = TDelegateUtils<FOnQueryPartyInfoComplete>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteRestoreV1Parties::OnQueryPartyInfoComplete);
+			Subsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteQueryV1PartyInfo>(Subsystem, UserId.ToSharedRef().Get(), Result.PartyId, Result.Members, OnQueryPartyInfoCompleteDelegate);
+		}));
 	}
 }
 

@@ -6,6 +6,7 @@
 #include "OnlineSubsystemAccelByte.h"
 #include "OnlineIdentityInterfaceAccelByte.h"
 #include "OnlineAgreementInterfaceAccelByte.h"
+#include "OnlinePredefinedEventInterfaceAccelByte.h"
 
 using namespace AccelByte;
 
@@ -58,6 +59,15 @@ void FOnlineAsyncTaskAccelByteQueryEligibilities::Initialize()
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 
+void FOnlineAsyncTaskAccelByteQueryEligibilities::Finalize()
+{
+	if (bWasSuccessful)
+	{
+		const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = Subsystem->GetPredefinedEventInterface();
+		PredefinedEventInterface->SendEvent(LocalUserNum, MakeShared<FAccelByteModelsUserAgreementNotAcceptedPayload>(NotAcceptedAgreementPayload));
+	}
+}
+
 void FOnlineAsyncTaskAccelByteQueryEligibilities::TriggerDelegates()
 {
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
@@ -102,6 +112,16 @@ void FOnlineAsyncTaskAccelByteQueryEligibilities::OnQueryEligibilitiesSuccess(co
 		for (const auto& Eligibility : Result)
 		{
 			EligibilitiesRef.Add(MakeShared<FAccelByteModelsRetrieveUserEligibilitiesResponse>(Eligibility));
+			if (!Eligibility.IsAccepted)
+			{
+				for (const auto& PolicyVersion : Eligibility.PolicyVersions)
+				{
+					for (const auto& LocalizedPolicyVersion : PolicyVersion.LocalizedPolicyVersions)
+					{
+						NotAcceptedAgreementPayload.AgreementDocuments.Add(FAccelByteModelsAgreementDocument{ LocalizedPolicyVersion.Id, PolicyVersion.Id, Eligibility.PolicyId });
+					}
+				}
+			}
 		}
 		AgreementInterface->EligibilitiesMap.Emplace(UserId.ToSharedRef(), EligibilitiesRef);
 	}

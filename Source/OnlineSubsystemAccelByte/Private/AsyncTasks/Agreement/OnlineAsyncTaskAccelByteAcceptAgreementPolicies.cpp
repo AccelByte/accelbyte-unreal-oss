@@ -6,6 +6,7 @@
 #include "OnlineSubsystemAccelByte.h"
 #include "OnlineIdentityInterfaceAccelByte.h"
 #include "OnlineAgreementInterfaceAccelByte.h"
+#include "OnlinePredefinedEventInterfaceAccelByte.h"
 
 using namespace AccelByte;
 
@@ -48,6 +49,7 @@ void FOnlineAsyncTaskAccelByteAcceptAgreementPolicies::Initialize()
 									if (LocalizedPolicy.LocaleCode == Document.LocaleCode)
 									{
 										RequestedDocuments.Add(FAccelByteModelsAcceptAgreementRequest{ LocalizedPolicy.Id, Version.Id, Eligibility->PolicyId, true });
+										AcceptedAgreementPayload.AgreementDocuments.Add(FAccelByteModelsAgreementDocument{ LocalizedPolicy.Id, Version.Id, Eligibility->PolicyId });
 										bIsLocalFound = true;
 										if (Eligibility->IsMandatory)
 										{
@@ -63,6 +65,7 @@ void FOnlineAsyncTaskAccelByteAcceptAgreementPolicies::Initialize()
 								if (!bIsLocalFound)
 								{
 									RequestedDocuments.Add(FAccelByteModelsAcceptAgreementRequest{ DefaultLocalId, Version.Id, Eligibility->PolicyId, true });
+									AcceptedAgreementPayload.AgreementDocuments.Add(FAccelByteModelsAgreementDocument{ DefaultLocalId, Version.Id, Eligibility->PolicyId });
 									bIsLocalFound = true;
 									if (Eligibility->IsMandatory)
 									{
@@ -105,6 +108,15 @@ void FOnlineAsyncTaskAccelByteAcceptAgreementPolicies::Initialize()
 	}
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
+}
+
+void FOnlineAsyncTaskAccelByteAcceptAgreementPolicies::Finalize()
+{
+	if (bWasSuccessful)
+	{
+		const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = Subsystem->GetPredefinedEventInterface();
+		PredefinedEventInterface->SendEvent(LocalUserNum, MakeShared<FAccelByteModelsUserAgreementAcceptedPayload>(AcceptedAgreementPayload));
+	}
 }
 
 void FOnlineAsyncTaskAccelByteAcceptAgreementPolicies::TriggerDelegates()

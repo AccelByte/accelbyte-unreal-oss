@@ -110,6 +110,11 @@ private:
 	 */
 	bool bLoginPerformed{false};
 
+	/*
+	 * The platform name which user login with 
+	 */
+	FString PlatformId{};
+
 	/**
 	 * Attempts to fire off a login request with a native subsystem, if one is set up and usable.
 	 *

@@ -80,8 +80,11 @@ void FOnlineAsyncTaskAccelByteReadFriendsList::Tick()
 			return;
 		}
 
-		FOnQueryUsersComplete OnQueryFriendInformationCompleteDelegate = TDelegateUtils<FOnQueryUsersComplete>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteReadFriendsList::OnQueryFriendInformationComplete);
-		UserStore->QueryUsersByAccelByteIds(LocalUserNum, FriendIdsToQuery, OnQueryFriendInformationCompleteDelegate, true);
+		Super::ExecuteCriticalSectionAction(FVoidHandler::CreateLambda([&]()
+		{
+			FOnQueryUsersComplete OnQueryFriendInformationCompleteDelegate = TDelegateUtils<FOnQueryUsersComplete>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteReadFriendsList::OnQueryFriendInformationComplete);
+			UserStore->QueryUsersByAccelByteIds(LocalUserNum, FriendIdsToQuery, OnQueryFriendInformationCompleteDelegate, true);
+		}));
 
 		bHasSentRequestForFriendInformation = true;
 	}

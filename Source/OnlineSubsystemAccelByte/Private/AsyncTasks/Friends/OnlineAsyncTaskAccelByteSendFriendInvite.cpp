@@ -139,8 +139,11 @@ void FOnlineAsyncTaskAccelByteSendFriendInvite::QueryInvitedFriend(const FString
 		return;
 	}
 
-	FOnQueryUsersComplete OnQueryInvitedFriendCompleteDelegate = TDelegateUtils<FOnQueryUsersComplete>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteSendFriendInvite::OnQueryInvitedFriendComplete);
-	UserStore->QueryUsersByAccelByteIds(LocalUserNum, { InFriendId }, OnQueryInvitedFriendCompleteDelegate, true);
+	Super::ExecuteCriticalSectionAction(FVoidHandler::CreateLambda([&]()
+	{
+		FOnQueryUsersComplete OnQueryInvitedFriendCompleteDelegate = TDelegateUtils<FOnQueryUsersComplete>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteSendFriendInvite::OnQueryInvitedFriendComplete);
+		UserStore->QueryUsersByAccelByteIds(LocalUserNum, { InFriendId }, OnQueryInvitedFriendCompleteDelegate, true);
+	}));
 }
 
 void FOnlineAsyncTaskAccelByteSendFriendInvite::OnQueryInvitedFriendComplete(bool bIsSuccessful, TArray<TSharedRef<FAccelByteUserInfo>> UsersQueried)
