@@ -67,7 +67,7 @@ void FOnlineAsyncTaskAccelByteLeaveV2Party::TriggerDelegates()
 	{
 		SessionInterface->TriggerOnDestroySessionCompleteDelegates(RemovedSessionName, bWasSuccessful);
 	}
-	Delegate.ExecuteIfBound(true, SessionId);
+	Delegate.ExecuteIfBound(bWasSuccessful, SessionId);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }

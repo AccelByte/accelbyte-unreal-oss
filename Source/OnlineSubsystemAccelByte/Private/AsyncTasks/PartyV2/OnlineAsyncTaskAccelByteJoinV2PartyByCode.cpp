@@ -43,6 +43,10 @@ void FOnlineAsyncTaskAccelByteJoinV2PartyByCode::Finalize()
 	FOnlineSessionV2AccelBytePtr SessionInterface = nullptr;
 	if (!FOnlineSessionV2AccelByte::GetFromSubsystem(Subsystem, SessionInterface))
 	{
+		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to finalize task to join party by code as our session interface is invalid!"));
+		bWasSuccessful = false;
+		JoinSessionResult = EOnJoinSessionCompleteResult::UnknownError;
+		
 		return;
 	}
 
@@ -115,7 +119,7 @@ void FOnlineAsyncTaskAccelByteJoinV2PartyByCode::OnJoinPartyByCodeError(int32 Er
 			break;
 		// intended fallthrough for BE backward compatibility, old BE use this code when session not exist
 		case static_cast<int32>(ErrorCodes::SessionGameNotFound):
-		case static_cast<int32>(ErrorCodes::PartyNotFound):
+		case static_cast<int32>(ErrorCodes::SessionPartyNotFound):
 			JoinSessionResult = EOnJoinSessionCompleteResult::SessionDoesNotExist;
 			break;
 		default:

@@ -19,6 +19,7 @@ public:
 	FOnlineAsyncTaskAccelByteCreateUserProfile(FOnlineSubsystemAccelByte* const InABSubsystem, const FUniqueNetId& InUserId);
 
 	virtual void Initialize() override;
+	virtual void Finalize() override;
 	virtual void TriggerDelegates() override;
 
 protected:
@@ -60,6 +61,9 @@ private:
 	 */
 	void OnCreateUserProfileError(int32 ErrorCode, const FString& ErrorMessage);
 	FErrorHandler OnCreateProfileErrorDelegate;
+
+	/** Payload to be send to analytics*/
+	FJsonObjectWrapper UserProfileUpdatedFieldsPayload{};
 
 	bool bWasCreated;
 };

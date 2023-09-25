@@ -10,11 +10,11 @@ FOnlineAsyncTaskAccelByteGroupsRemoveMember::FOnlineAsyncTaskAccelByteGroupsRemo
 	FOnlineSubsystemAccelByte* const InABInterface,
 	const int32& GroupAdmin,
 	const FUniqueNetId& GroupMemberUserId,
-	const FAccelByteGroupsInfo& InGroupInfo,
+	const FString& InGroupId,
 	const FOnGroupsRequestCompleted& InDelegate)
 	: FOnlineAsyncTaskAccelByte(InABInterface)
 	, MemberId(FUniqueNetIdAccelByteUser::CastChecked(GroupMemberUserId))
-	, GroupInfo(InGroupInfo)
+	, GroupId(InGroupId)
 	, Delegate(InDelegate)
 {
 	LocalUserNum = GroupAdmin;
@@ -29,7 +29,7 @@ void FOnlineAsyncTaskAccelByteGroupsRemoveMember::Initialize()
 	OnSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsKickGroupMemberResponse>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteGroupsRemoveMember::OnRemoveMemberSuccess);
 	OnErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteGroupsRemoveMember::OnRemoveMemberError);
 
-	ApiClient->Group.KickV2GroupMember(MemberId->GetAccelByteId(), GroupInfo.ABGroupInfo.GroupId, OnSuccessDelegate, OnErrorDelegate);
+	ApiClient->Group.KickV2GroupMember(MemberId->GetAccelByteId(), GroupId, OnSuccessDelegate, OnErrorDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
@@ -52,6 +52,9 @@ void FOnlineAsyncTaskAccelByteGroupsRemoveMember::Finalize()
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
+	if (bWasSuccessful == false)
+		return;
+
 	FOnlineGroupsAccelBytePtr GroupsInterface;
 	if (!ensure(FOnlineGroupsAccelByte::GetFromSubsystem(Subsystem, GroupsInterface)))
 	{
@@ -59,38 +62,14 @@ void FOnlineAsyncTaskAccelByteGroupsRemoveMember::Finalize()
 		return;
 	}
 
-	if (bWasSuccessful == false)
-		return;
-
 	if (GroupsInterface->IsGroupValid() == false)
 	{
 		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to remove member, not in a group!"));
 		return;
 	}
 
-	TArray<FAccelByteModelsGroupMember> CurrentGroupMembers;
-	GroupsInterface->GetCurrentGroupMembers(CurrentGroupMembers);
-	if (CurrentGroupMembers.Num() == 0)
-	{
-		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to remove member, group member list is empty!"));
-		return;
-	}
-
-	FAccelByteGroupsInfoPtr CurrentGroupData = GroupsInterface->GetCurrentGroupData();
-	if (!CurrentGroupData.IsValid())
-	{
-		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to remove member, current group data is invalid!"));
-		return;
-	}
-
-	for (int i = 0; i < CurrentGroupData->ABGroupInfo.GroupMembers.Num(); i++)
-	{
-		if (CurrentGroupData->ABGroupInfo.GroupMembers[i].UserId != AccelByteModelsKickGroupMemberResponse.KickedUserId)
-			continue;
-
-		CurrentGroupData->ABGroupInfo.GroupMembers.RemoveAt(i);
-		break;
-	}
+	// Remove cached member
+	GroupsInterface->RemoveCachedMember(AccelByteModelsKickGroupMemberResponse.KickedUserId);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
@@ -99,7 +78,7 @@ void FOnlineAsyncTaskAccelByteGroupsRemoveMember::OnRemoveMemberSuccess(const FA
 {
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("GroupId: %s"), *Result.GroupId);
 	UniqueNetIdAccelByteResource = FUniqueNetIdAccelByteResource::Create(Result.GroupId);
-	httpStatus = 200;// Success = 200
+	httpStatus = static_cast<int32>(ErrorCodes::StatusOk);
 	AccelByteModelsKickGroupMemberResponse = Result;
 	CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

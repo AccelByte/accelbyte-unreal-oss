@@ -3,6 +3,7 @@
 // and restrictions contact your company contract manager.
 
 #include "OnlineAsyncTaskAccelByteDeleteStatsUsers.h"
+#include "OnlinePredefinedEventInterfaceAccelByte.h"
 
 using namespace AccelByte;
 
@@ -82,15 +83,23 @@ void FOnlineAsyncTaskAccelByteDeleteStatsUsers::Finalize()
 	Super::Finalize();
 
 	const FOnlineStatisticAccelBytePtr StatisticInterface = StaticCastSharedPtr<FOnlineStatisticAccelByte>(Subsystem->GetStatsInterface());
-	if (StatisticInterface.IsValid())
+	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = Subsystem->GetPredefinedEventInterface();
+	if (bWasSuccessful && StatisticInterface.IsValid())
 	{
+		FAccelByteModelsUserStatItemDeletedPayload UserStatItemDeletedPayload{};
+		UserStatItemDeletedPayload.UserId = StatsUser->GetAccelByteId();
 		for (const auto& UserStatsPair : OnlineUsersStatsPairs)
 		{
 			for (const auto& UserStats : UserStatsPair->Stats)
 			{
 				StatisticInterface->RemoveStats(UserStatsPair->Account
 					, UserStats.Key);
+				UserStatItemDeletedPayload.StatCodes.Add(UserStats.Key);
 			}
+		}
+		if (PredefinedEventInterface.IsValid())
+		{
+			PredefinedEventInterface->SendEvent(LocalUserNum, MakeShared<FAccelByteModelsUserStatItemDeletedPayload>(UserStatItemDeletedPayload));
 		}
 	}
 

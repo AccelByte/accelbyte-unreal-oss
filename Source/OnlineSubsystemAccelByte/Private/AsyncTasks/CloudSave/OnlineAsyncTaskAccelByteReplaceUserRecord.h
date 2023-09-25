@@ -19,6 +19,7 @@ public:
 	FOnlineAsyncTaskAccelByteReplaceUserRecord(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InLocalUserId, const FString& InKey, const FJsonObject& InUserRecordObj, bool IsPublic);
 
 	virtual void Initialize() override;
+	virtual void Finalize() override;
 	virtual void TriggerDelegates() override;
 
 protected:
@@ -52,6 +53,11 @@ private:
 	 * String representing the record key to delete
 	 */
 	FString Key;
+
+	/**
+	 * the Record can only be set by either CLIENT or SERVER
+	 */
+	FString SetBy{};
 
 	FJsonObject UserRecordObj;
 

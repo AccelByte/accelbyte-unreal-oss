@@ -7,6 +7,7 @@
 #include "OnlineSubsystemAccelByte.h"
 #include "OnlineError.h"
 #include "OnlineIdentityInterfaceAccelByte.h"
+#include "OnlinePredefinedEventInterfaceAccelByte.h"
 
 using namespace AccelByte;
 
@@ -77,6 +78,25 @@ void FOnlineAsyncTaskAccelByteCreateStatsUser::Initialize()
 		, OnBulkCreateStatItemsSuccess
 		, OnError);
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
+}
+
+void FOnlineAsyncTaskAccelByteCreateStatsUser::Finalize()
+{
+	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = Subsystem->GetPredefinedEventInterface();
+	if (bWasSuccessful && PredefinedEventInterface.IsValid())
+	{
+		TSharedPtr<FAccelByteModelsUserStatItemCreatedPayload> UserStatItemCreatedPayload = MakeShared<FAccelByteModelsUserStatItemCreatedPayload>();
+		UserStatItemCreatedPayload->UserId = StatsUser->GetAccelByteId();
+		for (const auto& StatItem : CreateStatsResult)
+		{
+			if (StatItem.Success)
+			{
+				UserStatItemCreatedPayload->StatCodes.Add(StatItem.StatCode);
+			}
+		}
+
+		PredefinedEventInterface->SendEvent(LocalUserNum, UserStatItemCreatedPayload.ToSharedRef());
+	}
 }
 
 void FOnlineAsyncTaskAccelByteCreateStatsUser::TriggerDelegates()

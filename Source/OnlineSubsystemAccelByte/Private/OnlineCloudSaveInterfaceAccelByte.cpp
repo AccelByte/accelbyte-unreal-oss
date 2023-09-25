@@ -151,16 +151,23 @@ bool FOnlineCloudSaveAccelByte::GetGameRecord(int32 LocalUserNum, const FString&
 		if (IdentityInterface->GetLoginStatus(LocalUserNum) == ELoginStatus::LoggedIn)
 		{
 			const TSharedPtr<const FUniqueNetId> UserIdPtr = IdentityInterface->GetUniquePlayerId(LocalUserNum);
-			TSharedPtr<FUserOnlineAccount> UserAccount;
-			if (UserIdPtr.IsValid())
+			if (!IsRunningDedicatedServer())
 			{
-				AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGetGameRecord>(AccelByteSubsystem, *UserIdPtr.Get(), Key, bAlwaysRequestToService);
+				if (UserIdPtr.IsValid())
+				{
+					AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGetGameRecord>(AccelByteSubsystem, LocalUserNum, Key, bAlwaysRequestToService);
+					return true;
+				}
+				const FString ErrorStr = TEXT("get-game-record-failed-userid-invalid");
+				AB_OSS_INTERFACE_TRACE_END(TEXT("UserId is not valid at user index '%d'!"), LocalUserNum);
+				TriggerOnGetGameRecordCompletedDelegates(LocalUserNum, ONLINE_ERROR(EOnlineErrorResult::InvalidUser), Key, FAccelByteModelsGameRecord());
+				return false;
+			}
+			else
+			{
+				AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGetGameRecord>(AccelByteSubsystem, LocalUserNum, Key, bAlwaysRequestToService);
 				return true;
 			}
-			const FString ErrorStr = TEXT("get-game-record-failed-userid-invalid");
-			AB_OSS_INTERFACE_TRACE_END(TEXT("UserId is not valid at user index '%d'!"), LocalUserNum);
-			TriggerOnGetGameRecordCompletedDelegates(LocalUserNum, ONLINE_ERROR(EOnlineErrorResult::InvalidUser), Key, FAccelByteModelsGameRecord());
-			return false;
 		}
 	}
 	
@@ -179,17 +186,8 @@ bool FOnlineCloudSaveAccelByte::ReplaceGameRecord(int32 LocalUserNum, const FStr
 		// Check whether user is connected or not yet
 		if (IdentityInterface->GetLoginStatus(LocalUserNum) == ELoginStatus::LoggedIn)
 		{
-			const TSharedPtr<const FUniqueNetId> UserIdPtr = IdentityInterface->GetUniquePlayerId(LocalUserNum);
-			TSharedPtr<FUserOnlineAccount> UserAccount;
-			if (UserIdPtr.IsValid())
-			{
-				AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteReplaceGameRecord>(AccelByteSubsystem, *UserIdPtr.Get(), Key, RecordRequest);
-				return true;
-			}
-			const FString ErrorStr = TEXT("replace-game-record-failed-userid-invalid");
-			AB_OSS_INTERFACE_TRACE_END(TEXT("UserId is not valid at user index '%d'!"), LocalUserNum);
-			TriggerOnReplaceGameRecordCompletedDelegates(LocalUserNum, ONLINE_ERROR(EOnlineErrorResult::InvalidUser), Key);
-			return false;
+			AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteReplaceGameRecord>(AccelByteSubsystem, LocalUserNum, Key, RecordRequest);
+			return true;
 		}
 	}
 	

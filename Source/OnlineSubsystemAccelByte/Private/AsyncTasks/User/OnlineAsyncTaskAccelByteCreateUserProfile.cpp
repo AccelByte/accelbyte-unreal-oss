@@ -6,8 +6,10 @@
 
 #include "Core/AccelByteMultiRegistry.h"
 #include "Core/AccelByteError.h"
+#include "Core/AccelByteUtilities.h"
 #include "Api/AccelByteUserApi.h"
 #include "OnlineError.h"
+#include "OnlinePredefinedEventInterfaceAccelByte.h"
 
 using namespace AccelByte;
 
@@ -70,6 +72,18 @@ void FOnlineAsyncTaskAccelByteCreateUserProfile::Initialize()
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 
+void FOnlineAsyncTaskAccelByteCreateUserProfile::Finalize()
+{
+	if (bWasSuccessful && UserProfileUpdatedFieldsPayload.JsonObject.IsValid())
+	{
+		FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = Subsystem->GetPredefinedEventInterface();
+		TSharedPtr<FAccelByteModelsUserProfileCreatedPayload> UserProfileCreatedPayload = MakeShared<FAccelByteModelsUserProfileCreatedPayload>();
+		
+		UserProfileCreatedPayload->UpdatedFields = UserProfileUpdatedFieldsPayload;
+		PredefinedEventInterface->SendEvent(LocalUserNum, UserProfileCreatedPayload.ToSharedRef());
+	}
+}
+
 void FOnlineAsyncTaskAccelByteCreateUserProfile::TriggerDelegates()
 {
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("UserId: %s; bWasSuccessful: %s"), *UserId->ToString(), LOG_BOOL_FORMAT(bWasSuccessful));
@@ -111,6 +125,9 @@ void FOnlineAsyncTaskAccelByteCreateUserProfile::OnCreateUserProfileSuccess(cons
 		UserInterface->AddUserInfo(UserId.ToSharedRef(), Account.ToSharedRef());
 	}
 
+	UserProfileUpdatedFieldsPayload.JsonObject = FJsonObjectConverter::UStructToJsonObject(Result);
+	FAccelByteUtilities::RemoveEmptyStrings(UserProfileUpdatedFieldsPayload.JsonObject);
+	
 	CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Successfully have a user profile!"));
 }

@@ -17,7 +17,7 @@ public:
 		FOnlineSubsystemAccelByte* const InABInterface,
 		const int32& GroupAdmin,
 		const FUniqueNetId& GroupMemberUserId,
-		const FAccelByteGroupsInfo& InGroupInfo,
+		const FString& InGroupId,
 		const FString& MemberRoleId,
 		const FOnGroupsRequestCompleted& InDelegate);
 
@@ -38,13 +38,27 @@ private:
 	void OnPromoteMemberError(int32 ErrorCode, const FString& ErrorMessage);
 	FErrorHandler OnErrorDelegate;
 
+	/* Incoming User ID Storage Variable */
 	TSharedRef<const FUniqueNetIdAccelByteUser> MemberId;
-	FAccelByteGroupsInfo GroupInfo;
+
+	/* Incoming Group Id Storage Variable */
+	FString GroupId;
+
+	/* When promoting member, this will be their new Role ID */
 	FString RoleId;
+
+	/* Temporary storage for the response of promoting a member to be sent back to the requester */
 	FAccelByteModelsGetUserGroupInfoResponse AccelByteModelsGetUserGroupInfoResponse;
+
+	/* Generic delegate used to return Success or Failure status */
 	FOnGroupsRequestCompleted Delegate;
+
+	/* Used by Delegate to return Success or Failure status */
 	FUniqueNetIdAccelByteResourcePtr UniqueNetIdAccelByteResource;
+
+	/* Success or Failure status code */
 	int32 httpStatus;
 
+	/* Error message upon failure to perform requested action */
 	FString ErrorString{};
 };

@@ -2,6 +2,39 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.11.22](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.11.22%0D0.11.21) (2023-09-25)
+
+
+### Features
+
+* add SyncThirdPartyPlatformFriendV2 ([5fd0e85](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/5fd0e854899ffa32d44dcd0cd48848e89b20d586))
+* GroupInterface [See Description] ([3241f61](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/3241f61cfb114ef6aa5fdb539788e9cceb992ac7))
+* GroupInterface adding comments ([3708d2b](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/3708d2b8a30bece26eecd09f1785639b8f467066))
+* GroupInterface adding FScopeLock for arrays ([6bf5b9a](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/6bf5b9ab36de348947bbfab2c615c1e956bbf3e2))
+* GroupInterface adding more critical sections and fixing spelling errors ([9b0509b](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/9b0509b5a156cc090c4efb9d3fe8adebe899f255))
+* GroupInterface Adding TRACE ([af20a78](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/af20a78d284130768d2f5a8629cf71a5728c8ea6))
+* GroupInterface Cancel Join Request and Query Group Join Requests ([35afdbf](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/35afdbfd0c441a0501130a769a6092b9db027118))
+* GroupInterface FindGroups ([a6bfdd5](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/a6bfdd5ca71a766d9fd9f2386da413232d8473b0))
+* GroupInterface GetGroupMembersByGroupIds ([90a8002](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/90a80027325496e36beb0f2d77cdb0c39444abce))
+* GroupInterface getting rid of hardcoded success status ([67a80e7](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/67a80e702d9d9affac3ec1dd263a41ddf455a57a))
+* GroupInterface more cleanup ([d1dc436](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/d1dc4364acaf73e9cd962335bc293058cfb3c52d))
+* GroupInterface Query Group Info ([5769bf1](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/5769bf1c66d39692bc03df4ea070ee0c050cb54d))
+* GroupInterface rebase with master ([b7c4090](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/b7c4090d005f44b92fe5e0d2f86d552b32e30065))
+* GroupInterface Some cleanup and standardization ([4cce847](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/4cce8475aac1ccbfa50b3ae55ee21c909f9ad911))
+* GroupInterface some logging and reorganizing ([03c1b83](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/03c1b83877b58563ec0a9c56c13fd31e4e81cdc4))
+* GroupInterface Update Group Info ([3c224b9](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/3c224b92c0678ff2a091cc84fc7b48bfe565e56e))
+* **MPv2:** implement session storage for leader and member ([44faf9c](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/44faf9c0f0b841aaeeac326af572c2d884a36cf4))
+* **predefinedEvent:** send predefined event payload on storage scope ([e22327f](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/e22327f144c95bfb259ec00c11a5efff3be508e5))
+
+
+### Bug Fixes
+
+* execute leave party delegate have wrong success state ([6e3f657](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/6e3f6576879af008a168d41b0322113e8ad4a051))
+* fix error code reporting when join session responded with error ([a44fbe2](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/a44fbe2fbedd37f1f332d6915cc0709ccbb2869f))
+* prevent destroying session when a session is still in creating state ([426c51f](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/426c51f8def17505021ef8de748ef18eb82d73df))
+* set async task success to false when session instance is invalid ([297b6d0](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/297b6d0fe2837544a763f5b87a6ba6287242a2ed))
+* trigger session error delegates in failed scenario ([b188f32](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/b188f3279a440645bca36d81a1c8fce0eb16fa6f))
+
 ### [0.11.21](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.11.21%0D0.11.20) (2023-09-11)
 
 

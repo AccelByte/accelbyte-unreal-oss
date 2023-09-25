@@ -19,6 +19,7 @@ public:
 	FOnlineAsyncTaskAccelByteDeleteUserRecord(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InLocalUserId, const FString& InKey);
 
 	virtual void Initialize() override;
+	virtual void Finalize() override;
 	virtual void TriggerDelegates() override;
 
 protected:

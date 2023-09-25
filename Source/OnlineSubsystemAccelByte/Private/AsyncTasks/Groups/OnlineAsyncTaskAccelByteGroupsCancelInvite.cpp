@@ -8,16 +8,16 @@ using namespace AccelByte;
 
 FOnlineAsyncTaskAccelByteGroupsCancelInvite::FOnlineAsyncTaskAccelByteGroupsCancelInvite(
 	FOnlineSubsystemAccelByte* const InABInterface,
-	const FUniqueNetId& ContextUserId,
-	const FString& InCancelInvitedUserId,
-	const FAccelByteGroupsInfo& InGroupInfo,
+	const FUniqueNetId& AdminUserId,
+	const FString& InUserIdToCancel,
+	const FString& InGroupId,
 	const FOnGroupsRequestCompleted& InDelegate)
 	: FOnlineAsyncTaskAccelByte(InABInterface)
-	, CancelInvitedUserId(InCancelInvitedUserId)
-	, GroupInfo(InGroupInfo)
+	, UserIdToCancel(InUserIdToCancel)
+	, GroupId(InGroupId)
 	, Delegate(InDelegate)
 {
-	UserId = FUniqueNetIdAccelByteUser::CastChecked(ContextUserId);
+	UserId = FUniqueNetIdAccelByteUser::CastChecked(AdminUserId);
 }
 
 void FOnlineAsyncTaskAccelByteGroupsCancelInvite::Initialize()
@@ -29,7 +29,7 @@ void FOnlineAsyncTaskAccelByteGroupsCancelInvite::Initialize()
 	OnSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsMemberRequestGroupResponse>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteGroupsCancelInvite::OnCancelInviteSuccess);
 	OnErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteGroupsCancelInvite::OnCancelInviteError);
 
-	ApiClient->Group.CancelGroupMemberInvitation(CancelInvitedUserId, GroupInfo.ABGroupInfo.GroupId, OnSuccessDelegate, OnErrorDelegate);
+	ApiClient->Group.CancelGroupMemberInvitation(UserIdToCancel, GroupId, OnSuccessDelegate, OnErrorDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
@@ -52,15 +52,15 @@ void FOnlineAsyncTaskAccelByteGroupsCancelInvite::Finalize()
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
+	if (bWasSuccessful == false)
+		return;
+
 	FOnlineGroupsAccelBytePtr GroupsInterface;
 	if (!ensure(FOnlineGroupsAccelByte::GetFromSubsystem(Subsystem, GroupsInterface)))
 	{
 		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to CancelInvite, groups interface instance is not valid!"));
 		return;
 	}
-
-	if (bWasSuccessful == false)
-		return;
 
 	if (GroupsInterface->IsGroupValid() == false)
 	{
@@ -69,14 +69,7 @@ void FOnlineAsyncTaskAccelByteGroupsCancelInvite::Finalize()
 	}
 
 	// Remove the invite
-	for (int i = 0; i < GroupsInterface->GetCurrentGroupData()->QueryGroupInviteReults.Data.Num(); i++)
-	{
-		if (GroupsInterface->GetCurrentGroupData()->QueryGroupInviteReults.Data[i].UserId == AccelByteModelsMemberRequestGroupResponse.UserId)
-		{
-			GroupsInterface->GetCurrentGroupData()->QueryGroupInviteReults.Data.RemoveAt(i);
-			break;
-		}
-	}
+	GroupsInterface->RemoveCachedInvites(AccelByteModelsMemberRequestGroupResponse.UserId);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
@@ -85,7 +78,7 @@ void FOnlineAsyncTaskAccelByteGroupsCancelInvite::OnCancelInviteSuccess(const FA
 {
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("GroupId: %s"), *Result.GroupId);
 	UniqueNetIdAccelByteResource = FUniqueNetIdAccelByteResource::Create(Result.GroupId);
-	httpStatus = 200;// Success = 200
+	httpStatus = static_cast<int32>(ErrorCodes::StatusOk);
 	AccelByteModelsMemberRequestGroupResponse = Result;
 	CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

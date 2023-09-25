@@ -11,19 +11,19 @@ using namespace AccelByte;
 
 #define ONLINE_ERROR_NAMESPACE "FOnlineAsyncTaskAccelByteGetGameRecord"
 
-FOnlineAsyncTaskAccelByteGetGameRecord::FOnlineAsyncTaskAccelByteGetGameRecord(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InLocalUserId, const FString& InKey, bool bInAlwaysRequestToService)
+FOnlineAsyncTaskAccelByteGetGameRecord::FOnlineAsyncTaskAccelByteGetGameRecord(FOnlineSubsystemAccelByte* const InABInterface, int32 InLocalUserNum, const FString& InKey, bool bInAlwaysRequestToService)
 	: FOnlineAsyncTaskAccelByte(InABInterface)
 	, Key(InKey)
 	, bAlwaysRequestToService(bInAlwaysRequestToService)
 {
-	UserId = FUniqueNetIdAccelByteUser::CastChecked(InLocalUserId);
+	LocalUserNum = InLocalUserNum;
 }
 
 void FOnlineAsyncTaskAccelByteGetGameRecord::Initialize()
 {
 	Super::Initialize();
 
-	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Getting game record, UserId: %s"), *UserId->ToDebugString());
+	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Getting game record, LocalUserNum: %d"), LocalUserNum);
 
 	const FOnlineCloudSaveAccelBytePtr CloudSaveInterface = Subsystem->GetCloudSaveInterface();
 	if (!CloudSaveInterface.IsValid())
@@ -51,7 +51,7 @@ void FOnlineAsyncTaskAccelByteGetGameRecord::Initialize()
 				return;
 			}
 
-			if (IdentityInterface->GetLoginStatus(*UserId) != ELoginStatus::LoggedIn)
+			if (IdentityInterface->GetLoginStatus(LocalUserNum) != ELoginStatus::LoggedIn)
 			{
 				ErrorCode = TEXT("401");
 				ErrorStr = FText::FromString(TEXT("request-failed-get-game-record-error"));
@@ -105,7 +105,7 @@ void FOnlineAsyncTaskAccelByteGetGameRecord::OnGetGameRecordSuccess(const FAccel
 	}
 	GameRecord = Result;
 	CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
-	AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Request to get game record for user '%s' Success!"), *UserId->ToDebugString());
+	AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Request to get game record Success!"));
 }
 
 void FOnlineAsyncTaskAccelByteGetGameRecord::OnGetGameRecordError(int32 Code, const FString& ErrorMessage)

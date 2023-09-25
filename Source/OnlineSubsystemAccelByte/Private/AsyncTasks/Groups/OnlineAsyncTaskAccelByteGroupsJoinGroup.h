@@ -16,7 +16,7 @@ public:
 	FOnlineAsyncTaskAccelByteGroupsJoinGroup(
 		FOnlineSubsystemAccelByte* const InABInterface,
 		const FUniqueNetId& InContextUserId,
-		const FAccelByteGroupsInfo& InGroupInfo,
+		const FString& InGroupId,
 		const FOnGroupsRequestCompleted& InDelegate);
 
 	virtual void Initialize() override;
@@ -36,11 +36,21 @@ private:
 	void OnJoinGroupError(int32 ErrorCode, const FString& ErrorMessage);
 	FErrorHandler OnErrorDelegate;
 
-	FAccelByteGroupsInfo GroupInfo;
+	/* Incoming Group Information Storage Variable */
+	FString GroupId;
+
+	/* Temporary storage for the response of the Join Group Request to be sent back to the requester */
 	FAccelByteModelsJoinGroupResponse AccelByteModelsJoinGroupResponse;
+
+	/* Generic delegate used to return Success or Failure status */
 	FOnGroupsRequestCompleted Delegate;
+
+	/* Used by Delegate to return Success or Failure status */
 	FUniqueNetIdAccelByteResourcePtr UniqueNetIdAccelByteResource;
+
+	/* Success or Failure status code */
 	int32 httpStatus;
 
+	/* Error message upon failure to perform requested action */
 	FString ErrorString{};
 };

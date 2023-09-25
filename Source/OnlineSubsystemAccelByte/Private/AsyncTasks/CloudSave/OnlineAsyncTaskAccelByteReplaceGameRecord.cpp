@@ -6,6 +6,7 @@
 #include "OnlineSubsystemAccelByte.h"
 #include "OnlineIdentityInterfaceAccelByte.h"
 #include "OnlineCloudSaveInterfaceAccelByte.h"
+#include "OnlinePredefinedEventInterfaceAccelByte.h"
 #include "AsyncTasks/Server/OnlineAsyncTaskAccelByteLoginServer.h"
 #include "OnlineError.h"
 
@@ -13,19 +14,19 @@ using namespace AccelByte;
 
 #define ONLINE_ERROR_NAMESPACE "FOnlineAsyncTaskAccelByteReplaceGameRecord"
 
-FOnlineAsyncTaskAccelByteReplaceGameRecord::FOnlineAsyncTaskAccelByteReplaceGameRecord(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InLocalUserId, const FString& InKey, const FJsonObject& InGameRecordObj)
+FOnlineAsyncTaskAccelByteReplaceGameRecord::FOnlineAsyncTaskAccelByteReplaceGameRecord(FOnlineSubsystemAccelByte* const InABInterface, int32 InLocalUserNum, const FString& InKey, const FJsonObject& InGameRecordObj)
 	: FOnlineAsyncTaskAccelByte(InABInterface)
 	, Key(InKey)
 	, GameRecordObj(InGameRecordObj)
 {
-	UserId = FUniqueNetIdAccelByteUser::CastChecked(InLocalUserId);
+	LocalUserNum = InLocalUserNum;
 }
 
 void FOnlineAsyncTaskAccelByteReplaceGameRecord::Initialize()
 {
 	Super::Initialize();
 
-	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Replacing game record, UserId: %s"), *UserId->ToDebugString());
+	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Replacing game record, LocalUserNum: %d"), LocalUserNum);
 
 	OnReplaceGameRecordSuccessDelegate = TDelegateUtils<FVoidHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteReplaceGameRecord::OnReplaceGameRecordSuccess);
 	OnReplaceGameRecordErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteReplaceGameRecord::OnReplaceGameRecordError);
@@ -49,7 +50,7 @@ void FOnlineAsyncTaskAccelByteReplaceGameRecord::Initialize()
 		return;
 	}
 
-	if (IdentityInterface->GetLoginStatus(*UserId) != ELoginStatus::LoggedIn)
+	if (IdentityInterface->GetLoginStatus(LocalUserNum) != ELoginStatus::LoggedIn)
 	{
 		ErrorCode = FString::Printf(TEXT("%d"), ErrorCodes::StatusUnauthorized);
 		ErrorStr = FText::FromString(TEXT("request-failed-replace-game-record-error"));
@@ -62,6 +63,20 @@ void FOnlineAsyncTaskAccelByteReplaceGameRecord::Initialize()
 	ServerApiClient->ServerCloudSave.ReplaceGameRecord(Key, GameRecordObj, OnReplaceGameRecordSuccessDelegate, OnReplaceGameRecordErrorDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
+}
+
+void FOnlineAsyncTaskAccelByteReplaceGameRecord::Finalize()
+{
+	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = Subsystem->GetPredefinedEventInterface();
+	if (bWasSuccessful && PredefinedEventInterface.IsValid())
+	{
+		FAccelByteModelsGameRecordUpdatedPayload GameRecordUpdatedPayload{};
+		GameRecordUpdatedPayload.Key = Key;
+		GameRecordUpdatedPayload.SetBy = FAccelByteUtilities::GetUEnumValueAsString(ESetByMetadataRecord::SERVER);
+		GameRecordUpdatedPayload.Strategy = TEXT("REPLACE");
+		GameRecordUpdatedPayload.Value.JsonObject = MakeShared<FJsonObject>(GameRecordObj);
+		PredefinedEventInterface->SendEvent(LocalUserNum, MakeShared<FAccelByteModelsGameRecordUpdatedPayload>(GameRecordUpdatedPayload));
+	}
 }
 
 void FOnlineAsyncTaskAccelByteReplaceGameRecord::TriggerDelegates()
@@ -103,7 +118,7 @@ void FOnlineAsyncTaskAccelByteReplaceGameRecord::OnReplaceGameRecordSuccess()
 		GameRecord.Value = GameRecordObjWrapper;
 		CloudSaveInterface->AddGameRecordToMap(Key, MakeShared<FAccelByteModelsGameRecord>(GameRecord));
 	}
-	AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Request to replace game record for user '%s' Success!"), *UserId->ToDebugString());
+	AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Request to replace game record Success!"));
 }
 
 void FOnlineAsyncTaskAccelByteReplaceGameRecord::OnReplaceGameRecordError(int32 Code, const FString& ErrorMessage)

@@ -10,12 +10,12 @@ FOnlineAsyncTaskAccelByteGroupsDemoteMember::FOnlineAsyncTaskAccelByteGroupsDemo
 	FOnlineSubsystemAccelByte* const InABInterface,
 	const int32& GroupAdmin,
 	const FUniqueNetId& GroupMemberUserId,
-	const FAccelByteGroupsInfo& InGroupInfo,
+	const FString& InGroupId,
 	const FString& MemberRoleId,
 	const FOnGroupsRequestCompleted& InDelegate)
 	: FOnlineAsyncTaskAccelByte(InABInterface)
 	, MemberId(FUniqueNetIdAccelByteUser::CastChecked(GroupMemberUserId))
-	, GroupInfo(InGroupInfo)
+	, GroupId(InGroupId)
 	, RoleId(MemberRoleId)
 	, Delegate(InDelegate)
 {
@@ -34,7 +34,7 @@ void FOnlineAsyncTaskAccelByteGroupsDemoteMember::Initialize()
 	FAccelByteModelsUserIdWrapper MemberUserId;
 	MemberUserId.UserId = MemberId->GetAccelByteId();
 
-	ApiClient->Group.DeleteV2MemberRole(RoleId, GroupInfo.ABGroupInfo.GroupId, MemberUserId, OnSuccessDelegate, OnErrorDelegate);
+	ApiClient->Group.DeleteV2MemberRole(RoleId, GroupId, MemberUserId, OnSuccessDelegate, OnErrorDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
@@ -57,6 +57,9 @@ void FOnlineAsyncTaskAccelByteGroupsDemoteMember::Finalize()
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
+	if (bWasSuccessful == false)
+		return;
+
 	FOnlineGroupsAccelBytePtr GroupsInterface;
 	if (!ensure(FOnlineGroupsAccelByte::GetFromSubsystem(Subsystem, GroupsInterface)))
 	{
@@ -64,50 +67,23 @@ void FOnlineAsyncTaskAccelByteGroupsDemoteMember::Finalize()
 		return;
 	}
 
-	if (bWasSuccessful == false)
-		return;
-
 	if (GroupsInterface->IsGroupValid() == false)
 	{
 		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to demote member, not in a group!"));
 		return;
 	}
 
-	TArray<FAccelByteModelsGroupMember> CurrentGroupMembers;
-	GroupsInterface->GetCurrentGroupMembers(CurrentGroupMembers);
-	if (CurrentGroupMembers.Num() == 0)
-	{
-		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to demote member, group member list is empty!"));
-		return;
-	}
-
-	FAccelByteGroupsInfoPtr CurrentGroupData = GroupsInterface->GetCurrentGroupData();
-	if (!CurrentGroupData.IsValid())
-	{
-		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to demote member, current group data is invalid!"));
-		return;
-	}
-
-	for (int i = 0; i < CurrentGroupData->ABGroupInfo.GroupMembers.Num(); i++)
-	{
-		if (CurrentGroupData->ABGroupInfo.GroupMembers[i].UserId == UserId->GetAccelByteId())
-		{
-			if (CurrentGroupData->ABGroupInfo.GroupMembers[i].MemberRoleId.Contains(RoleId))
-			{
-				CurrentGroupData->ABGroupInfo.GroupMembers[i].MemberRoleId.Remove(RoleId);
-			}
-			break;
-		}
-	}
+	// Remove cached group member
+	GroupsInterface->RemoveCachedMember(RoleId);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 
 void FOnlineAsyncTaskAccelByteGroupsDemoteMember::OnDemoteMemberSuccess()
 {
-	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("GroupId: %s"), *GroupInfo.ABGroupInfo.GroupId);
-	UniqueNetIdAccelByteResource = FUniqueNetIdAccelByteResource::Create(GroupInfo.ABGroupInfo.GroupId);
-	httpStatus = 200;// Success = 200
+	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
+	UniqueNetIdAccelByteResource = FUniqueNetIdAccelByteResource::Create(GroupId);
+	httpStatus = static_cast<int32>(ErrorCodes::StatusOk);
 	CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }

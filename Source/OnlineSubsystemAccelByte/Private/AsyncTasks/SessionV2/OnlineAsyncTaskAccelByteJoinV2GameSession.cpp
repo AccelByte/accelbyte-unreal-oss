@@ -53,6 +53,8 @@ void FOnlineAsyncTaskAccelByteJoinV2GameSession::Finalize()
 	if (!ensure(SessionInterface.IsValid()))
 	{
 		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to finalize joining a game session as our session interface is invalid!"));
+		bWasSuccessful = false;
+		JoinSessionResult = EOnJoinSessionCompleteResult::UnknownError;
 		return;
 	}
 
@@ -64,6 +66,8 @@ void FOnlineAsyncTaskAccelByteJoinV2GameSession::Finalize()
 		if (!ensure(JoinedSession != nullptr))
 		{
 			AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to finalize joining a game session as our local session instance is invalid!"));
+			bWasSuccessful = false;
+			JoinSessionResult = EOnJoinSessionCompleteResult::UnknownError;
 			return;
 		}
 

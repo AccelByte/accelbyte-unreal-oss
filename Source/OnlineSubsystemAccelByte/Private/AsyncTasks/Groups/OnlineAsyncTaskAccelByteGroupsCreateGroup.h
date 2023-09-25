@@ -36,10 +36,21 @@ private:
 	void OnCreateGroupError(int32 ErrorCode, const FString& ErrorMessage);
 	FErrorHandler OnErrorDelegate;
 
+	/* Incoming information to change within the group */
+	FAccelByteModelsGroupInformation AccelByteModelsGroupInformation;
+
+	/* Incoming Group Information Storage Variable */
 	FAccelByteGroupsInfo GroupInfo;
+
+	/* Generic delegate used to return Success or Failure status */
 	FOnGroupsRequestCompleted Delegate;
+
+	/* Used by Delegate to return Success or Failure status */
 	FUniqueNetIdAccelByteResourcePtr UniqueNetIdAccelByteResource;
+
+	/* Success or Failure status code */
 	int32 httpStatus;
 
+	/* Error message upon failure to perform requested action */
 	FString ErrorString{};
 };

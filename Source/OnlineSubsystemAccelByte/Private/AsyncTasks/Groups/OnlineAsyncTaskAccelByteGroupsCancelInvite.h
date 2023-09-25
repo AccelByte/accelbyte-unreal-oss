@@ -15,9 +15,9 @@ class FOnlineAsyncTaskAccelByteGroupsCancelInvite
 public:
 	FOnlineAsyncTaskAccelByteGroupsCancelInvite(
 		FOnlineSubsystemAccelByte* const InABInterface,
-		const FUniqueNetId& ContextUserId,
-		const FString& InCancelInvitedUserId,
-		const FAccelByteGroupsInfo& InGroupInfo,
+		const FUniqueNetId& AdminUserId,
+		const FString& InUserIdToCancel,
+		const FString& InGroupId,
 		const FOnGroupsRequestCompleted& InDelegate);
 
 	virtual void Initialize() override;
@@ -37,12 +37,24 @@ private:
 	void OnCancelInviteError(int32 ErrorCode, const FString& ErrorMessage);
 	FErrorHandler OnErrorDelegate;
 
-	FString CancelInvitedUserId;
-	FAccelByteGroupsInfo GroupInfo;
+	/* Incoming User ID associated with the invite to cancel */
+	FString UserIdToCancel;
+
+	/* Incoming Group Id Storage Variable */
+	FString GroupId;
+
+	/* Temporary data storage to be passed back to the requesting user or group */
 	FAccelByteModelsMemberRequestGroupResponse AccelByteModelsMemberRequestGroupResponse;
+
+	/* Generic delegate used to return Success or Failure status */
 	FOnGroupsRequestCompleted Delegate;
+
+	/* Used by Delegate to return Success or Failure status */
 	FUniqueNetIdAccelByteResourcePtr UniqueNetIdAccelByteResource;
+
+	/* Success or Failure status code */
 	int32 httpStatus;
 
+	/* Error message upon failure to perform requested action */
 	FString ErrorString{};
 };

@@ -278,7 +278,7 @@ void FOnlineStatisticAccelByte::QueryStats(int32 LocalUserNum
 	if (IdentityInterface.IsValid())
 	{
 		FUniqueNetIdPtr UserIdPtr = IdentityInterface->GetUniquePlayerId(LocalUserNum);
-		if (UserIdPtr->IsValid())
+		if (UserIdPtr.IsValid() && UserIdPtr->IsValid())
 		{
 			QueryStats(UserIdPtr.ToSharedRef(), StatsUsers, StatsNames, Delegate);
 		}

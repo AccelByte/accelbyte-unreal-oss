@@ -16,7 +16,7 @@ public:
 	FOnlineAsyncTaskAccelByteGroupsDeleteGroup(
 		FOnlineSubsystemAccelByte* const InABInterface,
 		const int32& GroupAdmin,
-		const FAccelByteGroupsInfo& InGroupInfo,
+		const FString& InGroupId,
 		const FOnGroupsRequestCompleted& InDelegate);
 
 	virtual void Initialize() override;
@@ -36,11 +36,21 @@ private:
 	void OnDeleteGroupError(int32 ErrorCode, const FString& ErrorMessage);
 	FErrorHandler OnErrorDelegate;
 
-	FAccelByteGroupsInfo GroupInfo;
+	/* Incoming Group Id Storage Variable */
+	FString GroupId;
+
+	/* Temporary data storage to be passed back to the requesting user or group */
 	FAccelByteModelsMemberRequestGroupResponse AccelByteModelsMemberRequestGroupResponse;
+
+	/* Generic delegate used to return Success or Failure status */
 	FOnGroupsRequestCompleted Delegate;
+
+	/* Used by Delegate to return Success or Failure status */
 	FUniqueNetIdAccelByteResourcePtr UniqueNetIdAccelByteResource;
+
+	/* Success or Failure status code */
 	int32 httpStatus;
 
+	/* Error message upon failure to perform requested action */
 	FString ErrorString{};
 };

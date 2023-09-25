@@ -5,6 +5,7 @@
 #include "OnlineAsyncTaskAccelByteDeleteUserRecord.h"
 #include "OnlineSubsystemAccelByte.h"
 #include "OnlineCloudSaveInterfaceAccelByte.h"
+#include "OnlinePredefinedEventInterfaceAccelByte.h"
 #include "OnlineError.h"
 
 using namespace AccelByte;
@@ -57,6 +58,18 @@ void FOnlineAsyncTaskAccelByteDeleteUserRecord::Initialize()
 	}
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
+}
+
+void FOnlineAsyncTaskAccelByteDeleteUserRecord::Finalize()
+{
+	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = Subsystem->GetPredefinedEventInterface();
+	if (bWasSuccessful && PredefinedEventInterface.IsValid())
+	{
+		FAccelByteModelsPlayerRecordDeletedPayload PlayerRecordDeletedPayload{};
+		PlayerRecordDeletedPayload.Key = Key;
+		PlayerRecordDeletedPayload.UserId = UserId.IsValid() ? UserId->GetAccelByteId() : TEXT("");
+		PredefinedEventInterface->SendEvent(LocalUserNum, MakeShared<FAccelByteModelsPlayerRecordDeletedPayload>(PlayerRecordDeletedPayload));
+	}
 }
 
 void FOnlineAsyncTaskAccelByteDeleteUserRecord::TriggerDelegates()

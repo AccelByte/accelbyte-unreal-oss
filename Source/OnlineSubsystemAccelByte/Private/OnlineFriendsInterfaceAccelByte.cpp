@@ -20,6 +20,7 @@
 #include "AsyncTasks/Friends/OnlineAsyncTaskAccelByteGetRecentPlayer.h"
 #include "AsyncTasks/Friends/OnlineAsyncTaskAccelByteSyncThirPartyFriend.h"
 #include "OnlineSubsystemUtils.h"
+#include "AsyncTasks/Friends/OnlineAsyncTaskAccelByteSyncThirdPartyFriendV2.h"
 
 #define ONLINE_ERROR_NAMESPACE "FOnlineFriendAccelByte"
 
@@ -620,6 +621,13 @@ bool FOnlineFriendsAccelByte::SyncThirdPartyPlatformFriend(int32 LocalUserNum, c
 	TaskInfo.bCreateEpicForThis = true;
 	TaskInfo.Type = ETypeOfOnlineAsyncTask::Parallel;
 	AccelByteSubsystem->CreateAndDispatchAsyncTask<FOnlineAsyncTaskAccelByteSyncThirPartyFriend>(TaskInfo, AccelByteSubsystem, LocalUserNum, NativeFriendListName, AccelByteFriendListName);
+	return true;
+}
+
+bool FOnlineFriendsAccelByte::SyncThirdPartyPlatformFriendV2(int32 LocalUserNum,
+	const FAccelByteModelsSyncThirdPartyFriendsRequest& Request)
+{
+	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteSyncThirdPartyFriendV2>(AccelByteSubsystem, LocalUserNum, Request);
 	return true;
 }
 

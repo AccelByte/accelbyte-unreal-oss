@@ -24,16 +24,18 @@ void FOnlineAsyncTaskAccelByteGroupsCreateGroup::Initialize()
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("UserId: %s"), *UserId->ToDebugString());
 
+	FAccelByteModelsGroupInformation CachedGroupInfo = GroupInfo.ABGroupInfo;
+
 	FAccelByteModelsCreateGroupRequest NewGroupRequest;
-	NewGroupRequest.ConfigurationCode = GroupInfo.ABGroupInfo.ConfigurationCode;
-	NewGroupRequest.CustomAttributes = GroupInfo.ABGroupInfo.CustomAttributes;
-	NewGroupRequest.GroupDescription = GroupInfo.ABGroupInfo.GroupDescription;
-	NewGroupRequest.GroupIcon = GroupInfo.ABGroupInfo.GroupIcon;
-	NewGroupRequest.GroupMaxMember = GroupInfo.ABGroupInfo.GroupMaxMember;
-	NewGroupRequest.GroupName = GroupInfo.ABGroupInfo.GroupName;
-	NewGroupRequest.GroupRegion = GroupInfo.ABGroupInfo.GroupRegion;
-	NewGroupRequest.GroupRules = GroupInfo.ABGroupInfo.GroupRules;
-	NewGroupRequest.GroupType = GroupInfo.ABGroupInfo.GroupType;
+	NewGroupRequest.ConfigurationCode = CachedGroupInfo.ConfigurationCode;
+	NewGroupRequest.CustomAttributes = CachedGroupInfo.CustomAttributes;
+	NewGroupRequest.GroupDescription = CachedGroupInfo.GroupDescription;
+	NewGroupRequest.GroupIcon = CachedGroupInfo.GroupIcon;
+	NewGroupRequest.GroupMaxMember = CachedGroupInfo.GroupMaxMember;
+	NewGroupRequest.GroupName = CachedGroupInfo.GroupName;
+	NewGroupRequest.GroupRegion = CachedGroupInfo.GroupRegion;
+	NewGroupRequest.GroupRules = CachedGroupInfo.GroupRules;
+	NewGroupRequest.GroupType = CachedGroupInfo.GroupType;
 
 	OnSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsGroupInformation>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteGroupsCreateGroup::OnCreateGroupSuccess);
 	OnErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteGroupsCreateGroup::OnCreateGroupError);
@@ -61,37 +63,25 @@ void FOnlineAsyncTaskAccelByteGroupsCreateGroup::Finalize()
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 
+	if (bWasSuccessful == false)
+		return;
+
 	FOnlineGroupsAccelBytePtr GroupsInterface;
-	if(!ensure(FOnlineGroupsAccelByte::GetFromSubsystem(Subsystem, GroupsInterface)))
+	if (!ensure(FOnlineGroupsAccelByte::GetFromSubsystem(Subsystem, GroupsInterface)))
 	{
-		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to create group, groups interface instance is not valid!"));
+		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to CreateGroup, groups interface instance is not valid!"));
 		return;
 	}
-
-	FAccelByteModelsGroupInformation ABGroupInfo;
-	ABGroupInfo.ConfigurationCode = GroupInfo.ABGroupInfo.ConfigurationCode;
-	ABGroupInfo.CustomAttributes = GroupInfo.ABGroupInfo.CustomAttributes;
-	ABGroupInfo.GroupDescription = GroupInfo.ABGroupInfo.GroupDescription;
-	ABGroupInfo.GroupIcon = GroupInfo.ABGroupInfo.GroupIcon;
-	ABGroupInfo.GroupId = GroupInfo.ABGroupInfo.GroupId;
-	ABGroupInfo.GroupMaxMember = GroupInfo.ABGroupInfo.GroupMaxMember;
-
-	// Add leader to group
-	ABGroupInfo.GroupMembers.Add(GroupInfo.GetABDisplayInfo().GroupMembers[0]);
-	ABGroupInfo.GroupName = GroupInfo.ABGroupInfo.GroupName;
-	ABGroupInfo.GroupRegion = GroupInfo.ABGroupInfo.GroupRegion;
-	ABGroupInfo.GroupRules = GroupInfo.ABGroupInfo.GroupRules;
-	ABGroupInfo.GroupType = GroupInfo.ABGroupInfo.GroupType;
 
 	const FAccelByteGroupsInfoRef AccelByteGroupsInfo = FAccelByteGroupsInfo::Create(
 		GroupInfo.SenderUserId,
 		GroupInfo.Namespace,
 		GroupInfo.OwnerId->AsShared().Get(),
-		ABGroupInfo,
+		AccelByteModelsGroupInformation,
 		GroupInfo.ABAdminRoleId,
 		GroupInfo.ABMemberRoleId);
 
-	GroupsInterface->SetCurrentGroupData(AccelByteGroupsInfo);
+	GroupsInterface->SetCachedGroupInfo(AccelByteGroupsInfo);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
@@ -100,8 +90,8 @@ void FOnlineAsyncTaskAccelByteGroupsCreateGroup::OnCreateGroupSuccess(const FAcc
 {
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("GroupId: %s"), *Result.GroupId);
 	UniqueNetIdAccelByteResource = FUniqueNetIdAccelByteResource::Create(Result.GroupId);
-	httpStatus = 200;// Success = 200
-	GroupInfo.ABGroupInfo = Result;
+	httpStatus = static_cast<int32>(ErrorCodes::StatusOk);
+	AccelByteModelsGroupInformation = Result;
 	CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }

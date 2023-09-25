@@ -9,10 +9,10 @@ using namespace AccelByte;
 FOnlineAsyncTaskAccelByteGroupsJoinGroup::FOnlineAsyncTaskAccelByteGroupsJoinGroup(
 	FOnlineSubsystemAccelByte* const InABInterface,
 	const FUniqueNetId& InContextUserId,
-	const FAccelByteGroupsInfo& InGroupInfo,
+	const FString& InGroupId,
 	const FOnGroupsRequestCompleted& InDelegate)
 	: FOnlineAsyncTaskAccelByte(InABInterface)
-	, GroupInfo(InGroupInfo)
+	, GroupId(InGroupId)
 	, Delegate(InDelegate)
 {
 	UserId = FUniqueNetIdAccelByteUser::CastChecked(InContextUserId);
@@ -27,7 +27,7 @@ void FOnlineAsyncTaskAccelByteGroupsJoinGroup::Initialize()
 	OnSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsJoinGroupResponse>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteGroupsJoinGroup::OnJoinGroupSuccess);
 	OnErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteGroupsJoinGroup::OnJoinGroupError);
 
-	ApiClient->Group.JoinV2Group(GroupInfo.ABGroupInfo.GroupId, OnSuccessDelegate, OnErrorDelegate);
+	ApiClient->Group.JoinV2Group(GroupId, OnSuccessDelegate, OnErrorDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
@@ -50,17 +50,10 @@ void FOnlineAsyncTaskAccelByteGroupsJoinGroup::Finalize()
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
-	FOnlineGroupsAccelBytePtr GroupsInterface;
-	if(!ensure(FOnlineGroupsAccelByte::GetFromSubsystem(Subsystem, GroupsInterface)))
-	{
-		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to join group, groups interface instance is not valid!"));
-		return;
-	}
-
-	// Nothing to do here? Backend receives request from player to join group.
-
 	if (bWasSuccessful == false)
 		return;
+
+	// Success
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
@@ -69,7 +62,7 @@ void FOnlineAsyncTaskAccelByteGroupsJoinGroup::OnJoinGroupSuccess(const FAccelBy
 {
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("GroupId: %s"), *Result.GroupId);
 	UniqueNetIdAccelByteResource = FUniqueNetIdAccelByteResource::Create(Result.GroupId);
-	httpStatus = 200;// Success = 200
+	httpStatus = static_cast<int32>(ErrorCodes::StatusOk);
 	AccelByteModelsJoinGroupResponse = Result;
 	CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

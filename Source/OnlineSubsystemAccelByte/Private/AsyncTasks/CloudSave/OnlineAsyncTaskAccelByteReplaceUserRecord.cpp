@@ -5,6 +5,7 @@
 #include "OnlineAsyncTaskAccelByteReplaceUserRecord.h"
 #include "OnlineSubsystemAccelByte.h"
 #include "OnlineCloudSaveInterfaceAccelByte.h"
+#include "OnlinePredefinedEventInterfaceAccelByte.h"
 #include "OnlineError.h"
 
 using namespace AccelByte;
@@ -46,13 +47,31 @@ void FOnlineAsyncTaskAccelByteReplaceUserRecord::Initialize()
 
 		FServerApiClientPtr ServerApiClient = FMultiRegistry::GetServerApiClient();
 		ServerApiClient->ServerCloudSave.ReplaceUserRecord(Key, ESetByMetadataRecord::SERVER, IsPublicRecord, UserId.Get()->GetAccelByteId(), UserRecordObj, OnReplaceUserRecordSuccessDelegate, OnReplaceUserRecordErrorDelegate);
+		SetBy = FAccelByteUtilities::GetUEnumValueAsString(ESetByMetadataRecord::SERVER);
 	}
 	else
 	{
 		ApiClient->CloudSave.ReplaceUserRecord(Key, IsPublicRecord, UserRecordObj, OnReplaceUserRecordSuccessDelegate, OnReplaceUserRecordErrorDelegate);
+		SetBy = FAccelByteUtilities::GetUEnumValueAsString(ESetByMetadataRecord::CLIENT);
 	}
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
+}
+
+void FOnlineAsyncTaskAccelByteReplaceUserRecord::Finalize()
+{
+	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = Subsystem->GetPredefinedEventInterface();
+	if (bWasSuccessful && PredefinedEventInterface.IsValid())
+	{
+		FAccelByteModelsPlayerRecordUpdatedPayload PlayerRecordUpdatedPayload{};
+		PlayerRecordUpdatedPayload.Key = Key;
+		PlayerRecordUpdatedPayload.IsPublic = IsPublicRecord;
+		PlayerRecordUpdatedPayload.UserId = UserId.IsValid() ? UserId->GetAccelByteId() : TEXT("");
+		PlayerRecordUpdatedPayload.SetBy = SetBy;
+		PlayerRecordUpdatedPayload.Strategy = TEXT("REPLACE");
+		PlayerRecordUpdatedPayload.Value.JsonObject = MakeShared<FJsonObject>(UserRecordObj);
+		PredefinedEventInterface->SendEvent(LocalUserNum, MakeShared<FAccelByteModelsPlayerRecordUpdatedPayload>(PlayerRecordUpdatedPayload));
+	}
 }
 
 void FOnlineAsyncTaskAccelByteReplaceUserRecord::TriggerDelegates()

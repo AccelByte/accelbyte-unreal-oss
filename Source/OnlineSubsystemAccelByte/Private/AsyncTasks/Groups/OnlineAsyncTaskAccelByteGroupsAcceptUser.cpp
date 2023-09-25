@@ -10,11 +10,11 @@ FOnlineAsyncTaskAccelByteGroupsAcceptUser::FOnlineAsyncTaskAccelByteGroupsAccept
 	FOnlineSubsystemAccelByte* const InABInterface,
 	const int32& GroupAdmin,
 	const FUniqueNetId& GroupMemberUserId,
-	const FAccelByteGroupsInfo& InGroupInfo,
+	const FString& InGroupId,
 	const FOnGroupsRequestCompleted& InDelegate)
 	: FOnlineAsyncTaskAccelByte(InABInterface)
 	, MemberId(FUniqueNetIdAccelByteUser::CastChecked(GroupMemberUserId))
-	, GroupInfo(InGroupInfo)
+	, GroupId(InGroupId)
 	, Delegate(InDelegate)
 {
 	LocalUserNum = GroupAdmin;
@@ -29,7 +29,7 @@ void FOnlineAsyncTaskAccelByteGroupsAcceptUser::Initialize()
 	OnSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsMemberRequestGroupResponse>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteGroupsAcceptUser::OnAcceptUserSuccess);
 	OnErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteGroupsAcceptUser::OnAcceptUserError);
 
-	ApiClient->Group.AcceptV2GroupJoinRequest(MemberId->GetAccelByteId(), GroupInfo.ABGroupInfo.GroupId, OnSuccessDelegate, OnErrorDelegate);
+	ApiClient->Group.AcceptV2GroupJoinRequest(MemberId->GetAccelByteId(), GroupId, OnSuccessDelegate, OnErrorDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
@@ -52,53 +52,31 @@ void FOnlineAsyncTaskAccelByteGroupsAcceptUser::Finalize()
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
+	if (bWasSuccessful == false)
+		return;
+
 	FOnlineGroupsAccelBytePtr GroupsInterface;
-	if(!ensure(FOnlineGroupsAccelByte::GetFromSubsystem(Subsystem, GroupsInterface)))
+	if (!ensure(FOnlineGroupsAccelByte::GetFromSubsystem(Subsystem, GroupsInterface)))
 	{
 		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to AcceptUser, groups interface instance is not valid!"));
 		return;
 	}
-
-	if (bWasSuccessful == false)
-		return;
 
 	if (GroupsInterface->IsGroupValid() == false)
 	{
 		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to AcceptUser, not in a group!"));
 		return;
 	}
-		
-	TArray<FAccelByteModelsGroupMember> CurrentGroupMembers;
-	GroupsInterface->GetCurrentGroupMembers(CurrentGroupMembers);
-	if (CurrentGroupMembers.Num() == 0)
-	{
-		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to AcceptUser, group member list is empty!"));
-		return;
-	}
 
-	FAccelByteGroupsInfoPtr CurrentGroupData = GroupsInterface->GetCurrentGroupData();
+	FAccelByteGroupsInfoPtr CurrentGroupData = GroupsInterface->GetCachedGroupInfo();
 	if (!CurrentGroupData.IsValid())
 	{
 		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to AcceptUser, current group data is invalid!"));
 		return;
 	}
 
-	for (int i = 0; i < CurrentGroupData->ABGroupInfo.GroupMembers.Num(); i++)
-	{
-		if (CurrentGroupData->ABGroupInfo.GroupMembers[i].UserId == AccelByteModelsMemberRequestGroupResponse.UserId)
-		{
-			AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to AcceptUser, player already exists in group!"));
-			break;
-		}
-	}
-
-	// Setup group member
-	FAccelByteModelsGroupMember AccelByteModelsGroupMember;
-	AccelByteModelsGroupMember.MemberRoleId.Add(CurrentGroupData->ABMemberRoleId);
-	AccelByteModelsGroupMember.UserId = AccelByteModelsMemberRequestGroupResponse.UserId;
-
 	// Add the player to the current group
-	CurrentGroupData->ABGroupInfo.GroupMembers.Add(AccelByteModelsGroupMember);
+	GroupsInterface->AddCachedGroupMember(CurrentGroupData->ABMemberRoleId, AccelByteModelsMemberRequestGroupResponse.UserId);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
@@ -107,7 +85,7 @@ void FOnlineAsyncTaskAccelByteGroupsAcceptUser::OnAcceptUserSuccess(const FAccel
 {
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("GroupId: %s"), *Result.GroupId);
 	UniqueNetIdAccelByteResource = FUniqueNetIdAccelByteResource::Create(Result.GroupId);
-	httpStatus = 200;// Success = 200
+	httpStatus = static_cast<int32>(ErrorCodes::StatusOk);
 	AccelByteModelsMemberRequestGroupResponse = Result;
 	CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

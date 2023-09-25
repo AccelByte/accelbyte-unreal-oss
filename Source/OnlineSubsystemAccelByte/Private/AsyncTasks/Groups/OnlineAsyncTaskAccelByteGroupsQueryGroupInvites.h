@@ -17,7 +17,6 @@ public:
 		FOnlineSubsystemAccelByte* const InABInterface,
 		const FUniqueNetId& ContextUserId,
 		const FAccelByteModelsLimitOffsetRequest& InRequestContent,
-		const FAccelByteGroupsInfo& InGroupInfo,
 		const FOnGroupsRequestCompleted& InDelegate);
 
 	virtual void Initialize() override;
@@ -37,12 +36,21 @@ private:
 	void OnQueryGroupInvitesError(int32 ErrorCode, const FString& ErrorMessage);
 	FErrorHandler OnErrorDelegate;
 
+	/* Incoming content specifications to query */
 	FAccelByteModelsLimitOffsetRequest RequestContent;
-	FAccelByteGroupsInfo GroupInfo;
+
+	/* Temporary storage for the result of the query to be passed back to the requester */
 	FAccelByteModelsGetMemberRequestsListResponse AccelByteModelsGetMemberRequestsListResponse;
+
+	/* Generic delegate used to return Success or Failure status */
 	FOnGroupsRequestCompleted Delegate;
+
+	/* Used by Delegate to return Success or Failure status */
 	FUniqueNetIdAccelByteResourcePtr UniqueNetIdAccelByteResource;
+
+	/* Success or Failure status code */
 	int32 httpStatus;
 
+	/* Error message upon failure to perform requested action */
 	FString ErrorString{};
 };

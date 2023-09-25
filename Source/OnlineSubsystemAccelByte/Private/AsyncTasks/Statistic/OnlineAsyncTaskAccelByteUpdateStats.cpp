@@ -3,6 +3,7 @@
 // and restrictions contact your company contract manager.
 
 #include "OnlineAsyncTaskAccelByteUpdateStats.h"
+#include "OnlinePredefinedEventInterfaceAccelByte.h"
 
 using namespace AccelByte;
 
@@ -96,6 +97,21 @@ void FOnlineAsyncTaskAccelByteUpdateStats::Finalize()
 		for (const auto& UserStatsPair : OnlineUsersStatsPairs)
 		{
 			StatisticInterface->EmplaceStats(UserStatsPair);
+
+		}
+	}
+	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = Subsystem->GetPredefinedEventInterface();
+	if (PredefinedEventInterface.IsValid())
+	{
+		for (const auto& UserStatsPair : OnlineUsersStatsPairs)
+		{
+			FAccelByteModelsUserStatItemUpdatedPayload UserStatItemUpdatedPayload{};
+			UserStatItemUpdatedPayload.UserId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(UserStatsPair->Account)->GetAccelByteId();
+			for (const auto& UserStat : UserStatsPair->Stats)
+			{
+				UserStatItemUpdatedPayload.StatCodes.Add(UserStat.Key);
+			}
+			PredefinedEventInterface->SendEvent(LocalUserNum, MakeShared<FAccelByteModelsUserStatItemUpdatedPayload>(UserStatItemUpdatedPayload));
 		}
 	}
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

@@ -16,7 +16,7 @@ class FOnlineAsyncTaskAccelByteGetGameRecord
 	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteGetGameRecord, ESPMode::ThreadSafe>
 {
 public:
-	FOnlineAsyncTaskAccelByteGetGameRecord(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InLocalUserId, const FString& InKey, bool bInAlwaysRequestToService);
+	FOnlineAsyncTaskAccelByteGetGameRecord(FOnlineSubsystemAccelByte* const InABInterface, int32 InLocalUserNum, const FString& InKey, bool bInAlwaysRequestToService);
 
 	virtual void Initialize() override;
 	virtual void TriggerDelegates() override;

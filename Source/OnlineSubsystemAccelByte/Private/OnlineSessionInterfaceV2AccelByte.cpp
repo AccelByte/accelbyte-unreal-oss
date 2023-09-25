@@ -989,6 +989,11 @@ bool FOnlineSessionV2AccelByte::CreateSession(int32 HostingPlayerNum, FName Sess
 	if (!ensure(IdentityInterface.IsValid()))
 	{
 		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to create session as our identity interface is invalid!"));
+		
+		AccelByteSubsystem->ExecuteNextTick([SessionInterface = AsShared(), SessionName]() {
+			SessionInterface->TriggerOnCreateSessionCompleteDelegates(SessionName, false);
+		});
+		
 		return false;
 	}
 
@@ -996,6 +1001,11 @@ bool FOnlineSessionV2AccelByte::CreateSession(int32 HostingPlayerNum, FName Sess
 	if (!ensure(PlayerId.IsValid()))
 	{
 		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to create session as we could not find a valid player ID for index %d!"), HostingPlayerNum);
+		
+		AccelByteSubsystem->ExecuteNextTick([SessionInterface = AsShared(), SessionName]() {
+			SessionInterface->TriggerOnCreateSessionCompleteDelegates(SessionName, false);
+		});
+		
 		return false;
 	}
 
@@ -1018,6 +1028,11 @@ bool FOnlineSessionV2AccelByte::CreateSession(const FUniqueNetId& HostingPlayerI
 	if (GetNamedSession(SessionName) != nullptr)
 	{
 		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to create session with name '%s' as a session with that name already exists!"), *SessionName.ToString());
+		
+		AccelByteSubsystem->ExecuteNextTick([SessionInterface = AsShared(), SessionName]() {
+			SessionInterface->TriggerOnCreateSessionCompleteDelegates(SessionName, false);
+		});
+		
 		return false;
 	}
 
@@ -1025,6 +1040,11 @@ bool FOnlineSessionV2AccelByte::CreateSession(const FUniqueNetId& HostingPlayerI
 	if (!NewSessionSettings.Get(SETTING_SESSION_TYPE, SessionTypeString))
 	{
 		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to create new session as the SETTING_SESSION_TYPE was blank! Needs to be either SETTING_SESSION_TYPE_PARTY_SESSION or SETTING_SESSION_TYPE_GAME_SESSION!"));
+		
+		AccelByteSubsystem->ExecuteNextTick([SessionInterface = AsShared(), SessionName]() {
+			SessionInterface->TriggerOnCreateSessionCompleteDelegates(SessionName, false);
+		});
+		
 		return false;
 	}
 
@@ -1032,6 +1052,11 @@ bool FOnlineSessionV2AccelByte::CreateSession(const FUniqueNetId& HostingPlayerI
 	if (SessionType == EAccelByteV2SessionType::Unknown)
 	{
 		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to create new session as the SETTING_SESSION_TYPE was blank or set to an unsupported value! Needs to be either SETTING_SESSION_TYPE_PARTY_SESSION or SETTING_SESSION_TYPE_GAME_SESSION!"));
+		
+		AccelByteSubsystem->ExecuteNextTick([SessionInterface = AsShared(), SessionName]() {
+			SessionInterface->TriggerOnCreateSessionCompleteDelegates(SessionName, false);
+		});
+		
 		return false;
 	}
 
@@ -1070,6 +1095,11 @@ bool FOnlineSessionV2AccelByte::CreatePartySession(const FUniqueNetId& HostingPl
 	if (!ensure(IdentityInterface.IsValid()))
 	{
 		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to create party session as our identity interface is invalid!"));
+		
+		AccelByteSubsystem->ExecuteNextTick([SessionInterface = AsShared(), SessionName]() {
+			SessionInterface->TriggerOnCreateSessionCompleteDelegates(SessionName, false);
+		});
+		
 		return false;
 	}
 
@@ -1122,6 +1152,11 @@ bool FOnlineSessionV2AccelByte::CreateGameSession(const FUniqueNetId& HostingPla
 		if (!ensure(IdentityInterface.IsValid()))
 		{
 			AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to create game session as our identity interface is invalid!"));
+			
+			AccelByteSubsystem->ExecuteNextTick([SessionInterface = AsShared(), SessionName]() {
+				SessionInterface->TriggerOnCreateSessionCompleteDelegates(SessionName, false);
+			});
+		
 			return false;
 		}
 
@@ -1154,6 +1189,11 @@ void FOnlineSessionV2AccelByte::FinalizeCreateGameSession(const FName& SessionNa
 	if (!ensure(NewSession != nullptr))
 	{
 		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to finalize creating game session as we do not have a session created for name '%s'!"), *SessionName.ToString());
+		
+		AccelByteSubsystem->ExecuteNextTick([SessionInterface = AsShared(), SessionName]() {
+			SessionInterface->TriggerOnCreateSessionCompleteDelegates(SessionName, false);
+		});
+		
 		return;
 	}
 
@@ -1215,6 +1255,11 @@ void FOnlineSessionV2AccelByte::FinalizeCreatePartySession(const FName& SessionN
 	if (!ensure(Session != nullptr))
 	{
 		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to finalize creating party session as we do not have a session created for name '%s'!"), *SessionName.ToString());
+		
+		AccelByteSubsystem->ExecuteNextTick([SessionInterface = AsShared(), SessionName]() {
+			SessionInterface->TriggerOnCreateSessionCompleteDelegates(SessionName, false);
+		});
+		
 		return;
 	}
 
@@ -2326,6 +2371,13 @@ bool FOnlineSessionV2AccelByte::DestroySession(FName SessionName, const FOnDestr
 	if (!ensure(SessionInfo.IsValid()))
 	{
 		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to destroy session as our session info instance is invalid!"));
+
+		AccelByteSubsystem->ExecuteNextTick([SessionInterface = AsShared(), SessionName, CompletionDelegate]()
+		{
+			CompletionDelegate.ExecuteIfBound(SessionName, false);
+			SessionInterface->TriggerOnDestroySessionCompleteDelegates(SessionName, false);
+		});
+		
 		return false;
 	}
 
@@ -2339,6 +2391,18 @@ bool FOnlineSessionV2AccelByte::DestroySession(FName SessionName, const FOnDestr
 	{
 		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Unable to destroy session already in the process of being destroyed!"));
 		// Purposefully not calling delegate here, as we are still awaiting the previous destroy call to execute delegate
+		return false;
+	}
+	else if(Session->SessionState == EOnlineSessionState::Creating)
+	{
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to destroy session as our session is still creating!"));
+
+		AccelByteSubsystem->ExecuteNextTick([SessionInterface = AsShared(), SessionName, CompletionDelegate]()
+		{
+			CompletionDelegate.ExecuteIfBound(SessionName, false);
+			SessionInterface->TriggerOnDestroySessionCompleteDelegates(SessionName, false);
+		});
+
 		return false;
 	}
 
@@ -2551,6 +2615,11 @@ bool FOnlineSessionV2AccelByte::FindSessions(int32 SearchingPlayerNum, const TSh
 	if (!ensure(IdentityInterface.IsValid()))
 	{
 		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to find sessions as our identity interface is invalid!"));
+
+		AccelByteSubsystem->ExecuteNextTick([SessionInterface = SharedThis(this)]() {
+			SessionInterface->TriggerOnFindSessionsCompleteDelegates(false);
+		});
+		
 		return false;
 	}
 
@@ -2558,6 +2627,11 @@ bool FOnlineSessionV2AccelByte::FindSessions(int32 SearchingPlayerNum, const TSh
 	if (!ensure(PlayerId.IsValid()))
 	{
 		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to find sessions as we could not find a unique ID for player at index %d!"), SearchingPlayerNum);
+
+		AccelByteSubsystem->ExecuteNextTick([SessionInterface = SharedThis(this)]() {
+			SessionInterface->TriggerOnFindSessionsCompleteDelegates(false);
+		});
+		
 		return false;
 	}
 
@@ -2600,6 +2674,11 @@ bool FOnlineSessionV2AccelByte::JoinSession(int32 LocalUserNum, FName SessionNam
 	if (!ensure(IdentityInterface.IsValid()))
 	{
 		UE_LOG_AB(Warning, TEXT("Failed to join session as our identity interface is invalid!"));
+		
+		AccelByteSubsystem->ExecuteNextTick([SessionInterface = SharedThis(this), SessionName]() {
+			SessionInterface->TriggerOnJoinSessionCompleteDelegates(SessionName, EOnJoinSessionCompleteResult::UnknownError);
+		});
+		
 		return false;
 	}
 
@@ -2607,6 +2686,11 @@ bool FOnlineSessionV2AccelByte::JoinSession(int32 LocalUserNum, FName SessionNam
 	if (!ensure(PlayerId.IsValid()))
 	{
 		UE_LOG_AB(Warning, TEXT("Failed to join session as we could not get a unique ID for player at index %d!"), LocalUserNum);
+		
+		AccelByteSubsystem->ExecuteNextTick([SessionInterface = SharedThis(this), SessionName]() {
+			SessionInterface->TriggerOnJoinSessionCompleteDelegates(SessionName, EOnJoinSessionCompleteResult::UnknownError);
+		});
+		
 		return false;
 	}
 
@@ -2620,9 +2704,11 @@ bool FOnlineSessionV2AccelByte::JoinSession(const FUniqueNetId& LocalUserId, FNa
 	if (GetNamedSession(SessionName) != nullptr)
 	{
 		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to join session with name '%s' as a session with that name already exists!"), *SessionName.ToString());
+		
 		AccelByteSubsystem->ExecuteNextTick([SessionInterface = SharedThis(this), SessionName]() {
 			SessionInterface->TriggerOnJoinSessionCompleteDelegates(SessionName, EOnJoinSessionCompleteResult::AlreadyInSession);
 		});
+
 		return false;
 	}
 
@@ -2671,7 +2757,11 @@ bool FOnlineSessionV2AccelByte::JoinSession(const FUniqueNetId& LocalUserId, FNa
 	if(SessionType != EAccelByteV2SessionType::GameSession && SessionType != EAccelByteV2SessionType::PartySession)
 	{
 		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to join session with code, session type %s not supported to join with code"), *FAccelByteUtilities::GetUEnumValueAsString(SessionType));
-		
+
+		AccelByteSubsystem->ExecuteNextTick([SessionInterface = SharedThis(this), SessionName]() {
+			SessionInterface->TriggerOnJoinSessionCompleteDelegates(SessionName, EOnJoinSessionCompleteResult::UnknownError);
+		});
+
 		return false;
 	}
 	
@@ -3004,6 +3094,11 @@ bool FOnlineSessionV2AccelByte::FindFriendSession(int32 LocalUserNum, const FUni
 	if (ensure(IdentityInterface.IsValid()))
 	{
 		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to find friend session as our identity interface is invalid!"));
+
+		AccelByteSubsystem->ExecuteNextTick([SessionInterface = SharedThis(this), LocalUserNum]() {
+			SessionInterface->TriggerOnFindFriendSessionCompleteDelegates(LocalUserNum, false, {});
+		});
+		
 		return false;
 	}
 
@@ -3011,6 +3106,11 @@ bool FOnlineSessionV2AccelByte::FindFriendSession(int32 LocalUserNum, const FUni
 	if (!ensure(PlayerId.IsValid()))
 	{
 		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to find friend session as we could not find a unique ID for player at index %d!"), LocalUserNum);
+
+		AccelByteSubsystem->ExecuteNextTick([SessionInterface = SharedThis(this), LocalUserNum]() {
+			SessionInterface->TriggerOnFindFriendSessionCompleteDelegates(LocalUserNum, false, {});
+		});
+		
 		return false;
 	}
 
@@ -3019,11 +3119,63 @@ bool FOnlineSessionV2AccelByte::FindFriendSession(int32 LocalUserNum, const FUni
 
 bool FOnlineSessionV2AccelByte::FindFriendSession(const FUniqueNetId& LocalUserId, const FUniqueNetId& Friend)
 {
+	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystem->GetIdentityInterface());
+	if (!ensure(IdentityInterface.IsValid()))
+	{
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to find friend session as our identity interface is invalid!"));
+
+		// cannot trigger error delegate here because localUserNum can only be got from identity interface
+		
+		return false;
+	}
+	
+	int32 localUserNum;
+	if(!IdentityInterface->GetLocalUserNum(LocalUserId, localUserNum))
+	{
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to find friend session as we cannot find the local user ID controller number"));
+
+		// cannot trigger error delegate here because localUserNum not found
+		
+		return false;
+	}
+
+	AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Find friend session is not implemented!"));
+
+	AccelByteSubsystem->ExecuteNextTick([SessionInterface = SharedThis(this), localUserNum]() {
+		SessionInterface->TriggerOnFindFriendSessionCompleteDelegates(localUserNum, false, {});
+	});
+		
 	return false;
 }
 
 bool FOnlineSessionV2AccelByte::FindFriendSession(const FUniqueNetId& LocalUserId, const TArray<TSharedRef<const FUniqueNetId>>& FriendList)
 {
+	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystem->GetIdentityInterface());
+	if (!ensure(IdentityInterface.IsValid()))
+	{
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to find friend session as our identity interface is invalid!"));
+
+		// cannot trigger error delegate here because localUserNum can only be got from identity interface
+		
+		return false;
+	}
+	
+	int32 LocalUserNum;
+	if(!IdentityInterface->GetLocalUserNum(LocalUserId, LocalUserNum))
+	{
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to find friend session as we cannot find the local user ID controller number"));
+
+		// cannot trigger error delegate here because localUserNum not found
+		
+		return false;
+	}
+
+	AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Find friend session is not implemented!"));
+
+	AccelByteSubsystem->ExecuteNextTick([SessionInterface = SharedThis(this), LocalUserNum]() {
+		SessionInterface->TriggerOnFindFriendSessionCompleteDelegates(LocalUserNum, false, {});
+	});
+		
 	return false;
 }
 
@@ -3043,6 +3195,9 @@ bool FOnlineSessionV2AccelByte::SendSessionInviteToFriend(int32 LocalUserNum, FN
 	if (!ensure(IdentityInterface.IsValid()))
 	{
 		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to send session invite as our identity interface is invalid!"));
+		
+		// cannot trigger delegate here because we can't get the localUserId without Identity Interface
+		
 		return false;
 	}
 
@@ -3050,6 +3205,9 @@ bool FOnlineSessionV2AccelByte::SendSessionInviteToFriend(int32 LocalUserNum, FN
 	if (!ensure(PlayerId.IsValid()))
 	{
 		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to send session invite as we could not get a unique ID from player index %d!"), LocalUserNum);
+
+		// cannot trigger delegate here because we can't get the localUserId in Identity Interface
+
 		return false;
 	}
 
@@ -3065,6 +3223,11 @@ bool FOnlineSessionV2AccelByte::SendSessionInviteToFriend(const FUniqueNetId& Lo
 	if (Session == nullptr)
 	{
 		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to invite player to session as the session does not exist locally!"));
+
+		AccelByteSubsystem->ExecuteNextTick([SessionInterface = SharedThis(this), &LocalUserId, SessionName, &Friend]() {
+				SessionInterface->TriggerOnSendSessionInviteCompleteDelegates(LocalUserId, SessionName, false, Friend);
+			});
+		
 		return false;
 	}
 
@@ -3082,19 +3245,26 @@ bool FOnlineSessionV2AccelByte::SendSessionInviteToFriend(const FUniqueNetId& Lo
 		return true;
 	}
 
-	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+	AB_OSS_INTERFACE_TRACE_END(TEXT("failed to Send Session Invite to friend, Session type not supported!"));
+	
+	AccelByteSubsystem->ExecuteNextTick([SessionInterface = SharedThis(this), &LocalUserId, SessionName, &Friend]() {
+		SessionInterface->TriggerOnSendSessionInviteCompleteDelegates(LocalUserId, SessionName, false, Friend);
+	});
+
 	return false;
 }
 
 bool FOnlineSessionV2AccelByte::SendSessionInviteToFriends(int32 LocalUserNum, FName SessionName, const TArray<TSharedRef<const FUniqueNetId>>& Friends)
 {
 	UE_LOG_AB(Warning, TEXT("FOnlineSessionV2AccelByte::SendSessionInviteToFriends is not implemented! Please send invites one at a time through FOnlineSessionV2AccelByte::SendSessionInviteToFriend!"));
+	// no delegates to trigger here
 	return false;
 }
 
 bool FOnlineSessionV2AccelByte::SendSessionInviteToFriends(const FUniqueNetId& LocalUserId, FName SessionName, const TArray<TSharedRef<const FUniqueNetId>>& Friends)
 {
 	UE_LOG_AB(Warning, TEXT("FOnlineSessionV2AccelByte::SendSessionInviteToFriends is not implemented! Please send invites one at a time through FOnlineSessionV2AccelByte::SendSessionInviteToFriend!"));
+	// no delegates to trigger here
 	return false;
 }
 
@@ -3197,12 +3367,24 @@ bool FOnlineSessionV2AccelByte::RegisterPlayers(FName SessionName, const TArray<
 	TSharedPtr<FOnlineSessionInfoAccelByteV2> SessionInfo = StaticCastSharedPtr<FOnlineSessionInfoAccelByteV2>(Session->SessionInfo);
 	if (!ensure(SessionInfo.IsValid()))
 	{
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to register players to session as a session info does not exist!"), *SessionName.ToString());
+		
+		AccelByteSubsystem->ExecuteNextTick([SessionInterface = SharedThis(this), &Players, SessionName]() {
+			SessionInterface->TriggerOnRegisterPlayersCompleteDelegates(SessionName, Players, false);
+		});
+		
 		return false;
 	}
 
 	TSharedPtr<FAccelByteModelsV2BaseSession> SessionData = SessionInfo->GetBackendSessionData();
 	if (!ensure(SessionData.IsValid()))
 	{
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to register players to session as a backend session data does not exist!"), *SessionName.ToString());
+		
+		AccelByteSubsystem->ExecuteNextTick([SessionInterface = SharedThis(this), &Players, SessionName]() {
+			SessionInterface->TriggerOnRegisterPlayersCompleteDelegates(SessionName, Players, false);
+		});
+		
 		return false;
 	}
 
@@ -3307,12 +3489,24 @@ bool FOnlineSessionV2AccelByte::UnregisterPlayers(FName SessionName, const TArra
 	TSharedPtr<FOnlineSessionInfoAccelByteV2> SessionInfo = StaticCastSharedPtr<FOnlineSessionInfoAccelByteV2>(Session->SessionInfo);
 	if (!ensure(SessionInfo.IsValid()))
 	{
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to unregister players to session as a session info does not exist!"), *SessionName.ToString());
+		
+		AccelByteSubsystem->ExecuteNextTick([SessionInterface = SharedThis(this), &Players, SessionName]() {
+			SessionInterface->TriggerOnUnregisterPlayersCompleteDelegates(SessionName, Players, false);
+		});
+		
 		return false;
 	}
 
 	TSharedPtr<FAccelByteModelsV2BaseSession> SessionData = SessionInfo->GetBackendSessionData();
 	if (!ensure(SessionData.IsValid()))
 	{
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to unregister players to session as a backend session data does not exist!"), *SessionName.ToString());
+		
+		AccelByteSubsystem->ExecuteNextTick([SessionInterface = SharedThis(this), &Players, SessionName]() {
+			SessionInterface->TriggerOnUnregisterPlayersCompleteDelegates(SessionName, Players, false);
+		});
+		
 		return false;
 	}
 
@@ -3655,6 +3849,7 @@ bool FOnlineSessionV2AccelByte::KickPlayer(const FUniqueNetId& LocalUserId, cons
 	if (Session == nullptr)
 	{
 		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Cannot kick player from session as the session does not exist locally!"));
+		// no delegates to trigger
 		return false;
 	}
 
@@ -3683,6 +3878,12 @@ bool FOnlineSessionV2AccelByte::PromoteGameSessionLeader(const FUniqueNetId& Loc
 	if (Session == nullptr)
 	{
 		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Cannot promote player from game session as the session does not exist locally!"));
+		
+		AccelByteSubsystem->ExecuteNextTick([SessionInterface = SharedThis(this), &PlayerIdToPromote]() {
+			const FOnlineErrorAccelByte Error = FOnlineErrorAccelByte::CreateError(ONLINE_ERROR_NAMESPACE, TEXT("promote-game-session-leader-failed-session-not-exist-locally"), EOnlineErrorResult::Unknown);
+			SessionInterface->TriggerOnPromoteGameSessionLeaderCompleteDelegates(PlayerIdToPromote, Error);
+		});
+		
 		return false;
 	}
 
@@ -3698,7 +3899,11 @@ bool FOnlineSessionV2AccelByte::PromoteGameSessionLeader(const FUniqueNetId& Loc
 		case EAccelByteV2SessionType::Unknown:
 		default:
 			AB_OSS_INTERFACE_TRACE_END(TEXT("Unable to promote game session leader of SessionName: %s as the session is of type %s!"), *SessionName.ToString(), *FAccelByteUtilities::GetUEnumValueAsString(SessionType));
-			return false;
+			AccelByteSubsystem->ExecuteNextTick([SessionInterface = SharedThis(this), &PlayerIdToPromote]() {
+			const FOnlineErrorAccelByte Error = FOnlineErrorAccelByte::CreateError(ONLINE_ERROR_NAMESPACE, TEXT("promote-game-session-leader-failed-invalid-session-type"), EOnlineErrorResult::InvalidParams);
+				SessionInterface->TriggerOnPromoteGameSessionLeaderCompleteDelegates(PlayerIdToPromote, Error);
+			});
+		return false;
 	}
 }
 
@@ -3709,7 +3914,13 @@ bool FOnlineSessionV2AccelByte::PromotePartySessionLeader(const FUniqueNetId& Lo
 	FNamedOnlineSession* Session = GetNamedSession(SessionName);
 	if (Session == nullptr)
 	{
-		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Cannot kick player from session as the session does not exist locally!"));
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Cannot promote party session leader from session as the session does not exist locally!"));
+		
+		AccelByteSubsystem->ExecuteNextTick([&Delegate, &PlayerIdToPromote]() {
+			const FOnlineErrorAccelByte Error = FOnlineErrorAccelByte::CreateError(ONLINE_ERROR_NAMESPACE, TEXT("promote-party-session-leader-failed-session-not-exist-locally"), EOnlineErrorResult::Unknown);
+			Delegate.ExecuteIfBound(PlayerIdToPromote, Error);
+		});
+		
 		return false;
 	}
 
@@ -3717,6 +3928,10 @@ bool FOnlineSessionV2AccelByte::PromotePartySessionLeader(const FUniqueNetId& Lo
 	if (SessionType == EAccelByteV2SessionType::GameSession)
 	{
 		AB_OSS_INTERFACE_TRACE_END(TEXT("Unable to promote party leader of SessionName: %s as the session is of type GameSession!"), *SessionName.ToString());
+		AccelByteSubsystem->ExecuteNextTick([SessionInterface = SharedThis(this), &PlayerIdToPromote]() {
+		const FOnlineErrorAccelByte Error = FOnlineErrorAccelByte::CreateError(ONLINE_ERROR_NAMESPACE, TEXT("promote-party-session-leader-failed-invalid-session-type"), EOnlineErrorResult::InvalidParams);
+			SessionInterface->TriggerOnPromoteGameSessionLeaderCompleteDelegates(PlayerIdToPromote, Error);
+		});
 		return false;
 	}
 	else if (SessionType == EAccelByteV2SessionType::PartySession)
@@ -3727,6 +3942,10 @@ bool FOnlineSessionV2AccelByte::PromotePartySessionLeader(const FUniqueNetId& Lo
 	}
 
 	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+	AccelByteSubsystem->ExecuteNextTick([SessionInterface = SharedThis(this), &PlayerIdToPromote]() {
+	const FOnlineErrorAccelByte Error = FOnlineErrorAccelByte::CreateError(ONLINE_ERROR_NAMESPACE, TEXT("promote-party-session-leader-failed-invalid-session-type"), EOnlineErrorResult::InvalidParams);
+		SessionInterface->TriggerOnPromoteGameSessionLeaderCompleteDelegates(PlayerIdToPromote, Error);
+	});
 	return false;
 }
 
@@ -3916,6 +4135,10 @@ bool FOnlineSessionV2AccelByte::RefreshSession(const FName& SessionName, const F
 	FNamedOnlineSession* Session = GetNamedSession(SessionName);
 	if (Session == nullptr)
 	{
+		AccelByteSubsystem->ExecuteNextTick([SessionInterface = SharedThis(this), &Delegate]() {
+			Delegate.ExecuteIfBound(false);
+		});
+		
 		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Cannot refresh session as the session does not exist locally!"));
 		return false;
 	}
@@ -3931,6 +4154,11 @@ bool FOnlineSessionV2AccelByte::RefreshSession(const FName& SessionName, const F
 		if (IsRunningDedicatedServer())
 		{
 			AB_OSS_INTERFACE_TRACE_END(TEXT("Game servers are not able to refresh party sessions!"));
+			
+			AccelByteSubsystem->ExecuteNextTick([SessionInterface = SharedThis(this), &Delegate]() {
+				Delegate.ExecuteIfBound(false);
+			});
+		
 			return false;
 		}
 

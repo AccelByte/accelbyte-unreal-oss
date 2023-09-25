@@ -41,6 +41,10 @@ void FOnlineAsyncTaskAccelByteJoinV2GameSessionByCode::Finalize()
 	FOnlineSessionV2AccelBytePtr SessionInterface = nullptr;
 	if (!FOnlineSessionV2AccelByte::GetFromSubsystem(Subsystem, SessionInterface))
 	{
+		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to finalize joining a game session by code as our session interface is invalid!"));
+		bWasSuccessful = false;
+		JoinSessionResult = EOnJoinSessionCompleteResult::UnknownError;
+		
 		return;
 	}
 
@@ -106,6 +110,16 @@ void FOnlineAsyncTaskAccelByteJoinV2GameSessionByCode::OnJoinGameSessionByCodeSu
 
 void FOnlineAsyncTaskAccelByteJoinV2GameSessionByCode::OnJoinGameSessionByCodeError(int32 ErrorCode, const FString& ErrorMessage)
 {
-	JoinSessionResult = EOnJoinSessionCompleteResult::UnknownError; // #TODO #SESSIONv2 Maybe expand this to use a better error later?
+	switch(ErrorCode)
+	{
+		case static_cast<int32>(AccelByte::ErrorCodes::SessionJoinSessionFull):
+			JoinSessionResult = EOnJoinSessionCompleteResult::SessionIsFull;
+			break;
+		case static_cast<int32>(AccelByte::ErrorCodes::SessionGameNotFound):
+			JoinSessionResult = EOnJoinSessionCompleteResult::SessionDoesNotExist;
+			break;
+		default:
+			JoinSessionResult = EOnJoinSessionCompleteResult::UnknownError;
+	}
 	AB_ASYNC_TASK_REQUEST_FAILED("Failed to join party using code '%s'!", ErrorCode, ErrorMessage, *Code);
 }

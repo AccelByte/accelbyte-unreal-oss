@@ -19,6 +19,9 @@ class IOnlineSubsystem;
 DECLARE_MULTICAST_DELEGATE_TwoParams(FOnSyncThirdPartyPlatformFriendsComplete, int32 /*LocalUserNum*/, const FOnlineError& /*ErrorInfo*/)
 typedef FOnSyncThirdPartyPlatformFriendsComplete::FDelegate FOnSyncThirdPartyPlatformFriendsCompleteDelegate;
 
+DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnSyncThirdPartyPlatformFriendsV2Complete, int32 /*LocalUserNum*/, const FOnlineError& /*ErrorInfo*/, const TArray<FAccelByteModelsSyncThirdPartyFriendsResponse>& /*Response*/)
+typedef FOnSyncThirdPartyPlatformFriendsV2Complete::FDelegate FOnSyncThirdPartyPlatformFriendsV2CompleteDelegate;
+
 /**
  * Implementation of a friend represented in the AccelByte backend
  */
@@ -201,6 +204,8 @@ PACKAGE_SCOPE:
 public:
 	DEFINE_ONLINE_PLAYER_DELEGATE_ONE_PARAM(MAX_LOCAL_PLAYERS, OnSyncThirdPartyPlatformFriendsComplete, const FOnlineError& /*ErrorInfo*/);
 
+	DEFINE_ONLINE_PLAYER_DELEGATE_TWO_PARAM(MAX_LOCAL_PLAYERS, OnSyncThirdPartyPlatformFriendsV2Complete, const FOnlineError& /*ErrorInfo*/, const TArray<FAccelByteModelsSyncThirdPartyFriendsResponse>& /*Response*/);
+
 	virtual ~FOnlineFriendsAccelByte() override = default;
 
 	/**
@@ -282,6 +287,15 @@ public:
 	 */
 	virtual bool SyncThirdPartyPlatformFriend(int32 LocalUserNum, const FString& NativeFriendListName, const FString& AccelByteFriendListName = TEXT(""));
 
+	/**
+	 * Sync third party platform friend to AccelByte service, this will make an S2S call to platform of choice to sync friends.
+	 *
+	 * @param LocalUserNum the user that sending friend sync request
+	 * @param Request request parameters for friend sync
+	 *
+	 * @return true if the request was started successfully, false otherwise
+	 */
+	virtual bool SyncThirdPartyPlatformFriendV2(int32 LocalUserNum, const FAccelByteModelsSyncThirdPartyFriendsRequest& Request);
 	//~ End AccelByteFriends additional methods
 
 protected:

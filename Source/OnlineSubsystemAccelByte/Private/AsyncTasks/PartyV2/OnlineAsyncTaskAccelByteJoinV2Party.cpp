@@ -57,6 +57,8 @@ void FOnlineAsyncTaskAccelByteJoinV2Party::Finalize()
 	if (!ensure(SessionInterface.IsValid()))
 	{
 		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to finalize task to join party as our session interface is invalid!"));
+		bWasSuccessful = false;
+		JoinSessionResult = EOnJoinSessionCompleteResult::UnknownError;
 		return;
 	}
 
@@ -67,6 +69,8 @@ void FOnlineAsyncTaskAccelByteJoinV2Party::Finalize()
 		if (!ensure(JoinedSession != nullptr))
 		{
 			AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to join party as our session instance to write data to is not valid!"));
+			bWasSuccessful = false;
+			JoinSessionResult = EOnJoinSessionCompleteResult::UnknownError;
 			return;
 		}
 
@@ -132,7 +136,7 @@ void FOnlineAsyncTaskAccelByteJoinV2Party::OnJoinPartyError(int32 ErrorCode, con
 			break;
 		// intended fallthrough for BE backward compatibility, old BE use this code when session not exist
 		case static_cast<int32>(ErrorCodes::SessionGameNotFound):
-		case static_cast<int32>(ErrorCodes::PartyNotFound):
+		case static_cast<int32>(ErrorCodes::SessionPartyNotFound):
 			JoinSessionResult = EOnJoinSessionCompleteResult::SessionDoesNotExist;
 			break;
 		default:

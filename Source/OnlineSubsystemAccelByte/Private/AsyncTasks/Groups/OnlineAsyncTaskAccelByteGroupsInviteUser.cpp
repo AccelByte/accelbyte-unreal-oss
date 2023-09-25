@@ -10,11 +10,11 @@ FOnlineAsyncTaskAccelByteGroupsInviteUser::FOnlineAsyncTaskAccelByteGroupsInvite
 	FOnlineSubsystemAccelByte* const InABInterface,
 	const FUniqueNetId& InInviterUserId,
 	const FUniqueNetId& InInvitedUserId,
-	const FAccelByteGroupsInfo& InGroupInfo,
+	const FString& InGroupId,
 	const FOnGroupsRequestCompleted& InDelegate)
 	: FOnlineAsyncTaskAccelByte(InABInterface)
 	, InvitedUserId(FUniqueNetIdAccelByteUser::CastChecked(InInvitedUserId))
-	, GroupInfo(InGroupInfo)
+	, GroupId(InGroupId)
 	, Delegate(InDelegate)
 {
 	UserId = FUniqueNetIdAccelByteUser::CastChecked(InInviterUserId);
@@ -29,7 +29,7 @@ void FOnlineAsyncTaskAccelByteGroupsInviteUser::Initialize()
 	OnSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsMemberRequestGroupResponse>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteGroupsInviteUser::OnInviteUserSuccess);
 	OnErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteGroupsInviteUser::OnInviteUserError);
 
-	ApiClient->Group.InviteUserToV2Group(InvitedUserId->GetAccelByteId(), GroupInfo.ABGroupInfo.GroupId, OnSuccessDelegate, OnErrorDelegate);
+	ApiClient->Group.InviteUserToV2Group(InvitedUserId->GetAccelByteId(), GroupId, OnSuccessDelegate, OnErrorDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
@@ -52,21 +52,8 @@ void FOnlineAsyncTaskAccelByteGroupsInviteUser::Finalize()
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
-	FOnlineGroupsAccelBytePtr GroupsInterface;
-	if (!ensure(FOnlineGroupsAccelByte::GetFromSubsystem(Subsystem, GroupsInterface)))
-	{
-		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to InviteUser, groups interface instance is not valid!"));
-		return;
-	}
-
 	if (bWasSuccessful == false)
 		return;
-
-	if (GroupsInterface->IsGroupValid() == false)
-	{
-		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to InviteUser, not in a group!"));
-		return;
-	}
 
 	// Success
 
@@ -77,7 +64,7 @@ void FOnlineAsyncTaskAccelByteGroupsInviteUser::OnInviteUserSuccess(const FAccel
 {
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("GroupId: %s"), *Result.GroupId);
 	UniqueNetIdAccelByteResource = FUniqueNetIdAccelByteResource::Create(Result.GroupId);
-	httpStatus = 200;// Success = 200
+	httpStatus = static_cast<int32>(ErrorCodes::StatusOk);
 	AccelByteModelsMemberRequestGroupResponse = Result;
 	CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

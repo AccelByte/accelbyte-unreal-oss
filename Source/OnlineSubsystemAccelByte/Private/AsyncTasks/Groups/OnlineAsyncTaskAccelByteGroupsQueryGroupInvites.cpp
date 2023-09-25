@@ -10,11 +10,9 @@ FOnlineAsyncTaskAccelByteGroupsQueryGroupInvites::FOnlineAsyncTaskAccelByteGroup
 	FOnlineSubsystemAccelByte* const InABInterface,
 	const FUniqueNetId& ContextUserId,
 	const FAccelByteModelsLimitOffsetRequest& InRequestContent,
-	const FAccelByteGroupsInfo& InGroupInfo,
 	const FOnGroupsRequestCompleted& InDelegate)
 	: FOnlineAsyncTaskAccelByte(InABInterface)
 	, RequestContent(InRequestContent)
-	, GroupInfo(InGroupInfo)
 	, Delegate(InDelegate)
 {
 	UserId = FUniqueNetIdAccelByteUser::CastChecked(ContextUserId);
@@ -69,21 +67,14 @@ void FOnlineAsyncTaskAccelByteGroupsQueryGroupInvites::Finalize()
 	}
 
 	TArray<FAccelByteModelsGroupMember> CurrentGroupMembers;
-	GroupsInterface->GetCurrentGroupMembers(CurrentGroupMembers);
+	GroupsInterface->GetCachedUserMembership(CurrentGroupMembers);
 	if (CurrentGroupMembers.Num() == 0)
 	{
-		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to leave group, group member list is empty!"));
+		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to LeaveGroup, group member list is empty!"));
 		return;
 	}
 
-	FAccelByteGroupsInfoPtr CurrentGroupData = GroupsInterface->GetCurrentGroupData();
-	if (!CurrentGroupData.IsValid())
-	{
-		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to leave group, current group data is invalid!"));
-		return;
-	}
-
-	CurrentGroupData->QueryGroupInviteReults = AccelByteModelsGetMemberRequestsListResponse;
+	GroupsInterface->SetCachedGroupInviteResults(AccelByteModelsGetMemberRequestsListResponse);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
