@@ -71,6 +71,26 @@ void FOnlineAsyncTaskAccelByteLoginServer::OnLoginServerSuccess()
 {
     AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 
+    // After logging in, create the user ID instance.
+    FAccelByteUniqueIdComposite CompositeId;
+    CompositeId.Id = FRegistry::ServerCredentials.GetUserId();
+    UserId = FUniqueNetIdAccelByteUser::Create(CompositeId);
+
+    // If the user ID is valid,  we want to provide an Access Token on the Identity Interface.
+    if (UserId.IsValid())
+    {
+        // Also create an account instance for them, this will be fed back to the identity interface after login
+        TSharedPtr<FUserOnlineAccountAccelByte> Account;
+        Account = MakeShared<FUserOnlineAccountAccelByte>(UserId.ToSharedRef()); 
+        Account->SetAccessToken(FRegistry::ServerCredentials.GetAccessToken());
+
+        const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(Subsystem->GetIdentityInterface());
+        if (IdentityInterface.IsValid())
+        {
+            IdentityInterface->AddNewAuthenticatedUser(LocalUserNum, UserId.ToSharedRef(), Account.ToSharedRef()); 
+        }
+    }  
+
     CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
 
     AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

@@ -5,6 +5,7 @@
 #include "OnlineAsyncTaskAccelByteSetUserPresence.h"
 #include "OnlineSubsystemAccelByte.h"
 #include "OnlinePresenceInterfaceAccelByte.h"
+#include "OnlinePredefinedEventInterfaceAccelByte.h"
 #include "Core/AccelByteRegistry.h"
 #include "Api/AccelByteLobbyApi.h"
 
@@ -24,7 +25,6 @@ void FOnlineAsyncTaskAccelByteSetUserPresence::Initialize()
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(" "));
 
-	EAvailability PresenceStatus;
 	switch (LocalCachedPresenceStatus->State)
 	{
 	case EOnlinePresenceState::Online: PresenceStatus = EAvailability::Online; break;
@@ -50,14 +50,23 @@ void FOnlineAsyncTaskAccelByteSetUserPresence::Finalize()
 	if (bWasSuccessful)
 	{
 		auto LocalCachedPresence = StaticCastSharedPtr<FOnlinePresenceAccelByte>(Subsystem->GetPresenceInterface())->FindOrCreatePresence(UserId.ToSharedRef());
-		FOnlineUserPresenceStatusAccelByte PresenceStatus;
+		FOnlineUserPresenceStatusAccelByte OnlinePresenceStatus;
 
-		PresenceStatus.StatusStr = LocalCachedPresenceStatus->StatusStr;
-		PresenceStatus.State = LocalCachedPresenceStatus->State;
+		OnlinePresenceStatus.StatusStr = LocalCachedPresenceStatus->StatusStr;
+		OnlinePresenceStatus.State = LocalCachedPresenceStatus->State;
 
-		LocalCachedPresence->Status = PresenceStatus;
+		LocalCachedPresence->Status = OnlinePresenceStatus;
 		LocalCachedPresence->bIsOnline = LocalCachedPresenceStatus->State == EOnlinePresenceState::Online ? true : false;
 		LocalCachedPresence->bIsPlayingThisGame = LocalCachedPresenceStatus->State == EOnlinePresenceState::Online ? true : false;
+
+		const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = Subsystem->GetPredefinedEventInterface();
+		if (PredefinedEventInterface.IsValid())
+		{
+			FAccelByteModelsUserPresenceStatusUpdatedPayload UserPresenceStatusUpdatedPayload{};
+			UserPresenceStatusUpdatedPayload.UserId = UserId->GetAccelByteId();
+			UserPresenceStatusUpdatedPayload.Status = FAccelByteUtilities::GetUEnumValueAsString(PresenceStatus);
+			PredefinedEventInterface->SendEvent(LocalUserNum, MakeShared<FAccelByteModelsUserPresenceStatusUpdatedPayload>(UserPresenceStatusUpdatedPayload));
+		}
 	}
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

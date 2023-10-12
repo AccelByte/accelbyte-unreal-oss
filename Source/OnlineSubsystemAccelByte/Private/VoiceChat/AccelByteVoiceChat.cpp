@@ -6,6 +6,7 @@
 #include "OnlineIdentityInterfaceAccelByte.h"
 #include "OnlineSubsystemTypes.h"
 #include "VoiceChat.h"
+#include "Runtime/Launch/Resources/Version.h"
 
 FAccelByteVoiceChat::FAccelByteVoiceChat(FOnlineSubsystemAccelByte* InSubsystem)
 	: AccelByteSubsystem(InSubsystem)
@@ -433,8 +434,20 @@ void FAccelByteVoiceChat::TransmitToNoChannels()
 
 void FAccelByteVoiceChat::TransmitToSpecificChannel(const FString& ChannelName)
 {
+#if (ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 3)
+	TSet<FString> ChannelNames({ ChannelName });
+	TransmitToSpecificChannels(ChannelNames);
+#else
 	GetVoiceChatUser()->TransmitToSpecificChannel(ChannelName);
+#endif // (ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 3)
 }
+
+#if (ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 3)
+void FAccelByteVoiceChat::TransmitToSpecificChannels(const TSet<FString>& ChannelNames)
+{
+	GetVoiceChatUser()->TransmitToSpecificChannels(ChannelNames);
+}
+#endif // (ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 3)
 
 EVoiceChatTransmitMode FAccelByteVoiceChat::GetTransmitMode() const
 {
@@ -443,8 +456,25 @@ EVoiceChatTransmitMode FAccelByteVoiceChat::GetTransmitMode() const
 
 FString FAccelByteVoiceChat::GetTransmitChannel() const
 {
-	return GetVoiceChatUser()->GetTransmitChannel();
+	FString Result;
+#if (ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 3)
+	auto TransmitChannels = GetTransmitChannels();
+	if (TransmitChannels.Num() > 0)
+	{
+		Result = TransmitChannels.Get(FSetElementId::FromInteger(0));
+	}
+#else
+	Result = GetVoiceChatUser()->GetTransmitChannel();
+#endif // (ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 3)
+	return Result;
 }
+
+#if (ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 3)
+TSet<FString> FAccelByteVoiceChat::GetTransmitChannels() const
+{
+	return GetVoiceChatUser()->GetTransmitChannels();
+}
+#endif // (ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 3)
 
 FDelegateHandle FAccelByteVoiceChat::StartRecording(const FOnVoiceChatRecordSamplesAvailableDelegate::FDelegate& Delegate)
 {

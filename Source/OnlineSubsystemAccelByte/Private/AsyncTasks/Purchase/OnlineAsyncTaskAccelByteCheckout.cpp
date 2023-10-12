@@ -1,6 +1,7 @@
 ﻿#include "OnlineAsyncTaskAccelByteCheckout.h"
 
 #include "OnlinePurchaseInterfaceAccelByte.h"
+#include "OnlinePredefinedEventInterfaceAccelByte.h"
 #include "OnlineError.h"
 
 using namespace AccelByte;
@@ -55,6 +56,9 @@ void FOnlineAsyncTaskAccelByteCheckout::Initialize()
 	THandler<FAccelByteModelsOrderInfo> OnSuccess = TDelegateUtils<THandler<FAccelByteModelsOrderInfo>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteCheckout::HandleCheckoutComplete);
 	FErrorHandler OnError = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteCheckout::HandleAsyncTaskError);
 	ApiClient->Order.CreateNewOrder(OrderRequest, OnSuccess, OnError);
+
+	PaymentEventPayload.ItemId = OrderRequest.ItemId;
+	PaymentEventPayload.Price = OrderRequest.Price;
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 
@@ -62,9 +66,37 @@ void FOnlineAsyncTaskAccelByteCheckout::Finalize()
 {
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 	Super::Finalize();
-	
 	const FOnlinePurchaseAccelBytePtr PurchaseInterface = StaticCastSharedPtr<FOnlinePurchaseAccelByte>(Subsystem->GetPurchaseInterface());
-	PurchaseInterface->AddReceipt(UserId.ToSharedRef(), Receipt);
+	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = Subsystem->GetPredefinedEventInterface();
+	
+	if (bWasSuccessful && PurchaseInterface.IsValid())
+	{
+		PurchaseInterface->AddReceipt(UserId.ToSharedRef(), Receipt);
+	}
+
+	if (PaymentEventPayload.UserId.IsEmpty() && UserId.IsValid())
+	{
+		PaymentEventPayload.UserId = UserId->GetAccelByteId();
+	}
+	if (PredefinedEventInterface.IsValid() && !PaymentEventPayload.Status.IsEmpty())
+	{
+		switch (FAccelByteUtilities::GetUEnumValueFromString<EAccelByteOrderStatus>(PaymentEventPayload.Status))
+		{
+			case EAccelByteOrderStatus::CHARGED:
+			case EAccelByteOrderStatus::FULFILLED:
+			case EAccelByteOrderStatus::CHARGEBACK_REVERSED:
+			case EAccelByteOrderStatus::FULFILL_FAILED:
+				PredefinedEventInterface->SendEvent(LocalUserNum, MakeShared<FAccelByteModelsPaymentSuccededPayload>(PaymentEventPayload));
+				break;
+			case EAccelByteOrderStatus::CHARGEBACK:
+			case EAccelByteOrderStatus::REFUNDING:
+			case EAccelByteOrderStatus::REFUNDED:
+			case EAccelByteOrderStatus::REFUND_FAILED:
+				PredefinedEventInterface->SendEvent(LocalUserNum, MakeShared<FAccelByteModelsPaymentFailedPayload>(PaymentEventPayload));
+			default:
+				break;
+		}
+	}
 	
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
@@ -109,6 +141,13 @@ void FOnlineAsyncTaskAccelByteCheckout::HandleCheckoutComplete(const FAccelByteM
 		break;
 	}
 	
+	PaymentEventPayload.OrderNo = Result.OrderNo;
+	PaymentEventPayload.PaymentOrderNo = Result.PaymentOrderNo;
+	PaymentEventPayload.ItemId = Result.ItemId;
+	PaymentEventPayload.Price = Result.Price;
+	PaymentEventPayload.UserId = Result.UserId;
+	PaymentEventPayload.Status = FAccelByteUtilities::GetUEnumValueAsString(Result.Status);
+
 	CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
 }
 

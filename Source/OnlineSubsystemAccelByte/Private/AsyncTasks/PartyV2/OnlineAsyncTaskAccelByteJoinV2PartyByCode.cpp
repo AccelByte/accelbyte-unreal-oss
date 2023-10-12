@@ -3,6 +3,7 @@
 // and restrictions contact your company contract manager.
 
 #include "OnlineAsyncTaskAccelByteJoinV2PartyByCode.h"
+#include "OnlinePredefinedEventInterfaceAccelByte.h"
 
 using namespace AccelByte;
 
@@ -71,6 +72,15 @@ void FOnlineAsyncTaskAccelByteJoinV2PartyByCode::Finalize()
 	FOnlineSessionSearchResult JoinResult{};
 	JoinResult.Session = ConstructedSession;
 	SessionInterface->JoinSession(UserId.ToSharedRef().Get(), SessionName, JoinResult);
+
+	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = Subsystem->GetPredefinedEventInterface();
+	if (PredefinedEventInterface.IsValid())
+	{
+		FAccelByteModelsMPV2PartySessionJoinedPayload PartySessionJoinedPayload{};
+		PartySessionJoinedPayload.UserId = UserId->GetAccelByteId();
+		PartySessionJoinedPayload.PartySessionId = JoinResult.GetSessionIdStr();
+		PredefinedEventInterface->SendEvent(LocalUserNum, MakeShared<FAccelByteModelsMPV2PartySessionJoinedPayload>(PartySessionJoinedPayload));
+	}
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }

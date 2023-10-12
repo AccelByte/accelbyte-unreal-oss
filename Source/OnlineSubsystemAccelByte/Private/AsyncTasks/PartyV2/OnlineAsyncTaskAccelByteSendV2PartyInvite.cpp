@@ -6,6 +6,7 @@
 #include "OnlineSubsystemAccelByte.h"
 #include "Core/AccelByteRegistry.h"
 #include "OnlineSessionInterfaceV2AccelByte.h"
+#include "OnlinePredefinedEventInterfaceAccelByte.h"
 
 FOnlineAsyncTaskAccelByteSendV2PartyInvite::FOnlineAsyncTaskAccelByteSendV2PartyInvite(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InLocalUserId, const FName& InSessionName, const FUniqueNetId& InRecipientId)
 	: FOnlineAsyncTaskAccelByte(InABInterface)
@@ -33,7 +34,20 @@ void FOnlineAsyncTaskAccelByteSendV2PartyInvite::Initialize()
 	AB_ASYNC_TASK_DEFINE_SDK_DELEGATES(FOnlineAsyncTaskAccelByteSendV2PartyInvite, SendPartyInvite, FVoidHandler);
 	ApiClient->Session.SendPartyInvite(Session->GetSessionIdStr(), RecipientId->GetAccelByteId(), OnSendPartyInviteSuccessDelegate, OnSendPartyInviteErrorDelegate);
 
+	SessionId = Session->GetSessionIdStr();
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
+}
+
+void FOnlineAsyncTaskAccelByteSendV2PartyInvite::Finalize()
+{
+	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = Subsystem->GetPredefinedEventInterface();
+	if (bWasSuccessful && PredefinedEventInterface.IsValid())
+	{
+		FAccelByteModelsMPV2PartySessionInvitedPayload PartySessionInvitedPayload{};
+		PartySessionInvitedPayload.UserId = UserId->GetAccelByteId();
+		PartySessionInvitedPayload.PartySessionId = SessionId;
+		PredefinedEventInterface->SendEvent(LocalUserNum, MakeShared<FAccelByteModelsMPV2PartySessionInvitedPayload>(PartySessionInvitedPayload));
+	}
 }
 
 void FOnlineAsyncTaskAccelByteSendV2PartyInvite::TriggerDelegates()

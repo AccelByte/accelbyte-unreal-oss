@@ -40,8 +40,8 @@ FAccelByteGroupsInfo::FAccelByteGroupsInfo(
 	const FString InABAdminRoleId,
 	const FString InABMemberRoleId,
 	const FAccelByteModelsGroupInformation InABGroupInfo)
-	: SenderUserId(InSenderUserId)
-	, Namespace(InNamespace)
+	: Namespace(InNamespace)
+	, SenderUserId(InSenderUserId)
 	, TimeCreated(InTimeCreated)
 	, TimeLastUpdated(InTimeLastUpdated)
 	, ABGroupInfo(InABGroupInfo)

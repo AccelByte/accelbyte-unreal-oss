@@ -4,6 +4,7 @@
 
 #include "OnlineAsyncTaskAccelByteJoinV2GameSession.h"
 #include "OnlineSessionInterfaceV2AccelByte.h"
+#include "OnlinePredefinedEventInterfaceAccelByte.h"
 #include "OnlineSubsystemAccelByteTypes.h"
 
 using namespace AccelByte;
@@ -92,6 +93,15 @@ void FOnlineAsyncTaskAccelByteJoinV2GameSession::Finalize()
 		// Update the game session data with what we received on join, that way if anything updated between the query and us
 		// joining, we would apply that to the joined session
 		SessionInterface->UpdateInternalGameSession(SessionName, UpdatedBackendSessionInfo, bJoiningP2P, true);
+
+		const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = Subsystem->GetPredefinedEventInterface();
+		if (PredefinedEventInterface.IsValid())
+		{
+			FAccelByteModelsMPV2GameSessionJoinedPayload GameSessionJoinedPayload{};
+			GameSessionJoinedPayload.UserId = UserId->GetAccelByteId();
+			GameSessionJoinedPayload.GameSessionId = SessionId;
+			PredefinedEventInterface->SendEvent(LocalUserNum, MakeShared<FAccelByteModelsMPV2GameSessionJoinedPayload>(GameSessionJoinedPayload));
+		}
 	}
 	else
 	{

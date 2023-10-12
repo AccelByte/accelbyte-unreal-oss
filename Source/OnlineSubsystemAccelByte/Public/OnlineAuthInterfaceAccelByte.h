@@ -44,10 +44,22 @@ PACKAGE_SCOPE:
 		FAuthUser() : Status(EAccelByteAuthStatus::None), PendingTimestamp(0.0), ErrorCode(0) { }
 		void SetFail(const int32 InErrorCode, const FString& InErrorMessage) { ErrorCode = InErrorCode; ErrorMessage = InErrorMessage; }
 
+		void SetBans(const TArray<FString>& InBans)
+		{
+			Bans = InBans;
+		}
+
+		bool IsBanned(const FString& InUserId) const
+		{
+			return Bans.Contains(InUserId);
+		}
+
 		EAccelByteAuthStatus Status;
 		double PendingTimestamp;
 		int32 ErrorCode;
 		FString ErrorMessage;
+
+		TArray<FString> Bans;
 	};
 
 	typedef TSharedPtr<FAuthUser, ESPMode::NotThreadSafe> SharedAuthUserPtr;
@@ -60,6 +72,8 @@ PACKAGE_SCOPE:
 	bool UpdateJwks();
 	bool VerifyAuthToken(const FString& AuthToken, FString& UserId);
 	bool AuthenticateUser(const FString& InUserId);
+	void GetBanUser(const FString& InUserId);
+	void GetBanUserInfo(const FString& InUserId);
 	void OnAuthSuccess(const FString& InUserId);
 	void OnAuthFail(const FString& InUserId, const int32 InErrorCode, const FString& InErrorMessage);
 	EAccelByteAuthStatus GetAuthStatus(const FString& InUserId);

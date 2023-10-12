@@ -36,4 +36,5 @@ private:
 	FString Language;
 
 	FPurchaseReceipt Receipt;
+	FAccelByteModelsPaymentFailedPayload PaymentEventPayload;
 };

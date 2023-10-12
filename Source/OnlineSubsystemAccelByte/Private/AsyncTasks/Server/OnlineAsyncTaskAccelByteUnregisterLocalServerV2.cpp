@@ -3,6 +3,7 @@
 // and restrictions contact your company contract manager.
 
 #include "OnlineAsyncTaskAccelByteUnregisterLocalServerV2.h"
+#include "OnlinePredefinedEventInterfaceAccelByte.h"
 
 using namespace AccelByte;
 
@@ -21,7 +22,7 @@ void FOnlineAsyncTaskAccelByteUnregisterLocalServerV2::Initialize()
 	const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(Subsystem->GetSessionInterface());
 	AB_ASYNC_TASK_ENSURE(SessionInterface.IsValid(), "Failed to unregister local server as our session interface is invalid!");
 
-	FString ServerName = TEXT("");
+	ServerName = TEXT("");
 	AB_ASYNC_TASK_ENSURE(SessionInterface->GetLocalServerName(ServerName), "Failed to unregister local server as we failed to get the name of the server!");
 
 	AB_ASYNC_TASK_DEFINE_SDK_DELEGATES(FOnlineAsyncTaskAccelByteUnregisterLocalServerV2, UnregisterServer, FVoidHandler);
@@ -44,6 +45,14 @@ void FOnlineAsyncTaskAccelByteUnregisterLocalServerV2::Finalize()
 		}
 
 		SessionInterface->DisconnectFromDSHub();
+
+		const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = Subsystem->GetPredefinedEventInterface();
+		if (PredefinedEventInterface.IsValid())
+		{
+			FAccelByteModelsDSUnregisteredPayload DSUnregisteredPayload{};
+			DSUnregisteredPayload.PodName = ServerName;
+			PredefinedEventInterface->SendEvent(-1, MakeShared<FAccelByteModelsDSUnregisteredPayload>(DSUnregisteredPayload));
+		}
 	}
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

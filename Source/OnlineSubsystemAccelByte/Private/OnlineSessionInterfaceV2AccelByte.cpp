@@ -50,8 +50,9 @@
 #include "AsyncTasks/Server/OnlineAsyncTaskAccelByteSendReadyToAMS.h"
 #include "OnlineIdentityInterfaceAccelByte.h"
 #include "OnlineSessionInterfaceV1AccelByte.h"
-#include "OnlineSubsystemAccelByte.h"
 #include "OnlineVoiceInterfaceAccelByte.h"
+#include "OnlinePredefinedEventInterfaceAccelByte.h"
+#include "OnlineSubsystemAccelByte.h"
 #include "Api/AccelByteLobbyApi.h"
 #include "OnlineSubsystemAccelByteSessionSettings.h"
 #include "AccelByteNetworkUtilities.h"
@@ -504,7 +505,9 @@ void FOnlineSessionInfoAccelByteV2::UpdateConnectionInfo()
 	}
 
 	const bool bIsDsJoinable = GameBackendSessionData->DSInformation.Server.Status.Equals(TEXT("READY"), ESearchCase::IgnoreCase) || GameBackendSessionData->DSInformation.Server.Status.Equals(TEXT("BUSY"), ESearchCase::IgnoreCase);
-	if (GameBackendSessionData->Configuration.Type == EAccelByteV2SessionConfigurationServerType::DS && bIsDsJoinable)
+	if (GameBackendSessionData->Configuration.Type == EAccelByteV2SessionConfigurationServerType::DS &&
+		bIsDsJoinable &&
+		!GameBackendSessionData->DSInformation.Server.Ip.IsEmpty()) // Address crashing on PS5 if IP is empty (in case user is not member of session yet)
 	{
 		// Grab socket subsystem to create a new FInternetAddr instance
 		ISocketSubsystem* SocketSubsystem = ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM);
@@ -3441,6 +3444,19 @@ bool FOnlineSessionV2AccelByte::RegisterPlayers(FName SessionName, const TArray<
 					VoiceInterface->RegisterTalker(PlayerToAdd, *Session);
 				}
 			}
+
+			if (IsRunningDedicatedServer())
+			{
+				const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = AccelByteSubsystem->GetPredefinedEventInterface();
+				FUniqueNetIdAccelByteUserPtr AccelByteUser = FUniqueNetIdAccelByteUser::CastChecked(PlayerToAdd);
+				if (PredefinedEventInterface.IsValid() && AccelByteUser.IsValid())
+				{
+					FAccelByteModelsDSGameClientJoinedPayload DSGameClientJoinedPayload{};
+					DSGameClientJoinedPayload.PodName = FRegistry::ServerDSM.GetServerName();
+					DSGameClientJoinedPayload.UserId = AccelByteUser->GetAccelByteId();
+					PredefinedEventInterface->SendEvent(-1, MakeShared<FAccelByteModelsDSGameClientJoinedPayload>(DSGameClientJoinedPayload));
+				}
+			}
 		}
 	}
 
@@ -3527,6 +3543,19 @@ bool FOnlineSessionV2AccelByte::UnregisterPlayers(FName SessionName, const TArra
 			else
 			{
 				Session->NumOpenPublicConnections++;
+			}
+
+			if (IsRunningDedicatedServer())
+			{
+				const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = AccelByteSubsystem->GetPredefinedEventInterface();
+				FUniqueNetIdAccelByteUserPtr AccelByteUser = FUniqueNetIdAccelByteUser::CastChecked(PlayerToRemove);
+				if (PredefinedEventInterface.IsValid() && AccelByteUser.IsValid())
+				{
+					FAccelByteModelsDSGameClientLeftPayload DSGameClientLeftPayload{};
+					DSGameClientLeftPayload.PodName = FRegistry::ServerDSM.GetServerName();
+					DSGameClientLeftPayload.UserId = AccelByteUser->GetAccelByteId();
+					PredefinedEventInterface->SendEvent(-1, MakeShared<FAccelByteModelsDSGameClientLeftPayload>(DSGameClientLeftPayload));
+				}
 			}
 		}
 	}
@@ -4352,6 +4381,15 @@ void FOnlineSessionV2AccelByte::OnInvitedToGameSessionNotification(FAccelByteMod
 	const FOnSingleSessionResultCompleteDelegate OnFindGameSessionForInviteCompleteDelegate = FOnSingleSessionResultCompleteDelegate::CreateThreadSafeSP(SharedThis(this), &FOnlineSessionV2AccelByte::OnFindGameSessionForInviteComplete, InviteEvent);
 	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteFindV2GameSessionById>(AccelByteSubsystem, PlayerId.ToSharedRef().Get(), SessionUniqueId.ToSharedRef().Get(), OnFindGameSessionForInviteCompleteDelegate);
 
+	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = AccelByteSubsystem->GetPredefinedEventInterface();
+	if (PredefinedEventInterface.IsValid())
+	{
+		FAccelByteModelsMPV2GameSessionInvitedPayload GameSessionInvitedPayload{};
+		GameSessionInvitedPayload.UserId = StaticCastSharedPtr<const FUniqueNetIdAccelByteUser>(PlayerId)->GetAccelByteId();
+		GameSessionInvitedPayload.GameSessionId = InviteEvent.SessionID;
+		PredefinedEventInterface->SendEvent(LocalUserNum, MakeShared<FAccelByteModelsMPV2GameSessionInvitedPayload>(GameSessionInvitedPayload));
+	}
+
 	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
 }
 
@@ -4606,6 +4644,15 @@ void FOnlineSessionV2AccelByte::OnInvitedToPartySessionNotification(FAccelByteMo
 
 	const FOnSingleSessionResultCompleteDelegate OnFindPartySessionForInviteCompleteDelegate = FOnSingleSessionResultCompleteDelegate::CreateThreadSafeSP(SharedThis(this), &FOnlineSessionV2AccelByte::OnFindPartySessionForInviteComplete, InviteEvent);
 	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteFindV2PartyById>(AccelByteSubsystem, PlayerId.ToSharedRef().Get(), SessionUniqueId.ToSharedRef().Get(), OnFindPartySessionForInviteCompleteDelegate);
+
+	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = AccelByteSubsystem->GetPredefinedEventInterface();
+	if (PredefinedEventInterface.IsValid())
+	{
+		FAccelByteModelsMPV2PartySessionInvitedPayload PartySessionInvitedPayload{};
+		PartySessionInvitedPayload.UserId = StaticCastSharedPtr<const FUniqueNetIdAccelByteUser>(PlayerId)->GetAccelByteId();
+		PartySessionInvitedPayload.PartySessionId = InviteEvent.PartyID;
+		PredefinedEventInterface->SendEvent(LocalUserNum, MakeShared<FAccelByteModelsMPV2PartySessionInvitedPayload>(PartySessionInvitedPayload));
+	}
 }
 
 void FOnlineSessionV2AccelByte::OnKickedFromPartySessionNotification(FAccelByteModelsV2PartyUserKickedEvent KickedEvent, int32 LocalUserNum)
@@ -4638,6 +4685,15 @@ void FOnlineSessionV2AccelByte::OnKickedFromPartySessionNotification(FAccelByteM
 	// trigger leave if needed
 	TriggerOnKickedFromSessionDelegates(Session->SessionName);
 	DestroySession(Session->SessionName);
+
+	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = AccelByteSubsystem->GetPredefinedEventInterface();
+	if (PredefinedEventInterface.IsValid())
+	{
+		FAccelByteModelsMPV2PartySessionKickedPayload PartySessionKickedPayload{};
+		PartySessionKickedPayload.UserId = StaticCastSharedPtr<const FUniqueNetIdAccelByteUser>(PlayerId)->GetAccelByteId();
+		PartySessionKickedPayload.PartySessionId = KickedEvent.PartyID;
+		PredefinedEventInterface->SendEvent(LocalUserNum, MakeShared<FAccelByteModelsMPV2PartySessionKickedPayload>(PartySessionKickedPayload));
+	}
 
 	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
 }
@@ -4953,7 +5009,6 @@ void FOnlineSessionV2AccelByte::OnMatchmakingStartedNotification(FAccelByteModel
 		// Since we already have a matchmaking search handle, we don't need to do anything else here and can bail
 		TriggerOnMatchmakingStartedDelegates();
 		AB_OSS_INTERFACE_TRACE_END(TEXT("CurrentMatchmakingSearchHandle is valid"));
-		return;
 	}
 
 	const IOnlineIdentityPtr IdentityInterface = AccelByteSubsystem->GetIdentityInterface();
@@ -4970,19 +5025,33 @@ void FOnlineSessionV2AccelByte::OnMatchmakingStartedNotification(FAccelByteModel
 		return;
 	}
 
-	// If we don't have a valid session search instance stored, then the party leader has started matchmaking, in which we
-	// need to create our own search handle to get notifications from matchmaking to join later
-	CurrentMatchmakingSearchHandle = MakeShared<FOnlineSessionSearchAccelByte>();
-	CurrentMatchmakingSearchHandle->SearchState = EOnlineAsyncTaskState::InProgress;
-	CurrentMatchmakingSearchHandle->SearchingPlayerId = LocalPlayerId;
-	CurrentMatchmakingSearchHandle->TicketId = MatchmakingStartedNotif.TicketID;
-	CurrentMatchmakingSearchHandle->MatchPool = MatchmakingStartedNotif.MatchPool;
+	if (!CurrentMatchmakingSearchHandle.IsValid())
+	{
+		// If we don't have a valid session search instance stored, then the party leader has started matchmaking, in which we
+		// need to create our own search handle to get notifications from matchmaking to join later
+		CurrentMatchmakingSearchHandle = MakeShared<FOnlineSessionSearchAccelByte>();
+		CurrentMatchmakingSearchHandle->SearchState = EOnlineAsyncTaskState::InProgress;
+		CurrentMatchmakingSearchHandle->SearchingPlayerId = LocalPlayerId;
+		CurrentMatchmakingSearchHandle->TicketId = MatchmakingStartedNotif.TicketID;
+		CurrentMatchmakingSearchHandle->MatchPool = MatchmakingStartedNotif.MatchPool;
 
-	// #TODO (Maxwell) Revisit this to somehow give developers a way to choose what session name they are matching for if a party
-	// member receives a matchmaking notification. Since matchmaking shouldn't just be limited to game sessions.
-	CurrentMatchmakingSearchHandle->SearchingSessionName = NAME_GameSession;
+		// #TODO (Maxwell) Revisit this to somehow give developers a way to choose what session name they are matching for if a party
+		// member receives a matchmaking notification. Since matchmaking shouldn't just be limited to game sessions.
+		CurrentMatchmakingSearchHandle->SearchingSessionName = NAME_GameSession;
 
-	TriggerOnMatchmakingStartedDelegates();
+		TriggerOnMatchmakingStartedDelegates();
+	}
+
+	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = AccelByteSubsystem->GetPredefinedEventInterface();
+	if (PredefinedEventInterface.IsValid())
+	{
+		FAccelByteModelsMPV2MatchmakingStartedPayload MatchmakingStartedPayload{};
+		MatchmakingStartedPayload.UserId = StaticCastSharedPtr<const FUniqueNetIdAccelByteUser>(LocalPlayerId)->GetAccelByteId();
+		MatchmakingStartedPayload.MatchTicketId = MatchmakingStartedNotif.TicketID;
+		MatchmakingStartedPayload.PartySessionId = MatchmakingStartedNotif.PartyID;
+		MatchmakingStartedPayload.MatchPool = MatchmakingStartedNotif.MatchPool;
+		PredefinedEventInterface->SendEvent(LocalUserNum, MakeShared<FAccelByteModelsMPV2MatchmakingStartedPayload>(MatchmakingStartedPayload));
+	}
 
 	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
 }
@@ -5233,6 +5302,12 @@ void FOnlineSessionV2AccelByte::ConnectToDSHub(const FString& ServerName)
 	const AccelByte::GameServerApi::FOnV2SessionMemberChangedNotification OnV2SessionMemberChangedNotification = AccelByte::GameServerApi::FOnV2SessionMemberChangedNotification::CreateThreadSafeSP(SharedThis(this), &FOnlineSessionV2AccelByte::OnV2DsSessionMemberChangedNotification);
 	FRegistry::ServerDSHub.SetOnV2SessionMemberChangedNotificationDelegate(OnV2SessionMemberChangedNotification);
 
+	const AccelByte::GameServerApi::FConnectSuccess OnDSHubConnectSuccessNotificationDelegate = AccelByte::GameServerApi::FConnectSuccess::CreateThreadSafeSP(SharedThis(this), &FOnlineSessionV2AccelByte::OnDSHubConnectSuccessNotification);
+	FRegistry::ServerDSHub.SetOnConnectSuccess(OnDSHubConnectSuccessNotificationDelegate);
+
+	const AccelByte::GameServerApi::FConnectionClosed OnDSHubConnectionClosedNotificationDelegate = AccelByte::GameServerApi::FConnectionClosed::CreateThreadSafeSP(SharedThis(this), &FOnlineSessionV2AccelByte::OnDSHubConnectionClosedNotification);
+	FRegistry::ServerDSHub.SetOnConnectionClosed(OnDSHubConnectionClosedNotificationDelegate);
+
 	// Finally, connect to the DS hub websocket
 	FRegistry::ServerDSHub.Connect(ServerName);
 
@@ -5254,6 +5329,8 @@ void FOnlineSessionV2AccelByte::DisconnectFromDSHub()
 	FRegistry::ServerDSHub.SetOnServerClaimedNotificationDelegate(AccelByte::GameServerApi::FOnServerClaimedNotification());
 	FRegistry::ServerDSHub.SetOnV2BackfillProposalNotificationDelegate(AccelByte::GameServerApi::FOnV2BackfillProposalNotification());
 	FRegistry::ServerDSHub.SetOnV2SessionMemberChangedNotificationDelegate(AccelByte::GameServerApi::FOnV2SessionMemberChangedNotification());
+	FRegistry::ServerDSHub.SetOnConnectSuccess(AccelByte::GameServerApi::FConnectSuccess());
+	FRegistry::ServerDSHub.SetOnConnectionClosed(AccelByte::GameServerApi::FConnectionClosed());
 	
 	// Finally, disconnect the DS hub websocket
 	FRegistry::ServerDSHub.Disconnect();
@@ -5282,6 +5359,15 @@ void FOnlineSessionV2AccelByte::OnServerClaimedNotification(const FAccelByteMode
 	// Take the session ID we got for the server claim and retrieve session data for it
 	GetServerClaimedSession(NAME_GameSession, Notification.Session_id);
 
+	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = AccelByteSubsystem->GetPredefinedEventInterface();
+	if (PredefinedEventInterface.IsValid())
+	{
+		FAccelByteModelsDSClaimedPayload DSClaimedPayload{};
+		DSClaimedPayload.PodName = FRegistry::ServerDSM.GetServerName();
+		DSClaimedPayload.GameSessionId = Notification.Session_id;
+		PredefinedEventInterface->SendEvent(-1, MakeShared<FAccelByteModelsDSClaimedPayload>(DSClaimedPayload));
+	}
+
 	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
 }
 
@@ -5297,6 +5383,20 @@ void FOnlineSessionV2AccelByte::OnV2BackfillProposalNotification(const FAccelByt
 	}
 
 	TriggerOnBackfillProposalReceivedDelegates(Notification);
+
+	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = AccelByteSubsystem->GetPredefinedEventInterface();
+	if (PredefinedEventInterface.IsValid())
+	{
+		FAccelByteModelsDSBackfillProposalReceivedPayload DSBackfillProposalReceivedPayload{};
+		DSBackfillProposalReceivedPayload.PodName = FRegistry::ServerDSM.GetServerName();
+		DSBackfillProposalReceivedPayload.BackfillTicketId = Notification.BackfillTicketID;
+		DSBackfillProposalReceivedPayload.ProposalId = Notification.ProposalID;
+		DSBackfillProposalReceivedPayload.MatchPool = Notification.MatchPool;
+		DSBackfillProposalReceivedPayload.GameSessionId = Notification.MatchSessionID;
+		DSBackfillProposalReceivedPayload.ProposedTeams = Notification.ProposedTeams;
+		DSBackfillProposalReceivedPayload.AddedTickets = Notification.AddedTickets;
+		PredefinedEventInterface->SendEvent(-1, MakeShared<FAccelByteModelsDSBackfillProposalReceivedPayload>(DSBackfillProposalReceivedPayload));
+	}
 
 	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
 }
@@ -5315,7 +5415,41 @@ void FOnlineSessionV2AccelByte::OnV2DsSessionMemberChangedNotification(const FAc
 	// TODO: Potentially unnecessary memory allocation
 	EnqueueBackendDataUpdate(Session->SessionName, MakeShared<FAccelByteModelsV2GameSession>(Notification));
 	
+	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = AccelByteSubsystem->GetPredefinedEventInterface();
+	if (PredefinedEventInterface.IsValid())
+	{
+		FAccelByteModelsDSMemberChangedNotifReceivedPayload DSMemberChangedNotifReceived{};
+		DSMemberChangedNotifReceived.PodName = FRegistry::ServerDSM.GetServerName();
+		DSMemberChangedNotifReceived.GameSessionId = Notification.ID;
+		DSMemberChangedNotifReceived.Members = Notification.Members;
+		DSMemberChangedNotifReceived.Teams = Notification.Teams;
+		PredefinedEventInterface->SendEvent(-1, MakeShared<FAccelByteModelsDSMemberChangedNotifReceivedPayload>(DSMemberChangedNotifReceived));
+	}
+
 	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+}
+
+void FOnlineSessionV2AccelByte::OnDSHubConnectSuccessNotification()
+{
+	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = AccelByteSubsystem->GetPredefinedEventInterface();
+	if (PredefinedEventInterface.IsValid())
+	{
+		FAccelByteModelsDSHubConnectedPayload DSHubConnectedPayload{};
+		DSHubConnectedPayload.PodName = FRegistry::ServerDSM.GetServerName();
+		PredefinedEventInterface->SendEvent(-1, MakeShared<FAccelByteModelsDSHubConnectedPayload>(DSHubConnectedPayload));
+	}
+}
+
+void FOnlineSessionV2AccelByte::OnDSHubConnectionClosedNotification(int32 StatusCode, const FString & Reason, bool bWasClean)
+{
+	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = AccelByteSubsystem->GetPredefinedEventInterface();
+	if (PredefinedEventInterface.IsValid())
+	{
+		FAccelByteModelsDSHubDisconnectedPayload DSHubDisconnectedPayload{};
+		DSHubDisconnectedPayload.PodName = FRegistry::ServerDSM.GetServerName();
+		DSHubDisconnectedPayload.StatusCode = StatusCode;
+		PredefinedEventInterface->SendEvent(-1, MakeShared<FAccelByteModelsDSHubDisconnectedPayload>(DSHubDisconnectedPayload));
+	}
 }
 
 void FOnlineSessionV2AccelByte::OnSessionStorageChangedNotification(FAccelByteModelsV2SessionStorageChangedEvent Notification, int32 LocalUserNum)

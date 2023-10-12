@@ -40,5 +40,7 @@ private:
 
 	/** Delegate handler for when the SetUserPresence call done */
 	void OnSetUserPresenceResponse(const FAccelByteModelsSetOnlineUsersResponse& Result);
+
+	EAvailability PresenceStatus{ EAvailability::Offline };
 };
 

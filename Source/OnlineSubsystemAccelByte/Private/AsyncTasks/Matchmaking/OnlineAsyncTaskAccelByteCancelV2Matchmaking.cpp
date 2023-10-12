@@ -4,6 +4,7 @@
 
 #include "OnlineAsyncTaskAccelByteCancelV2Matchmaking.h"
 #include "OnlineSessionInterfaceV2AccelByte.h"
+#include "OnlinePredefinedEventInterfaceAccelByte.h"
 #include "Core/AccelByteError.h"
 
 using namespace AccelByte;
@@ -50,6 +51,15 @@ void FOnlineAsyncTaskAccelByteCancelV2Matchmaking::Finalize()
 		SessionInterface->AddCanceledTicketId(SearchHandle->TicketId);
 		SessionInterface->CurrentMatchmakingSearchHandle.Reset();
 		SessionInterface->CurrentMatchmakingSessionSettings = {};
+
+		const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = Subsystem->GetPredefinedEventInterface();
+		if (PredefinedEventInterface.IsValid())
+		{
+			FAccelByteModelsMPV2MatchmakingCanceledPayload MatchmakingCanceledPayload{};
+			MatchmakingCanceledPayload.UserId = UserId->GetAccelByteId();
+			MatchmakingCanceledPayload.MatchTicketId = SearchHandle->TicketId;
+			PredefinedEventInterface->SendEvent(LocalUserNum, MakeShared<FAccelByteModelsMPV2MatchmakingCanceledPayload>(MatchmakingCanceledPayload));
+		}
 	}
 	
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

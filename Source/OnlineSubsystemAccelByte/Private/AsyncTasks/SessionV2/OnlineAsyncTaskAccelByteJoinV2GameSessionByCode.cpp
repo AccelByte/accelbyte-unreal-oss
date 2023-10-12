@@ -3,6 +3,7 @@
 // and restrictions contact your company contract manager.
 
 #include "OnlineAsyncTaskAccelByteJoinV2GameSessionByCode.h"
+#include "OnlinePredefinedEventInterfaceAccelByte.h"
 
 FOnlineAsyncTaskAccelByteJoinV2GameSessionByCode::FOnlineAsyncTaskAccelByteJoinV2GameSessionByCode(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InLocalUserId, const FName& InSessionName, const FString& InPartyCode)
 	: FOnlineAsyncTaskAccelByte(InABInterface)
@@ -69,6 +70,15 @@ void FOnlineAsyncTaskAccelByteJoinV2GameSessionByCode::Finalize()
 	FOnlineSessionSearchResult JoinResult{};
 	JoinResult.Session = ConstructedSession;
 	SessionInterface->JoinSession(UserId.ToSharedRef().Get(), SessionName, JoinResult);
+
+	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = Subsystem->GetPredefinedEventInterface();
+	if (PredefinedEventInterface.IsValid())
+	{
+		FAccelByteModelsMPV2GameSessionJoinedPayload GameSessionJoinedPayload{};
+		GameSessionJoinedPayload.UserId = UserId->GetAccelByteId();
+		GameSessionJoinedPayload.GameSessionId = JoinResult.GetSessionIdStr();
+		PredefinedEventInterface->SendEvent(LocalUserNum, MakeShared<FAccelByteModelsMPV2GameSessionJoinedPayload>(GameSessionJoinedPayload));
+	}
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }

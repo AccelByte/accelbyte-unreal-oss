@@ -88,10 +88,12 @@ public:
 	 */
 	virtual void SetCachedABMemberRoleId(const FString& MemberRoleId);
 
-PACKAGE_SCOPE:
 	//~ Begin IGroupInfo variables
-	FUniqueNetIdRef SenderUserId;
 	FString Namespace{};
+
+PACKAGE_SCOPE:
+
+	FUniqueNetIdRef SenderUserId;
 	TSharedPtr<const FUniqueNetIdAccelByteUser> OwnerId = nullptr;
 	FDateTime TimeCreated{};
 	FDateTime TimeLastUpdated{};

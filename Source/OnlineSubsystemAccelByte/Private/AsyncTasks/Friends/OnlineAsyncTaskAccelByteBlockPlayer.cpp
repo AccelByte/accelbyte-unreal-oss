@@ -6,6 +6,7 @@
 #include "OnlineSubsystemAccelByte.h"
 #include "OnlineFriendsInterfaceAccelByte.h"
 #include "OnlinePartyInterfaceAccelByte.h"
+#include "OnlinePredefinedEventInterfaceAccelByte.h"
 #include "Core/AccelByteRegistry.h"
 #include "Api/AccelByteLobbyApi.h"
 #include "OnlineUserCacheAccelByte.h"
@@ -106,6 +107,15 @@ void FOnlineAsyncTaskAccelByteBlockPlayer::Finalize()
 
 		// Add the blocked player to the blocked players list
 		FriendsInterface->AddBlockedPlayerToList(LocalUserNum, BlockedPlayer);
+
+		const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = Subsystem->GetPredefinedEventInterface();
+		if (PredefinedEventInterface.IsValid() && PlayerId->IsValid())
+		{
+			FAccelByteModelsUserBlockedPayload UserBlockedPayload{};
+			UserBlockedPayload.SenderId = UserId->GetAccelByteId();
+			UserBlockedPayload.ReceiverId = PlayerId->GetAccelByteId();
+			PredefinedEventInterface->SendEvent(LocalUserNum, MakeShared<FAccelByteModelsUserBlockedPayload>(UserBlockedPayload));
+		}
 	}
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

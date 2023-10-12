@@ -10,3 +10,11 @@
 #else
 #define PACKAGE_SCOPE protected
 #endif
+
+#undef OVERRIDE_PACKAGE_SCOPE
+#if defined(ACCELBYTE_TEST_OVERRIDE_PACKAGE) || defined(ONLINESUBSYSTEMACCELBYTE_PACKAGE)
+#define OVERRIDE_PACKAGE_SCOPE public
+#else
+#define OVERRIDE_PACKAGE_SCOPE protected
+#endif
+

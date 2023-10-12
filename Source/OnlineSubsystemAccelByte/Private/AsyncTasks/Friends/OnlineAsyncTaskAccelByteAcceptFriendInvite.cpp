@@ -8,6 +8,7 @@
 #include "Core/AccelByteRegistry.h"
 #include "Api/AccelByteLobbyApi.h"
 #include <OnlineIdentityInterfaceAccelByte.h>
+#include "OnlinePredefinedEventInterfaceAccelByte.h"
 
 using namespace AccelByte;
 
@@ -71,6 +72,15 @@ void FOnlineAsyncTaskAccelByteAcceptFriendInvite::Finalize()
 		// Update the invite status of the friend to match that it is an accepted friend
 		TSharedPtr<FOnlineFriendAccelByte> AccelByteFriend = StaticCastSharedPtr<FOnlineFriendAccelByte>(InviteeFriend);
 		AccelByteFriend->SetInviteStatus(EInviteStatus::Accepted);
+
+		const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = Subsystem->GetPredefinedEventInterface();
+		if (PredefinedEventInterface.IsValid() && FriendId->IsValid())
+		{
+			FAccelByteModelsFriendRequestAcceptedPayload FriendRequestAcceptedPayload{};
+			FriendRequestAcceptedPayload.SenderId = FriendId->GetAccelByteId();
+			FriendRequestAcceptedPayload.ReceiverId = UserId->GetAccelByteId();
+			PredefinedEventInterface->SendEvent(LocalUserNum, MakeShared<FAccelByteModelsFriendRequestAcceptedPayload>(FriendRequestAcceptedPayload));
+		}
 	}
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

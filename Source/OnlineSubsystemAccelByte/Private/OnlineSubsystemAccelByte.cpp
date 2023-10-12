@@ -775,6 +775,18 @@ void FOnlineSubsystemAccelByte::OnLobbyConnectionClosed(int32 StatusCode, const 
 		IdentityInterface->Logout(InLocalUserNum, LogoutReason);
 		LogoutDelegate.Unbind();
 	});
+
+	if (PredefinedEventInterface.IsValid())
+	{
+		FAccelByteModelsLobbyDisconnectedPayload LobbyDisconnectedPayload{};
+		TSharedPtr<const FUniqueNetIdAccelByteUser> AccelByteUserId = StaticCastSharedPtr<const FUniqueNetIdAccelByteUser>(UserIdPtr); 
+		if (AccelByteUserId.IsValid())
+		{
+			LobbyDisconnectedPayload.UserId = AccelByteUserId->GetAccelByteId();
+		}
+		LobbyDisconnectedPayload.StatusCode = StatusCode;
+		PredefinedEventInterface->SendEvent(InLocalUserNum, MakeShared<FAccelByteModelsLobbyDisconnectedPayload>(LobbyDisconnectedPayload));
+	}
 }
 
 void FOnlineSubsystemAccelByte::OnLobbyReconnected(int32 InLocalUserNum)

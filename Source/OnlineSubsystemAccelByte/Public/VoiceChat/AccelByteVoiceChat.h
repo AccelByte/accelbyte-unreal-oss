@@ -7,6 +7,7 @@
 #include "OnlineSubsystemAccelByte.h"
 #include "Misc/CoreMisc.h"
 #include "VoiceChat.h"
+#include "Runtime/Launch/Resources/Version.h"
 
 class ONLINESUBSYSTEMACCELBYTE_API FAccelByteVoiceChat
 	: public TSharedFromThis<FAccelByteVoiceChat, ESPMode::ThreadSafe>
@@ -102,7 +103,11 @@ public:
 #if (ENGINE_MAJOR_VERSION == 5) 
 	virtual void SetChannelPlayerMuted(const FString& ChannelName, const FString& PlayerName, bool bAudioMuted) override;
 	virtual bool IsChannelPlayerMuted(const FString& ChannelName, const FString& PlayerName) const override;
-#endif
+#if (ENGINE_MINOR_VERSION >= 3)
+	virtual void TransmitToSpecificChannels(const TSet<FString>& ChannelNames) override;
+	virtual TSet<FString> GetTransmitChannels() const override;
+#endif // (ENGINE_MINOR_VERSION >= 3)
+#endif // (ENGINE_MAJOR_VERSION == 5)
 protected:
 
 	/** Instance of the subsystem that created this interface */

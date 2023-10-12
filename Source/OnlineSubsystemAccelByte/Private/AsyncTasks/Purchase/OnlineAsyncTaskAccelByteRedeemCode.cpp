@@ -5,6 +5,7 @@
 #include "OnlineAsyncTaskAccelByteRedeemCode.h"
 
 #include "OnlinePurchaseInterfaceAccelByte.h"
+#include "OnlinePredefinedEventInterfaceAccelByte.h"
 
 using namespace AccelByte;
 
@@ -40,9 +41,33 @@ void FOnlineAsyncTaskAccelByteRedeemCode::Finalize()
 {
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 	FOnlineAsyncTaskAccelByte::Finalize();
+	if (bWasSuccessful)
+	{
+		const FOnlinePurchaseAccelBytePtr PurchaseInterface = StaticCastSharedPtr<FOnlinePurchaseAccelByte>(Subsystem->GetPurchaseInterface());
+		PurchaseInterface->AddReceipt(UserId.ToSharedRef(), Receipt);
 
-	const FOnlinePurchaseAccelBytePtr PurchaseInterface = StaticCastSharedPtr<FOnlinePurchaseAccelByte>(Subsystem->GetPurchaseInterface());
-	PurchaseInterface->AddReceipt(UserId.ToSharedRef(), Receipt);
+		const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = Subsystem->GetPredefinedEventInterface();
+		if (PredefinedEventInterface.IsValid())
+		{
+			FAccelByteModelsCampaignCodeRedeemedPayload CampaignCodeRedeemedPayload{};
+			CampaignCodeRedeemedPayload.Code = RedeemCodeRequest.Code;
+			CampaignCodeRedeemedPayload.UserId = FulfillmentResult.UserId;
+			for (const auto& EntitlementSummary : FulfillmentResult.EntitlementSummaries)
+			{
+				CampaignCodeRedeemedPayload.EntitlementSummaries.Add(FAccelByteModelsEntitlementSummaryEventPayload::CreateEntitlementSummaryEventPayload(EntitlementSummary));
+			}
+			for (const auto& CreditSummary : FulfillmentResult.CreditSummaries)
+			{
+				CampaignCodeRedeemedPayload.CreditSummaries.Add(FAccelByteModelsCreditSummaryEventPayload::CreateCreditSummaryEventPayload(CreditSummary));
+			}
+			for (const auto& SubscriptionSummary : FulfillmentResult.SubscriptionSummaries)
+			{
+				CampaignCodeRedeemedPayload.SubscriptionSummaries.Add(FAccelByteModelsSubscriptionSummaryEventPayload::CreateSubscriptionSummaryEventPayload(SubscriptionSummary));
+			}
+
+			PredefinedEventInterface->SendEvent(LocalUserNum, MakeShared<FAccelByteModelsCampaignCodeRedeemedPayload>(CampaignCodeRedeemedPayload));
+		}
+	}
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
@@ -83,6 +108,8 @@ void FOnlineAsyncTaskAccelByteRedeemCode::HandleRedeemCodeComplete(const FAccelB
 	//Receipt.TransactionId = Result.OrderNo;
 	Receipt.TransactionState = EPurchaseTransactionState::Purchased;
 	
+	FulfillmentResult = Result;
+
 	CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
 }
 

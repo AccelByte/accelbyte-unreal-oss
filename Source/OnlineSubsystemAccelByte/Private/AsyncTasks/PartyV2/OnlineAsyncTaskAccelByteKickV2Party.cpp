@@ -5,6 +5,7 @@
 #include "OnlineAsyncTaskAccelByteKickV2Party.h"
 #include "Runtime/Launch/Resources/Version.h"
 #include "OnlineSessionInterfaceV2AccelByte.h"
+#include "OnlinePredefinedEventInterfaceAccelByte.h"
 
 using namespace AccelByte;
 
@@ -50,6 +51,15 @@ void FOnlineAsyncTaskAccelByteKickV2Party::Finalize()
 		}
 
 		SessionInterface->UnregisterPlayer(SessionName, PlayerIdToKick.Get());
+
+		const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = Subsystem->GetPredefinedEventInterface();
+		if (PredefinedEventInterface.IsValid())
+		{
+			FAccelByteModelsMPV2PartySessionKickedPayload PartySessionKickedPayload{};
+			PartySessionKickedPayload.UserId = UserId->GetAccelByteId();
+			PartySessionKickedPayload.PartySessionId = SessionInterface->GetPartySession()->GetSessionIdStr();
+			PredefinedEventInterface->SendEvent(LocalUserNum, MakeShared<FAccelByteModelsMPV2PartySessionKickedPayload>(PartySessionKickedPayload));
+		}
 	}
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

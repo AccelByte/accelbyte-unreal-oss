@@ -4,6 +4,7 @@
 
 #include "OnlineAsyncTaskAccelByteAcceptBackfillProposal.h"
 #include "OnlineSubsystemAccelByteSessionSettings.h"
+#include "OnlinePredefinedEventInterfaceAccelByte.h"
 
 FOnlineAsyncTaskAccelByteAcceptBackfillProposal::FOnlineAsyncTaskAccelByteAcceptBackfillProposal(FOnlineSubsystemAccelByte* const InABInterface, const FName& InSessionName, const FAccelByteModelsV2MatchmakingBackfillProposalNotif& InProposal, bool bInStopBackfilling, const FOnAcceptBackfillProposalComplete& InDelegate)
 	: FOnlineAsyncTaskAccelByte(InABInterface, INVALID_CONTROLLERID, ASYNC_TASK_FLAG_BIT(EAccelByteAsyncTaskFlags::ServerTask))
@@ -62,6 +63,20 @@ void FOnlineAsyncTaskAccelByteAcceptBackfillProposal::Finalize()
 		// We don't care about this out flag in this case
 		bool bIsConnectingToP2P;
 		SessionInterface->UpdateInternalGameSession(SessionName, GameSessionInfo, bIsConnectingToP2P);
+
+		const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = Subsystem->GetPredefinedEventInterface();
+		if (PredefinedEventInterface.IsValid())
+		{
+			FAccelByteModelsDSBackfillProposalAcceptedPayload DSBackfillProposalAcceptedPayload{};
+			DSBackfillProposalAcceptedPayload.PodName = AccelByte::FRegistry::ServerDSM.GetServerName();
+			DSBackfillProposalAcceptedPayload.BackfillTicketId = GameSessionInfo.BackfillTicketID;
+			DSBackfillProposalAcceptedPayload.ProposalId = Proposal.ProposalID;
+			DSBackfillProposalAcceptedPayload.MatchPool = GameSessionInfo.MatchPool;
+			DSBackfillProposalAcceptedPayload.GameSessionId = GameSessionInfo.ID;
+			DSBackfillProposalAcceptedPayload.ProposedTeams = Proposal.ProposedTeams;
+			DSBackfillProposalAcceptedPayload.AddedTickets = Proposal.AddedTickets;
+			PredefinedEventInterface->SendEvent(-1, MakeShared<FAccelByteModelsDSBackfillProposalAcceptedPayload>(DSBackfillProposalAcceptedPayload));
+		}
 	}
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

@@ -1,3 +1,6 @@
 {
-	"version": "0.11.23"
+    "ossVersion": "0.11.23",
+    "sdkVersion": "24.2.1",
+    "networkUtilitiesVersion": "4.2.5",
+    "version": "0.11.24"
 }

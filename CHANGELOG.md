@@ -2,6 +2,38 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.11.24](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.11.24%0D0.11.23) (2023-10-12)
+
+
+### Features
+
+* add access token for DS after login ([daa1efd](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/daa1efd44e4cc90fe96e5e0b7f30b014c085ed55))
+* add access token for DS after login ([179180b](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/179180bb9aa80414f97d93b13ddc4b74292f7383))
+* **MPv2:** restore active ticket if exist when failed start matchmaking ([02fc528](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/02fc52801e46ddd3785642a36e853e7b80f94aa8))
+* **predefinedEvent:** send codeRedeemed event after successfully redeemed a code, send payment event after successfully checkout ([bd22252](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/bd222526a825511031b6e9ce40155acdfdfa7447))
+* **PredefinedEvent:** send event payloads for Play scope ([2b13127](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/2b13127021ec0b8baacd76cc1fda8a77365ed808))
+* **predefinedEvent:** trigger some events on social scope ([1a6e6e7](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/1a6e6e751c7a527e7e8dbefcc1baba24deab5ee2))
+* update OnlinePartyInterface implementation to support UE 5.3 ([2f7f767](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/2f7f76730573058f97ba9560d3386e57ac06ab3e))
+* Update VoiceChat implementation to support UE 5.3 ([ce32cef](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/ce32cef0c1543ecbcda98f4855d0306b62431d3a))
+
+
+### Bug Fixes
+
+* compile errors in UE 5.0 because of specific header file not found ([203bb77](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/203bb77fc25cf378a88783f5f2ba5a616cc3c3ae))
+* compile warnings when using monolithic header ([b5cb1e2](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/b5cb1e2ab47374f540238c17223cb232172a1b04))
+* crash on ps5 when server is ready but user is not member of session yet ([0e07ac2](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/0e07ac211136fd9d2e40c501c30abf80e18ac9a3))
+* **documentation:** update link to the valid URL ([e2a104f](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/e2a104f87e3857a20f7653aa92c349b366b2282a))
+* **UE4.27:** wrong initialization order ([69d9c70](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/69d9c70e36ea8da9eb57efbe3e509ce523dde58d))
+* **UE4.27:** wrong initialization order ([cdd2d8c](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/cdd2d8c5273bc24ace465342b7c4c4726ac0a68e))
+* **UE:** allow compilation on UE5.2 ([8e95142](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/8e95142f25e71828b294453cbb32b1c2d58e367e))
+* **UE:** allow compilation on UE5.2 ([dae99ff](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/dae99ff1a32f102634d6d31b2fb6ff9915d72368))
+
+
+### Refactors
+
+* create delegate from SelfPtr to explicitly call CreateThreadSafeSP from the template ([893cff4](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/893cff48a72f6c9e0ceba901fcdecea86d1ec800))
+* The host cannot access the GameServer API for P2P. Instead, refactor to authenticate using bans information in the access token. (JSC-1607) ([17efe5e](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/17efe5eb753e913ba492e59e24bec2d8db25064c))
+
 ### [0.11.23](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.11.23%0D0.11.22) (2023-10-05)
 
 ### [0.11.22](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.11.22%0D0.11.21) (2023-09-25)

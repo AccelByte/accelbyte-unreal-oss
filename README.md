@@ -18,4 +18,4 @@ AccelByte OSS have some dependencies to another Plugins/Modules, such as the fol
 2. AccelByte Cloud Network Utilities ([link](https://github.com/AccelByte/accelbyte-unreal-network-utilities)):
    a library that comprises network functionalities to communicate between game clients for P2P networking.
 ## Documentation
-The setup and implementation guideline are available in [our portal](https://docs.accelbyte.io/initial-setup/sdk-guides/oss.html).
+The setup and implementation guideline are available in [our portal](https://docs.accelbyte.io/gaming-services/sdk-tools/sdk-guides/ags-oss-for-ue/).

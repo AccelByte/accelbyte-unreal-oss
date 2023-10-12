@@ -3,6 +3,7 @@
 // and restrictions contact your company contract manager.
 
 #include "OnlineAsyncTaskAccelByteLeaveV2GameSession.h"
+#include "OnlinePredefinedEventInterfaceAccelByte.h"
 
 using namespace AccelByte;
 
@@ -51,6 +52,15 @@ void FOnlineAsyncTaskAccelByteLeaveV2GameSession::Finalize()
 	else
 	{
 		bRemovedRestoreSession = SessionInterface->RemoveRestoreSessionById(SessionId);
+	}
+
+	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = Subsystem->GetPredefinedEventInterface();
+	if (bWasSuccessful && PredefinedEventInterface.IsValid())
+	{
+		FAccelByteModelsMPV2GameSessionLeftPayload GameSessionLeftPayload{};
+		GameSessionLeftPayload.UserId = UserId->GetAccelByteId();
+		GameSessionLeftPayload.GameSessionId = SessionId;
+		PredefinedEventInterface->SendEvent(LocalUserNum, MakeShared<FAccelByteModelsMPV2GameSessionLeftPayload>(GameSessionLeftPayload));
 	}
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

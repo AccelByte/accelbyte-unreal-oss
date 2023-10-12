@@ -8,6 +8,7 @@
 #include "Online/OnlineSessionNames.h"
 #endif // ENGINE_MAJOR_VERSION >= 5
 #include "OnlineSessionInterfaceV2AccelByte.h"
+#include "OnlinePredefinedEventInterfaceAccelByte.h"
 #include "OnlineSessionSettingsAccelByte.h"
 #include "OnlineSubsystemAccelByteTypes.h"
 #include "OnlineSubsystemAccelByteSessionSettings.h"
@@ -170,6 +171,23 @@ void FOnlineAsyncTaskAccelByteCreateGameSessionV2::Finalize()
 		// If we successfully created the session on backend, then we want to fill out the rest of the data on the session
 		// in session interface
 		SessionInterface->FinalizeCreateGameSession(SessionName, CreatedGameSession);
+
+
+		const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = Subsystem->GetPredefinedEventInterface();
+		if (PredefinedEventInterface.IsValid())
+		{
+			FAccelByteModelsMPV2GameSessionCreatedPayload GameSessionCreatedPayload{};
+			GameSessionCreatedPayload.GameSessionId = CreatedGameSession.ID;
+			if (!IsRunningDedicatedServer())
+			{
+				GameSessionCreatedPayload.UserId = UserId.IsValid() ? UserId->GetAccelByteId() : TEXT("");
+				PredefinedEventInterface->SendEvent(LocalUserNum, MakeShared<FAccelByteModelsMPV2GameSessionCreatedPayload>(GameSessionCreatedPayload));
+			}
+			else
+			{
+				PredefinedEventInterface->SendEvent(-1, MakeShared<FAccelByteModelsMPV2GameSessionCreatedPayload>(GameSessionCreatedPayload));
+			}
+		}
 	}
 	else
 	{

@@ -4,6 +4,7 @@
 
 #include "OnlineAsyncTaskAccelByteRejectBackfillProposal.h"
 #include "OnlineSubsystemAccelByteSessionSettings.h"
+#include "OnlinePredefinedEventInterfaceAccelByte.h"
 
 FOnlineAsyncTaskAccelByteRejectBackfillProposal::FOnlineAsyncTaskAccelByteRejectBackfillProposal(FOnlineSubsystemAccelByte* const InABInterface, const FName& InSessionName, const FAccelByteModelsV2MatchmakingBackfillProposalNotif& InProposal, bool bInStopBackfilling, const FOnRejectBackfillProposalComplete& InDelegate)
 	: FOnlineAsyncTaskAccelByte(InABInterface, INVALID_CONTROLLERID, ASYNC_TASK_FLAG_BIT(EAccelByteAsyncTaskFlags::ServerTask))
@@ -35,25 +36,42 @@ void FOnlineAsyncTaskAccelByteRejectBackfillProposal::Finalize()
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
-	if (bWasSuccessful && bStopBackfilling)
+	if (bWasSuccessful)
 	{
-		// If we successfully rejected the proposal and we are removing this backfill ticket, then update session settings to
-		// remove there.
-		FOnlineSessionV2AccelBytePtr SessionInterface = nullptr;
-		if (!ensureAlways(FOnlineSessionV2AccelByte::GetFromSubsystem(Subsystem, SessionInterface)))
+		if (bStopBackfilling)
 		{
-			AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to get session interface instance from online subsystem!"));
-			return;
+			// If we successfully rejected the proposal and we are removing this backfill ticket, then update session settings to
+			// remove there.
+			FOnlineSessionV2AccelBytePtr SessionInterface = nullptr;
+			if (!ensureAlways(FOnlineSessionV2AccelByte::GetFromSubsystem(Subsystem, SessionInterface)))
+			{
+				AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to get session interface instance from online subsystem!"));
+				return;
+			}
+
+			FNamedOnlineSession* Session = SessionInterface->GetNamedSession(SessionName);
+			if (!ensureAlways(Session != nullptr))
+			{
+				AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to get session instance to update stored backfill ticket ID!"));
+				return;
+			}
+
+			Session->SessionSettings.Remove(SETTING_MATCHMAKING_BACKFILL_TICKET_ID);
 		}
 
-		FNamedOnlineSession* Session = SessionInterface->GetNamedSession(SessionName);
-		if (!ensureAlways(Session != nullptr))
+		const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = Subsystem->GetPredefinedEventInterface();
+		if (PredefinedEventInterface.IsValid())
 		{
-			AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to get session instance to update stored backfill ticket ID!"));
-			return;
+			FAccelByteModelsDSBackfillProposalRejectedPayload DSBackfillProposalRejectedPayload{};
+			DSBackfillProposalRejectedPayload.PodName = AccelByte::FRegistry::ServerDSM.GetServerName();
+			DSBackfillProposalRejectedPayload.BackfillTicketId = Proposal.BackfillTicketID;
+			DSBackfillProposalRejectedPayload.ProposalId = Proposal.ProposalID;
+			DSBackfillProposalRejectedPayload.MatchPool = Proposal.MatchPool;
+			DSBackfillProposalRejectedPayload.GameSessionId = Proposal.MatchSessionID;
+			DSBackfillProposalRejectedPayload.ProposedTeams = Proposal.ProposedTeams;
+			DSBackfillProposalRejectedPayload.AddedTickets = Proposal.AddedTickets;
+			PredefinedEventInterface->SendEvent(-1, MakeShared<FAccelByteModelsDSBackfillProposalRejectedPayload>(DSBackfillProposalRejectedPayload));
 		}
-
-		Session->SessionSettings.Remove(SETTING_MATCHMAKING_BACKFILL_TICKET_ID);
 	}
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

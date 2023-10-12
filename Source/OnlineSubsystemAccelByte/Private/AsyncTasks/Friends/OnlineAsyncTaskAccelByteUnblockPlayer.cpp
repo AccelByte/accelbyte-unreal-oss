@@ -5,6 +5,7 @@
 #include "OnlineAsyncTaskAccelByteUnblockPlayer.h"
 #include "OnlineSubsystemAccelByte.h"
 #include "OnlineFriendsInterfaceAccelByte.h"
+#include "OnlinePredefinedEventInterfaceAccelByte.h"
 #include "Core/AccelByteRegistry.h"
 #include "Api/AccelByteLobbyApi.h"
 
@@ -40,6 +41,15 @@ void FOnlineAsyncTaskAccelByteUnblockPlayer::Finalize()
 	{
 		const TSharedPtr<FOnlineFriendsAccelByte, ESPMode::ThreadSafe> FriendsInterface = StaticCastSharedPtr<FOnlineFriendsAccelByte>(Subsystem->GetFriendsInterface());
 		FriendsInterface->RemoveBlockedPlayerFromList(LocalUserNum, PlayerId);
+
+		const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = Subsystem->GetPredefinedEventInterface();
+		if (PredefinedEventInterface.IsValid() && PlayerId->IsValid())
+		{
+			FAccelByteModelsUserBlockedPayload UserBlockedPayload{};
+			UserBlockedPayload.SenderId = UserId->GetAccelByteId();
+			UserBlockedPayload.ReceiverId = PlayerId->GetAccelByteId();
+			PredefinedEventInterface->SendEvent(LocalUserNum, MakeShared<FAccelByteModelsUserBlockedPayload>(UserBlockedPayload));
+		}
 	}
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

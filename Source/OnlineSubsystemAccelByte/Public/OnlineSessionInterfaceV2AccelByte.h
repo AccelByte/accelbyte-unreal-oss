@@ -1517,6 +1517,8 @@ private:
 	void OnServerClaimedNotification(const FAccelByteModelsServerClaimedNotification& Notification);
 	void OnV2BackfillProposalNotification(const FAccelByteModelsV2MatchmakingBackfillProposalNotif& Notification);
 	void OnV2DsSessionMemberChangedNotification(const FAccelByteModelsV2GameSession& Notification);
+	void OnDSHubConnectSuccessNotification();
+	void OnDSHubConnectionClosedNotification(int32 StatusCode, const FString& Reason, bool bWasClean);
 	//~ End Server Notification Handlers
 
 	//~ Begin Session Storage Notification Handler

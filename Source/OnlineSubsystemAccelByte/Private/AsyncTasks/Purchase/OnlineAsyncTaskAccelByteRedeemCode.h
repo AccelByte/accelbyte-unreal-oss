@@ -35,4 +35,5 @@ private:
 
 	FOnlineError Error;
 	FPurchaseReceipt Receipt;
+	FAccelByteModelsFulfillmentResult FulfillmentResult;
 };

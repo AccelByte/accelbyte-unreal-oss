@@ -3,6 +3,7 @@
 // and restrictions contact your company contract manager.
 
 #include "OnlineAsyncTaskAccelByteRegisterLocalServerV2.h"
+#include "OnlinePredefinedEventInterfaceAccelByte.h"
 
 using namespace AccelByte;
 
@@ -53,6 +54,14 @@ void FOnlineAsyncTaskAccelByteRegisterLocalServerV2::Finalize()
 
 		// #NOTE Deliberately not checking session ID here as there's no way to have a buffer local server. Local servers
 		// should always be claimed later through the DS hub.
+
+		const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = Subsystem->GetPredefinedEventInterface();
+		if (PredefinedEventInterface.IsValid())
+		{
+			FAccelByteModelsDSRegisteredPayload DSRegisteredPayload{};
+			DSRegisteredPayload.PodName = ServerName;
+			PredefinedEventInterface->SendEvent(-1, MakeShared<FAccelByteModelsDSRegisteredPayload>(DSRegisteredPayload));
+		}
 	}
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

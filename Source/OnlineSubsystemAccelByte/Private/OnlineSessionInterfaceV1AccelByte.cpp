@@ -4,10 +4,12 @@
 
 #include "OnlineSessionInterfaceV1AccelByte.h"
 #include "Runtime/Launch/Resources/Version.h"
-#if ENGINE_MAJOR_VERSION >= 5
+#if ENGINE_MAJOR_VERSION == 5
+#if ENGINE_MINOR_VERSION >= 1
 #include "Online/OnlineBase.h"
+#endif // ENGINE_MINOR_VERSION >= 1
 #include "Online/OnlineSessionNames.h"
-#endif // ENGINE_MAJOR_VERSION >= 5
+#endif // ENGINE_MAJOR_VERSION == 5
 #include "OnlineSubsystemAccelByteTypes.h"
 #include "OnlineSubsystemAccelByte.h"
 #include "OnlineSubsystemAccelByteModule.h"
@@ -26,8 +28,9 @@
 #include "AccelByteNetworkUtilities.h"
 #include "OnlineIdentityInterfaceAccelByte.h"
 #include "OnlineVoiceInterfaceAccelByte.h"
-#include "Core/AccelByteMultiRegistry.h"
 #include "OnlinePartyInterfaceAccelByte.h"
+#include "OnlinePredefinedEventInterfaceAccelByte.h"
+#include "Core/AccelByteMultiRegistry.h"
 #include "Core/AccelByteError.h"
 #include "AsyncTasks/SessionV1/OnlineAsyncTaskAccelByteStartV1Matchmaking.h"
 #include "AsyncTasks/SessionV1/OnlineAsyncTaskAccelByteRegisterPlayerV1.h"
@@ -1778,6 +1781,7 @@ void FOnlineSessionV1AccelByte::DeregisterSession(FName SessionName, const FOnDe
 
 	// Check if we are in a local server, as the calls are slightly different for deregistration
 	bool bIsLocalSession = false;
+	FAccelByteModelsDSUnregisteredPayload DSUnregisteredPayload{};
 	if (Session->SessionSettings.Get(SETTING_SESSION_LOCAL, bIsLocalSession) && bIsLocalSession)
 	{
 		// First get the name of the server we wish to unregister
@@ -1787,12 +1791,20 @@ void FOnlineSessionV1AccelByte::DeregisterSession(FName SessionName, const FOnDe
 		// Then send the request to unregister the local server
 		// #NOTE (Maxwell): Keeping this call using FRegistry instead of the multi-registry as this is a server specific call
 		FRegistry::ServerDSM.DeregisterLocalServerFromDSM(ServerName, OnShutdownSentSuccessful, OnShutdownSentError);
+		DSUnregisteredPayload.PodName = ServerName;
 	}
 	else
 	{
 		// Next, we want to send a shutdown request to Armada to deregister the server if we are not spawned from the DS launcher
 		// #NOTE (Maxwell): Keeping this call using FRegistry instead of the multi-registry as this is a server specific call
 		FRegistry::ServerDSM.SendShutdownToDSM(false, Session->GetSessionIdStr(), OnShutdownSentSuccessful, OnShutdownSentError);
+		DSUnregisteredPayload.PodName = FPlatformMisc::GetEnvironmentVariable(TEXT("POD_NAME"));
+	}
+
+	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = AccelByteSubsystem->GetPredefinedEventInterface();
+	if (PredefinedEventInterface.IsValid())
+	{
+		PredefinedEventInterface->SendEvent(-1, MakeShared<FAccelByteModelsDSUnregisteredPayload>(DSUnregisteredPayload));
 	}
 
 	AB_OSS_INTERFACE_TRACE_END(TEXT("Sent request to deregister session '%s' from Armada."), *SessionName.ToString());

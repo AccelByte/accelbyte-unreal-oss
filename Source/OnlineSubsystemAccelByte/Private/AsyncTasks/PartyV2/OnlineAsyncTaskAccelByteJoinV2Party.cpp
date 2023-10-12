@@ -7,6 +7,7 @@
 #include "OnlineSubsystemAccelByteSessionSettings.h"
 #include "Core/AccelByteRegistry.h"
 #include "OnlineSessionInterfaceV2AccelByte.h"
+#include "OnlinePredefinedEventInterfaceAccelByte.h"
 
 using namespace AccelByte;
 
@@ -90,6 +91,15 @@ void FOnlineAsyncTaskAccelByteJoinV2Party::Finalize()
 		// Update the session data in the session interface with the data we received on join, that way if any updates
 		// occured between query and join we would catch them
 		SessionInterface->UpdateInternalPartySession(SessionName, PartyInfo);
+
+		const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = Subsystem->GetPredefinedEventInterface();
+		if (PredefinedEventInterface.IsValid())
+		{
+			FAccelByteModelsMPV2PartySessionJoinedPayload PartySessionJoinedPayload{};
+			PartySessionJoinedPayload.UserId = UserId->GetAccelByteId();
+			PartySessionJoinedPayload.PartySessionId = JoinedSession->GetSessionIdStr();
+			PredefinedEventInterface->SendEvent(LocalUserNum, MakeShared<FAccelByteModelsMPV2PartySessionJoinedPayload>(PartySessionJoinedPayload));
+		}
 	}
 	else
 	{

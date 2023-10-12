@@ -33,6 +33,7 @@ protected:
 private:
 	/** Delegate fired when we finish unregistering server from the backend */
 	FOnUnregisterServerComplete Delegate;
+	FString ServerName;
 
 	void OnUnregisterServerSuccess();
 	void OnUnregisterServerError(int32 ErrorCode, const FString& ErrorMessage);

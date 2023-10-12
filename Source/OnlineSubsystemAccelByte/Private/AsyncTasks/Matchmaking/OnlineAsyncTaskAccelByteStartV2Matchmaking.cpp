@@ -6,6 +6,7 @@
 #include "OnlineSessionInterfaceV2AccelByte.h"
 #include "OnlineSubsystemAccelByteSessionSettings.h"
 #include "OnlineSessionSettingsAccelByte.h"
+#include "OnlinePredefinedEventInterfaceAccelByte.h"
 
 using namespace AccelByte;
 
@@ -53,6 +54,20 @@ void FOnlineAsyncTaskAccelByteStartV2Matchmaking::Finalize()
 	if (bWasSuccessful)
 	{
 		SearchHandle->TicketId = CreateMatchTicketResponse.MatchTicketId;
+
+		const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = Subsystem->GetPredefinedEventInterface();
+		if (PredefinedEventInterface.IsValid())
+		{
+			FAccelByteModelsMPV2MatchmakingRequestedPayload MatchmakingRequestedPayload{};
+			MatchmakingRequestedPayload.UserId = UserId->GetAccelByteId();
+			MatchmakingRequestedPayload.MatchPool = MatchPool;
+			MatchmakingRequestedPayload.PartySessionId = GetTicketSessionId();
+			MatchmakingRequestedPayload.Attributes = FJsonObjectWrapper{};
+			MatchmakingRequestedPayload.Attributes.JsonObject = AttributesJsonObject;
+			MatchmakingRequestedPayload.MatchTicketId = CreateMatchTicketResponse.MatchTicketId;
+			MatchmakingRequestedPayload.QueueTime = CreateMatchTicketResponse.QueueTime;
+			PredefinedEventInterface->SendEvent(LocalUserNum, MakeShared<FAccelByteModelsMPV2MatchmakingRequestedPayload>(MatchmakingRequestedPayload));
+		}
 	}
 	else
 	{
@@ -124,7 +139,7 @@ void FOnlineAsyncTaskAccelByteStartV2Matchmaking::CreateMatchTicket()
 
 	// Now, create the match ticket on the backend
 	const THandler<FAccelByteModelsV2MatchmakingCreateTicketResponse> OnStartMatchmakingSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsV2MatchmakingCreateTicketResponse>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteStartV2Matchmaking::OnStartMatchmakingSuccess);
-	const FErrorHandler OnStartMatchmakingErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteStartV2Matchmaking::OnStartMatchmakingError);
+	const FCreateMatchmakingTicketErrorHandler OnStartMatchmakingErrorDelegate = TDelegateUtils<FCreateMatchmakingTicketErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteStartV2Matchmaking::OnStartMatchmakingError);
 	
 	FAccelByteModelsV2MatchTicketOptionalParams Optionals;
 
@@ -150,7 +165,7 @@ void FOnlineAsyncTaskAccelByteStartV2Matchmaking::CreateMatchTicket()
 	
 	Optionals.SessionId = GetTicketSessionId();
 
-	const TSharedRef<FJsonObject> AttributesJsonObject = SessionInterface->ConvertSearchParamsToJsonObject(SearchHandle->QuerySettings);
+	AttributesJsonObject = SessionInterface->ConvertSearchParamsToJsonObject(SearchHandle->QuerySettings);
 	Optionals.Attributes.JsonObject = AttributesJsonObject;
 
 	ApiClient->MatchmakingV2.CreateMatchTicket(MatchPool, OnStartMatchmakingSuccessDelegate, OnStartMatchmakingErrorDelegate, Optionals);
@@ -195,10 +210,21 @@ void FOnlineAsyncTaskAccelByteStartV2Matchmaking::OnStartMatchmakingSuccess(cons
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 
-void FOnlineAsyncTaskAccelByteStartV2Matchmaking::OnStartMatchmakingError(int32 ErrorCode, const FString& ErrorMessage)
+void FOnlineAsyncTaskAccelByteStartV2Matchmaking::OnStartMatchmakingError(int32 ErrorCode, const FString& ErrorMessage, const FErrorCreateMatchmakingTicketV2& CreateTicketErrorInfo)
 {
-	UE_LOG_AB(Warning, TEXT("Failed to start matchmaking as the call to create a ticket failed! Error code: %d; Error message: %s"), ErrorCode, *ErrorMessage);
-	CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
+	// If the existing ticket id is not empty it means this user already started matchmaking in this match pool.
+	// In that case restore the ticket to SearchHandle and count it as success
+	if (CreateTicketErrorInfo.ExistingTicketID.IsEmpty())
+	{
+		UE_LOG_AB(Warning, TEXT("Failed to start matchmaking as the call to create a ticket failed! Error code: %d; Error message: %s"), ErrorCode, *ErrorMessage);
+		CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
+	}
+	else
+	{
+		UE_LOG_AB(Log, TEXT("Failed to start new matchmaking as current user already in matchmaking, restoring existing match ticket id %s"), *CreateTicketErrorInfo.ExistingTicketID);
+		CreateMatchTicketResponse.MatchTicketId = CreateTicketErrorInfo.ExistingTicketID;
+		CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
+	}
 }
 
 #undef ONLINE_ERROR_NAMESPACE

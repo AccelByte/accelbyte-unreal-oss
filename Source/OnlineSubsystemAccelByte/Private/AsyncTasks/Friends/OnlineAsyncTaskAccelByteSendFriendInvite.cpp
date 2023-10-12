@@ -5,6 +5,7 @@
 #include "OnlineAsyncTaskAccelByteSendFriendInvite.h"
 #include "OnlineSubsystemAccelByte.h"
 #include "OnlineFriendsInterfaceAccelByte.h"
+#include "OnlinePredefinedEventInterfaceAccelByte.h"
 #include "Api/AccelByteLobbyApi.h"
 
 using namespace AccelByte;
@@ -68,6 +69,15 @@ void FOnlineAsyncTaskAccelByteSendFriendInvite::Finalize()
 	{
 		const TSharedPtr<FOnlineFriendsAccelByte, ESPMode::ThreadSafe> FriendInterface = StaticCastSharedPtr<FOnlineFriendsAccelByte>(Subsystem->GetFriendsInterface());
 		FriendInterface->AddFriendToList(LocalUserNum, InvitedFriend);
+
+		const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = Subsystem->GetPredefinedEventInterface();
+		if (PredefinedEventInterface.IsValid() && FriendId->IsValid())
+		{
+			FAccelByteModelsFriendRequestSentPayload FriendRequestSentPayload{};
+			FriendRequestSentPayload.SenderId = UserId->GetAccelByteId();
+			FriendRequestSentPayload.ReceiverId = FriendId->GetAccelByteId();
+			PredefinedEventInterface->SendEvent(LocalUserNum, MakeShared<FAccelByteModelsFriendRequestSentPayload>(FriendRequestSentPayload));
+		}
 	}
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
@@ -117,6 +127,7 @@ void FOnlineAsyncTaskAccelByteSendFriendInvite::OnGetUserByFriendCodeSuccess(con
 		return;
 	}
 
+	FriendId = FriendUserId.ToSharedRef();
 	QueryInvitedFriend(Result.UserId);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sent off request to send a friend invite to user %s"), *Result.UserId);

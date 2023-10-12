@@ -5,6 +5,7 @@
 #include "OnlineAsyncTaskAccelByteRejectFriendInvite.h"
 #include "OnlineSubsystemAccelByte.h"
 #include "OnlineFriendsInterfaceAccelByte.h"
+#include "OnlinePredefinedEventInterfaceAccelByte.h"
 #include "Core/AccelByteRegistry.h"
 #include "Api/AccelByteLobbyApi.h"
 
@@ -69,6 +70,15 @@ void FOnlineAsyncTaskAccelByteRejectFriendInvite::Finalize()
 	{
 		const TSharedPtr<FOnlineFriendsAccelByte, ESPMode::ThreadSafe> FriendInterface = StaticCastSharedPtr<FOnlineFriendsAccelByte>(Subsystem->GetFriendsInterface());
 		FriendInterface->RemoveFriendFromList(LocalUserNum, FriendId);
+
+		const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = Subsystem->GetPredefinedEventInterface();
+		if (PredefinedEventInterface.IsValid() && FriendId->IsValid())
+		{
+			FAccelByteModelsFriendRequestRejectedPayload FriendRequestRejectedPayload{};
+			FriendRequestRejectedPayload.SenderId = FriendId->GetAccelByteId();
+			FriendRequestRejectedPayload.ReceiverId = UserId->GetAccelByteId();
+			PredefinedEventInterface->SendEvent(LocalUserNum, MakeShared<FAccelByteModelsFriendRequestRejectedPayload>(FriendRequestRejectedPayload));
+		}
 	}
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

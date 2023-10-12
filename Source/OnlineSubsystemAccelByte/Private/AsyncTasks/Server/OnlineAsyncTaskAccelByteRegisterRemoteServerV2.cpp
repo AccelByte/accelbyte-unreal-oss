@@ -4,6 +4,7 @@
 
 #include "OnlineAsyncTaskAccelByteRegisterRemoteServerV2.h"
 #include "Engine/Engine.h"
+#include "OnlinePredefinedEventInterfaceAccelByte.h"
 
 using namespace AccelByte;
 
@@ -54,6 +55,14 @@ void FOnlineAsyncTaskAccelByteRegisterRemoteServerV2::Finalize()
         if (!SessionId.IsEmpty())
         {
             SessionInterface->GetServerClaimedSession(SessionName, SessionId);
+        }
+
+        const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = Subsystem->GetPredefinedEventInterface();
+        if (PredefinedEventInterface.IsValid())
+        {
+            FAccelByteModelsDSRegisteredPayload DSRegisteredPayload{};
+            DSRegisteredPayload.PodName = FRegistry::ServerDSM.GetServerName();
+            PredefinedEventInterface->SendEvent(-1, MakeShared<FAccelByteModelsDSRegisteredPayload>(DSRegisteredPayload));
         }
     }
 

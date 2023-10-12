@@ -6,6 +6,7 @@
 #include "OnlineSubsystemAccelByte.h"
 #include "Core/AccelByteRegistry.h"
 #include "OnlineSessionInterfaceV2AccelByte.h"
+#include "OnlinePredefinedEventInterfaceAccelByte.h"
 
 using namespace AccelByte;
 
@@ -45,16 +46,36 @@ void FOnlineAsyncTaskAccelByteSendV2GameSessionInvite::Initialize()
 	// Now, once we know we are in this game session, we want to send a request to invite the player to the session
 	AB_ASYNC_TASK_DEFINE_SDK_DELEGATES(FOnlineAsyncTaskAccelByteSendV2GameSessionInvite, SendGameSessionInvite, FVoidHandler);
 	
+	SessionId = Session->GetSessionIdStr();
 	if (!IsRunningDedicatedServer())
 	{
-		ApiClient->Session.SendGameSessionInvite(Session->GetSessionIdStr(), RecipientId->GetAccelByteId(), OnSendGameSessionInviteSuccessDelegate, OnSendGameSessionInviteErrorDelegate);
+		ApiClient->Session.SendGameSessionInvite(SessionId, RecipientId->GetAccelByteId(), OnSendGameSessionInviteSuccessDelegate, OnSendGameSessionInviteErrorDelegate);
 	}
 	else
 	{
-		FRegistry::ServerSession.SendGameSessionInvite(Session->GetSessionIdStr(), RecipientId->GetAccelByteId(), OnSendGameSessionInviteSuccessDelegate, OnSendGameSessionInviteErrorDelegate);
+		FRegistry::ServerSession.SendGameSessionInvite(SessionId, RecipientId->GetAccelByteId(), OnSendGameSessionInviteSuccessDelegate, OnSendGameSessionInviteErrorDelegate);
 	}
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
+}
+
+void FOnlineAsyncTaskAccelByteSendV2GameSessionInvite::Finalize()
+{
+	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = Subsystem->GetPredefinedEventInterface();
+	if (bWasSuccessful && PredefinedEventInterface.IsValid())
+	{
+		FAccelByteModelsMPV2GameSessionInvitedPayload GameSessionInvitedPayload{};
+		GameSessionInvitedPayload.UserId = RecipientId->GetAccelByteId();
+		GameSessionInvitedPayload.GameSessionId = SessionId;
+		if (!IsRunningDedicatedServer())
+		{
+			PredefinedEventInterface->SendEvent(LocalUserNum, MakeShared<FAccelByteModelsMPV2GameSessionInvitedPayload>(GameSessionInvitedPayload));
+		}
+		else
+		{
+			PredefinedEventInterface->SendEvent(-1, MakeShared<FAccelByteModelsMPV2GameSessionInvitedPayload>(GameSessionInvitedPayload));
+		}
+	}
 }
 
 void FOnlineAsyncTaskAccelByteSendV2GameSessionInvite::TriggerDelegates()

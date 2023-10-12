@@ -9,6 +9,7 @@
 #endif // ENGINE_MAJOR_VERSION >= 5
 #include "OnlineSubsystemAccelByte.h"
 #include "Interfaces/OnlineIdentityInterface.h"
+#include "OnlinePredefinedEventInterfaceAccelByte.h"
 #include "Core/AccelByteRegistry.h"
 #include "OnlineSubsystemSessionSettings.h"
 #include "OnlineSubsystemAccelByteSessionSettings.h"
@@ -59,6 +60,14 @@ void FOnlineAsyncTaskAccelByteCreateV2Party::Finalize()
 	if (bWasSuccessful)
 	{
 		SessionInterface->FinalizeCreatePartySession(SessionName, PartyInfo);
+		const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = Subsystem->GetPredefinedEventInterface();
+		if (PredefinedEventInterface.IsValid())
+		{
+			FAccelByteModelsMPV2PartySessionCreatedPayload PartyCreatedPayload{};
+			PartyCreatedPayload.UserId = UserId->GetAccelByteId();
+			PartyCreatedPayload.PartySessionId = PartyInfo.ID;
+			PredefinedEventInterface->SendEvent(LocalUserNum, MakeShared<FAccelByteModelsMPV2PartySessionCreatedPayload>(PartyCreatedPayload));
+		}
 	}
 	else
 	{

@@ -303,6 +303,8 @@ PACKAGE_SCOPE:
 	/** Create and enqueue an Epic to the task manager's ParallelTasks queue */
 	FOnlineAsyncEpicTaskAccelByte* CreateAndDispatchEpic(int32 LocalUserNum, const AccelByte::FVoidHandler& InDelegate);
 
+// To allow the automation test
+OVERRIDE_PACKAGE_SCOPE:
 	/** Wrap the actual implementation to the source file to prevent function call to a forward-declared class (FOnlineAsyncEpicTaskAccelByte) */
 	void CreateAndDispatchAsyncTaskImplementation(FOnlineAsyncTaskInfo TaskInfo, FOnlineAsyncTask* CreatedTask);
 
@@ -320,6 +322,7 @@ PACKAGE_SCOPE:
 		CreateAndDispatchAsyncTaskImplementation(TaskInfo, NewTask);
 	}
 
+PACKAGE_SCOPE:
 	/** Create and queue an async task to the parallel tasks queue */
 	template <typename TOnlineAsyncTask, typename... TArguments>
 	FORCEINLINE void CreateAndDispatchAsyncTaskParallel(TArguments&&... Arguments)

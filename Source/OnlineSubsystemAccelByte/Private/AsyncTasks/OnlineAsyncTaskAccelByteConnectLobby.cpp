@@ -13,6 +13,7 @@
 #else
 #include "OnlineSessionInterfaceV1AccelByte.h"
 #endif
+#include "OnlinePredefinedEventInterfaceAccelByte.h"
 
 using namespace AccelByte;
 
@@ -50,6 +51,18 @@ void FOnlineAsyncTaskAccelByteConnectLobby::Initialize()
 	ApiClient->Lobby.Connect();
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
+}
+
+void FOnlineAsyncTaskAccelByteConnectLobby::Finalize()
+{
+	UnbindDelegates();
+	FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = Subsystem->GetPredefinedEventInterface();
+	if (bWasSuccessful && PredefinedEventInterface.IsValid())
+	{
+		FAccelByteModelsLobbyConnectedPayload LobbyConnectedPayload{};
+		LobbyConnectedPayload.UserId = UserId->GetAccelByteId();
+		PredefinedEventInterface->SendEvent(LocalUserNum, MakeShared<FAccelByteModelsLobbyConnectedPayload>(LobbyConnectedPayload));
+	}
 }
 
 void FOnlineAsyncTaskAccelByteConnectLobby::TriggerDelegates()

@@ -176,6 +176,26 @@ bool FOnlineAuthAccelByte::VerifyAuthToken(const FString& AuthToken, FString& Us
 				if (Payload->TryGetStringField(TEXT("sub"), UserId))
 				{
 					// userId successfully extracted from the payload
+
+					SharedAuthUserPtr TargetUser = GetUser(UserId);
+					if (!TargetUser.IsValid())
+					{
+						// If we are missing an user here, this means that they were recently deleted or we never knew about them.
+						UE_LOG_AB(Warning, TEXT("AUTH: (%s) Could not find user data on result callback for %s, were they were recently deleted?"), (IsServer() ? TEXT("DS") : TEXT("CL")),
+							*UserId);
+						return false;
+					}
+
+					TArray<FString> Bans;
+					if (Payload->TryGetStringArrayField(TEXT("bans"), Bans))
+					{
+						TargetUser->SetBans(Bans);
+					}
+					else
+					{
+						// "bans" field not found in payload
+						UE_LOG_AB(Warning, TEXT("AUTH: (%s) The field name 'bans' was not found."), (IsServer() ? TEXT("DS") : TEXT("CL")));
+					}
 					return true;
 				}
 				else
@@ -211,7 +231,7 @@ bool FOnlineAuthAccelByte::AuthenticateUser(const FString& InUserId)
 	// this is working on a dedicated server.
 	if (IsServer() && IsSessionAuthEnabled())
 	{
-		SharedAuthUserPtr TargetUser = GetOrCreateUser(InUserId);
+		SharedAuthUserPtr TargetUser = GetUser(InUserId);
 		if (TargetUser.IsValid())
 		{
 			if (IsInSessionUser(InUserId))
@@ -258,15 +278,66 @@ bool FOnlineAuthAccelByte::CheckUserState(const FString& InUserId)
 		return false;
 	}
 
+	GetBanUser(InUserId);
+
+	return true;
+}
+
+void FOnlineAuthAccelByte::GetBanUser(const FString& InUserId)
+{
+	SharedAuthUserPtr TargetUser = GetUser(InUserId);
+
+	if (!TargetUser.IsValid())
+	{
+		// If we are missing an user here, this means that they were recently deleted or we never knew about them.
+		UE_LOG_AB(Warning, TEXT("AUTH: (%s) Could not find user data on result callback for %s, were they were recently deleted?"), (IsServer() ? TEXT("DS") : TEXT("CL")),
+			*InUserId);
+		return;
+	}
+
+	bool bDoubleCheckBanned = true;
+	if (SessionInterface.IsValid())
+	{
+#if AB_USE_V2_SESSIONS
+		const FNamedOnlineSession* NamedSession = SessionInterface->GetNamedSession(NAME_GameSession);
+		if (NamedSession)
+		{
+			TSharedPtr<FOnlineSessionInfoAccelByteV2> SessionInfo = StaticCastSharedPtr<FOnlineSessionInfoAccelByteV2>(NamedSession->SessionInfo);
+			if (ensure(SessionInfo.IsValid()))
+			{
+				bDoubleCheckBanned = (SessionInfo->GetServerType() == EAccelByteV2SessionConfigurationServerType::DS);
+			}
+		}
+#else
+		bDoubleCheckBanned = IsRunningDedicatedServer();
+#endif
+	}
+
+	if (TargetUser->IsBanned(InUserId))
+	{
+		UE_LOG_AB(Warning, TEXT("AUTH: (%s) GetBanUser: user(%s) is banned."), (IsServer() ? TEXT("DS") : TEXT("CL")), *InUserId);
+		OnAuthUserCompleted(false, InUserId);
+		return;
+	}
+
+	if (bDoubleCheckBanned)
+	{
+		GetBanUserInfo(InUserId);
+		TargetUser->Status |= EAccelByteAuthStatus::ValidationStarted;
+	}
+	else
+	{
+		OnAuthUserCompleted(true, InUserId);
+	}
+}
+
+void FOnlineAuthAccelByte::GetBanUserInfo(const FString& InUserId)
+{
 	// Create the user in the list if we don't already have them.
 	OnlineSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteAuthUser>(OnlineSubsystem, InUserId,
 		FOnAuthUserCompleted::CreateLambda([this](bool bWasSuccessful, const FString& UserId) {
 			OnAuthUserCompleted(bWasSuccessful, UserId);
 			}));
-
-	TargetUser->Status |= EAccelByteAuthStatus::ValidationStarted;
-
-	return true;
 }
 
 void FOnlineAuthAccelByte::OnAuthSuccess(const FString& InUserId)
@@ -433,7 +504,16 @@ bool FOnlineAuthAccelByte::IsInSessionUser(const FString& InUserId)
 		return false;
 	}
 
-	if (!IsSessionValid())
+	const FNamedOnlineSession* NamedSession = SessionInterface->GetNamedSession(NAME_GameSession);
+	if (NamedSession == nullptr)
+	{
+		// If session is not supported, 'true' is returned as only AccessToken is verified.
+		return true;
+	}
+
+#if AB_USE_V2_SESSIONS
+	TSharedPtr<FOnlineSessionInfoAccelByteV2> SessionInfo = StaticCastSharedPtr<FOnlineSessionInfoAccelByteV2>(NamedSession->SessionInfo);
+	if (!ensure(SessionInfo.IsValid()))
 	{
 		if (!EnumHasAnyFlags(AuthUser->Status, EAccelByteAuthStatus::PendingSession))
 		{
@@ -444,12 +524,16 @@ bool FOnlineAuthAccelByte::IsInSessionUser(const FString& InUserId)
 		return true;
 	}
 
-	const FNamedOnlineSession* NamedSession = SessionInterface->GetNamedSession(NAME_GameSession);
-	if (NamedSession == nullptr)
+	if (SessionInfo->GetServerType() != EAccelByteV2SessionConfigurationServerType::DS)
 	{
-		UE_LOG_AB(Warning, TEXT("AUTH: (%s) NamedSession is null."), (IsServer() ? TEXT("DS") : TEXT("CL")));
-		return false;
+		AuthUser->Status &= ~EAccelByteAuthStatus::PendingSession;
+		return true;
 	}
+#else
+	if (!IsRunningDedicatedServer()) {
+		return true;
+	}
+#endif
 
 	TArray< FUniqueNetIdRef > PartyMembers = NamedSession->RegisteredPlayers;
 	for (auto Member : PartyMembers)

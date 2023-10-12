@@ -4,20 +4,19 @@
 
 #include "OnlineAsyncTaskAccelByteRegisterDedicatedV1Session.h"
 #include "Runtime/Launch/Resources/Version.h"
-#include "Engine.h"
+#include "Engine/Engine.h"
 #include "Engine/World.h"
 #if ENGINE_MAJOR_VERSION >= 5
 #include "Online/OnlineSessionNames.h"
 #endif // ENGINE_MAJOR_VERSION >= 5
 #include "OnlineSubsystemAccelByte.h"
 #include "OnlineIdentityInterfaceAccelByte.h"
+#include "OnlinePredefinedEventInterfaceAccelByte.h"
 #include "Core/AccelByteRegistry.h"
 #include "GameServerApi/AccelByteServerDSMApi.h"
 #include "GameServerApi/AccelByteServerSessionBrowserApi.h"
 #include "SocketSubsystem.h"
 #include "Core/AccelByteUtilities.h"
-#include "Engine.h"
-#include "Engine/World.h"
 
 using namespace AccelByte;
 
@@ -103,6 +102,14 @@ void FOnlineAsyncTaskAccelByteRegisterDedicatedV1Session::Finalize()
 		bool bIsIpValid = false;
 		SessionInfo->GetHostAddr()->SetIp(*RegisteredIpAddress, bIsIpValid);
 		SessionInfo->GetHostAddr()->SetPort(RegisteredPort);
+
+		const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = Subsystem->GetPredefinedEventInterface();
+		if (PredefinedEventInterface.IsValid())
+		{
+			FAccelByteModelsDSRegisteredPayload DSRegisteredPayload{};
+			DSRegisteredPayload.PodName = ServerName;
+			PredefinedEventInterface->SendEvent(HostingPlayerNum, MakeShared<FAccelByteModelsDSRegisteredPayload>(DSRegisteredPayload));
+		}
 	}
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

@@ -45,6 +45,8 @@ private:
 	/** Container for create match ticket response */
 	FAccelByteModelsV2MatchmakingCreateTicketResponse CreateMatchTicketResponse;
 
+	TSharedPtr<FJsonObject> AttributesJsonObject;
+
 	void OnGetLatenciesSuccess(const TArray<TPair<FString, float>>& Latencies);
 	void OnGetLatenciesError(int32 ErrorCode, const FString& ErrorMessage);
 
@@ -55,6 +57,6 @@ private:
 	FString GetTicketSessionId() const;
 
 	void OnStartMatchmakingSuccess(const FAccelByteModelsV2MatchmakingCreateTicketResponse& Result);
-	void OnStartMatchmakingError(int32 ErrorCode, const FString& ErrorMessage);
+	void OnStartMatchmakingError(int32 ErrorCode, const FString& ErrorMessage, const FErrorCreateMatchmakingTicketV2& CreateTicketErrorInfo);
 
 };

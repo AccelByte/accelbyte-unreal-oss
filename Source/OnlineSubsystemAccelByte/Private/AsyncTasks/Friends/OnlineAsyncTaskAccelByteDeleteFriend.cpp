@@ -5,6 +5,7 @@
 #include "OnlineAsyncTaskAccelByteDeleteFriend.h"
 #include "OnlineSubsystemAccelByte.h"
 #include "OnlineFriendsInterfaceAccelByte.h"
+#include "OnlinePredefinedEventInterfaceAccelByte.h"
 #include "Core/AccelByteRegistry.h"
 #include "Api/AccelByteLobbyApi.h"
 
@@ -34,7 +35,7 @@ void FOnlineAsyncTaskAccelByteDeleteFriend::Initialize()
 	// if they are an outbound friend invite, we will cancel the invite to be friends.
 	if (InviteeFriend.IsValid())
 	{
-		const EInviteStatus::Type InviteStatus = InviteeFriend->GetInviteStatus();
+		InviteStatus = InviteeFriend->GetInviteStatus();
 		if (InviteStatus == EInviteStatus::Accepted)
 		{
 			// Since this friend is a valid pointer and is actually one of our friends, then we want to send a request to remove them
@@ -75,6 +76,25 @@ void FOnlineAsyncTaskAccelByteDeleteFriend::Finalize()
 	{
 		const TSharedPtr<FOnlineFriendsAccelByte, ESPMode::ThreadSafe> FriendInterface = StaticCastSharedPtr<FOnlineFriendsAccelByte>(Subsystem->GetFriendsInterface());
 		FriendInterface->RemoveFriendFromList(LocalUserNum, FriendId);
+
+		const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = Subsystem->GetPredefinedEventInterface();
+		if (PredefinedEventInterface.IsValid() && FriendId->IsValid())
+		{
+			if (InviteStatus == EInviteStatus::Accepted)
+			{
+				FAccelByteModelsFriendUnfriendedPayload FriendUnfriendPayload{};
+				FriendUnfriendPayload.SenderId = UserId->GetAccelByteId();
+				FriendUnfriendPayload.FriendId = FriendId->GetAccelByteId();
+				PredefinedEventInterface->SendEvent(LocalUserNum, MakeShared<FAccelByteModelsFriendUnfriendedPayload>(FriendUnfriendPayload));
+			}
+			else if (InviteStatus == EInviteStatus::PendingOutbound)
+			{
+				FAccelByteModelsFriendRequestRejectedPayload FriendRequestRejectedPayload{};
+				FriendRequestRejectedPayload.SenderId = FriendId->GetAccelByteId();
+				FriendRequestRejectedPayload.ReceiverId = UserId->GetAccelByteId();
+				PredefinedEventInterface->SendEvent(LocalUserNum, MakeShared<FAccelByteModelsFriendRequestRejectedPayload>(FriendRequestRejectedPayload));
+			}
+		}
 	}
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

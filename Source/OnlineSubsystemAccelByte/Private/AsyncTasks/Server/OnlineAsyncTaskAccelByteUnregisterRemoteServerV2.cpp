@@ -3,6 +3,7 @@
 // and restrictions contact your company contract manager.
 
 #include "OnlineAsyncTaskAccelByteUnregisterRemoteServerV2.h"
+#include "OnlinePredefinedEventInterfaceAccelByte.h"
 
 using namespace AccelByte;
 
@@ -51,6 +52,14 @@ void FOnlineAsyncTaskAccelByteUnregisterRemoteServerV2::Finalize()
 		}
 
 		SessionInterface->DisconnectFromDSHub();
+
+		const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = Subsystem->GetPredefinedEventInterface();
+		if (PredefinedEventInterface.IsValid())
+		{
+			FAccelByteModelsDSUnregisteredPayload DSUnregisteredPayload{};
+			DSUnregisteredPayload.PodName = FRegistry::ServerDSM.GetServerName();
+			PredefinedEventInterface->SendEvent(-1, MakeShared<FAccelByteModelsDSUnregisteredPayload>(DSUnregisteredPayload));
+		}
 	}
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

@@ -20,6 +20,7 @@ public:
 	FOnlineAsyncTaskAccelByteSendV2PartyInvite(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InLocalUserId, const FName& InSessionName, const FUniqueNetId& InRecipientId);
 
 	virtual void Initialize() override;
+	virtual void Finalize() override;
 	virtual void TriggerDelegates() override;
 
 protected:
@@ -35,6 +36,8 @@ private:
 
 	/** ID of the user that will receive the invite as an AccelByte ID */
 	TSharedRef<const FUniqueNetIdAccelByteUser> RecipientId;
+
+	FString SessionId;
 
 	void OnSendPartyInviteSuccess();
 	void OnSendPartyInviteError(int32 ErrorCode, const FString& ErrorMessage);

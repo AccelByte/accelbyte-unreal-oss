@@ -47,5 +47,6 @@ private:
 	/** Delegate handler for when we get a response back for canceling a friend request */
 	void OnCancelFriendRequestResponse(const FAccelByteModelsCancelFriendsResponse& Result);
 
+	EInviteStatus::Type InviteStatus{ EInviteStatus::Type::Unknown };
 };
 

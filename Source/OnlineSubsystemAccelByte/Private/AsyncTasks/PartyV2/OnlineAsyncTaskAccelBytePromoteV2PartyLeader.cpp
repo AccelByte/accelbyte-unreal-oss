@@ -3,6 +3,7 @@
 // and restrictions contact your company contract manager.
 
 #include "OnlineAsyncTaskAccelBytePromoteV2PartyLeader.h"
+#include "OnlinePredefinedEventInterfaceAccelByte.h"
 
 #define ONLINE_ERROR_NAMESPACE "FOnlineAsyncTaskAccelBytePromoteV2PartyLeader"
 
@@ -37,6 +38,15 @@ void FOnlineAsyncTaskAccelBytePromoteV2PartyLeader::Initialize()
 void FOnlineAsyncTaskAccelBytePromoteV2PartyLeader::Finalize()
 {
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
+
+	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = Subsystem->GetPredefinedEventInterface();
+	if (bWasSuccessful && PredefinedEventInterface.IsValid())
+	{
+		FAccelByteModelsMPV2PartySessionLeaderPromotedPayload PartySessionLeaderPromotedPayload{};
+		PartySessionLeaderPromotedPayload.PromotedUserId = TargetMemberId->GetAccelByteId();
+		PartySessionLeaderPromotedPayload.PartySessionId = SessionId;
+		PredefinedEventInterface->SendEvent(LocalUserNum, MakeShared<FAccelByteModelsMPV2PartySessionLeaderPromotedPayload>(PartySessionLeaderPromotedPayload));
+	}
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
