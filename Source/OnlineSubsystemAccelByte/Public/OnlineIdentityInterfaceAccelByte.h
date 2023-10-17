@@ -200,7 +200,7 @@ private:
 	FOnlineIdentityAccelByte() = delete;
 
 	/** Parent subsystem that spawned this instance */
-	FOnlineSubsystemAccelByte* AccelByteSubsystem;
+	TWeakPtr<FOnlineSubsystemAccelByte, ESPMode::ThreadSafe> AccelByteSubsystem;
 
 	/** Simple mapping for LocalUserNum to FUniqueNetIdAccelByte for users. Filled when users log in. */
 	TMap<int32, TSharedRef<const FUniqueNetId>> LocalUserNumToNetIdMap;
