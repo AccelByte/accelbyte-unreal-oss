@@ -51,10 +51,17 @@ private:
 	 */
 	bool bWasConflictError = false;
 
+	THandler<FAccelByteModelsV2GameSession> OnUpdateGameSessionSuccessDelegate;
 	void OnUpdateGameSessionSuccess(const FAccelByteModelsV2GameSession& BackendSessionData);
+
+	FErrorHandler OnUpdateGameSessionErrorDelegate;
 	void OnUpdateGameSessionError(int32 ErrorCode, const FString& ErrorMessage);
 
 	void RefreshSession();
+
+	THandler<FAccelByteModelsV2GameSession> OnRefreshGameSessionSuccessDelegate;
 	void OnRefreshGameSessionSuccess(const FAccelByteModelsV2GameSession& Result);
+
+	FErrorHandler OnRefreshGameSessionErrorDelegate;
 	void OnRefreshGameSessionError(int32 ErrorCode, const FString& ErrorMessage);
 };

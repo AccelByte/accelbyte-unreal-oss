@@ -36,12 +36,28 @@ public:
 		TSharedPtr<FOnlineAchievementsAccelByte, ESPMode::ThreadSafe>& OutInterfaceInstance);
 
 	//~ Begin IOnlineAchievement Interface
+
+	/**
+	 * Used by a user to query a list of their achievements.
+	 * Include achieved and in-progress.
+	 *
+	 * @param PlayerId - User ID requesting to query their achievements
+	 * @param Delegate - Return delegate indicating the success of this method
+	 */
 	virtual void QueryAchievements(
 		const FUniqueNetId& PlayerId,
 		const FOnQueryAchievementsCompleteDelegate& Delegate) override;
+
+	/**
+	 * Used by a user to query a list of all available achievements.
+	 *
+	 * @param PlayerId - User ID requesting to query their achievements
+	 * @param Delegate - Return delegate indicating the success of this method
+	 */
 	virtual void QueryAchievementDescriptions(
 		const FUniqueNetId& PlayerId,
 		const FOnQueryAchievementsCompleteDelegate& Delegate) override;
+
 	virtual void WriteAchievements(
 		const FUniqueNetId& PlayerId,
 		FOnlineAchievementsWriteRef& WriteObject,

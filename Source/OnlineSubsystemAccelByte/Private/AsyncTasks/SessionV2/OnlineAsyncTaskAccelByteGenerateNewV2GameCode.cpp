@@ -29,7 +29,8 @@ void FOnlineAsyncTaskAccelByteGenerateNewV2GameCode::Initialize()
 	const FString SessionId = Session->GetSessionIdStr();
 	AB_ASYNC_TASK_ENSURE(!SessionId.Equals(TEXT("InvalidSession"), ESearchCase::IgnoreCase), "Named session used to generate new game code has invalid game ID!");
 
-	AB_ASYNC_TASK_DEFINE_SDK_DELEGATES(FOnlineAsyncTaskAccelByteGenerateNewV2GameCode, GenerateNewCode, THandler<FAccelByteModelsV2GameSession>);
+	OnGenerateNewCodeSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsV2GameSession>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteGenerateNewV2GameCode::OnGenerateNewCodeSuccess);
+	OnGenerateNewCodeErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteGenerateNewV2GameCode::OnGenerateNewCodeError);;
 
 	if(IsRunningDedicatedServer())
 	{

@@ -42,8 +42,10 @@ private:
 	FOnlineError OnlineError;
 
 	/** Handler when query game sessions success. */
+	THandler<FAccelByteModelsV2PaginatedGameSessionQueryResult> OnQuerySuccess;
 	void OnQueryGameSessionsSuccess(const FAccelByteModelsV2PaginatedGameSessionQueryResult& Result);
 
 	/** Handler when query game sessions failed. */
+	FErrorHandler OnQueryFailed;
 	void OnQueryGameSessionsFailed(int32 ErrorCode, const FString& ErrorMessage);
 };

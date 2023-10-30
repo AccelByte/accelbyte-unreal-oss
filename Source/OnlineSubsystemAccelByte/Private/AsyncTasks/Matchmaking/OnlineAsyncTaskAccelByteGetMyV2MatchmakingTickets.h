@@ -48,7 +48,12 @@ private:
 	/* Cached unmatched ticket from all the ticket in response */
 	FString ActiveTicketId;
 
+
+	THandler<FAccelByteModelsV2MatchmakingTicketStatuses> OnGetMyMatchTicketSuccessDelegate;
 	void OnGetMyMatchTicketSuccess(const FAccelByteModelsV2MatchmakingTicketStatuses& Result);
+
+	FErrorHandler OnGetMyMatchTicketErrorDelegate;
 	void OnGetMyMatchTicketError(int32 ErrorCode, const FString& ErrorMessage);
+
 	void SendGetMyTicketRequest();
 };

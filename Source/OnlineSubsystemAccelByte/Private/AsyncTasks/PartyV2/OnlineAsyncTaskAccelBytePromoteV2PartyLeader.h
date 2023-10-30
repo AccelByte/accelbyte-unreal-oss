@@ -55,11 +55,14 @@ private:
 	/**
 	 * Delegate handler for when we get a successful response from the backend on promoting a member of a party to leader
 	 */
+	THandler<FAccelByteModelsV2PartySession> OnPromotePartyLeaderSuccessDelegate;
 	void OnPromotePartyLeaderSuccess(const FAccelByteModelsV2PartySession& BackendSessionData);
 
 	/**
 	 * Delegate handler for when we get a failed response from the backend on promoting a member of a party to leader
 	 */
+	FErrorHandler OnPromotePartyLeaderErrorDelegate;
 	void OnPromotePartyLeaderError(int32 ErrorCode, const FString& ErrorMessage);
+
 };
 

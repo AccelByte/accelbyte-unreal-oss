@@ -46,7 +46,8 @@ private:
 	 */
 	FAccelByteModelsV2PartySession UpdatedPartySession{};
 
+	THandler<FAccelByteModelsV2PartySession> OnGenerateNewCodeSuccessDelegate;
+	FErrorHandler OnGenerateNewCodeErrorDelegate;
 	AB_ASYNC_TASK_DECLARE_SDK_DELEGATES_WITH_RESULT(GenerateNewCode, FAccelByteModelsV2PartySession)
-
 };
 

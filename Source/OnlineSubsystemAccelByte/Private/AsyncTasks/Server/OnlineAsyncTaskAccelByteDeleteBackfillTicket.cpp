@@ -30,7 +30,8 @@ void FOnlineAsyncTaskAccelByteDeleteBackfillTicket::Initialize()
 	AccelByte::FServerApiClientPtr ServerApiClient = AccelByte::FMultiRegistry::GetServerApiClient();
 	AB_ASYNC_TASK_ENSURE(ServerApiClient.IsValid(), "Failed to delete backfill ticket for session as we could not get a server API client!");
 
-	AB_ASYNC_TASK_DEFINE_SDK_DELEGATES(FOnlineAsyncTaskAccelByteDeleteBackfillTicket, DeleteBackfillTicket, FVoidHandler);
+	OnDeleteBackfillTicketSuccessDelegate = AccelByte::TDelegateUtils<FVoidHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteDeleteBackfillTicket::OnDeleteBackfillTicketSuccess);
+	OnDeleteBackfillTicketErrorDelegate = AccelByte::TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteDeleteBackfillTicket::OnDeleteBackfillTicketError);;
 	ServerApiClient->ServerMatchmakingV2.DeleteBackfillTicket(BackfillTicketId, OnDeleteBackfillTicketSuccessDelegate, OnDeleteBackfillTicketErrorDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

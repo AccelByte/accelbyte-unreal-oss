@@ -39,8 +39,8 @@ void FOnlineAsyncTaskAccelByteCreateV2Party::Initialize()
 	// Next, we want to send off a request to check on the backend if we are in a party. This way we can validate in case
 	// we're in one, but we haven't restored our state. This will tell the developer to call RestoreParties to restore
 	// that previous state and act accordingly.
-	THandler<FAccelByteModelsV2PaginatedPartyQueryResult> OnGetMyPartiesSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsV2PaginatedPartyQueryResult>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteCreateV2Party::OnGetMyPartiesSuccess);
-	FErrorHandler OnGetMyPartiesErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteCreateV2Party::OnGetMyPartiesError);
+	OnGetMyPartiesSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsV2PaginatedPartyQueryResult>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteCreateV2Party::OnGetMyPartiesSuccess);
+	OnGetMyPartiesErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteCreateV2Party::OnGetMyPartiesError);
 	ApiClient->Session.GetMyParties(OnGetMyPartiesSuccessDelegate, OnGetMyPartiesErrorDelegate); // Querying for all connected statuses here, will filter in delegate handler if needed
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sent request to get info about current party before creating party!"));
@@ -175,8 +175,8 @@ void FOnlineAsyncTaskAccelByteCreateV2Party::OnGetMyPartiesSuccess(const FAccelB
 	SelfMember.PlatformUserID = UserId->GetPlatformId();
 	CreatePartyRequest.Members.Emplace(SelfMember);
 
-	THandler<FAccelByteModelsV2PartySession> OnCreatePartySuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsV2PartySession>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteCreateV2Party::OnCreatePartySuccess);
-	FErrorHandler OnCreatePartyErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteCreateV2Party::OnCreatePartyError);
+	OnCreatePartySuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsV2PartySession>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteCreateV2Party::OnCreatePartySuccess);
+	OnCreatePartyErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteCreateV2Party::OnCreatePartyError);
 	ApiClient->Session.CreateParty(CreatePartyRequest, OnCreatePartySuccessDelegate, OnCreatePartyErrorDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sent off request to create party session for user '%s'!"), *UserId->ToDebugString());

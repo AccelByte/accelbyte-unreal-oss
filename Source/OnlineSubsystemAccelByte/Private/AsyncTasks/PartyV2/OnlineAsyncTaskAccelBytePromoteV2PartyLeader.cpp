@@ -29,7 +29,8 @@ void FOnlineAsyncTaskAccelBytePromoteV2PartyLeader::Initialize()
 	FNamedOnlineSession* Session = SessionInterface->GetPartySession();
 	AB_ASYNC_TASK_ENSURE(Session != nullptr, "Failed to promote player to leader of party session as the local session instance is invalid!");
 	
-	AB_ASYNC_TASK_DEFINE_SDK_DELEGATES(FOnlineAsyncTaskAccelBytePromoteV2PartyLeader, PromotePartyLeader, THandler<FAccelByteModelsV2PartySession>);
+	OnPromotePartyLeaderSuccessDelegate = AccelByte::TDelegateUtils<THandler<FAccelByteModelsV2PartySession>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelBytePromoteV2PartyLeader::OnPromotePartyLeaderSuccess);
+	OnPromotePartyLeaderErrorDelegate = AccelByte::TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelBytePromoteV2PartyLeader::OnPromotePartyLeaderError);;
 	ApiClient->Session.PromotePartyLeader(SessionId, TargetMemberId->GetAccelByteId(), OnPromotePartyLeaderSuccessDelegate, OnPromotePartyLeaderErrorDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sent request to promote a member of this party to leader."));

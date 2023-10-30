@@ -25,13 +25,13 @@ void FOnlineAsyncTaskAccelByteRestoreAllV2Sessions::Initialize()
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("UserId: %s"), *UserId->ToDebugString());
 
 	// Get information about the user's party, which then will give us a party to restore if we are in one
-	THandler<FAccelByteModelsV2PaginatedPartyQueryResult> OnGetMyPartiesSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsV2PaginatedPartyQueryResult>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteRestoreAllV2Sessions::OnGetMyPartiesSuccess);
-	FErrorHandler OnGetMyPartiesErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteRestoreAllV2Sessions::OnGetMyPartiesError);
+	OnGetMyPartiesSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsV2PaginatedPartyQueryResult>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteRestoreAllV2Sessions::OnGetMyPartiesSuccess);
+	OnGetMyPartiesErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteRestoreAllV2Sessions::OnGetMyPartiesError);
 	ApiClient->Session.GetMyParties(OnGetMyPartiesSuccessDelegate, OnGetMyPartiesErrorDelegate);
 
 	// Get information about the user's game sessions, which then will give us a game session to restore if we are in one
-	THandler<FAccelByteModelsV2PaginatedGameSessionQueryResult> OnGetMyGameSessionsSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsV2PaginatedGameSessionQueryResult>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteRestoreAllV2Sessions::OnGetMyGameSessionsSuccess);
-	FErrorHandler OnGetMyGameSessionsErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteRestoreAllV2Sessions::OnGetMyGameSessionsError);
+	OnGetMyGameSessionsSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsV2PaginatedGameSessionQueryResult>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteRestoreAllV2Sessions::OnGetMyGameSessionsSuccess);
+	OnGetMyGameSessionsErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteRestoreAllV2Sessions::OnGetMyGameSessionsError);
 	ApiClient->Session.GetMyGameSessions(OnGetMyGameSessionsSuccessDelegate, OnGetMyGameSessionsErrorDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

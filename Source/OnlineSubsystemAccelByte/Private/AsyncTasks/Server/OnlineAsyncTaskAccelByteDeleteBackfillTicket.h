@@ -6,12 +6,15 @@
 #include "AsyncTasks/OnlineAsyncTaskAccelByte.h"
 #include "OnlineSubsystemAccelByteTypes.h"
 #include "OnlineSessionInterfaceV2AccelByte.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteUtils.h"
 #include "Models/AccelByteMatchmakingModels.h"
 
 /**
  * Task to delete a ticket used for backfilling the session provided
  */
-class FOnlineAsyncTaskAccelByteDeleteBackfillTicket : public FOnlineAsyncTaskAccelByte
+class FOnlineAsyncTaskAccelByteDeleteBackfillTicket
+	: public FOnlineAsyncTaskAccelByte
+	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteDeleteBackfillTicket, ESPMode::ThreadSafe>
 {
 public:
 
@@ -39,6 +42,8 @@ private:
 	 */
 	FOnAcceptBackfillProposalComplete Delegate{};
 
+	FVoidHandler OnDeleteBackfillTicketSuccessDelegate;
+	FErrorHandler OnDeleteBackfillTicketErrorDelegate;
 	AB_ASYNC_TASK_DECLARE_SDK_DELEGATES(DeleteBackfillTicket);
 
 };

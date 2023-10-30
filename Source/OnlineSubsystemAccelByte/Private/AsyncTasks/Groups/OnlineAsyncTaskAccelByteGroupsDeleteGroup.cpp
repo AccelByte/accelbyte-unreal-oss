@@ -3,6 +3,7 @@
 // and restrictions contact your company contract manager.
 
 #include "OnlineAsyncTaskAccelByteGroupsDeleteGroup.h"
+#include "OnlinePredefinedEventInterfaceAccelByte.h"
 
 using namespace AccelByte;
 
@@ -67,6 +68,16 @@ void FOnlineAsyncTaskAccelByteGroupsDeleteGroup::Finalize()
 	}
 
 	GroupsInterface->DeleteCachedGroupInfo();
+
+	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = Subsystem->GetPredefinedEventInterface();
+	if (PredefinedEventInterface.IsValid())
+	{
+		FAccelByteModelsGroupDeletedPayload GroupDeletedPayload{};
+		GroupDeletedPayload.GroupId = GroupId;
+		GroupDeletedPayload.UserId = UserId->GetAccelByteId();
+
+		PredefinedEventInterface->SendEvent(LocalUserNum, MakeShared<FAccelByteModelsGroupDeletedPayload>(GroupDeletedPayload));
+	}
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }

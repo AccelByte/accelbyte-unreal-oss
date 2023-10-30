@@ -3,6 +3,7 @@
 // and restrictions contact your company contract manager.
 
 #include "OnlineAsyncTaskAccelByteGroupsLeaveGroup.h"
+#include "OnlinePredefinedEventInterfaceAccelByte.h"
 
 using namespace AccelByte;
 
@@ -79,6 +80,16 @@ void FOnlineAsyncTaskAccelByteGroupsLeaveGroup::Finalize()
 	// System automatically deletes group data if no members remain
 	if (CurrentGroupData->ABGroupInfo.GroupMembers.Num() == 0)
 		GroupsInterface->DeleteCachedGroupInfo();
+
+	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = Subsystem->GetPredefinedEventInterface();
+	if (PredefinedEventInterface.IsValid())
+	{
+		FAccelByteModelsGroupLeftPayload GroupLeftPayload{};
+		GroupLeftPayload.GroupId = GroupId;
+		GroupLeftPayload.UserId = UserId->GetAccelByteId();
+
+		PredefinedEventInterface->SendEvent(LocalUserNum, MakeShared<FAccelByteModelsGroupLeftPayload>(GroupLeftPayload));
+	}
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }

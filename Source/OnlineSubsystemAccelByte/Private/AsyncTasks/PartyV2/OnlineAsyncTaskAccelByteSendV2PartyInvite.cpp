@@ -31,7 +31,8 @@ void FOnlineAsyncTaskAccelByteSendV2PartyInvite::Initialize()
 	AB_ASYNC_TASK_ENSURE(Session != nullptr, "Failed to send invite to party session as our local session instance is invalid!");
 
 	// Now, once we know we are in this party, we want to send a request to invite the player to the party
-	AB_ASYNC_TASK_DEFINE_SDK_DELEGATES(FOnlineAsyncTaskAccelByteSendV2PartyInvite, SendPartyInvite, FVoidHandler);
+	OnSendPartyInviteSuccessDelegate = AccelByte::TDelegateUtils<FVoidHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteSendV2PartyInvite::OnSendPartyInviteSuccess);
+	OnSendPartyInviteErrorDelegate = AccelByte::TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteSendV2PartyInvite::OnSendPartyInviteError);;
 	ApiClient->Session.SendPartyInvite(Session->GetSessionIdStr(), RecipientId->GetAccelByteId(), OnSendPartyInviteSuccessDelegate, OnSendPartyInviteErrorDelegate);
 
 	SessionId = Session->GetSessionIdStr();

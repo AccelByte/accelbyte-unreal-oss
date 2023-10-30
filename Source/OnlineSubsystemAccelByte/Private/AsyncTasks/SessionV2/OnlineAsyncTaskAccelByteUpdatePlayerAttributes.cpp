@@ -99,7 +99,8 @@ void FOnlineAsyncTaskAccelByteUpdatePlayerAttributes::OnGetPlayerCrossplayPrivil
 		Request.Data.JsonString = OutDataStr;
 	}
 
-	AB_ASYNC_TASK_DEFINE_SDK_DELEGATES(FOnlineAsyncTaskAccelByteUpdatePlayerAttributes, StorePlayerAttributes, THandler<FAccelByteModelsV2PlayerAttributes>);
+	OnStorePlayerAttributesSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsV2PlayerAttributes>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteUpdatePlayerAttributes::OnStorePlayerAttributesSuccess);
+	OnStorePlayerAttributesErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteUpdatePlayerAttributes::OnStorePlayerAttributesError);;
 	ApiClient->Session.StorePlayerAttributes(Request, OnStorePlayerAttributesSuccessDelegate, OnStorePlayerAttributesErrorDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

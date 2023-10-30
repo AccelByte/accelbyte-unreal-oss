@@ -46,14 +46,18 @@ private:
 	FOnlineSessionSettings NewSessionSettings;
 
 	/** Delegate handler for when our request to get the user's active parties from the backend succeeds */
+	THandler<FAccelByteModelsV2PaginatedPartyQueryResult> OnGetMyPartiesSuccessDelegate;
 	void OnGetMyPartiesSuccess(const FAccelByteModelsV2PaginatedPartyQueryResult& Result);
 
 	/** Delegate handler for when our request to get the user's active parties from the backend fails */
+	FErrorHandler OnGetMyPartiesErrorDelegate;
 	void OnGetMyPartiesError(int32 ErrorCode, const FString& ErrorMessage);
 
 	/** Delegate handler for when we successfully create a party from the backend */
+	THandler<FAccelByteModelsV2PartySession> OnCreatePartySuccessDelegate;
 	void OnCreatePartySuccess(const FAccelByteModelsV2PartySession& Result);
 
 	/** Delegate handler for when we fail to create a party from the backend */
+	FErrorHandler OnCreatePartyErrorDelegate;
 	void OnCreatePartyError(int32 ErrorCode, const FString& ErrorMessage);
 };

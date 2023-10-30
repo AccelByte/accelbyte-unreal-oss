@@ -29,8 +29,8 @@ void FOnlineAsyncTaskAccelByteServerQueryPartySessionsV2::Initialize()
 		return;
 	}
 
-	const THandler<FAccelByteModelsV2PaginatedPartyQueryResult> OnQuerySuccess = TDelegateUtils<THandler<FAccelByteModelsV2PaginatedPartyQueryResult>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteServerQueryPartySessionsV2::OnQueryPartySessionsSuccess);
-	const FErrorHandler OnQueryFailed = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteServerQueryPartySessionsV2::OnQueryPartySessionsFailed);
+	OnQuerySuccess = TDelegateUtils<THandler<FAccelByteModelsV2PaginatedPartyQueryResult>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteServerQueryPartySessionsV2::OnQueryPartySessionsSuccess);
+	OnQueryFailed = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteServerQueryPartySessionsV2::OnQueryPartySessionsFailed);
 
 	FMultiRegistry::GetServerApiClient()->ServerSession.QueryPartySessions(Request, OnQuerySuccess, OnQueryFailed, Offset, Limit);
 

@@ -23,7 +23,6 @@ public:
 	virtual void TriggerDelegates() override;
 
 protected:
-
 	virtual const FString GetTaskName() const override
 	{
 		return TEXT("FOnlineAsyncTaskAccelByteStartV2Matchmaking");
@@ -47,6 +46,9 @@ private:
 
 	TSharedPtr<FJsonObject> AttributesJsonObject;
 
+	THandler<TArray<TPair<FString, float>>> OnGetLatenciesSuccessDelegate;
+	FErrorHandler OnGetLatenciesErrorDelegate;
+
 	void OnGetLatenciesSuccess(const TArray<TPair<FString, float>>& Latencies);
 	void OnGetLatenciesError(int32 ErrorCode, const FString& ErrorMessage);
 
@@ -56,7 +58,9 @@ private:
 	/** Determine what session ID we should attach to the new match ticket, if any at all */
 	FString GetTicketSessionId() const;
 
+	THandler<FAccelByteModelsV2MatchmakingCreateTicketResponse> OnStartMatchmakingSuccessDelegate;
 	void OnStartMatchmakingSuccess(const FAccelByteModelsV2MatchmakingCreateTicketResponse& Result);
-	void OnStartMatchmakingError(int32 ErrorCode, const FString& ErrorMessage, const FErrorCreateMatchmakingTicketV2& CreateTicketErrorInfo);
 
+	AccelByte::FCreateMatchmakingTicketErrorHandler OnStartMatchmakingErrorDelegate;
+	void OnStartMatchmakingError(int32 ErrorCode, const FString& ErrorMessage, const FErrorCreateMatchmakingTicketV2& CreateTicketErrorInfo);
 };

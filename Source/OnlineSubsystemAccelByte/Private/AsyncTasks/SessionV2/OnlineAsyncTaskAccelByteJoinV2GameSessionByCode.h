@@ -51,6 +51,8 @@ private:
 	 */
 	FAccelByteModelsV2GameSession JoinedGameSession{};
 
+	THandler<FAccelByteModelsV2GameSession> OnJoinGameSessionByCodeSuccessDelegate;
+	FErrorHandler OnJoinGameSessionByCodeErrorDelegate;
 	AB_ASYNC_TASK_DECLARE_SDK_DELEGATES_WITH_RESULT(JoinGameSessionByCode, FAccelByteModelsV2GameSession);
 
 };

@@ -32,7 +32,7 @@ private:
 
 	FString Sku;
 	FOnQueryOnlineStoreOffersComplete Delegate;
-	FOnlineStoreOfferRef Offer;
+	FOnlineStoreOfferAccelByteRef Offer;
 	FString Language;
 
 	FString ErrorMsg;

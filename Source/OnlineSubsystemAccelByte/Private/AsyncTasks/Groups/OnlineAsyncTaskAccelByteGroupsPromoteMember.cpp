@@ -3,6 +3,7 @@
 // and restrictions contact your company contract manager.
 
 #include "OnlineAsyncTaskAccelByteGroupsPromoteMember.h"
+#include "OnlinePredefinedEventInterfaceAccelByte.h"
 
 using namespace AccelByte;
 
@@ -75,6 +76,17 @@ void FOnlineAsyncTaskAccelByteGroupsPromoteMember::Finalize()
 
 	// Promote cached member
 	//GroupsInterface->PromoteCachedMember(UserId->GetAccelByteId(), AccelByteModelsGetUserGroupInfoResponse.MemberRoleId);
+
+	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = Subsystem->GetPredefinedEventInterface();
+	if (PredefinedEventInterface.IsValid())
+	{
+		FAccelByteModelsGroupMemberRoleUpdatedPayload GroupMemberRoleUpdatedPayload{};
+		GroupMemberRoleUpdatedPayload.GroupId = GroupId;
+		GroupMemberRoleUpdatedPayload.MemberRoleId = RoleId;
+		GroupMemberRoleUpdatedPayload.UpdatedUserId = AccelByteModelsGetUserGroupInfoResponse.UserId;
+
+		PredefinedEventInterface->SendEvent(LocalUserNum, MakeShared<FAccelByteModelsGroupMemberRoleUpdatedPayload>(GroupMemberRoleUpdatedPayload));
+	}
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }

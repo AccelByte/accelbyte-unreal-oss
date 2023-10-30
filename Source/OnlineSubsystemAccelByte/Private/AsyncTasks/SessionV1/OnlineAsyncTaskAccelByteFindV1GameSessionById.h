@@ -49,6 +49,9 @@ private:
 	 */
 	FOnlineSessionSearchResult FoundSessionResult;
 
+	THandler<FAccelByteModelsSessionBrowserData> OnGetGameSessionDetailsSuccessDelegate;
 	void OnGetGameSessionDetailsSuccess(const FAccelByteModelsSessionBrowserData& InFoundGameSession);
+
+	FErrorHandler OnGetGameSessionDetailsErrorDelegate;
 	void OnGetGameSessionDetailsError(int32 ErrorCode, const FString& ErrorMessage);	
 };

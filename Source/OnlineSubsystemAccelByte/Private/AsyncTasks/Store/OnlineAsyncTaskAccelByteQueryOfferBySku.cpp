@@ -12,7 +12,7 @@ FOnlineAsyncTaskAccelByteQueryOfferBySku::FOnlineAsyncTaskAccelByteQueryOfferByS
 	: FOnlineAsyncTaskAccelByte(InABSubsystem)
 	, Sku(InSku)
 	, Delegate(InDelegate)
-	, Offer(MakeShared<FOnlineStoreOffer>())
+	, Offer(MakeShared<FOnlineStoreOfferAccelByte>())
 	, Language(InABSubsystem->GetLanguage())
 {
 	UserId = FUniqueNetIdAccelByteUser::CastChecked(InUserId);
@@ -36,7 +36,7 @@ void FOnlineAsyncTaskAccelByteQueryOfferBySku::Finalize()
 	Super::Finalize();
 	
 	const FOnlineStoreV2AccelBytePtr StoreV2Interface = StaticCastSharedPtr<FOnlineStoreV2AccelByte>(Subsystem->GetStoreV2Interface());
-	StoreV2Interface->EmplaceOffers(TMap<FUniqueOfferId, FOnlineStoreOfferRef>{TPair<FUniqueOfferId, FOnlineStoreOfferRef>{Offer->OfferId, Offer}});
+	StoreV2Interface->EmplaceOffers(TMap<FUniqueOfferId, FOnlineStoreOfferAccelByteRef>{TPair<FUniqueOfferId, FOnlineStoreOfferAccelByteRef>{Offer->OfferId, Offer}});
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 
@@ -58,6 +58,18 @@ void FOnlineAsyncTaskAccelByteQueryOfferBySku::HandleGetItemBySku(const FAccelBy
 	Offer->RegularPrice = Result.RegionData[0].Price;
 	Offer->CurrencyCode = Result.RegionData[0].CurrencyCode;
 	Offer->Title = FText::FromString(Result.Title);
+	Offer->RegionData = Result.RegionData;
+	Offer->Language = Result.Language;
+	Offer->Sku = Result.Sku;
+	Offer->Flexible = Result.Flexible;
+	Offer->Sellable = Result.Sellable;
+	Offer->Stackable = Result.Stackable;
+	Offer->Purchasable = Result.Purchasable;
+	Offer->Listable = Result.Listable;
+	Offer->SectionExclusive = Result.SectionExclusive;
+	Offer->SaleConfig = Result.SaleConfig;
+	Offer->LootBoxConfig = Result.LootBoxConfig;
+	Offer->OptionBoxConfig = Result.OptionBoxConfig;
 	if (Result.Images.Num() > 0)
 	{
 		Offer->DynamicFields.Add(TEXT("IconUrl"), Result.Images[0].ImageUrl);

@@ -53,8 +53,10 @@ private:
 	 */
 	FOnlineSessionSearchResult FoundSessionResult;
 
+	THandler<FAccelByteModelsV2PartySession> OnGetPartySessionDetailsSuccessDelegate;
 	void OnGetPartySessionDetailsSuccess(const FAccelByteModelsV2PartySession& InFoundPartySession);
-	void OnGetPartySessionDetailsError(int32 ErrorCode, const FString& ErrorMessage);
 
+	FErrorHandler OnGetPartySessionDetailsErrorDelegate;
+	void OnGetPartySessionDetailsError(int32 ErrorCode, const FString& ErrorMessage);
 };
 

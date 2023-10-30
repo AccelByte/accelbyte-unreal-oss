@@ -43,8 +43,10 @@ private:
 	bool PromoteGameSessionLeader();
 
 	/** Delegate handler for when we get a successful response from the backend on promoting a member of a game session to leader */
+	THandler<FAccelByteModelsV2GameSession> OnPromoteGameSessionLeaderSuccessDelegate;
 	void OnPromoteGameSessionLeaderSuccess(const FAccelByteModelsV2GameSession& BackendSessionData);
 
 	/** Delegate handler for when we get a failed response from the backend on promoting a member of a game session to leader */
+	FErrorHandler OnPromoteGameSessionLeaderErrorDelegate;
 	void OnPromoteGameSessionLeaderError(int32 ErrorCode, const FString& ErrorMessage);
 };

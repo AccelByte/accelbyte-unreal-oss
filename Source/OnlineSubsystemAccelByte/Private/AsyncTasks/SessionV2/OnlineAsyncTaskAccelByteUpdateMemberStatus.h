@@ -51,6 +51,8 @@ private:
 	 */
 	FOnSessionMemberStatusUpdateComplete Delegate{};
 
+	FVoidHandler OnUpdateMemberStatusSuccessDelegate;
+	FErrorHandler OnUpdateMemberStatusErrorDelegate;
 	AB_ASYNC_TASK_DECLARE_SDK_DELEGATES(UpdateMemberStatus);
 
 };

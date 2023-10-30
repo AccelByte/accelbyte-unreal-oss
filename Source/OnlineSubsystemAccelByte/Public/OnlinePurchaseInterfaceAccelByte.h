@@ -3,12 +3,19 @@
 // and restrictions contact your company contract manager.
 
 #pragma once
+#include "OnlineErrorAccelByte.h"
 #include "OnlineSubsystemAccelByte.h"
 #include "Interfaces/OnlinePurchaseInterface.h"
 #include "OnlineSubsystemAccelByteTypes.h"
 
 using FReceiptMap = TMap<FString, FPurchaseReceipt>;
 using FUserIDToReceiptMap = TMap<TSharedRef<const FUniqueNetIdAccelByteUser>, FReceiptMap, FDefaultSetAllocator, TUserUniqueIdConstSharedRefMapKeyFuncs<FReceiptMap>>;
+
+DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnQueryUserOrdersComplete, bool /* bWasSuccessful */, const FAccelByteModelsPagedOrderInfo& /* Result */, const FOnlineErrorAccelByte& /* Error */);
+typedef FOnQueryUserOrdersComplete::FDelegate FOnQueryUserOrdersCompleteDelegate;
+
+DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnCreateNewOrderComplete, bool /* bWasSuccessful */, const FAccelByteModelsOrderInfo& /* Result */, const FOnlineErrorAccelByte& /* Error */);
+typedef FOnCreateNewOrderComplete::FDelegate FOnCreateNewOrderCompleteDelegate;
 
 class ONLINESUBSYSTEMACCELBYTE_API FOnlinePurchaseAccelByte : public IOnlinePurchase
 {
@@ -48,6 +55,31 @@ public:
 #if (ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 1)
 	virtual void Checkout(const FUniqueNetId& UserId, const FPurchaseCheckoutRequest& CheckoutRequest, const FOnPurchaseReceiptlessCheckoutComplete& Delegate) override;
 #endif
+
+	/**
+	 * Delegate called when a controller-user query user orders.
+	 */
+	DEFINE_ONLINE_DELEGATE_THREE_PARAM(OnQueryUserOrdersComplete, bool /*bWasSuccessful*/, const FAccelByteModelsPagedOrderInfo& /*PagedOrderInfo*/, const FOnlineErrorAccelByte& /*OnlineError*/);
+	/**
+	 *  Get all of user's orders that have been created with paging.  
+	 *
+	 * @param UserId The user's user ID.
+	 * @param UserOrderRequest contains some parameters for query. 
+	 */ 
+	void QueryUserOrders(const FUniqueNetId& UserId, const FAccelByteModelsUserOrdersRequest& UserOrderRequest);
+
+	/**
+	 * Delegate called when a controller-user create new order.
+	 */
+	DEFINE_ONLINE_DELEGATE_THREE_PARAM(OnCreateNewOrderComplete, bool /*bWasSuccessful*/, const FAccelByteModelsOrderInfo& /*OrderInfo*/, const FOnlineErrorAccelByte & /*OnlineError*/);
+	/**
+	 *  Create order to purchase something from the store.   
+	 *
+	 * @param UserId The user's user ID.
+	 * @param OrderCreate contains some parameters for create new order.
+	 */
+	void CreateNewOrder(const FUniqueNetId& UserId, const FAccelByteModelsOrderCreate& OrderCreate);
+
 protected:
 	/** Instance of the subsystem that created this interface */
 	FOnlineSubsystemAccelByte* AccelByteSubsystem = nullptr;

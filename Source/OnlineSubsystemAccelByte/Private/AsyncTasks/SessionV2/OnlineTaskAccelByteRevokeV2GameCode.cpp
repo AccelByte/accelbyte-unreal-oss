@@ -29,7 +29,8 @@ void FOnlineAsyncTaskAccelByteRevokeV2GameCode::Initialize()
 	const FString SessionId = Session->GetSessionIdStr();
 	AB_ASYNC_TASK_ENSURE(!SessionId.Equals(TEXT("InvalidSession"), ESearchCase::IgnoreCase), "Named session used to revoke game code has invalid session ID!");
 
-	AB_ASYNC_TASK_DEFINE_SDK_DELEGATES(FOnlineAsyncTaskAccelByteRevokeV2GameCode, RevokeCode, FVoidHandler);
+	OnRevokeCodeSuccessDelegate = TDelegateUtils<FVoidHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteRevokeV2GameCode::OnRevokeCodeSuccess);
+	OnRevokeCodeErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteRevokeV2GameCode::OnRevokeCodeError);;
 
 	if(IsRunningDedicatedServer())
 	{

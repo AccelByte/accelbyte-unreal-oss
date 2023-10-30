@@ -51,7 +51,10 @@ private:
 	 */
 	void QueryResultsPage(int32 Offset);
 
+	THandler<FAccelByteModelsV2PaginatedGameSessionQueryResult> OnQueryGameSessionsSuccessDelegate;
 	void OnQueryGameSessionsSuccess(const FAccelByteModelsV2PaginatedGameSessionQueryResult& Result, int32 LastOffset);
+
+	FErrorHandler OnQueryGameSessionsErrorDelegate;
 	void OnQueryGameSessionsError(int32 ErrorCode, const FString& ErrorMessage);
 
 	bool AddVariantDataToQuery(FAccelByteModelsV2GameSessionQuery& Query, const FString& FieldName, const EAccelByteV2SessionQueryComparisonOp& Comparison, const FVariantData& Data) const;

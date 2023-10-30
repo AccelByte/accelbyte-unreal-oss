@@ -53,10 +53,17 @@ private:
 	 */
 	bool bWasConflictError = false;
 
+	THandler<FAccelByteModelsV2PartySession> OnUpdatePartySessionSuccessDelegate;
 	void OnUpdatePartySessionSuccess(const FAccelByteModelsV2PartySession& BackendSessionData);
+
+	FErrorHandler OnUpdatePartySessionErrorDelegate;
 	void OnUpdatePartySessionError(int32 ErrorCode, const FString& ErrorMessage);
 
 	void RefreshSession();
+
+	THandler<FAccelByteModelsV2PartySession> OnRefreshPartySessionSuccessDelegate;
 	void OnRefreshPartySessionSuccess(const FAccelByteModelsV2PartySession& Result);
+
+	FErrorHandler OnRefreshPartySessionErrorDelegate;
 	void OnRefreshPartySessionError(int32 ErrorCode, const FString& ErrorMessage);
 };

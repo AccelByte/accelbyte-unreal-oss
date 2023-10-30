@@ -6,7 +6,7 @@
 
 using namespace AccelByte;
 
-#define ONLINE_ERROR_NAMESPACE "FOnlineStoreSystemAccelByte"
+#define ONLINE_ERROR_NAMESPACE "FOnlinePurchaseSystemAccelByte"
 
 FOnlineAsyncTaskAccelByteCheckout::FOnlineAsyncTaskAccelByteCheckout(
 	FOnlineSubsystemAccelByte* const InABSubsystem,

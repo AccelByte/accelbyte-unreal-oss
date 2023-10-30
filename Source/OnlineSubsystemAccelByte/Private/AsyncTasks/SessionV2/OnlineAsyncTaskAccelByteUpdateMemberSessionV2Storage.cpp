@@ -23,8 +23,8 @@ void FOnlineAsyncTaskAccelByteUpdateMemberSessionV2Storage::Initialize()
 
 	Super::Initialize();
 
-	const THandler<FJsonObjectWrapper> OnUpdateStorageSuccessDelegate = TDelegateUtils<THandler<FJsonObjectWrapper>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteUpdateMemberSessionV2Storage::OnUpdateMemberStorageSuccess);
-	const FErrorHandler OnUpdateStorageErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteUpdateMemberSessionV2Storage::OnUpdateMemberStorageError);
+	OnUpdateStorageSuccessDelegate = TDelegateUtils<THandler<FJsonObjectWrapper>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteUpdateMemberSessionV2Storage::OnUpdateMemberStorageSuccess);
+	OnUpdateStorageErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteUpdateMemberSessionV2Storage::OnUpdateMemberStorageError);
 
 	ApiClient->Session.UpdateMemberStorage(SessionToUpdate->GetSessionIdStr(), Data, OnUpdateStorageSuccessDelegate, OnUpdateStorageErrorDelegate);
 

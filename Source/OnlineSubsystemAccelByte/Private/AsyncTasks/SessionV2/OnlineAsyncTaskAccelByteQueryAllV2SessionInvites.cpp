@@ -18,12 +18,12 @@ void FOnlineAsyncTaskAccelByteQueryAllV2SessionInvites::Initialize()
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("PlayerId: %s"), *UserId->ToDebugString());
 
-	const THandler<FAccelByteModelsV2PaginatedGameSessionQueryResult> OnGetGameSessionInvitesSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsV2PaginatedGameSessionQueryResult>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryAllV2SessionInvites::OnGetGameSessionInvitesSuccess);
-	const FErrorHandler OnGetGameSessionInvitesErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryAllV2SessionInvites::OnGetGameSessionInvitesError);
+	OnGetGameSessionInvitesSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsV2PaginatedGameSessionQueryResult>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryAllV2SessionInvites::OnGetGameSessionInvitesSuccess);
+	OnGetGameSessionInvitesErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryAllV2SessionInvites::OnGetGameSessionInvitesError);
 	ApiClient->Session.GetMyGameSessions(OnGetGameSessionInvitesSuccessDelegate, OnGetGameSessionInvitesErrorDelegate, EAccelByteV2SessionMemberStatus::INVITED);
 
-	const THandler<FAccelByteModelsV2PaginatedPartyQueryResult> OnGetPartySessionInvitesSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsV2PaginatedPartyQueryResult>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryAllV2SessionInvites::OnGetPartySessionInvitesSuccess);
-	const FErrorHandler OnGetPartySessionInvitesErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryAllV2SessionInvites::OnGetPartySessionInvitesError);
+	OnGetPartySessionInvitesSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsV2PaginatedPartyQueryResult>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryAllV2SessionInvites::OnGetPartySessionInvitesSuccess);
+	OnGetPartySessionInvitesErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryAllV2SessionInvites::OnGetPartySessionInvitesError);
 	ApiClient->Session.GetMyParties(OnGetPartySessionInvitesSuccessDelegate, OnGetPartySessionInvitesErrorDelegate, EAccelByteV2SessionMemberStatus::INVITED);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

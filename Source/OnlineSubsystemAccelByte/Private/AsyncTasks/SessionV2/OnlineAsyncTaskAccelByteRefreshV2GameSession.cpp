@@ -44,7 +44,8 @@ void FOnlineAsyncTaskAccelByteRefreshV2GameSession::Initialize()
 	AB_ASYNC_TASK_ENSURE(!SessionId.Equals(TEXT("InvalidSession")), "Could not refresh game session named '%s' as there is not a valid session ID associated!", *SessionName.ToString());
 
 	// Send the API call based on whether we are a server or a client
-	AB_ASYNC_TASK_DEFINE_SDK_DELEGATES(FOnlineAsyncTaskAccelByteRefreshV2GameSession, RefreshGameSession, THandler<FAccelByteModelsV2GameSession>);
+	OnRefreshGameSessionSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsV2GameSession>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteRefreshV2GameSession::OnRefreshGameSessionSuccess);
+	OnRefreshGameSessionErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteRefreshV2GameSession::OnRefreshGameSessionError);;
 	if (IsRunningDedicatedServer())
 	{
 		FRegistry::ServerSession.GetGameSessionDetails(SessionId, OnRefreshGameSessionSuccessDelegate, OnRefreshGameSessionErrorDelegate);

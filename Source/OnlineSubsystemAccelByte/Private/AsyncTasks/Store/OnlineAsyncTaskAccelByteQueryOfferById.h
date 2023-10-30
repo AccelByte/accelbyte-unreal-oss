@@ -36,5 +36,5 @@ private:
 	FString ErrorMsg;
 	THandler<TArray<FAccelByteModelsItemInfo>> OnSuccess;
 	FErrorHandler OnError;
-	TMap<FUniqueOfferId, FOnlineStoreOfferRef> OfferMap{};
+	TMap<FUniqueOfferId, FOnlineStoreOfferAccelByteRef> OfferMap{};
 };

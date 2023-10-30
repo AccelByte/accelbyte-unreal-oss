@@ -3,8 +3,8 @@
 // and restrictions contact your company contract manager.
 
 #include "OnlineAsyncTaskAccelByteQueryUserAchievements.h"
-
 #include "Interfaces/OnlineAchievementsInterface.h"
+#include "OnlinePredefinedEventInterfaceAccelByte.h"
 
 using namespace AccelByte;
 
@@ -91,6 +91,15 @@ void FOnlineAsyncTaskAccelByteQueryUserAchievements::Finalize()
 		Achievement->Progress = UserAchievement.LatestValue;
 
 		AchievementInterface->AddUserAchievementToMap(UserId.ToSharedRef(), Achievement);
+	}
+
+	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = Subsystem->GetPredefinedEventInterface();
+	if (PredefinedEventInterface.IsValid())
+	{
+		FAccelByteModelsAchievementsGetAllPayload AchievementsGetAllPayload{};
+		AchievementsGetAllPayload.UserId = UserId->GetAccelByteId();
+
+		PredefinedEventInterface->SendEvent(LocalUserNum, MakeShared<FAccelByteModelsAchievementsGetAllPayload>(AchievementsGetAllPayload));
 	}
 }
 

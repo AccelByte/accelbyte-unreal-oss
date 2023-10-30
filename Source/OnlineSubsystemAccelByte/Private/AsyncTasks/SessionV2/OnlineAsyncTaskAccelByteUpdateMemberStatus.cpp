@@ -33,7 +33,8 @@ void FOnlineAsyncTaskAccelByteUpdateMemberStatus::Initialize()
 	AB_ASYNC_TASK_ENSURE(SessionInfo.IsValid(), "Failed to get session info from local session named '%s'!", *SessionName.ToString());
 	AB_ASYNC_TASK_ENSURE(SessionInfo->ContainsMember(PlayerId.ToSharedRef().Get()), "Failed to find member with ID '%s' in session '%s'!", *PlayerId->ToDebugString(), *SessionName.ToString());
 
-	AB_ASYNC_TASK_DEFINE_SDK_DELEGATES(FOnlineAsyncTaskAccelByteUpdateMemberStatus, UpdateMemberStatus, FVoidHandler);
+	OnUpdateMemberStatusSuccessDelegate = TDelegateUtils<FVoidHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteUpdateMemberStatus::OnUpdateMemberStatusSuccess);
+	OnUpdateMemberStatusErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteUpdateMemberStatus::OnUpdateMemberStatusError);;
 	FRegistry::ServerSession.UpdateMemberStatus(Session->GetSessionIdStr(), PlayerId->GetAccelByteId(), Status, OnUpdateMemberStatusSuccessDelegate, OnUpdateMemberStatusErrorDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

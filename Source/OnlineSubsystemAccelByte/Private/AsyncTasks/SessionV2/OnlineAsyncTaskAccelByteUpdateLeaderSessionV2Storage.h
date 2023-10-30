@@ -42,8 +42,10 @@ private:
 	FOnlineError OnlineError;
 
 	/** Handler for successful updating leader session storage. */
+	THandler<FJsonObjectWrapper> OnUpdateStorageSuccessDelegate;
 	void OnUpdateLeaderStorageSuccess(const FJsonObjectWrapper& ResponseData);
 
 	/**	Handler for failed updating member session storage */
+	FErrorHandler OnUpdateStorageErrorDelegate;
 	void OnUpdateLeaderStorageError(int32 ErrorCode, const FString& ErrorMessage);
 };

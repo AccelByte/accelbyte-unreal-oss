@@ -6,11 +6,14 @@
 #include "AsyncTasks/OnlineAsyncTaskAccelByte.h"
 #include "OnlineSubsystemAccelByteTypes.h"
 #include "OnlineSessionInterfaceV2AccelByte.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteUtils.h"
 
 /**
  * Task to create a new backfill ticket for the session provided
  */
-class FOnlineAsyncTaskAccelByteCreateBackfillTicket : public FOnlineAsyncTaskAccelByte
+class FOnlineAsyncTaskAccelByteCreateBackfillTicket
+	: public FOnlineAsyncTaskAccelByte
+	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteCreateBackfillTicket, ESPMode::ThreadSafe>
 {
 public:
 
@@ -50,6 +53,8 @@ private:
 	 */
 	FOnAcceptBackfillProposalComplete Delegate{};
 
+	THandler<FAccelByteModelsV2MatchmakingCreateBackfillTicketResponse> OnCreateBackfillTicketSuccessDelegate;
+	FErrorHandler OnCreateBackfillTicketErrorDelegate;
 	AB_ASYNC_TASK_DECLARE_SDK_DELEGATES_WITH_RESULT(CreateBackfillTicket, FAccelByteModelsV2MatchmakingCreateBackfillTicketResponse);
 
 };

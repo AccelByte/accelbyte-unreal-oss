@@ -78,7 +78,8 @@ bool FOnlineAsyncTaskAccelBytePromoteV2GameSessionLeader::PromoteGameSessionLead
 		return false;
 	}
 
-	AB_ASYNC_TASK_DEFINE_SDK_DELEGATES(FOnlineAsyncTaskAccelBytePromoteV2GameSessionLeader, PromoteGameSessionLeader, THandler<FAccelByteModelsV2GameSession>);
+	OnPromoteGameSessionLeaderSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsV2GameSession>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelBytePromoteV2GameSessionLeader::OnPromoteGameSessionLeaderSuccess);
+	OnPromoteGameSessionLeaderErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelBytePromoteV2GameSessionLeader::OnPromoteGameSessionLeaderError);;
 
 	if (IsRunningDedicatedServer())
 	{

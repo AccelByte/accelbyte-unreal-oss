@@ -21,8 +21,8 @@ void FOnlineAsyncTaskAccelByteFindV2PartyById::Initialize()
 
     AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("SessionId: %s"), *SessionId->ToDebugString());
 
-	const THandler<FAccelByteModelsV2PartySession> OnGetPartySessionDetailsSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsV2PartySession>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteFindV2PartyById::OnGetPartySessionDetailsSuccess);
-	const FErrorHandler OnGetPartySessionDetailsErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteFindV2PartyById::OnGetPartySessionDetailsError);
+	OnGetPartySessionDetailsSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsV2PartySession>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteFindV2PartyById::OnGetPartySessionDetailsSuccess);
+	OnGetPartySessionDetailsErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteFindV2PartyById::OnGetPartySessionDetailsError);
 	ApiClient->Session.GetPartyDetails(SessionId->ToString(), OnGetPartySessionDetailsSuccessDelegate, OnGetPartySessionDetailsErrorDelegate);
 
     AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

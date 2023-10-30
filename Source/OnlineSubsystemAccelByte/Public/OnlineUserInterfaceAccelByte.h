@@ -88,7 +88,7 @@ public:
 	/**
 	 * Starts an async task that create the profiles for the requesting user. Will trigger OnCreateUserProfileComplete Online Delegate when Complete
 	 *
-	 * @param LocalUserNum the user requesting the create
+	 * @param UserId the user id requesting the create
 	 */
 	virtual bool CreateUserProfile(const FUniqueNetId& UserId);
 

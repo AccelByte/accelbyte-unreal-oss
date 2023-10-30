@@ -44,7 +44,8 @@ void FOnlineAsyncTaskAccelByteSendV2GameSessionInvite::Initialize()
 	AB_ASYNC_TASK_ENSURE(Session != nullptr, "Failed to send game session invite as our local session instance is invalid!");
 
 	// Now, once we know we are in this game session, we want to send a request to invite the player to the session
-	AB_ASYNC_TASK_DEFINE_SDK_DELEGATES(FOnlineAsyncTaskAccelByteSendV2GameSessionInvite, SendGameSessionInvite, FVoidHandler);
+	OnSendGameSessionInviteSuccessDelegate = TDelegateUtils<FVoidHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteSendV2GameSessionInvite::OnSendGameSessionInviteSuccess);
+	OnSendGameSessionInviteErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteSendV2GameSessionInvite::OnSendGameSessionInviteError);;
 	
 	SessionId = Session->GetSessionIdStr();
 	if (!IsRunningDedicatedServer())

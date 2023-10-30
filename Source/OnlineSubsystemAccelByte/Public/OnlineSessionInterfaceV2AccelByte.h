@@ -480,6 +480,9 @@ typedef FOnUpdateSessionLeaderStorageComplete::FDelegate FOnUpdateSessionLeaderS
 DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnUpdateSessionMemberStorageComplete, FName /*SessionName*/, const FUniqueNetId& /*UpdatedUserId*/, const FOnlineError& /*ErrorInfo*/);
 typedef FOnUpdateSessionMemberStorageComplete::FDelegate FOnUpdateSessionMemberStorageCompleteDelegate;
 
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnSendDSSessionReadyComplete, const FOnlineError& /*ErrorInfo*/)
+typedef FOnSendDSSessionReadyComplete::FDelegate FOnSendDSSessionReadyCompleteDelegate;
+
 /**
  * Delegate broadcast when a session that the player is in locally has been removed on the backend. Gives the game an
  * opportunity to clean up state.
@@ -1049,6 +1052,11 @@ public:
 	 */
 	DEFINE_ONLINE_DELEGATE_THREE_PARAM(OnUpdateSessionMemberStorageComplete, FName /*SessionName*/, const FUniqueNetId& /*UpdatedUserId*/, const FOnlineError& /*ErrorInfo*/);
 
+	/**
+	 * Delegate fired when send server ready completed.
+	 */
+	DEFINE_ONLINE_DELEGATE_ONE_PARAM(OnSendDSSessionReadyComplete, const FOnlineError& /*ErrorInfo*/);
+
 #if (ENGINE_MAJOR_VERSION == 4 && ENGINE_MINOR_VERSION <= 25)
 	/**
 	 * Delegate fired when the members in a session have changed. From the UE 4.26+ base session interface delegates.
@@ -1416,6 +1424,15 @@ PACKAGE_SCOPE:
 	 * @return true if Server is using AMS
 	 */
 	bool IsServerUseAMS() const;
+
+	/**
+	 * @brief Used for sending dedicated server ready to session service.
+	 * This method used by the DS if dsManualSetReady flag enabled in session template to indicate that
+	 * this DS ready to receive connection.
+	 *
+	 * @return true if request sent to the session service
+	 */
+	bool SendDSSessionReady();
 
 private:
 	/** Parent subsystem of this interface instance */

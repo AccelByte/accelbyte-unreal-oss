@@ -52,6 +52,8 @@ private:
 	 */
 	bool bWasSessionRemoved{false};
 
+	THandler<FAccelByteModelsV2PartySession> OnRefreshPartySessionSuccessDelegate;
+	FErrorHandler OnRefreshPartySessionErrorDelegate;
 	AB_ASYNC_TASK_DECLARE_SDK_DELEGATES_WITH_RESULT(RefreshPartySession, FAccelByteModelsV2PartySession);
 
 };

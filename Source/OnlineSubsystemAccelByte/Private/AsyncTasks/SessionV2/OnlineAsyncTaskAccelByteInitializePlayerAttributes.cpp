@@ -76,7 +76,8 @@ void FOnlineAsyncTaskAccelByteInitializePlayerAttributes::OnGetPlayerCrossplayPr
 	bIsCrossplayAllowed = (PrivilegeResult == 0);
 
 	// Send off a request to get attributes from the session service
-	AB_ASYNC_TASK_DEFINE_SDK_DELEGATES(FOnlineAsyncTaskAccelByteInitializePlayerAttributes, GetPlayerAttributes, THandler<FAccelByteModelsV2PlayerAttributes>);
+	OnGetPlayerAttributesSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsV2PlayerAttributes>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteInitializePlayerAttributes::OnGetPlayerAttributesSuccess);
+	OnGetPlayerAttributesErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteInitializePlayerAttributes::OnGetPlayerAttributesError);;
 	ApiClient->Session.GetPlayerAttributes(OnGetPlayerAttributesSuccessDelegate, OnGetPlayerAttributesErrorDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
@@ -148,7 +149,8 @@ void FOnlineAsyncTaskAccelByteInitializePlayerAttributes::SendAttributeUpdateReq
 		NewPlatform.UserID = UserId->GetPlatformId();
 	}
 
-	AB_ASYNC_TASK_DEFINE_SDK_DELEGATES(FOnlineAsyncTaskAccelByteInitializePlayerAttributes, StorePlayerAttributes, THandler<FAccelByteModelsV2PlayerAttributes>);
+	OnStorePlayerAttributesSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsV2PlayerAttributes>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteInitializePlayerAttributes::OnStorePlayerAttributesSuccess);
+	OnStorePlayerAttributesErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteInitializePlayerAttributes::OnStorePlayerAttributesError);;
 	ApiClient->Session.StorePlayerAttributes(Request, OnStorePlayerAttributesSuccessDelegate, OnStorePlayerAttributesErrorDelegate);
 }
 

@@ -35,7 +35,10 @@ private:
 	FOnUnregisterServerComplete Delegate;
 	FString ServerName;
 
+	FVoidHandler OnUnregisterServerSuccessDelegate;
 	void OnUnregisterServerSuccess();
+
+	FErrorHandler OnUnregisterServerErrorDelegate;
 	void OnUnregisterServerError(int32 ErrorCode, const FString& ErrorMessage);
 
 };

@@ -5,6 +5,8 @@
 #include "OnlinePurchaseInterfaceAccelByte.h"
 #include "AsyncTasks/Purchase/OnlineAsyncTaskAccelByteCheckout.h"
 #include "AsyncTasks/Purchase/OnlineAsyncTaskAccelByteRedeemCode.h"
+#include "AsyncTasks/Purchase/OnlineAsyncTaskAccelByteQueryUserOrders.h"
+#include "AsyncTasks/Purchase/OnlineAsyncTaskAccelByteCreateNewOrder.h"
 #include "OnlineSubsystemUtils.h"
 
 FOnlinePurchaseAccelByte::FOnlinePurchaseAccelByte(FOnlineSubsystemAccelByte* InSubsystem) : AccelByteSubsystem(InSubsystem)
@@ -82,3 +84,13 @@ void FOnlinePurchaseAccelByte::Checkout(const FUniqueNetId& UserId, const FPurch
 	UE_LOG_AB(Warning, TEXT("FOnlinePurchaseAccelByte::Checkout without receipt is not currently supported."));
 }
 #endif
+
+void FOnlinePurchaseAccelByte::QueryUserOrders(const FUniqueNetId& UserId, const FAccelByteModelsUserOrdersRequest& UserOrderRequest)
+{
+	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteQueryUserOrders>(AccelByteSubsystem, UserId, UserOrderRequest);
+}
+
+void FOnlinePurchaseAccelByte::CreateNewOrder(const FUniqueNetId& UserId, const FAccelByteModelsOrderCreate& OrderCreate)
+{
+	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteCreateNewOrder>(AccelByteSubsystem, UserId, OrderCreate);
+}

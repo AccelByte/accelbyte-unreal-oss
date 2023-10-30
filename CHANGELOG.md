@@ -2,6 +2,30 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.11.26](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.11.26%0D0.11.25) (2023-10-30)
+
+
+### Features
+
+* Adding Support for Multiple Currencies by using Search Item in Store Offer ([7af6980](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/7af69807b1eb51f69480109ddff42110f808cd78))
+* **ecommerce:** Flexible bundle pricing ([8c5f909](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/8c5f90997c67558663ec8fec2bf1f77ba4d00153))
+* epic games sync dlc ([3af5262](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/3af5262df6b6a9886829375946cdf80de8f72479))
+* **MPv2:** add method to set DS session ready manually ([da7a603](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/da7a6036fec9063b640c887c33abb2cde1350ba7))
+* **predefinedEvent:** add some models on Engagement Achievement scope ([4cf5f06](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/4cf5f0696b2966a30b558d78be698f5983825da7))
+* **predefinedEvent:** integrate some models on Engagement Group scope ([f32d7d5](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/f32d7d55c12b46c43087f9ae9c677b4074e12669))
+* **PredefinedEvent:** send event payloads for Play scope ([9ab83e6](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/9ab83e658e3f2f74e9dcda03bb6db65d19991cfb))
+
+
+### Bug Fixes
+
+* fix DS unable to update session with empty teams ([edfae97](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/edfae978a6467acbf02276ef980bddc5dffe6aca))
+* Incorrect include paths ([9abe1a4](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/9abe1a400cb6021ca7683534ebf53e76813b817b))
+* missing undef online error / #undef ONLINE_ERROR_NAMESPACE in some ecommerce async classes ([1a28117](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/1a281170103d0f820f5f3fa9cf0619a40bc9b881))
+* **MPv2:** clear CurrentMatchmakingHandle on leave session ([13ab409](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/13ab4093a68122187f4c49f4dd7444b791fdbe4e))
+* **MPv2:** store delegates as member variables to keep its lifetime as long as the async task alive ([2f7356e](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/2f7356ea6d03e72499cee58ecac9a6ff0e5d6ded))
+* **predefinedEvent:** fix preDefinedEventName for cached event ([5a6a171](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/5a6a17189dd2283cfadbdd7f41d0dbf6cc8af3c5))
+* **predefinedEvent:** move predefinedEvent name inside the payload ([317e60a](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/317e60abc3b863a34f3ea94fe4b5f372268949f8))
+
 ### [0.11.25](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.11.25%0D0.11.24) (2023-10-17)
 
 

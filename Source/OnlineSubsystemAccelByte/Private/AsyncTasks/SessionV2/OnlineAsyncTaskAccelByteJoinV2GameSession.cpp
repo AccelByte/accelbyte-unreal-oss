@@ -34,12 +34,14 @@ void FOnlineAsyncTaskAccelByteJoinV2GameSession::Initialize()
 
 	if (bIsRestoreSession)
 	{
-		AB_ASYNC_TASK_DEFINE_SDK_DELEGATES(FOnlineAsyncTaskAccelByteJoinV2GameSession, GetGameSessionDetails, THandler<FAccelByteModelsV2GameSession>);
+		OnGetGameSessionDetailsSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsV2GameSession>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteJoinV2GameSession::OnGetGameSessionDetailsSuccess);
+		OnGetGameSessionDetailsErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteJoinV2GameSession::OnGetGameSessionDetailsError);;
 		ApiClient->Session.GetGameSessionDetails(SessionId, OnGetGameSessionDetailsSuccessDelegate, OnGetGameSessionDetailsErrorDelegate);
 	}
 	else
 	{
-		AB_ASYNC_TASK_DEFINE_SDK_DELEGATES(FOnlineAsyncTaskAccelByteJoinV2GameSession, JoinGameSession, THandler<FAccelByteModelsV2GameSession>);
+		OnJoinGameSessionSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsV2GameSession>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteJoinV2GameSession::OnJoinGameSessionSuccess);
+		OnJoinGameSessionErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteJoinV2GameSession::OnJoinGameSessionError);;
 		ApiClient->Session.JoinGameSession(SessionId, OnJoinGameSessionSuccessDelegate, OnJoinGameSessionErrorDelegate);
 	}
 

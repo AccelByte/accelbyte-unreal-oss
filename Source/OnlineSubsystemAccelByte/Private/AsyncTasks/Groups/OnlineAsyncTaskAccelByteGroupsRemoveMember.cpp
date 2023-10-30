@@ -3,6 +3,7 @@
 // and restrictions contact your company contract manager.
 
 #include "OnlineAsyncTaskAccelByteGroupsRemoveMember.h"
+#include "OnlinePredefinedEventInterfaceAccelByte.h"
 
 using namespace AccelByte;
 
@@ -70,6 +71,17 @@ void FOnlineAsyncTaskAccelByteGroupsRemoveMember::Finalize()
 
 	// Remove cached member
 	GroupsInterface->RemoveCachedMember(AccelByteModelsKickGroupMemberResponse.KickedUserId);
+
+	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = Subsystem->GetPredefinedEventInterface();
+	if (PredefinedEventInterface.IsValid())
+	{
+		FAccelByteModelsGroupMemberKickedPayload GroupMemberKickedPayload{};
+		GroupMemberKickedPayload.GroupId = GroupId;
+		GroupMemberKickedPayload.AdminUserId = UserId->GetAccelByteId();
+		GroupMemberKickedPayload.KickedUserId = AccelByteModelsKickGroupMemberResponse.KickedUserId;
+
+		PredefinedEventInterface->SendEvent(LocalUserNum, MakeShared<FAccelByteModelsGroupMemberKickedPayload>(GroupMemberKickedPayload));
+	}
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }

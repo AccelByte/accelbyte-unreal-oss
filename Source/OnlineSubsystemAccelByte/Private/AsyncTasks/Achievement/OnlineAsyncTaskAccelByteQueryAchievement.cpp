@@ -3,6 +3,7 @@
 // and restrictions contact your company contract manager.
 
 #include "OnlineAsyncTaskAccelByteQueryAchievement.h"
+#include "OnlinePredefinedEventInterfaceAccelByte.h"
 
 using namespace AccelByte;
 
@@ -95,6 +96,15 @@ void FOnlineAsyncTaskAccelByteQueryAchievement::Finalize()
 		Achievement->bIsHidden = Data.Hidden;
 	
 		AchievementInterface->AddPublicAchievementToMap(Data.AchievementCode,Achievement);
+	}
+
+	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = Subsystem->GetPredefinedEventInterface();
+	if (PredefinedEventInterface.IsValid())
+	{
+		FAccelByteModelsAchievementGetUsersPayload AchievementGetUsersPayload{};
+		AchievementGetUsersPayload.UserId = UserId->GetAccelByteId();
+
+		PredefinedEventInterface->SendEvent(LocalUserNum, MakeShared<FAccelByteModelsAchievementGetUsersPayload>(AchievementGetUsersPayload));
 	}
 }
 

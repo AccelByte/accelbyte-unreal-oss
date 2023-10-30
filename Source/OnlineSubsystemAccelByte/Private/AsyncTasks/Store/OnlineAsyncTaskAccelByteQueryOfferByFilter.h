@@ -40,5 +40,5 @@ private:
 	FString ErrorMsg;
 	FAccelByteModelsItemCriteria SearchCriteriaRequest;
 	bool bIsSearchByCriteria {false};
-	TMap<FUniqueOfferId, FOnlineStoreOfferRef> OfferMap;
+	TMap<FUniqueOfferId, FOnlineStoreOfferAccelByteRef> OfferMap;
 };

@@ -65,7 +65,7 @@ public:
 		{
 			if (!TIsDerivedFrom<T, FAccelByteModelsPredefinedEvent>::IsDerived)
 			{
-				OnError((int32)AccelByte::ErrorCodes::InvalidRequest, TEXT("Payload must derive from FAccelByteModelsPredefinedEvent!"), LocalUserNum, Payload->GetEventName());
+				OnError((int32)AccelByte::ErrorCodes::InvalidRequest, TEXT("Payload must derive from FAccelByteModelsPredefinedEvent!"), LocalUserNum, Payload->GetPreDefinedEventName());
 				return;
 			}
 
@@ -89,7 +89,7 @@ public:
 					const auto ApiClient = IdentityInterface->GetApiClient(LocalUserNum);
 					if (ApiClient.IsValid())
 					{
-						ApiClient->PredefinedEvent.SendPredefinedEventData(Payload, AccelByte::FVoidHandler::CreateThreadSafeSP(this, &FOnlinePredefinedEventAccelByte::OnSuccess, LocalUserNum, Payload->GetEventName()), FErrorHandler::CreateThreadSafeSP(this, &FOnlinePredefinedEventAccelByte::OnError, LocalUserNum, Payload->GetEventName()), ClientTimestamp);
+						ApiClient->PredefinedEvent.SendPredefinedEventData(Payload, AccelByte::FVoidHandler::CreateThreadSafeSP(this, &FOnlinePredefinedEventAccelByte::OnSuccess, LocalUserNum, Payload->GetPreDefinedEventName()), FErrorHandler::CreateThreadSafeSP(this, &FOnlinePredefinedEventAccelByte::OnError, LocalUserNum, Payload->GetPreDefinedEventName()), ClientTimestamp);
 					}
 				}
 				else
@@ -97,7 +97,7 @@ public:
 					const auto ApiClient = AccelByte::FMultiRegistry::GetServerApiClient();
 					if (ApiClient.IsValid())
 					{
-						ApiClient->ServerPredefinedEvent.SendPredefinedEventData(Payload, AccelByte::FVoidHandler::CreateThreadSafeSP(this, &FOnlinePredefinedEventAccelByte::OnSuccess, LocalUserNum, Payload->GetEventName()), FErrorHandler::CreateThreadSafeSP(this, &FOnlinePredefinedEventAccelByte::OnError, LocalUserNum, Payload->GetEventName()), ClientTimestamp);
+						ApiClient->ServerPredefinedEvent.SendPredefinedEventData(Payload, AccelByte::FVoidHandler::CreateThreadSafeSP(this, &FOnlinePredefinedEventAccelByte::OnSuccess, LocalUserNum, Payload->GetPreDefinedEventName()), FErrorHandler::CreateThreadSafeSP(this, &FOnlinePredefinedEventAccelByte::OnError, LocalUserNum, Payload->GetPreDefinedEventName()), ClientTimestamp);
 					}
 				}
 			}
@@ -117,18 +117,19 @@ public:
 						OnLocalUserNumCachedDelegateHandle = OnLoginSuccessDelegateHandle.Add(LocalUserNum, AccelByteSubsystem->OnLocalUserNumCached().AddRaw(this, &FOnlinePredefinedEventAccelByte::OnLocalUserNumCachedSuccess));
 					}
 				}
+
+				Payload->PreDefinedEventName = Payload->GetPreDefinedEventName();
 				const TSharedPtr<FJsonObject> JsonObject = FJsonObjectConverter::UStructToJsonObject(Payload.Get());
 				if (JsonObject.IsValid())
 				{
 					TSharedPtr<FAccelByteModelsTelemetryBody> Body = MakeShared<FAccelByteModelsTelemetryBody>();
-					Body->EventName = Payload->GetEventName();
 					Body->Payload = JsonObject;
 					Body->ClientTimestamp = ClientTimestamp;
 					AddToCache(LocalUserNum, Body);
 				}
 				else
 				{
-					OnError((int32)AccelByte::ErrorCodes::InvalidRequest, TEXT("Failed to convert UStruct to Json!"), LocalUserNum, Payload->GetEventName());
+					OnError((int32)AccelByte::ErrorCodes::InvalidRequest, TEXT("Failed to convert UStruct to Json!"), LocalUserNum, Payload->GetPreDefinedEventName());
 					return;
 				}
 			}

@@ -42,8 +42,10 @@ private:
 	FOnlineError OnlineError;
 
 	/** Handler when query party sessions success. */
+	THandler<FAccelByteModelsV2PaginatedPartyQueryResult> OnQuerySuccess;
 	void OnQueryPartySessionsSuccess(const FAccelByteModelsV2PaginatedPartyQueryResult& Result);
 
 	/** Handler when query party sessions failed. */
+	FErrorHandler OnQueryFailed;
 	void OnQueryPartySessionsFailed(int32 ErrorCode, const FString& ErrorMessage);
 };

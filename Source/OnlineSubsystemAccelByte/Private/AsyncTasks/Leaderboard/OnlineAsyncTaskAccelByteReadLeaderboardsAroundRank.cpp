@@ -3,7 +3,7 @@
 // and restrictions contact your company contract manager.
 
 #include "OnlineAsyncTaskAccelByteReadLeaderboardsAroundRank.h"
-#include "Core/Public/Containers/Array.h"
+#include "Containers/Array.h"
 
 using namespace AccelByte;
 

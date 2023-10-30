@@ -46,8 +46,10 @@ private:
 	/** Flag denoting whether we destroyed a restore session along with leaving */
 	bool bRemovedRestoreSession{ false };
 
+	FVoidHandler OnLeaveGameSessionSuccessDelegate;
 	void OnLeaveGameSessionSuccess();
-	void OnLeaveGameSessionError(int32 ErrorCode, const FString& ErrorMessage);
 
+	FErrorHandler OnLeaveGameSessionErrorDelegate;
+	void OnLeaveGameSessionError(int32 ErrorCode, const FString& ErrorMessage);
 };
 

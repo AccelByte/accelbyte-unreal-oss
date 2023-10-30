@@ -25,7 +25,10 @@ void FOnlineAsyncTaskAccelByteQueryChildCategories::Initialize()
 	const FOnlineStoreV2AccelBytePtr StoreV2Interface = StaticCastSharedPtr<FOnlineStoreV2AccelByte>(Subsystem->GetStoreV2Interface());
 	FOnlineStoreCategory RootCategory;
 	StoreV2Interface->GetCategory(CategoryPath, RootCategory);
-	RootCategory.SubCategories.Reset();
+	if (RootCategory.SubCategories.Num() > 0)
+	{
+		RootCategory.SubCategories.Reset();
+	}
 	CategoryMap.Add(RootCategory.Id, RootCategory);
 
 	OnGetChildCategoriesSuccess = TDelegateUtils<THandler<TArray<FAccelByteModelsCategoryInfo>>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryChildCategories::HandleGetChildCategoriesSuccess);

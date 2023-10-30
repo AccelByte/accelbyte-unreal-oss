@@ -39,7 +39,10 @@ private:
 
 	FString SessionId;
 
+	FVoidHandler OnSendPartyInviteSuccessDelegate;
 	void OnSendPartyInviteSuccess();
+
+	FErrorHandler OnSendPartyInviteErrorDelegate;
 	void OnSendPartyInviteError(int32 ErrorCode, const FString& ErrorMessage);
 };
 

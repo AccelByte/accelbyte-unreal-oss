@@ -54,6 +54,8 @@ private:
 
 	void OnGetPlayerCrossplayPrivilege(const FUniqueNetId& LocalUserId, EUserPrivileges::Type Privilege, uint32 PrivilegeResult);
 
+	THandler<FAccelByteModelsV2PlayerAttributes> OnStorePlayerAttributesSuccessDelegate;
+	FErrorHandler OnStorePlayerAttributesErrorDelegate;
 	AB_ASYNC_TASK_DECLARE_SDK_DELEGATES_WITH_RESULT(StorePlayerAttributes, FAccelByteModelsV2PlayerAttributes)
 
 };

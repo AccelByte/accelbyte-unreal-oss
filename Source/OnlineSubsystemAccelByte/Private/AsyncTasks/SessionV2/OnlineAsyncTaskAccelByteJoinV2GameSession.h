@@ -46,7 +46,12 @@ private:
 	/** Whether or not we are trying to connect to a P2P socket for this session */
 	bool bJoiningP2P{false};
 
+	THandler<FAccelByteModelsV2GameSession> OnJoinGameSessionSuccessDelegate;
+	FErrorHandler OnJoinGameSessionErrorDelegate;
 	AB_ASYNC_TASK_DECLARE_SDK_DELEGATES_WITH_RESULT(JoinGameSession, FAccelByteModelsV2GameSession);
+
+	THandler<FAccelByteModelsV2GameSession> OnGetGameSessionDetailsSuccessDelegate;
+	FErrorHandler OnGetGameSessionDetailsErrorDelegate;
 	AB_ASYNC_TASK_DECLARE_SDK_DELEGATES_WITH_RESULT(GetGameSessionDetails, FAccelByteModelsV2GameSession);
 };
 

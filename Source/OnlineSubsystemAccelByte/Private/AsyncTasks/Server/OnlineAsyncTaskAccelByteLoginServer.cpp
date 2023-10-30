@@ -22,8 +22,8 @@ void FOnlineAsyncTaskAccelByteLoginServer::Initialize()
 
     AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 
-	const FVoidHandler OnServerLoginSuccessDelegate = TDelegateUtils<FVoidHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteLoginServer::OnLoginServerSuccess);
-	const FErrorHandler OnServerLoginErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteLoginServer::OnLoginServerError);
+	OnServerLoginSuccessDelegate = TDelegateUtils<FVoidHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteLoginServer::OnLoginServerSuccess);
+	OnServerLoginErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteLoginServer::OnLoginServerError);
 	FRegistry::ServerOauth2.LoginWithClientCredentials(OnServerLoginSuccessDelegate, OnServerLoginErrorDelegate);
 
     AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

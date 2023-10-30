@@ -41,5 +41,7 @@ private:
 	/** Session information from backend on the session that claimed this server */
 	FAccelByteModelsV2GameSession BackendSessionInfo{};
 
+	THandler<FAccelByteModelsV2GameSession> OnGetGameSessionDetailsSuccessDelegate;
+	FErrorHandler OnGetGameSessionDetailsErrorDelegate;
 	AB_ASYNC_TASK_DECLARE_SDK_DELEGATES_WITH_RESULT(GetGameSessionDetails, FAccelByteModelsV2GameSession);
 };

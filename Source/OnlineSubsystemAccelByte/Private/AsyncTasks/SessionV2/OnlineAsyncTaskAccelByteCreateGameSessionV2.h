@@ -40,7 +40,10 @@ private:
 	/** Structure representing the game session object that was just created */
 	FAccelByteModelsV2GameSession CreatedGameSession;
 
+	THandler<FAccelByteModelsV2GameSession> OnCreateGameSessionSuccessDelegate;
 	void OnCreateGameSessionSuccess(const FAccelByteModelsV2GameSession& Result);
+
+	FErrorHandler OnCreateGameSessionErrorDelegate;
 	void OnCreateGameSessionError(int32 ErrorCode, const FString& ErrorMessage);
 
 };

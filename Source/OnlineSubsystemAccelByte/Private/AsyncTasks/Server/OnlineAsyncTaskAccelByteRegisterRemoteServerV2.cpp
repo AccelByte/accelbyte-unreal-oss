@@ -27,7 +27,8 @@ void FOnlineAsyncTaskAccelByteRegisterRemoteServerV2::Initialize()
     int32 RegisterPort = 0;
     AB_ASYNC_TASK_ENSURE(SessionInterface->GetServerPort(RegisterPort), "Failed to register server to Armada as we failed to get the server's port!");
 
-	AB_ASYNC_TASK_DEFINE_SDK_DELEGATES(FOnlineAsyncTaskAccelByteRegisterRemoteServerV2, RegisterServer, FVoidHandler);
+	OnRegisterServerSuccessDelegate = TDelegateUtils<FVoidHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteRegisterRemoteServerV2::OnRegisterServerSuccess);
+    OnRegisterServerErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteRegisterRemoteServerV2::OnRegisterServerError);;
 	FRegistry::ServerDSM.RegisterServerToDSM(RegisterPort, OnRegisterServerSuccessDelegate, OnRegisterServerErrorDelegate);
 
     AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

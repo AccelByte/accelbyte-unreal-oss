@@ -40,7 +40,10 @@ private:
 	/** Delegate fired after we finish unregistering server */
 	FOnUnregisterServerComplete Delegate;
 
+	FVoidHandler OnUnregisterServerSuccessDelegate;
 	void OnUnregisterServerSuccess();
+
+	FErrorHandler OnUnregisterServerErrorDelegate;
 	void OnUnregisterServerError(int32 ErrorCode, const FString& ErrorMessage);
 
 };

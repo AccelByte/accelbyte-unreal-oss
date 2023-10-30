@@ -79,8 +79,8 @@ void FOnlineAsyncTaskAccelByteUpdatePartyV2::Initialize()
 		UpdateRequest.InviteTimeout = InviteTimeout;
 	}
 
-	const THandler<FAccelByteModelsV2PartySession> OnUpdatePartySessionSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsV2PartySession>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteUpdatePartyV2::OnUpdatePartySessionSuccess);
-	const FErrorHandler OnUpdatePartySessionErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteUpdatePartyV2::OnUpdatePartySessionError);
+	OnUpdatePartySessionSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsV2PartySession>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteUpdatePartyV2::OnUpdatePartySessionSuccess);
+	OnUpdatePartySessionErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteUpdatePartyV2::OnUpdatePartySessionError);
 	ApiClient->Session.UpdateParty(Session->GetSessionIdStr(), UpdateRequest, OnUpdatePartySessionSuccessDelegate, OnUpdatePartySessionErrorDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
@@ -165,7 +165,8 @@ void FOnlineAsyncTaskAccelByteUpdatePartyV2::RefreshSession()
 	const FString SessionId = Session->GetSessionIdStr();
 	AB_ASYNC_TASK_ENSURE(!SessionId.Equals(TEXT("InvalidSession")), "Could not refresh party session named '%s' as there is not a valid session ID associated!", *SessionName.ToString());
 
-	AB_ASYNC_TASK_DEFINE_SDK_DELEGATES(FOnlineAsyncTaskAccelByteUpdatePartyV2, RefreshPartySession, THandler<FAccelByteModelsV2PartySession>);
+	OnRefreshPartySessionSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsV2PartySession>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteUpdatePartyV2::OnRefreshPartySessionSuccess);
+	OnRefreshPartySessionErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteUpdatePartyV2::OnRefreshPartySessionError);;
 	ApiClient->Session.GetPartyDetails(SessionId, OnRefreshPartySessionSuccessDelegate, OnRefreshPartySessionErrorDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

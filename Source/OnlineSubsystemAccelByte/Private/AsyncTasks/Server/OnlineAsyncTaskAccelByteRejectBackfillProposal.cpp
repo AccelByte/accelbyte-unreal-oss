@@ -24,7 +24,8 @@ void FOnlineAsyncTaskAccelByteRejectBackfillProposal::Initialize()
 	AccelByte::FServerApiClientPtr ServerApiClient = AccelByte::FMultiRegistry::GetServerApiClient();
 	AB_ASYNC_TASK_ENSURE(ServerApiClient.IsValid(), "Failed to reject backfill proposal for session as we could not get a server API client!");
 
-	AB_ASYNC_TASK_DEFINE_SDK_DELEGATES(FOnlineAsyncTaskAccelByteRejectBackfillProposal, RejectBackfillProposal, FVoidHandler);
+	OnRejectBackfillProposalSuccessDelegate = AccelByte::TDelegateUtils<FVoidHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteRejectBackfillProposal::OnRejectBackfillProposalSuccess);
+	OnRejectBackfillProposalErrorDelegate = AccelByte::TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteRejectBackfillProposal::OnRejectBackfillProposalError);;
 	ServerApiClient->ServerMatchmakingV2.RejectBackfillProposal(Proposal.BackfillTicketID, Proposal.ProposalID, bStopBackfilling, OnRejectBackfillProposalSuccessDelegate, OnRejectBackfillProposalErrorDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

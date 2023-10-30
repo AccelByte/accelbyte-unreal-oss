@@ -41,7 +41,8 @@ private:
 	 */
 	FOnRevokePartyCodeComplete Delegate{};
 
+	FVoidHandler OnRevokeCodeSuccessDelegate;
+	FErrorHandler OnRevokeCodeErrorDelegate;
 	AB_ASYNC_TASK_DECLARE_SDK_DELEGATES(RevokeCode)
-
 };
 

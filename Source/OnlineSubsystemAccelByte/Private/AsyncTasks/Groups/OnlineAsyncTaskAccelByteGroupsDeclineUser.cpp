@@ -3,6 +3,7 @@
 // and restrictions contact your company contract manager.
 
 #include "OnlineAsyncTaskAccelByteGroupsDeclineUser.h"
+#include "OnlinePredefinedEventInterfaceAccelByte.h"
 
 using namespace AccelByte;
 
@@ -56,6 +57,17 @@ void FOnlineAsyncTaskAccelByteGroupsDeclineUser::Finalize()
 		return;
 
 	// Success
+
+	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = Subsystem->GetPredefinedEventInterface();
+	if (PredefinedEventInterface.IsValid())
+	{
+		FAccelByteModelsGroupJoinRequestRejectedPayload GroupJoinRequestRejectedPayload{};
+		GroupJoinRequestRejectedPayload.GroupId = GroupId;
+		GroupJoinRequestRejectedPayload.AdminUserId = UserId->GetAccelByteId();
+		GroupJoinRequestRejectedPayload.RejectedUserId = AccelByteModelsMemberRequestGroupResponse.UserId;
+
+		PredefinedEventInterface->SendEvent(LocalUserNum, MakeShared<FAccelByteModelsGroupJoinRequestRejectedPayload>(GroupJoinRequestRejectedPayload));
+	}
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }

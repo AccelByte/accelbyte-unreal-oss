@@ -118,6 +118,13 @@ void FOnlineAsyncTaskAccelByteQueryUserProfile::Initialize()
 		return;
 	}
 
+	if (!ApiClient.IsValid())
+	{
+		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("ApiClient is not found! Unable to complete!"));
+		CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState);
+		return;
+	}
+
 	auto OnQueryUsersProfileCompleteDelegate = TDelegateUtils<THandler<TArray<FAccelByteModelsPublicUserProfileInfo>>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryUserProfile::OnQueryUsersProfileComplete);
 	auto OnQueryUserProfileErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryUserProfile::OnQueryUserProfileError);
 	ApiClient->UserProfile.BulkGetPublicUserProfileInfos(UserIdsToQuery, OnQueryUsersProfileCompleteDelegate, OnQueryUserProfileErrorDelegate);

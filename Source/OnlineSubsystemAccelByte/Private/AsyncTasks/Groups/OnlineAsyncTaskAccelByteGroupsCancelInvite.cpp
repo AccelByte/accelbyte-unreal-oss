@@ -3,6 +3,7 @@
 // and restrictions contact your company contract manager.
 
 #include "OnlineAsyncTaskAccelByteGroupsCancelInvite.h"
+#include "OnlinePredefinedEventInterfaceAccelByte.h"
 
 using namespace AccelByte;
 
@@ -70,6 +71,17 @@ void FOnlineAsyncTaskAccelByteGroupsCancelInvite::Finalize()
 
 	// Remove the invite
 	GroupsInterface->RemoveCachedInvites(AccelByteModelsMemberRequestGroupResponse.UserId);
+
+	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = Subsystem->GetPredefinedEventInterface();
+	if (PredefinedEventInterface.IsValid())
+	{
+		FAccelByteModelsGroupInviteCanceledPayload GroupInviteCancelledPayload{};
+		GroupInviteCancelledPayload.GroupId = GroupId;
+		GroupInviteCancelledPayload.AdminUserId = UserId->GetAccelByteId();
+		GroupInviteCancelledPayload.CanceledUserId = AccelByteModelsMemberRequestGroupResponse.UserId;
+
+		PredefinedEventInterface->SendEvent(LocalUserNum, MakeShared<FAccelByteModelsGroupInviteCanceledPayload>(GroupInviteCancelledPayload));
+	}
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }

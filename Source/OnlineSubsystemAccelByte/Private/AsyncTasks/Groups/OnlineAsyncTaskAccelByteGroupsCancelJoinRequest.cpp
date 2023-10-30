@@ -3,6 +3,7 @@
 // and restrictions contact your company contract manager.
 
 #include "OnlineAsyncTaskAccelByteGroupsCancelJoinRequest.h"
+#include "OnlinePredefinedEventInterfaceAccelByte.h"
 
 using namespace AccelByte;
 
@@ -68,6 +69,16 @@ void FOnlineAsyncTaskAccelByteGroupsCancelJoinRequest::Finalize()
 
 	// Remove the join request
 	GroupsInterface->RemoveCachedRequests(AccelByteModelsMemberRequestGroupResponse.UserId);
+
+	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = Subsystem->GetPredefinedEventInterface();
+	if (PredefinedEventInterface.IsValid())
+	{
+		FAccelByteModelsGroupJoinRequestCanceledPayload GroupJoinRequestCanceledPayload{};
+		GroupJoinRequestCanceledPayload.GroupId = GroupId;
+		GroupJoinRequestCanceledPayload.UserId = UserId->GetAccelByteId();
+
+		PredefinedEventInterface->SendEvent(LocalUserNum, MakeShared<FAccelByteModelsGroupJoinRequestCanceledPayload>(GroupJoinRequestCanceledPayload));
+	}
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }

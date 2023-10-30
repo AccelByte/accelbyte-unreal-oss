@@ -43,7 +43,10 @@ private:
 	/** Try and get the port that the server is currently bound to */
 	bool GetServerPort(int32& OutPort);
 
+	FVoidHandler OnRegisterServerSuccessDelegate;
 	void OnRegisterServerSuccess();
+
+	FErrorHandler OnRegisterServerErrorDelegate;
 	void OnRegisterServerError(int32 ErrorCode, const FString& ErrorMessage);
 
 };

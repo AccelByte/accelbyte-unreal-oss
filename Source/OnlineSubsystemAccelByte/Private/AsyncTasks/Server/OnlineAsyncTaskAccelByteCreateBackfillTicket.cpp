@@ -4,6 +4,7 @@
 
 #include "OnlineAsyncTaskAccelByteCreateBackfillTicket.h"
 #include "OnlineSubsystemAccelByteSessionSettings.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteUtils.h"
 
 FOnlineAsyncTaskAccelByteCreateBackfillTicket::FOnlineAsyncTaskAccelByteCreateBackfillTicket(FOnlineSubsystemAccelByte* const InABInterface, const FName& InSessionName, const FString& InMatchPool, const FOnCreateBackfillTicketComplete& InDelegate)
 	: FOnlineAsyncTaskAccelByte(InABInterface, INVALID_CONTROLLERID, ASYNC_TASK_FLAG_BIT(EAccelByteAsyncTaskFlags::ServerTask))
@@ -34,7 +35,8 @@ void FOnlineAsyncTaskAccelByteCreateBackfillTicket::Initialize()
 	AccelByte::FServerApiClientPtr ServerApiClient = AccelByte::FMultiRegistry::GetServerApiClient();
 	AB_ASYNC_TASK_ENSURE(ServerApiClient.IsValid(), "Failed to create backfill ticket for session as we could not get a server API client!");
 
-	AB_ASYNC_TASK_DEFINE_SDK_DELEGATES(FOnlineAsyncTaskAccelByteCreateBackfillTicket, CreateBackfillTicket, THandler<FAccelByteModelsV2MatchmakingCreateBackfillTicketResponse>);
+	OnCreateBackfillTicketSuccessDelegate = AccelByte::TDelegateUtils<THandler<FAccelByteModelsV2MatchmakingCreateBackfillTicketResponse>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteCreateBackfillTicket::OnCreateBackfillTicketSuccess);
+	OnCreateBackfillTicketErrorDelegate = AccelByte::TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteCreateBackfillTicket::OnCreateBackfillTicketError);;
 	ServerApiClient->ServerMatchmakingV2.CreateBackfillTicket(MatchPool, Session->GetSessionIdStr(), OnCreateBackfillTicketSuccessDelegate, OnCreateBackfillTicketErrorDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

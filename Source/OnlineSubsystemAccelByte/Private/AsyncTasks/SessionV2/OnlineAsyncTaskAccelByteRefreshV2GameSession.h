@@ -52,6 +52,8 @@ private:
 	 */
 	bool bWasSessionRemoved{false};
 
+	THandler<FAccelByteModelsV2GameSession> OnRefreshGameSessionSuccessDelegate;
+	FErrorHandler OnRefreshGameSessionErrorDelegate;
 	AB_ASYNC_TASK_DECLARE_SDK_DELEGATES_WITH_RESULT(RefreshGameSession, FAccelByteModelsV2GameSession);
 	
 };

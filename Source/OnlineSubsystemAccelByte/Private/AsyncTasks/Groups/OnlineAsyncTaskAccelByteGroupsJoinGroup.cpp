@@ -3,6 +3,7 @@
 // and restrictions contact your company contract manager.
 
 #include "OnlineAsyncTaskAccelByteGroupsJoinGroup.h"
+#include "OnlinePredefinedEventInterfaceAccelByte.h"
 
 using namespace AccelByte;
 
@@ -54,6 +55,17 @@ void FOnlineAsyncTaskAccelByteGroupsJoinGroup::Finalize()
 		return;
 
 	// Success
+
+	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = Subsystem->GetPredefinedEventInterface();
+	if (PredefinedEventInterface.IsValid())
+	{
+		FAccelByteModelsGroupJoinedPayload GroupJoinedPayload{};
+		GroupJoinedPayload.GroupId = AccelByteModelsJoinGroupResponse.GroupId;
+		GroupJoinedPayload.Status = AccelByteModelsJoinGroupResponse.Status;
+		GroupJoinedPayload.UserId = AccelByteModelsJoinGroupResponse.UserId;
+
+		PredefinedEventInterface->SendEvent(LocalUserNum, MakeShared<FAccelByteModelsGroupJoinedPayload>(GroupJoinedPayload));
+	}
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }

@@ -27,7 +27,8 @@ void FOnlineAsyncTaskAccelByteGenerateNewV2PartyCode::Initialize()
 	const FString SessionId = Session->GetSessionIdStr();
 	AB_ASYNC_TASK_ENSURE(!SessionId.Equals(TEXT("InvalidSession"), ESearchCase::IgnoreCase), "Named session used to generate new party code has invalid party ID!");
 
-	AB_ASYNC_TASK_DEFINE_SDK_DELEGATES(FOnlineAsyncTaskAccelByteGenerateNewV2PartyCode, GenerateNewCode, THandler<FAccelByteModelsV2PartySession>);
+	OnGenerateNewCodeSuccessDelegate = AccelByte::TDelegateUtils<THandler<FAccelByteModelsV2PartySession>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteGenerateNewV2PartyCode::OnGenerateNewCodeSuccess);
+	OnGenerateNewCodeErrorDelegate = AccelByte::TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteGenerateNewV2PartyCode::OnGenerateNewCodeError);;
 	ApiClient->Session.GenerateNewPartyCode(SessionId, OnGenerateNewCodeSuccessDelegate, OnGenerateNewCodeErrorDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

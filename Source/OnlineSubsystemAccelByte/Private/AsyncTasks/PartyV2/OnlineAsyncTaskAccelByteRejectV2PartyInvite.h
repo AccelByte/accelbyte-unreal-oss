@@ -38,6 +38,8 @@ private:
 	/** Delegate fired when we finish rejecting an invite */
 	FOnRejectSessionInviteComplete Delegate{};
 
+	FVoidHandler OnRejectPartyInviteSuccessDelegate;
+	FErrorHandler OnRejectPartyInviteErrorDelegate;
 	AB_ASYNC_TASK_DECLARE_SDK_DELEGATES(RejectPartyInvite);
 };
 

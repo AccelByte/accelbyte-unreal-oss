@@ -137,6 +137,7 @@ void FOnlinePredefinedEventAccelByte::SendCachedEvent(int32 InLocalUserNum, cons
 	{
 		TSharedRef<FAccelByteModelsCachedEventPayload> Payload = MakeShared<FAccelByteModelsCachedEventPayload>();
 		Payload->Payload = *CachedEvent.Get();
+		CachedEvent->Payload->TryGetStringField(TEXT("PreDefinedEventName"), Payload->PreDefinedEventName);
 		SendEvent(InLocalUserNum, Payload, CachedEvent->ClientTimestamp);
 	}
 }

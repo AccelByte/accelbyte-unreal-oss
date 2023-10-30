@@ -27,7 +27,8 @@ void FOnlineAsyncTaskAccelByteRevokeV2PartyCode::Initialize()
 	const FString SessionId = Session->GetSessionIdStr();
 	AB_ASYNC_TASK_ENSURE(!SessionId.Equals(TEXT("InvalidSession"), ESearchCase::IgnoreCase), "Named session used to revoke party code has invalid party ID!");
 
-	AB_ASYNC_TASK_DEFINE_SDK_DELEGATES(FOnlineAsyncTaskAccelByteRevokeV2PartyCode, RevokeCode, FVoidHandler);
+	OnRevokeCodeSuccessDelegate = AccelByte::TDelegateUtils<FVoidHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteRevokeV2PartyCode::OnRevokeCodeSuccess);
+	OnRevokeCodeErrorDelegate = AccelByte::TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteRevokeV2PartyCode::OnRevokeCodeError);;
 	ApiClient->Session.RevokePartyCode(SessionId, OnRevokeCodeSuccessDelegate, OnRevokeCodeErrorDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

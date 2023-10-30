@@ -24,7 +24,8 @@ void FOnlineAsyncTaskAccelByteRejectV2PartyInvite::Initialize()
 	const FString SessionId = InvitedSession.GetSessionIdStr();
 	AB_ASYNC_TASK_ENSURE(!SessionId.Equals(TEXT("InvalidSession")), "Failed to reject party session invite as the session ID provided is not valid!");
 
-	AB_ASYNC_TASK_DEFINE_SDK_DELEGATES(FOnlineAsyncTaskAccelByteRejectV2PartyInvite, RejectPartyInvite, FVoidHandler);
+	OnRejectPartyInviteSuccessDelegate = AccelByte::TDelegateUtils<FVoidHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteRejectV2PartyInvite::OnRejectPartyInviteSuccess);
+	OnRejectPartyInviteErrorDelegate = AccelByte::TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteRejectV2PartyInvite::OnRejectPartyInviteError);;
 	ApiClient->Session.RejectPartyInvite(SessionId, OnRejectPartyInviteSuccessDelegate, OnRejectPartyInviteErrorDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

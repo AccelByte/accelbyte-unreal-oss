@@ -42,10 +42,16 @@ private:
 	/** Array of constructed invites, will be passed back to session interface */
 	TArray<FOnlineSessionInviteAccelByte> Invites;
 
+	THandler<FAccelByteModelsV2PaginatedGameSessionQueryResult> OnGetGameSessionInvitesSuccessDelegate;
 	void OnGetGameSessionInvitesSuccess(const FAccelByteModelsV2PaginatedGameSessionQueryResult& Result);
+
+	FErrorHandler OnGetGameSessionInvitesErrorDelegate;
 	void OnGetGameSessionInvitesError(int32 ErrorCode, const FString& ErrorMessage);
 
+	THandler<FAccelByteModelsV2PaginatedPartyQueryResult> OnGetPartySessionInvitesSuccessDelegate;
 	void OnGetPartySessionInvitesSuccess(const FAccelByteModelsV2PaginatedPartyQueryResult& Result);
+
+	FErrorHandler OnGetPartySessionInvitesErrorDelegate;
 	void OnGetPartySessionInvitesError(int32 ErrorCode, const FString& ErrorMessage);
 
 };

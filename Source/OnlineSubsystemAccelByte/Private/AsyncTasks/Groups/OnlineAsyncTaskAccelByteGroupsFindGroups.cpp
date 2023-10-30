@@ -3,6 +3,7 @@
 // and restrictions contact your company contract manager.
 
 #include "OnlineAsyncTaskAccelByteGroupsFindGroups.h"
+#include "OnlinePredefinedEventInterfaceAccelByte.h"
 
 using namespace AccelByte;
 
@@ -61,6 +62,17 @@ void FOnlineAsyncTaskAccelByteGroupsFindGroups::Finalize()
 	}
 
 	GroupsInterface->SetCachedGroupResults(AccelByteModelsGetGroupListResponse);
+
+	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = Subsystem->GetPredefinedEventInterface();
+	if (PredefinedEventInterface.IsValid())
+	{
+		FAccelByteModelsGroupFindPayload GroupFindPayload{};
+		GroupFindPayload.UserId = UserId->GetAccelByteId();
+		GroupFindPayload.GroupName = RequestedContent.GroupName;
+		GroupFindPayload.GroupRegion = RequestedContent.GroupRegion;
+
+		PredefinedEventInterface->SendEvent(LocalUserNum, MakeShared<FAccelByteModelsGroupFindPayload>(GroupFindPayload));
+	}
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }

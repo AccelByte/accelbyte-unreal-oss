@@ -44,7 +44,12 @@ private:
 	/** Enum used to signal what result occurred with the join session call */
 	EOnJoinSessionCompleteResult::Type JoinSessionResult;
 
+	THandler<FAccelByteModelsV2PartySession> OnJoinPartySuccessDelegate;
+	FErrorHandler OnJoinPartyErrorDelegate;
 	AB_ASYNC_TASK_DECLARE_SDK_DELEGATES_WITH_RESULT(JoinParty, FAccelByteModelsV2PartySession);
+
+	THandler<FAccelByteModelsV2PartySession> OnGetPartyDetailsSuccessDelegate;
+	FErrorHandler OnGetPartyDetailsErrorDelegate;
 	AB_ASYNC_TASK_DECLARE_SDK_DELEGATES_WITH_RESULT(GetPartyDetails, FAccelByteModelsV2PartySession);
 };
 

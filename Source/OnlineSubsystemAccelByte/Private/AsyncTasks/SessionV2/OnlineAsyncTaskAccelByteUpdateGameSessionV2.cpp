@@ -162,10 +162,13 @@ void FOnlineAsyncTaskAccelByteUpdateGameSessionV2::Initialize()
 	}
 
 	// Send the API call based on whether we are a server or a client
-	const THandler<FAccelByteModelsV2GameSession> OnUpdateGameSessionSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsV2GameSession>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteUpdateGameSessionV2::OnUpdateGameSessionSuccess);
-	const FErrorHandler OnUpdateGameSessionErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteUpdateGameSessionV2::OnUpdateGameSessionError);
+	OnUpdateGameSessionSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsV2GameSession>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteUpdateGameSessionV2::OnUpdateGameSessionSuccess);
+	OnUpdateGameSessionErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteUpdateGameSessionV2::OnUpdateGameSessionError);
 	if (IsRunningDedicatedServer())
 	{
+		// enable game server to empty team assignment
+		UpdateRequest.bIncludeEmptyTeams = true;
+
 		FRegistry::ServerSession.UpdateGameSession(SessionInfo->GetSessionId().ToString(), UpdateRequest, OnUpdateGameSessionSuccessDelegate, OnUpdateGameSessionErrorDelegate);
 	}
 	else
@@ -258,7 +261,8 @@ void FOnlineAsyncTaskAccelByteUpdateGameSessionV2::RefreshSession()
 	AB_ASYNC_TASK_ENSURE(!SessionId.Equals(TEXT("InvalidSession")), "Could not refresh game session named '%s' as there is not a valid session ID associated!", *SessionName.ToString());
 
 	// Send the API call based on whether we are a server or a client
-	AB_ASYNC_TASK_DEFINE_SDK_DELEGATES(FOnlineAsyncTaskAccelByteUpdateGameSessionV2, RefreshGameSession, THandler<FAccelByteModelsV2GameSession>);
+	OnRefreshGameSessionSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsV2GameSession>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteUpdateGameSessionV2::OnRefreshGameSessionSuccess);
+	OnRefreshGameSessionErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteUpdateGameSessionV2::OnRefreshGameSessionError);;
 	if (IsRunningDedicatedServer())
 	{
 		FMultiRegistry::GetServerApiClient()->ServerSession.GetGameSessionDetails(SessionId, OnRefreshGameSessionSuccessDelegate, OnRefreshGameSessionErrorDelegate);

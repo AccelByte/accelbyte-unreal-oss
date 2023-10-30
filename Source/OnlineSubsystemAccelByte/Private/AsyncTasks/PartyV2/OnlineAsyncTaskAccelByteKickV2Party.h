@@ -44,7 +44,10 @@ private:
 	/** Updated session data from the backend that we will use to update our local session copy */
 	FAccelByteModelsV2PartySession UpdatedBackendSessionData;
 
+	THandler<FAccelByteModelsV2PartySession> OnKickUserFromPartySuccessDelegate;
 	void OnKickUserFromPartySuccess(const FAccelByteModelsV2PartySession& Result);
+
+	FErrorHandler OnKickUserFromPartyErrorDelegate;
 	void OnKickUserFromPartyError(int32 ErrorCode, const FString& ErrorMessage);
 
 };

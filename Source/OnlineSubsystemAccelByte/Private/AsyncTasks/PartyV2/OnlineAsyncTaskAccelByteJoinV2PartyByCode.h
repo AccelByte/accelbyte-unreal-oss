@@ -51,6 +51,7 @@ private:
 	 */
 	FAccelByteModelsV2PartySession JoinedPartySession{};
 
+	THandler<FAccelByteModelsV2PartySession> OnJoinPartyByCodeSuccessDelegate;
+	FErrorHandler OnJoinPartyByCodeErrorDelegate;
 	AB_ASYNC_TASK_DECLARE_SDK_DELEGATES_WITH_RESULT(JoinPartyByCode, FAccelByteModelsV2PartySession);
-
 };

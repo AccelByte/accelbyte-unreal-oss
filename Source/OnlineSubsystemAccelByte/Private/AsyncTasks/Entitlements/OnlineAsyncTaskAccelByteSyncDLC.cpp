@@ -122,6 +122,40 @@ void FOnlineAsyncTaskAccelByteSyncDLC::Initialize()
 		return;
 	}
 #endif
+#ifdef EOS_SUBSYSTEM
+	if (NativeSubsystemName == EOS_SUBSYSTEM)
+	{
+		FString EpicGamesJwtToken = TEXT("");
+		IOnlineSubsystem* PlatformSubsystem = IOnlineSubsystem::GetByPlatform();
+		if (PlatformSubsystem == nullptr)
+		{
+			CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState);
+			return;
+		}
+
+		IOnlineIdentityPtr IdentityInterface = PlatformSubsystem->GetIdentityInterface();
+		if (!IdentityInterface.IsValid())
+		{
+			CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState);
+			return;
+		}
+
+		// Get user's platform user id 
+		TSharedPtr<const FUniqueNetId> UserIdPtr = IdentityInterface->GetUniquePlayerId(LocalUserNum);
+		if (!UserIdPtr.IsValid())
+		{
+			CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState);
+			return;
+		}
+
+		TSharedPtr<FUserOnlineAccount> UserAccount = IdentityInterface->GetUserAccount(UserIdPtr.ToSharedRef().Get());
+		EpicGamesJwtToken = UserAccount->GetAccessToken();
+
+		ApiClient->Entitlement.SyncEpicGameDurableItems(EpicGamesJwtToken, OnSuccessDelegate, OnErrorDelegate);
+		AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
+		return;
+	}
+#endif
 }
 
 void FOnlineAsyncTaskAccelByteSyncDLC::TriggerDelegates()

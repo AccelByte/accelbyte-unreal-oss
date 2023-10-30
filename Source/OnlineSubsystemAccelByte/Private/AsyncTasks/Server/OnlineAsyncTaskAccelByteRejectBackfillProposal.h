@@ -52,6 +52,8 @@ private:
 	 */
 	FOnRejectBackfillProposalComplete Delegate{};
 
+	FVoidHandler OnRejectBackfillProposalSuccessDelegate;
+	FErrorHandler OnRejectBackfillProposalErrorDelegate;
 	AB_ASYNC_TASK_DECLARE_SDK_DELEGATES(RejectBackfillProposal);
 
 };

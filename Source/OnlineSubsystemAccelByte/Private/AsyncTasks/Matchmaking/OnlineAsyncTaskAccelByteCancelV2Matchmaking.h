@@ -32,7 +32,9 @@ private:
 	/** Name of the session that we are canceling matchmaking for */
 	FName SessionName{};
 
+	FVoidHandler OnDeleteMatchTicketSuccessDelegate;
 	void OnDeleteMatchTicketSuccess();
-	void OnDeleteMatchTicketError(int32 ErrorCode, const FString& ErrorMessage);
 
+	FErrorHandler OnDeleteMatchTicketErrorDelegate;
+	void OnDeleteMatchTicketError(int32 ErrorCode, const FString& ErrorMessage);
 };

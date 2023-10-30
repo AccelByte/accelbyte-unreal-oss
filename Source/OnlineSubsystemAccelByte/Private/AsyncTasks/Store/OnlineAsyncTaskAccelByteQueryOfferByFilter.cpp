@@ -165,12 +165,24 @@ void FOnlineAsyncTaskAccelByteQueryOfferByFilter::FilterAndAddResults(const FAcc
 			}
 		}
 		
-		FOnlineStoreOfferRef Offer = MakeShared<FOnlineStoreOffer>();
+		FOnlineStoreOfferAccelByteRef Offer = MakeShared<FOnlineStoreOfferAccelByte>();
 		Offer->OfferId = Item.ItemId;
 		Offer->NumericPrice = Item.RegionData[0].DiscountedPrice;
 		Offer->RegularPrice = Item.RegionData[0].Price;
 		Offer->CurrencyCode = Item.RegionData[0].CurrencyCode;
 		Offer->Title = FText::FromString(Item.Title);
+		Offer->RegionData = Item.RegionData;
+		Offer->Language = Item.Language;
+		Offer->Sku = Item.Sku;
+		Offer->Flexible = Item.Flexible;
+		Offer->Sellable = Item.Sellable;
+		Offer->Stackable = Item.Stackable;
+		Offer->Purchasable = Item.Purchasable;
+		Offer->Listable = Item.Listable;
+		Offer->SectionExclusive = Item.SectionExclusive;
+		Offer->SaleConfig = Item.SaleConfig;
+		Offer->LootBoxConfig = Item.LootBoxConfig;
+		Offer->OptionBoxConfig = Item.OptionBoxConfig;
 		if(Item.Images.Num() > 0)
 		{
 			Offer->DynamicFields.Add(TEXT("IconUrl"), Item.Images[0].ImageUrl);

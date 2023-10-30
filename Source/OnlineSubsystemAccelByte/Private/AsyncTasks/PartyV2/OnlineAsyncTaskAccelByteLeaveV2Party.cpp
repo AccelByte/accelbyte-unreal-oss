@@ -21,8 +21,8 @@ void FOnlineAsyncTaskAccelByteLeaveV2Party::Initialize()
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("UserId: %s"), *UserId->ToDebugString());
 
-	const FVoidHandler OnLeavePartySuccessDelegate = TDelegateUtils<FVoidHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteLeaveV2Party::OnLeavePartySuccess);
-	const FErrorHandler OnLeavePartyErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteLeaveV2Party::OnLeavePartyError);
+	OnLeavePartySuccessDelegate = TDelegateUtils<FVoidHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteLeaveV2Party::OnLeavePartySuccess);
+	OnLeavePartyErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteLeaveV2Party::OnLeavePartyError);
 	ApiClient->Session.LeaveParty(SessionId, OnLeavePartySuccessDelegate, OnLeavePartyErrorDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
@@ -49,7 +49,12 @@ void FOnlineAsyncTaskAccelByteLeaveV2Party::Finalize()
 	{
 		bRemovedRestoreSession = SessionInterface->RemoveRestoreSessionById(SessionId);
 	}
-	
+
+	if (bWasSuccessful)
+	{
+		SessionInterface->CurrentMatchmakingSearchHandle.Reset();
+	}
+
 	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = Subsystem->GetPredefinedEventInterface();
 	if (bWasSuccessful && PredefinedEventInterface.IsValid())
 	{
@@ -85,14 +90,13 @@ void FOnlineAsyncTaskAccelByteLeaveV2Party::TriggerDelegates()
 void FOnlineAsyncTaskAccelByteLeaveV2Party::OnLeavePartySuccess()
 {
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
-
 	CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
-
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 
 void FOnlineAsyncTaskAccelByteLeaveV2Party::OnLeavePartyError(int32 ErrorCode, const FString& ErrorMessage)
 {
-	UE_LOG_AB(Warning, TEXT("Failed to leave party on the backend! Error code: %d; Error message: %s"), ErrorCode, *ErrorMessage);
+	AB_OSS_ASYNC_TASK_TRACE_BEGIN_VERBOSITY(Warning, TEXT("Failed to leave party on the backend! Error code: %d; Error message: %s"), ErrorCode, *ErrorMessage);
 	CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
+	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }

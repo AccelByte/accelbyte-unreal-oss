@@ -39,7 +39,10 @@ private:
 
 	FString SessionId;
 
+	FVoidHandler OnSendGameSessionInviteSuccessDelegate;
 	void OnSendGameSessionInviteSuccess();
+
+	FErrorHandler OnSendGameSessionInviteErrorDelegate;
 	void OnSendGameSessionInviteError(int32 ErrorCode, const FString& ErrorMessage);
 };
 

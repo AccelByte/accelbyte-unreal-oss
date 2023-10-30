@@ -21,8 +21,8 @@ void FOnlineAsyncTaskAccelByteLeaveV2GameSession::Initialize()
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("PlayerId: %s; SessionId: %s"), *UserId->ToDebugString(), *SessionId);
 
-	const FVoidHandler OnLeaveGameSessionSuccessDelegate = TDelegateUtils<FVoidHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteLeaveV2GameSession::OnLeaveGameSessionSuccess);
-	const FErrorHandler OnLeaveGameSessionErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteLeaveV2GameSession::OnLeaveGameSessionError);
+	OnLeaveGameSessionSuccessDelegate = TDelegateUtils<FVoidHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteLeaveV2GameSession::OnLeaveGameSessionSuccess);
+	OnLeaveGameSessionErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteLeaveV2GameSession::OnLeaveGameSessionError);
 	ApiClient->Session.LeaveGameSession(SessionId, OnLeaveGameSessionSuccessDelegate, OnLeaveGameSessionErrorDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
@@ -52,6 +52,11 @@ void FOnlineAsyncTaskAccelByteLeaveV2GameSession::Finalize()
 	else
 	{
 		bRemovedRestoreSession = SessionInterface->RemoveRestoreSessionById(SessionId);
+	}
+
+	if (bWasSuccessful)
+	{
+		SessionInterface->CurrentMatchmakingSearchHandle.Reset();
 	}
 
 	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = Subsystem->GetPredefinedEventInterface();
@@ -89,14 +94,13 @@ void FOnlineAsyncTaskAccelByteLeaveV2GameSession::TriggerDelegates()
 void FOnlineAsyncTaskAccelByteLeaveV2GameSession::OnLeaveGameSessionSuccess()
 {
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
-
 	CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
-
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 
 void FOnlineAsyncTaskAccelByteLeaveV2GameSession::OnLeaveGameSessionError(int32 ErrorCode, const FString& ErrorMessage)
 {
-	UE_LOG_AB(Warning, TEXT("Failed to leave game session on backend! Error code: %d; Error message: %s"), ErrorCode, *ErrorMessage);
+	AB_OSS_ASYNC_TASK_TRACE_BEGIN_VERBOSITY(Warning, TEXT("Failed to leave game session on backend! Error code: %d; Error message: %s"), ErrorCode, *ErrorMessage);
 	CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
+	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }

@@ -37,7 +37,10 @@ private:
 	/** Name of the server that we are registering to Armada */
 	FString ServerName{};
 
+	FVoidHandler OnRegisterServerSuccessDelegate;
 	void OnRegisterServerSuccess();
+
+	FErrorHandler OnRegisterServerErrorDelegate;
 	void OnRegisterServerError(int32 ErrorCode, const FString& ErrorMessage);
 
 };

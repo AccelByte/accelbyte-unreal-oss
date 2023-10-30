@@ -46,6 +46,9 @@ private:
 	/** Flag denoting whether we destroyed a restore session along with leaving */
 	bool bRemovedRestoreSession{false};
 
+	FVoidHandler OnLeavePartySuccessDelegate;
 	void OnLeavePartySuccess();
+
+	FErrorHandler OnLeavePartyErrorDelegate;
 	void OnLeavePartyError(int32 ErrorCode, const FString& ErrorMessage);
 };

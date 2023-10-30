@@ -38,12 +38,14 @@ void FOnlineAsyncTaskAccelByteJoinV2Party::Initialize()
 	// session as normal. Otherwise, we want to go through the actual join flow.
 	if (bIsRestoreSession)
 	{
-		AB_ASYNC_TASK_DEFINE_SDK_DELEGATES(FOnlineAsyncTaskAccelByteJoinV2Party, GetPartyDetails, THandler<FAccelByteModelsV2PartySession>);
+		OnGetPartyDetailsSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsV2PartySession>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteJoinV2Party::OnGetPartyDetailsSuccess);
+		OnGetPartyDetailsErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteJoinV2Party::OnGetPartyDetailsError);;
 		ApiClient->Session.GetPartyDetails(SessionId, OnGetPartyDetailsSuccessDelegate, OnGetPartyDetailsErrorDelegate);
 	}
 	else
 	{
-		AB_ASYNC_TASK_DEFINE_SDK_DELEGATES(FOnlineAsyncTaskAccelByteJoinV2Party, JoinParty, THandler<FAccelByteModelsV2PartySession>);
+		OnJoinPartySuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsV2PartySession>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteJoinV2Party::OnJoinPartySuccess);
+		OnJoinPartyErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteJoinV2Party::OnJoinPartyError);;
 		ApiClient->Session.JoinParty(SessionId, OnJoinPartySuccessDelegate, OnJoinPartyErrorDelegate);
 	}
 

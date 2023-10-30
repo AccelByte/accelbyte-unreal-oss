@@ -62,6 +62,7 @@
 #include <algorithm>
 
 #include "AsyncTasks/Matchmaking/OnlineAsyncTaskAccelByteGetMyV2MatchmakingTickets.h"
+#include "AsyncTasks/Server/OnlineAsyncTaskAccelByteSendDSSessionReady.h"
 #include "AsyncTasks/SessionV2/OnlineAsyncTaskAccelByteGenerateNewV2GameCode.h"
 #include "AsyncTasks/SessionV2/OnlineAsyncTaskAccelByteJoinV2GameSessionByCode.h"
 #include "AsyncTasks/SessionV2/OnlineAsyncTaskAccelBytePromoteV2GameSessionLeader.h"
@@ -4505,7 +4506,7 @@ void FOnlineSessionV2AccelByte::OnGameSessionUpdatedNotification(FAccelByteModel
 	{
 		if (HandleAutoJoinGameSession(UpdatedGameSession, LocalUserNum))
 		{
-			AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Synced auto joined game session from backend"));
+			AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Log, TEXT("Synced auto joined game session from backend"));
 			return;
 		}
 
@@ -4561,7 +4562,7 @@ void FOnlineSessionV2AccelByte::OnDsStatusChangedNotification(FAccelByteModelsV2
 	{
 		if (HandleAutoJoinGameSession(DsStatusChangeEvent.Session, LocalUserNum))
 		{
-			AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Synced auto joined game session from backend"));
+			AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Log, TEXT("Synced auto joined game session from backend"));
 			return;
 		}
 
@@ -4576,8 +4577,7 @@ void FOnlineSessionV2AccelByte::OnDsStatusChangedNotification(FAccelByteModelsV2
 		return;
 	}
 
-	const FString ServerStatus = DsStatusChangeEvent.Session.DSInformation.Server.Status;
-	const bool bStatusIsReady = ServerStatus.Equals(TEXT("READY"), ESearchCase::IgnoreCase) || ServerStatus.Equals(TEXT("BUSY"), ESearchCase::IgnoreCase);
+	const bool bStatusIsReady = DsStatusChangeEvent.Session.DSInformation.StatusV2 == EAccelByteV2GameSessionDsStatus::AVAILABLE;
 
 	// If the new status is not ready, then we cannot do anything, so just bail
 	if (!bStatusIsReady)
@@ -5688,6 +5688,21 @@ void FOnlineSessionV2AccelByte::AddCanceledTicketId(const FString& TicketId)
 bool FOnlineSessionV2AccelByte::IsServerUseAMS() const
 {
 	return bServerUseAMS;
+}
+
+bool FOnlineSessionV2AccelByte::SendDSSessionReady()
+{
+	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT(""));
+
+	if (!IsRunningDedicatedServer())
+	{
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("This method only can be used for dedicated server"));
+		return false;
+	}
+
+	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteSendDSSessionReady>(AccelByteSubsystem, true);
+	AB_OSS_INTERFACE_TRACE_END(TEXT("Sending server ready to session service"));
+	return true;
 }
 
 void FOnlineSessionV2AccelByte::OnAMSDrain()

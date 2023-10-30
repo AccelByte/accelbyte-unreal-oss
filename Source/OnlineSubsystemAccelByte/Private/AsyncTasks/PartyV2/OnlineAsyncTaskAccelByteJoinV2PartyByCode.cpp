@@ -27,7 +27,8 @@ void FOnlineAsyncTaskAccelByteJoinV2PartyByCode::Initialize()
 	FNamedOnlineSession* JoinedSession = SessionInterface->GetNamedSession(SessionName);
 	AB_ASYNC_TASK_ENSURE(JoinedSession != nullptr, "Failed to join party by code as the session that we are trying to join for is invalid!");
 
-	AB_ASYNC_TASK_DEFINE_SDK_DELEGATES(FOnlineAsyncTaskAccelByteJoinV2PartyByCode, JoinPartyByCode, THandler<FAccelByteModelsV2PartySession>);
+	OnJoinPartyByCodeSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsV2PartySession>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteJoinV2PartyByCode::OnJoinPartyByCodeSuccess);
+	OnJoinPartyByCodeErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteJoinV2PartyByCode::OnJoinPartyByCodeError);;
 	ApiClient->Session.JoinPartyByCode(PartyCode, OnJoinPartyByCodeSuccessDelegate, OnJoinPartyByCodeErrorDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

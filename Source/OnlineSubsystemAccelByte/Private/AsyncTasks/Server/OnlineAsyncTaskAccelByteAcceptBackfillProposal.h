@@ -57,6 +57,8 @@ private:
 	 */
 	FAccelByteModelsV2GameSession GameSessionInfo;
 
+	THandler<FAccelByteModelsV2GameSession> OnAcceptBackfillProposalSuccessDelegate;
+	FErrorHandler OnAcceptBackfillProposalErrorDelegate;
 	AB_ASYNC_TASK_DECLARE_SDK_DELEGATES_WITH_RESULT(AcceptBackfillProposal, FAccelByteModelsV2GameSession);
 };
 

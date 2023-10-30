@@ -32,8 +32,8 @@ void FOnlineAsyncTaskAccelByteStartV2Matchmaking::Initialize()
 	if (!bHasCachedLatencies)
 	{
 		// If for some reason we have no latencies cached on the SDK, make a request to get latencies
-		const THandler<TArray<TPair<FString, float>>>& OnGetLatenciesSuccessDelegate = TDelegateUtils<THandler<TArray<TPair<FString, float>>>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteStartV2Matchmaking::OnGetLatenciesSuccess);
-		const FErrorHandler& OnGetLatenciesErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteStartV2Matchmaking::OnGetLatenciesError);
+		OnGetLatenciesSuccessDelegate = TDelegateUtils<THandler<TArray<TPair<FString, float>>>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteStartV2Matchmaking::OnGetLatenciesSuccess);
+		OnGetLatenciesErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteStartV2Matchmaking::OnGetLatenciesError);
 
 		ApiClient->Qos.GetServerLatencies(OnGetLatenciesSuccessDelegate, OnGetLatenciesErrorDelegate);
 
@@ -138,30 +138,25 @@ void FOnlineAsyncTaskAccelByteStartV2Matchmaking::CreateMatchTicket()
 	AB_ASYNC_TASK_ENSURE(SessionInterface.IsValid(), "Failed to create match ticket as our session interface is invalid!");
 
 	// Now, create the match ticket on the backend
-	const THandler<FAccelByteModelsV2MatchmakingCreateTicketResponse> OnStartMatchmakingSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsV2MatchmakingCreateTicketResponse>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteStartV2Matchmaking::OnStartMatchmakingSuccess);
-	const FCreateMatchmakingTicketErrorHandler OnStartMatchmakingErrorDelegate = TDelegateUtils<FCreateMatchmakingTicketErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteStartV2Matchmaking::OnStartMatchmakingError);
-	
+	OnStartMatchmakingSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsV2MatchmakingCreateTicketResponse>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteStartV2Matchmaking::OnStartMatchmakingSuccess);
+	OnStartMatchmakingErrorDelegate = TDelegateUtils<FCreateMatchmakingTicketErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteStartV2Matchmaking::OnStartMatchmakingError);
+
 	FAccelByteModelsV2MatchTicketOptionalParams Optionals;
 
-	// Work around on AMS
-	// It cannot handle requested region at the moment. If there is no available region on the AMS fleet, there is no fallback region assigned.
-	if(!SessionInterface->IsServerUseAMS())
+	// Check if the caller has specified specific regions to matchmake to. If there are specifically requested regions,
+	// then filter the cached latencies, removing regions that do not match. Otherwise, just attach all latencies to the
+	// request.
+	TArray<TPair<FString, float>> Latencies = ApiClient->Qos.GetCachedLatencies();
+	TArray<FString> RequestedRegions{};
+	if (FOnlineSearchSettingsAccelByte::Get(SearchHandle->QuerySettings, SETTING_GAMESESSION_REQUESTEDREGIONS, RequestedRegions) && RequestedRegions.Num() > 0)
 	{
-		// Check if the caller has specified specific regions to matchmake to. If there are specifically requested regions,
-		// then filter the cached latencies, removing regions that do not match. Otherwise, just attach all latencies to the
-		// request.
-		TArray<TPair<FString, float>> Latencies = ApiClient->Qos.GetCachedLatencies();
-		TArray<FString> RequestedRegions{};
-		if (FOnlineSearchSettingsAccelByte::Get(SearchHandle->QuerySettings, SETTING_GAMESESSION_REQUESTEDREGIONS, RequestedRegions) && RequestedRegions.Num() > 0)
-		{
-			// Filter the latencies array to contain only latency information for the requested regions
-			Latencies = Latencies.FilterByPredicate([&RequestedRegions](const TPair<FString, float>& Latency) {
-				return RequestedRegions.Contains(Latency.Get<0>());
-			});
-		}
-
-		Optionals.Latencies = Latencies;
+		// Filter the latencies array to contain only latency information for the requested regions
+		Latencies = Latencies.FilterByPredicate([&RequestedRegions](const TPair<FString, float>& Latency) {
+			return RequestedRegions.Contains(Latency.Get<0>());
+		});
 	}
+
+	Optionals.Latencies = Latencies;
 	
 	Optionals.SessionId = GetTicketSessionId();
 

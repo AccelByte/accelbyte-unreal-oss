@@ -34,7 +34,10 @@ private:
 	/** Digit code representing the error that occurred*/
 	int32 ErrorCode;
 
+	FVoidHandler OnServerLoginSuccessDelegate;
 	void OnLoginServerSuccess();
+
+	FErrorHandler OnServerLoginErrorDelegate;
 	void OnLoginServerError(int32 ErrorCode, const FString& ErrorMessage);
 
 };

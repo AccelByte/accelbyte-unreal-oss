@@ -27,7 +27,8 @@ void FOnlineAsyncTaskAccelByteFindV1GameSessionById::Initialize()
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("SessionId: %s"), *SessionId->ToDebugString());
 
 	// Send the API call based on whether we are a server or a client
-	AB_ASYNC_TASK_DEFINE_SDK_DELEGATES(FOnlineAsyncTaskAccelByteFindV1GameSessionById, GetGameSessionDetails, THandler<FAccelByteModelsSessionBrowserData>);
+	OnGetGameSessionDetailsSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsSessionBrowserData>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteFindV1GameSessionById::OnGetGameSessionDetailsSuccess);
+	OnGetGameSessionDetailsErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteFindV1GameSessionById::OnGetGameSessionDetailsError);;
 	if (IsRunningDedicatedServer())
 	{
 		FRegistry::ServerSessionBrowser.GetGameSessionBySessionId(SessionId->ToString(), OnGetGameSessionDetailsSuccessDelegate, OnGetGameSessionDetailsErrorDelegate);

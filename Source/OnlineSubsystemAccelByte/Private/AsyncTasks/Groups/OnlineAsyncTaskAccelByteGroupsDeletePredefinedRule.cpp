@@ -3,6 +3,7 @@
 // and restrictions contact your company contract manager.
 
 #include "OnlineAsyncTaskAccelByteGroupsDeletePredefinedRule.h"
+#include "OnlinePredefinedEventInterfaceAccelByte.h"
 
 using namespace AccelByte;
 
@@ -70,6 +71,16 @@ void FOnlineAsyncTaskAccelByteGroupsDeletePredefinedRule::Finalize()
 
 	// Remove cached predefined rule
 	GroupsInterface->RemoveCachedPredefinedRule(AllowedAction);
+
+	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = Subsystem->GetPredefinedEventInterface();
+	if (PredefinedEventInterface.IsValid())
+	{
+		FAccelByteModelsGroupPredefinedRuleDeletedPayload GroupPredefinedRuleDeletedPayload{};
+		GroupPredefinedRuleDeletedPayload.GroupId = GroupId;
+		GroupPredefinedRuleDeletedPayload.AdminUserId = UserId->GetAccelByteId();
+
+		PredefinedEventInterface->SendEvent(LocalUserNum, MakeShared<FAccelByteModelsGroupPredefinedRuleDeletedPayload>(GroupPredefinedRuleDeletedPayload));
+	}
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }

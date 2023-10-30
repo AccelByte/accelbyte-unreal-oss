@@ -32,7 +32,8 @@ void FOnlineAsyncTaskAccelByteUnregisterRemoteServerV2::Initialize()
 		SessionId = Session->GetSessionIdStr();
 	}
 
-	AB_ASYNC_TASK_DEFINE_SDK_DELEGATES(FOnlineAsyncTaskAccelByteUnregisterRemoteServerV2, UnregisterServer, FVoidHandler);
+	OnUnregisterServerSuccessDelegate = TDelegateUtils<FVoidHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteUnregisterRemoteServerV2::OnUnregisterServerSuccess);
+	OnUnregisterServerErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteUnregisterRemoteServerV2::OnUnregisterServerError);;
 	FRegistry::ServerDSM.SendShutdownToDSM(false, SessionId, OnUnregisterServerSuccessDelegate, OnUnregisterServerErrorDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

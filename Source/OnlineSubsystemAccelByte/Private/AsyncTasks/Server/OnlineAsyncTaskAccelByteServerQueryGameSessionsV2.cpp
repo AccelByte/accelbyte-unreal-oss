@@ -29,8 +29,8 @@ void FOnlineAsyncTaskAccelByteServerQueryGameSessionsV2::Initialize()
 		return;
 	}
 
-	const THandler<FAccelByteModelsV2PaginatedGameSessionQueryResult> OnQuerySuccess = TDelegateUtils<THandler<FAccelByteModelsV2PaginatedGameSessionQueryResult>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteServerQueryGameSessionsV2::OnQueryGameSessionsSuccess);
-	const FErrorHandler OnQueryFailed = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteServerQueryGameSessionsV2::OnQueryGameSessionsFailed);
+	OnQuerySuccess = TDelegateUtils<THandler<FAccelByteModelsV2PaginatedGameSessionQueryResult>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteServerQueryGameSessionsV2::OnQueryGameSessionsSuccess);
+	OnQueryFailed = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteServerQueryGameSessionsV2::OnQueryGameSessionsFailed);
 
 	FMultiRegistry::GetServerApiClient()->ServerSession.QueryGameSessions(Request, OnQuerySuccess, OnQueryFailed, Offset, Limit);
 

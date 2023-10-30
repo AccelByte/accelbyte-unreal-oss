@@ -9,6 +9,8 @@
 #include "AsyncTasks/Store/OnlineAsyncTaskAccelByteQueryOfferById.h"
 #include "AsyncTasks/Store/OnlineAsyncTaskAccelByteQueryOfferBySku.h"
 #include "AsyncTasks/Store/OnlineAsyncTaskAccelByteQueryOfferDynamicData.h"
+#include "AsyncTasks/Store/OnlineAsyncTaskAccelByteGetEstimatedPrice.h"
+#include "AsyncTasks/Store/OnlineAsyncTaskAccelByteGetItemByCriteria.h" 
 #include "OnlineSubsystemUtils.h"
 
 FOnlineStoreV2AccelByte::FOnlineStoreV2AccelByte(FOnlineSubsystemAccelByte* InSubsystem) 
@@ -38,10 +40,38 @@ void FOnlineStoreV2AccelByte::EmplaceCategories(TArray<FOnlineStoreCategory> InC
 void FOnlineStoreV2AccelByte::ReplaceOffers(TMap<FUniqueOfferId, FOnlineStoreOfferRef> InOffer)
 {
 	FScopeLock ScopeLock(&OffersLock);
-	StoreOffers = InOffer;
+	StoreOffers = {};
+	for (const auto& Offer : InOffer)
+	{
+		FOnlineStoreOfferAccelByte StoreOfferAccelByte(Offer.Value.Get());
+		StoreOffers.Add(Offer.Key, MakeShared<FOnlineStoreOfferAccelByte>(StoreOfferAccelByte));
+	} 
 }
 
+void FOnlineStoreV2AccelByte::ReplaceOffers(TMap<FUniqueOfferId, FOnlineStoreOfferAccelByteRef> InOffer)
+{
+	FScopeLock ScopeLock(&OffersLock);
+	StoreOffers = InOffer;
+} 
+
 void FOnlineStoreV2AccelByte::EmplaceOffers(const TMap<FUniqueOfferId, FOnlineStoreOfferRef>& InOffer)
+{
+	FScopeLock ScopeLock(&OffersLock);
+
+	TMap<FUniqueOfferId, FOnlineStoreOfferAccelByteRef> StoreOffersTemp = {};
+	for (const auto& Offer : InOffer)
+	{
+		FOnlineStoreOfferAccelByte StoreOfferAccelByte(Offer.Value.Get());
+		StoreOffersTemp.Add(Offer.Key, MakeShared<FOnlineStoreOfferAccelByte>(StoreOfferAccelByte));
+	} 
+	
+	for (const auto& Offer : StoreOffersTemp)
+	{
+		StoreOffers.Emplace(Offer.Key, Offer.Value);
+	}
+}
+
+void FOnlineStoreV2AccelByte::EmplaceOffers(const TMap<FUniqueOfferId, FOnlineStoreOfferAccelByteRef>& InOffer)
 {
 	FScopeLock ScopeLock(&OffersLock);
 	for (const auto& Offer : InOffer)
@@ -135,16 +165,41 @@ void FOnlineStoreV2AccelByte::QueryOfferDynamicData(const FUniqueNetId& UserId, 
 	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteQueryOfferDynamicData>(AccelByteSubsystem, UserId, OfferId, Delegate);
 }
 
-void FOnlineStoreV2AccelByte::GetOffers(TArray<FOnlineStoreOfferRef>& OutOffers) const
+void FOnlineStoreV2AccelByte::GetOffers(TArray<FOnlineStoreOfferAccelByteRef>& OutOffers) const
 {
 	FScopeLock ScopeLock(&OffersLock);
 	StoreOffers.GenerateValueArray(OutOffers);
 }
 
+void FOnlineStoreV2AccelByte::GetOffers(TArray<FOnlineStoreOfferRef>& OutOffers) const
+{
+	FScopeLock ScopeLock(&OffersLock);
+	TArray<FOnlineStoreOfferAccelByteRef> OnlineStoreOfferAccelByte;
+	StoreOffers.GenerateValueArray(OnlineStoreOfferAccelByte);
+
+	TArray<FOnlineStoreOfferRef> OutOffersTemp;
+	for(auto Offer : OnlineStoreOfferAccelByte)
+	{
+		OutOffersTemp.Add(Offer);
+	}
+	OutOffers = OutOffersTemp;
+}
+
 TSharedPtr<FOnlineStoreOffer> FOnlineStoreV2AccelByte::GetOffer(const FUniqueOfferId& OfferId) const
 {
 	FScopeLock ScopeLock(&OffersLock);
-	const TSharedRef<FOnlineStoreOffer>* Result = StoreOffers.Find(OfferId);
+	const TSharedRef<FOnlineStoreOfferAccelByte>* Result = StoreOffers.Find(OfferId);
+	if(Result)
+	{
+		return *Result;
+	}
+	return nullptr;
+}
+
+TSharedPtr<FOnlineStoreOfferAccelByte> FOnlineStoreV2AccelByte::GetOfferAccelByte(const FUniqueOfferId& OfferId) const
+{
+	FScopeLock ScopeLock(&OffersLock);
+	const TSharedRef<FOnlineStoreOfferAccelByte>* Result = StoreOffers.Find(OfferId); 
 	if(Result)
 	{
 		return *Result;
@@ -153,6 +208,19 @@ TSharedPtr<FOnlineStoreOffer> FOnlineStoreV2AccelByte::GetOffer(const FUniqueOff
 }
 
 TSharedPtr<FOnlineStoreOffer> FOnlineStoreV2AccelByte::GetOfferBySku(const FString& Sku) const
+{
+	FScopeLock ScopeLock(&OffersLock);
+	for (const auto& Offer : StoreOffers)
+	{
+		if (Offer.Value->DynamicFields.Find(TEXT("Sku"))->Equals(Sku))
+		{
+			return Offer.Value;
+		}
+	}
+	return nullptr;
+}
+
+TSharedPtr<FOnlineStoreOfferAccelByte> FOnlineStoreV2AccelByte::GetOfferBySkuAccelByte(const FString& Sku) const
 {
 	FScopeLock ScopeLock(&OffersLock);
 	for (const auto& Offer : StoreOffers)
@@ -179,4 +247,15 @@ TSharedPtr<FAccelByteModelsItemDynamicData> FOnlineStoreV2AccelByte::GetOfferDyn
 		}
 	}
 	return nullptr;
+}
+
+void FOnlineStoreV2AccelByte::GetEstimatedPrice(const FUniqueNetId& UserId, const TArray<FString>& ItemIds, const FString& Region)
+{
+	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGetEstimatedPrice>(AccelByteSubsystem, UserId, ItemIds, Region);
+}
+
+void FOnlineStoreV2AccelByte::GetItemsByCriteria(const FUniqueNetId& UserId, FAccelByteModelsItemCriteria const& ItemCriteria, int32 const& Offset, int32 const& Limit,
+		TArray<EAccelByteItemListSortBy> SortBy)
+{
+	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGetItemByCriteria>(AccelByteSubsystem, UserId, ItemCriteria, Offset, Limit, SortBy);
 }

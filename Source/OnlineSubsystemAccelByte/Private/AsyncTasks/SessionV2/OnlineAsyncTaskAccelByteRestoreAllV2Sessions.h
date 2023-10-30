@@ -48,10 +48,16 @@ private:
 	/** Check whether we have completed all work for our task */
 	bool HasFinishedAsyncWork();
 
+	THandler<FAccelByteModelsV2PaginatedGameSessionQueryResult> OnGetMyGameSessionsSuccessDelegate;
 	void OnGetMyGameSessionsSuccess(const FAccelByteModelsV2PaginatedGameSessionQueryResult& Result);
+
+	FErrorHandler OnGetMyGameSessionsErrorDelegate;
 	void OnGetMyGameSessionsError(int32 ErrorCode, const FString& ErrorMessage);
 
+	THandler<FAccelByteModelsV2PaginatedPartyQueryResult> OnGetMyPartiesSuccessDelegate;
 	void OnGetMyPartiesSuccess(const FAccelByteModelsV2PaginatedPartyQueryResult& Result);
+
+	FErrorHandler OnGetMyPartiesErrorDelegate;
 	void OnGetMyPartiesError(int32 ErrorCode, const FString& ErrorMessage);
 
 	/** Timeout handler */
