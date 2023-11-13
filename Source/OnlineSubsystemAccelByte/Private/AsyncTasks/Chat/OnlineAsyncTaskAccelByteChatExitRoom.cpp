@@ -3,6 +3,7 @@
 // and restrictions contact your company contract manager.
 
 #include "OnlineAsyncTaskAccelByteChatExitRoom.h"
+#include "OnlinePredefinedEventInterfaceAccelByte.h"
 
 using namespace AccelByte;
 
@@ -64,6 +65,15 @@ void FOnlineAsyncTaskAccelByteChatExitRoom::Finalize()
 	if (bWasSuccessful)
 	{
 		ChatInterface->RemoveTopic(RoomId);
+		
+		const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = Subsystem->GetPredefinedEventInterface();
+		if (PredefinedEventInterface.IsValid())
+		{
+			FAccelByteModelsChatV2TopicQuitPayload TopicQuitPayload{};
+			TopicQuitPayload.UserId = UserId->GetAccelByteId();
+			TopicQuitPayload.TopicId = RoomId;
+			PredefinedEventInterface->SendEvent(LocalUserNum, MakeShared<FAccelByteModelsChatV2TopicQuitPayload>(TopicQuitPayload));
+		}
 	}
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

@@ -312,6 +312,7 @@ protected:
 
 	/** Map of user IDs representing local users to an array of FOnlineBlockedPlayer instances */
 	FUserIdToBlockedPlayersMap UserIdToBlockedPlayersMap;
+	mutable FCriticalSection UserIdToBlockedPlayersMapLock;
 
 	/** Delegate handler for when another user accepts our friend request */
 	void OnFriendRequestAcceptedNotificationReceived(const FAccelByteModelsAcceptFriendsNotif& Notification, int32 LocalUserNum);
@@ -329,5 +330,7 @@ protected:
 	void OnCancelFriendRequestNotificationReceived(const FAccelByteModelsCancelFriendsNotif& Notification, int32 LocalUserNum);
 
 	void OnPresenceReceived(const FUniqueNetId& UserId, const TSharedRef<FOnlineUserPresence>& Presence, int32 LocalUserNum);
+
+	static bool IsBlockedPlayersListChanged(const TArray<TSharedPtr<FOnlineBlockedPlayer>>& OldBlockedPlayersList, const TArray<TSharedPtr<FOnlineBlockedPlayer>>& NewBlockedPlayersList);
 
 };

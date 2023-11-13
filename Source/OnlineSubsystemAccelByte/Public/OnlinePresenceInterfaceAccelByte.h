@@ -33,7 +33,6 @@ public:
 class FOnlineUserPresenceStatusAccelByte : public FOnlineUserPresenceStatus
 {
 public:
-
 	void SetPresenceStatus(EAvailability InPresenceStatus)
 	{
 		switch (InPresenceStatus)
@@ -52,6 +51,11 @@ public:
 	{}
 };
 
+#define FUserIDPresenceMap TMap<FString, TSharedRef<FOnlineUserPresenceAccelByte>>
+
+DECLARE_MULTICAST_DELEGATE_TwoParams(FOnBulkQueryPresenceComplete, const bool /*bWasSuccessful*/, const FUserIDPresenceMap& /*Presences*/);
+typedef FOnBulkQueryPresenceComplete::FDelegate FOnBulkQueryPresenceCompleteDelegate;
+
 /**
  * Implementation of the IOnlinePresence interface using AccelByte services.
  */
@@ -62,6 +66,8 @@ public:
 	/** Constructor that is invoked by the Subsystem instance to create a presence interface instance */
 	FOnlinePresenceAccelByte (FOnlineSubsystemAccelByte* InSubsystem);
 	virtual ~FOnlinePresenceAccelByte() override = default;
+	
+	DEFINE_ONLINE_DELEGATE_TWO_PARAM(OnBulkQueryPresenceComplete,  const bool /*bWasSuccessful*/, const FUserIDPresenceMap& /*Presences*/);
 
 	/**
 	 * Convenience method to get an instance of this interface from the subsystem passed in.
@@ -91,6 +97,14 @@ public:
 	//~ Begin Custom Presence
 	virtual void PlatformQueryPresence(const FUniqueNetId& User, const FOnPresenceTaskCompleteDelegate& Delegate = FOnPresenceTaskCompleteDelegate());
 	virtual EOnlineCachedResult::Type GetPlatformCachedPresence(const FUniqueNetId& User, TSharedPtr<FOnlineUserPresence>& OutPresence);
+	
+	/**
+	 * Bulk query user presences.
+	 *
+	 * @param LocalUserId LocalUserId of user making the call.
+	 * @param UserIds UserIds to query the presence.
+	 */
+	virtual void BulkQueryPresence(const FUniqueNetId& LocalUserId, const TArray<FUniqueNetIdRef>& UserIds);
 	//~ End Custom Presence
 
 PACKAGE_SCOPE:
@@ -103,6 +117,15 @@ PACKAGE_SCOPE:
 
 	/** Used to update cached Presence */
 	TSharedRef<FOnlineUserPresenceAccelByte> FindOrCreatePresence(const TSharedRef<const FUniqueNetIdAccelByteUser>& UserId);
+
+	/** Getter function for cached user presence mapped by userId */
+	TMap<FString, TSharedRef<FOnlineUserPresenceAccelByte>> GetCachedPresence() const;
+
+	/** Add or Update cached presence*/
+	void UpdatePresenceCache(const TMap<FString, TSharedRef<FOnlineUserPresenceAccelByte>>& UpdatedPresence);
+
+	/** Add or Update cached presence*/
+	void UpdatePresenceCache(const FString& UserID, const TSharedRef<FOnlineUserPresenceAccelByte>& Presence);
 
 protected: 
 
@@ -117,11 +140,13 @@ protected:
 
 	/** Delegate handler for when a friend change their presence status */
 	void OnFriendStatusChangedNotificationReceived(const FAccelByteModelsUsersPresenceNotice& Notification, int32 LocalUserNum);
-
 private: 
 
 	/** All presence information we have */
 	TMap<FString, TSharedRef<FOnlineUserPresenceAccelByte>> CachedPresenceByUserId;
+
+	/** Critical section to lock presence cache map while accessing */
+	mutable FCriticalSection PresenceCacheLock;
 };
 
 typedef TSharedPtr<FOnlinePresenceAccelByte, ESPMode::ThreadSafe> FOnlinePresenceAccelBytePtr;

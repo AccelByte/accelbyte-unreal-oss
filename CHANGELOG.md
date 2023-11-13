@@ -2,6 +2,31 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.11.27](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.11.27%0D0.11.26) (2023-11-13)
+
+
+### Features
+
+* add bulk query user presence ([fb61d9d](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/fb61d9d5a5a9e99ce1dc21dd77aaeca19d0b4f57))
+* check user availability ([21311d4](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/21311d4ecfc83c6a76dceb4aa3ef1bcd7fb49dc9))
+* **MPv2:** listen to V2GameSessionRejectedNotif and trigger OnSessionInviteRejected delegates ([13bab24](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/13bab2496295ce24034ccb28278f046b9b8f4af8))
+* **predefinedEvent:** add some implementations on Engagement Leaderboard, Seasonpass, and Reward scope ([b8abde8](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/b8abde8a89393bea9998b1f1a04068486c4ffe85))
+* **predefinedEvent:** trigger events for chatv2 scope ([50bd442](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/50bd442c638811c4f490230215e3230e5e83a691))
+* **SessionInterface:** separate the function to SendServerReady ([031880e](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/031880e6cdea83068aeddf5ff199f326b4241a8a))
+* **SessionV2:** add a reminder to prevent DS that forgot to set server as ready ([14c2e41](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/14c2e412d4c77a10e630d580654aa574b219e046))
+
+
+### Bug Fixes
+
+* fixed cache token ([037a150](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/037a15054bd7f956ae544c9e7a9263a9ae04a639))
+* missing undef online error / #undef ONLINE_ERROR_NAMESPACE in some ecommerce async classes ([7b4c326](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/7b4c3260ae6d851f5481f46ce5461b1045f792e5))
+* **MPv2:** return session leader id for game and party session ([c6a6338](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/c6a6338fc090cc6bf6eabee870c23482b6dbe769))
+* **predefinedEvent:** fix preDefinedEventName for cached event ([b09a863](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/b09a863bdce2370aad7d68aff5743572ba825a7b))
+* **predefinedEvent:** move predefinedEvent name inside the payload ([6cb30b6](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/6cb30b6d1c07ca637a4260e2a09f7d3221eb76f6))
+* **SessionV2:** change on the RegisterServer. Either do nothing, or fast forward to SendServerFunction. ConnectToDSHub() is automatically handled by each async task on Finalize() ([2d65317](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/2d65317a09f563ae3dcc1c626c190a17b399d603))
+* **SessionV2:** flip the default behavior, set server ready is manual and recommended to disabled. (previous: manual set server ready is required) ([ecd1e53](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/ecd1e53c3a482b846c60d817f0086f46f8a5f1c8))
+* trigger OnBlockListChangeDelegates only if the list changed ([3b28f41](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/3b28f4123626f5cf8eceabe46a12d2ecc5345db1))
+
 ### [0.11.26](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.11.26%0D0.11.25) (2023-10-30)
 
 

@@ -6,11 +6,13 @@ The AccelByte Cloud OSS is designed to handle higher level logic with asynchrono
 delegates, and is also designed to  be modular by grouping similar service-specific APIs that support features together.
 ## Supported Unreal Engine
 - [ ] Unreal Engine 4.25
-- [x] Unreal Engine 4.26
-- [x] Unreal Engine 4.27
-- [x] Unreal Engine 5.0
-- [x] Unreal Engine 5.1
-- [x] Unreal Engine 5.2
+- [ ] Unreal Engine 4.26
+- [x] Unreal Engine 4.27.x
+- [x] Unreal Engine 5.0.x
+- [x] Unreal Engine 5.1.x
+- [x] Unreal Engine 5.2.x
+- [x] Unreal Engine 5.3.x
+
 ## Dependencies
 AccelByte OSS have some dependencies to another Plugins/Modules, such as the following:
 1. AccelByte Cloud Unreal Engine SDK ([link](https://github.com/accelbyte/accelbyte-unreal-sdk-plugin)):

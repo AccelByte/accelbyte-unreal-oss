@@ -443,9 +443,16 @@ void FOnlineFriendsAccelByte::AddBlockedPlayersToList(const TSharedRef<const FUn
 		return;
 	}
 
+	FScopeLock ScopeLock(&UserIdToBlockedPlayersMapLock);
 	FBlockedPlayerArray* FoundBlockedPlayersList = UserIdToBlockedPlayersMap.Find(UserId);
 	if (FoundBlockedPlayersList != nullptr)
 	{
+		if (!IsBlockedPlayersListChanged(*FoundBlockedPlayersList, NewBlockedPlayers))
+		{
+			UE_LOG_AB(Warning, TEXT("Blocked players list is not changed, skipping updating list."));
+			return;
+		}
+
 		// Since we do not want duplicate entries for blocked players in the list, and this is only really called by QueryBlockedPlayers
 		// which gets the full blocked list already, then we just want to clear the existing array and add our new blocked
 		// list that we just retrieved
@@ -477,6 +484,7 @@ void FOnlineFriendsAccelByte::AddBlockedPlayerToList(int32 LocalUserNum, const T
 	}
 
 	// Convert the net ID from the identity interface to an AccelByte net ID for the map query
+	FScopeLock ScopeLock(&UserIdToBlockedPlayersMapLock);
 	TSharedRef<const FUniqueNetIdAccelByteUser> NetId = FUniqueNetIdAccelByteUser::CastChecked(UserId.ToSharedRef());
 	FBlockedPlayerArray* FoundBlockedPlayersList = UserIdToBlockedPlayersMap.Find(NetId);
 	if (FoundBlockedPlayersList != nullptr)
@@ -490,11 +498,10 @@ void FOnlineFriendsAccelByte::AddBlockedPlayerToList(int32 LocalUserNum, const T
 		if (FoundBlockedPlayer != nullptr)
 		{
 			*FoundBlockedPlayer = NewBlockedPlayer;
+			return;
 		}
-		else
-		{
-			FoundBlockedPlayersList->Add(NewBlockedPlayer);
-		}
+
+		FoundBlockedPlayersList->Add(NewBlockedPlayer);
 	}
 	else
 	{
@@ -523,6 +530,7 @@ void FOnlineFriendsAccelByte::RemoveBlockedPlayerFromList(int32 LocalUserNum, co
 	}
 
 	// Convert the net ID from the identity interface to an AccelByte net ID for the map query
+	FScopeLock ScopeLock(&UserIdToBlockedPlayersMapLock);
 	TSharedRef<const FUniqueNetIdAccelByteUser> NetId = FUniqueNetIdAccelByteUser::CastChecked(UserId.ToSharedRef());
 	FBlockedPlayerArray* FoundBlockedPlayerList = UserIdToBlockedPlayersMap.Find(NetId);
 	if (FoundBlockedPlayerList != nullptr)
@@ -534,9 +542,9 @@ void FOnlineFriendsAccelByte::RemoveBlockedPlayerFromList(int32 LocalUserNum, co
 		if (FoundBlockedPlayerIndex != INDEX_NONE)
 		{
 			FoundBlockedPlayerList->RemoveAt(FoundBlockedPlayerIndex);
+			TriggerOnBlockListChangeDelegates(LocalUserNum, EFriendsLists::ToString(EFriendsLists::Default));
 		}
 	}
-	TriggerOnBlockListChangeDelegates(LocalUserNum, EFriendsLists::ToString(EFriendsLists::Default));
 }
 
 
@@ -775,6 +783,7 @@ bool FOnlineFriendsAccelByte::GetRecentPlayers(const FUniqueNetId& UserId, const
 
 bool FOnlineFriendsAccelByte::GetBlockedPlayers(const FUniqueNetId& UserId, TArray<TSharedRef<FOnlineBlockedPlayer>>& OutBlockedPlayers)
 {
+	FScopeLock ScopeLock(&UserIdToBlockedPlayersMapLock);
 	const TSharedRef<const FUniqueNetIdAccelByteUser> NetId = FUniqueNetIdAccelByteUser::CastChecked(UserId);
 	const FBlockedPlayerArray* BlockedPlayersList = UserIdToBlockedPlayersMap.Find(NetId);
 	if (BlockedPlayersList != nullptr)
@@ -824,5 +833,39 @@ void FOnlineFriendsAccelByte::DumpBlockedPlayers() const
 		}
 	}
 }
+
+bool FOnlineFriendsAccelByte::IsBlockedPlayersListChanged(const TArray<TSharedPtr<FOnlineBlockedPlayer>>& OldBlockedPlayersList,
+	const TArray<TSharedPtr<FOnlineBlockedPlayer>>& NewBlockedPlayersList)
+{
+	// If the size of old and new blocked players array list different then the list definitely changed
+	if (OldBlockedPlayersList.Num() != NewBlockedPlayersList.Num())
+	{
+		return true;
+	}
+
+	TArray<FString> OldBlockedPlayersUserId;
+	for (const auto& BlockedPlayer : OldBlockedPlayersList)
+	{
+		const FString UserId = FUniqueNetIdAccelByteUser::CastChecked(BlockedPlayer->GetUserId())->GetAccelByteId();
+		OldBlockedPlayersUserId.Add(UserId);
+	}
+	OldBlockedPlayersUserId.Sort();
+
+	TArray<FString> NewBlockedPlayersUserId;
+	for (const auto& BlockedPlayer : NewBlockedPlayersList)
+	{
+		const FString UserId = FUniqueNetIdAccelByteUser::CastChecked(BlockedPlayer->GetUserId())->GetAccelByteId();
+		NewBlockedPlayersUserId.Add(UserId);
+	}
+	NewBlockedPlayersUserId.Sort();
+
+	if (OldBlockedPlayersUserId == NewBlockedPlayersUserId)
+	{
+		return false;
+	}
+
+	return true;
+}
+
 
 #undef ONLINE_ERROR_NAMESPACE

@@ -4,6 +4,7 @@
 
 #include "OnlineAsyncTaskAccelByteReadLeaderboardsAroundRank.h"
 #include "Containers/Array.h"
+#include "OnlinePredefinedEventInterfaceAccelByte.h"
 
 using namespace AccelByte;
 
@@ -93,6 +94,31 @@ void FOnlineAsyncTaskAccelByteReadLeaderboardsAroundRank::Finalize()
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Finalize"));
 
 	LeaderboardReadRef->ReadState = bWasSuccessful ? EOnlineAsyncTaskState::Done : EOnlineAsyncTaskState::Failed;
+
+	if (bWasSuccessful)
+	{
+		const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = Subsystem->GetPredefinedEventInterface();
+		if (PredefinedEventInterface.IsValid())
+		{
+			if (bUseCycle)
+			{
+				FAccelByteModelsLeaderboardGetRankingByCycleIdPayload LeaderboardGetRankingByCycleIdPayload{};
+				LeaderboardGetRankingByCycleIdPayload.LeaderboardCode = LeaderboardReadRef->LeaderboardName.ToString();
+				LeaderboardGetRankingByCycleIdPayload.CycleId = CycleId;
+				LeaderboardGetRankingByCycleIdPayload.UserId = UserId->GetAccelByteId();
+
+				PredefinedEventInterface->SendEvent(LocalUserNum, MakeShared<FAccelByteModelsLeaderboardGetRankingByCycleIdPayload>(LeaderboardGetRankingByCycleIdPayload));
+			}
+			else
+			{
+				FAccelByteModelsLeaderboardGetRankingsPayload LeaderboardGetRankingsPayload{};
+				LeaderboardGetRankingsPayload.LeaderboardCode = LeaderboardReadRef->LeaderboardName.ToString();
+				LeaderboardGetRankingsPayload.UserId = UserId->GetAccelByteId();
+
+				PredefinedEventInterface->SendEvent(LocalUserNum, MakeShared<FAccelByteModelsLeaderboardGetRankingsPayload>(LeaderboardGetRankingsPayload));
+			}
+		}
+	}
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }

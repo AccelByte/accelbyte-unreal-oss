@@ -127,7 +127,7 @@ PACKAGE_SCOPE:
 	void UpdatePlayerLists(bool& bOutJoinedMembersChanged, bool& bOutInvitedPlayersChanged);
 
 	/**
-	 * Update the stored leader ID for this session. Intended only for use with party sessions.
+	 * Update the stored leader ID for this session.
 	 */
 	void UpdateLeaderId();
 
@@ -209,7 +209,7 @@ private:
 	TArray<FUniqueNetIdRef> InvitedPlayers{};
 
 	/**
-	 * ID of the leader of this session. Only will be valid for party sessions.
+	 * ID of the leader of this session.
 	 */
 	FUniqueNetIdPtr LeaderId{};
 
@@ -643,6 +643,13 @@ public:
 	 * This will also establish a connection with the DSHub service for session updates.
 	 */
 	void RegisterServer(FName SessionName, const FOnRegisterServerComplete& Delegate=FOnRegisterServerComplete());
+
+	/**
+	* @brief Notify the backend service that the server is already complete the prerequisite action(s) and ready to accept player.
+	* Either automatically called from RegisterServer if condition met (bRegisterServerOnAutoLogin is true)
+	* else call it manually after RegisterServer.
+	*/
+	void SendServerReady(FName SessionName, const FOnRegisterServerComplete& Delegate=FOnRegisterServerComplete());
 
 	/**
 	 * Unregister a dedicated server from Armada
@@ -1493,7 +1500,27 @@ private:
 	/** Time in seconds that we clear the array of canceled ticket IDs (default to five minutes) */
 	double ClearCanceledTicketIdsTimeInSeconds = 300.0;
 
-	bool bServerUseAMS = false;
+	/**
+	* It decides whether the GameServer is automatically register itself or should be done manually. 
+	* Value depends to the configuration in the DefaultEngine.ini
+	* Section: [OnlineSubsystemAccelByte]
+	* Key: bManualRegisterServer (boolean)
+	* Effect TRUE: Developer is required to manually call the SendServerReady() after perform RegisterServer()
+	* Effect FALSE: Automatically handled & there is no need to call SendServerReady() after perform the RegisterServer()
+	* Default behavior: if not specified then FALSE
+	*/
+	bool bManualRegisterServer = false;
+
+	/** Trigger warning to notify that the DS is not flag itself as ready after several minutes. */
+	bool OnServerNotSendReadyWhenTimesUp(float DeltaTime, FOnRegisterServerComplete Delegate);
+
+	/** Reset the bound delegate and timer. */
+	void ResetWarningReminderForServerSendReady();
+
+	/** Prevent a dangling dedicated server that forgot to flag the server ready (Call SendServerReady() function) */
+	FTickerDelegate SendServerReadyWarningReminderDelegate;
+	FDelegateHandleAlias SendServerReadyWarningReminderHandle;
+	const int SendServerReadyWarningInMinutes = 5;
 
 	/** Hidden on purpose */
 	FOnlineSessionV2AccelByte() :
@@ -1511,6 +1538,7 @@ private:
 	void OnGameSessionUpdatedNotification(FAccelByteModelsV2GameSession UpdatedGameSession, int32 LocalUserNum);
 	void OnKickedFromGameSessionNotification(FAccelByteModelsV2GameSessionUserKickedEvent KickedEvent, int32 LocalUserNum);
 	void OnDsStatusChangedNotification(FAccelByteModelsV2DSStatusChangedNotif DsStatusChangeEvent, int32 LocalUserNum);
+	void OnGameSessionInviteRejectedNotification(FAccelByteModelsV2GameSessionUserRejectedEvent RejectEvent, int32 LocalUserNum);
 	//~ End Game Session Notification Handlers
 
 	//~ Begin Party Session Notification Handlers

@@ -3,6 +3,7 @@
 // and restrictions contact your company contract manager.
 
 #include "OnlineAsyncTaskAccelByteChatSendPersonalChat.h"
+#include "OnlinePredefinedEventInterfaceAccelByte.h"
 
 using namespace AccelByte;
 
@@ -161,5 +162,13 @@ void FOnlineAsyncTaskAccelByteChatSendPersonalChat::OnCreatePersonalTopicSuccess
 	
 	SendPersonalChat();
 
+	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = Subsystem->GetPredefinedEventInterface();
+	if (PredefinedEventInterface.IsValid())
+	{
+		FAccelByteModelsChatV2PersonalTopicCreatedPayload TopicCreatedPayload{};
+		TopicCreatedPayload.UserId = UserId->GetAccelByteId();
+		TopicCreatedPayload.TargetUserId = RecipientId->GetAccelByteId();
+		PredefinedEventInterface->SendEvent(LocalUserNum, MakeShared<FAccelByteModelsChatV2PersonalTopicCreatedPayload>(TopicCreatedPayload));
+	}
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }

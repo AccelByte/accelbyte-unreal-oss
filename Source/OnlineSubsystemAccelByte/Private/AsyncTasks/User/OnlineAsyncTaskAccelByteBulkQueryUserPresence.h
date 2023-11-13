@@ -1,4 +1,4 @@
-// Copyright (c) 2022 AccelByte Inc. All Rights Reserved.
+// Copyright (c) 2023 AccelByte Inc. All Rights Reserved.
 // This is licensed software from AccelByte Inc, for limitations
 // and restrictions contact your company contract manager.
 #pragma once
@@ -11,13 +11,13 @@
 /**
  * Async task to query user presence using Locker API.
  */
-class FOnlineAsyncTaskAccelByteQueryUserPresence
+class FOnlineAsyncTaskAccelByteBulkQueryUserPresence
 	: public FOnlineAsyncTaskAccelByte
-	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteQueryUserPresence, ESPMode::ThreadSafe>
+	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteBulkQueryUserPresence, ESPMode::ThreadSafe>
 {
 public:
 
-	FOnlineAsyncTaskAccelByteQueryUserPresence(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InTargetUserId, const IOnlinePresence::FOnPresenceTaskCompleteDelegate& InDelegate, int32 InLocalUserNum);
+	FOnlineAsyncTaskAccelByteBulkQueryUserPresence(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InUserId, const TArray<FUniqueNetIdRef>& InTargetUserIds);
 
 	virtual void Initialize() override;
 	virtual void Finalize() override;
@@ -26,19 +26,16 @@ public:
 protected:
 
 	virtual const FString GetTaskName() const override {
-		return TEXT("FOnlineAsyncTaskAccelByteQueryUserPresence");
+		return TEXT("FOnlineAsyncTaskAccelByteBulkQueryUserPresence");
 	}
 
 private:
 
 	/** UserId of the friend we want to get the presence for */
-	TSharedRef<const FUniqueNetIdAccelByteUser> TargetUserId;
+	TArray<TSharedRef<const FUniqueNetIdAccelByteUser>> TargetUserIds;
 
-	/** Local presence cached on the client */
-	TSharedRef<FOnlineUserPresenceAccelByte> PresenceResult;
-
-	/** Delegate to be fired after QueryUserPresence is complete */
-	IOnlinePresence::FOnPresenceTaskCompleteDelegate Delegate;
+	/** Map of user IDs with presence we bulk queried */
+	TMap<FString, TSharedRef<FOnlineUserPresenceAccelByte>> PresenceResult;
 
 	/** Delegate handler for when the QueryUserPresence call fails */
 	void OnQueryUserPresenceError(int32 ErrorCode, const FString& ErrorMessage);

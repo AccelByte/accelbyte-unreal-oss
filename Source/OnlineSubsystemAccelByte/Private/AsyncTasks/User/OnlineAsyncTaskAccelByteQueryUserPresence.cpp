@@ -13,7 +13,7 @@ using namespace AccelByte;
 FOnlineAsyncTaskAccelByteQueryUserPresence::FOnlineAsyncTaskAccelByteQueryUserPresence(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InTargetUserId, const IOnlinePresence::FOnPresenceTaskCompleteDelegate& InDelegate, int32 InLocalUserNum)
 	: FOnlineAsyncTaskAccelByte(InABInterface, true)
 	, TargetUserId(FUniqueNetIdAccelByteUser::CastChecked(InTargetUserId))
-	, LocalCachedPresence(MakeShared<FOnlineUserPresenceAccelByte>())
+	, PresenceResult(MakeShared<FOnlineUserPresenceAccelByte>())
 	, Delegate(InDelegate)
 {
 	LocalUserNum = InLocalUserNum;
@@ -37,15 +37,16 @@ void FOnlineAsyncTaskAccelByteQueryUserPresence::Initialize()
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 
-void FOnlineAsyncTaskAccelByteQueryUserPresence::Finalize() 
+void FOnlineAsyncTaskAccelByteQueryUserPresence::Finalize()
 {
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
-	if (bWasSuccessful) 
+	if(bWasSuccessful)
 	{
-		// #AB #TODO (Voltaire) set cached presence in AccelBytePresenceInterface here?
+		const FOnlinePresenceAccelBytePtr PresenceInterface = StaticCastSharedPtr<FOnlinePresenceAccelByte>(Subsystem->GetPresenceInterface());
+		PresenceInterface->UpdatePresenceCache(TargetUserId->GetAccelByteId(), PresenceResult);
 	}
-
+	
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 
@@ -56,7 +57,7 @@ void FOnlineAsyncTaskAccelByteQueryUserPresence::TriggerDelegates()
 	const IOnlinePresencePtr PresenceInterface = Subsystem->GetPresenceInterface();
 	if (PresenceInterface.IsValid()) 
 	{
-		PresenceInterface->TriggerOnPresenceReceivedDelegates(TargetUserId.Get(), LocalCachedPresence);
+		PresenceInterface->TriggerOnPresenceReceivedDelegates(TargetUserId.Get(), PresenceResult);
 		Delegate.ExecuteIfBound(TargetUserId.Get(), bWasSuccessful);
 	}
 
@@ -72,7 +73,6 @@ void FOnlineAsyncTaskAccelByteQueryUserPresence::OnQueryUserPresenceError(int32 
 void FOnlineAsyncTaskAccelByteQueryUserPresence::OnQueryUserPresenceSuccess(const FAccelByteModelsBulkUserStatusNotif& Result) {
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Query User Presence succeeded"));
 
-	LocalCachedPresence = StaticCastSharedPtr<FOnlinePresenceAccelByte>(Subsystem->GetPresenceInterface())->FindOrCreatePresence(TargetUserId);
 	FOnlineUserPresenceStatusAccelByte PresenceStatus;
 	
 	// We can only set status if we have data from the backend, if we don't have this, then the user is offline
@@ -80,19 +80,26 @@ void FOnlineAsyncTaskAccelByteQueryUserPresence::OnQueryUserPresenceSuccess(cons
 	{
 		PresenceStatus.StatusStr = Result.Data[0].Activity;
 		PresenceStatus.SetPresenceStatus(Result.Data[0].Availability);
+		if(!FDateTime::ParseIso8601(*Result.Data[0].LastSeenAt, PresenceResult->LastOnline))
+		{
+			UE_LOG_AB(Warning, TEXT("Unable to parse presence LastSeenAt from %s to FDateTime"), *Result.Data[0].LastSeenAt);
+		}
 	}
 
-	LocalCachedPresence->Status = PresenceStatus;
-	LocalCachedPresence->bIsOnline = Result.Online;
-	LocalCachedPresence->bIsPlayingThisGame = Result.Online;
-	CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
+	PresenceResult->Status = PresenceStatus;
 
 	if (Result.Data.Num() <= 0)
 	{
+		PresenceResult->bIsOnline = Result.Offline;
+		PresenceResult->bIsPlayingThisGame = Result.Offline;
 		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Query User Presence succeeded, however no user presence data was obtained from user: %s. This user's presence may have not been queried recently. Marking user as offline."), *TargetUserId->ToDebugString());
 	}
 	else
 	{
+		PresenceResult->bIsOnline = Result.Online;
+		PresenceResult->bIsPlayingThisGame = Result.Online;
 		AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 	}
+
+	CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
 }

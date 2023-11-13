@@ -5,6 +5,7 @@
 #include "OnlineAsyncTaskAccelByteChatJoinPublicRoom.h"
 
 #include "OnlineAsyncTaskAccelByteChatQueryRoomById.h"
+#include "OnlinePredefinedEventInterfaceAccelByte.h"
 
 using namespace AccelByte;
 
@@ -82,6 +83,15 @@ void FOnlineAsyncTaskAccelByteChatJoinPublicRoom::Finalize()
 		}
 
 		ChatInterface->AddTopic(JoinedRoomInfoPtr.ToSharedRef());
+
+		const FOnlinePredefinedEventAccelBytePtr PredefinedEvent = Subsystem->GetPredefinedEventInterface();
+		if (PredefinedEvent.IsValid())
+		{
+			FAccelByteModelsChatV2TopicJoinedPayload TopicJoinedPayload{};
+			TopicJoinedPayload.UserId = UserId->GetAccelByteId();
+			TopicJoinedPayload.TopicId = RoomId;
+			PredefinedEvent->SendEvent(LocalUserNum, MakeShared<FAccelByteModelsChatV2TopicJoinedPayload>(TopicJoinedPayload));
+		}
 	}
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

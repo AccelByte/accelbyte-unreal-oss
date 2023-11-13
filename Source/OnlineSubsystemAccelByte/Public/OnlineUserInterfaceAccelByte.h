@@ -60,6 +60,8 @@ typedef FOnLinkOtherPlatformIdComplete::FDelegate FOnLinkOtherPlatformIdComplete
 DECLARE_MULTICAST_DELEGATE_TwoParams(FOnUnlinkOtherPlatformIdComplete, bool /*bWasSuccessful*/, const FOnlineError & /*OnlineError*/);
 typedef FOnUnlinkOtherPlatformIdComplete::FDelegate FOnUnlinkOtherPlatformIdCompleteDelegate; 
 
+DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnCheckUserAccountAvailabilityComplete, bool /*bWasSuccessful*/, bool /*bUserExisted*/, const FOnlineError & /*OnlineError*/);
+typedef FOnCheckUserAccountAvailabilityComplete::FDelegate FOnCheckUserAccountAvailabilityCompleteDelegate;
 
 class ONLINESUBSYSTEMACCELBYTE_API FOnlineUserAccelByte : public IOnlineUser, public TSharedFromThis<FOnlineUserAccelByte, ESPMode::ThreadSafe>
 {
@@ -167,6 +169,18 @@ public:
 	DEFINE_ONLINE_DELEGATE_TWO_PARAM(OnUnlinkOtherPlatformIdComplete, bool /*bWasSuccessful*/, const FOnlineError & /*OnlineError*/);
 	void UnlinkOtherPlatformId(const FUniqueNetId& UserId, const FString& PlatformId);
 
+	/**
+	 * Delegate called when a controller-user check user account availability.
+	 */
+	DEFINE_ONLINE_DELEGATE_THREE_PARAM(OnCheckUserAccountAvailabilityComplete, bool /*bWasSuccessful*/, bool /*bUserExisted*/, const FOnlineErrorAccelByte & /*OnlineError*/);
+	/**
+	 *  Check users's account availability, available only using displayName field.   
+	 *
+	 * @param UserId The user's user ID
+	 * @param DisplayName User's display name value to be checked.
+	 */
+	void CheckUserAccountAvailability(const FUniqueNetId& UserId, const FString& DisplayName);
+	
 PACKAGE_SCOPE:
 
 #if WITH_DEV_AUTOMATION_TESTS

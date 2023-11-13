@@ -3,6 +3,7 @@
 // and restrictions contact your company contract manager.
 
 #include "OnlineAsyncTaskAccelByteReadLeaderboardAroundUser.h"
+#include "OnlinePredefinedEventInterfaceAccelByte.h"
 
 using namespace AccelByte;
 
@@ -72,6 +73,19 @@ void FOnlineAsyncTaskAccelByteReadLeaderboardAroundUser::Finalize()
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Finalize"));
 
 	LeaderboardObject->ReadState = bWasSuccessful ? EOnlineAsyncTaskState::Done : EOnlineAsyncTaskState::Failed;
+
+	if (bWasSuccessful)
+	{
+		const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = Subsystem->GetPredefinedEventInterface();
+		if (PredefinedEventInterface.IsValid())
+		{
+			FAccelByteModelsLeaderboardGetUserRankingPayload LeaderboardGetUserRankingPayload{};
+			LeaderboardGetUserRankingPayload.LeaderboardCode = LeaderboardObject->LeaderboardName.ToString();
+			LeaderboardGetUserRankingPayload.UserId = UserId->GetAccelByteId();
+
+			PredefinedEventInterface->SendEvent(LocalUserNum, MakeShared<FAccelByteModelsLeaderboardGetUserRankingPayload>(LeaderboardGetUserRankingPayload));
+		}
+	}
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }

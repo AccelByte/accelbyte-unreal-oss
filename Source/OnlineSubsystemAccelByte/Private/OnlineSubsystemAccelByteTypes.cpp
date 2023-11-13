@@ -734,6 +734,16 @@ void FUserOnlineAccountAccelByte::SetPublicCode(const FString& InPublicCode)
 	PublicCode = InPublicCode;
 }
 
+FString FUserOnlineAccountAccelByte::GetPlatformUserId() const
+{
+	return PlatformUserId;
+}
+
+void FUserOnlineAccountAccelByte::SetPlatformUserId(const FString& InPlatformUserId)
+{
+	PlatformUserId = InPlatformUserId;
+}
+
 bool FUserOnlineAccountAccelByte::GetUserAttribute(const FString& AttrName, FString& OutAttrValue) const
 {
 	const FString* FoundAttr = UserAttributes.Find(AttrName);

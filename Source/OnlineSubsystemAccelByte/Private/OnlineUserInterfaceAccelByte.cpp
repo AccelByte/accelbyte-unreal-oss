@@ -17,11 +17,12 @@
 #include "AsyncTasks/User/OnlineAsyncTaskAccelByteQueryExternalIdMappings.h"
 #include "AsyncTasks/User/OnlineAsyncTaskAccelByteQueryUserProfile.h"
 #include "AsyncTasks/User/OnlineAsyncTaskAccelByteCreateUserProfile.h"
-#include "AsyncTasks/User/FOnlineAsyncTaskAccelByteListUserByUserId.h"
+#include "AsyncTasks/User/OnlineAsyncTaskAccelByteListUserByUserId.h"
 #include "AsyncTasks/User/OnlineAsyncTaskAccelByteLinkOtherPlatform.h"
 #include "AsyncTasks/User/OnlineAsyncTaskAccelByteUnlinkOtherPlatform.h"
 #include "AsyncTasks/User/OnlineAsyncTaskAccelByteLinkOtherPlatformId.h"
 #include "AsyncTasks/User/OnlineAsyncTaskAccelByteUnlinkOtherPlatformId.h"
+#include "AsyncTasks/User/OnlineAsyncTaskAccelByteCheckUserAccountAvailability.h"
 #include "OnlineSubsystemUtils.h"
 
 #define ONLINE_ERROR_NAMESPACE "FOnlineUserAccelByte"
@@ -332,5 +333,11 @@ void FOnlineUserAccelByte::UnlinkOtherPlatformId(const FUniqueNetId& UserId, con
 		(AccelByteSubsystem, UserId, PlatformId);
 }
 
+void FOnlineUserAccelByte::CheckUserAccountAvailability(const FUniqueNetId& UserId, const FString& DisplayName)
+{
+	UE_LOG_AB(Display, TEXT("FOnlineIdentityAccelByte::CheckUserAccountAvailability"));
+	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteCheckUserAccountAvailability>
+		(AccelByteSubsystem, UserId, DisplayName);
+} 
 
 #undef ONLINE_ERROR_NAMESPACE

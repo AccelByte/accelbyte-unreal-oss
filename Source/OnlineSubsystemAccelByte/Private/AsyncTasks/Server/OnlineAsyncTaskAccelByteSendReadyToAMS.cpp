@@ -59,6 +59,17 @@ void FOnlineAsyncTaskAccelByteSendReadyToAMS::Finalize()
 {
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 	UnbindDelegates();
+	if (bWasSuccessful)
+	{
+		FOnlineSessionV2AccelBytePtr SessionInterface;
+		if (!ensure(FOnlineSessionV2AccelByte::GetFromSubsystem(Subsystem, SessionInterface)))
+		{
+			AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to ConnectToDSHub after Sending Ready to AMS as our session interface is invalid!"));
+			return;
+		}
+
+		SessionInterface->ConnectToDSHub(FRegistry::ServerSettings.DSId);
+	}
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 

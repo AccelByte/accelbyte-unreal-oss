@@ -792,6 +792,20 @@ public:
 	void SetPublicCode(const FString& InPublicCode);
 
 	/**
+	 * @brief Get Platform User ID from AccelByte services
+	 *
+	 * @return The user's PublicCode
+	 */
+	FString GetPlatformUserId() const;
+
+	/**
+	 * @brief Set Platform User ID, set on OnLoginSuccess Handler 
+	 *
+	 * @param InPlatformUserId The Platform User ID
+	 */
+	void SetPlatformUserId(const FString& InPlatformUserId);
+
+	/**
 	 * @brief A flag that indicates whether the user is connected to AccelByte Lobby or not
 	 *
 	 * @return bool Return connected status, true for connected and false for not connected
@@ -832,6 +846,9 @@ private:
 
 	/** Generated public user identifier code, usually used as a friend code **/
 	FString PublicCode;
+
+	/** Platform User ID associated with this account */
+	FString PlatformUserId;
 	
 	/** Additional key/value pair data related to auth */
 	TMap<FString, FString> AdditionalAuthData;

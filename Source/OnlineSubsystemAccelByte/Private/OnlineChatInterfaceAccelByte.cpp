@@ -4,6 +4,7 @@
 
 #include "OnlineChatInterfaceAccelByte.h"
 #include "OnlineIdentityInterfaceAccelByte.h"
+#include "OnlinePredefinedEventInterfaceAccelByte.h"
 #include "OnlineSubsystemAccelByteInternalHelpers.h"
 #include "OnlineSubsystemUtils.h"
 #include "Interfaces/OnlineIdentityInterface.h"
@@ -573,6 +574,15 @@ void FOnlineChatAccelByte::OnRemoveFromTopicNotification(const FAccelByteModelsC
 		TriggerOnChatRoomMemberExitDelegates(*UserIdPtr, RemoveTopicEvent.TopicId, *SenderUserId);
 	}
 	
+	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = AccelByteSubsystem->GetPredefinedEventInterface();
+	if (PredefinedEventInterface.IsValid())
+	{
+		FAccelByteModelsChatV2TopicUserRemovedPayload TopicUserRemovedPayload{};
+		TopicUserRemovedPayload.UserId = RemoveTopicEvent.UserId;
+		TopicUserRemovedPayload.TopicId = RemoveTopicEvent.TopicId;
+		PredefinedEventInterface->SendEvent(LocalUserNum, MakeShared<FAccelByteModelsChatV2TopicUserRemovedPayload>(TopicUserRemovedPayload));
+	}
+
 	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
 }
 
@@ -640,6 +650,15 @@ void FOnlineChatAccelByte::OnAddToTopicNotification(const FAccelByteModelsChatUp
 	
 	TriggerOnTopicAddedDelegates(AddTopicEvent.Name, AddTopicEvent.TopicId, AddTopicEvent.UserId);
 	
+	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = AccelByteSubsystem->GetPredefinedEventInterface();
+	if (PredefinedEventInterface.IsValid())
+	{
+		FAccelByteModelsChatV2TopicUserAddedPayload TopicUserAddedPayload{};
+		TopicUserAddedPayload.UserId = AddTopicEvent.UserId;
+		TopicUserAddedPayload.TopicId = AddTopicEvent.TopicId;
+		PredefinedEventInterface->SendEvent(LocalUserNum, MakeShared<FAccelByteModelsChatV2TopicUserAddedPayload>(TopicUserAddedPayload));
+	}
+
 	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
 }
 
@@ -698,6 +717,16 @@ void FOnlineChatAccelByte::OnUpdateTopicNotification(const FAccelByteModelsChatU
 	
 	TriggerOnTopicUpdatedDelegates(UpdateTopicNotif.Name, UpdateTopicNotif.TopicId, UpdateTopicNotif.SenderId, UpdateTopicNotif.IsChannel);
 
+	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = AccelByteSubsystem->GetPredefinedEventInterface();
+	if (PredefinedEventInterface.IsValid())
+	{
+		FAccelByteModelsChatV2TopicUpdatedPayload TopicUpdatedPayload{};
+		TopicUpdatedPayload.UserId = UpdateTopicNotif.SenderId;
+		TopicUpdatedPayload.Name = UpdateTopicNotif.Name;
+		TopicUpdatedPayload.IsChannel = UpdateTopicNotif.IsChannel;
+		PredefinedEventInterface->SendEvent(LocalUserNum, MakeShared<FAccelByteModelsChatV2TopicUpdatedPayload>(TopicUpdatedPayload));
+	}
+
 	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
 }
 
@@ -708,6 +737,14 @@ void FOnlineChatAccelByte::OnDeleteTopicNotification(const FAccelByteModelsChatU
 	RemoveTopic(DeleteTopicNotif.TopicId);
 	TriggerOnTopicDeletedDelegates(DeleteTopicNotif.Name, DeleteTopicNotif.TopicId, DeleteTopicNotif.SenderId, DeleteTopicNotif.IsChannel);
 
+	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = AccelByteSubsystem->GetPredefinedEventInterface();
+	if (PredefinedEventInterface.IsValid())
+	{
+		FAccelByteModelsChatV2TopicDeletedPayload TopicDeletedPayload{};
+		TopicDeletedPayload.UserId = DeleteTopicNotif.SenderId;
+		TopicDeletedPayload.TopicId = DeleteTopicNotif.Name;
+		PredefinedEventInterface->SendEvent(LocalUserNum, MakeShared<FAccelByteModelsChatV2TopicDeletedPayload>(TopicDeletedPayload));
+	}
 	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
 }
 

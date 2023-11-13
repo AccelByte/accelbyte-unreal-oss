@@ -16,6 +16,7 @@ class FOnlineAsyncTaskAccelByteConnectChat
 	FOnlineAsyncTaskAccelByteConnectChat(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InLocalUserId);
 
 	virtual void Initialize() override;
+	virtual void Finalize() override;
 	virtual void TriggerDelegates() override;
 
 protected:
@@ -44,7 +45,7 @@ private:
 	AccelByte::Api::Chat::FChatDisconnectNotif OnChatDisconnectedNotifDelegate;
 
 	/** Delegate handler for when a chat connection is disconnected. */
-	static void OnChatConnectionClosed(int32 StatusCode, const FString& Reason, bool WasClean, int32 InLocalUserNum, const FOnlineIdentityAccelBytePtr IdentityInterface);
+	static void OnChatConnectionClosed(int32 StatusCode, const FString& Reason, bool WasClean, int32 InLocalUserNum, const FOnlineIdentityAccelBytePtr IdentityInterface, const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface);
 
 	void UnbindDelegates();
 
@@ -52,4 +53,5 @@ private:
 	 * String representing the error code that occurred
 	 */
 	FString ErrorStr;
+
 };

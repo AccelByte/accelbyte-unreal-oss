@@ -457,7 +457,7 @@ void FOnlineAsyncTaskAccelByteLogin::OnLoginSuccess()
 
 	// Create a new user ID instance for the user that we just logged in as
 	FAccelByteUniqueIdComposite CompositeId;
-	CompositeId.Id = ApiClient->CredentialsRef->GetUserId();
+	CompositeId.Id = ApiClient->CredentialsRef->GetUserId();   
 
 	// Add platform information to composite ID for login
 	if (NativePlatformPlayerId.IsValid())
@@ -476,6 +476,7 @@ void FOnlineAsyncTaskAccelByteLogin::OnLoginSuccess()
 	Account = MakeShared<FUserOnlineAccountAccelByte>(UserId.ToSharedRef());
 	Account->SetDisplayName(ApiClient->CredentialsRef->GetUserDisplayName());
 	Account->SetAccessToken(ApiClient->CredentialsRef->GetAccessToken());
+	Account->SetPlatformUserId(ApiClient->CredentialsRef->GetPlatformUserId());
 
 	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(Subsystem->GetIdentityInterface());
 	if (!IdentityInterface.IsValid())
@@ -508,7 +509,7 @@ void FOnlineAsyncTaskAccelByteLogin::OnLoginSuccess()
 	{
 		SessionInterface->InitializePlayerAttributes(UserId.ToSharedRef().Get());	
 	}
-#endif
+#endif 
 
 	CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
@@ -518,8 +519,8 @@ void FOnlineAsyncTaskAccelByteLogin::OnLoginErrorOAuth(int32 InErrorCode, const 
 {
 	UE_LOG_AB(Warning, TEXT("Failed to login to the AccelByte backend! Error Code: %d; Error Message: %s"), InErrorCode, *ErrorMessage);
 	ErrorCode = InErrorCode;
-	ErrorOAuthObject = ErrorObject;
-	ErrorStr = TEXT("login-failed-connect");
+	ErrorOAuthObject = ErrorObject; 
+	ErrorStr = ErrorMessage;
 	if (ErrorCode == 400 || ErrorCode == 403) // Permanent ban
 	{
 		if (ErrorObject.UserBan.Reason != EBanReason::EMPTY)

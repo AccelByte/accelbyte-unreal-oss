@@ -3,6 +3,7 @@
 // and restrictions contact your company contract manager.
 
 #include "OnlineAsyncTaskAccelByteChatCreateRoom.h"
+#include "OnlinePredefinedEventInterfaceAccelByte.h"
 
 using namespace AccelByte;
 
@@ -29,7 +30,9 @@ void FOnlineAsyncTaskAccelByteChatCreateRoom::Initialize()
 	const FErrorHandler OnCreateGroupTopicErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteChatCreateRoom::OnCreateGroupTopicError);
 
 	// #NOTE Passing UserIds as both members and admins, since the creating user should be both
-	ApiClient->Chat.CreateGroupTopic(UserIds, UserIds, ChatRoomConfig.FriendlyName, ChatRoomConfig.bIsJoinable, OnCreateGroupTopicSuccessDelegate, OnCreateGroupTopicErrorDelegate);
+	Members = UserIds;
+	Admins = UserIds;
+	ApiClient->Chat.CreateGroupTopic(Members, Admins, ChatRoomConfig.FriendlyName, ChatRoomConfig.bIsJoinable, OnCreateGroupTopicSuccessDelegate, OnCreateGroupTopicErrorDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
@@ -75,6 +78,18 @@ void FOnlineAsyncTaskAccelByteChatCreateRoom::Finalize()
 			TopicData.Members.Add(UserId->GetAccelByteId());
 			ChatRoomInfo->SetTopicData(TopicData);
 			ChatInterface->AddTopic(ChatRoomInfo);
+		}
+
+		const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = Subsystem->GetPredefinedEventInterface();
+		if (PredefinedEventInterface.IsValid())
+		{
+			FAccelByteModelsChatV2GroupTopicCreatedPayload GroupTopicCreatedPayload{};
+			GroupTopicCreatedPayload.UserId = UserId->GetAccelByteId();
+			GroupTopicCreatedPayload.Members = Members;
+			GroupTopicCreatedPayload.Admins = Admins;
+			GroupTopicCreatedPayload.Name = ChatRoomConfig.FriendlyName;
+			GroupTopicCreatedPayload.IsJoinable = ChatRoomConfig.bIsJoinable;
+			PredefinedEventInterface->SendEvent(LocalUserNum, MakeShared<FAccelByteModelsChatV2GroupTopicCreatedPayload>(GroupTopicCreatedPayload));
 		}
 	}
 

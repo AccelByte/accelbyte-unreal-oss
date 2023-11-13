@@ -39,4 +39,6 @@ private:
 
 	FString RoomId;
 	FString ErrorString{};
+	TSet<FString> Members{};
+	TSet<FString> Admins{};
 };

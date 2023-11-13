@@ -10,6 +10,7 @@
 #include "AsyncTasks/User/OnlineAsyncTaskAccelByteQueryUserPresence.h"
 #include "AsyncTasks/User/OnlineAsyncTaskAccelByteSetUserPresence.h"
 #include "OnlineSubsystemUtils.h"
+#include "AsyncTasks/User/OnlineAsyncTaskAccelByteBulkQueryUserPresence.h"
 
 FOnlinePresenceAccelByte::FOnlinePresenceAccelByte(FOnlineSubsystemAccelByte* InSubsystem) 
 	: AccelByteSubsystem(InSubsystem)
@@ -73,8 +74,14 @@ void FOnlinePresenceAccelByte::OnFriendStatusChangedNotificationReceived(const F
 	FriendPresence->Status = PresenceStatus;
 	FriendPresence->bIsOnline = Notification.Availability == EAvailability::Online ? true : false;
 	FriendPresence->bIsPlayingThisGame = Notification.Availability == EAvailability::Online ? true : false;
+	FriendPresence->LastOnline = Notification.LastSeenAt;
 
 	TriggerOnPresenceReceivedDelegates(FriendId.Get(), FriendPresence.ToSharedRef());
+}
+
+TMap<FString, TSharedRef<FOnlineUserPresenceAccelByte>> FOnlinePresenceAccelByte::GetCachedPresence() const
+{
+	return CachedPresenceByUserId;
 }
 
 void FOnlinePresenceAccelByte::SetPresence(const FUniqueNetId& User, const FOnlineUserPresenceStatus& Status, const FOnPresenceTaskCompleteDelegate& Delegate) 
@@ -98,12 +105,31 @@ void FOnlinePresenceAccelByte::SetPresence(const FUniqueNetId& User, const FOnli
 	Delegate.ExecuteIfBound(User, false);
 }
 
+void FOnlinePresenceAccelByte::UpdatePresenceCache(const TMap<FString, TSharedRef<FOnlineUserPresenceAccelByte>>& NewPresences)
+{
+	FScopeLock ScopeLock(&PresenceCacheLock);
+	
+	CachedPresenceByUserId.Append(NewPresences);
+}
+
+void FOnlinePresenceAccelByte::UpdatePresenceCache(const FString& UserID, const TSharedRef<FOnlineUserPresenceAccelByte>& Presence)
+{
+	FScopeLock ScopeLock(&PresenceCacheLock);
+	
+	CachedPresenceByUserId.Emplace(UserID, Presence);
+}
+
 void FOnlinePresenceAccelByte::QueryPresence(const FUniqueNetId& User, const FOnPresenceTaskCompleteDelegate& Delegate) 
 {
 	int32 LocalUserNum = AccelByteSubsystem->GetLocalUserNumCached();
 
 	// Async task to query presence from AccelByte backend
 	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteQueryUserPresence>(AccelByteSubsystem, User, Delegate, LocalUserNum);
+}
+
+void FOnlinePresenceAccelByte::BulkQueryPresence(const FUniqueNetId& LocalUserId, const TArray<FUniqueNetIdRef>& UserIds)
+{
+	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteBulkQueryUserPresence>(AccelByteSubsystem, LocalUserId, UserIds);
 }
 
 EOnlineCachedResult::Type FOnlinePresenceAccelByte::GetCachedPresence(const FUniqueNetId& User, TSharedPtr<FOnlineUserPresence>& OutPresence) 

@@ -622,7 +622,12 @@ bool FOnlineSessionV2AccelByte::GetFromWorld(const UWorld* World, FOnlineSession
 
 void FOnlineSessionV2AccelByte::Init()
 {
-	GConfig->GetBool(TEXT("OnlineSubsystemAccelByte"), TEXT("bServerUseAMS"), bServerUseAMS, GEngineIni);
+	if (GConfig->GetBool(TEXT("OnlineSubsystemAccelByte"), TEXT("bManualRegisterServer"), bManualRegisterServer, GEngineIni) == false)
+	{
+		// If the configuration field not found
+		bManualRegisterServer = false;
+	}
+
 	if (IsRunningDedicatedServer())
 	{
 		const FOnServerReceivedSessionDelegate OnServerReceivedSessionDelegate = FOnServerReceivedSessionDelegate::CreateThreadSafeSP(SharedThis(this), &FOnlineSessionV2AccelByte::OnServerReceivedSessionComplete_Internal);
@@ -793,6 +798,7 @@ void FOnlineSessionV2AccelByte::RegisterSessionNotificationDelegates(const FUniq
 	BIND_LOBBY_NOTIFICATION(GameSessionUpdated, GameSessionUpdated);
 	BIND_LOBBY_NOTIFICATION(GameSessionKicked, KickedFromGameSession);
 	BIND_LOBBY_NOTIFICATION(DSStatusChanged, DsStatusChanged);
+	BIND_LOBBY_NOTIFICATION(GameSessionRejected, GameSessionInviteRejected);
 	//~ End Game Session Notifications
 
 	// Begin Party Session Notifications
@@ -3752,39 +3758,101 @@ FNamedOnlineSession* FOnlineSessionV2AccelByte::GetNamedSessionById(const FStrin
 void FOnlineSessionV2AccelByte::RegisterServer(FName SessionName, const FOnRegisterServerComplete& Delegate)
 {
 	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT(""));
-	
-	// Only dedicated servers should be able to register to Armada
-	if (!IsRunningDedicatedServer())
+
+	EAccelByteCurrentServerManagementType CurrentServerType = FAccelByteUtilities::GetCurrentServerManagementType();
+	switch (CurrentServerType)
 	{
-		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to register server to Armada as the current game instance is not a dedicated server!"));
+	case EAccelByteCurrentServerManagementType::NOT_A_SERVER:
+		Delegate.ExecuteIfBound(false);
+		AB_OSS_INTERFACE_TRACE_END(TEXT("Attempt to RegisterServer from a non-server build."));
+		return;
+	default:
+		break;
+	}
+
+	if (bManualRegisterServer)
+	{
+		ResetWarningReminderForServerSendReady();
+		const float WarningDelaySeconds = SendServerReadyWarningInMinutes * 60.0f;
+		SendServerReadyWarningReminderDelegate = FTickerDelegate::CreateRaw(this, &FOnlineSessionV2AccelByte::OnServerNotSendReadyWhenTimesUp, Delegate);
+		SendServerReadyWarningReminderHandle = FTickerAlias::GetCoreTicker().AddTicker(SendServerReadyWarningReminderDelegate, WarningDelaySeconds);
+		AB_OSS_INTERFACE_TRACE_END(TEXT("This server requires to be set as Ready. Expecting to call SendServerReady() function."));
+	}
+	else //Automatic
+	{
+		SendServerReady(SessionName, Delegate);
+		AB_OSS_INTERFACE_TRACE_END(TEXT("OK. This server already call SendServerReady()."));
+	}
+}
+
+bool FOnlineSessionV2AccelByte::OnServerNotSendReadyWhenTimesUp(float DeltaTime, FOnRegisterServerComplete Delegate)
+{
+	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT(""));
+	Delegate.ExecuteIfBound(false);
+	ResetWarningReminderForServerSendReady();
+	AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Server is not flagged as ready in %d minutes.\nPlease call SendServerReady() function. "), SendServerReadyWarningInMinutes);
+
+	return false;
+}
+
+void FOnlineSessionV2AccelByte::ResetWarningReminderForServerSendReady()
+{
+	// Reminder removal
+	if (SendServerReadyWarningReminderHandle.IsValid())
+	{
+		SendServerReadyWarningReminderHandle.Reset();
+	}
+	if (SendServerReadyWarningReminderDelegate.IsBound())
+	{
+		SendServerReadyWarningReminderDelegate.Unbind();
+	}
+	FTickerAlias::GetCoreTicker().RemoveTicker(SendServerReadyWarningReminderHandle);
+}
+
+void FOnlineSessionV2AccelByte::SendServerReady(FName SessionName, const FOnRegisterServerComplete& Delegate)
+{	
+	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("SendServerReady()"));
+	ResetWarningReminderForServerSendReady();
+
+	EAccelByteCurrentServerManagementType CurrentServerType = FAccelByteUtilities::GetCurrentServerManagementType();
+	switch (CurrentServerType)
+	{
+	case EAccelByteCurrentServerManagementType::NOT_A_SERVER:
+	{
+		AccelByteSubsystem->ExecuteNextTick([SessionInterface = AsShared(), Delegate]()
+			{
+				Delegate.ExecuteIfBound(false);
+			});
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("SendServerReady() not executed because this is not a dedicated server"));
 		return;
 	}
-	
-	// Check if the server using AMS, if yes then try to connect to AMS
-	if (IsServerUseAMS() && !FRegistry::ServerSettings.DSId.IsEmpty())
+	case EAccelByteCurrentServerManagementType::ONLINE_AMS:
 	{
 		const AccelByte::GameServerApi::ServerAMS::FOnAMSDrainReceived OnAMSDrainReceivedDelegate = AccelByte::GameServerApi::ServerAMS::FOnAMSDrainReceived::CreateThreadSafeSP(SharedThis(this), &FOnlineSessionV2AccelByte::OnAMSDrain);
 		FRegistry::ServerAMS.SetOnAMSDrainReceivedDelegate(OnAMSDrainReceivedDelegate);
-		ConnectToDSHub(FRegistry::ServerSettings.DSId);
 		AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteSendReadyToAMS>(AccelByteSubsystem, Delegate);
 		AB_OSS_INTERFACE_TRACE_END(TEXT("Registering cloud server to AMS!"));
 		return;
 	}
-
-	// If not using AMS, for an Armada-spawned server pod, there will always be a POD_NAME environment variable set. For local servers this
-	// will most likely never be the case. With this, if we have the pod name variable, then register as a non-local server
-	// otherwise, register as a local server.
-	const FString PodName = FPlatformMisc::GetEnvironmentVariable(TEXT("POD_NAME"));
-	if (!PodName.IsEmpty())
+	case EAccelByteCurrentServerManagementType::ONLINE_ARMADA:
 	{
 		AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteRegisterRemoteServerV2>(AccelByteSubsystem, SessionName, Delegate);
 		AB_OSS_INTERFACE_TRACE_END(TEXT("Registering cloud server to Armada!"));
+		return;
 	}
-	else
+	case EAccelByteCurrentServerManagementType::LOCAL_SERVER:
 	{
 		// #NOTE Deliberately leaving out session name from the local task, as nothing in that task relies on the name
 		AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteRegisterLocalServerV2>(AccelByteSubsystem, Delegate);
 		AB_OSS_INTERFACE_TRACE_END(TEXT("Registering locally hosted server to Armada!"));
+		return;
+	}
+	default:
+		AccelByteSubsystem->ExecuteNextTick([SessionInterface = AsShared(), Delegate]()
+			{
+				Delegate.ExecuteIfBound(false);
+			});
+		return;
 	}
 }
 
@@ -3856,8 +3924,7 @@ EAccelByteV2SessionType FOnlineSessionV2AccelByte::GetSessionTypeFromSettings(co
 
 FUniqueNetIdPtr FOnlineSessionV2AccelByte::GetSessionLeaderId(const FNamedOnlineSession* Session) const
 {
-	const EAccelByteV2SessionType SessionType = GetSessionTypeFromSettings(Session->SessionSettings);
-	if (SessionType != EAccelByteV2SessionType::PartySession)
+	if (Session == nullptr)
 	{
 		return nullptr;
 	}
@@ -5687,7 +5754,7 @@ void FOnlineSessionV2AccelByte::AddCanceledTicketId(const FString& TicketId)
 
 bool FOnlineSessionV2AccelByte::IsServerUseAMS() const
 {
-	return bServerUseAMS;
+	return !FRegistry::ServerSettings.DSId.IsEmpty() && IsRunningDedicatedServer();
 }
 
 bool FOnlineSessionV2AccelByte::SendDSSessionReady()
@@ -5784,6 +5851,67 @@ bool FOnlineSessionV2AccelByte::HandleAutoJoinGameSession(const FAccelByteModels
 
 	AB_OSS_INTERFACE_TRACE_END(TEXT("The current user num %d (UserID: %s)  is not a member of the game session!"), LocalUserNum, *UserID);
 	return false;
+}
+
+void FOnlineSessionV2AccelByte::OnGameSessionInviteRejectedNotification(FAccelByteModelsV2GameSessionUserRejectedEvent RejectEvent, int32 LocalUserNum)
+{
+	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("LocalUserNum: %d; SessionId: %s"), LocalUserNum, *RejectEvent.SessionID);
+
+	FNamedOnlineSession* Session = GetNamedSessionById(RejectEvent.SessionID);
+	if (Session == nullptr)
+	{
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Could not update invites for session '%s' as we do not have that session stored locally!"), *RejectEvent.SessionID);
+		return;
+	}
+
+	// Grab session data to update members there
+	TSharedPtr<FOnlineSessionInfoAccelByteV2> SessionInfo = StaticCastSharedPtr<FOnlineSessionInfoAccelByteV2>(Session->SessionInfo);
+	if (!ensure(SessionInfo.IsValid()))
+	{
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Could not update invites for session '%s' as the locally stored session has invalid session info!"), *RejectEvent.SessionID);
+		return;
+	}
+
+	TSharedPtr<FAccelByteModelsV2PartySession> SessionData = StaticCastSharedPtr<FAccelByteModelsV2PartySession>(SessionInfo->GetBackendSessionData());
+	if (!ensure(SessionData.IsValid()))
+	{
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Could not update invites for session '%s' as the locally stored session has invalid backend data!"), *RejectEvent.SessionID);
+		return;
+	}
+
+	SessionData->Members = RejectEvent.Members;
+
+	bool bHasInvitedPlayersChanged = false;
+	bool bHasJoinedMembersChanged = false;
+	SessionInfo->UpdatePlayerLists(bHasJoinedMembersChanged, bHasInvitedPlayersChanged);
+
+	if (bHasInvitedPlayersChanged)
+	{
+		FUniqueNetIdPtr UniqueRejectID = nullptr;
+		FAccelByteModelsV2SessionUser* FoundSender = RejectEvent.Members.FindByPredicate([&RejectEvent](const FAccelByteModelsV2SessionUser& User) {
+			return User.ID == RejectEvent.RejectedID;
+		});
+
+		if (FoundSender != nullptr)
+		{
+			FAccelByteUniqueIdComposite IdComponents;
+			IdComponents.Id = FoundSender->ID;
+			IdComponents.PlatformType = FoundSender->PlatformID;
+			IdComponents.PlatformId = FoundSender->PlatformUserID;
+
+			UniqueRejectID = FUniqueNetIdAccelByteUser::Create(IdComponents);
+			TriggerOnSessionInviteRejectedDelegates(Session->SessionName, UniqueRejectID.ToSharedRef().Get());
+		}
+
+		TriggerOnSessionInvitesChangedDelegates(Session->SessionName);
+	}
+
+	SessionInfo->UpdateLeaderId();
+
+	TriggerOnUpdateSessionCompleteDelegates(Session->SessionName, true);
+	TriggerOnSessionUpdateReceivedDelegates(Session->SessionName);
+
+	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
 }
 
 #undef ONLINE_ERROR_NAMESPACE
