@@ -23,15 +23,28 @@ class FOnlineAccountCredentialsAccelByte : public FOnlineAccountCredentials
 {
 public:
 	EAccelByteLoginType LoginType;
-	
+	bool bCreateHeadlessAccount = true;
+
 	FOnlineAccountCredentialsAccelByte(EAccelByteLoginType InType
 		, const FString& InId
-		, const FString& InToken)
+		, const FString& InToken
+		, bool bInCreateHeadlessAccount = true)
 		: FOnlineAccountCredentials(FAccelByteUtilities::GetUEnumValueAsString(InType), InId, InToken)
 		, LoginType{InType}
-	{
-		
-	}
+		, bCreateHeadlessAccount(bInCreateHeadlessAccount)
+	{}
+
+	FOnlineAccountCredentialsAccelByte(FOnlineAccountCredentials AccountCredentials
+		, bool bInCreateHeadlessAccount = true)
+		: FOnlineAccountCredentials(AccountCredentials.Type, AccountCredentials.Id, AccountCredentials.Token)
+		, LoginType{ FAccelByteUtilities::GetUEnumValueFromString<EAccelByteLoginType>(AccountCredentials.Type) }
+		, bCreateHeadlessAccount(bInCreateHeadlessAccount)
+	{}
+
+	FOnlineAccountCredentialsAccelByte(bool bInCreateHeadlessAccount) //Login with native oss
+		: FOnlineAccountCredentials()
+		, bCreateHeadlessAccount(bInCreateHeadlessAccount)
+	{}
 };
 
 typedef FOnlineAccountCredentialsAccelByte FOnlineAccelByteAccountCredentials;
@@ -51,6 +64,8 @@ typedef FAccelByteOnLogoutComplete::FDelegate FAccelByteOnLogoutCompleteDelegate
 
 DECLARE_MULTICAST_DELEGATE_FourParams(FAccelByteOnConnectLobbyComplete, int32 /*LocalUserNum*/, bool /*bWasSuccessful*/, const FUniqueNetId& /*UserId*/, const FOnlineErrorAccelByte& /*Error*/);
 typedef FAccelByteOnConnectLobbyComplete::FDelegate FAccelByteOnConnectLobbyCompleteDelegate;
+
+DECLARE_DELEGATE_TwoParams(FGenerateCodeForPublisherTokenComplete, bool /*bWasSuccessful*/, const FCodeForTokenExchangeResponse& Result /*Result*/);
 
 /**
  * AccelByte service implementation of the online identity interface
@@ -85,6 +100,7 @@ public:
 	static bool GetFromWorld(const UWorld* World, TSharedPtr<FOnlineIdentityAccelByte, ESPMode::ThreadSafe>& OutInterfaceInstance);
 
 	//~ Begin IOnlineIdentity Interface
+	virtual bool Login(int32 LocalUserNum, const FOnlineAccountCredentialsAccelByte& AccountCredentials);
 	virtual bool Login(int32 LocalUserNum, const FOnlineAccountCredentials& AccountCredentials) override;
 	virtual bool Logout(int32 LocalUserNum) override;
 	virtual bool AutoLogin(int32 LocalUserNum) override;
@@ -175,11 +191,23 @@ public:
 	bool ConnectAccelByteLobby(int32 LocalUserNum);
 
 	/**
+	 * Set whether to create headless account when try to do 3rd party login using AutoLogin. The default value is true.
+	 */
+	void SetAutoLoginCreateHeadless(bool bInIsAutoLoginCreateHeadless);
+
+	/**
 	* To decide whether the current user should be logged out or not.
 	* Logout required for specific range of codes.
 	* Which means connection closure is abnormal and client should not reconnect (i.e. ban & access token revocation)
 	*/
 	static bool IsLogoutRequired(int32 WsClosedConnectionStatusCode);
+
+	/**
+	 * @brief This function generate ab code that can be exchanged into publisher namespace token (i.e. by web portal)
+	 *
+	 * @param PublisherClientID The targeted game's publisher ClientID.
+	 */
+	void GenerateCodeForPublisherToken(int32 LocalUserNum, const FString& PublisherClientId, FGenerateCodeForPublisherTokenComplete Delegate);
 	
 PACKAGE_SCOPE:
 	/**
@@ -245,6 +273,11 @@ private:
 	 * Flag denoting whether or not we have successfully authenticated as a server in this instance
 	 */
 	bool bIsServerAuthenticated = false;
+
+	/**
+	 * Flag denoting whether or not we create headless account on successfully 3rd party login using AutoLogin
+	 */
+	bool bIsAutoLoginCreateHeadless = true;
 
 	/**
 	 * Array of pending server login delegates, will be all fired once login is finished

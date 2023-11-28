@@ -5,6 +5,7 @@
 #include "OnlineAsyncTaskAccelByteGetGameRecord.h"
 #include "OnlineSubsystemAccelByte.h"
 #include "OnlineCloudSaveInterfaceAccelByte.h"
+#include "OnlinePredefinedEventInterfaceAccelByte.h"
 #include "OnlineError.h"
 
 using namespace AccelByte;
@@ -71,6 +72,24 @@ void FOnlineAsyncTaskAccelByteGetGameRecord::Initialize()
 	else
 	{
 		CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
+	}
+
+	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
+}
+
+void FOnlineAsyncTaskAccelByteGetGameRecord::Finalize()
+{
+	Super::Finalize();
+
+	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Finalize"));
+
+	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = Subsystem->GetPredefinedEventInterface();
+	if (bWasSuccessful && PredefinedEventInterface.IsValid())
+	{
+		FAccelByteModelsGameRecordGetRecordByKeyPayload GameRecordGetRecordByKeyPayload{};
+		GameRecordGetRecordByKeyPayload.Key = Key;
+		GameRecordGetRecordByKeyPayload.UserId = UserId->GetAccelByteId();
+		PredefinedEventInterface->SendEvent(LocalUserNum, MakeShared<FAccelByteModelsGameRecordGetRecordByKeyPayload>(GameRecordGetRecordByKeyPayload));
 	}
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

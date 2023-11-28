@@ -31,6 +31,7 @@
 #include "OnlineSubsystemUtils.h"
 #include "AsyncTasks/Chat/OnlineAsyncTaskAccelByteConnectChat.h"
 #include "Templates/SharedPointer.h"
+#include "AsyncTasks/Identity/OnlineAsyncTaskAccelByteGenerateCodeForPublisherToken.h"
 
 using namespace AccelByte;
 
@@ -66,6 +67,11 @@ bool FOnlineIdentityAccelByte::GetFromWorld(const UWorld* World, FOnlineIdentity
 
 #define ONLINE_ERROR_NAMESPACE "FOnlineAccelByteLogin"
 bool FOnlineIdentityAccelByte::Login(int32 LocalUserNum, const FOnlineAccountCredentials& AccountCredentials)
+{
+	return Login(LocalUserNum, FOnlineAccountCredentialsAccelByte{ AccountCredentials });
+};
+
+bool FOnlineIdentityAccelByte::Login(int32 LocalUserNum, const FOnlineAccountCredentialsAccelByte& AccountCredentials)
 {
 	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("LocalUserNum: %d; Type: %s; Id: %s"), LocalUserNum, *AccountCredentials.Type, *AccountCredentials.Id);
 
@@ -128,7 +134,8 @@ bool FOnlineIdentityAccelByte::Login(int32 LocalUserNum, const FOnlineAccountCre
 		AccelByteSubsystemPtr->CreateAndDispatchAsyncTask<FOnlineAsyncTaskAccelByteLogin>(TaskInfo
 			, AccelByteSubsystemPtr.Get()
 			, LocalUserNum
-			, AccountCredentials);
+			, AccountCredentials
+			, AccountCredentials.bCreateHeadlessAccount);
 		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Dispatching async task to attempt to login!"));
 	}
 	return true;
@@ -245,7 +252,7 @@ bool FOnlineIdentityAccelByte::AutoLogin(int32 LocalUserNum)
 #endif
 	}
 
-	FOnlineAccountCredentials Credentials;
+	FOnlineAccountCredentialsAccelByte Credentials{ bIsAutoLoginCreateHeadless };
 
 	// Check if we have an environment variable set named "JUSTICE_AUTHORIZATION_CODE", which if so will initiate a
 	// launcher login and reset the type to be a "launcher" login
@@ -680,6 +687,11 @@ bool FOnlineIdentityAccelByte::ConnectAccelByteLobby(int32 LocalUserNum)
 }
 #undef ONLINE_ERROR_NAMESPACE
 
+void FOnlineIdentityAccelByte::SetAutoLoginCreateHeadless(bool bInIsAutoLoginCreateHeadless)
+{
+	bIsAutoLoginCreateHeadless = bInIsAutoLoginCreateHeadless;
+}
+
 void FOnlineIdentityAccelByte::AddNewAuthenticatedUser(int32 LocalUserNum, const TSharedRef<const FUniqueNetId>& UserId, const TSharedRef<FUserOnlineAccount>& Account)
 {
 	// Add to mappings for the user
@@ -785,6 +797,21 @@ bool FOnlineIdentityAccelByte::IsLogoutRequired(int32 StatusCode)
 	int32 LowestNumber = static_cast<int32>(AccelByte::EWebsocketErrorTypes::DisconnectServerShutdown);
 	int32 HighestNumber = static_cast<int32>(AccelByte::EWebsocketErrorTypes::OutsideBoundaryOfDisconnection);
 	return (StatusCode > LowestNumber && StatusCode < HighestNumber);
+}
+
+void FOnlineIdentityAccelByte::GenerateCodeForPublisherToken(int32 InLocalUserNum, const FString& PublisherClientId , FGenerateCodeForPublisherTokenComplete Delegate)
+{
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+
+	if (GetLoginStatus(InLocalUserNum) == ELoginStatus::LoggedIn && GetApiClient(InLocalUserNum).IsValid() && AccelByteSubsystemPtr.IsValid())
+	{
+		AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGenerateCodeForPublisherToken>(AccelByteSubsystemPtr.Get(), InLocalUserNum, PublisherClientId, Delegate);
+	}
+	else
+	{
+		Delegate.ExecuteIfBound(false, FCodeForTokenExchangeResponse());
+	}
+
 }
 
 /** End FOnlineIdentityAccelByte */

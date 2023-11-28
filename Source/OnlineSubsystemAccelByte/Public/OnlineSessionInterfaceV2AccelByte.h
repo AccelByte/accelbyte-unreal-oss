@@ -858,6 +858,16 @@ public:
 	bool FindPlayerMemberSettings(FOnlineSessionSettings& InSettings, const FUniqueNetId& PlayerId, FSessionSettings& OutMemberSettings) const;
 
 	/**
+	 * Attempt to find a specific player's member settings entry within a FOnlineSessionSettings instance.
+	 *
+	 * @param InSettings Settings instance that we are attempting to find within
+	 * @param PlayerId ID of the player that you are attempting to find a settings entry for
+	 * @param OutMemberSettings Settings for the player that were found
+	 * @return bool true if found, false otherwise
+	 */
+	bool FindPlayerMemberSettings(FOnlineSessionSettings& InSettings, const FUniqueNetId& PlayerId, TSharedPtr<FSessionSettings>& OutMemberSettings) const;
+
+	/**
 	 * Update session leader storage, only session leader that can use this.
 	 * This will overwrite the current session storage if successful.
 	 * Listen to UpdateSessionLeaderStorageComplete event for detailed information if the storage successfully updated in backend.

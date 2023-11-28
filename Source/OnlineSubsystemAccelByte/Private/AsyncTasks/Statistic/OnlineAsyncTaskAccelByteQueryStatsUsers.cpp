@@ -6,6 +6,7 @@
 #include "OnlineError.h"
 #include "OnlineIdentityInterfaceAccelByte.h"
 #include "OnlineStatisticInterfaceAccelByte.h"
+#include "OnlinePredefinedEventInterfaceAccelByte.h"
 
 using namespace AccelByte;
 
@@ -146,6 +147,19 @@ void FOnlineAsyncTaskAccelByteQueryStatsUsers::Finalize()
 		}
 	}
 
+	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = Subsystem->GetPredefinedEventInterface();
+	if (bWasSuccessful && PredefinedEventInterface.IsValid())
+	{
+		TSharedPtr<FAccelByteModelsUserStatItemGetItemsByCodesPayload> UserStatItemGetItemsByCodesPayload = MakeShared<FAccelByteModelsUserStatItemGetItemsByCodesPayload>();
+		for (const auto& StatItem : QueryUserStatItemResponse.Data)
+		{
+			UserStatItemGetItemsByCodesPayload->UserId = StatItem.userId;
+			UserStatItemGetItemsByCodesPayload->StatCodes.Add(StatItem.StatCode);
+		}
+
+		PredefinedEventInterface->SendEvent(LocalUserNum, UserStatItemGetItemsByCodesPayload.ToSharedRef());
+	}
+
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 
@@ -174,6 +188,8 @@ void FOnlineAsyncTaskAccelByteQueryStatsUsers::Tick()
 void FOnlineAsyncTaskAccelByteQueryStatsUsers::OnGetUserStatItemsSuccess(FAccelByteModelsUserStatItemPagingSlicedResult const& Result)
 {
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("")); 
+
+	QueryUserStatItemResponse = Result;
 
 	if (Result.Data.Num() > 0)
 	{

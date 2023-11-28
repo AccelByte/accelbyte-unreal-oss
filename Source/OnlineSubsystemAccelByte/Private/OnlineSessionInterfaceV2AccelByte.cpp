@@ -1753,7 +1753,7 @@ bool FOnlineSessionV2AccelByte::ReadSessionSettingsFromSessionModel(FOnlineSessi
 		MemberCompositeId.PlatformId = Member.PlatformUserID;
 		FUniqueNetIdAccelByteUserRef MemberUniqueId = FUniqueNetIdAccelByteUser::Create(MemberCompositeId);
 		
-		FSessionSettings FoundMemberSettings{};
+		TSharedPtr<FSessionSettings> FoundMemberSettings;
 		bool bSettingsFound = FindPlayerMemberSettings(OutSettings, MemberUniqueId.Get(), FoundMemberSettings);
 		if (!bSettingsFound)
 		{
@@ -1869,11 +1869,11 @@ bool FOnlineSessionV2AccelByte::ReadSessionSettingsFromSessionModel(FOnlineSessi
 					FUniqueNetIdAccelByteUserRef MemberUniqueId = FUniqueNetIdAccelByteUser::Create(MemberCompositeId);
 
 					// Populate settings from the backend into the found member settings for the player
-					FSessionSettings FoundMemberSettings{};
+					TSharedPtr<FSessionSettings> FoundMemberSettings;
 					bool bSettingsFound = FindPlayerMemberSettings(OutSettings, MemberUniqueId.Get(), FoundMemberSettings);
 					if (ensureAlways(bSettingsFound))
 					{
-						ReadMemberSettingsFromJsonObject(FoundMemberSettings, (*JsonObjectValue).ToSharedRef());
+						ReadMemberSettingsFromJsonObject(*FoundMemberSettings, (*JsonObjectValue).ToSharedRef());
 					}
 					
 					break;
@@ -2989,6 +2989,7 @@ bool FOnlineSessionV2AccelByte::IsPlayerP2PHost(const FUniqueNetId& LocalUserId,
 
 bool FOnlineSessionV2AccelByte::FindPlayerMemberSettings(FOnlineSessionSettings& InSettings, const FUniqueNetId& PlayerId, FSessionSettings& OutMemberSettings) const
 {
+	UE_LOG_AB(Warning, TEXT("This function is deprecated due to potential stability and reliability issues. use the new overloaded function instead."));
 	// #NOTE Due to the way that our user IDs are set up, hashes may be different, such as if one ID has platform
 	// information, and the other lacks that information. However, we mostly just care about matching on the player's
 	// AccelByte ID anyway. With this in mind, iterate through the map entries and find the one that matches the correct
@@ -3003,7 +3004,27 @@ bool FOnlineSessionV2AccelByte::FindPlayerMemberSettings(FOnlineSessionSettings&
 			return true;
 		}
 	}
+	return false;
+}
 
+bool FOnlineSessionV2AccelByte::FindPlayerMemberSettings(FOnlineSessionSettings& InSettings, const FUniqueNetId& PlayerId, TSharedPtr<FSessionSettings>& OutMemberSettings) const
+{
+	// Cast the PlayerId to FUniqueNetIdAccelByteUser
+	FUniqueNetIdAccelByteUserRef AccelBytePlayerId = FUniqueNetIdAccelByteUser::CastChecked(PlayerId);
+
+	// Iterate through the member settings
+	for (const TPair<FUniqueNetIdRef, FSessionSettings>& MemberPair : InSettings.MemberSettings)
+	{
+		FUniqueNetIdAccelByteUserRef FoundMemberAccelByteId = FUniqueNetIdAccelByteUser::CastChecked(MemberPair.Key);
+
+		// Compare AccelByte IDs
+		if (AccelBytePlayerId->GetAccelByteId().Equals(FoundMemberAccelByteId->GetAccelByteId()))
+		{
+			// Create a shared pointer to the found member settings
+			OutMemberSettings = MakeShareable(new FSessionSettings(MemberPair.Value));
+			return true;
+		}
+	}
 	return false;
 }
 

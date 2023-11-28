@@ -45,6 +45,7 @@ private:
 	FErrorHandler OnError;
 	TArray<TSharedRef<const FOnlineStatsUserStats>> OnlineUsersStatsPairs;
 	THandler<FAccelByteModelsUserStatItemPagingSlicedResult> OnGetUserStatItemsSuccessHandler;
+	FAccelByteModelsUserStatItemPagingSlicedResult QueryUserStatItemResponse;
 	
 	int32 LocalUserNum;
 	TArray<FUniqueNetIdRef> StatsUsers;

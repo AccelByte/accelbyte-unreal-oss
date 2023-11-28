@@ -43,6 +43,7 @@ enum class EAccelByteLoginType : uint8
 	Steam,
 	EOS,
 	ExchangeCode, // Epic Launcher
+	PublisherCode, //Credentials.Token is optional/automatically available if the game is launched from launcher 
 	RefreshToken,
 	CachedToken
 };

@@ -2,6 +2,27 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.11.28](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.11.28%0D0.11.27) (2023-11-28)
+
+
+### Features
+
+* add predefined events inside storage scope endpoints ([a8073e4](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/a8073e4923588b19b08f6f642426d76f26e997c6))
+* **Login:** add CreateHeadless param ([4110102](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/4110102315aa0744ce5d3eef84b0dac149c2d172))
+* **login:** add setter for autoLogin create headless ([63fa44b](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/63fa44bc5ddfe2b0e68d2aa045992141343e312b))
+* **Login:** login using code that is generated from a publisher namespace token ([b471ce8](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/b471ce8c4b9930909973ff2519bd52d669abfcfe))
+
+
+### Bug Fixes
+
+* fixed cache token ([1cba87d](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/1cba87d2b8b765d299b094d5be0e1819740b906a))
+* fixed member settings were not being handled correctly ([fda0f46](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/fda0f4619ad4c922408b6662ae0a75f9869e7058))
+
+
+### Refactors
+
+* **CloudSave:** refine conditional check and logging ([9c9733e](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/9c9733ebea00fb56c414b781aa23204eaf0bbee1))
+
 ### [0.11.27](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.11.27%0D0.11.26) (2023-11-13)
 
 

@@ -5,6 +5,7 @@
 #include "OnlineAsyncTaskAccelByteBulkGetPublicUserRecord.h"
 #include "OnlineSubsystemAccelByte.h"
 #include "OnlineCloudSaveInterfaceAccelByte.h"
+#include "OnlinePredefinedEventInterfaceAccelByte.h"
 #include "OnlineError.h"
 
 using namespace AccelByte;
@@ -28,6 +29,24 @@ void FOnlineAsyncTaskAccelByteBulkGetPublicUserRecord::Initialize()
 	OnBulkGetPublicUserRecordSuccessDelegate = TDelegateUtils<THandler<FListAccelByteModelsUserRecord>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteBulkGetPublicUserRecord::OnBulkGetPublicUserRecordSuccess);
 	OnBulkGetPublicUserRecordErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteBulkGetPublicUserRecord::OnBulkGetPublicUserRecordError);
 	ApiClient->CloudSave.BulkGetPublicUserRecord(Key, UserIds, OnBulkGetPublicUserRecordSuccessDelegate, OnBulkGetPublicUserRecordErrorDelegate);
+
+	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
+}
+
+void FOnlineAsyncTaskAccelByteBulkGetPublicUserRecord::Finalize()
+{
+	Super::Finalize();
+
+	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Finalize"));
+
+	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = Subsystem->GetPredefinedEventInterface();
+	if (bWasSuccessful && PredefinedEventInterface.IsValid())
+	{
+		FAccelByteModelsPublicPlayerRecordGetSameRecordsFromUsersPayload PublicPlayerRecordGetSameRecordsFromUsersPayload{};
+		PublicPlayerRecordGetSameRecordsFromUsersPayload.Key = Key;
+		PublicPlayerRecordGetSameRecordsFromUsersPayload.UserIds = UserIds;
+		PredefinedEventInterface->SendEvent(LocalUserNum, MakeShared<FAccelByteModelsPublicPlayerRecordGetSameRecordsFromUsersPayload>(PublicPlayerRecordGetSameRecordsFromUsersPayload));
+	}
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }

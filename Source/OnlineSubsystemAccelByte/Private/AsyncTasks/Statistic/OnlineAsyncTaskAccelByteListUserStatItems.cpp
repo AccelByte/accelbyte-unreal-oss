@@ -5,6 +5,7 @@
 #include "OnlineAsyncTaskAccelByteListUserStatItems.h"
 #include "OnlineSubsystemAccelByte.h"
 #include "OnlineAgreementInterfaceAccelByte.h"
+#include "OnlinePredefinedEventInterfaceAccelByte.h"
 
 using namespace AccelByte;
 
@@ -78,6 +79,28 @@ void FOnlineAsyncTaskAccelByteListUserStatItems::Initialize()
 				, OnListUserStatItemsSuccessDelegate
 				, OnListUserStatItemsErrorDelegate);
 		}
+	}
+
+	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
+}
+
+void FOnlineAsyncTaskAccelByteListUserStatItems::Finalize()
+{
+	Super::Finalize();
+
+	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Finalize"));
+
+	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = Subsystem->GetPredefinedEventInterface();
+	if (bWasSuccessful && PredefinedEventInterface.IsValid())
+	{
+		TSharedPtr<FAccelByteModelsUserStatItemCreatedPayload> UserStatItemCreatedPayload = MakeShared<FAccelByteModelsUserStatItemCreatedPayload>();
+		UserStatItemCreatedPayload->UserId = UserId->GetAccelByteId();
+		for (const auto& StatItem : Users)
+		{
+			UserStatItemCreatedPayload->StatCodes.Add(StatItem.StatCode);
+		}
+
+		PredefinedEventInterface->SendEvent(LocalUserNum, UserStatItemCreatedPayload.ToSharedRef());
 	}
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

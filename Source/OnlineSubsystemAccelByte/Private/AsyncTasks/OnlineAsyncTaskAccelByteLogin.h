@@ -32,7 +32,8 @@ public:
 
 	FOnlineAsyncTaskAccelByteLogin(FOnlineSubsystemAccelByte* const InABSubsystem
 		, int32 InLocalUserNum
-		, const FOnlineAccountCredentials& InAccountCredentials);
+		, const FOnlineAccountCredentials& InAccountCredentials
+		, bool bInCreateHeadlessAccount = true);
 
 	virtual void Initialize() override;
 	virtual void Finalize() override;
@@ -114,6 +115,11 @@ private:
 	 * The platform name which user login with 
 	 */
 	FString PlatformId{};
+
+	/*
+	 * Will automatically create a headless account when login with 3rd party platform if set to true
+	 */
+	bool bCreateHeadlessAccount = true;
 
 	/**
 	 * Attempts to fire off a login request with a native subsystem, if one is set up and usable.

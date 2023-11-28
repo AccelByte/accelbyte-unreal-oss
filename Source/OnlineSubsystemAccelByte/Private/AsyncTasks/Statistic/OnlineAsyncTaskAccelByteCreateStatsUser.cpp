@@ -82,6 +82,10 @@ void FOnlineAsyncTaskAccelByteCreateStatsUser::Initialize()
 
 void FOnlineAsyncTaskAccelByteCreateStatsUser::Finalize()
 {
+	Super::Finalize();
+
+	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Finalize"));
+
 	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = Subsystem->GetPredefinedEventInterface();
 	if (bWasSuccessful && PredefinedEventInterface.IsValid())
 	{
@@ -97,6 +101,8 @@ void FOnlineAsyncTaskAccelByteCreateStatsUser::Finalize()
 
 		PredefinedEventInterface->SendEvent(LocalUserNum, UserStatItemCreatedPayload.ToSharedRef());
 	}
+
+	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 
 void FOnlineAsyncTaskAccelByteCreateStatsUser::TriggerDelegates()

@@ -7,6 +7,7 @@
 #include "OnlineSubsystemAccelByte.h"
 #include "OnlineIdentityInterfaceAccelByte.h"
 #include "OnlineStatisticInterfaceAccelByte.h"
+#include "OnlinePredefinedEventInterfaceAccelByte.h"
 
 using namespace AccelByte;
 
@@ -144,6 +145,22 @@ void FOnlineAsyncTaskAccelByteResetUserStats::Finalize()
 		{
 			StatisticInterface->EmplaceStats(OnlineUserStatsPair);
 		}
+	}
+
+	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = Subsystem->GetPredefinedEventInterface();
+	if (bWasSuccessful && PredefinedEventInterface.IsValid())
+	{
+		TSharedPtr<FAccelByteModelsUserStatItemResetPayload> UserStatItemResetPayload = MakeShared<FAccelByteModelsUserStatItemResetPayload>();
+		UserStatItemResetPayload->UserId = StatsUserId->GetAccelByteId();
+		for (const auto& StatItem : UserStatsResetResponse)
+		{
+			if (StatItem.Success)
+			{
+				UserStatItemResetPayload->StatCodes.Add(StatItem.StatCode);
+			}
+		}
+
+		PredefinedEventInterface->SendEvent(LocalUserNum, UserStatItemResetPayload.ToSharedRef());
 	}
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

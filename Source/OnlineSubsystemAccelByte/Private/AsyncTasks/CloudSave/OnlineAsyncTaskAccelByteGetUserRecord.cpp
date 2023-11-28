@@ -5,6 +5,7 @@
 #include "OnlineAsyncTaskAccelByteGetUserRecord.h"
 #include "OnlineSubsystemAccelByte.h"
 #include "OnlineCloudSaveInterfaceAccelByte.h"
+#include "OnlinePredefinedEventInterfaceAccelByte.h"
 #include "OnlineError.h"
 
 using namespace AccelByte;
@@ -113,6 +114,32 @@ void FOnlineAsyncTaskAccelByteGetUserRecord::TriggerDelegates()
 			CloudSaveInterface->TriggerOnGetUserRecordCompletedDelegates(LocalUserNum, ONLINE_ERROR(EOnlineErrorResult::RequestFailure, ErrorCode, ErrorStr), Key, UserRecord);
 		}
 	}
+	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
+}
+
+void FOnlineAsyncTaskAccelByteGetUserRecord::Finalize()
+{
+	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Finalize"));
+
+	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = Subsystem->GetPredefinedEventInterface();
+	if (bWasSuccessful && PredefinedEventInterface.IsValid())
+	{
+		if (IsPublicRecord)
+		{
+			FAccelByteModelsPublicPlayerRecordGetRecordPayload PublicPlayerRecordGetRecordPayload{};
+			PublicPlayerRecordGetRecordPayload.UserId = UserId->GetAccelByteId();
+			PublicPlayerRecordGetRecordPayload.Key = Key;
+			PredefinedEventInterface->SendEvent(LocalUserNum, MakeShared<FAccelByteModelsPublicPlayerRecordGetRecordPayload>(PublicPlayerRecordGetRecordPayload));
+		}
+		else
+		{
+			FAccelByteModelsPlayerRecordGetRecordsPayload PlayerRecordGetRecordsPayload{};
+			PlayerRecordGetRecordsPayload.UserId = UserId->GetAccelByteId();
+			PlayerRecordGetRecordsPayload.Keys.Add(Key);
+			PredefinedEventInterface->SendEvent(LocalUserNum, MakeShared<FAccelByteModelsPlayerRecordGetRecordsPayload>(PlayerRecordGetRecordsPayload));
+		}
+	}
+
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 
