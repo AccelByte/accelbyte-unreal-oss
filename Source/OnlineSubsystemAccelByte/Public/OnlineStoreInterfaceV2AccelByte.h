@@ -116,6 +116,9 @@ public:
 
 	/** Option Box configuration of the Offer */
 	FAccelByteModelItemOptionBoxConfig OptionBoxConfig{};	
+
+	/** Customized offer properties **/
+	FJsonObject Ext{};
 };
 typedef TSharedRef<FOnlineStoreOfferAccelByte> FOnlineStoreOfferAccelByteRef;
 

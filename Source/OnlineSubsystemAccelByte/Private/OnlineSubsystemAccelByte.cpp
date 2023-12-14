@@ -26,6 +26,7 @@
 #include "OnlineSubsystemAccelByteModule.h"
 #include "OnlineVoiceInterfaceAccelByte.h"
 #include "OnlinePredefinedEventInterfaceAccelByte.h"
+#include "OnlineGameStandardEventInterfaceAccelByte.h"
 #include "AsyncTasks/OnlineAsyncTaskAccelByte.h"
 #include "AsyncTasks/OnlineAsyncEpicTaskAccelByte.h"
 #include "Api/AccelByteLobbyApi.h"
@@ -84,6 +85,7 @@ bool FOnlineSubsystemAccelByte::Init()
 	VoiceInterface = MakeShared<FOnlineVoiceAccelByte, ESPMode::ThreadSafe>(this);
 	VoiceChatInterface = MakeShared<FAccelByteVoiceChat, ESPMode::ThreadSafe>(this);
 	PredefinedEventInterface = MakeShared<FOnlinePredefinedEventAccelByte, ESPMode::ThreadSafe>(this);
+	GameStandardEventInterface = MakeShared<FOnlineGameStandardEventAccelByte, ESPMode::ThreadSafe>(this);
 	
 	// Create an async task manager and a thread for the manager to process tasks on
 	AsyncTaskManager = MakeShared<FOnlineAsyncTaskManagerAccelByte, ESPMode::ThreadSafe>(this);
@@ -174,6 +176,7 @@ bool FOnlineSubsystemAccelByte::Shutdown()
 	VoiceInterface.Reset();
 	VoiceChatInterface.Reset();
 	PredefinedEventInterface.Reset();
+	GameStandardEventInterface.Reset();
 	
 	return true;
 }
@@ -325,6 +328,11 @@ IVoiceChatPtr FOnlineSubsystemAccelByte::GetVoiceChatInterface()
 FOnlinePredefinedEventAccelBytePtr FOnlineSubsystemAccelByte::GetPredefinedEventInterface() const
 {
 	return PredefinedEventInterface;
+}
+
+FOnlineGameStandardEventAccelBytePtr FOnlineSubsystemAccelByte::GetGameStandardEventInterface() const
+{
+	return GameStandardEventInterface;
 }
 
 #if (ENGINE_MAJOR_VERSION == 4 && ENGINE_MINOR_VERSION <= 25)

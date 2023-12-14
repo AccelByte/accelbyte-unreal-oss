@@ -50,6 +50,13 @@ void FOnlineAsyncTaskAccelByteQueryEntitlements::QueryEntitlement(int32 Offset, 
 
 void FOnlineAsyncTaskAccelByteQueryEntitlements::HandleQueryEntitlementSuccess(FAccelByteModelsEntitlementPagingSlicedResult const& Result)
 {	
+	const TSharedPtr<FOnlineEntitlementsAccelByte, ESPMode::ThreadSafe> EntitlementsInterface = StaticCastSharedPtr<FOnlineEntitlementsAccelByte>(Subsystem->GetEntitlementsInterface());
+	if (!EntitlementsInterface.IsValid())
+	{
+		ErrorMessage = TEXT("Entitlement Interface is not valid!");
+		CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState);
+		return;
+	}
 	for(FAccelByteModelsEntitlementInfo const& EntInfo : Result.Data)
 	{
 		TSharedRef<FOnlineEntitlement> Entitlement = MakeShared<FOnlineEntitlement>();
@@ -58,14 +65,17 @@ void FOnlineAsyncTaskAccelByteQueryEntitlements::HandleQueryEntitlementSuccess(F
 		Entitlement->Namespace = EntInfo.Namespace;
 		Entitlement->Status = FAccelByteUtilities::GetUEnumValueAsString<EAccelByteEntitlementStatus>(EntInfo.Status);
 		Entitlement->bIsConsumable = EntInfo.Type == EAccelByteEntitlementType::CONSUMABLE;
-		// Note(Damar), should read from history, currently not available from sdk
-		//Entitlement->ConsumedCount = EntInfo.UseCount;
 		Entitlement->EndDate = EntInfo.EndDate;
 		Entitlement->ItemId = EntInfo.ItemId;
 		Entitlement->RemainingCount = EntInfo.UseCount;
 		Entitlement->StartDate = EntInfo.StartDate;
 		
-		const TSharedPtr<FOnlineEntitlementsAccelByte, ESPMode::ThreadSafe> EntitlementsInterface = StaticCastSharedPtr<FOnlineEntitlementsAccelByte>(Subsystem->GetEntitlementsInterface());
+		const auto CachedEntitlement = EntitlementsInterface->GetEntitlement(*UserId.Get(), EntInfo.Id);
+		if (CachedEntitlement.IsValid())
+		{
+			Entitlement->ConsumedCount = CachedEntitlement->ConsumedCount;
+		}
+
 		EntitlementsInterface->AddEntitlementToMap(UserId.ToSharedRef(), Entitlement);
 		
 		if(PagedQuery.Count != -1)

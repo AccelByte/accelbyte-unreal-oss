@@ -5,6 +5,7 @@
 #include "OnlineEntitlementsInterfaceAccelByte.h"
 #include "OnlineSubsystemUtils.h"
 #include "AsyncTasks/Entitlements/OnlineAsyncTaskAccelByteQueryEntitlements.h"
+#include "AsyncTasks/Entitlements/OnlineAsyncTaskAccelByteConsumeEntitlement.h"
 #include "AsyncTasks/Entitlements/OnlineAsyncTaskAccelByteSyncPlatformPurchase.h"
 #include "AsyncTasks/Entitlements/OnlineAsyncTaskAccelByteSyncDLC.h"
 
@@ -18,7 +19,7 @@ void FOnlineEntitlementsAccelByte::AddEntitlementToMap(const TSharedRef<const FU
 	FScopeLock ScopeLock(&EntitlementMapLock);
 	FEntitlementMap& EntMap = EntitlementMap.FindOrAdd(UserId);
 	FItemEntitlementMap& ItemEntMap = ItemEntitlementMap.FindOrAdd(UserId);
-	
+
 	EntMap.Emplace(Entitlement->Id, Entitlement);
 	ItemEntMap.Emplace(Entitlement->ItemId, Entitlement);
 }
@@ -98,4 +99,9 @@ void FOnlineEntitlementsAccelByte::SyncPlatformPurchase(int32 LocalUserNum, FAcc
 void FOnlineEntitlementsAccelByte::SyncDLC(const FUniqueNetId& InLocalUserId, const FOnRequestCompleted& CompletionDelegate)
 {
 	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteSyncDLC>(AccelByteSubsystem, InLocalUserId, CompletionDelegate);
+}
+
+void FOnlineEntitlementsAccelByte::ConsumeEntitlement(const FUniqueNetId& UserId, const FUniqueEntitlementId& EntitlementId, int32 UseCount, TArray<FString> Options, const FString& RequestId)
+{
+	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteConsumeEntitlement>(AccelByteSubsystem, UserId, EntitlementId, UseCount, Options, RequestId);
 }

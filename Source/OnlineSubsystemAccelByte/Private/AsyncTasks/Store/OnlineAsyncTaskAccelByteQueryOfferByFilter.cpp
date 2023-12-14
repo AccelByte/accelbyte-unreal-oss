@@ -197,6 +197,7 @@ void FOnlineAsyncTaskAccelByteQueryOfferByFilter::FilterAndAddResults(const FAcc
 		{
 			Offer->DynamicFields.Add(TEXT("TargetCurrencyCode"), Item.TargetCurrencyCode);
 		}
+		Offer->Ext = *Item.Ext.JsonObject;
 		OfferMap.Add(Offer->OfferId, Offer);
 	}
 }

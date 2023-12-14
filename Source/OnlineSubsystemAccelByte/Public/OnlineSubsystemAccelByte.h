@@ -54,6 +54,7 @@ class FOnlineGroupsAccelByte;
 class FOnlineAuthAccelByte;
 class FOnlineAchievementsAccelByte; 
 class FOnlinePredefinedEventAccelByte;
+class FOnlineGameStandardEventAccelByte;
 class FExecTestBase;
 class FOnlineVoiceAccelByte;
 
@@ -150,6 +151,9 @@ typedef TSharedPtr<FOnlineVoiceAccelByte, ESPMode::ThreadSafe> FOnlineVoiceAccel
 /** Shared ponter to the AccelByte implementation of the Predefined Event interface */
 typedef TSharedPtr<FOnlinePredefinedEventAccelByte, ESPMode::ThreadSafe> FOnlinePredefinedEventAccelBytePtr;
 
+/** Shared ponter to the AccelByte implementation of the Game Standard Event interface */
+typedef TSharedPtr<FOnlineGameStandardEventAccelByte, ESPMode::ThreadSafe> FOnlineGameStandardEventAccelBytePtr;
+
 typedef TSharedPtr<IVoiceChat, ESPMode::ThreadSafe> IVoiceChatPtr;
 typedef TSharedPtr<IVoiceChatUser, ESPMode::ThreadSafe> IVoiceChatUserPtr;
 typedef TSharedPtr<FAccelByteVoiceChat, ESPMode::ThreadSafe> FAccelByteVoiceChatPtr;
@@ -192,6 +196,7 @@ public:
 	virtual FOnlineAuthAccelBytePtr GetAuthInterface() const;
 	virtual IOnlineVoicePtr GetVoiceInterface() const override;
 	virtual FOnlinePredefinedEventAccelBytePtr GetPredefinedEventInterface() const;
+	virtual FOnlineGameStandardEventAccelBytePtr GetGameStandardEventInterface() const;
 	IVoiceChatPtr GetVoiceChatInterface();
 
 #if (ENGINE_MAJOR_VERSION == 4 && ENGINE_MINOR_VERSION <= 25)
@@ -290,6 +295,7 @@ PACKAGE_SCOPE:
 		, AchievementInterface(nullptr)
 		, VoiceInterface(nullptr)
 		, PredefinedEventInterface(nullptr)
+		, GameStandardEventInterface(nullptr)
 		, Language(FGenericPlatformMisc::GetDefaultLanguage())
 		, AccelBytePluginList(TArray<FString>
 			{
@@ -537,6 +543,9 @@ private:
 
 	/** Shared instance of our predefined event implementation */
 	FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface;
+
+	/** Shared instance of our game standard event implementation */
+	FOnlineGameStandardEventAccelBytePtr GameStandardEventInterface;
 
 	/** Thread spawned to run the FOnlineAsyncTaskManagerAccelBytePtr instance */
 	TUniquePtr<FRunnableThread> AsyncTaskManagerThread;

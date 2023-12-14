@@ -15,6 +15,9 @@ using FUserIDToEntitlementMap = TMap<TSharedRef<const FUniqueNetIdAccelByteUser>
 using FItemEntitlementMap = TMap<FString, TSharedRef<FOnlineEntitlement>>;
 using FUserIDToItemEntitlementMap = TMap<TSharedRef<const FUniqueNetIdAccelByteUser>, FItemEntitlementMap, FDefaultSetAllocator, TUserUniqueIdConstSharedRefMapKeyFuncs<FItemEntitlementMap>>;
 
+DECLARE_MULTICAST_DELEGATE_FourParams(FOnConsumeEntitlementComplete, bool /*bWasSuccessful*/, const FUniqueNetId& /*UserId*/, const TSharedPtr<FOnlineEntitlement>& /*Entitlement*/, const FOnlineError& /*Error*/);
+typedef FOnConsumeEntitlementComplete::FDelegate FOnConsumeEntitlementCompleteDelegate;
+
 class ONLINESUBSYSTEMACCELBYTE_API FOnlineEntitlementsAccelByte : public IOnlineEntitlements
 {
 PACKAGE_SCOPE:
@@ -42,12 +45,26 @@ public:
 	 */
 	static bool GetFromWorld(const UWorld* World, TSharedPtr<FOnlineEntitlementsAccelByte, ESPMode::ThreadSafe>& OutInterfaceInstance);
 
+	DEFINE_ONLINE_DELEGATE_FOUR_PARAM(OnConsumeEntitlementComplete, bool, const FUniqueNetId&, const TSharedPtr<FOnlineEntitlement>&, const FOnlineError&);
+
 	virtual TSharedPtr<FOnlineEntitlement> GetEntitlement(const FUniqueNetId& UserId, const FUniqueEntitlementId& EntitlementId) override;
 	virtual TSharedPtr<FOnlineEntitlement> GetItemEntitlement(const FUniqueNetId& UserId, const FString& ItemId) override;
 	virtual void GetAllEntitlements(const FUniqueNetId& UserId, const FString& Namespace, TArray<TSharedRef<FOnlineEntitlement>>& OutUserEntitlements) override;
-	virtual bool QueryEntitlements(const FUniqueNetId& UserId, const FString& Namespace, const FPagedQuery& Page) override;
+	virtual bool QueryEntitlements(const FUniqueNetId& UserId, const FString& Namespace, const FPagedQuery& Page = FPagedQuery{}) override;
 	void SyncPlatformPurchase(int32 LocalUserNum, FAccelByteModelsEntitlementSyncBase EntitlementSyncBase, const FOnRequestCompleted& CompletionDelegate = FOnRequestCompleted());
 	void SyncDLC(const FUniqueNetId& InLocalUserId, const FOnRequestCompleted& CompletionDelegate);
+
+	/**
+	* Consume a user entitlement. Trigger FOnConsumeEntitlementComplete on complete
+	*
+	* @param UserId Id of the entilement owner
+	* @param EntitlementId The id of the entitlement.
+	* @param UseCount Number of consumed entitlement.
+	* @param Options Options of consumed entitlements.
+	* @param RequestId Request id(Optional), A unique tracking ID provided by the developer, can just left it empty if they don't want to track
+	* When a request id is submitted, it will return original successful response
+	*/
+	void ConsumeEntitlement(const FUniqueNetId& UserId, const FUniqueEntitlementId& EntitlementId, int32 UseCount, TArray<FString> Options = {}, const FString& RequestId = {});
 
 protected:
 	/** Instance of the subsystem that created this interface */

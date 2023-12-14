@@ -17,6 +17,7 @@ FOnlineAsyncTaskAccelByteStartV2Matchmaking::FOnlineAsyncTaskAccelByteStartV2Mat
 	, SearchHandle(InSearchHandle)
 	, SessionName(InSessionName)
 	, MatchPool(InMatchPool)
+	, OnlineError(FOnlineError())
 	, Delegate(InDelegate)
 {
 	UserId = FUniqueNetIdAccelByteUser::CastChecked(SearchHandle->SearchingPlayerId.ToSharedRef());
@@ -109,7 +110,7 @@ void FOnlineAsyncTaskAccelByteStartV2Matchmaking::TriggerDelegates()
 	}
 
 	FSessionMatchmakingResults EmptyResults; // Results will always be empty as this is just us creating the ticket. Actual results will be filled in the search handle.
-	Delegate.ExecuteIfBound(SessionName, ((bWasSuccessful) ? ONLINE_ERROR(EOnlineErrorResult::Success) : ONLINE_ERROR(EOnlineErrorResult::RequestFailure)), EmptyResults);
+	Delegate.ExecuteIfBound(SessionName, OnlineError, EmptyResults);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
@@ -200,6 +201,7 @@ void FOnlineAsyncTaskAccelByteStartV2Matchmaking::OnStartMatchmakingSuccess(cons
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("TicketId: %s"), *Result.MatchTicketId);
 
 	CreateMatchTicketResponse = Result;
+	OnlineError = ONLINE_ERROR(EOnlineErrorResult::Success, FString(), FText());
 	CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
 	
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
@@ -212,12 +214,14 @@ void FOnlineAsyncTaskAccelByteStartV2Matchmaking::OnStartMatchmakingError(int32 
 	if (CreateTicketErrorInfo.ExistingTicketID.IsEmpty())
 	{
 		UE_LOG_AB(Warning, TEXT("Failed to start matchmaking as the call to create a ticket failed! Error code: %d; Error message: %s"), ErrorCode, *ErrorMessage);
+		OnlineError = ONLINE_ERROR(EOnlineErrorResult::RequestFailure, FString::FromInt(ErrorCode), FText::FromString(ErrorMessage));
 		CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
 	}
 	else
 	{
 		UE_LOG_AB(Log, TEXT("Failed to start new matchmaking as current user already in matchmaking, restoring existing match ticket id %s"), *CreateTicketErrorInfo.ExistingTicketID);
 		CreateMatchTicketResponse.MatchTicketId = CreateTicketErrorInfo.ExistingTicketID;
+		OnlineError = ONLINE_ERROR(EOnlineErrorResult::Success, FString(), FText());
 		CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
 	}
 }

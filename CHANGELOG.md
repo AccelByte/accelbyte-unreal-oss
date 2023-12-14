@@ -2,6 +2,30 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [0.12.0](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.12.0%0D0.11.28) (2023-12-14)
+
+
+### ⚠ BREAKING CHANGES
+
+* **sessionV2:** pass MatchmakingHandler in MatchmakingExpired delegate
+
+### Features
+
+* Adding/Expose Extension Json FObjectFOnlineStoreOfferAccelByte model ([3cbb669](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/3cbb6699c14c45dcae5848f98580e86c900af406))
+* **analytics:** change naming for cached analytics event model ([e8608d0](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/e8608d0d6fab11dfce5d6ccdca54cc26991795f7))
+* **chatv2:** add system message inbox and transient message ([4a99507](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/4a99507bfed12c53c06751823500ee1f145974b3))
+* **entitlement:** add consume entitlement feature ([8083d4f](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/8083d4ffcfd4b9b5bd2f1c1a6c1c1eaf6882938f))
+* **mpv2:** add online error details for create match ticket ([42de476](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/42de4769270810f3afde725d1db25c0ada975c04))
+* **tracing:** create base class for analytics-related interface ([a19c408](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/a19c408b229ece553a07f3436cbb2ee77fe26292))
+
+
+### Bug Fixes
+
+* only success get session storage when jsonObject is valid ([7897bea](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/7897bea83cfa11b2f531da430adf8d7997f46481))
+* **sessionv2:** change all lambda captured variable from reference to copy value ([189f587](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/189f58744fb7e577404286d4b2292ef80e5ab341))
+* **sessionV2:** trigger matchmaking expired delegate when receiving matchmaking expired notification ([28aaea1](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/28aaea146912cce944c141257636555de05d4707))
+* unbind delegates on RestoreAllV2Session async task timeout ([88afd6d](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/88afd6d88e9e9c7703cfcda9508a9652234ca579))
+
 ### [0.11.28](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.11.28%0D0.11.27) (2023-11-28)
 
 

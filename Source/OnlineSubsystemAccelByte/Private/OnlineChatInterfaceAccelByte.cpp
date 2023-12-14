@@ -11,12 +11,17 @@
 #include "AsyncTasks/Chat/OnlineAsyncTaskAccelByteConnectChat.h"
 #include "AsyncTasks/Chat/OnlineAsyncTaskAccelByteChatCreateRoom.h"
 #include "AsyncTasks/Chat/OnlineAsyncTaskAccelByteChatConfigureRoom.h"
+#include "AsyncTasks/Chat/OnlineAsyncTaskAccelByteChatDeleteSystemMessages.h"
 #include "AsyncTasks/Chat/OnlineAsyncTaskAccelByteChatJoinPublicRoom.h"
 #include "AsyncTasks/Chat/OnlineAsyncTaskAccelByteChatExitRoom.h"
+#include "AsyncTasks/Chat/OnlineAsyncTaskAccelByteChatGetSystemMessagesStats.h"
 #include "AsyncTasks/Chat/OnlineAsyncTaskAccelByteChatQueryRoom.h"
 #include "AsyncTasks/Chat/OnlineAsyncTaskAccelByteChatQueryRoomById.h"
+#include "AsyncTasks/Chat/OnlineAsyncTaskAccelByteChatQuerySystemMessages.h"
+#include "AsyncTasks/Chat/OnlineAsyncTaskAccelByteChatQueryTransientSystemMessages.h"
 #include "AsyncTasks/Chat/OnlineAsyncTaskAccelByteChatSendPersonalChat.h"
 #include "AsyncTasks/Chat/OnlineAsyncTaskAccelByteChatSendRoomChat.h"
+#include "AsyncTasks/Chat/OnlineAsyncTaskAccelByteChatUpdateSystemMessages.h"
 
 using namespace AccelByte;
 
@@ -201,6 +206,66 @@ bool FOnlineChatAccelByte::SendPrivateChat(const FUniqueNetId& UserId, const FUn
 
 	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteChatSendPersonalChat>(AccelByteSubsystem, UserId, RecipientId, MsgBody);
 
+	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+
+	return true;
+}
+
+bool FOnlineChatAccelByte::DeleteSystemMessages(const FUniqueNetId& UserId, const TSet<FString>& MessageIds)
+{
+	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("UserId: %s"), *UserId.ToDebugString());
+
+	if (MessageIds.Num() <= 0)
+	{
+		AB_OSS_INTERFACE_TRACE_END(TEXT("Can't delete system message, the message ids is empty"));
+		return false;
+	}
+
+	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteChatDeleteSystemMessages>(AccelByteSubsystem, UserId, MessageIds);
+
+	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+
+	return true;
+}
+
+bool FOnlineChatAccelByte::UpdateSystemMessages(const FUniqueNetId& UserId, const TArray<FAccelByteModelsActionUpdateSystemMessage>& ActionUpdateSystemMessages)
+{
+	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("UserId: %s"), *UserId.ToDebugString());
+
+	if (ActionUpdateSystemMessages.Num() <= 0)
+	{
+		AB_OSS_INTERFACE_TRACE_END(TEXT("Can't update system messages, the actions is empty"));
+		return false;
+	}
+
+	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteChatUpdateSystemMessages>(AccelByteSubsystem, UserId, ActionUpdateSystemMessages);
+	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+
+	return true;
+}
+
+bool FOnlineChatAccelByte::QuerySystemMessage(const FUniqueNetId& UserId, const FQuerySystemMessageOptions& OptionalParams)
+{
+	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("UserId: %s"), *UserId.ToDebugString());
+	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteChatQuerySystemMessages>(AccelByteSubsystem, UserId, OptionalParams);
+	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+
+	return true;
+}
+
+bool FOnlineChatAccelByte::QueryTransientSystemMessage(const FUniqueNetId& UserId, const FQuerySystemMessageOptions& OptionalParams)
+{
+	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("UserId: %s"), *UserId.ToDebugString());
+	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteChatQueryTransientSystemMessages>(AccelByteSubsystem, UserId, OptionalParams);
+	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+
+	return true;
+}
+
+bool FOnlineChatAccelByte::GetSystemMessageStats(const FUniqueNetId& UserId, const FAccelByteGetSystemMessageStatsRequest& Request)
+{
+	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("UserId: %s"), *UserId.ToDebugString());
+	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteChatGetSystemMessagesStats>(AccelByteSubsystem, UserId, Request);
 	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
 
 	return true;
@@ -535,6 +600,10 @@ void FOnlineChatAccelByte::RegisterChatDelegates(const FUniqueNetId& PlayerId)
 
 	const FUserBanUnbanNotificationDelegate OnUserUnBanNotificationDelegate = FUserBanUnbanNotificationDelegate::CreateThreadSafeSP(SharedThis(this), &FOnlineChatAccelByte::OnUserUnbanNotification, LocalUserNum);
 	ApiClient->Chat.SetUserUnbanNotifDelegate(OnUserUnBanNotificationDelegate);
+
+	typedef AccelByte::Api::Chat::FSystemMessageNotif FSystemMessageNotificationDelegate;
+	const FSystemMessageNotificationDelegate OnSystemMessageDelegate = FSystemMessageNotificationDelegate::CreateThreadSafeSP(SharedThis(this), &FOnlineChatAccelByte::OnSystemMessageNotification, LocalUserNum);
+	ApiClient->Chat.SetSystemMessageNotifDelegate(OnSystemMessageDelegate);
 	//~ End Chat Notifications
 
 	// Cache topic data
@@ -771,6 +840,38 @@ void FOnlineChatAccelByte::OnUserUnbanNotification(const FAccelByteModelsChatUse
 	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT(""));
 
 	TriggerOnUserUnbannedDelegates(UserUnbanNotif.UserId, UserUnbanNotif.Ban, UserUnbanNotif.EndDate, UserUnbanNotif.Reason, UserUnbanNotif.Enable);
+
+	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+}
+
+void FOnlineChatAccelByte::OnSystemMessageNotification(const FAccelByteModelsChatSystemMessageNotif& SystemMessageNotif, int32 LocalUserNum)
+{
+	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT(""));
+
+	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystem->GetIdentityInterface());
+	if (!ensure(IdentityInterface.IsValid()))
+	{
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to handle received system message notification as our identity interface is invalid!"));
+		return;
+	}
+
+	const TSharedPtr<const FUniqueNetId> UserIdPtr = IdentityInterface->GetUniquePlayerId(LocalUserNum);
+	if (!UserIdPtr.IsValid())
+	{
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to handle received system message notification as UserIdPtr is invalid!"));
+		return;
+	}
+
+	if (SystemMessageNotif.Category.IsEmpty()) // Empty category means this is regular system message
+	{
+		FSystemMessageNotifMessage Message;
+		SystemMessageNotif.GetSystemMessageData(Message);
+		TriggerOnSystemMessageReceivedDelegates(UserIdPtr.ToSharedRef().Get(), Message);
+	}
+	else // this is a transient system message
+	{
+		TriggerOnTransientSystemMessageReceivedDelegates(UserIdPtr.ToSharedRef().Get(), SystemMessageNotif);
+	}
 
 	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
 }

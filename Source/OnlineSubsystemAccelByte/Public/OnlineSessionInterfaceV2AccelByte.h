@@ -420,7 +420,7 @@ typedef FOnSessionServerError::FDelegate FOnSessionServerErrorDelegate;
 DECLARE_MULTICAST_DELEGATE(FOnMatchmakingStarted)
 typedef FOnMatchmakingStarted::FDelegate FOnMatchmakingStartedDelegate;
 
-DECLARE_MULTICAST_DELEGATE(FOnMatchmakingExpired)
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnMatchmakingExpired, TSharedPtr<FOnlineSessionSearchAccelByte> /*SearchHandler*/)
 typedef FOnMatchmakingExpired::FDelegate FOnMatchmakingExpiredDelegate;
 
 DECLARE_MULTICAST_DELEGATE(FOnMatchmakingCanceled)
@@ -964,7 +964,7 @@ public:
 	/**
 	 * Delegate fired when matchmaking ticket has expired.
 	 */
-	DEFINE_ONLINE_DELEGATE(OnMatchmakingExpired);
+	DEFINE_ONLINE_DELEGATE_ONE_PARAM(OnMatchmakingExpired, TSharedPtr<FOnlineSessionSearchAccelByte> /*SearchHandler*/);
 
 	/**
 	 * Delegate fired when matchmaking ticket has been canceled.

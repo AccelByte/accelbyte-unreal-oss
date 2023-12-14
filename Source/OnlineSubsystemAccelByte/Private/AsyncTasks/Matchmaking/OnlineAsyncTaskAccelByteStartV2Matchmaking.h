@@ -38,6 +38,9 @@ private:
 	/** Match pool that we wish for matchmaking to search through */
 	FString MatchPool;
 
+	/** Online error information in case any error happen. */
+	FOnlineError OnlineError;
+
 	/** Delegate fired when we finish the call to start matchmaking */
 	FOnStartMatchmakingComplete Delegate;
 

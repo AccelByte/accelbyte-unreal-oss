@@ -2,10 +2,8 @@
 // This is licensed software from AccelByte Inc, for limitations
 // and restrictions contact your company contract manager.
 #include "OnlinePredefinedEventInterfaceAccelByte.h"
-#include "OnlineSubsystemAccelByte.h"
-#include "Core/AccelByteMultiRegistry.h"
-#include "OnlineIdentityInterfaceAccelByte.h"
 #include "OnlineSubsystemAccelByteInternalHelpers.h"
+#include "OnlineSubsystemTypes.h"
 #include "OnlineSubsystemUtils.h"
 
 bool FOnlinePredefinedEventAccelByte::GetFromSubsystem(const IOnlineSubsystem* Subsystem, FOnlinePredefinedEventAccelBytePtr& OutInterfaceInstance)
@@ -70,115 +68,13 @@ bool FOnlinePredefinedEventAccelByte::SetEventSendInterval(int32 InLocalUserNum)
 	return bIsSuccess;
 }
 
-#define ONLINE_ERROR_NAMESPACE "FOnlineAccelBytePredefinedEvent"
-void FOnlinePredefinedEventAccelByte::OnSuccess(int32 LocalUserNum, FString EventName)
-{
-	TriggerAccelByteOnSendEventCompletedDelegates(LocalUserNum, EventName, true, ONLINE_ERROR_ACCELBYTE(TEXT(""), EOnlineErrorResult::Success));
-}
-
-void FOnlinePredefinedEventAccelByte::OnError(int32 ErrorCode, const FString & ErrorMessage, int32 LocalUserNum, FString EventName)
-{
-	TriggerAccelByteOnSendEventCompletedDelegates(LocalUserNum, EventName, true, ONLINE_ERROR_ACCELBYTE(ErrorCode));
-}
-
-void FOnlinePredefinedEventAccelByte::OnLocalUserNumCachedSuccess()
-{
-	int32 LocalUserNum = GetLocalUserNumCached();
-	MoveTempUserCachedEvent(LocalUserNum);
-	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystem->GetIdentityInterface());
-	if (IdentityInterface.IsValid())
-	{
-		const FUniqueNetIdPtr UserId = IdentityInterface->GetUniquePlayerId(LocalUserNum);
-		const ELoginStatus::Type LoginStatus = IdentityInterface->GetLoginStatus(LocalUserNum);
-
-		if (OnLoginSuccessDelegateHandle.Find(LocalUserNum) == nullptr)
-		{
-			OnLoginSuccessDelegateHandle.Add(LocalUserNum, IdentityInterface->AddAccelByteOnLoginCompleteDelegate_Handle(LocalUserNum, FAccelByteOnLoginCompleteDelegate::CreateThreadSafeSP(this, &FOnlinePredefinedEventAccelByte::OnLoginSuccess)));
-		}
-
-		if (LoginStatus == ELoginStatus::LoggedIn)
-		{
-			OnLoginSuccess(LocalUserNum, true, *UserId.Get(), ONLINE_ERROR_ACCELBYTE(TEXT(""), EOnlineErrorResult::Success));
-		}
-
-		AccelByteSubsystem->OnLocalUserNumCached().Remove(OnLocalUserNumCachedDelegateHandle);
-		OnLocalUserNumCachedDelegateHandle.Reset();
-	}
-}
-#undef ONLINE_ERROR_NAMESPACE
-
-void FOnlinePredefinedEventAccelByte::AddToCache(int32 LocalUserNum, const TSharedPtr<FAccelByteModelsTelemetryBody>& Cache)
-{
-	FScopeLock ScopeLock(&CachedEventsLock);
-	auto CachedEvent =  CachedEvents.Find(LocalUserNum);
-	if (CachedEvent == nullptr)
-	{
-		CachedEvents.Emplace(LocalUserNum, TArray<TSharedPtr<FAccelByteModelsTelemetryBody>>());
-		CachedEvent = CachedEvents.Find(LocalUserNum);
-	}
-	CachedEvent->Add(Cache);
-}
-
-void FOnlinePredefinedEventAccelByte::MoveTempUserCachedEvent(int32 To)
-{
-	FScopeLock ScopeLock(&CachedEventsLock);
-	const int32 TempLocalUserNum = -1;
-	auto CachedEvent = CachedEvents.Find(TempLocalUserNum);
-	if (CachedEvent != nullptr)
-	{
-		CachedEvents.Emplace(To, *CachedEvent);
-		CachedEvents.Remove(TempLocalUserNum);
-	}
-}
-
 void FOnlinePredefinedEventAccelByte::SendCachedEvent(int32 InLocalUserNum, const TSharedPtr<FAccelByteModelsTelemetryBody> & CachedEvent)
 {
 	if (CachedEvent->Payload.IsValid())
 	{
-		TSharedRef<FAccelByteModelsCachedEventPayload> Payload = MakeShared<FAccelByteModelsCachedEventPayload>();
+		TSharedRef<FAccelByteModelsCachedPredefinedEventPayload> Payload = MakeShared<FAccelByteModelsCachedPredefinedEventPayload>();
 		Payload->Payload = *CachedEvent.Get();
 		CachedEvent->Payload->TryGetStringField(TEXT("PreDefinedEventName"), Payload->PreDefinedEventName);
 		SendEvent(InLocalUserNum, Payload, CachedEvent->ClientTimestamp);
 	}
-}
-
-void FOnlinePredefinedEventAccelByte::OnLoginSuccess(int32 LocalUserNum, bool bWasSuccessful, const FUniqueNetId& UserId, const FOnlineErrorAccelByte& Error)
-{
-	if (bWasSuccessful)
-	{
-		FScopeLock ScopeLock(&CachedEventsLock);
-		auto CachedEvent = CachedEvents.Find(LocalUserNum);
-
-		if (CachedEvent != nullptr)
-		{
-			for (const auto& Cache : *CachedEvent)
-			{
-				if (Cache.IsValid())
-				{
-					SendCachedEvent(LocalUserNum, Cache);
-				}
-			}
-			CachedEvent->Empty();
-		}
-	}
-}
-
-void FOnlinePredefinedEventAccelByte::OnLogoutSuccess(int32 LocalUserNum, bool bWasSuccessful, const FOnlineErrorAccelByte& Error)
-{
-	if (bWasSuccessful)
-	{
-		SetEventIntervalMap.Remove(LocalUserNum);
-		FScopeLock ScopeLock(&CachedEventsLock);
-		CachedEvents.Remove(LocalUserNum);
-	}
-}
-
-const int32 FOnlinePredefinedEventAccelByte::GetLocalUserNumCached()
-{
-	int32 LocalUserNum = -1;
-	if (AccelByteSubsystem->IsLocalUserNumCached())
-	{
-		LocalUserNum = AccelByteSubsystem->GetLocalUserNumCached();
-	}
-	return LocalUserNum;
 }

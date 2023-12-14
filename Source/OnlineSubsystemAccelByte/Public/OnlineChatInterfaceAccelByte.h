@@ -54,6 +54,28 @@ typedef FOnUserBanned::FDelegate FOnUserBannedDelegate;
 
 DECLARE_MULTICAST_DELEGATE_FiveParams(FOnUserUnbanned, FString /*UserId*/, EBanType /*Ban*/, FString /*EndDate*/, EBanReason /*Reason*/, bool /*Enable*/)
 typedef FOnUserUnbanned::FDelegate FOnUserUnbannedDelegate;
+
+DECLARE_MULTICAST_DELEGATE_TwoParams(FOnSystemMessageReceived, const FUniqueNetId& /*UserId*/, const FSystemMessageNotifMessage& /*SystemMessage*/);
+typedef FOnSystemMessageReceived::FDelegate FOnSystemMessageReceivedDelegate;
+
+DECLARE_MULTICAST_DELEGATE_TwoParams(FOnTransientSystemMessageReceived, const FUniqueNetId& /*UserId*/, const FAccelByteModelsChatSystemMessageNotif& /*TransientSystemMessage*/);
+typedef FOnTransientSystemMessageReceived::FDelegate FOnTransientSystemMessageReceivedDelegate;
+
+DECLARE_MULTICAST_DELEGATE_TwoParams(FOnDeleteSystemMessagesComplete, const FUniqueNetId& /*UserId*/, const FOnlineError& /*ErrorInfo*/)
+typedef FOnDeleteSystemMessagesComplete::FDelegate FOnDeleteSystemMessagesCompleteDelegate;
+
+DECLARE_MULTICAST_DELEGATE_TwoParams(FOnUpdateSystemMessagesComplete, const FUniqueNetId& /*UserId*/, const FOnlineError& /*ErrorInfo*/)
+typedef FOnUpdateSystemMessagesComplete::FDelegate FOnUpdateSystemMessagesCompleteDelegate;
+
+DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnQuerySystemMessageComplete, const FUniqueNetId& /*UserId*/, const TArray<FSystemMessageNotifMessage>& /*SystemMessages*/, const FOnlineError& /*ErrorInfo*/)
+typedef FOnQuerySystemMessageComplete::FDelegate FOnQuerySystemMessageCompleteDelegate;
+
+DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnQueryTransientSystemMessageComplete, const FUniqueNetId& /*UserId*/, const TArray<FAccelByteModelsQuerySystemMessagesResponseItem>& /*TransientSystemMessages*/, const FOnlineError& /*ErrorInfo*/)
+typedef FOnQueryTransientSystemMessageComplete::FDelegate FOnQueryTransientSystemMessageCompleteDelegate;
+
+DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnGetSystemMessageStatsComplete, const FUniqueNetId& /*UserId*/, const FAccelByteGetSystemMessageStatsResponse& /*SystemMessagesStats*/, const FOnlineError& /*ErrorInfo*/)
+typedef FOnGetSystemMessageStatsComplete::FDelegate FOnGetSystemMessageStatsCompleteDelegate;
+
 //~ End custom delegates
 
 class FAccelByteChatMessage;
@@ -267,6 +289,56 @@ public:
 	 */
 	virtual bool SendPrivateChat(const FUniqueNetId& UserId, const FUniqueNetId& RecipientId, const FString& MsgBody) override;
 
+	/**
+	 * Delete system message(s) in user system inbox based on the message ids.
+	 * Listen to OnDeleteSystemMessagesComplete delegate for the result after the action completed.
+	 *
+	 * @param UserId id of user that perform this action
+	 * @param MessageIds list of message ids to be deleted
+	 * @return if successfully started the async operation
+	 */
+	bool DeleteSystemMessages(const FUniqueNetId& UserId, const TSet<FString>& MessageIds);
+
+	/**
+	 * Update system message(s) in user system inbox. This can be used for marking message as keep or as read.
+	 * Listen to OnUpdateSystemMessagesComplete delegate for the result after the action completed.
+	 *
+	 * @param UserId id of user that perform this action
+	 * @param ActionUpdateSystemMessages list of the action will be performed to the system message
+	 * @return if successfully started the async operation
+	 */
+	bool UpdateSystemMessages(const FUniqueNetId& UserId, const TArray<FAccelByteModelsActionUpdateSystemMessage>& ActionUpdateSystemMessages);
+
+	/**
+	 * Query system message(s) in user system inbox.
+	 * Listen to OnQuerySystemMessageComplete delegate for the result after the action completed.
+	 *
+	 * @param UserId id of user that perform this action
+	 * @param OptionalParams optional query params, if left empty it will query all of the system messages
+	 * @return if successfully started the async operation
+	 */
+	bool QuerySystemMessage(const FUniqueNetId& UserId, const FQuerySystemMessageOptions& OptionalParams = {});
+
+	/**
+	 * Query transient system message(s) in user system inbox.
+	 * Listen to OnQueryTransientSystemMessageComplete delegate for the result after the action completed.
+	 *
+	 * @param UserId id of user that perform this action
+	 * @param OptionalParams optional query params, if left empty it will query all of the system messages
+	 * @return if successfully started the async operation
+	 */
+	bool QueryTransientSystemMessage(const FUniqueNetId& UserId, const FQuerySystemMessageOptions& OptionalParams = {});
+
+	/**
+	 * Get system message(s) statistic in user system inbox. Currently the stats have oldest unread and unread count of system messages.
+	 * Listen to OnGetSystemMessageStatsComplete delegate for the result after the action completed.
+	 *
+	 * @param UserId id of user that perform this action
+	 * @param Request optional params for getting system message stats, currently it is still empty and can be ignored
+	 * @return if successfully started the async operation
+	 */
+	bool GetSystemMessageStats(const FUniqueNetId& UserId, const FAccelByteGetSystemMessageStatsRequest& Request = {});
+
 	virtual bool IsChatAllowed(const FUniqueNetId& UserId, const FUniqueNetId& RecipientId) const override;
 	virtual void GetJoinedRooms(const FUniqueNetId& UserId, TArray<FChatRoomId>& OutRooms) override;
 	virtual TSharedPtr<FChatRoomInfo> GetRoomInfo(const FUniqueNetId& UserId, const FChatRoomId& RoomId) override;
@@ -358,7 +430,42 @@ public:
 	* Delegate fired when a notification is received regarding being un-banned from chat
 	*/
 	DEFINE_ONLINE_DELEGATE_FIVE_PARAM(OnUserUnbanned, FString /*UserId*/, EBanType /*Ban*/, FString /*EndDate*/, EBanReason /*Reason*/, bool /*Enable*/);
-	
+
+	/**
+	* Delegate fired when a system message received.
+	*/
+	DEFINE_ONLINE_DELEGATE_TWO_PARAM(OnSystemMessageReceived, const FUniqueNetId& /*UserId*/, const FSystemMessageNotifMessage& /*SystemMessage*/);
+
+	/**
+	* Delegate fired when a transient system message received.
+	*/
+	DEFINE_ONLINE_DELEGATE_TWO_PARAM(OnTransientSystemMessageReceived, const FUniqueNetId& /*UserId*/, const FAccelByteModelsChatSystemMessageNotif& /*TransientSystemMessage*/);
+
+	/**
+	* Delegate fired when action to delete system messages completed.
+	*/
+	DEFINE_ONLINE_DELEGATE_TWO_PARAM(OnDeleteSystemMessagesComplete, const FUniqueNetId& /*UserId*/, const FOnlineError& /*ErrorInfo*/);
+
+	/**
+	* Delegate fired when action to update system messages completed.
+	*/
+	DEFINE_ONLINE_DELEGATE_TWO_PARAM(OnUpdateSystemMessagesComplete, const FUniqueNetId& /*UserId*/, const FOnlineError& /*ErrorInfo*/);
+
+	/**
+	* Delegate fired when a query for system message completed.
+	*/
+	DEFINE_ONLINE_DELEGATE_THREE_PARAM(OnQuerySystemMessageComplete, const FUniqueNetId& /*UserId*/, const TArray<FSystemMessageNotifMessage>& /*SystemMessages*/, const FOnlineError& /*ErrorInfo*/);
+
+	/**
+	* Delegate fired when a query for transient system message completed.
+	*/
+	DEFINE_ONLINE_DELEGATE_THREE_PARAM(OnQueryTransientSystemMessageComplete, const FUniqueNetId& /*UserId*/, const TArray<FAccelByteModelsQuerySystemMessagesResponseItem>& /*TransientSystemMessages*/, const FOnlineError& /*ErrorInfo*/);
+
+	/**
+	* Delegate fired when action to get system message stats completed.
+	*/
+	DEFINE_ONLINE_DELEGATE_THREE_PARAM(OnGetSystemMessageStatsComplete, const FUniqueNetId& /*UserId*/, const FAccelByteGetSystemMessageStatsResponse& /*SystemMessagesStats*/, const FOnlineError& /*ErrorInfo*/);
+
 	/*
 	No trigger for this delegate
 	DEFINE_ONLINE_DELEGATE_THREE_PARAM(OnChatRoomMemberUpdate, const FUniqueNetId&, const FChatRoomId&, const FUniqueNetId&);
@@ -409,6 +516,7 @@ private:
 	void OnReadChatNotification(const FAccelByteModelsReadChatNotif& ReadChatNotif, int32 LocalUserNum);
 	void OnUserBanNotification(const FAccelByteModelsChatUserBanUnbanNotif& UserBanNotif, int32 LocalUserNum);
 	void OnUserUnbanNotification(const FAccelByteModelsChatUserBanUnbanNotif& UserUnbanNotif, int32 LocalUserNum);
+	void OnSystemMessageNotification(const FAccelByteModelsChatSystemMessageNotif& SystemMessageNotif, int32 LocalUserNum);
 	//~ End Chat Notification Handlers
 
 	//~ Begin Chat Internal Handlers
