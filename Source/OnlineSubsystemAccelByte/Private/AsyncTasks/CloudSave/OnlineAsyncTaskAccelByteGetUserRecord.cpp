@@ -127,14 +127,14 @@ void FOnlineAsyncTaskAccelByteGetUserRecord::Finalize()
 		if (IsPublicRecord)
 		{
 			FAccelByteModelsPublicPlayerRecordGetRecordPayload PublicPlayerRecordGetRecordPayload{};
-			PublicPlayerRecordGetRecordPayload.UserId = UserId->GetAccelByteId();
+			PublicPlayerRecordGetRecordPayload.UserId = UserId.IsValid() ? UserId->GetAccelByteId() : TEXT("");
 			PublicPlayerRecordGetRecordPayload.Key = Key;
 			PredefinedEventInterface->SendEvent(LocalUserNum, MakeShared<FAccelByteModelsPublicPlayerRecordGetRecordPayload>(PublicPlayerRecordGetRecordPayload));
 		}
 		else
 		{
 			FAccelByteModelsPlayerRecordGetRecordsPayload PlayerRecordGetRecordsPayload{};
-			PlayerRecordGetRecordsPayload.UserId = UserId->GetAccelByteId();
+			PlayerRecordGetRecordsPayload.UserId = UserId.IsValid() ? UserId->GetAccelByteId() : TEXT("");
 			PlayerRecordGetRecordsPayload.Keys.Add(Key);
 			PredefinedEventInterface->SendEvent(LocalUserNum, MakeShared<FAccelByteModelsPlayerRecordGetRecordsPayload>(PlayerRecordGetRecordsPayload));
 		}

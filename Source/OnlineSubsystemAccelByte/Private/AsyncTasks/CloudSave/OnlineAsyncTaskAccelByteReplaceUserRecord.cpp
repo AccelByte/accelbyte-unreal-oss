@@ -12,20 +12,25 @@ using namespace AccelByte;
 
 #define ONLINE_ERROR_NAMESPACE "FOnlineAsyncTaskAccelByteReplaceUserRecord"
 
-FOnlineAsyncTaskAccelByteReplaceUserRecord::FOnlineAsyncTaskAccelByteReplaceUserRecord(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InLocalUserId, const FString& InKey, const FJsonObject& InUserRecordObj, bool IsPublic)
+FOnlineAsyncTaskAccelByteReplaceUserRecord::FOnlineAsyncTaskAccelByteReplaceUserRecord(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InLocalUserId, const FString& InKey, const FJsonObject& InUserRecordObj, bool IsPublic, int32 InLocalUserNum, const FString& InTargetUserId)
 	: FOnlineAsyncTaskAccelByte(InABInterface)
 	, Key(InKey)
 	, UserRecordObj(InUserRecordObj)
 	, IsPublicRecord(IsPublic)
+	, TargetUserId(InTargetUserId)
+	, LocalUserNum(InLocalUserNum)
 {
-	UserId = FUniqueNetIdAccelByteUser::CastChecked(InLocalUserId);
+	if (!IsRunningDedicatedServer())
+	{
+		UserId = FUniqueNetIdAccelByteUser::CastChecked(InLocalUserId);
+	}
 }
 
 void FOnlineAsyncTaskAccelByteReplaceUserRecord::Initialize()
 {
 	Super::Initialize();
 
-	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("replacing user record, UserId: %s"), *UserId->ToDebugString());
+	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("replacing user record, UserId: %s"), UserId.IsValid() ? *UserId->ToDebugString() : *TargetUserId);
 
 	OnReplaceUserRecordSuccessDelegate = TDelegateUtils<FVoidHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteReplaceUserRecord::OnReplaceUserRecordsSuccess);
 	OnReplaceUserRecordErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteReplaceUserRecord::OnReplaceUserRecordsError);
@@ -39,14 +44,14 @@ void FOnlineAsyncTaskAccelByteReplaceUserRecord::Initialize()
 			return;
 		}
 
-		if (IdentityInterface->GetLoginStatus(*UserId) != ELoginStatus::LoggedIn)
+		if (IdentityInterface->GetLoginStatus(LocalUserNum) != ELoginStatus::LoggedIn)
 		{
 			AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to replace user record, not logged in!"));
 			return;
 		}
 
-		FServerApiClientPtr ServerApiClient = FMultiRegistry::GetServerApiClient();
-		ServerApiClient->ServerCloudSave.ReplaceUserRecord(Key, ESetByMetadataRecord::SERVER, IsPublicRecord, UserId.Get()->GetAccelByteId(), UserRecordObj, OnReplaceUserRecordSuccessDelegate, OnReplaceUserRecordErrorDelegate);
+		const FServerApiClientPtr ServerApiClient = FMultiRegistry::GetServerApiClient();
+		ServerApiClient->ServerCloudSave.ReplaceUserRecord(Key, ESetByMetadataRecord::SERVER, IsPublicRecord, TargetUserId, UserRecordObj, OnReplaceUserRecordSuccessDelegate, OnReplaceUserRecordErrorDelegate);
 		SetBy = FAccelByteUtilities::GetUEnumValueAsString(ESetByMetadataRecord::SERVER);
 	}
 	else
@@ -66,7 +71,7 @@ void FOnlineAsyncTaskAccelByteReplaceUserRecord::Finalize()
 		FAccelByteModelsPlayerRecordUpdatedPayload PlayerRecordUpdatedPayload{};
 		PlayerRecordUpdatedPayload.Key = Key;
 		PlayerRecordUpdatedPayload.IsPublic = IsPublicRecord;
-		PlayerRecordUpdatedPayload.UserId = UserId.IsValid() ? UserId->GetAccelByteId() : TEXT("");
+		PlayerRecordUpdatedPayload.UserId = UserId.IsValid() ? UserId->GetAccelByteId() : TargetUserId;
 		PlayerRecordUpdatedPayload.SetBy = SetBy;
 		PlayerRecordUpdatedPayload.Strategy = TEXT("REPLACE");
 		PlayerRecordUpdatedPayload.Value.JsonObject = MakeShared<FJsonObject>(UserRecordObj);
@@ -97,7 +102,7 @@ void FOnlineAsyncTaskAccelByteReplaceUserRecord::OnReplaceUserRecordsSuccess()
 {
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 	CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
-	AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Request to replace user '%s' record Success!"), *UserId->ToDebugString());
+	AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Request to replace user '%s' record Success!"), UserId.IsValid() ? *UserId->ToDebugString() : *TargetUserId);
 }
 
 void FOnlineAsyncTaskAccelByteReplaceUserRecord::OnReplaceUserRecordsError(int32 Code, const FString& ErrorMessage)

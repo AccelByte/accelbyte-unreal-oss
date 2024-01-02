@@ -108,8 +108,9 @@ public:
 	 * @param LocalUserNum Index of user that is attempting to get record
 	 * @param Key The record key to replace
 	 * @param RecordRequest Record to replace in the form of Json object
+	 * @param TargetUserId Target of AccelByte User Net Id for server to call the request
 	 */
-	bool ReplaceUserRecord(int32 LocalUserNum, const FString& Key, const FJsonObject& RecordRequest);
+	bool ReplaceUserRecord(int32 LocalUserNum, const FString& Key, const FJsonObject& RecordRequest, const FUniqueNetIdAccelByteUserRef& TargetUserId = FUniqueNetIdAccelByteUser::Invalid());
 	
 	/**
 	 * @brief Replace a record in user-level. If the record doesn't exist, it will create and save the record. If already exists, it will replace the existing one.
@@ -117,16 +118,18 @@ public:
 	 * @param LocalUserNum Index of user that is attempting to get record
 	 * @param Key The record key to replace
 	 * @param RecordRequest Record to replace in the form of Json object
+	 * @param TargetUserId Target of AccelByte User Net Id for server to call the request
 	 */
-	bool ReplacePublicUserRecord(int32 LocalUserNum, const FString& Key, const FJsonObject& RecordRequest);
+	bool ReplacePublicUserRecord(int32 LocalUserNum, const FString& Key, const FJsonObject& RecordRequest, const FUniqueNetIdAccelByteUserRef& TargetUserId = FUniqueNetIdAccelByteUser::Invalid());
 
 	/**
 	 * @brief Delete a record under the given key in user-level.
 	 *
 	 * @param LocalUserNum Index of user that is attempting to get record
 	 * @param Key The record key to delete
+	 * @param TargetUserId Target of AccelByte User Net Id for server to call the request
 	 */
-	bool DeleteUserRecord(int32 LocalUserNum, const FString& Key);
+	bool DeleteUserRecord(int32 LocalUserNum, const FString& Key, const FUniqueNetIdAccelByteUserRef& TargetUserId = FUniqueNetIdAccelByteUser::Invalid());
 
 	/**
 	 * @brief Get a public record (arbitrary JSON data) by its key and userId in user-level.
@@ -184,5 +187,5 @@ protected:
 
 private:
 	bool GetUserRecord(int32 LocalUserNum, const FString& Key, bool IsPublic, const FString& UserId = TEXT(""));
-	bool ReplaceUserRecord(int32 LocalUserNum, const FString& Key, const FJsonObject& RecordRequest, bool IsPublic);
+	bool ReplaceUserRecord(int32 LocalUserNum, const FString& Key, const FJsonObject& RecordRequest, bool IsPublic, const FUniqueNetIdAccelByteUserRef& TargetUserId = FUniqueNetIdAccelByteUser::Invalid());
 };

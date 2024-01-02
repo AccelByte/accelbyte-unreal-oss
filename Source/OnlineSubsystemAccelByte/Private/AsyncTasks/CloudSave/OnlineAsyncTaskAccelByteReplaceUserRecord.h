@@ -16,7 +16,7 @@ class FOnlineAsyncTaskAccelByteReplaceUserRecord
 	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteReplaceUserRecord, ESPMode::ThreadSafe>
 {
 public:
-	FOnlineAsyncTaskAccelByteReplaceUserRecord(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InLocalUserId, const FString& InKey, const FJsonObject& InUserRecordObj, bool IsPublic);
+	FOnlineAsyncTaskAccelByteReplaceUserRecord(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InLocalUserId, const FString& InKey, const FJsonObject& InUserRecordObj, bool IsPublic, int32 InLocalUserNum, const FString& InTargetUserId);
 
 	virtual void Initialize() override;
 	virtual void Finalize() override;
@@ -46,20 +46,30 @@ private:
 	/**
 	 * String representing the error code that occurred
 	 */
-	FText ErrorStr;
-	FString ErrorCode;
+	FText ErrorStr{};
+	FString ErrorCode{};
 
 	/**
 	 * String representing the record key to delete
 	 */
-	FString Key;
+	FString Key{};
 
 	/**
 	 * the Record can only be set by either CLIENT or SERVER
 	 */
 	FString SetBy{};
 
-	FJsonObject UserRecordObj;
+	FJsonObject UserRecordObj{};
 
-	bool IsPublicRecord;
+	bool IsPublicRecord{false};
+
+	/**
+	 * Target AccelByte User Id for server to call the request
+	 */
+	FString TargetUserId{};
+
+	/**
+	 * Current Local User Number
+	 */
+	int32 LocalUserNum = 0;
 };

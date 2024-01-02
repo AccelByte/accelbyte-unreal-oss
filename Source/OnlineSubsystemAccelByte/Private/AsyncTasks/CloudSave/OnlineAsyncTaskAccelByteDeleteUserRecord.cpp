@@ -12,18 +12,23 @@ using namespace AccelByte;
 
 #define ONLINE_ERROR_NAMESPACE "FOnlineAsyncTaskAccelByteDeleteUserRecord"
 
-FOnlineAsyncTaskAccelByteDeleteUserRecord::FOnlineAsyncTaskAccelByteDeleteUserRecord(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InLocalUserId, const FString& InKey)
+FOnlineAsyncTaskAccelByteDeleteUserRecord::FOnlineAsyncTaskAccelByteDeleteUserRecord(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InLocalUserId, const FString& InKey, int32 InLocalUserNum, const FString& InTargetUserId)
 	: FOnlineAsyncTaskAccelByte(InABInterface)
 	, Key(InKey)
+	, TargetUserId(InTargetUserId)
+	, LocalUserNum(InLocalUserNum)
 {
-	UserId = FUniqueNetIdAccelByteUser::CastChecked(InLocalUserId);
+	if (!IsRunningDedicatedServer())
+	{
+		UserId = FUniqueNetIdAccelByteUser::CastChecked(InLocalUserId);
+	}
 }
 
 void FOnlineAsyncTaskAccelByteDeleteUserRecord::Initialize()
 {
 	Super::Initialize();
 
-	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Deleting user record, UserId: %s"), *UserId->ToDebugString());
+	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Deleting user record, UserId: %s"), UserId.IsValid() ? *UserId->ToDebugString() : *TargetUserId);
 
 	OnDeleteUserRecordSuccessDelegate = TDelegateUtils<FVoidHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteDeleteUserRecord::OnDeleteUserRecordSuccess);
 	OnDeleteUserRecordErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteDeleteUserRecord::OnDeleteUserRecordError);
@@ -40,7 +45,7 @@ void FOnlineAsyncTaskAccelByteDeleteUserRecord::Initialize()
 			return;
 		}
 
-		if (IdentityInterface->GetLoginStatus(*UserId) != ELoginStatus::LoggedIn)
+		if (IdentityInterface->GetLoginStatus(LocalUserNum) != ELoginStatus::LoggedIn)
 		{
 			ErrorCode = FString::Printf(TEXT("%d"), ErrorCodes::StatusUnauthorized);
 			ErrorStr = FText::FromString(TEXT("request-failed-delete-user-record-error"));
@@ -49,8 +54,8 @@ void FOnlineAsyncTaskAccelByteDeleteUserRecord::Initialize()
 			return;
 		}
 
-		FServerApiClientPtr ServerApiClient = FMultiRegistry::GetServerApiClient();
-		ServerApiClient->ServerCloudSave.DeleteUserRecord(Key, *UserId.Get()->GetAccelByteId(), false, OnDeleteUserRecordSuccessDelegate, OnDeleteUserRecordErrorDelegate);
+		const FServerApiClientPtr ServerApiClient = FMultiRegistry::GetServerApiClient();
+		ServerApiClient->ServerCloudSave.DeleteUserRecord(Key, *TargetUserId, false, OnDeleteUserRecordSuccessDelegate, OnDeleteUserRecordErrorDelegate);
 	}
 	else
 	{
@@ -67,7 +72,7 @@ void FOnlineAsyncTaskAccelByteDeleteUserRecord::Finalize()
 	{
 		FAccelByteModelsPlayerRecordDeletedPayload PlayerRecordDeletedPayload{};
 		PlayerRecordDeletedPayload.Key = Key;
-		PlayerRecordDeletedPayload.UserId = UserId.IsValid() ? UserId->GetAccelByteId() : TEXT("");
+		PlayerRecordDeletedPayload.UserId = UserId.IsValid() ? UserId->GetAccelByteId() : TargetUserId;
 		PredefinedEventInterface->SendEvent(LocalUserNum, MakeShared<FAccelByteModelsPlayerRecordDeletedPayload>(PlayerRecordDeletedPayload));
 	}
 }
@@ -95,7 +100,7 @@ void FOnlineAsyncTaskAccelByteDeleteUserRecord::OnDeleteUserRecordSuccess()
 {
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 	CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
-	AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Request to delete user record for user '%s' Success!"), *UserId->ToDebugString());
+	AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Request to delete user record for user '%s' Success!"), UserId.IsValid() ? *UserId->ToDebugString() : *TargetUserId);
 }
 
 void FOnlineAsyncTaskAccelByteDeleteUserRecord::OnDeleteUserRecordError(int32 Code, const FString& ErrorMessage)

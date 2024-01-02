@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.12.1](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.12.1%0D0.12.0) (2024-01-02)
+
+
+### Bug Fixes
+
+* add a new validation of target user id parameter to denied an access if several condition is invalid. ([9448ecb](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/9448ecbf0f2e91604b9a52cd046d66e7b2c78422))
+* add default value on initialized variable ([ce73d04](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/ce73d040d4d364222121a713350a9485176b57dc))
+* change the error response from AccessDenied to NotImplemented ([f74893f](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/f74893fe2bd536507d823a0338c7dc99398f36ea))
+* hotfix for supporting dedicated server to call cloud save interface ([7d2337e](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/7d2337e5b258cfcba50ac55633bc24f94fe3dec7))
+* reorder the initilize variable on construct function and change the parameter type to accelbyte unique net id instead of FString. ([6b5009a](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/6b5009a97a59adddc136581cb9a60cd363d0c052))
+
 ## [0.12.0](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.12.0%0D0.11.28) (2023-12-14)
 
 

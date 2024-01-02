@@ -88,7 +88,7 @@ void FOnlineAsyncTaskAccelByteGetGameRecord::Finalize()
 	{
 		FAccelByteModelsGameRecordGetRecordByKeyPayload GameRecordGetRecordByKeyPayload{};
 		GameRecordGetRecordByKeyPayload.Key = Key;
-		GameRecordGetRecordByKeyPayload.UserId = UserId->GetAccelByteId();
+		GameRecordGetRecordByKeyPayload.UserId = UserId.IsValid() ? UserId->GetAccelByteId() : TEXT("");
 		PredefinedEventInterface->SendEvent(LocalUserNum, MakeShared<FAccelByteModelsGameRecordGetRecordByKeyPayload>(GameRecordGetRecordByKeyPayload));
 	}
 

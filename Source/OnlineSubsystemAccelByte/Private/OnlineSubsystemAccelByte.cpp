@@ -683,7 +683,7 @@ FString FOnlineSubsystemAccelByte::GetSimplifiedNativePlatformName(const FString
 
 void FOnlineSubsystemAccelByte::OnLoginCallback(int32 LocalUserNum, bool bWasSuccessful, const FUniqueNetId& UserId, const FString& Error)
 {
-	if (!bWasSuccessful)
+	if (!bWasSuccessful || IsRunningDedicatedServer())
 	{
 		return;
 	}
@@ -848,7 +848,7 @@ AccelByte::FApiClientPtr FOnlineSubsystemAccelByte::GetApiClient(const FUniqueNe
 
 	// Grab the AccelByte composite user ID passed in to make sure that we're getting the right client
 	TSharedRef<const FUniqueNetIdAccelByteUser> AccelByteCompositeId = FUniqueNetIdAccelByteUser::CastChecked(NetId);
-	AccelByte::FApiClientPtr ApiClient = AccelByte::FMultiRegistry::GetApiClient(AccelByteCompositeId->GetAccelByteId());
+	AccelByte::FApiClientPtr ApiClient = AccelByte::FMultiRegistry::GetApiClient(AccelByteCompositeId->GetAccelByteId(), false);
 	if (!ApiClient.IsValid())
 	{
 		UE_LOG_AB(Warning, TEXT("Failed to retrieve an API client for user '%s'!"), *AccelByteCompositeId->ToDebugString());
