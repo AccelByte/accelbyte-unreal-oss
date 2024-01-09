@@ -800,7 +800,7 @@ bool FOnlineFriendsAccelByte::GetBlockedPlayers(const FUniqueNetId& UserId, TArr
 			}
 			else
 			{
-				UE_LOG_AB(Warning, TEXT("Blocked players list for user %s had a null instance!"), *UserId.ToString());
+				UE_LOG_AB(Warning, TEXT("Blocked players list for user %s had a null instance!"), *UserId.ToDebugString());
 			}
 		}
 		return true;

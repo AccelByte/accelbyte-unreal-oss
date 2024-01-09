@@ -13,8 +13,6 @@ class ONLINESUBSYSTEMACCELBYTE_API FOnlineTimeAccelByte : public IOnlineTime
 PACKAGE_SCOPE:
 	/** Constructor that is invoked by the Subsystem instance to create a Time interface instance */
 	FOnlineTimeAccelByte(FOnlineSubsystemAccelByte* InSubsystem);
-
-	void UpdateServerTime(const FDateTime& Time);
 	
 public:
 	/**
@@ -43,14 +41,9 @@ public:
 	 * 
 	 * @returns string representation of time (yyyy.MM.dd-HH.mm.ss)
 	 */
-	virtual FString GetBackCalculatedServerTime();
+	virtual FString GetCurrentServerUtcTime();
 
 protected:
 	/** Instance of the subsystem that created this interface */
 	FOnlineSubsystemAccelByte* AccelByteSubsystem = nullptr;
-
-	FDateTime LastServerTime;
-	FTimespan ServerTimestamp;
-	/** Critical sections for thread safe operation of ServerTime */
-	mutable FCriticalSection ServerTimeLock;
 };

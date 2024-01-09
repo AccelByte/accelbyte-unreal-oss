@@ -24,7 +24,7 @@ void FOnlineAsyncTaskAccelByteGetServerTime::Initialize()
 	THandler<FTime> OnGetServerTimeSuccess =
 		TDelegateUtils<THandler<FTime>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteGetServerTime::HandleGetServerTimeSuccess);
 	FErrorHandler OnError = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteGetServerTime::HandleGetServerTimeError);
-	FRegistry::Miscellaneous.GetServerCurrentTime(OnGetServerTimeSuccess, OnError);
+	FRegistry::TimeManager.GetServerTime(OnGetServerTimeSuccess, OnError, true);
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 
@@ -46,7 +46,6 @@ void FOnlineAsyncTaskAccelByteGetServerTime::HandleGetServerTimeSuccess(FTime co
 	const FOnlineTimeAccelBytePtr TimeInterface =  StaticCastSharedPtr<FOnlineTimeAccelByte>(Subsystem->GetTimeInterface());
 	if (TimeInterface.IsValid())
 	{
-		TimeInterface->UpdateServerTime(Result.CurrentTime);
 		CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
 	}
 	else

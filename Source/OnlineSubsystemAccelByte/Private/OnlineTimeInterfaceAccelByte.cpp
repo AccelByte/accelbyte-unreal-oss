@@ -4,19 +4,12 @@
 
 #include "OnlineTimeInterfaceAccelByte.h"
 #include "OnlineSubsystemUtils.h"
+#include "Core/AccelByteRegistry.h"
 #include "AsyncTasks/Time/OnlineAsyncTaskAccelByteGetServerTime.h"
 
 FOnlineTimeAccelByte::FOnlineTimeAccelByte(FOnlineSubsystemAccelByte* InSubsystem) 
 	: AccelByteSubsystem(InSubsystem)
-	, ServerTimestamp(-1)
 {
-}
-
-void FOnlineTimeAccelByte::UpdateServerTime(const FDateTime& Time)
-{
-	FScopeLock ScopeLock(&ServerTimeLock);
-	ServerTimestamp = FTimespan::FromSeconds(FPlatformTime::Seconds());
-	LastServerTime = Time;
 }
 
 bool FOnlineTimeAccelByte::GetFromSubsystem(const IOnlineSubsystem* Subsystem, FOnlineTimeAccelBytePtr& OutInterfaceInstance)
@@ -45,25 +38,10 @@ bool FOnlineTimeAccelByte::QueryServerUtcTime()
 
 FString FOnlineTimeAccelByte::GetLastServerUtcTime()
 {
-	if (ServerTimestamp < 0)
-	{
-		return FDateTime::MinValue().ToString();
-	}
-
-	FScopeLock ScopeLock(&ServerTimeLock);
-	return LastServerTime.ToString();
+	return AccelByte::FRegistry::TimeManager.GetCachedServerTime().ToString();
 }
 
-FString FOnlineTimeAccelByte::GetBackCalculatedServerTime()
+FString FOnlineTimeAccelByte::GetCurrentServerUtcTime()
 {
-	if (ServerTimestamp < 0)
-	{
-		return FDateTime::MinValue().ToString();
-	}
-
-	FScopeLock ScopeLock(&ServerTimeLock);
-	FTimespan Timespan = FTimespan::FromSeconds(FPlatformTime::Seconds());
-	Timespan -= ServerTimestamp;
-	FDateTime BackCalculated = LastServerTime + Timespan;
-	return BackCalculated.ToString();
+	return AccelByte::FRegistry::TimeManager.GetCurrentServerTime().ToString();
 }

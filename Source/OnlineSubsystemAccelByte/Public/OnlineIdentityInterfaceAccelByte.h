@@ -67,6 +67,9 @@ typedef FAccelByteOnConnectLobbyComplete::FDelegate FAccelByteOnConnectLobbyComp
 
 DECLARE_DELEGATE_TwoParams(FGenerateCodeForPublisherTokenComplete, bool /*bWasSuccessful*/, const FCodeForTokenExchangeResponse& Result /*Result*/);
 
+DECLARE_MULTICAST_DELEGATE_FiveParams(FAccelByteOnPlatformTokenRefreshedComplete, int32 /*LocalUserNum*/, bool /*bWasSuccessful*/, const FPlatformTokenRefreshResponse& /*RefreshResponse*/, const FName& /*PlatformName*/, const FErrorOAuthInfo& /*Error*/);
+typedef FAccelByteOnPlatformTokenRefreshedComplete::FDelegate FAccelByteOnPlatformTokenRefreshedCompleteDelegate;
+
 /**
  * AccelByte service implementation of the online identity interface
  */
@@ -187,6 +190,17 @@ public:
 	 * @param Error Information about the error condition
 	 */
 	DEFINE_ONLINE_PLAYER_DELEGATE_THREE_PARAM(MAX_LOCAL_PLAYERS, AccelByteOnConnectLobbyComplete, bool /*bWasSuccessful*/, const FUniqueNetId& /*UserId*/, const FOnlineErrorAccelByte& /*Error*/);
+	
+	/**
+	 * Triggered when the platform token refresh is already responded
+	 *
+	 * @param LocalUserNum the controller number of the associated user
+	 * @param bWasSuccessful true if server was contacted and a valid result received
+	 * @param FPlatformTokenRefreshResponse the refresh result & information
+	 * @param PlatformName The platform that was refreshed
+	 * @param Error Information about the error condition
+	 */
+	DEFINE_ONLINE_PLAYER_DELEGATE_FOUR_PARAM(MAX_LOCAL_PLAYERS, AccelByteOnPlatformTokenRefreshedComplete, bool /*bWasSuccessful*/, const FPlatformTokenRefreshResponse& /*RefreshResponse*/, const FName& /*PlatformName*/, const FErrorOAuthInfo& /*Error*/);
 
 	bool ConnectAccelByteLobby(int32 LocalUserNum);
 
@@ -209,6 +223,24 @@ public:
 	 */
 	void GenerateCodeForPublisherToken(int32 LocalUserNum, const FString& PublisherClientId, FGenerateCodeForPublisherTokenComplete Delegate);
 	
+	/**
+	 * @brief Refresh the native platform token that is stored in the backend. Therefore we can prevent expiration on the backend.
+	 * Default behavior: this function already registered automatically and follow the schedule of refresh token expiration.
+	 * To disable this default: 
+	 *     - Modify DefaultEngine.ini
+	 *     - Section [OnlineSubsystemAccelByte]
+	 *     - Set value bNativePlatformTokenRefreshManually=true
+	 *     - Do not forget to manually call this function periodically
+	 */
+	bool RefreshPlatformToken(int32 LocalUserNum);
+
+	/**
+	 * @brief Refresh the native platform token that is stored in the backend. Therefore we can prevent expiration on the backend.
+	 * 
+	 * @param SubsystemName The name of the subsystem authorization ticket that will be refreshed
+	 */
+	bool RefreshPlatformToken(int32 LocalUserNum, FName SubsystemName);
+
 PACKAGE_SCOPE:
 	/**
 	 * Used by the login async task to move data for the newly authenticated user to this identity instance.

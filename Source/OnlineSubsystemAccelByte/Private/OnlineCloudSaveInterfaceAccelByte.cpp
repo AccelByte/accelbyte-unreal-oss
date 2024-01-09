@@ -132,18 +132,27 @@ bool FOnlineCloudSaveAccelByte::BulkGetPublicUserRecord(int32 LocalUserNum, cons
 		return false;
 	}
 	
+	FListAccelByteModelsUserRecord TempUserRecords{};
+	for (const auto& UserId : UserIds) 
+	{
+		FAccelByteModelsUserRecord TempUserRecord{};
+		TempUserRecord.Key = Key;
+		TempUserRecord.UserId = UserId;
+		TempUserRecords.Data.Add(TempUserRecord);
+	}
+
 	const IOnlineIdentityPtr IdentityInterface = AccelByteSubsystem->GetIdentityInterface();
 	if (!IdentityInterface.IsValid())
 	{
 		AB_OSS_INTERFACE_TRACE_END(TEXT("Failed to get bulk user record, identity interface is invalid!"));
-		TriggerOnBulkGetPublicUserRecordCompletedDelegates(LocalUserNum, ONLINE_ERROR(EOnlineErrorResult::MissingInterface), FListAccelByteModelsUserRecord());
+		TriggerOnBulkGetPublicUserRecordCompletedDelegates(LocalUserNum, ONLINE_ERROR(EOnlineErrorResult::MissingInterface), TempUserRecords);
 		return false;
 	}
 
 	if (IdentityInterface->GetLoginStatus(LocalUserNum) != ELoginStatus::LoggedIn)
 	{
 		AB_OSS_INTERFACE_TRACE_END(TEXT("User not logged in at user index '%d'!"), LocalUserNum);
-		TriggerOnBulkGetPublicUserRecordCompletedDelegates(LocalUserNum, ONLINE_ERROR(EOnlineErrorResult::InvalidAuth), FListAccelByteModelsUserRecord());
+		TriggerOnBulkGetPublicUserRecordCompletedDelegates(LocalUserNum, ONLINE_ERROR(EOnlineErrorResult::InvalidAuth), TempUserRecords);
 		return false;
 	}
 
@@ -151,7 +160,7 @@ bool FOnlineCloudSaveAccelByte::BulkGetPublicUserRecord(int32 LocalUserNum, cons
 	if (!UserIdPtr.IsValid())
 	{
 		AB_OSS_INTERFACE_TRACE_END(TEXT("UserId is not valid at user index '%d'!"), LocalUserNum);
-		TriggerOnBulkGetPublicUserRecordCompletedDelegates(LocalUserNum, ONLINE_ERROR(EOnlineErrorResult::InvalidUser), FListAccelByteModelsUserRecord());
+		TriggerOnBulkGetPublicUserRecordCompletedDelegates(LocalUserNum, ONLINE_ERROR(EOnlineErrorResult::InvalidUser), TempUserRecords);
 		return false;
 	}
 
@@ -172,6 +181,7 @@ bool FOnlineCloudSaveAccelByte::BulkGetPublicUserRecord(int32 LocalUserNum, cons
 bool FOnlineCloudSaveAccelByte::GetGameRecord(int32 LocalUserNum, const FString& Key, bool bAlwaysRequestToService)
 {
 	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("LocalUserNum: %d"), LocalUserNum);
+	FAccelByteModelsGameRecord TempGameRecord{};
 	const IOnlineIdentityPtr IdentityInterface = AccelByteSubsystem->GetIdentityInterface();
 	if (!IdentityInterface.IsValid())
 	{
@@ -247,18 +257,22 @@ bool FOnlineCloudSaveAccelByte::GetGameRecordFromCache(const FString& Key, FAcce
 bool FOnlineCloudSaveAccelByte::GetUserRecord(int32 LocalUserNum, const FString& Key, bool IsPublic, const FString& UserId)
 {
 	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("LocalUserNum: %d"), LocalUserNum);
+
+	FAccelByteModelsUserRecord TempRecord{};
+	TempRecord.Key = Key;
+	TempRecord.UserId = UserId;
 	const IOnlineIdentityPtr IdentityInterface = AccelByteSubsystem->GetIdentityInterface();
 	if (!IdentityInterface.IsValid())
 	{
 		AB_OSS_INTERFACE_TRACE_END(TEXT("Failed to get user record, identity interface is invalid!"));
-		TriggerOnGetUserRecordCompletedDelegates(LocalUserNum, ONLINE_ERROR(EOnlineErrorResult::MissingInterface), Key, FAccelByteModelsUserRecord());
+		TriggerOnGetUserRecordCompletedDelegates(LocalUserNum, ONLINE_ERROR(EOnlineErrorResult::MissingInterface), Key, TempRecord);
 		return false;
 	}
 
 	if (IdentityInterface->GetLoginStatus(LocalUserNum) != ELoginStatus::LoggedIn)
 	{
 		AB_OSS_INTERFACE_TRACE_END(TEXT("User not logged in at user index '%d'!"), LocalUserNum);
-		TriggerOnGetUserRecordCompletedDelegates(LocalUserNum, ONLINE_ERROR(EOnlineErrorResult::InvalidAuth), Key, FAccelByteModelsUserRecord());
+		TriggerOnGetUserRecordCompletedDelegates(LocalUserNum, ONLINE_ERROR(EOnlineErrorResult::InvalidAuth), Key, TempRecord);
 		return false;
 	}
 
@@ -266,7 +280,7 @@ bool FOnlineCloudSaveAccelByte::GetUserRecord(int32 LocalUserNum, const FString&
 	if (!UserIdPtr.IsValid())
 	{
 		AB_OSS_INTERFACE_TRACE_END(TEXT("UserId is not valid at user index '%d'!"), LocalUserNum);
-		TriggerOnGetUserRecordCompletedDelegates(LocalUserNum, ONLINE_ERROR(EOnlineErrorResult::InvalidUser), Key, FAccelByteModelsUserRecord());
+		TriggerOnGetUserRecordCompletedDelegates(LocalUserNum, ONLINE_ERROR(EOnlineErrorResult::InvalidUser), Key, TempRecord);
 		return false;
 	}
 

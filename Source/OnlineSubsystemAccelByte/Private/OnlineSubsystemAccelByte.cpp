@@ -101,8 +101,8 @@ bool FOnlineSubsystemAccelByte::Init()
 
 	GConfig->GetBool(TEXT("OnlineSubsystemAccelByte"), TEXT("bAutoLobbyConnectAfterLoginSuccess"), bIsAutoLobbyConnectAfterLoginSuccess, GEngineIni);
 	GConfig->GetBool(TEXT("OnlineSubsystemAccelByte"), TEXT("bAutoChatConnectAfterLoginSuccess"), bIsAutoChatConnectAfterLoginSuccess, GEngineIni);
-
 	GConfig->GetBool(TEXT("OnlineSubsystemAccelByte"), TEXT("bMultipleLocalUsersEnabled"), bIsMultipleLocalUsersEnabled, GEngineIni);
+	GConfig->GetBool(TEXT("OnlineSubsystemAccelByte"), TEXT("bNativePlatformTokenRefreshManually"), bNativePlatformTokenRefreshManually, GEngineIni);
 
 	PluginInitializedTime = FDateTime::UtcNow();
 
@@ -706,11 +706,15 @@ void FOnlineSubsystemAccelByte::OnLoginCallback(int32 LocalUserNum, bool bWasSuc
 	{
 		ChatInterface->Connect(LocalUserNum);
 	}
+
+	NativePlatformTokenRefreshScheduler(LocalUserNum);
 }
 
 void FOnlineSubsystemAccelByte::OnMessageNotif(const FAccelByteModelsNotificationMessage& InMessage, int32 LocalUserNum)
 {
 	UE_LOG_AB(Verbose, TEXT("Got freeform notification from backend at %s!\nTopic: %s\nPayload: %s"), *InMessage.SentAt.ToString(), *InMessage.Topic, *InMessage.Payload);
+
+	NotificationMessageManager.PublishToTopic(InMessage.Topic, InMessage, LocalUserNum);
 }
 
 void FOnlineSubsystemAccelByte::OnLobbyConnectedCallback(int32 LocalUserNum, bool bWasSuccessful, const FUniqueNetId& UniqueNetId, const FString& ErrorMessage)
@@ -936,5 +940,149 @@ void FOnlineSubsystemAccelByte::EnqueueTaskToEpic(FOnlineAsyncEpicTaskAccelByte*
 		EpicPtr->Enqueue(TaskType, TaskPtr);
 	}
 }
+
+void FOnlineSubsystemAccelByte::SetNativePlatformTokenRefreshScheduler(int32 LocalUserNum, bool bEnableScheduler)
+{
+	bNativePlatformTokenRefreshManually = !bEnableScheduler;
+
+	//No matter what, either enable or disable scheduler
+	//We still need to remove delegate
+	IdentityInterface->GetApiClient(LocalUserNum)->CredentialsRef->OnTokenRefreshed().Remove(NativePlatformTokenRefreshDelegateHandle);
+
+	if (!bEnableScheduler)
+	{
+		return;
+	}
+
+	const IOnlineSubsystem* NativeSubsystem = IOnlineSubsystem::GetByPlatform();
+
+	if (NativeSubsystem == nullptr)
+	{
+		UE_LOG_AB(Warning, TEXT("Native online subsystem is null!"));
+		return;
+	}
+
+	FName NativeSubsystemName = NativeSubsystem->GetSubsystemName();
+	if (!NativeSubsystemName.IsValid() || NativeSubsystemName.ToString().IsEmpty())
+	{
+		UE_LOG_AB(Warning, TEXT("Native online subsystem name is empty!"));
+		return;
+	}
+
+	if (NativeSubsystemName.ToString().Contains("EOS"))
+	{
+		//Special handling since it can't do multiple AutoLogin()
+		//Scheduler to automatically detect whether a refresh occur or not
+		float InitialQuickCheckMs = 10000.f;
+		int EosRefreshOccurrenceTrackerIntervalMs = 60 * 1000; //1 minute
+		FAccelByteUtilities::GetValueFromCommandLineSwitch(TEXT("EosRefreshOccurrenceTrackerIntervalMs"), EosRefreshOccurrenceTrackerIntervalMs);
+		EOSRefreshTrackerDelegate = FTimerDelegate::CreateLambda([this, LocalUserNum, EosRefreshOccurrenceTrackerIntervalMs]()
+			{
+				if (this == nullptr)
+				{
+					return;
+				}
+
+				const IOnlineSubsystem* NativeSubsystem = IOnlineSubsystem::GetByPlatform();
+				if (NativeSubsystem == nullptr || NativeSubsystem->GetIdentityInterface() == nullptr)
+				{
+					UE_LOG_AB(Warning, TEXT("Native online subsystem is null or IdentityInterface is null!"));
+					return;
+				}
+				FName NativeSubsystemName = NativeSubsystem->GetSubsystemName();
+				if (!NativeSubsystemName.IsValid() || NativeSubsystemName.ToString().IsEmpty() || !NativeSubsystemName.ToString().Contains("EOS"))
+				{
+					UE_LOG_AB(Warning, TEXT("Native online subsystem name is empty or invalid!"));
+					return;
+				}
+
+				FString CurrentAuthToken = NativeSubsystem->GetIdentityInterface()->GetAuthToken(LocalUserNum);
+
+				if (CurrentAuthToken.IsEmpty())
+				{
+					UE_LOG_AB(Warning, TEXT("EOS token can't be obtained and empty. Stopping the EOS Auth Token detector."));
+					EOSRefreshTrackerTimerObject.Stop();
+
+					FPlatformTokenRefreshResponse EmptyResponse{};
+					FErrorOAuthInfo OAuthError{};
+					OAuthError.ErrorCode = static_cast<int32>(ErrorCodes::StatusBadRequest);
+					OAuthError.ErrorMessage = TEXT("EOS token can't be obtained and empty.");
+					IdentityInterface->TriggerAccelByteOnPlatformTokenRefreshedCompleteDelegates(LocalUserNum, false, EmptyResponse, NativeSubsystemName, OAuthError);
+					return;
+				}
+				
+				// It means, we have no record yet.
+				if (EOSLastAuthToken.IsEmpty())
+				{
+					EOSLastAuthToken = CurrentAuthToken;
+				}
+				else // We need to compare it
+				if (!EOSLastAuthToken.Equals(CurrentAuthToken))
+				{
+					UE_LOG_AB(Log, TEXT("EOS token changed/refreshed locally."));
+					// Trigger refresh to IAM
+					if (this->GetIdentityInterface() && this->IdentityInterface->GetApiClient(LocalUserNum).IsValid())
+					{
+						UE_LOG_AB(Log, TEXT("Trigger EOS token refresh to backend."));
+						IdentityInterface->RefreshPlatformToken(LocalUserNum);
+						EOSLastAuthToken = CurrentAuthToken;
+					}
+					else
+					{
+						UE_LOG_AB(Warning, TEXT("Cannot refresh cached EOS token on backend!"));
+					}
+				}
+				else
+				{
+					UE_LOG_AB(Log, TEXT("EOS token still same, no need to refresh cached token in backend."));
+				}
+
+				// Then start the timer again
+				EOSRefreshTrackerTimerObject.StartIn(EosRefreshOccurrenceTrackerIntervalMs, EOSRefreshTrackerDelegate);
+			});
+		EOSRefreshTrackerTimerObject.StartIn(InitialQuickCheckMs, EOSRefreshTrackerDelegate);
+ 	}
+	else
+	{
+		NativePlatformTokenRefreshDelegateHandle = IdentityInterface->GetApiClient(LocalUserNum)->CredentialsRef->OnTokenRefreshed().AddLambda([this, LocalUserNum](bool bSuccess)
+			{
+				if (bSuccess && this != nullptr && this->GetIdentityInterface() && this->IdentityInterface->GetApiClient(LocalUserNum).IsValid())
+				{
+					IdentityInterface->RefreshPlatformToken(LocalUserNum);
+				}
+			});
+	}
+}
+
+void FOnlineSubsystemAccelByte::NativePlatformTokenRefreshScheduler(int32 LocalUserNum)
+{
+	if (IsRunningDedicatedServer())
+	{
+		UE_LOG_AB(Log, TEXT("Dedicated server doesn't need to refresh platform token"));
+		return;
+	}
+
+	//Clean the listener as always
+	IdentityInterface->GetApiClient(LocalUserNum)->CredentialsRef->OnTokenRefreshed().Remove(NativePlatformTokenRefreshDelegateHandle);
+
+	//Check the configuration again if there's a change in the runtime
+	GConfig->GetBool(TEXT("OnlineSubsystemAccelByte"), TEXT("bNativePlatformTokenRefreshManually"), bNativePlatformTokenRefreshManually, GEngineIni);
+
+	if (bNativePlatformTokenRefreshManually)
+	{
+		UE_LOG_AB(Log, TEXT("Native Platform Token is NOT automatically refreshed. Please handle it manually by using AccelByte's IdentityInterface->RefreshPlatformToken() ."));
+		return;
+	}
+	if (!IdentityInterface->GetApiClient(LocalUserNum).IsValid())
+	{
+		UE_LOG_AB(Warning, TEXT("Cannot find the LocalUserNum from the ApiClient. Cannot schedule the refresh Native Platform Token."));
+		return;
+	}
+
+	SetNativePlatformTokenRefreshScheduler(LocalUserNum, true);
+
+	UE_LOG_AB(Log, TEXT("Successfully set scheduler to refresh the Native Platform Token. "));
+}
+
 
 #undef LOCTEXT_NAMESPACE

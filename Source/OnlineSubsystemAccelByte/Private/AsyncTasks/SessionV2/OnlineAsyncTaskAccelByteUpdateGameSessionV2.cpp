@@ -159,6 +159,11 @@ void FOnlineAsyncTaskAccelByteUpdateGameSessionV2::Initialize()
 	if(bIsUpdatingNotToClosed || (bIsNotUpdatingJoinability && bIsSessionCurrentlyNotClosed))
 	{
 		UpdateRequest.Teams = SessionInfo->GetTeamAssignments();
+		if (IsRunningDedicatedServer())
+		{
+			// enable game server to empty team assignment
+			UpdateRequest.bIncludeEmptyTeams = true;
+		}
 	}
 
 	// Send the API call based on whether we are a server or a client
@@ -166,9 +171,6 @@ void FOnlineAsyncTaskAccelByteUpdateGameSessionV2::Initialize()
 	OnUpdateGameSessionErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteUpdateGameSessionV2::OnUpdateGameSessionError);
 	if (IsRunningDedicatedServer())
 	{
-		// enable game server to empty team assignment
-		UpdateRequest.bIncludeEmptyTeams = true;
-
 		FRegistry::ServerSession.UpdateGameSession(SessionInfo->GetSessionId().ToString(), UpdateRequest, OnUpdateGameSessionSuccessDelegate, OnUpdateGameSessionErrorDelegate);
 	}
 	else

@@ -56,7 +56,6 @@ void FOnlineAsyncTaskAccelByteGetUserRecord::Initialize()
 
 	if (IsRunningDedicatedServer())
 	{
-
 		FServerApiClientPtr ServerApiClient = FMultiRegistry::GetServerApiClient();
 		if (IsPublicRecord)
 		{
@@ -69,18 +68,17 @@ void FOnlineAsyncTaskAccelByteGetUserRecord::Initialize()
 	}
 	else
 	{
-
+		if (RecordUserId.IsEmpty())
+		{
+			RecordUserId = *UserId->GetAccelByteId();
+		}
 		if (IsPublicRecord)
 		{
-			if (RecordUserId.IsEmpty())
-			{
-				RecordUserId = *UserId->GetAccelByteId();
-			}
 			ApiClient->CloudSave.GetPublicUserRecord(Key, RecordUserId, OnGetUserRecordsSuccessDelegate, OnGetUserRecordsErrorDelegate);
 		}
 		else
 		{
-			if (RecordUserId.IsEmpty() || RecordUserId == *UserId->GetAccelByteId())
+			if (RecordUserId == *UserId->GetAccelByteId())
 			{
 				ApiClient->CloudSave.GetUserRecord(Key, OnGetUserRecordsSuccessDelegate, OnGetUserRecordsErrorDelegate);
 			}
@@ -111,6 +109,8 @@ void FOnlineAsyncTaskAccelByteGetUserRecord::TriggerDelegates()
 		}
 		else
 		{
+			UserRecord.Key = Key;
+			UserRecord.UserId = RecordUserId;
 			CloudSaveInterface->TriggerOnGetUserRecordCompletedDelegates(LocalUserNum, ONLINE_ERROR(EOnlineErrorResult::RequestFailure, ErrorCode, ErrorStr), Key, UserRecord);
 		}
 	}

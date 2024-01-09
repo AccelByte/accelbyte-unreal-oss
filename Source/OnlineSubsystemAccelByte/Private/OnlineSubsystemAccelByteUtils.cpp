@@ -328,31 +328,13 @@ FString FOnlineSubsystemAccelByteUtils::GetStringFromStringTable(const FString& 
 
 EAccelBytePlatformType FOnlineSubsystemAccelByteUtils::GetCurrentAccelBytePlatformType(const FName& NativeSubsystemName)
 {
-	switch (GetAccelByteLoginTypeFromNativeSubsystem(NativeSubsystemName))
+	auto LoginType = GetAccelByteLoginTypeFromNativeSubsystem(NativeSubsystemName);
+	auto PlatformType = ConvertOSSTypeToAccelBytePlatformType(LoginType);
+	
+	//To retain original behavior
+	if (PlatformType == EAccelBytePlatformType::None)
 	{
-	case EAccelByteLoginType::Xbox:
-		return EAccelBytePlatformType::Live;
-
-	case EAccelByteLoginType::PS4:
-		return EAccelBytePlatformType::PS4;
-
-	case EAccelByteLoginType::PS5:
-		return EAccelBytePlatformType::PS5;
-
-	case EAccelByteLoginType::Steam:
-		return EAccelBytePlatformType::Steam;
-
-	case EAccelByteLoginType::EOS:
-		return EAccelBytePlatformType::EpicGames;
-
-	case EAccelByteLoginType::None:
-	case EAccelByteLoginType::Launcher:
-	case EAccelByteLoginType::ExchangeCode:
-	case EAccelByteLoginType::RefreshToken:
-	case EAccelByteLoginType::CachedToken:
-	case EAccelByteLoginType::AccelByte:
-	case EAccelByteLoginType::DeviceId:
-	default:
-		return EAccelBytePlatformType::Device;
+		PlatformType = EAccelBytePlatformType::Device;
 	}
+	return PlatformType;
 }

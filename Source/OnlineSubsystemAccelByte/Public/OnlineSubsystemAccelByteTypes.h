@@ -12,14 +12,55 @@
 #include "Runtime/Launch/Resources/Version.h"
 #include "OnlineSubsystemAccelBytePackage.h"
 #include "Models/AccelByteMatchmakingModels.h"
+#include "Models/AccelByteUserModels.h"
 #include "OnlineAsyncTaskManager.h"
 #include "OnlineStats.h"
 #include "OnlineSubsystemAccelByteTypes.generated.h"
 
 class FOnlineSubsystemAccelByte;
 
+DECLARE_DELEGATE_TwoParams(FOnNotificationMessageReceived, const FAccelByteModelsNotificationMessage& /*NotificationMessage*/, int32 /*LocalUserNum*/);
+DECLARE_MULTICAST_DELEGATE_TwoParams(FOnBroadcastLobbyNotification, const FAccelByteModelsNotificationMessage& /*NotificationMessage*/, int32 /*LocalUserNum*/);
+
 // Value to represent an invalid NetID, mostly to ease debugging
 #define ACCELBYTE_INVALID_ID_VALUE TEXT("INVALID")
+
+class ONLINESUBSYSTEMACCELBYTE_API FNotificationMessageManager
+{
+public:
+
+	/**
+	 * @brief Publish notification related to a topic through registered delegate
+	 * @param InTopic The topic that  you want to publish
+	 * @param InMessage The struct that you want to publish
+	 * @param InLocalUserNum The target user 
+	 */
+	void PublishToTopic(FString const& InTopic, const FAccelByteModelsNotificationMessage& InMessage, int32 InLocalUserNum);
+
+	/**
+	 * @brief Subscribe to a topic and register the delegate for the lobby notification
+	 * @param InTopic The topic that you want to subscribe
+	 * @param InDelegate The delegate that you want to register
+	 */
+	FDelegateHandle SubscribeToTopic(FString const& InTopic, FOnNotificationMessageReceived const& InDelegate); // Subs
+
+	/**
+	 * @brief Clear all registered delegates under a topic from the lobby notification
+	 * @param InTopic The topic that you want to delete all the deleagates
+	 */
+	bool UnsubscribeAllDelegatesFromTopic(FString const& InTopic); // Un Subs - Topic
+
+	/**
+	 * @brief Clear one specific registered delegate under a topic from the lobby notification
+	 * @param InTopic The topic that you want to delete all the deleagates
+	 * @param InDelegate The delegate that you have registered before
+	 */
+	bool UnsubscribeFromTopic(FString const& InTopic, FDelegateHandle const& InDelegate); // Un Subs - Delegate
+
+private:
+	// Variable to cache the topic and its delegates
+	TMap<FString, FOnBroadcastLobbyNotification> NotificationMap;
+};
 
 /**
  * @brief Does a simple check to see if the actual AccelByte ID for the composite is valid.
@@ -47,6 +88,32 @@ enum class EAccelByteLoginType : uint8
 	RefreshToken,
 	CachedToken
 };
+
+static EAccelBytePlatformType ConvertOSSTypeToAccelBytePlatformType(EAccelByteLoginType OSSType)
+{
+	switch (OSSType)
+	{
+	case EAccelByteLoginType::Xbox:
+		return EAccelBytePlatformType::Live;
+	case EAccelByteLoginType::PS4:
+		return EAccelBytePlatformType::PS4;
+	case EAccelByteLoginType::PS5:
+		return EAccelBytePlatformType::PS5;
+	case EAccelByteLoginType::Steam:
+		return EAccelBytePlatformType::Steam;
+	case EAccelByteLoginType::EOS:
+		return EAccelBytePlatformType::EpicGames;
+	case EAccelByteLoginType::None:
+	case EAccelByteLoginType::DeviceId:
+	case EAccelByteLoginType::AccelByte:
+	case EAccelByteLoginType::Launcher:
+	case EAccelByteLoginType::ExchangeCode:
+	case EAccelByteLoginType::RefreshToken:
+	case EAccelByteLoginType::CachedToken:
+	default:
+		return EAccelBytePlatformType::None;
+	}
+}
 
 enum class EAccelBytePartyType : uint32
 {

@@ -75,30 +75,56 @@ bool FOnlineAnalyticsAccelByte::SetTelemetryImmediateEventList(int32 InLocalUser
 {
 	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("Set Telemetry Immediate Event List for LocalUserNum: %d"), InLocalUserNum);
 	
-	bool bIsSuccess = false;
-	if (IsUserLoggedIn(InLocalUserNum) && EventNames.Num() > 0)
+	if (!IsUserLoggedIn(InLocalUserNum) || EventNames.Num() <= 0)
 	{
-		if (IsRunningDedicatedServer())
+		return false;
+	}
+
+	bool bIsSuccess = false;
+	if (IsRunningDedicatedServer())
+	{
+		const auto ServerApiClient = FMultiRegistry::GetServerApiClient();
+		if (ServerApiClient.IsValid())
 		{
-			const auto ServerApiClient = FMultiRegistry::GetServerApiClient();
-			if (ServerApiClient.IsValid())
-			{
-				ServerApiClient->ServerGameTelemetry.SetImmediateEventList(EventNames);
-				bIsSuccess = true;
-			}
+			ServerApiClient->ServerGameTelemetry.SetImmediateEventList(EventNames);
+			bIsSuccess = true;
 		}
-		else
+	}
+	else
+	{
+		const auto ApiClient = AccelByteSubsystem->GetApiClient(InLocalUserNum);
+		if (ApiClient.IsValid())
 		{
-			const auto ApiClient = AccelByteSubsystem->GetApiClient(InLocalUserNum);
-			if (ApiClient.IsValid())
-			{
-				ApiClient->GameTelemetry.SetImmediateEventList(EventNames);
-				bIsSuccess = true;
-			}
+			ApiClient->GameTelemetry.SetImmediateEventList(EventNames);
+			bIsSuccess = true;
 		}
 	}
 	
 	AB_OSS_INTERFACE_TRACE_END(TEXT("Set Telemetry Immediate Event List is finished with status (Success: %s)"), LOG_BOOL_FORMAT(bIsSuccess));
+	return bIsSuccess;
+}
+
+bool FOnlineAnalyticsAccelByte::SetTelemetryCriticalEventList(int32 InLocalUserNum, TArray<FString> const& EventNames)
+{
+	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("Set Telemetry Critical Event List for LocalUserNum: %d"), InLocalUserNum);
+
+	if (!IsUserLoggedIn(InLocalUserNum) || EventNames.Num() <= 0)
+	{
+		return false;
+	}
+
+	bool bIsSuccess = false;
+	if (!IsRunningDedicatedServer())
+	{
+		const auto ApiClient = AccelByteSubsystem->GetApiClient(InLocalUserNum);
+		if (ApiClient.IsValid())
+		{
+			ApiClient->GameTelemetry.SetCriticalEventList(EventNames);
+			bIsSuccess = true;
+		}
+	}
+
+	AB_OSS_INTERFACE_TRACE_END(TEXT("Set Telemetry Critical Event List is finished with status (Success: %s)"), LOG_BOOL_FORMAT(bIsSuccess));
 	return bIsSuccess;
 }
 

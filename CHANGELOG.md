@@ -2,6 +2,28 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.12.2](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.12.2%0D0.12.1) (2024-01-09)
+
+
+### Features
+
+* **gameTelemetry:** add SetTelemetryCriticalEventList to set some criticalEvents that need to be cached ([8c46e4a](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/8c46e4a34dd4dd57a84b74417ce50fb7081cd254))
+* **IAM:** refresh native platform token ([b152758](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/b152758d2efbdbe80b0ca6600b7e7565cd5363b9))
+* new lobby notification delegate for UE OSS ([699bd11](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/699bd115f019a1261f47d54877fa16428e5c0948))
+
+
+### Bug Fixes
+
+* **cloudsave:** delegate return empty model when the request is failed ([14c9b73](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/14c9b739ff9a5849ef275828d3cdf958907bb8b4))
+* **EOS:** add empty token prevention ([1845de8](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/1845de8aabd69d710d5a7700c1ff4ebf9b290cbd))
+* log UniqueNetId with ToDebugString ([ee82d49](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/ee82d49cc4c05bebb8b9057cd3e45d3e360ed62f))
+* **mpv2:** remove teams field when updating game session with closed joinability ([a9a77ab](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/a9a77ab312450dbb89dccf732af70c922dad09ac))
+
+
+### Refactors
+
+* **ServerTime:** move ServerTime local calculation to use TimeManager ([9094dca](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/9094dca1c70e6a26a85fd65ab6d1a2b230d0b481))
+
 ### [0.12.1](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.12.1%0D0.12.0) (2024-01-02)
 
 

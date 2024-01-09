@@ -64,6 +64,13 @@ void FOnlineAsyncTaskAccelByteBulkGetPublicUserRecord::TriggerDelegates()
 		}
 		else
 		{
+			for(const FString& RecordUserId : UserIds)
+			{
+				FAccelByteModelsUserRecord Record{};
+				Record.Key = Key;
+				Record.UserId = RecordUserId;
+				ListUserRecord.Data.Add(Record);
+			}
 			CloudSaveInterface->TriggerOnBulkGetPublicUserRecordCompletedDelegates(LocalUserNum, ONLINE_ERROR(EOnlineErrorResult::RequestFailure, ErrorCode, ErrorStr), ListUserRecord);
 		}
 	}

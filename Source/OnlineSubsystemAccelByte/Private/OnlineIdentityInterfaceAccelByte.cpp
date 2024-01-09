@@ -23,6 +23,7 @@
 #include "Interfaces/OnlineExternalUIInterface.h"
 #include "OnlineSubsystemAccelByteInternalHelpers.h"
 #include "AsyncTasks/OnlineAsyncTaskAccelByteLogin.h"
+#include "AsyncTasks/Identity/OnlineAsyncTaskAccelByteRefreshPlatformToken.h"
 #include "AsyncTasks/OnlineAsyncTaskAccelByteConnectLobby.h"
 #include "Misc/Base64.h"
 #include "OnlineSubsystemAccelByteTypes.h"
@@ -813,5 +814,50 @@ void FOnlineIdentityAccelByte::GenerateCodeForPublisherToken(int32 InLocalUserNu
 	}
 
 }
+
+bool FOnlineIdentityAccelByte::RefreshPlatformToken(int32 LocalUserNum)
+{
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("RefreshNativePlatformToken LocalUserNum: %d"), LocalUserNum);
+
+	const IOnlineSubsystem* NativeSubsystem = IOnlineSubsystem::GetByPlatform();
+	
+	if (NativeSubsystem == nullptr)
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Native online subsystem is null!"));
+		return false;
+	}
+
+	FName Name = NativeSubsystem->GetSubsystemName();
+	if (!Name.IsValid() || Name.ToString().IsEmpty())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Native online subsystem name is empty!"));
+		return false;
+	}
+
+	return RefreshPlatformToken(LocalUserNum, Name);
+}
+
+bool FOnlineIdentityAccelByte::RefreshPlatformToken(int32 LocalUserNum, FName SubsystemName)
+{
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("RefreshPlatformToken LocalUserNum: %d"), LocalUserNum);
+
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("AccelByte online subsystem is null"));
+		const FString ErrorStr = TEXT("refresh-native-platform-token-failed-online-subsystem-null");
+		TriggerAccelByteOnPlatformTokenRefreshedCompleteDelegates(LocalUserNum, false, {}, {}, {});
+		return false;
+	}
+	else
+	{
+		AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteRefreshPlatformToken>(AccelByteSubsystemPtr.Get()
+			, LocalUserNum
+			, SubsystemName);
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Dispatching async task to refresh platform token!"));
+	}
+	return true;
+}
+
 
 /** End FOnlineIdentityAccelByte */

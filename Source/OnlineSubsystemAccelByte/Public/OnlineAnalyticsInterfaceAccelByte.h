@@ -61,6 +61,16 @@ public:
 		, TArray<FString> const& EventNames);
 
 	/**
+	* Set GameTelemetry or ServerGameTelemetry critical event list
+	*
+	* @param InLocalUserNum user identifier
+	* @param EventNames list of critical event name 
+	* @returns boolean that is true if task for setting critical event lists successfully dispatched
+	*/
+	bool SetTelemetryCriticalEventList(int32 InLocalUserNum
+		, TArray<FString> const& EventNames);
+
+	/**
 	 * Send GameTelemetry or ServerGameTelemetry event with delegates OnSuccess and OnError
 	 *
 	 * @param InLocalUserNum user identifier

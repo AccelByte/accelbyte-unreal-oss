@@ -12,6 +12,50 @@
 #include "Misc/Base64.h"
 #include "JsonObjectConverter.h"
 
+void FNotificationMessageManager::PublishToTopic(FString const& InTopic, const FAccelByteModelsNotificationMessage& InMessage, int32 InLocalUserNum)
+{
+	FOnBroadcastLobbyNotification* LocalUserSubscribers = NotificationMap.Find(InTopic);
+
+	if (LocalUserSubscribers)
+	{
+		LocalUserSubscribers->Broadcast(InMessage, InLocalUserNum);
+	}
+}
+
+FDelegateHandle FNotificationMessageManager::SubscribeToTopic(FString const& InTopic, FOnNotificationMessageReceived const& InDelegate)
+{
+	FOnBroadcastLobbyNotification LocalUserSubscribers = NotificationMap.FindOrAdd(InTopic);
+
+	return LocalUserSubscribers.Add(InDelegate);
+}
+
+bool FNotificationMessageManager::UnsubscribeAllDelegatesFromTopic(FString const& InTopic)
+{
+	bool bResult = false;
+	FOnBroadcastLobbyNotification* LocalUserSubscribers = NotificationMap.Find(InTopic);
+
+	if (LocalUserSubscribers)
+	{
+		LocalUserSubscribers->Clear();
+		bResult = true;
+	}
+
+	return bResult;
+}
+
+bool FNotificationMessageManager::UnsubscribeFromTopic(FString const& InTopic, FDelegateHandle const& InDelegate)
+{
+	bool bResult = false;
+	FOnBroadcastLobbyNotification* LocalUserSubscribers = NotificationMap.Find(InTopic);
+
+	if (LocalUserSubscribers)
+	{
+		bResult = LocalUserSubscribers->Remove(InDelegate);
+	}
+
+	return bResult;
+}
+
 bool IsAccelByteIDValid(FString const& AccelByteId)
 {
 	return FAccelByteUtilities::IsAccelByteIDValid(AccelByteId);

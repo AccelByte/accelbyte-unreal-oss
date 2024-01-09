@@ -14,8 +14,10 @@
 #include "OnlineStoreInterfaceV2AccelByte.h"
 #include "OnlineChatInterfaceAccelByte.h"
 #include "OnlineGroupsInterfaceAccelByte.h"
+#include "OnlineSubsystemAccelByteTypes.h"
 #include "Core/AccelByteApiClient.h"
 #include "Models/AccelByteUserModels.h"
+#include "AccelByteTimerObject.h"
 
 /** Log category for any AccelByte OSS logs, including traces */
 DECLARE_LOG_CATEGORY_EXTERN(LogAccelByteOSS, Warning, All);
@@ -443,6 +445,12 @@ PACKAGE_SCOPE:
 	 */
 	FString GetSimplifiedNativePlatformName(const FString& PlatformName);
 
+	/**
+	 * To override the NativePlatformTokenRefreshScheduler conveniently if want to avoid the DefaultEngine.ini configuration.
+	 * Default behavior is already enabled.
+	 */
+	void SetNativePlatformTokenRefreshScheduler(int32 LocalUserNum, bool bEnableScheduler);
+
 	bool IsAutoConnectLobby() const;
 
 	bool IsAutoConnectChat() const;
@@ -452,9 +460,15 @@ PACKAGE_SCOPE:
 	bool IsLocalUserNumCached() const;
 
 private:
+	/**************************************************
+	 * These are boolean that is configured from the DefaultEngine.ini
+	 */
 	bool bIsAutoLobbyConnectAfterLoginSuccess = false;
 	bool bIsAutoChatConnectAfterLoginSuccess = false;
 	bool bIsMultipleLocalUsersEnabled = false;
+	bool bNativePlatformTokenRefreshManually = false;
+
+	/***************************************************/
 
 	bool bIsInitializedEventSent = false;
 	FDateTime PluginInitializedTime;
@@ -556,6 +570,8 @@ private:
 
 	mutable bool bVoiceInterfaceInitialized = false;
 
+	FNotificationMessageManager NotificationMessageManager;
+
 #if WITH_DEV_AUTOMATION_TESTS
 	/** An array of console command exec tests that are marked as incomplete. Completed tests will be removed on each tick. */
 	TArray<TSharedPtr<FExecTestBase>> ActiveExecTests;
@@ -597,6 +613,22 @@ private:
 	FLogOutFromInterfaceDelegate LogoutDelegate {};
 
 	FOnLocalUserNumCachedDelegate OnLocalUserNumCachedDelegate;
+
+	/**
+	 * Perform check and listen to the IAM refresh token scheduler.
+	 * Therefore when TokenRefrehed is triggered, it will proceed to refresh the Native Platform Token.
+	 * Behavior can be overriden by SetNativePlatformTokenRefreshScheduler() public function.
+	 */
+	void NativePlatformTokenRefreshScheduler(int32 LocalUserNum);
+	FDelegateHandle NativePlatformTokenRefreshDelegateHandle;
+
+	FAccelByteTimerObject EOSRefreshTrackerTimerObject{};
+	FTimerDelegate EOSRefreshTrackerDelegate;
+	FString EOSLastAuthToken{};
+#ifdef ONLINESUBSYSTEMEOS_PACKAGE
+
+#endif
+
 };
 
 /** Shared pointer to the AccelByte implementation of the OnlineSubsystem */

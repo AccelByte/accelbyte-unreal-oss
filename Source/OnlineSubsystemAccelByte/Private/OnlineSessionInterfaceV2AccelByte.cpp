@@ -1027,7 +1027,7 @@ bool FOnlineSessionV2AccelByte::CreateSession(const FUniqueNetId& HostingPlayerI
 {
 	if (!IsRunningDedicatedServer())
 	{
-		AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("HostingPlayerId: %s; SessionName: %s"), *HostingPlayerId.ToString(), *SessionName.ToString());
+		AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("HostingPlayerId: %s; SessionName: %s"), *HostingPlayerId.ToDebugString(), *SessionName.ToString());
 	}
 	else
 	{
@@ -2592,7 +2592,7 @@ bool FOnlineSessionV2AccelByte::CancelMatchmaking(int32 SearchingPlayerNum, FNam
 
 bool FOnlineSessionV2AccelByte::CancelMatchmaking(const FUniqueNetId& SearchingPlayerId, FName SessionName)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("SearchingPlayerId: %s; SessionName: %s"), *SearchingPlayerId.ToString(), *SessionName.ToString());
+	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("SearchingPlayerId: %s; SessionName: %s"), *SearchingPlayerId.ToDebugString(), *SessionName.ToString());
 
 	if (!CurrentMatchmakingSearchHandle.IsValid())
 	{
