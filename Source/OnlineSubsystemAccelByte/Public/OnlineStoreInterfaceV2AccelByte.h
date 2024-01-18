@@ -8,6 +8,7 @@
 #include "Models/AccelByteEcommerceModels.h" 
 #include "OnlineSubsystemAccelByteTypes.h"
 #include "OnlineError.h"
+#include "OnlineSubsystemAccelBytePackage.h"
 
 /** Typedef for a map of Offers to Item's Dynamic Data Map */
 using FOfferToDynamicDataMap = TMap<FUniqueOfferId, TSharedRef<FAccelByteModelsItemDynamicData>>;

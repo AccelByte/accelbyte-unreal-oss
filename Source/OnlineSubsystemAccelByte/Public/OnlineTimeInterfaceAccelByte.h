@@ -7,6 +7,7 @@
 #include "Interfaces/OnlineTimeInterface.h"
 #include "OnlineSubsystemAccelByteTypes.h"
 #include "Misc/DateTime.h"
+#include "OnlineSubsystemAccelBytePackage.h"
 
 class ONLINESUBSYSTEMACCELBYTE_API FOnlineTimeAccelByte : public IOnlineTime
 {

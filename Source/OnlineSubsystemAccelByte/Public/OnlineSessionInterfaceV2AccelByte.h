@@ -23,6 +23,7 @@
 #include "AccelByteNetworkingStatus.h"
 #include "Core/StatsD/IAccelByteStatsDMetricCollector.h"
 #include "GameServerApi/AccelByteServerMetricExporterApi.h"
+#include "OnlineSubsystemAccelBytePackage.h"
 
 class FInternetAddr;
 class FNamedOnlineSession;

@@ -97,6 +97,7 @@ void FOnlineAsyncTaskAccelByteBulkQueryUserPresence::OnQueryUserPresenceSuccess(
 		Presence->Status = static_cast<FOnlineUserPresenceStatus>(PresenceStatus);
 		Presence->bIsOnline = Result.Online;
 		Presence->bIsPlayingThisGame = Result.Online;
+		Presence->Status.Properties.Add(DefaultPlatformKey, PresenceData.Platform);
 		if(!FDateTime::ParseIso8601(*PresenceData.LastSeenAt, Presence->LastOnline))
 		{
 			UE_LOG_AB(Warning, TEXT("Failed to parse LastOnline FDateTime from Presence LastSeenAt %s for user %s"), *PresenceData.LastSeenAt, *PresenceData.UserID);

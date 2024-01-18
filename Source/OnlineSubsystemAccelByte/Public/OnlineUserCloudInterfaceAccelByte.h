@@ -7,6 +7,7 @@
 #include "CoreMinimal.h"
 #include "OnlineSubsystemAccelByteTypes.h"
 #include "Interfaces/OnlineUserCloudInterface.h"
+#include "OnlineSubsystemAccelBytePackage.h"
 
 class FOnlineSubsystemAccelByte;
 class IOnlineSubsystem;

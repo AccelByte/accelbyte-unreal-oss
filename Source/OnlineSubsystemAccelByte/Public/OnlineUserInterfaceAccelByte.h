@@ -16,6 +16,7 @@
 #include "OnlineSubsystemAccelByte.h"
 #include "OnlineSubsystemAccelByteTypes.h"
 #include "OnlineError.h"
+#include "OnlineSubsystemAccelBytePackage.h"
 
 /**
  * Delegate that denotes when a user report has completed.
@@ -126,6 +127,8 @@ public:
 	virtual bool GetAllUserInfo(int32 LocalUserNum, TArray<TSharedRef<class FOnlineUser>>& OutUsers) override;
 	virtual TSharedPtr<FOnlineUser> GetUserInfo(int32 LocalUserNum, const class FUniqueNetId& UserId) override;
 	virtual bool QueryUserIdMapping(const FUniqueNetId& UserId, const FString& DisplayNameOrEmail, const FOnQueryUserMappingComplete& Delegate = FOnQueryUserMappingComplete()) override;
+	virtual bool QueryUserIdMappingWithPlatform(const FUniqueNetId& UserId, const FString& DisplayNameOrEmail, EAccelBytePlatformType PlatformType, const FOnQueryUserMappingComplete& Delegate);
+	virtual bool QueryUserIdMappingWithPlatformId(const FUniqueNetId& UserId, const FString& DisplayNameOrEmail, const FString& PlatformId, const FOnQueryUserMappingComplete& Delegate);
 	virtual bool QueryExternalIdMappings(const FUniqueNetId& UserId, const FExternalIdQueryOptions& QueryOptions, const TArray<FString>& ExternalIds, const FOnQueryExternalIdMappingsComplete& Delegate = FOnQueryExternalIdMappingsComplete()) override;
 	virtual void GetExternalIdMappings(const FExternalIdQueryOptions& QueryOptions, const TArray<FString>& ExternalIds, TArray<TSharedPtr<const FUniqueNetId>>& OutIds) override;
 	virtual TSharedPtr<const FUniqueNetId> GetExternalIdMapping(const FExternalIdQueryOptions& QueryOptions, const FString& ExternalId) override;

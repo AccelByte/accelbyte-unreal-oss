@@ -7,6 +7,7 @@
 #include "OnlineSubsystemAccelByte.h"
 #include "Interfaces/OnlinePurchaseInterface.h"
 #include "OnlineSubsystemAccelByteTypes.h"
+#include "OnlineSubsystemAccelBytePackage.h"
 
 using FReceiptMap = TMap<FString, FPurchaseReceipt>;
 using FUserIDToReceiptMap = TMap<TSharedRef<const FUniqueNetIdAccelByteUser>, FReceiptMap, FDefaultSetAllocator, TUserUniqueIdConstSharedRefMapKeyFuncs<FReceiptMap>>;

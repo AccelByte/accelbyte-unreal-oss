@@ -15,6 +15,7 @@
 #include "OnlineUserCacheAccelByte.h"
 #include "Models/AccelByteChatModels.h"
 #include "Interfaces/OnlineChatInterface.h"
+#include "OnlineSubsystemAccelBytePackage.h"
 
 struct FAccelByteChatRoomConfig {
 	// Flag indicating whether users can join the chat room without an invite

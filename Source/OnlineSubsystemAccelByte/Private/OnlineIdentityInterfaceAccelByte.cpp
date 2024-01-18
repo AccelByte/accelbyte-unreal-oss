@@ -23,6 +23,7 @@
 #include "Interfaces/OnlineExternalUIInterface.h"
 #include "OnlineSubsystemAccelByteInternalHelpers.h"
 #include "AsyncTasks/OnlineAsyncTaskAccelByteLogin.h"
+#include "AsyncTasks/Identity/OnlineAsyncTaskAccelByteSimultaneousLogin.h"
 #include "AsyncTasks/Identity/OnlineAsyncTaskAccelByteRefreshPlatformToken.h"
 #include "AsyncTasks/OnlineAsyncTaskAccelByteConnectLobby.h"
 #include "Misc/Base64.h"
@@ -129,6 +130,14 @@ bool FOnlineIdentityAccelByte::Login(int32 LocalUserNum, const FOnlineAccountCre
 		TriggerOnLoginChangedDelegates(LocalUserNum);
 		TriggerOnLoginCompleteDelegates(LocalUserNum, false, FUniqueNetIdAccelByteUser::Invalid().Get(), ErrorStr);
 		return false;
+	}
+	else if (AccountCredentials.Type.Contains(FAccelByteUtilities::GetUEnumValueAsString(EAccelByteLoginType::Simultaneous)))
+	{
+		AccelByteSubsystemPtr->CreateAndDispatchAsyncTask<FOnlineAsyncTaskAccelByteSimultaneousLogin>(TaskInfo
+			, AccelByteSubsystemPtr.Get()
+			, LocalUserNum
+			, AccountCredentials
+			, AccountCredentials.bCreateHeadlessAccount);
 	}
 	else
 	{

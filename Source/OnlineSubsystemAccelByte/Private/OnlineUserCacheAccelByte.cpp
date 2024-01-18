@@ -355,6 +355,72 @@ void FOnlineUserCacheAccelByte::AddPublicCodeToCache(const FAccelByteUniqueIdCom
 	}
 }
 
+void FOnlineUserCacheAccelByte::AddLinkedPlatformInfoToCache(const FUniqueNetId& UserId, const TArray<FAccelByteLinkedUserInfo>& LinkedPlatformInfo)
+{
+	// Lock while we access the cache
+	FScopeLock ScopeLock(&CacheLock);
+
+	// If this unique ID is an AccelByte composite ID already, then forward to the GetUser using the composite structure
+	if (UserId.GetType() == ACCELBYTE_USER_ID_TYPE)
+	{
+		FUniqueNetIdAccelByteUserRef AccelByteId = FUniqueNetIdAccelByteUser::CastChecked(UserId);
+		AddLinkedPlatformInfoToCache(AccelByteId->GetCompositeStructure(), LinkedPlatformInfo);
+		return;
+	}
+
+	// Otherwise, query as if it is a platform ID
+	const FString PlatformId = ConvertPlatformTypeAndIdToCacheKey(UserId.GetType().ToString(), UserId.ToString());
+	const TSharedRef<FAccelByteUserInfo>* FoundUserInfo = PlatformIdToUserInfoMap.Find(PlatformId);
+	if (FoundUserInfo != nullptr)
+	{
+		(*FoundUserInfo)->LastAccessedTimeInSeconds = FPlatformTime::Seconds();
+		FoundUserInfo->Get().LinkedPlatformInfo = LinkedPlatformInfo;
+	}
+	else
+	{
+		// Create a new user info
+		FAccelByteUniqueIdComposite CompositeId{UserId.ToString(), UserId.GetType().ToString(), PlatformId};
+		TSharedRef<FAccelByteUserInfo> User = MakeShared<FAccelByteUserInfo>();
+		User->Id = FUniqueNetIdAccelByteUser::Create(CompositeId);
+		User->LinkedPlatformInfo = LinkedPlatformInfo;
+		AddUsersToCache({ User });
+	}
+}
+
+void FOnlineUserCacheAccelByte::AddLinkedPlatformInfoToCache(const FAccelByteUniqueIdComposite& UserId, const TArray<FAccelByteLinkedUserInfo>& LinkedPlatformInfo)
+{
+	// Lock while we access the cache
+	FScopeLock ScopeLock(&CacheLock);
+
+	// Start by checking the cache for the user associated with the AccelByte ID, if we have one to query
+	TSharedRef<FAccelByteUserInfo>* FoundUserInfo = nullptr;
+	if (!UserId.Id.IsEmpty())
+	{
+		FoundUserInfo = AccelByteIdToUserInfoMap.Find(UserId.Id);
+	}
+
+	// Next, if we didn't already find the user using the AccelByte ID, and we have platform type and ID try and query by that
+	if (FoundUserInfo == nullptr && (!UserId.PlatformType.IsEmpty() && !UserId.PlatformId.IsEmpty()))
+	{
+		const FString PlatformId = ConvertPlatformTypeAndIdToCacheKey(UserId.PlatformType, UserId.PlatformId);
+		FoundUserInfo = PlatformIdToUserInfoMap.Find(PlatformId);
+	}
+
+	if (FoundUserInfo != nullptr)
+	{
+		(*FoundUserInfo)->LastAccessedTimeInSeconds = FPlatformTime::Seconds();
+		FoundUserInfo->Get().LinkedPlatformInfo = LinkedPlatformInfo;
+	}
+	else
+	{
+		// Create a new user info
+		TSharedRef<FAccelByteUserInfo> User = MakeShared<FAccelByteUserInfo>();
+		User->Id = FUniqueNetIdAccelByteUser::Create(UserId);
+		User->LinkedPlatformInfo = LinkedPlatformInfo;
+		AddUsersToCache({ User });
+	}
+}
+
 FString FOnlineUserCacheAccelByte::ConvertPlatformTypeAndIdToCacheKey(const FString& Type, const FString& Id) const
 {
 	const FString PlatformId = FString::Printf(TEXT("%s;%s"), *Type, *Id);

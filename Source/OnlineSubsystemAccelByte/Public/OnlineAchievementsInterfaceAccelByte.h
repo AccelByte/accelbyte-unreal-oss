@@ -6,6 +6,7 @@
 #include "OnlineSubsystemAccelByteTypes.h"
 #include "Core/AccelByteApiClient.h"
 #include "Interfaces/OnlineAchievementsInterface.h"
+#include "OnlineSubsystemAccelBytePackage.h"
 
 class IOnlineSubsystem;
 class FOnlineSubsystemAccelByte;

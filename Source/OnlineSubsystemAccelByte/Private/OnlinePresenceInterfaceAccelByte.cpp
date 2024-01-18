@@ -202,7 +202,6 @@ void FOnlinePresenceAccelByte::RegisterRealTimeLobbyDelegates(int32 LocalUserNum
 	ApiClient->Lobby.SetUserPresenceNotifDelegate(OnFriendStatusChangedNotificationReceivedDelegate);
 }
 
-
 TSharedRef<FOnlineUserPresenceAccelByte> FOnlinePresenceAccelByte::FindOrCreatePresence(const TSharedRef<const FUniqueNetIdAccelByteUser>& UserId) 
 {
 	TSharedRef<FOnlineUserPresenceAccelByte>* UserPresence = CachedPresenceByUserId.Find(UserId->GetAccelByteId());

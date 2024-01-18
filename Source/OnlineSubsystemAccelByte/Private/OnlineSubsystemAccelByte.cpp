@@ -103,6 +103,7 @@ bool FOnlineSubsystemAccelByte::Init()
 	GConfig->GetBool(TEXT("OnlineSubsystemAccelByte"), TEXT("bAutoChatConnectAfterLoginSuccess"), bIsAutoChatConnectAfterLoginSuccess, GEngineIni);
 	GConfig->GetBool(TEXT("OnlineSubsystemAccelByte"), TEXT("bMultipleLocalUsersEnabled"), bIsMultipleLocalUsersEnabled, GEngineIni);
 	GConfig->GetBool(TEXT("OnlineSubsystemAccelByte"), TEXT("bNativePlatformTokenRefreshManually"), bNativePlatformTokenRefreshManually, GEngineIni);
+	GConfig->GetString(TEXT("OnlineSubsystemAccelByte"), TEXT("SecondaryPlatformName"), SecondaryPlatformName, GEngineIni);
 
 	PluginInitializedTime = FDateTime::UtcNow();
 
@@ -445,8 +446,9 @@ bool FOnlineSubsystemAccelByte::IsNativeSubsystemSupported(const FName& NativeSu
 		SubsystemStr.Equals(TEXT("Live"), ESearchCase::IgnoreCase) ||
 		SubsystemStr.Equals(TEXT("PS4"), ESearchCase::IgnoreCase) ||
 		SubsystemStr.Equals(TEXT("PS5"), ESearchCase::IgnoreCase) ||
-		SubsystemStr.Equals(TEXT("STEAM"), ESearchCase::IgnoreCase)||
-		SubsystemStr.Equals(TEXT("EOS"), ESearchCase::IgnoreCase);
+		SubsystemStr.Equals(TEXT("STEAM"), ESearchCase::IgnoreCase) ||
+		SubsystemStr.Equals(TEXT("EOS"), ESearchCase::IgnoreCase) ||
+		SubsystemStr.Equals(TEXT("PSPC"), ESearchCase::IgnoreCase);
 }
 
 FString FOnlineSubsystemAccelByte::GetNativePlatformNameString()
@@ -580,6 +582,11 @@ bool FOnlineSubsystemAccelByte::GetAccelBytePlatformTypeFromAuthType(const FStri
 		Result = EAccelBytePlatformType::PS5;
 		return true;
 	}
+	else if (InAuthType.Equals(TEXT("PSPC"), ESearchCase::IgnoreCase))
+	{
+		Result = EAccelBytePlatformType::PSPC;
+		return true;
+	}
 	else if (InAuthType.Equals(TEXT("LIVE"), ESearchCase::IgnoreCase) || InAuthType.Equals(TEXT("GDK"), ESearchCase::IgnoreCase))
 	{
 		Result = EAccelBytePlatformType::Live;
@@ -607,6 +614,10 @@ FString FOnlineSubsystemAccelByte::GetAccelBytePlatformStringFromAuthType(const 
 	{
 		return TEXT("ps5");
 	}
+	else if (InAuthType.Equals(TEXT("pspc"), ESearchCase::IgnoreCase))
+	{
+		return TEXT("pspc");
+	}
 	else if (InAuthType.Equals(TEXT("live"), ESearchCase::IgnoreCase) || InAuthType.Equals(TEXT("gdk"), ESearchCase::IgnoreCase))
 	{
 		return TEXT("live");
@@ -631,6 +642,10 @@ FString FOnlineSubsystemAccelByte::GetNativeSubsystemNameFromAccelBytePlatformSt
 	else if (InAccelBytePlatform.Equals(TEXT("ps5"), ESearchCase::IgnoreCase))
 	{
 		return TEXT("PS5");
+	}
+	else if (InAccelBytePlatform.Equals(TEXT("pspc"), ESearchCase::IgnoreCase))
+	{
+		return TEXT("PSPC");
 	}
 	else if (InAccelBytePlatform.Equals(TEXT("live"), ESearchCase::IgnoreCase))
 	{
@@ -723,17 +738,20 @@ void FOnlineSubsystemAccelByte::OnLobbyConnectedCallback(int32 LocalUserNum, boo
 	
 	if (ApiClient.IsValid())
 	{
-		auto OnLobbyConnectionClosedDelegate = AccelByte::Api::Lobby::FConnectionClosed::CreateThreadSafeSP(AsShared(), &FOnlineSubsystemAccelByte::OnLobbyConnectionClosed, LocalUserNum);
+		const auto OnLobbyConnectionClosedDelegate = AccelByte::Api::Lobby::FConnectionClosed::CreateThreadSafeSP(AsShared(), &FOnlineSubsystemAccelByte::OnLobbyConnectionClosed, LocalUserNum, false);
 		ApiClient->Lobby.SetConnectionClosedDelegate(OnLobbyConnectionClosedDelegate);
 
 		// #NOTE (Wiwing): Overwrite connect Lobby success delegate for reconnection
-		auto OnLobbyReconnectionDelegate = Api::Lobby::FConnectSuccess::CreateThreadSafeSP(AsShared(), &FOnlineSubsystemAccelByte::OnLobbyReconnected, LocalUserNum);
+		const auto OnLobbyReconnectionDelegate = Api::Lobby::FConnectSuccess::CreateThreadSafeSP(AsShared(), &FOnlineSubsystemAccelByte::OnLobbyReconnected, LocalUserNum);
 		ApiClient->Lobby.SetConnectSuccessDelegate(OnLobbyReconnectionDelegate);
+
+		const auto OnLobbyReconnectingDelegate = AccelByte::Api::Lobby::FConnectionClosed::CreateThreadSafeSP(AsShared(), &FOnlineSubsystemAccelByte::OnLobbyConnectionClosed, LocalUserNum, true);
+		ApiClient->Lobby.SetReconnectingDelegate(OnLobbyReconnectingDelegate);
 	}
 }
 
 
-void FOnlineSubsystemAccelByte::OnLobbyConnectionClosed(int32 StatusCode, const FString& Reason, bool WasClean, int32 InLocalUserNum)
+void FOnlineSubsystemAccelByte::OnLobbyConnectionClosed(int32 StatusCode, const FString& Reason, bool WasClean, int32 InLocalUserNum, bool bIsReconnecting)
 {
 	UE_LOG_AB(Warning, TEXT("Lobby connection closed. Reason '%s' Code : '%d'"), *Reason, StatusCode);
 
@@ -756,6 +774,15 @@ void FOnlineSubsystemAccelByte::OnLobbyConnectionClosed(int32 StatusCode, const 
 	{
 		const TSharedPtr<FUserOnlineAccountAccelByte> UserAccountAccelByte = StaticCastSharedPtr<FUserOnlineAccountAccelByte>(UserAccount);
 		UserAccountAccelByte->SetConnectedToLobby(false);
+	}
+	
+	if (bIsReconnecting)
+	{
+		IdentityInterface->TriggerAccelByteOnLobbyReconnectingDelegates(InLocalUserNum, *UserIdPtr.Get(), StatusCode, Reason, WasClean);
+	}
+	else
+	{
+		IdentityInterface->TriggerAccelByteOnLobbyConnectionClosedDelegates(InLocalUserNum, *UserIdPtr.Get(), StatusCode, Reason, WasClean);
 	}
 
 	if (FOnlineIdentityAccelByte::IsLogoutRequired(StatusCode) == false)
@@ -1049,6 +1076,10 @@ void FOnlineSubsystemAccelByte::SetNativePlatformTokenRefreshScheduler(int32 Loc
 				if (bSuccess && this != nullptr && this->GetIdentityInterface() && this->IdentityInterface->GetApiClient(LocalUserNum).IsValid())
 				{
 					IdentityInterface->RefreshPlatformToken(LocalUserNum);
+					if (!this->SecondaryPlatformName.IsEmpty())
+					{
+						IdentityInterface->RefreshPlatformToken(LocalUserNum, FName(SecondaryPlatformName));
+					}
 				}
 			});
 	}

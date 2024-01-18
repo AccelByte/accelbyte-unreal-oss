@@ -8,6 +8,7 @@
 #include "OnlineSubsystemAccelByteUtils.h"
 #include "Interfaces/OnlineEntitlementsInterface.h"
 #include "Models/AccelByteEcommerceModels.h"
+#include "OnlineSubsystemAccelBytePackage.h"
 
 using FEntitlementMap = TMap<FUniqueEntitlementId, TSharedRef<FOnlineEntitlement>>;
 using FUserIDToEntitlementMap = TMap<TSharedRef<const FUniqueNetIdAccelByteUser>, FEntitlementMap, FDefaultSetAllocator, TUserUniqueIdConstSharedRefMapKeyFuncs<FEntitlementMap>>;

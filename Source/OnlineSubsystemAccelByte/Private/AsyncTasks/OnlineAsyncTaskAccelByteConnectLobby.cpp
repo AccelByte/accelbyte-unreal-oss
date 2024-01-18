@@ -19,8 +19,9 @@ using namespace AccelByte;
 
 #define ONLINE_ERROR_NAMESPACE "FOnlineAccelByteLobbyConnect"
 
-FOnlineAsyncTaskAccelByteConnectLobby::FOnlineAsyncTaskAccelByteConnectLobby(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InLocalUserId)
+FOnlineAsyncTaskAccelByteConnectLobby::FOnlineAsyncTaskAccelByteConnectLobby(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InLocalUserId, const bool InSuppressConnectSuccessIfAlreadyConnected)
 	: FOnlineAsyncTaskAccelByte(InABInterface)
+	, SuppressConnectSuccessIfAlreadyConnected(InSuppressConnectSuccessIfAlreadyConnected)
 {
 	UserId = FUniqueNetIdAccelByteUser::CastChecked(InLocalUserId);
 	ErrorStr = TEXT("");
@@ -32,7 +33,15 @@ void FOnlineAsyncTaskAccelByteConnectLobby::Initialize()
 
 	if (ApiClient->Lobby.IsConnected())
 	{
-		OnLobbyConnectSuccess();
+		if (SuppressConnectSuccessIfAlreadyConnected)
+		{
+			CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
+		}
+		else
+		{
+			OnLobbyConnectSuccess();
+		}
+
 		return;
 	}
 

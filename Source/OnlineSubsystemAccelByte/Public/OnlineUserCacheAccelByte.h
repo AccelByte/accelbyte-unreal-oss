@@ -5,6 +5,8 @@
 #pragma once
 #include "OnlineSubsystemAccelByteTypes.h"
 #include "Dom/JsonObject.h"
+#include "OnlineSubsystemAccelBytePackage.h"
+#include "InterfaceModels/OnlineUserInterfaceAccelByteModels.h"
 
 class FOnlineSubsystemAccelByte;
 class IOnlineSubsystem;
@@ -47,6 +49,11 @@ public:
 	 * @brief Custom attributes of the user's profile
 	 */
 	FJsonObject CustomAttributes{};
+
+	/**
+	 * @brief Array of user linked platform information
+	 */
+	TArray<FAccelByteLinkedUserInfo> LinkedPlatformInfo;
 
 private:
 
@@ -206,6 +213,18 @@ PACKAGE_SCOPE:
 	 * Add PublicCode to a user cache, create new if not exist
 	 */
 	void AddPublicCodeToCache(const FAccelByteUniqueIdComposite& UserId, const FString& PublicCode);
+
+	/**
+	 * Adds linked platform information to the user cache for a given user ID.
+	 * Creates a new cache entry if the user does not already exist in the cache.
+	 */
+	void AddLinkedPlatformInfoToCache(const FUniqueNetId& UserId, const TArray<FAccelByteLinkedUserInfo>& LinkedPlatformInfo);
+
+	/**
+	 * Adds linked platform information to the user cache for a given composite user ID.
+	 * Creates a new cache entry if the user does not already exist in the cache.
+	 */
+	void AddLinkedPlatformInfoToCache(const FAccelByteUniqueIdComposite& UserId, const TArray<FAccelByteLinkedUserInfo>& LinkedPlatformInfo);
 
 	/**
 	 * Searches through the user caches for a user that hasn't been accessed in longer than the maximum time set for this

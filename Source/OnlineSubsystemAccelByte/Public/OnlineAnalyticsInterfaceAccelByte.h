@@ -7,6 +7,7 @@
 #include "CoreMinimal.h"
 #include "OnlineSubsystemAccelByte.h"
 #include "Models/AccelByteGameTelemetryModels.h"
+#include "OnlineSubsystemAccelBytePackage.h"
 
 /**
  * Implementation of Analytics service from AccelByte services

@@ -14,7 +14,6 @@
 #include "Misc/ScopeLock.h"
 #include "OnlineSessionSettings.h"
 #include "Interfaces/OnlineSessionInterface.h"
-#include "OnlineSubsystemAccelBytePackage.h"
 #include "Core/AccelByteError.h"
 #include "Models/AccelByteSessionBrowserModels.h"
 #include "Models/AccelByteLobbyModels.h"
@@ -27,6 +26,7 @@
 #include "OnlineDelegateMacros.h"
 #include "Runtime/Launch/Resources/Version.h"
 #include "AccelByteNetworkingStatus.h"
+#include "OnlineSubsystemAccelBytePackage.h"
 
 class FOnlineSubsystemAccelByte;
 class FOnlineSessionV1AccelByte;

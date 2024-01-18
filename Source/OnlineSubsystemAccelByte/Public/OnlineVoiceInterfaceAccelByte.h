@@ -6,6 +6,7 @@
 #include "VoiceInterfaceImpl.h"
 #include "OnlineSessionSettings.h"
 #include "OnlineSubsystemAccelByte.h"
+#include "OnlineSubsystemAccelBytePackage.h"
 
 class ONLINESUBSYSTEMACCELBYTE_API FOnlineVoiceAccelByte
 	: public FOnlineVoiceImpl

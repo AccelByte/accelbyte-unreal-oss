@@ -7,12 +7,12 @@
 #include "CoreMinimal.h"
 #include "OnlineSubsystemAccelByte.h"
 #include "OnlineSubsystemAccelByteTypes.h"
-#include "OnlineSubsystemAccelBytePackage.h"
 #include "OnlinePartyInterfaceAccelByte.h"
 #include "OnlineSessionInterfaceV2AccelByte.h"
 
 #include "Core/AccelByteApiClient.h"
 #include "GameServerApi/AccelByteServerUserApi.h"
+#include "OnlineSubsystemAccelBytePackage.h"
 
 /** AccelByte Authentication Interface.
  *

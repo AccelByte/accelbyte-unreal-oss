@@ -8,6 +8,7 @@
 #include "Misc/CoreMisc.h"
 #include "VoiceChat.h"
 #include "Runtime/Launch/Resources/Version.h"
+#include "OnlineSubsystemAccelBytePackage.h"
 
 class ONLINESUBSYSTEMACCELBYTE_API FAccelByteVoiceChat
 	: public TSharedFromThis<FAccelByteVoiceChat, ESPMode::ThreadSafe>

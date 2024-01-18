@@ -9,6 +9,7 @@
 #include "OnlineSubsystemAccelByte.h"
 #include "OnlineUserCacheAccelByte.h"
 #include "Models/AccelByteEcommerceModels.h"
+#include "OnlineSubsystemAccelBytePackage.h"
 
 class UWorld;
 

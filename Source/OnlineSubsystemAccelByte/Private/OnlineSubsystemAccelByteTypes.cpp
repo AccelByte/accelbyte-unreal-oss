@@ -763,6 +763,16 @@ void FUserOnlineAccountAccelByte::SetDisplayName(const FString& InDisplayName)
 	DisplayName = InDisplayName;
 }
 
+FString FUserOnlineAccountAccelByte::GetUserCountry() const
+{
+	return UserCountry;
+}
+
+void FUserOnlineAccountAccelByte::SetUserCountry(const FString& InUserCountry)
+{
+	UserCountry = InUserCountry;
+}
+
 FString FUserOnlineAccountAccelByte::GetAccessToken() const
 {
 	return AccessToken;
@@ -837,4 +847,135 @@ void FUserOnlineAccountAccelByte::SetConnectedToChat(bool bIsConnected)
 	bIsConnectedToChat = bIsConnected;
 }
 
+void FUserOnlineAccountAccelByte::AddPlatformUser(const FOnlinePlatformUserAccelByte& PlatformUser)
+{
+	// Assuming PlatformUser has a GetPlatformId method that returns a unique ID for each platform user
+	FString Key = PlatformUser.GetPlatformId(); 
+
+	// Add the PlatformUser to the map with Key as its identifier
+	PlatformUsers.Add(Key, PlatformUser);
+}
+
+const FOnlinePlatformUserAccelByte* FUserOnlineAccountAccelByte::GetPlatformUser(const FString& PlatformId) const
+{
+	// Find returns a pointer to the value type (FOnlinePlatformUserAccelByte) in the map
+	const FOnlinePlatformUserAccelByte* FoundUser = PlatformUsers.Find(PlatformId);
+	if (FoundUser != nullptr)
+	{
+		// FoundUser is already a pointer to the FOnlinePlatformUserAccelByte
+		return FoundUser;
+	}
+
+	return nullptr; // Return null if the user is not found
+}
+
 #pragma endregion // FUserOnlineAccountAccelByte
+
+#pragma region FOnlinePlatformUserAccelByte
+
+FOnlinePlatformUserAccelByte::FOnlinePlatformUserAccelByte
+	( const FString& InUserId /*= TEXT("")*/ )
+{
+	UserIdRef = FUniqueNetIdAccelByteUser::Create(InUserId);
+}
+
+FOnlinePlatformUserAccelByte::FOnlinePlatformUserAccelByte
+	( const TSharedRef<const FUniqueNetId>& InUserId )
+	: UserIdRef(FUniqueNetIdAccelByteUser::CastChecked(InUserId))
+{
+}
+
+FOnlinePlatformUserAccelByte::FOnlinePlatformUserAccelByte
+	( const TSharedRef<const FUniqueNetId>& InUserId
+	, const FString& InDisplayName )
+	: UserIdRef(FUniqueNetIdAccelByteUser::CastChecked(InUserId))
+	, DisplayName(InDisplayName)
+{
+}
+
+FOnlinePlatformUserAccelByte::FOnlinePlatformUserAccelByte(const FAccelByteUniqueIdComposite& InCompositeId)
+	: UserIdRef(FUniqueNetIdAccelByteUser::Create(InCompositeId))
+{
+}
+
+// Add implementation for the functions
+void FOnlinePlatformUserAccelByte::SetAvatarUrl(const FString& InAvatarUrl)
+{
+	AvatarUrl = InAvatarUrl;
+}
+
+void FOnlinePlatformUserAccelByte::SetDisplayName(const FString& InDisplayName)
+{
+	DisplayName = InDisplayName;
+}
+
+void FOnlinePlatformUserAccelByte::SetPlatformId(const FString& InPlatformId)
+{
+	PlatformId = InPlatformId;
+}
+
+void FOnlinePlatformUserAccelByte::SetPlatformGroup(const FString& InPlatformGroup)
+{
+	PlatformGroup = InPlatformGroup;
+}
+
+void FOnlinePlatformUserAccelByte::SetPlatformUserId(const FString& InPlatformUserId)
+{
+	PlatformUserId = InPlatformUserId;
+}
+
+FString FOnlinePlatformUserAccelByte::GetAvatarUrl() const
+{
+	return AvatarUrl;
+}
+
+FString FOnlinePlatformUserAccelByte::GetDisplayName(const FString& /*Platform*/) const
+{
+	return DisplayName;
+}
+
+FString FOnlinePlatformUserAccelByte::GetPlatformId() const
+{
+	return PlatformId;
+}
+
+FString FOnlinePlatformUserAccelByte::GetPlatformGroup() const
+{
+	return PlatformGroup;
+}
+
+FString FOnlinePlatformUserAccelByte::GetPlatformUserId() const
+{
+	return PlatformUserId;
+}
+
+FString FOnlinePlatformUserAccelByte::GetRealName() const
+{
+	return DisplayName;
+}
+
+bool FOnlinePlatformUserAccelByte::GetUserAttribute(const FString& AttrName, FString& OutAttrValue) const
+{
+	const FString* FoundAttr = UserAttributes.Find(AttrName);
+	if (FoundAttr != nullptr)
+	{
+		OutAttrValue = *FoundAttr;
+		return true;
+	}
+
+	return false;
+}
+
+bool FOnlinePlatformUserAccelByte::SetUserLocalAttribute(const FString& AttrName, const FString& AttrValue)
+{
+	const FString* FoundAttr = UserAttributes.Find(AttrName);
+    	if (FoundAttr == nullptr || *FoundAttr != AttrValue)
+    	{
+    		UserAttributes.Add(AttrName, AttrValue);
+    		return true;
+    	}
+    
+    	return false;
+}
+
+#pragma endregion // FOnlinePlatformUserAccelByte 

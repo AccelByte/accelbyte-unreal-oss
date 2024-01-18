@@ -18,6 +18,7 @@
 #include "Core/AccelByteApiClient.h"
 #include "Models/AccelByteUserModels.h"
 #include "AccelByteTimerObject.h"
+#include "OnlineSubsystemAccelBytePackage.h"
 
 /** Log category for any AccelByte OSS logs, including traces */
 DECLARE_LOG_CATEGORY_EXTERN(LogAccelByteOSS, Warning, All);
@@ -603,7 +604,7 @@ private:
 
 	void OnLobbyConnectedCallback(int32 LocalUserNum, bool bWasSuccessful, const FUniqueNetId& UniqueNetId, const FString& ErrorMessage);
 
-	void OnLobbyConnectionClosed(int32 StatusCode, const FString& Reason, bool WasClean, int32 InLocalUserNum);
+	void OnLobbyConnectionClosed(int32 StatusCode, const FString& Reason, bool WasClean, int32 InLocalUserNum, bool bIsReconnecting);
 
 	void OnLobbyReconnected(int32 InLocalUserNum);
 
@@ -614,6 +615,7 @@ private:
 
 	FOnLocalUserNumCachedDelegate OnLocalUserNumCachedDelegate;
 
+#pragma region PLATFORM_RELATED
 	/**
 	 * Perform check and listen to the IAM refresh token scheduler.
 	 * Therefore when TokenRefrehed is triggered, it will proceed to refresh the Native Platform Token.
@@ -621,10 +623,15 @@ private:
 	 */
 	void NativePlatformTokenRefreshScheduler(int32 LocalUserNum);
 	FDelegateHandle NativePlatformTokenRefreshDelegateHandle;
+	FString SecondaryPlatformName{};
+#pragma endregion
 
+#pragma region EOS_SPECIFIC_HANDLER
 	FAccelByteTimerObject EOSRefreshTrackerTimerObject{};
 	FTimerDelegate EOSRefreshTrackerDelegate;
 	FString EOSLastAuthToken{};
+#pragma endregion
+
 #ifdef ONLINESUBSYSTEMEOS_PACKAGE
 
 #endif

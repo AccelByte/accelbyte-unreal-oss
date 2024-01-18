@@ -9,7 +9,6 @@
 #include "OnlineIdentityInterfaceAccelByte.h"
 #include "OnlineUserInterfaceAccelByte.h"
 #include "OnlineAgreementInterfaceAccelByte.h"
-#include "Engine/Texture.h"
 #include "AccelByteTimerObject.h"
 #if (PLATFORM_WINDOWS || PLATFORM_LINUX || PLATFORM_MAC) && !UE_SERVER
 #include "steam/steam_api.h"
@@ -46,9 +45,6 @@ protected:
 		return TEXT("FOnlineAsyncTaskAccelByteLogin");
 	}
 
-private:
-
-
 	/**
 	 * User number or the controller index of the player
 	 */
@@ -83,6 +79,11 @@ private:
 	 * Online user account for the user that we were able to login as
 	 */
 	TSharedPtr<FUserOnlineAccountAccelByte> Account;
+
+	/*
+	 * for cache user data, such as display names and platform IDs, used across the online subsystem. 
+	 */
+	TSharedPtr<FOnlineUserCacheAccelByte, ESPMode::ThreadSafe> UserCache;
 
 	/**
 	 * Login status for the user, should be NotLoggedIn, unless login succeeds fully
@@ -121,6 +122,11 @@ private:
 	 */
 	bool bCreateHeadlessAccount = true;
 
+	/*
+	 * To decide whether we need to store it to the current async task or not.
+	 */
+	bool bStoreNativePlatformCredentialOnSubsystemLoginComplete = true;
+
 	/**
 	 * Attempts to fire off a login request with a native subsystem, if one is set up and usable.
 	 *
@@ -130,34 +136,36 @@ private:
 	void LoginWithNativeSubsystem();
 
 	/**
-	 * Callback for delegate fired when the native subsystem has finished its authentication. Authenticates with the AccelByte back end upon firing.
+	 * Attempts to fire off a login request with a specific subsystem, if one is set up and usable.
 	 */
-	void OnNativeLoginComplete(int32 NativeLocalUserNum, bool bWasNativeLoginSuccessful, const FUniqueNetId& NativeUserId, const FString& NativeError);
+	void LoginWithSpecificSubsystem(IOnlineSubsystem* NativeSubsystem);
+	void LoginWithSpecificSubsystem(FString SubsystemName);
 
 	/**
-	 * Callback for when the login UI for a native platform subsystem is closed. Used to allow sign in with local user
-	 * accounts on a native subsystem and then subsequently login with the AccelByte back end. Passing in an extra LocalUserNum,
-	 * as ControllerIndex is -1 if the call fails and we need to be able to inform that the login failed.
+	 * Callback for delegate fired when the `specified` subsystem has finished its authentication. Authenticates with the AccelByte back end upon firing.
+	 *
+	 * Specific subsystem need to be passed to maintain consistency between LoginWithSpecificSubsystem() and the delegate
 	 */
-	void OnNativeLoginUIClosed(TSharedPtr<const FUniqueNetId> UniqueId, const int ControllerIndex, const FOnlineError& NativeError);
+	virtual void OnSpecificSubysystemLoginComplete(int32 LocalUserNum, bool bWasSubsystemLoginSuccessful, const FUniqueNetId& SubsystemUserId, const FString& SubsystemError, IOnlineSubsystem* SpecificSubsystem);
+
+	/**
+	 * Callback for when the login UI for a `specified` platform subsystem is closed. Used to allow sign in with local user
+	 * accounts on a `specified` subsystem and then subsequently login with the AccelByte back end. Passing in an extra LocalUserNum,
+	 * as ControllerIndex is -1 if the call fails and we need to be able to inform that the login failed.
+	 * 
+	 * Specific subsystem need to be passed to maintain consistency between LoginWithSpecificSubsystem() and the delegate
+	 */
+	void OnSpecificSubysystemLoginUIClosed(TSharedPtr<const FUniqueNetId> UniqueId, const int ControllerIndex, const FOnlineError& SubsystemError, IOnlineSubsystem* SpecificSubsystem);
 	
 	/**
 	 * Perform login on the AccelByte backend using defined login type and OAuth error type
 	 */
-	void PerformLogin(const FOnlineAccountCredentials& Credentials);
+	virtual void PerformLogin(const FOnlineAccountCredentials& Credentials);
 	
 	/**
 	 * Delegate handler for when any AccelByte login call succeeds. 
 	 */
-	void OnLoginSuccess();
-
-	/**
-	 * Delegate handler for when any AccelByte login call fails.
-	 *
-	 * @param ErrorCode Code returned from the backend representing the error that was encountered with the request
-	 * @param ErrorMessage Message returned from the backend describing the error that was encountered with the request
-	 */
-	void OnLoginError(int32 ErrorCode, const FString& ErrorMessage);
+	virtual void OnLoginSuccess();
 
 	/**
 	 * Delegate handler for when any AccelByte login call fails.
@@ -166,5 +174,5 @@ private:
 	 * @param ErrorMessage Message returned from the backend describing the error that was encountered with the request
 	 * @param ErrorObject Object representing the error code that occurred
 	 */
-	void OnLoginErrorOAuth(int32 ErrorCode, const FString& ErrorMessage, const FErrorOAuthInfo& ErrorObject);
+	virtual void OnLoginErrorOAuth(int32 ErrorCode, const FString& ErrorMessage, const FErrorOAuthInfo& ErrorObject);
 };

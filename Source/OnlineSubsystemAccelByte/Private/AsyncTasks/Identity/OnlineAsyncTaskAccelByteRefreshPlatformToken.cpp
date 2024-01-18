@@ -28,7 +28,8 @@ bool FOnlineAsyncTaskAccelByteRefreshPlatformToken::CheckAndGetOnlineIdentityInt
 
 	if (TargetedSubsystem == nullptr)
 	{
-		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Refresh platform token failed as the online subsystem instance was nullptr!"));
+		FString RefreshSubsystemNameAsString = RefreshSubsystemName.ToString();
+		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Refresh platform token failed as the online subsystem [%s] instance was nullptr!"), *RefreshSubsystemNameAsString);
 		CompleteTask(EAccelByteAsyncTaskCompleteState::Incomplete);
 		return false;
 	}

@@ -8,6 +8,7 @@
 #include "OnlineDelegateMacros.h"
 #include "OnlineSubsystemAccelByte.h"
 #include "OnlineUserCacheAccelByte.h"
+#include "OnlineSubsystemAccelBytePackage.h"
 
 DECLARE_MULTICAST_DELEGATE_FourParams(FOnGetUserRecordCompleted, int32 /*LocalUserNum*/, const FOnlineError& /*Result*/,const FString& /*Key*/, const FAccelByteModelsUserRecord&);
 typedef FOnGetUserRecordCompleted::FDelegate FOnGetUserRecordCompletedDelegate;

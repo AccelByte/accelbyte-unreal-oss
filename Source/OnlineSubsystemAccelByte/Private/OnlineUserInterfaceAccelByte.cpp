@@ -23,6 +23,8 @@
 #include "AsyncTasks/User/OnlineAsyncTaskAccelByteLinkOtherPlatformId.h"
 #include "AsyncTasks/User/OnlineAsyncTaskAccelByteUnlinkOtherPlatformId.h"
 #include "AsyncTasks/User/OnlineAsyncTaskAccelByteCheckUserAccountAvailability.h"
+#include "AsyncTasks/User/OnlineAsyncTaskAccelByteQueryUserIdMappingWithPlatform.h"
+#include "AsyncTasks/User/OnlineAsyncTaskAccelByteQueryUserIdMappingWithPlatformId.h"
 #include "OnlineSubsystemUtils.h"
 
 #define ONLINE_ERROR_NAMESPACE "FOnlineUserAccelByte"
@@ -158,6 +160,28 @@ bool FOnlineUserAccelByte::QueryUserIdMapping(const FUniqueNetId& UserId, const 
 
 	check(AccelByteSubsystem != nullptr);
 	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteQueryUserIdMapping>(AccelByteSubsystem, UserId, DisplayNameOrEmail, Delegate);
+
+	AB_OSS_INTERFACE_TRACE_END(TEXT("Created and dispatched async task to query user ID for display name or email '%s'!"), *DisplayNameOrEmail);
+	return true;
+}
+
+bool FOnlineUserAccelByte::QueryUserIdMappingWithPlatform(const FUniqueNetId& UserId, const FString& DisplayNameOrEmail, EAccelBytePlatformType PlatformType, const FOnQueryUserMappingComplete& Delegate)
+{
+	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("UserId: %s; Display Name or Email to Query: %s"), *UserId.ToDebugString(), *DisplayNameOrEmail);
+
+	check(AccelByteSubsystem != nullptr);
+	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteQueryUserIdMappingWithPlatform>(AccelByteSubsystem, UserId, DisplayNameOrEmail, PlatformType, Delegate);
+
+	AB_OSS_INTERFACE_TRACE_END(TEXT("Created and dispatched async task to query user ID for display name or email '%s'!"), *DisplayNameOrEmail);
+	return true;
+}
+
+bool FOnlineUserAccelByte::QueryUserIdMappingWithPlatformId(const FUniqueNetId& UserId, const FString& DisplayNameOrEmail, const FString& PlatformId, const FOnQueryUserMappingComplete& Delegate)
+{
+	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("UserId: %s; Display Name or Email to Query: %s"), *UserId.ToDebugString(), *DisplayNameOrEmail);
+
+	check(AccelByteSubsystem != nullptr);
+	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteQueryUserIdMappingWithPlatformId>(AccelByteSubsystem, UserId, DisplayNameOrEmail, PlatformId, Delegate);
 
 	AB_OSS_INTERFACE_TRACE_END(TEXT("Created and dispatched async task to query user ID for display name or email '%s'!"), *DisplayNameOrEmail);
 	return true;

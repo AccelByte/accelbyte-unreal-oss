@@ -70,7 +70,8 @@ void FOnlineAsyncTaskAccelByteQueryUserPresence::OnQueryUserPresenceError(int32 
 	CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
 }
 
-void FOnlineAsyncTaskAccelByteQueryUserPresence::OnQueryUserPresenceSuccess(const FAccelByteModelsBulkUserStatusNotif& Result) {
+void FOnlineAsyncTaskAccelByteQueryUserPresence::OnQueryUserPresenceSuccess(const FAccelByteModelsBulkUserStatusNotif& Result)
+{
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Query User Presence succeeded"));
 
 	FOnlineUserPresenceStatusAccelByte PresenceStatus;
@@ -98,6 +99,7 @@ void FOnlineAsyncTaskAccelByteQueryUserPresence::OnQueryUserPresenceSuccess(cons
 	{
 		PresenceResult->bIsOnline = Result.Online;
 		PresenceResult->bIsPlayingThisGame = Result.Online;
+		PresenceResult->Status.Properties.Add(DefaultPlatformKey, Result.Data[0].Platform);
 		AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 	}
 

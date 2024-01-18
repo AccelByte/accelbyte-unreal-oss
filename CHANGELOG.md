@@ -2,6 +2,27 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.12.3](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.12.3%0D0.12.2) (2024-01-18)
+
+
+### Features
+
+* add new delegate for lobby connection closed and reconnecting on OSS ([aafeec5](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/aafeec51747f9433c434f9309e7d45b0c586f5ad))
+* add platform information in presence interface ([9541bce](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/9541bce7dedaeb69ebc0bec77ad28922d7aa2fd0))
+* add QueryRecentPlayer when using session v2 ([1ddf886](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/1ddf886d53281c12bf84a02877d28e7bf0b0701a))
+* add user country/region to their account identity ([d504a26](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/d504a26abc4e5290e4271508b300855924fcac0f))
+* ensure lobby is connected before start matchmaking ([d060e10](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/d060e102800068a48432e8f5bff6ea1dbfcd4d27))
+* **Login:** simultaneous login using two platform accounts ([4cba08d](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/4cba08dea467c645c9e50effd4ff073d1e373b06))
+* **mpv2:** ensure lobby connected before calling mpv2 api ([4e11a8b](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/4e11a8b327ce6e35c53e9f97418ea851c348f317))
+* sdk adjustment to support returning explicit 3rd party platform info ([4b332b2](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/4b332b2379721f4675c4ae5b853a4b1d3a46953f))
+
+
+### Bug Fixes
+
+* complete lobby connection task properly when skipping success callback ([cd32d01](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/cd32d01d8d29bcbdb28c487ce78cf4b3dfe68a11))
+* include OnlineSubsystemAccelBytePackage.h to avoid PACKAGE_SCOPE issue in unity build ([09f4f8f](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/09f4f8f3ccce7758a834008f10e1e7b3213d86ad))
+* **native platform:** missing native platform converter ([872cfcb](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/872cfcbd3408cae8cbae5a1be7585143a4981a45))
+
 ### [0.12.2](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.12.2%0D0.12.1) (2024-01-09)
 
 

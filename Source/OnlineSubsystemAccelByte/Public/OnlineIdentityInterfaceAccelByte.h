@@ -1,4 +1,4 @@
-// Copyright (c) 2022 AccelByte Inc. All Rights Reserved.
+// Copyright (c) 2023 AccelByte Inc. All Rights Reserved.
 // This is licensed software from AccelByte Inc, for limitations
 // and restrictions contact your company contract manager.
 
@@ -18,34 +18,8 @@
 #include "Core/AccelByteMultiRegistry.h"
 #include "Core/AccelByteUtilities.h"
 #include "OnlineErrorAccelByte.h"
-
-class FOnlineAccountCredentialsAccelByte : public FOnlineAccountCredentials
-{
-public:
-	EAccelByteLoginType LoginType;
-	bool bCreateHeadlessAccount = true;
-
-	FOnlineAccountCredentialsAccelByte(EAccelByteLoginType InType
-		, const FString& InId
-		, const FString& InToken
-		, bool bInCreateHeadlessAccount = true)
-		: FOnlineAccountCredentials(FAccelByteUtilities::GetUEnumValueAsString(InType), InId, InToken)
-		, LoginType{InType}
-		, bCreateHeadlessAccount(bInCreateHeadlessAccount)
-	{}
-
-	FOnlineAccountCredentialsAccelByte(FOnlineAccountCredentials AccountCredentials
-		, bool bInCreateHeadlessAccount = true)
-		: FOnlineAccountCredentials(AccountCredentials.Type, AccountCredentials.Id, AccountCredentials.Token)
-		, LoginType{ FAccelByteUtilities::GetUEnumValueFromString<EAccelByteLoginType>(AccountCredentials.Type) }
-		, bCreateHeadlessAccount(bInCreateHeadlessAccount)
-	{}
-
-	FOnlineAccountCredentialsAccelByte(bool bInCreateHeadlessAccount) //Login with native oss
-		: FOnlineAccountCredentials()
-		, bCreateHeadlessAccount(bInCreateHeadlessAccount)
-	{}
-};
+#include "InterfaceModels/OnlineIdentityInterfaceAccelByteModels.h"
+#include "OnlineSubsystemAccelBytePackage.h"
 
 typedef FOnlineAccountCredentialsAccelByte FOnlineAccelByteAccountCredentials;
 
@@ -59,11 +33,20 @@ typedef FOnLoginWithOAuthErrorComplete::FDelegate FOnLoginWithOAuthErrorComplete
 DECLARE_MULTICAST_DELEGATE_FourParams(FAccelByteOnLoginComplete, int32 /*LocalUserNum*/, bool /*bWasSuccessful*/, const FUniqueNetId& /*UserId*/, const FOnlineErrorAccelByte& /*Error*/);
 typedef FAccelByteOnLoginComplete::FDelegate FAccelByteOnLoginCompleteDelegate;
 
+DECLARE_MULTICAST_DELEGATE_FiveParams(FAccelByteOnSimultaneousLoginComplete, int32 /*LocalUserNum*/, bool /*bWasSuccessful*/, ESimultaneousLoginResult /*Result*/, const FUniqueNetId& /*UserId*/, const FErrorOAuthInfo& /*Error*/);
+typedef FAccelByteOnSimultaneousLoginComplete::FDelegate FAccelByteOnSimultaneousLoginCompleteDelegate;
+
 DECLARE_MULTICAST_DELEGATE_ThreeParams(FAccelByteOnLogoutComplete, int32 /*LocalUserNum*/, bool /*bWasSuccessful*/, const FOnlineErrorAccelByte& /*Error*/);
 typedef FAccelByteOnLogoutComplete::FDelegate FAccelByteOnLogoutCompleteDelegate;
 
 DECLARE_MULTICAST_DELEGATE_FourParams(FAccelByteOnConnectLobbyComplete, int32 /*LocalUserNum*/, bool /*bWasSuccessful*/, const FUniqueNetId& /*UserId*/, const FOnlineErrorAccelByte& /*Error*/);
 typedef FAccelByteOnConnectLobbyComplete::FDelegate FAccelByteOnConnectLobbyCompleteDelegate;
+
+DECLARE_MULTICAST_DELEGATE_FiveParams(FAccelByteOnLobbyConnectionClosed, int32 /*LocalUserNum*/, const FUniqueNetId& /*UserId*/, int32 /*StatusCode*/, const FString& /*Reason*/, bool /*bWasClean*/);
+typedef FAccelByteOnLobbyConnectionClosed::FDelegate FAccelByteOnLobbyConnectionClosedDelegate;
+
+DECLARE_MULTICAST_DELEGATE_FiveParams(FAccelByteOnLobbyReconnecting, int32 /*LocalUserNum*/, const FUniqueNetId& /*UserId*/, int32 /*StatusCode*/, const FString& /*Reason*/, bool /*bWasClean*/);
+typedef FAccelByteOnLobbyReconnecting::FDelegate FAccelByteOnLobbyReconnectingDelegate;
 
 DECLARE_DELEGATE_TwoParams(FGenerateCodeForPublisherTokenComplete, bool /*bWasSuccessful*/, const FCodeForTokenExchangeResponse& Result /*Result*/);
 
@@ -171,6 +154,17 @@ public:
 	 * @param Error Information about the error condition
 	 */
 	DEFINE_ONLINE_PLAYER_DELEGATE_THREE_PARAM(MAX_LOCAL_PLAYERS, AccelByteOnLoginComplete, bool /*bWasSuccessful*/, const FUniqueNetId& /*UserId*/, const FOnlineErrorAccelByte& /*Error*/);
+	
+	/**
+	 * Called when user simultaneous login has completed after calling Login()
+	 *
+	 * @param LocalUserNum the controller number of the associated user
+	 * @param bWasSuccessful true if server was contacted and a valid result received
+	 * @param ESimultaneousLoginResult the result from the login attempt, or the last known state
+	 * @param UserId the user id received from the server on successful login
+	 * @param Error Information about the error condition
+	 */
+	DEFINE_ONLINE_PLAYER_DELEGATE_FOUR_PARAM(MAX_LOCAL_PLAYERS, AccelByteOnSimultaneousLoginComplete, bool /*bWasSuccessful*/, ESimultaneousLoginResult /*Result*/, const FUniqueNetId& /*UserId*/, const FErrorOAuthInfo& /*Error*/);
 
 	/**
 	 * Delegate used in notifying the that manual logout completed
@@ -190,6 +184,28 @@ public:
 	 * @param Error Information about the error condition
 	 */
 	DEFINE_ONLINE_PLAYER_DELEGATE_THREE_PARAM(MAX_LOCAL_PLAYERS, AccelByteOnConnectLobbyComplete, bool /*bWasSuccessful*/, const FUniqueNetId& /*UserId*/, const FOnlineErrorAccelByte& /*Error*/);
+
+	/**
+	 * Called when lobby connection closed
+	 *
+	 * @param LocalUserNum the controller number of the associated user
+	 * @param UserId the user id received from the server on successful connect
+	 * @param StatusCode Current status response code from lobby closed connection
+	 * @param Reason The reason of lobby connection closed
+	 * @param bWasClean Whether the connection closed with a clean status or not
+	 */
+	DEFINE_ONLINE_PLAYER_DELEGATE_FOUR_PARAM(MAX_LOCAL_PLAYERS, AccelByteOnLobbyConnectionClosed, const FUniqueNetId& /*UserId*/, int32 /*StatusCode*/, const FString& /*Reason*/, bool /*bWasClean*/);
+
+	/**
+	 * Called when lobby try to reconnect
+	 *
+	 * @param LocalUserNum the controller number of the associated user
+	 * @param UserId the user id received from the server on successful connect
+	 * @param StatusCode Current status response code from lobby closed connection
+	 * @param Reason The reason of lobby reconnecting
+	 * @param bWasClean Whether the connection reconnect with a clean status or not
+	 */
+	DEFINE_ONLINE_PLAYER_DELEGATE_FOUR_PARAM(MAX_LOCAL_PLAYERS, AccelByteOnLobbyReconnecting, const FUniqueNetId& /*UserId*/, int32 /*StatusCode*/, const FString& /*Reason*/, bool /*bWasClean*/);
 	
 	/**
 	 * Triggered when the platform token refresh is already responded

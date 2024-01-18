@@ -11,6 +11,7 @@
 #include "Interfaces/OnlinePresenceInterface.h"
 #include "Models/AccelByteLobbyModels.h"
 #include "OnlineUserCacheAccelByte.h"
+#include "OnlineSubsystemAccelBytePackage.h"
 
 class FOnlineSubsystemAccelByte;
 struct FAccelByteModelsSessionBrowserRecentPlayerData;

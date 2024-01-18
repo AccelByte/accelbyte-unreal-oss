@@ -10,6 +10,7 @@
 #include "Interfaces/OnlinePartyInterface.h"
 #include "Models/AccelByteLobbyModels.h"
 #include "OnlineUserCacheAccelByte.h"
+#include "OnlineSubsystemAccelBytePackage.h"
 
 // #NOTE (Voltaire) Define flags/markers for party notifications so that party members can process payload accordingly 
 #define PARTYNOTIF_CUSTOMIZATION_CHANGED TEXT("Customization Changed")

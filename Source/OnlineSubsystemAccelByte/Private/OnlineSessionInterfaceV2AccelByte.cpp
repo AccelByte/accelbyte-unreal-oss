@@ -7,6 +7,7 @@
 #include "OnlineSubsystemAccelByteSessionSettings.h"
 #include "OnlineSubsystemAccelByteInternalHelpers.h"
 #include "Interfaces/OnlineIdentityInterface.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteConnectLobby.h"
 #include "AsyncTasks/SessionV2/OnlineAsyncTaskAccelByteCreateGameSessionV2.h"
 #include "AsyncTasks/SessionV2/OnlineAsyncTaskAccelByteUpdateGameSessionV2.h"
 #include "AsyncTasks/SessionV2/OnlineAsyncTaskAccelByteJoinV2GameSession.h"
@@ -2295,10 +2296,15 @@ bool FOnlineSessionV2AccelByte::UpdateSession(FName SessionName, FOnlineSessionS
 		return false;
 	}
 
+	if (!IsRunningDedicatedServer())
+	{
+		AccelByteSubsystem->CreateAndDispatchAsyncTaskSerial<FOnlineAsyncTaskAccelByteConnectLobby>(AccelByteSubsystem, *Session->LocalOwnerId, true);
+	}
+
 	EAccelByteV2SessionType SessionType = GetSessionTypeFromSettings(Session->SessionSettings);
 	if (SessionType == EAccelByteV2SessionType::GameSession)
 	{
-		AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteUpdateGameSessionV2>(AccelByteSubsystem, SessionName, UpdatedSessionSettings);
+		AccelByteSubsystem->CreateAndDispatchAsyncTaskSerial<FOnlineAsyncTaskAccelByteUpdateGameSessionV2>(AccelByteSubsystem, SessionName, UpdatedSessionSettings);
 	}
 	else if (SessionType == EAccelByteV2SessionType::PartySession)
 	{
@@ -2312,7 +2318,7 @@ bool FOnlineSessionV2AccelByte::UpdateSession(FName SessionName, FOnlineSessionS
 			return false;
 		}
 
-		AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteUpdatePartyV2>(AccelByteSubsystem, SessionName, UpdatedSessionSettings);
+		AccelByteSubsystem->CreateAndDispatchAsyncTaskSerial<FOnlineAsyncTaskAccelByteUpdatePartyV2>(AccelByteSubsystem, SessionName, UpdatedSessionSettings);
 	}
 	
 	AB_OSS_INTERFACE_TRACE_END(TEXT("Created async task to update session data on backend!"));
@@ -2559,7 +2565,8 @@ bool FOnlineSessionV2AccelByte::StartMatchmaking(const TArray<FSessionMatchmakin
 	SearchSettings = CurrentMatchmakingSearchHandle.ToSharedRef(); // Make sure that the caller also gets the new subclassed search handle
 	CurrentMatchmakingSessionSettings = NewSessionSettings;
 
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteStartV2Matchmaking>(AccelByteSubsystem, CurrentMatchmakingSearchHandle.ToSharedRef(), SessionName, MatchPool, CompletionDelegate);
+	AccelByteSubsystem->CreateAndDispatchAsyncTaskSerial<FOnlineAsyncTaskAccelByteConnectLobby>(AccelByteSubsystem, *CurrentMatchmakingSearchHandle->SearchingPlayerId.Get(), true);
+	AccelByteSubsystem->CreateAndDispatchAsyncTaskSerial<FOnlineAsyncTaskAccelByteStartV2Matchmaking>(AccelByteSubsystem, CurrentMatchmakingSearchHandle.ToSharedRef(), SessionName, MatchPool, CompletionDelegate);
 
 	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
 	return true;
@@ -2737,16 +2744,21 @@ bool FOnlineSessionV2AccelByte::JoinSession(const FUniqueNetId& LocalUserId, FNa
 		}
 	}
 
+	if (!IsRunningDedicatedServer())
+	{
+		AccelByteSubsystem->CreateAndDispatchAsyncTaskSerial<FOnlineAsyncTaskAccelByteConnectLobby>(AccelByteSubsystem, LocalUserId, true);
+	}
+
 	EAccelByteV2SessionType SessionType = GetSessionTypeFromSettings(NewSession->SessionSettings);
 	if (SessionType == EAccelByteV2SessionType::GameSession)
 	{
-		AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteJoinV2GameSession>(AccelByteSubsystem, LocalUserId, SessionName, bIsRestoreSession);
+		AccelByteSubsystem->CreateAndDispatchAsyncTaskSerial<FOnlineAsyncTaskAccelByteJoinV2GameSession>(AccelByteSubsystem, LocalUserId, SessionName, bIsRestoreSession);
 		AB_OSS_INTERFACE_TRACE_END(TEXT("Spawning async task to join game session on backend!"));
 		return true;
 	}
 	else if (SessionType == EAccelByteV2SessionType::PartySession)
 	{
-		AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteJoinV2Party>(AccelByteSubsystem, LocalUserId, SessionName, bIsRestoreSession);
+		AccelByteSubsystem->CreateAndDispatchAsyncTaskSerial<FOnlineAsyncTaskAccelByteJoinV2Party>(AccelByteSubsystem, LocalUserId, SessionName, bIsRestoreSession);
 		AB_OSS_INTERFACE_TRACE_END(TEXT("Spawning async task to join party session on backend!"));
 		return true;
 	}
@@ -2796,13 +2808,18 @@ bool FOnlineSessionV2AccelByte::JoinSession(const FUniqueNetId& LocalUserId, FNa
 	NewSession->SessionState = EOnlineSessionState::Creating;
 	NewSession->LocalOwnerId = LocalUserId.AsShared();
 
+	if (!IsRunningDedicatedServer())
+	{
+		AccelByteSubsystem->CreateAndDispatchAsyncTaskSerial<FOnlineAsyncTaskAccelByteConnectLobby>(AccelByteSubsystem, LocalUserId, true);
+	}
+
 	if(SessionType == EAccelByteV2SessionType::PartySession)
 	{
-		AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteJoinV2PartyByCode>(AccelByteSubsystem, LocalUserId, SessionName, Code);
+		AccelByteSubsystem->CreateAndDispatchAsyncTaskSerial<FOnlineAsyncTaskAccelByteJoinV2PartyByCode>(AccelByteSubsystem, LocalUserId, SessionName, Code);
 	}
 	else if(SessionType == EAccelByteV2SessionType::GameSession)
 	{
-		AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteJoinV2GameSessionByCode>(AccelByteSubsystem, LocalUserId, SessionName, Code);
+		AccelByteSubsystem->CreateAndDispatchAsyncTaskSerial<FOnlineAsyncTaskAccelByteJoinV2GameSessionByCode>(AccelByteSubsystem, LocalUserId, SessionName, Code);
 	}
 
 	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
@@ -3262,16 +3279,21 @@ bool FOnlineSessionV2AccelByte::SendSessionInviteToFriend(const FUniqueNetId& Lo
 		return false;
 	}
 
+	if (!IsRunningDedicatedServer())
+	{
+		AccelByteSubsystem->CreateAndDispatchAsyncTaskSerial<FOnlineAsyncTaskAccelByteConnectLobby>(AccelByteSubsystem, LocalUserId, true);
+	}
+
 	EAccelByteV2SessionType SessionType = GetSessionTypeFromSettings(Session->SessionSettings);
 	if (SessionType == EAccelByteV2SessionType::GameSession)
 	{
-		AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteSendV2GameSessionInvite>(AccelByteSubsystem, LocalUserId, SessionName, Friend);
+		AccelByteSubsystem->CreateAndDispatchAsyncTaskSerial<FOnlineAsyncTaskAccelByteSendV2GameSessionInvite>(AccelByteSubsystem, LocalUserId, SessionName, Friend);
 		AB_OSS_INTERFACE_TRACE_END(TEXT("Sending invite to player for game session!"));
 		return true;
 	}
 	else if (SessionType == EAccelByteV2SessionType::PartySession)
 	{
-		AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteSendV2PartyInvite>(AccelByteSubsystem, LocalUserId, SessionName, Friend);
+		AccelByteSubsystem->CreateAndDispatchAsyncTaskSerial<FOnlineAsyncTaskAccelByteSendV2PartyInvite>(AccelByteSubsystem, LocalUserId, SessionName, Friend);
 		AB_OSS_INTERFACE_TRACE_END(TEXT("Sending invite to player for party session!"));
 		return true;
 	}
@@ -4009,7 +4031,8 @@ bool FOnlineSessionV2AccelByte::PromoteGameSessionLeader(const FUniqueNetId& Loc
 	switch (SessionType)
 	{
 		case EAccelByteV2SessionType::GameSession:
-			AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelBytePromoteV2GameSessionLeader>(AccelByteSubsystem, LocalUserId, Session->GetSessionIdStr(), PlayerIdToPromote);
+			AccelByteSubsystem->CreateAndDispatchAsyncTaskSerial<FOnlineAsyncTaskAccelByteConnectLobby>(AccelByteSubsystem, LocalUserId, true);
+			AccelByteSubsystem->CreateAndDispatchAsyncTaskSerial<FOnlineAsyncTaskAccelBytePromoteV2GameSessionLeader>(AccelByteSubsystem, LocalUserId, Session->GetSessionIdStr(), PlayerIdToPromote);
 			AB_OSS_INTERFACE_TRACE_END(TEXT("Sent off request to promote player to leader of game session!"));
 			return true;
 
@@ -4054,7 +4077,8 @@ bool FOnlineSessionV2AccelByte::PromotePartySessionLeader(const FUniqueNetId& Lo
 	}
 	else if (SessionType == EAccelByteV2SessionType::PartySession)
 	{
-		AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelBytePromoteV2PartyLeader>(AccelByteSubsystem, LocalUserId, SessionName, Session->GetSessionIdStr(), PlayerIdToPromote, Delegate);
+		AccelByteSubsystem->CreateAndDispatchAsyncTaskSerial<FOnlineAsyncTaskAccelByteConnectLobby>(AccelByteSubsystem, LocalUserId, true);
+		AccelByteSubsystem->CreateAndDispatchAsyncTaskSerial<FOnlineAsyncTaskAccelBytePromoteV2PartyLeader>(AccelByteSubsystem, LocalUserId, SessionName, Session->GetSessionIdStr(), PlayerIdToPromote, Delegate);
 		AB_OSS_INTERFACE_TRACE_END(TEXT("Sent off request to promote player to leader of party session!"));
 		return true;
 	}

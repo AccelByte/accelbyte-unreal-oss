@@ -10,6 +10,7 @@
 #include "OnlineUserCacheAccelByte.h"
 #include "Models/AccelByteAgreementModels.h"
 #include "OnlineErrorAccelByte.h"
+#include "OnlineSubsystemAccelBytePackage.h"
 
 DECLARE_MULTICAST_DELEGATE(FOnUserNotComplied);
 typedef FOnUserNotComplied::FDelegate FOnUserNotCompliedDelegate;

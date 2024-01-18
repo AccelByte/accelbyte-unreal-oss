@@ -12,6 +12,7 @@
 #include "OnlineUserCacheAccelByte.h"
 #include "Models/AccelByteGroupModels.h"
 #include "Interfaces/OnlineGroupsInterface.h"
+#include "OnlineSubsystemAccelBytePackage.h"
 
 class FAccelByteGroupsInfo;
 

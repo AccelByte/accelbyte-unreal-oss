@@ -17,6 +17,7 @@
 #include "Interfaces/OnlineIdentityInterface.h"
 #include "Interfaces/OnlineFriendsInterface.h"
 #include "Interfaces/OnlineLeaderboardInterface.h"
+#include "OnlineSubsystemAccelBytePackage.h"
 
 class IOnlineSubsystem;
 class FOnlineSubsystemAccelByte;

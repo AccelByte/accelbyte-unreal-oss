@@ -11,6 +11,7 @@
 #include "OnlineUserCacheAccelByte.h"
 #include "Models/AccelByteStatisticModels.h"
 #include "Interfaces/OnlineStatsInterface.h"
+#include "OnlineSubsystemAccelBytePackage.h"
 
 DECLARE_MULTICAST_DELEGATE_FourParams(FOnListUserStatItemsCompleted, int32 /*LocalUserNum*/, bool /*bWasSuccessful*/, const TArray<FAccelByteModelsFetchUser>&, const FString& /*Error*/);
 typedef FOnListUserStatItemsCompleted::FDelegate FOnListUserStatItemsCompletedDelegate;

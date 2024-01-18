@@ -18,7 +18,7 @@ class FOnlineAsyncTaskAccelByteConnectLobby
 {
 public:
 
-	FOnlineAsyncTaskAccelByteConnectLobby(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InLocalUserId);
+	FOnlineAsyncTaskAccelByteConnectLobby(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InLocalUserId, const bool InSuppressConnectSuccessIfAlreadyConnected = false);
 
 	virtual void Initialize() override;
 	virtual void Finalize() override;
@@ -58,4 +58,9 @@ private:
 	 * String representing the error code that occurredx
 	 */
 	FString ErrorStr;
+
+	/**
+	 * Suppress calling connection success if already connected when executing this task
+	*/
+	bool SuppressConnectSuccessIfAlreadyConnected{ false };
 };

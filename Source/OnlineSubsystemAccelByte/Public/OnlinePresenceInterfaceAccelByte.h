@@ -15,6 +15,7 @@
 #include "OnlineSubsystemAccelByteTypes.h"
 #include "Interfaces/OnlinePresenceInterface.h"
 #include "Models/AccelByteLobbyModels.h"
+#include "OnlineSubsystemAccelBytePackage.h"
 
 class FOnlineSubsystemAccelByte;
 

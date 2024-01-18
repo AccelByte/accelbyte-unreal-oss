@@ -21,6 +21,7 @@
 #include "AsyncTasks/Friends/OnlineAsyncTaskAccelByteSyncThirPartyFriend.h"
 #include "OnlineSubsystemUtils.h"
 #include "AsyncTasks/Friends/OnlineAsyncTaskAccelByteSyncThirdPartyFriendV2.h"
+#include "AsyncTasks/SessionV2/OnlineAsyncTaskAccelByteV2GetRecentPlayer.h"
 
 #define ONLINE_ERROR_NAMESPACE "FOnlineFriendAccelByte"
 
@@ -693,7 +694,11 @@ bool FOnlineFriendsAccelByte::QueryRecentPlayers(const FUniqueNetId& UserId, con
 	FOnlineAsyncTaskInfo TaskInfo;
 	TaskInfo.bCreateEpicForThis = true;
 	TaskInfo.Type = ETypeOfOnlineAsyncTask::Parallel;
+#if AB_USE_V2_SESSIONS
+	AccelByteSubsystem->CreateAndDispatchAsyncTask<FOnlineAsyncTaskAccelByteV2GetRecentPlayer>(TaskInfo, AccelByteSubsystem, UserId, Namespace);
+#else
 	AccelByteSubsystem->CreateAndDispatchAsyncTask<FOnlineAsyncTaskAccelByteGetRecentPlayer>(TaskInfo, AccelByteSubsystem, UserId, Namespace);
+#endif
 	return true;
 }
 
