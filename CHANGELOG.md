@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.12.4](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.12.4%0D0.12.3) (2024-02-05)
+
+
+### Features
+
+* **lobby:** replace instead of add delegate on notification message ([a334ae0](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/a334ae07632d0cc16d1feaf0d71ab64f8138eb07))
+* **presence:** add steam callback to update presence status when changed from platform ([b8e8f1b](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/b8e8f1b1656c867fa8f7ed0e59c56969c43fa580))
+* replace the get bulk user information with a newer endpoint ([c871d9a](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/c871d9a75544e53fb7eae210a891405edf5681de))
+
 ### [0.12.3](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.12.3%0D0.12.2) (2024-01-18)
 
 

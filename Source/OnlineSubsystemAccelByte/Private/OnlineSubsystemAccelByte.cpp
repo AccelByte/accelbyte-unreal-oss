@@ -29,15 +29,17 @@
 #include "OnlineGameStandardEventInterfaceAccelByte.h"
 #include "AsyncTasks/OnlineAsyncTaskAccelByte.h"
 #include "AsyncTasks/OnlineAsyncEpicTaskAccelByte.h"
-#include "Api/AccelByteLobbyApi.h"
-#include "Models/AccelByteLobbyModels.h"
 #include "Core/AccelByteWebSocketErrorTypes.h"
 #include "VoiceChat/AccelByteVoiceChat.h"
 #include "VoiceChat.h"
 //~ Begin AccelByte Peer to Peer Includes
 #include "AccelByteNetworkUtilities.h"
+#include "Api/AccelByteLobbyApi.h"
 #include "Core/AccelByteRegistry.h"
+#include "Core/Platform/AccelBytePlatformHandler.h"
 #include "Models/AccelByteUserModels.h"
+#include "Models/AccelByteLobbyModels.h"
+#include "AccelByteUe4SdkModule.h"
 //~ End AccelByte Peer to Peer Includes
 #include "Interfaces/IPluginManager.h"
 
@@ -106,6 +108,9 @@ bool FOnlineSubsystemAccelByte::Init()
 	GConfig->GetString(TEXT("OnlineSubsystemAccelByte"), TEXT("SecondaryPlatformName"), SecondaryPlatformName, GEngineIni);
 
 	PluginInitializedTime = FDateTime::UtcNow();
+
+	FAccelBytePlatformHandler PlatformHandler{};
+	PlatformHandler.AddOnPlatformPresenceChangedDelegate(AccelByte::FAccelBytePlatformHandler::FAccelBytePlatformPresenceChangedDelegate::CreateThreadSafeSP(this, &FOnlineSubsystemAccelByte::OnPresenceChanged));
 
 	return true;
 }
@@ -1113,6 +1118,29 @@ void FOnlineSubsystemAccelByte::NativePlatformTokenRefreshScheduler(int32 LocalU
 	SetNativePlatformTokenRefreshScheduler(LocalUserNum, true);
 
 	UE_LOG_AB(Log, TEXT("Successfully set scheduler to refresh the Native Platform Token. "));
+}
+
+void FOnlineSubsystemAccelByte::OnPresenceChanged(EAccelBytePlatformType PlatformType, const FString& PlatformUserId, EAvailability AvailabilityState)
+{
+	int32 LocalUserNum = 0;
+	if (IdentityInterface.IsValid() 
+		&& PresenceInterface.IsValid() 
+		&& IdentityInterface->GetLocalUserNumFromPlatformUserId(PlatformUserId, LocalUserNum))
+	{
+		const FUniqueNetIdPtr NetId = IdentityInterface->GetUniquePlayerId(LocalUserNum);
+		const auto LoginStatus = IdentityInterface->GetLoginStatus(LocalUserNum);
+		if (LoginStatus == ELoginStatus::LoggedIn)
+		{
+			FOnlineUserPresenceStatusAccelByte Status;
+			TSharedPtr<FOnlineUserPresence> UserPresence;
+			if (PresenceInterface->GetCachedPresence(*NetId.Get(), UserPresence) == EOnlineCachedResult::Success)
+			{
+				Status.StatusStr = UserPresence->Status.StatusStr;
+			}
+			Status.SetPresenceStatus(AvailabilityState);
+			PresenceInterface->SetPresence(*NetId.Get(), Status);
+		}
+	}
 }
 
 

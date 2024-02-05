@@ -623,6 +623,7 @@ private:
 	 */
 	void NativePlatformTokenRefreshScheduler(int32 LocalUserNum);
 	FDelegateHandle NativePlatformTokenRefreshDelegateHandle;
+	void OnPresenceChanged(EAccelBytePlatformType PlatformType, const FString& PlatformUserId, EAvailability AvailabilityState);
 	FString SecondaryPlatformName{};
 #pragma endregion
 

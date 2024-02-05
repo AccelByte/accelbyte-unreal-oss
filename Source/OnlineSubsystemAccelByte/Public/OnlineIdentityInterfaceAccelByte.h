@@ -19,6 +19,7 @@
 #include "Core/AccelByteUtilities.h"
 #include "OnlineErrorAccelByte.h"
 #include "InterfaceModels/OnlineIdentityInterfaceAccelByteModels.h"
+#include "OnlinePresenceInterfaceAccelByte.h"
 #include "OnlineSubsystemAccelBytePackage.h"
 
 typedef FOnlineAccountCredentialsAccelByte FOnlineAccelByteAccountCredentials;
@@ -105,10 +106,14 @@ public:
 	virtual void GetUserPrivilege(const FUniqueNetId& UserId, EUserPrivileges::Type Privilege, const FOnGetUserPrivilegeCompleteDelegate& Delegate) override;
 	virtual FPlatformUserId GetPlatformUserIdFromUniqueNetId(const FUniqueNetId& UniqueNetId) const override;
 	virtual FString GetAuthType() const override;
+#if ENGINE_MAJOR_VERSION > 4
+	virtual int32 GetLocalUserNumFromPlatformUserId(FPlatformUserId PlatformUserId) const override;
+#endif
 	//~ End IOnlineIdentity Interface
 
 	/** Extra method to try and get a LocalUserNum from a FUniqueNetId instance */
 	bool GetLocalUserNum(const FUniqueNetId& NetId, int32& OutLocalUserNum) const;
+	bool GetLocalUserNumFromPlatformUserId(const FString& PlatformUserId, int32& OutLocalUserNum);
 
 	bool Logout(int32 LocalUserNum, FString Reason);
 
@@ -289,7 +294,7 @@ private:
 
 	/** Mapping of AccelByte net IDs to AccelByte user accounts. Filled when users log in. */
 	TUniqueNetIdMap<TSharedRef<FUserOnlineAccount>> NetIdToOnlineAccountMap;
-	
+
 	FString LogoutReason; // Error Code for when we logged out
 
 	/**

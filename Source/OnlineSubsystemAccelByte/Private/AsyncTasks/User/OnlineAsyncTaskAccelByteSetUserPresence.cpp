@@ -49,7 +49,8 @@ void FOnlineAsyncTaskAccelByteSetUserPresence::Finalize()
 
 	if (bWasSuccessful)
 	{
-		auto LocalCachedPresence = StaticCastSharedPtr<FOnlinePresenceAccelByte>(Subsystem->GetPresenceInterface())->FindOrCreatePresence(UserId.ToSharedRef());
+		FOnlinePresenceAccelBytePtr PresenceInterface = StaticCastSharedPtr<FOnlinePresenceAccelByte>(Subsystem->GetPresenceInterface());
+		auto LocalCachedPresence = PresenceInterface->FindOrCreatePresence(UserId.ToSharedRef());
 		FOnlineUserPresenceStatusAccelByte OnlinePresenceStatus;
 
 		OnlinePresenceStatus.StatusStr = LocalCachedPresenceStatus->StatusStr;

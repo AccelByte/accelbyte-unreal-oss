@@ -21,7 +21,7 @@ public:
 	 * Queries a bulk of AccelByte IDs using a local user index
 	 */
 	FOnlineAsyncTaskAccelByteQueryUsersByIds(FOnlineSubsystemAccelByte* const InABSubsystem, int32 InLocalUserNum, const TArray<FString>& AccelByteIds, bool InBIsImportant, const FOnQueryUsersComplete& InDelegate);
-	
+
 	/**
 	 * Queries a bulk of platform IDs to attempt to get AccelByte accounts using a local user index
 	 */
@@ -78,6 +78,11 @@ private:
 	TArray<FString> UsersToQuery;
 
 	/**
+	 * Struct of user IDs and platform ID that will be queried on the backend
+	 */
+	FPlatformAccountInfoRequest PlatformAccountsInfoRequest;
+
+	/**
 	 * Array of users that we were able to query from the backend
 	 */
 	TArray<TSharedRef<FAccelByteUserInfo>> UsersQueried;
@@ -115,7 +120,7 @@ private:
 	/**
 	 * Delegate handler for when querying basic user information by AccelByte IDs succeeds
 	 */
-	void OnGetBasicUserInfoSuccess(const FListBulkUserInfo& Result);
+	void OnGetBasicUserInfoSuccess(const FAccountUserPlatformInfosResponse& Result);
 
 	/**
 	 * Delegate handler for when querying basic user information by platform IDs fails
@@ -131,6 +136,6 @@ private:
 	 * Method to attempt to extract platform type and ID that matches current platform OSS from basic info structure into
 	 * a composite ID structure that we are creating.
 	 */
-	void ExtractPlatformDataFromBasicUserInfo(const FBaseUserInfo& BasicInfo, FAccelByteUniqueIdComposite& CompositeId);
+	void ExtractPlatformDataFromBasicUserInfo(const FAccountUserPlatformData& BasicInfo, FAccelByteUniqueIdComposite& CompositeId);
 
 };

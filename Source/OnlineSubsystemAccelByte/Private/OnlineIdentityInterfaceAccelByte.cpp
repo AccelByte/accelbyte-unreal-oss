@@ -556,6 +556,13 @@ FString FOnlineIdentityAccelByte::GetAuthType() const
 	return TEXT("AccelByte");
 }
 
+#if ENGINE_MAJOR_VERSION > 4
+int32 FOnlineIdentityAccelByte::GetLocalUserNumFromPlatformUserId(FPlatformUserId PlatformUserId) const
+{
+	return IOnlineIdentity::GetLocalUserNumFromPlatformUserId(PlatformUserId);
+}
+#endif
+
 bool FOnlineIdentityAccelByte::GetLocalUserNum(const FUniqueNetId& NetId, int32& OutLocalUserNum) const
 {
 	const int32* FoundLocalUserNum = NetIdToLocalUserNumMap.Find(NetId.AsShared());
@@ -563,6 +570,21 @@ bool FOnlineIdentityAccelByte::GetLocalUserNum(const FUniqueNetId& NetId, int32&
 	{
 		OutLocalUserNum = *FoundLocalUserNum;
 		return true;
+	}
+	return false;
+}
+
+bool FOnlineIdentityAccelByte::GetLocalUserNumFromPlatformUserId(const FString& PlatformUserId, int32& OutLocalUserNum)
+{
+	for (const auto& LocalUser : LocalUserNumToNetIdMap)
+	{
+		int32 InLocalUserNum = LocalUser.Key;
+		const auto& NetId = StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(LocalUser.Value);
+		if (NetId->GetPlatformId() == PlatformUserId)
+		{
+			OutLocalUserNum = InLocalUserNum;
+			return true;
+		}
 	}
 	return false;
 }
