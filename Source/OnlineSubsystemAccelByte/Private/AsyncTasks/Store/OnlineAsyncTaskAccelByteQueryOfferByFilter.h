@@ -11,8 +11,11 @@ class FOnlineAsyncTaskAccelByteQueryOfferByFilter
 	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteQueryOfferByFilter, ESPMode::ThreadSafe>
 {
 public:
-	FOnlineAsyncTaskAccelByteQueryOfferByFilter(FOnlineSubsystemAccelByte* const InABSubsystem, const FUniqueNetId& InUserId, const FOnlineStoreFilter& InFilter,
-		const FOnQueryOnlineStoreOffersComplete& InDelegate);
+	FOnlineAsyncTaskAccelByteQueryOfferByFilter(FOnlineSubsystemAccelByte* const InABSubsystem,
+		const FUniqueNetId& InUserId,
+		const FOnlineStoreFilter& InFilter,
+		const FOnQueryOnlineStoreOffersComplete& InDelegate,
+		bool AutoCalcEstimatedPrice);
 
 	virtual void Initialize() override;
 	virtual void Finalize() override;
@@ -36,6 +39,7 @@ private:
 	FOnlineStoreFilter Filter;
 	FOnQueryOnlineStoreOffersComplete Delegate;
 	FString Language;
+	bool AutoCalcEstimatedPrice;
 
 	FString ErrorMsg;
 	FAccelByteModelsItemCriteria SearchCriteriaRequest;

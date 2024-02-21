@@ -44,9 +44,18 @@ private:
 	/** Delegate handler for when we get a response back for removing a friend */
 	void OnUnfriendResponse(const FAccelByteModelsUnfriendResponse& Result);
 
-	/** Delegate handler for when we get a response back for canceling a friend request */
-	void OnCancelFriendRequestResponse(const FAccelByteModelsCancelFriendsResponse& Result);
-
 	EInviteStatus::Type InviteStatus{ EInviteStatus::Type::Unknown };
+
+	FVoidHandler OnUnfriendSuccessDelegate;
+	void OnUnfriendSuccess();
+
+	FErrorHandler OnUnfriendFailedDelegate;
+	void OnUnfriendFailed(int32 ErrorCode, const FString& ErrorMessage);
+
+	FVoidHandler OnCancelFriendRequestSuccessDelegate;
+	void OnCancelFriendRequestSuccess();
+
+	FErrorHandler OnCancelFriendRequestFailedDelegate;
+	void OnCancelFriendRequestFailed(int32 ErrorCode, const FString& ErrorMessage);
 };
 

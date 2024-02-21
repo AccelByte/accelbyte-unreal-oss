@@ -611,7 +611,8 @@ private:
 	void SendInitializedEvent();
 
 	DECLARE_DELEGATE(FLogOutFromInterfaceDelegate)
-	FLogOutFromInterfaceDelegate LogoutDelegate {};
+	TMap<int32, FLogOutFromInterfaceDelegate> LogoutDelegates {};
+	FCriticalSection LockObject;
 
 	FOnLocalUserNumCachedDelegate OnLocalUserNumCachedDelegate;
 

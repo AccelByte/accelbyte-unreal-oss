@@ -54,6 +54,7 @@
 #include "OnlineVoiceInterfaceAccelByte.h"
 #include "OnlinePredefinedEventInterfaceAccelByte.h"
 #include "OnlineSubsystemAccelByte.h"
+#include "OnlineSubsystemAccelByteDefines.h"
 #include "Api/AccelByteLobbyApi.h"
 #include "OnlineSubsystemAccelByteSessionSettings.h"
 #include "AccelByteNetworkUtilities.h"
@@ -63,6 +64,7 @@
 #include <algorithm>
 
 #include "AsyncTasks/Matchmaking/OnlineAsyncTaskAccelByteGetMyV2MatchmakingTickets.h"
+#include "AsyncTasks/Matchmaking/OnlineAsyncTaskAccelByteGetV2MatchmakingTicketDetails.h"
 #include "AsyncTasks/Server/OnlineAsyncTaskAccelByteSendDSSessionReady.h"
 #include "AsyncTasks/SessionV2/OnlineAsyncTaskAccelByteGenerateNewV2GameCode.h"
 #include "AsyncTasks/SessionV2/OnlineAsyncTaskAccelByteJoinV2GameSessionByCode.h"
@@ -75,7 +77,6 @@ using namespace AccelByte;
 
 #define ONLINE_ERROR_NAMESPACE "FOnlineSessionV2AccelByte"
 #define ACCELBYTE_P2P_TRAVEL_URL_FORMAT TEXT("accelbyte.%s:%d")
-const FString ClientIdPrefix = FString(TEXT("client-"));
 
 FOnlineSessionInfoAccelByteV2::FOnlineSessionInfoAccelByteV2(const FString& SessionIdStr)
 	: SessionId(FUniqueNetIdAccelByteResource::Create(SessionIdStr))
@@ -591,6 +592,52 @@ const FString FOnlineSessionV2AccelByte::ServerSessionIdEnvironmentVariable = TE
 FOnlineSessionV2AccelByte::FOnlineSessionV2AccelByte(FOnlineSubsystemAccelByte* InSubsystem)
 	: AccelByteSubsystem(InSubsystem)
 {
+	// Get matchmaking check poll configs from DefaultEngine.ini
+	bool bConfigMatchmakingDetailCheckEnabled {false};
+	const bool bConfigMatchmakingDetailCheckEnabledExist = GConfig->GetBool(TEXT("OnlineSubsystemAccelByte"), TEXT("bEnableMatchTicketCheck"), bConfigMatchmakingDetailCheckEnabled, GEngineIni);
+	SetMatchTicketCheckEnabled(bConfigMatchmakingDetailCheckEnabledExist ? bConfigMatchmakingDetailCheckEnabled : bMatchmakingDetailCheckEnabled);
+
+	int32 ConfigMatchTicketCheckInitialDelay {};
+	const bool bConfigMatchTicketCheckInitialDelayExist = GConfig->GetInt(TEXT("OnlineSubsystemAccelByte"), TEXT("MatchTicketCheckInitialDelay"), ConfigMatchTicketCheckInitialDelay, GEngineIni);
+	SetMatchTicketCheckInitialDelay(bConfigMatchTicketCheckInitialDelayExist ? ConfigMatchTicketCheckInitialDelay : MatchTicketCheckInitialDelay);
+
+	int32 ConfigMatchTicketCheckPollInterval {};
+	const bool bConfigMatchTicketCheckIntervalExist = GConfig->GetInt(TEXT("OnlineSubsystemAccelByte"), TEXT("MatchTicketCheckPollInterval"), ConfigMatchTicketCheckPollInterval, GEngineIni);
+	SetMatchTicketCheckPollInterval(bConfigMatchTicketCheckIntervalExist ? ConfigMatchTicketCheckPollInterval :  MatchTicketCheckPollInterval);
+
+	
+	// Get session server check poll configs from DefaultEngine.ini
+	bool bConfigSessionServerCheckPollEnabled {false};
+	const bool bConfigSessionServerCheckPollEnabledExist = GConfig->GetBool(TEXT("OnlineSubsystemAccelByte"), TEXT("bEnableSessionServerCheckPolling"), bConfigSessionServerCheckPollEnabled, GEngineIni);
+	SetSessionServerCheckPollEnabled(bConfigSessionServerCheckPollEnabledExist ? bConfigSessionServerCheckPollEnabled : bSessionServerCheckPollEnabled);
+
+	int32 ConfigSessionServerCheckPollInitialDelay {};
+	const bool bConfigSessionServerCheckPollInitialDelayExist = GConfig->GetInt(TEXT("OnlineSubsystemAccelByte"), TEXT("SessionServerCheckPollInitialDelay"), ConfigSessionServerCheckPollInitialDelay, GEngineIni);
+	SetSessionServerCheckPollInitialDelay(bConfigSessionServerCheckPollInitialDelayExist ? ConfigSessionServerCheckPollInitialDelay : SessionServerCheckPollInitialDelay);
+
+	int32 ConfigSessionServerCheckPollInterval {};
+	const bool bConfigSessionServerCheckPollIIntervalExist = GConfig->GetInt(TEXT("OnlineSubsystemAccelByte"), TEXT("SessionServerCheckPollInterval"), ConfigSessionServerCheckPollInterval, GEngineIni);
+	SetSessionServerCheckPollInterval(bConfigSessionServerCheckPollIIntervalExist ? ConfigSessionServerCheckPollInterval : SessionServerCheckPollInterval);
+
+	
+	// Get session invite check poll configs from DefaultEngine.ini
+	bool bConfigSessionInviteCheckPollEnabled {false};
+	const bool bConfigSessionInviteCheckPollEnabledExist = GConfig->GetBool(TEXT("OnlineSubsystemAccelByte"), TEXT("bEnableSessionInviteCheckPolling"), bConfigSessionInviteCheckPollEnabled, GEngineIni);
+	SetSessionInviteCheckPollEnabled(bConfigSessionInviteCheckPollEnabledExist ? bConfigSessionInviteCheckPollEnabled : bSessionInviteCheckPollEnabled);
+
+	int32 ConfigSessionInviteCheckPollInitialDelay {};
+	const bool bConfigSessionInviteCheckPollInitialDelayExist = GConfig->GetInt(TEXT("OnlineSubsystemAccelByte"), TEXT("SessionInviteCheckPollInitialDelay"), ConfigSessionInviteCheckPollInitialDelay, GEngineIni);
+	SetSessionInviteCheckPollInitialDelay(bConfigSessionInviteCheckPollInitialDelayExist ? ConfigSessionInviteCheckPollInitialDelay : SessionInviteCheckPollInitialDelay);
+
+	int32 ConfigSessionInviteCheckPollInterval {};
+	const bool bConfigSessionInviteCheckPollIntervalExist = GConfig->GetInt(TEXT("OnlineSubsystemAccelByte"), TEXT("SessionInviteCheckPollInterval"), ConfigSessionInviteCheckPollInterval, GEngineIni);
+	SetSessionInviteCheckPollInterval(bConfigSessionInviteCheckPollIntervalExist ? ConfigSessionInviteCheckPollInterval : SessionInviteCheckPollInterval);
+}
+
+FOnlineSessionV2AccelByte::~FOnlineSessionV2AccelByte()
+{
+	OnSessionServerCheckGetSessionDelegate.Unbind();
+	OnSessionInviteCheckGetSessionDelegate.Unbind();
 }
 
 bool FOnlineSessionV2AccelByte::GetFromSubsystem(const IOnlineSubsystem* Subsystem, FOnlineSessionV2AccelBytePtr& OutInterfaceInstance)
@@ -634,26 +681,22 @@ void FOnlineSessionV2AccelByte::Init()
 		const FOnServerReceivedSessionDelegate OnServerReceivedSessionDelegate = FOnServerReceivedSessionDelegate::CreateThreadSafeSP(SharedThis(this), &FOnlineSessionV2AccelByte::OnServerReceivedSessionComplete_Internal);
 		AddOnServerReceivedSessionDelegate_Handle(OnServerReceivedSessionDelegate);
 	}
+
+	OnSessionServerCheckGetSessionDelegate = FOnSingleSessionResultCompleteDelegate::CreateThreadSafeSP(AsShared(), &FOnlineSessionV2AccelByte::OnSessionServerCheckGetSession);
+	OnSessionInviteCheckGetSessionDelegate = FOnSingleSessionResultCompleteDelegate::CreateThreadSafeSP(AsShared(), &FOnlineSessionV2AccelByte::OnSessionInviteCheckGetSession);
+
 }
 
-void FOnlineSessionV2AccelByte::Tick(float DeltaTime)
+void FOnlineSessionV2AccelByte::UpdateSessionEntries()
 {
-	// Check if we have any canceled ticket IDs and if we have elapsed the time before clearing the tracked array, if so, clear it
-	const double CurrentTimeSeconds = FPlatformTime::Seconds();
-	if (CanceledTicketIds.Num() > 0 && CurrentTimeSeconds > LastCanceledTicketIdAddedTimeSeconds + ClearCanceledTicketIdsTimeInSeconds)
-	{
-		CanceledTicketIds.Empty();
-	}
-
 	// If we have no sessions with a pending update, then bail out
 	if (SessionsWithPendingQueuedUpdates.Num() <= 0)
 	{
 		return;
 	}
-
+	
 	FScopeLock ScopeLock(&SessionLock);
 
-	// Check for updates and apply them to each stored session
 	for (TPair<FName, TSharedPtr<FNamedOnlineSession>>& SessionEntry : Sessions)
 	{
 		int32 PendingUpdateIndex = SessionsWithPendingQueuedUpdates.IndexOfByPredicate([SessionName = SessionEntry.Key](const FName& PendingUpdateSessionName) {
@@ -761,6 +804,604 @@ void FOnlineSessionV2AccelByte::Tick(float DeltaTime)
 		// Clear the pending update entry to signal that the update is finished
 		SessionsWithPendingQueuedUpdates.RemoveAt(PendingUpdateIndex);
 	}
+}
+
+void FOnlineSessionV2AccelByte::OnMatchTicketCheckGetSessionInfoById(int32 LocalUserNum, bool bWasSuccessful, const FOnlineSessionSearchResult& SessionSearchResult)
+{
+	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT(""));
+
+	OnMatchTicketCheckGetMatchSessionDetailsDelegate.Unbind();
+	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystem->GetIdentityInterface());
+	if (!ensure(IdentityInterface.IsValid()))
+	{
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Log, TEXT("Failed to check matchmaking progress as identity interface is invalid!"));
+		return;
+	}
+
+	// already not matchmaking, either ticket expired or cancelled while waiting for endpoint response
+	if(!CurrentMatchmakingSearchHandle.IsValid())
+	{
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Log, TEXT("Failed to check matchmaking progress as current matchmaking search handler is invalid!"));
+		StopMatchTicketCheckPoll();
+		return;
+	}
+	const FUniqueNetId& SearchingPlayerId = CurrentMatchmakingSearchHandle->GetSearchingPlayerId().ToSharedRef().Get();
+
+	const FApiClientPtr ApiClient = IdentityInterface->GetApiClient(SearchingPlayerId);
+	if (!ensure(ApiClient.IsValid()))
+	{
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Log, TEXT("failed to check matchmaking progress as ApiClient of the searching player %s is invalid!"), *SearchingPlayerId.ToDebugString());
+		return;
+	}
+
+	TSharedPtr<FOnlineSessionInfoAccelByteV2> SessionInfo = StaticCastSharedPtr<FOnlineSessionInfoAccelByteV2>(SessionSearchResult.Session.SessionInfo);
+	if(!ensure(SessionInfo.IsValid()))
+	{
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Log, TEXT("failed to check matchmaking progress as session info from search result is invalid!"), *SearchingPlayerId.ToDebugString());
+		return;
+	}
+
+	TSharedPtr<FAccelByteModelsV2GameSession> BackendGameSession = SessionInfo->GetBackendSessionDataAsGameSession();
+	
+	FAccelByteModelsV2MatchFoundNotif MatchFoundNotif;
+	MatchFoundNotif.Id = SessionSearchResult.GetSessionIdStr();
+	MatchFoundNotif.Namespace = ApiClient->CredentialsRef->GetNamespace();
+	MatchFoundNotif.Teams = BackendGameSession->Teams;
+	for(const FString& TicketID : BackendGameSession->TicketIDs)
+	{
+		MatchFoundNotif.Tickets.Emplace(FAccelByteModelsV2Ticket{TicketID});
+	}
+	MatchFoundNotif.CreatedAt = FDateTime::UtcNow();
+	MatchFoundNotif.MatchPool = CurrentMatchmakingSearchHandle->MatchPool;
+
+	FString MessageContent;
+	if(!FJsonObjectConverter::UStructToJsonObjectString(MatchFoundNotif, MessageContent))
+	{
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Log, TEXT("failed to spoof match found notif as converting notification to json string failed"), *SearchingPlayerId.ToDebugString());
+		return;
+	}
+
+	FString LobbyNotif = FAccelByteNotificationSenderUtility::ComposeMMv2Notification("OnMatchFound", MessageContent);
+	ApiClient->NotificationSender.SendLobbyNotification(LobbyNotif);
+
+	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+}
+
+void FOnlineSessionV2AccelByte::OnMatchTicketCheckGetMatchTicketDetails(
+	const FAccelByteModelsV2MatchmakingGetTicketDetailsResponse& Response, const FOnlineError& OnlineError)
+{
+	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT(""));
+
+	ClearOnGetMatchTicketDetailsCompleteDelegate_Handle(GetMatchTicketDetailsCompleteDelegateHandle);
+
+	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystem->GetIdentityInterface());
+	if (!ensure(IdentityInterface.IsValid()))
+	{
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Log, TEXT("Failed to check matchmaking progress as identity interface is invalid!"));
+		return;
+	}
+
+	// already not matchmaking, either ticket expired or cancelled while waiting for endpoint response
+	if(!CurrentMatchmakingSearchHandle.IsValid())
+	{
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Log, TEXT("Failed to check matchmaking progress as our current matchmaking search handle is invalid"));
+		StopMatchTicketCheckPoll();
+		return;
+	}
+	const FUniqueNetId& SearchingPlayerId = CurrentMatchmakingSearchHandle->GetSearchingPlayerId().ToSharedRef().Get();
+
+	const FApiClientPtr ApiClient = IdentityInterface->GetApiClient(SearchingPlayerId);
+	if (!ensure(ApiClient.IsValid()))
+	{
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Log, TEXT("failed to check matchmaking progress as ApiClient of the searching player %s is invalid!"), *SearchingPlayerId.ToDebugString());
+		return;
+	}
+
+	int LocalUserNum;
+	if(!ensure(IdentityInterface->GetLocalUserNum(SearchingPlayerId, LocalUserNum)))
+	{
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Log, TEXT("failed to check matchmaking progress as LocalUserNum of the searching player %s is not found!"), *SearchingPlayerId.ToDebugString());
+		return;
+	}
+
+	if(!OnlineError.WasSuccessful())
+	{
+		const FString MMTicketNotFoundErrorCode = FString::Printf(TEXT("FOnlineAsyncTaskAccelByteGetV2MatchmakingTicketDetails::%d"),ErrorCodes::MatchmakingV2MatchTicketNotFound);
+		// current ticket not found. most likely the ticket already expired.
+		if(OnlineError.ErrorCode ==  MMTicketNotFoundErrorCode)
+		{
+			FAccelByteModelsV2MatchmakingExpiredNotif ExpiredNotif;
+			ExpiredNotif.Namespace = ApiClient->CredentialsRef->GetNamespace();
+			ExpiredNotif.MatchPool = CurrentMatchmakingSearchHandle->MatchPool;
+			ExpiredNotif.TicketID = CurrentMatchmakingSearchHandle->TicketId;
+			ExpiredNotif.CreatedAt = FDateTime::UtcNow();
+
+			FString ExpiredNotifJsonString;
+			if(FJsonObjectConverter::UStructToJsonObjectString(ExpiredNotif, ExpiredNotifJsonString))
+			{
+				const FString LobbyMessage = FAccelByteNotificationSenderUtility::ComposeMMv2Notification("OnMatchmakingTicketExpired", ExpiredNotifJsonString);
+				ApiClient->NotificationSender.SendLobbyNotification(LobbyMessage);
+			}
+			else
+			{
+				UE_LOG_AB(Log, TEXT("Failed to spoof ticket expire notification, failed to serialize expired notif"));
+			}
+		}
+		else
+		{
+			// other unexpected error occurs set polling to next duration
+			SetMatchTicketCheckPollToNextPollTime();
+		}
+
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Log, TEXT("Failed to spoof ticket expire notification, failed to serialize expired notif"));
+		return;
+	}
+
+	// match not found yet, set next time to trigger check match ticket.
+	if(!Response.MatchFound)
+	{
+		SetMatchTicketCheckPollToNextPollTime();
+		return;
+	}
+
+	// Match found, check session info for stuffs we need to populate spoofing Match found notification
+	const FUniqueNetIdPtr SessionUniqueId = CreateSessionIdFromString(Response.SessionId);
+	if (!ensure(SessionUniqueId.IsValid()))
+	{
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to spoof match found notification as a unique ID could not be created for the match's session ID!"));
+		return;
+	}
+	
+	OnMatchTicketCheckGetMatchSessionDetailsDelegate = FOnSingleSessionResultCompleteDelegate::CreateThreadSafeSP(AsShared(), &FOnlineSessionV2AccelByte::OnMatchTicketCheckGetSessionInfoById);
+	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteFindV2GameSessionById>(AccelByteSubsystem,
+	CurrentMatchmakingSearchHandle->SearchingPlayerId.ToSharedRef().Get(), SessionUniqueId.ToSharedRef().Get(), OnMatchTicketCheckGetMatchSessionDetailsDelegate);
+	
+	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+}
+
+void FOnlineSessionV2AccelByte::FinalizeStartMatchmakingComplete()
+{
+	StartMatchTicketCheckPoll();
+}
+
+void FOnlineSessionV2AccelByte::StartMatchTicketCheckPoll()
+{
+	NextMatchmakingDetailPollTime = FDateTime::UtcNow() + FTimespan::FromSeconds(MatchTicketCheckInitialDelay);
+
+	UE_LOG_AB(VeryVerbose, TEXT("Start match ticket check poll, current time %s, next poll time %s"), *FDateTime::UtcNow().ToString(), *NextMatchmakingDetailPollTime.ToString());
+}
+
+void FOnlineSessionV2AccelByte::SetMatchTicketCheckPollToNextPollTime()
+{
+	NextMatchmakingDetailPollTime = FDateTime::UtcNow() + FTimespan::FromSeconds(MatchTicketCheckPollInterval);
+	UE_LOG_AB(VeryVerbose, TEXT("Set match ticket check next poll, current time %s, next poll time %s"), *FDateTime::UtcNow().ToString(), *NextMatchmakingDetailPollTime.ToString());
+}
+
+void FOnlineSessionV2AccelByte::StopMatchTicketCheckPoll()
+{
+	UE_LOG_AB(VeryVerbose, TEXT("stop match ticket check next poll"));
+	NextMatchmakingDetailPollTime = FDateTime(0);
+}
+
+void FOnlineSessionV2AccelByte::SendDSStatusChangedNotif(const int32 LocalUserNum, const TSharedPtr<FAccelByteModelsV2GameSession>& SessionData)
+{
+	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystem->GetIdentityInterface());
+	if (!ensure(IdentityInterface.IsValid()))
+	{
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(VeryVerbose, TEXT("Failed to send session server notification as our identity interface is invalid!"));
+		return;
+	}
+
+	const FApiClientPtr ApiClient = IdentityInterface->GetApiClient(LocalUserNum);
+	if(!ensure(ApiClient.IsValid()))
+	{
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(VeryVerbose, TEXT("Failed to check session server notification as ApiClient for LocalUserNum %d is invalid!"), LocalUserNum);
+		return;
+	}
+
+	// Need to make sure possible DS status from backend when receiving DSStatusChanged notif.
+	const bool bShouldTriggerNotification = SessionData->DSInformation.StatusV2 == EAccelByteV2GameSessionDsStatus::AVAILABLE ||
+		SessionData->DSInformation.StatusV2 == EAccelByteV2GameSessionDsStatus::FAILED_TO_REQUEST;
+
+	if(!bShouldTriggerNotification)
+	{
+		return;
+	}
+	
+	FAccelByteModelsV2DSStatusChangedNotif DSChangedNotif;
+	DSChangedNotif.Session = *SessionData;
+	DSChangedNotif.SessionID = SessionData->ID;
+	DSChangedNotif.GameServer = SessionData->DSInformation.Server;
+	if(SessionData->DSInformation.StatusV2 == EAccelByteV2GameSessionDsStatus::FAILED_TO_REQUEST)
+	{
+		DSChangedNotif.Error = TEXT("Session failed claiming a DS");
+	}
+
+	FString DSStatusChangedJsonString;
+	if(!FJsonObjectConverter::UStructToJsonObjectString(DSChangedNotif, DSStatusChangedJsonString))
+	{
+		UE_LOG_AB(VeryVerbose, TEXT("Failed sending server information for session id %s, unable to serialize notification"), *SessionData->ID);
+		return;
+	}
+		
+	const FString LobbyMessage = FAccelByteNotificationSenderUtility::ComposeSessionNotification("OnDSStatusChanged", DSStatusChangedJsonString);
+	ApiClient->NotificationSender.SendLobbyNotification(LobbyMessage);
+}
+
+void FOnlineSessionV2AccelByte::CheckMatchmakingProgress()
+{
+	// matchmaking check is disabled, early exit
+	if(!bMatchmakingDetailCheckEnabled)
+	{
+		return;
+	}
+	
+	// We are currently not matchmaking, early exit
+	if(!CurrentMatchmakingSearchHandle.IsValid())
+	{
+		return;
+	}
+
+	// Not the time to trigger match detail polling, early exit
+	if(FDateTime::UtcNow() < NextMatchmakingDetailPollTime || NextMatchmakingDetailPollTime == FDateTime(0))
+	{
+		return;
+	}
+
+	UE_LOG_AB(VeryVerbose, TEXT("Checking match ticket details from poll, current time %s, poll time %s"), *FDateTime::UtcNow().ToString(), *NextMatchmakingDetailPollTime.ToString());
+
+	GetMatchTicketDetailsCompleteDelegateHandle = AddOnGetMatchTicketDetailsCompleteDelegate_Handle(
+		FOnGetMatchTicketDetailsCompleteDelegate::CreateThreadSafeSP(AsShared(), &FOnlineSessionV2AccelByte::OnMatchTicketCheckGetMatchTicketDetails));
+	
+	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGetV2MatchmakingTicketDetails>(AccelByteSubsystem,
+		CurrentMatchmakingSearchHandle->SearchingPlayerId.ToSharedRef().Get(), CurrentMatchmakingSearchHandle->GetTicketId());
+
+	StopMatchTicketCheckPoll();
+}
+
+void FOnlineSessionV2AccelByte::SendSessionInviteNotif(int32 LocalUserNum, const FString& SessionId) const
+{
+	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystem->GetIdentityInterface());
+	if (!ensure(IdentityInterface.IsValid()))
+	{
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(VeryVerbose, TEXT("Failed to send session server notification as our identity interface is invalid!"));
+		return;
+	}
+
+	const FApiClientPtr ApiClient = IdentityInterface->GetApiClient(LocalUserNum);
+	if(!ensure(ApiClient.IsValid()))
+	{
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(VeryVerbose, TEXT("Failed to check session server notification as ApiClient for LocalUserNum %d is invalid!"), LocalUserNum);
+		return;
+	}
+	
+	FAccelByteModelsV2GameSessionUserInvitedEvent Invite;
+	Invite.SessionID = SessionId;
+	Invite.SenderID = ClientIdPrefix + FRegistry::Settings.ClientId;
+
+	FString InviteJsonString;
+	FJsonObjectConverter::UStructToJsonObjectString(Invite, InviteJsonString);
+
+	const FString LobbyMessage = FAccelByteNotificationSenderUtility::ComposeSessionNotification("OnSessionInvited", InviteJsonString);
+	ApiClient->NotificationSender.SendLobbyNotification(LobbyMessage);
+}
+
+void FOnlineSessionV2AccelByte::StartSessionInviteCheckPoll(const FUniqueNetIdPtr& SearchingPlayerId,
+	const FString& SessionId)
+{
+	FScopeLock ScopeLock(&SessionInviteCheckTimesLock);
+
+	FSessionInviteCheckPollItem PollItem;
+	PollItem.SessionId = SessionId;
+	PollItem.SearchingPlayerId = SearchingPlayerId;
+	PollItem.NextPollTime = FDateTime::UtcNow()+ FTimespan::FromSeconds(SessionInviteCheckPollInitialDelay);
+	
+	SessionInviteCheckPollTimes.Emplace(PollItem);
+	
+	UE_LOG_AB(VeryVerbose, TEXT("Start session invite check poll for session id %s, user %s, current time %s, next poll time %s"),
+		*SessionId, *SearchingPlayerId->ToDebugString(), *FDateTime::UtcNow().ToString(), *PollItem.NextPollTime.ToString())
+}
+
+void FOnlineSessionV2AccelByte::SetSessionInviteCheckPollNextPollTime(const FUniqueNetIdPtr& SearchingPlayerId,
+	const FString& SessionId)
+{
+	FScopeLock ScopeLock(&SessionInviteCheckTimesLock);
+
+	FSessionInviteCheckPollItem PollItem;
+	PollItem.SessionId = SessionId;
+	PollItem.SearchingPlayerId = SearchingPlayerId;
+	PollItem.NextPollTime = FDateTime::UtcNow()+ FTimespan::FromSeconds(SessionInviteCheckPollInterval);
+	
+	SessionInviteCheckPollTimes.Emplace(PollItem);
+
+	UE_LOG_AB(VeryVerbose, TEXT("Set session invite check poll for session id %s, user %s, current time %s, next poll time %s"),
+		*SessionId, *SearchingPlayerId->ToDebugString(), *FDateTime::UtcNow().ToString(), *PollItem.NextPollTime.ToString())
+}
+
+void FOnlineSessionV2AccelByte::StopSessionInviteCheckPoll(const FUniqueNetIdPtr& SearchingPlayerId,
+	const FString& SessionId)
+{
+	UE_LOG_AB(VeryVerbose, TEXT("Stopping session invite check poll. Session id %s, player %s"), *SessionId, *SearchingPlayerId->ToDebugString());
+	FScopeLock ScopeLock(&SessionInviteCheckTimesLock);
+
+	const int32 PollItemIndex = SessionInviteCheckPollTimes.IndexOfByPredicate([&](const FSessionInviteCheckPollItem& PollItem)
+	{
+		return SearchingPlayerId == PollItem.SearchingPlayerId && SessionId == PollItem.SessionId;
+	});
+
+	if(PollItemIndex != INDEX_NONE)
+	{
+		SessionInviteCheckPollTimes.RemoveAt(PollItemIndex);
+	}
+}
+
+void FOnlineSessionV2AccelByte::OnSessionInviteCheckGetSession(int32 LocalUserNum, bool bWasSuccessful, const FOnlineSessionSearchResult& OnlineSearchResult)
+{
+	if(!bWasSuccessful)
+	{
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(VeryVerbose, TEXT("Failed to check session invite, query session data failed!"));
+		return;
+	}
+	
+	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystem->GetIdentityInterface());
+	if (!ensure(IdentityInterface.IsValid()))
+	{
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(VeryVerbose, TEXT("Failed to check session invite as our identity interface is invalid!"));
+		return;
+	}
+
+	const TSharedPtr<const FUniqueNetIdAccelByteUser> AccelByteUniqueUser = StaticCastSharedPtr<const FUniqueNetIdAccelByteUser>(IdentityInterface->GetUniquePlayerId(LocalUserNum));
+	FString AccelByteId = AccelByteUniqueUser->GetAccelByteId();
+
+	const TSharedPtr<FOnlineSessionInfoAccelByteV2> SessionInfo = StaticCastSharedPtr<FOnlineSessionInfoAccelByteV2>(OnlineSearchResult.Session.SessionInfo);
+	if(!ensure(SessionInfo.IsValid()))
+	{
+		return;
+	}
+
+	// if the request fail we will recheck at next poll time
+	if(!bWasSuccessful)
+	{
+		SetSessionInviteCheckPollNextPollTime(AccelByteUniqueUser, OnlineSearchResult.GetSessionIdStr());
+		return;
+	}
+
+	const bool bCurrentUserInvited = SessionInfo->GetBackendSessionDataAsGameSession()->Members.ContainsByPredicate([&AccelByteId](const FAccelByteModelsV2SessionUser& Member)
+	{
+		return Member.ID == AccelByteId && Member.StatusV2 == EAccelByteV2SessionMemberStatus::INVITED;
+	});
+
+	// if current user is invited then send session invite notif to SDK
+	if(bCurrentUserInvited)
+	{
+		SendSessionInviteNotif(LocalUserNum, OnlineSearchResult.GetSessionIdStr());
+		return;
+	}
+
+	// if current user not found or not invited yet then set next poll time
+	SetSessionInviteCheckPollNextPollTime(AccelByteUniqueUser, OnlineSearchResult.GetSessionIdStr());
+}
+
+void FOnlineSessionV2AccelByte::StartSessionServerCheckPoll(const FUniqueNetIdPtr& SearchingPlayerId, const FName SessionName)
+{
+	FScopeLock ScopeLock(&SessionServerCheckTimesLock);
+
+	FSessionServerCheckPollItem PollItem;
+	PollItem.SessionName = SessionName;
+	PollItem.SearchingPlayerId = SearchingPlayerId;
+	PollItem.NextPollTime = FDateTime::UtcNow()+ FTimespan::FromSeconds(SessionServerCheckPollInitialDelay);
+	
+	SessionServerCheckPollTimes.Emplace(PollItem);
+	
+	UE_LOG_AB(VeryVerbose, TEXT("Start session server check poll for session name %s, user %s, current time %s, next poll time %s"),
+		*SessionName.ToString(), *SearchingPlayerId->ToDebugString(), *FDateTime::UtcNow().ToString(), *PollItem.NextPollTime.ToString())
+}
+
+void FOnlineSessionV2AccelByte::SetSessionServerCheckPollNextPollTime(const FUniqueNetIdPtr& SearchingPlayerId, const FName SessionName)
+{
+	FScopeLock ScopeLock(&SessionServerCheckTimesLock);
+
+	FSessionServerCheckPollItem PollItem;
+	PollItem.SessionName = SessionName;
+	PollItem.SearchingPlayerId = SearchingPlayerId;
+	PollItem.NextPollTime = FDateTime::UtcNow()+ FTimespan::FromSeconds(SessionServerCheckPollInterval);
+	
+	SessionServerCheckPollTimes.Emplace(PollItem);
+
+	UE_LOG_AB(VeryVerbose, TEXT("Set session server check poll for session name %s, user %s, current time %s, next poll time %s"),
+		*SessionName.ToString(), *SearchingPlayerId->ToDebugString(), *FDateTime::UtcNow().ToString(), *PollItem.NextPollTime.ToString())
+}
+
+void FOnlineSessionV2AccelByte::StopSessionServerCheckPoll(const FUniqueNetIdPtr& SearchingPlayerId, const FName SessionName)
+{
+	UE_LOG_AB(VeryVerbose, TEXT("Stopping session server check poll. Session name %s, player %s"), *SessionName.ToString(), *SearchingPlayerId->ToDebugString());
+	FScopeLock ScopeLock(&SessionServerCheckTimesLock);
+
+	const int32 PollItemIndex = SessionServerCheckPollTimes.IndexOfByPredicate([&](const FSessionServerCheckPollItem& PollItem)
+	{
+		return SearchingPlayerId == PollItem.SearchingPlayerId && SessionName == PollItem.SessionName;
+	});
+
+	if(PollItemIndex != INDEX_NONE)
+	{
+		SessionServerCheckPollTimes.RemoveAt(PollItemIndex);
+	}
+}
+
+void FOnlineSessionV2AccelByte::OnSessionServerCheckGetSession(int LocalUserNum, bool bWasSuccessful, const FOnlineSessionSearchResult& OnlineSessionSearchResult)
+{
+	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT(""));
+	if(!bWasSuccessful)
+	{
+		// todo something when request not success
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(VeryVerbose, TEXT("Failed to check session server as session info request failed!"));
+		return;
+	}
+
+	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystem->GetIdentityInterface());
+	if (!IdentityInterface.IsValid())
+	{
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(VeryVerbose, TEXT("Failed to check session server as our identity interface is invalid!"));
+		return;
+	}
+
+	const FApiClientPtr ApiClient = IdentityInterface->GetApiClient(LocalUserNum);
+	if(!ApiClient.IsValid())
+	{
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(VeryVerbose, TEXT("Failed to check session server as ApiClient for LocalUserNum %d is invalid!"), LocalUserNum);
+		return;
+	}
+
+	const FUniqueNetIdPtr PlayerId = IdentityInterface->GetUniquePlayerId(LocalUserNum);
+	if (!PlayerId.IsValid())
+	{
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(VeryVerbose, TEXT("Failed to check session server as Unique player ID for LocalUserNum %d is invalid!"), LocalUserNum);
+		return;
+	}
+	
+	const TSharedPtr<FOnlineSessionInfoAccelByteV2> SessionInfo = StaticCastSharedPtr<FOnlineSessionInfoAccelByteV2>(OnlineSessionSearchResult.Session.SessionInfo);
+	if(!SessionInfo.IsValid())
+	{
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(VeryVerbose, TEXT("Failed checking session server information for session id %s as the session info is invalid"), *OnlineSessionSearchResult.GetSessionIdStr());
+		return;
+	}
+	
+	const TSharedPtr<FAccelByteModelsV2GameSession> BackendData = SessionInfo->GetBackendSessionDataAsGameSession();
+	if(!SessionInfo.IsValid())
+	{
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(VeryVerbose, TEXT("Failed checking session server information for session id %s as the backend session data is invalid"), *OnlineSessionSearchResult.GetSessionIdStr());
+		return;
+	}
+	
+	const FNamedOnlineSession* NamedSession = GetNamedSessionById(BackendData->ID);
+	if(NamedSession == nullptr)
+	{
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(VeryVerbose, TEXT("Failed checking session server information for session id %s, no named session found"), *BackendData->ID);
+		return;
+	}
+
+	const bool bSessionServerCheckComplete = BackendData->DSInformation.StatusV2 == EAccelByteV2GameSessionDsStatus::FAILED_TO_REQUEST ||
+		BackendData->DSInformation.StatusV2 == EAccelByteV2GameSessionDsStatus::ENDED ||
+		BackendData->DSInformation.StatusV2 == EAccelByteV2GameSessionDsStatus::AVAILABLE;
+
+	if(bSessionServerCheckComplete)
+	{
+		SendDSStatusChangedNotif(LocalUserNum, BackendData);
+		
+		return;
+	}
+
+	// other statuses we should wait for the next poll.
+	SetSessionServerCheckPollNextPollTime(PlayerId, NamedSession->SessionName);
+	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+}
+
+void FOnlineSessionV2AccelByte::CheckSessionServerProgress()
+{
+	if(!bSessionServerCheckPollEnabled)
+	{
+		return;
+	}
+
+	FScopeLock ScopeLock(&SessionServerCheckTimesLock);
+
+	TArray<int32> PollItemIndexesToRemove;
+	for(int i = 0; i < SessionServerCheckPollTimes.Num(); i++)
+	{
+		FSessionServerCheckPollItem PollItem = SessionServerCheckPollTimes[i];
+		if(FDateTime::UtcNow() < PollItem.NextPollTime)
+		{
+			continue;
+		}
+
+		const FNamedOnlineSession* NamedSession = GetNamedSession(PollItem.SessionName);
+		if(NamedSession == nullptr)
+		{
+			UE_LOG_AB(Log, TEXT("Session with name %s doesn't exist to check session server progress for user %s, removing from poll list"), *PollItem.SessionName.ToString(), *PollItem.SearchingPlayerId->ToDebugString());
+			PollItemIndexesToRemove.Emplace(i);
+			continue;
+		}
+
+		UE_LOG_AB(VeryVerbose, TEXT("Checking session server progress, session name %s player %s polltime %s current time %s"), *PollItem.SessionName.ToString(), *PollItem.SearchingPlayerId->ToDebugString(), *PollItem.NextPollTime.ToString(), *FDateTime::UtcNow().ToString());
+
+		AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteFindV2GameSessionById>(AccelByteSubsystem,
+			PollItem.SearchingPlayerId.ToSharedRef().Get(), NamedSession->SessionInfo->GetSessionId(), OnSessionServerCheckGetSessionDelegate);
+
+		PollItemIndexesToRemove.Emplace(i);
+	}
+
+	// remove already triggered check poll times
+	for(const int32 Index : PollItemIndexesToRemove)
+	{
+		SessionServerCheckPollTimes.RemoveAt(Index);
+	}
+}
+
+void FOnlineSessionV2AccelByte::CheckSessionInviteAfterMatchFound()
+{
+	if(!bSessionInviteCheckPollEnabled)
+	{
+		return;
+	}
+
+	FScopeLock ScopeLock(&SessionInviteCheckTimesLock);
+
+	TArray<int32> PollTimeIndexesToRemove;
+	for(int i = 0; i < SessionInviteCheckPollTimes.Num(); i++)
+	{
+		FSessionInviteCheckPollItem PollItem = SessionInviteCheckPollTimes[i];
+
+		// check time if the poll should trigger
+		if(FDateTime::UtcNow() < PollItem.NextPollTime)
+		{
+			continue;
+		}
+
+		// if we already received an invite of this session or we already joined the session, remove this item from poll list.
+		const bool bSessionJoined = GetNamedSessionById(PollItem.SessionId) != nullptr;
+		const bool bInviteReceived = SessionInvites.ContainsByPredicate([&PollItem](const FOnlineSessionInviteAccelByte& Invite)
+		{
+			return Invite.Session.GetSessionIdStr() == PollItem.SessionId;
+		});
+		if(bInviteReceived || bSessionJoined)
+		{
+			UE_LOG_AB(VeryVerbose, TEXT("Checking session invite after match found, session id %s invite already received removing from poll"), *PollItem.SessionId);
+			PollTimeIndexesToRemove.Emplace(i);
+			continue;
+		}
+
+		FUniqueNetIdPtr SessionNetId = CreateSessionIdFromString(PollItem.SessionId);
+
+		UE_LOG_AB(VeryVerbose, TEXT("Checking session invite after match found, session id %s player %s polltime %s current time %s"), *PollItem.SessionId, *PollItem.SearchingPlayerId->ToDebugString(), *PollItem.NextPollTime.ToString(), *FDateTime::UtcNow().ToString());
+		AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteFindV2GameSessionById>(AccelByteSubsystem,
+			PollItem.SearchingPlayerId.ToSharedRef().Get(), SessionNetId.ToSharedRef().Get(), OnSessionInviteCheckGetSessionDelegate);
+
+		PollTimeIndexesToRemove.Emplace(i);
+	}
+
+	// remove already triggered check poll times
+	for(const int32 Index : PollTimeIndexesToRemove)
+	{
+		SessionInviteCheckPollTimes.RemoveAt(Index);
+	}
+}
+
+void FOnlineSessionV2AccelByte::Tick(float DeltaTime)
+{
+	// Check if we have any canceled ticket IDs and if we have elapsed the time before clearing the tracked array, if so, clear it
+	const double CurrentTimeSeconds = FPlatformTime::Seconds();
+	if (CanceledTicketIds.Num() > 0 && CurrentTimeSeconds > LastCanceledTicketIdAddedTimeSeconds + ClearCanceledTicketIdsTimeInSeconds)
+	{
+		CanceledTicketIds.Empty();
+	}
+	
+	UpdateSessionEntries();
+
+	CheckMatchmakingProgress();
+
+	CheckSessionServerProgress();
+
+	CheckSessionInviteAfterMatchFound();
 }
 
 void FOnlineSessionV2AccelByte::RegisterSessionNotificationDelegates(const FUniqueNetId& PlayerId)
@@ -1234,8 +1875,7 @@ void FOnlineSessionV2AccelByte::FinalizeCreateGameSession(const FName& SessionNa
 
 	// Populate session code regardless of session joinablity since all session can be joined by code
 	NewSession->SessionSettings.Set(SETTING_SESSION_CODE, BackendSessionInfo.Code);
-
-	// Register ourselves to the session and attempt to set up P2P connection if we are not running a dedicated server
+	
 	if (!IsRunningDedicatedServer())
 	{
 		if (!ensure(NewSession->LocalOwnerId.IsValid()))
@@ -1246,10 +1886,18 @@ void FOnlineSessionV2AccelByte::FinalizeCreateGameSession(const FName& SessionNa
 		}
 
 		const FUniqueNetIdRef LocalOwnerIdRef = NewSession->LocalOwnerId.ToSharedRef();
+		
+		// Register ourselves to the session
 		RegisterPlayer(SessionName, LocalOwnerIdRef.Get(), false);
 		if (SessionInfo->GetServerType() == EAccelByteV2SessionConfigurationServerType::P2P)
 		{
+			//attempt to set up P2P connection if we are creating P2P session
 			SetupAccelByteP2PConnection(LocalOwnerIdRef.Get());
+		}
+		else if(SessionInfo->GetServerType() == EAccelByteV2SessionConfigurationServerType::DS)
+		{
+			//setup session server status polling if notification doesn't arrive in a timely manner
+			StartSessionServerCheckPoll(LocalOwnerIdRef, SessionName);
 		}
 	}
 
@@ -2752,13 +3400,17 @@ bool FOnlineSessionV2AccelByte::JoinSession(const FUniqueNetId& LocalUserId, FNa
 	EAccelByteV2SessionType SessionType = GetSessionTypeFromSettings(NewSession->SessionSettings);
 	if (SessionType == EAccelByteV2SessionType::GameSession)
 	{
-		AccelByteSubsystem->CreateAndDispatchAsyncTaskSerial<FOnlineAsyncTaskAccelByteJoinV2GameSession>(AccelByteSubsystem, LocalUserId, SessionName, bIsRestoreSession);
+		AccelByteSubsystem->CreateAndDispatchAsyncTaskSerial<FOnlineAsyncTaskAccelByteJoinV2GameSession>(AccelByteSubsystem
+			, LocalUserId
+			, SessionName);
 		AB_OSS_INTERFACE_TRACE_END(TEXT("Spawning async task to join game session on backend!"));
 		return true;
 	}
 	else if (SessionType == EAccelByteV2SessionType::PartySession)
 	{
-		AccelByteSubsystem->CreateAndDispatchAsyncTaskSerial<FOnlineAsyncTaskAccelByteJoinV2Party>(AccelByteSubsystem, LocalUserId, SessionName, bIsRestoreSession);
+		AccelByteSubsystem->CreateAndDispatchAsyncTaskSerial<FOnlineAsyncTaskAccelByteJoinV2Party>(AccelByteSubsystem
+			, LocalUserId
+			, SessionName);
 		AB_OSS_INTERFACE_TRACE_END(TEXT("Spawning async task to join party session on backend!"));
 		return true;
 	}
@@ -3134,6 +3786,128 @@ bool FOnlineSessionV2AccelByte::SessionContainsMember(const FUniqueNetId& UserId
 
 	TSharedPtr<FOnlineSessionInfoAccelByteV2> ABSessionInfo = StaticCastSharedPtr<FOnlineSessionInfoAccelByteV2>(Session->SessionInfo);
 	return ABSessionInfo->ContainsMember(UserId);
+}
+
+void FOnlineSessionV2AccelByte::SetMatchTicketCheckEnabled(const bool Enabled)
+{
+	bMatchmakingDetailCheckEnabled = Enabled;
+}
+
+bool FOnlineSessionV2AccelByte::GetMatchTicketCheckEnabled() const
+{
+	return bMatchmakingDetailCheckEnabled;
+}
+
+void FOnlineSessionV2AccelByte::SetMatchTicketCheckInitialDelay(const int32 Sec)
+{
+	if(Sec < 0)
+	{
+		UE_LOG_AB(Warning, TEXT("Setting match ticket status check initial time to %d sec, value must be 0 and above"), Sec);
+		return;
+	}
+
+	MatchTicketCheckInitialDelay = Sec;
+}
+
+int32 FOnlineSessionV2AccelByte::GetMatchTicketCheckInitialDelay() const
+{
+	return MatchTicketCheckInitialDelay;
+}
+
+void FOnlineSessionV2AccelByte::SetMatchTicketCheckPollInterval(const int32 Sec)
+{
+	if(Sec < 0)
+	{
+		UE_LOG_AB(Warning, TEXT("Setting match ticket status check poll delay to %d sec, value must be 0 and above"), Sec);
+		return;
+	}
+
+	MatchTicketCheckPollInterval = Sec;
+}
+
+int32 FOnlineSessionV2AccelByte::GetMatchTicketCheckPollInterval() const
+{
+	return MatchTicketCheckPollInterval;
+}
+
+void FOnlineSessionV2AccelByte::SetSessionServerCheckPollEnabled(bool Enabled)
+{
+	bSessionServerCheckPollEnabled = Enabled;
+}
+
+bool FOnlineSessionV2AccelByte::GetSessionServerCheckPollEnabled() const
+{
+	return bSessionServerCheckPollEnabled;
+}
+
+void FOnlineSessionV2AccelByte::SetSessionServerCheckPollInitialDelay(int32 Sec)
+{
+	if(Sec < 0)
+	{
+		return;
+	}
+
+	SessionServerCheckPollInitialDelay = Sec;
+}
+
+int32 FOnlineSessionV2AccelByte::GetSessionServerCheckPollInitialDelay() const
+{
+	return SessionServerCheckPollInitialDelay;
+}
+
+void FOnlineSessionV2AccelByte::SetSessionServerCheckPollInterval(int32 Sec)
+{
+	if(Sec < 0)
+	{
+		return;
+	}
+
+	SessionServerCheckPollInterval = Sec;
+}
+
+int32 FOnlineSessionV2AccelByte::GetSessionServerCheckPollInterval() const
+{
+	return SessionServerCheckPollInterval;
+}
+
+void FOnlineSessionV2AccelByte::SetSessionInviteCheckPollEnabled(bool Enabled)
+{
+	bSessionInviteCheckPollEnabled = Enabled;
+}
+
+bool FOnlineSessionV2AccelByte::GetSessionInviteCheckPollEnabled() const
+{
+	return bSessionInviteCheckPollEnabled;
+}
+
+void FOnlineSessionV2AccelByte::SetSessionInviteCheckPollInitialDelay(int32 Sec)
+{
+	if(Sec < 0)
+	{
+		return;
+	}
+
+	SessionInviteCheckPollInitialDelay = Sec;
+}
+
+int32 FOnlineSessionV2AccelByte::GetSessionInviteCheckPollInitialDelay() const
+{
+	return SessionInviteCheckPollInitialDelay;
+}
+
+void FOnlineSessionV2AccelByte::SetSessionInviteCheckPollInterval(int32 Sec)
+{
+	if(Sec < 0)
+	{
+		return;
+	}
+
+	SessionInviteCheckPollInterval = Sec;
+}
+
+int32 FOnlineSessionV2AccelByte::GetSessionInviteCheckPollInterval() const
+{
+	return SessionInviteCheckPollInterval;
 }
 
 bool FOnlineSessionV2AccelByte::FindFriendSession(int32 LocalUserNum, const FUniqueNetId& Friend)
@@ -4491,7 +5265,7 @@ void FOnlineSessionV2AccelByte::OnInvitedToGameSessionNotification(FAccelByteMod
 		return;
 	}
 
-	const FOnSingleSessionResultCompleteDelegate OnFindGameSessionForInviteCompleteDelegate = FOnSingleSessionResultCompleteDelegate::CreateThreadSafeSP(SharedThis(this), &FOnlineSessionV2AccelByte::OnFindGameSessionForInviteComplete, InviteEvent);
+	OnFindGameSessionForInviteCompleteDelegate = FOnSingleSessionResultCompleteDelegate::CreateThreadSafeSP(SharedThis(this), &FOnlineSessionV2AccelByte::OnFindGameSessionForInviteComplete, InviteEvent);
 	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteFindV2GameSessionById>(AccelByteSubsystem, PlayerId.ToSharedRef().Get(), SessionUniqueId.ToSharedRef().Get(), OnFindGameSessionForInviteCompleteDelegate);
 
 	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = AccelByteSubsystem->GetPredefinedEventInterface();
@@ -4503,12 +5277,16 @@ void FOnlineSessionV2AccelByte::OnInvitedToGameSessionNotification(FAccelByteMod
 		PredefinedEventInterface->SendEvent(LocalUserNum, MakeShared<FAccelByteModelsMPV2GameSessionInvitedPayload>(GameSessionInvitedPayload));
 	}
 
+	StopSessionInviteCheckPoll(PlayerId, InviteEvent.SessionID);
+
 	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
 }
 
 void FOnlineSessionV2AccelByte::OnFindGameSessionForInviteComplete(int32 LocalUserNum, bool bWasSuccessful, const FOnlineSessionSearchResult& Result, FAccelByteModelsV2GameSessionUserInvitedEvent InviteEvent)
 {
 	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("LocalUserNum: %d; bWasSuccessful: %s; SessionId: %s"), LocalUserNum, LOG_BOOL_FORMAT(bWasSuccessful), *Result.GetSessionIdStr());
+
+	OnFindGameSessionForInviteCompleteDelegate.Unbind();
 
 	if (!bWasSuccessful)
 	{
@@ -4669,6 +5447,13 @@ void FOnlineSessionV2AccelByte::OnDsStatusChangedNotification(FAccelByteModelsV2
 {
 	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("SessionId: %s"), *DsStatusChangeEvent.SessionID);
 
+	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystem->GetIdentityInterface());
+	if (!ensure(IdentityInterface.IsValid()))
+	{
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to handle DS status changed notification as our identity interface is invalid!"));
+		return;
+	}
+
 	FNamedOnlineSession* Session = GetNamedSessionById(DsStatusChangeEvent.SessionID);
 	if (Session == nullptr)
 	{
@@ -4681,8 +5466,10 @@ void FOnlineSessionV2AccelByte::OnDsStatusChangedNotification(FAccelByteModelsV2
 		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Could not update session with new DS status as session does not exist locally!"));
 		return;
 	}
+
+	const bool bDsStatusError = DsStatusChangeEvent.Session.DSInformation.StatusV2 == EAccelByteV2GameSessionDsStatus::FAILED_TO_REQUEST;
 	
-	if (!DsStatusChangeEvent.Error.IsEmpty())
+	if (bDsStatusError)
 	{
 		TriggerOnSessionServerErrorDelegates(Session->SessionName, DsStatusChangeEvent.Error);
 		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("DS status changed with an error message attached! Error message: %s"), *DsStatusChangeEvent.Error);
@@ -4697,6 +5484,12 @@ void FOnlineSessionV2AccelByte::OnDsStatusChangedNotification(FAccelByteModelsV2
 		// #NOTE No warning here as technically nothing bad happened
 		AB_OSS_INTERFACE_TRACE_END(TEXT(""));
 		return;
+	}
+
+	const FUniqueNetIdPtr PlayerId = IdentityInterface->GetUniquePlayerId(LocalUserNum);
+	if(PlayerId.IsValid())
+	{
+		StopSessionServerCheckPoll(PlayerId, Session->SessionName);
 	}
 
 	// TODO: Potentially unnecessary memory allocation
@@ -5199,6 +5992,20 @@ void FOnlineSessionV2AccelByte::OnMatchmakingMatchFoundNotification(FAccelByteMo
 		return;
 	}
 
+	// stop match ticket status polling
+	StopMatchTicketCheckPoll();
+
+	// start match invite status polling if we don't have the invite yet
+	const bool bInviteAlreadyReceived = SessionInvites.ContainsByPredicate([&MatchFoundEvent](const FOnlineSessionInviteAccelByte& Invite)
+	{
+		return Invite.Session.GetSessionIdStr() == MatchFoundEvent.Id;
+	});
+	
+	if(!bInviteAlreadyReceived)
+	{
+		StartSessionInviteCheckPoll(PlayerId, MatchFoundEvent.Id);
+	}
+
 	const FOnSingleSessionResultCompleteDelegate OnFindMatchmakingGameSessionByIdCompleteDelegate = FOnSingleSessionResultCompleteDelegate::CreateThreadSafeSP(SharedThis(this), &FOnlineSessionV2AccelByte::OnFindMatchmakingGameSessionByIdComplete);
 	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteFindV2GameSessionById>(AccelByteSubsystem, PlayerId.ToSharedRef().Get(), SessionUniqueId.ToSharedRef().Get(), OnFindMatchmakingGameSessionByIdCompleteDelegate);
 
@@ -5226,6 +6033,9 @@ void FOnlineSessionV2AccelByte::OnMatchmakingExpiredNotification(FAccelByteModel
 	TriggerOnMatchmakingExpiredDelegates(CurrentMatchmakingSearchHandle);
 	CurrentMatchmakingSearchHandle.Reset();
 	CurrentMatchmakingSessionSettings = {};
+
+	// stop match status check polling
+	StopMatchTicketCheckPoll();
 
 	AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Matchmaking ticket expired!"));
 	TriggerOnMatchmakingCompleteDelegates(SessionName, false);
@@ -5882,9 +6692,18 @@ bool FOnlineSessionV2AccelByte::HandleAutoJoinGameSession(const FAccelByteModels
 			}
 
 			TriggerOnJoinSessionCompleteDelegates(NAME_GameSession, EOnJoinSessionCompleteResult::Success);
+
+			// session is auto joined, we won't be in invited state
+			StopSessionInviteCheckPoll(UserUniqueNetId, GameSession.ID);
+			
 			if(SessionInfo->HasConnectionInfo())
 			{
 				TriggerOnSessionServerUpdateDelegates(NAME_GameSession);
+			}
+			else
+			{
+				// if session doesn't have session ID yet, then we start our server check poll timer
+				StartSessionServerCheckPoll(UserUniqueNetId, NAME_GameSession);
 			}
 
 			AB_OSS_INTERFACE_TRACE_END(TEXT("Successfully synced auto join game session from backend"));

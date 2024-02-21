@@ -12,7 +12,7 @@ class FOnlineAsyncTaskAccelByteCheckUserAccountAvailability
 	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteCheckUserAccountAvailability, ESPMode::ThreadSafe>
 {
 public:
-	FOnlineAsyncTaskAccelByteCheckUserAccountAvailability(FOnlineSubsystemAccelByte* const InABSubsystem, const FUniqueNetId& InUserId, const FString& DisplayName);
+	FOnlineAsyncTaskAccelByteCheckUserAccountAvailability(FOnlineSubsystemAccelByte* const InABSubsystem, const FUniqueNetId& InUserId, const FString& DisplayName, bool bIsSearchUniqueDisplayName);
 
 	virtual void Initialize() override; 
 	virtual void TriggerDelegates() override;
@@ -35,5 +35,6 @@ private:
 	FString ErrorMessage; 
 	
 	// Input Variables 
-	FString DisplayName; 
+	FString DisplayName;
+	bool bIsSearchUniqueDisplayName;
 };

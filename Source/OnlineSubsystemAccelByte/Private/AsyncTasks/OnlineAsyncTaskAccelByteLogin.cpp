@@ -362,11 +362,12 @@ void FOnlineAsyncTaskAccelByteLogin::OnSpecificSubysystemLoginComplete(int32 Nat
 	}
 	
 	bLoginPerformed = false;
-
+	FString PlatformToken = FGenericPlatformHttp::UrlEncode(IdentityInterface->GetAuthToken(LoginUserNum));
+	
 	FOnlineAccountCredentials CopyCreds{};
 	CopyCreds.Id = NativePlatformCredentials.Id;//Other Subsystem doesn't rely much to the Id
 	CopyCreds.Type = LoginTypeEnum->GetNameStringByValue(static_cast<int64>(LoginType));
-	CopyCreds.Token = FGenericPlatformHttp::UrlEncode(IdentityInterface->GetAuthToken(LoginUserNum));
+	CopyCreds.Token = PlatformToken;
 
 	if (bStoreNativePlatformCredentialOnSubsystemLoginComplete)
 	{
@@ -375,7 +376,7 @@ void FOnlineAsyncTaskAccelByteLogin::OnSpecificSubysystemLoginComplete(int32 Nat
 
 		// Construct credentials for the login type from the native subsystem, complete with the type set correctly to its name
 		NativePlatformCredentials.Type = LoginTypeEnum->GetNameStringByValue(static_cast<int64>(LoginType));
-		NativePlatformCredentials.Token = FGenericPlatformHttp::UrlEncode(IdentityInterface->GetAuthToken(LoginUserNum));
+		NativePlatformCredentials.Token = PlatformToken;
 	}
 
 	FTimerDelegate TimerDelegate = FTimerDelegate::CreateLambda([this, CopyCreds]()
@@ -403,7 +404,7 @@ void FOnlineAsyncTaskAccelByteLogin::OnSpecificSubysystemLoginComplete(int32 Nat
 void FOnlineAsyncTaskAccelByteLogin::OnGetAuthSessionTicketResponse(GetAuthSessionTicketResponse_t* CallBackParam)
 {
 	UE_LOG_AB(Log, TEXT("Get Auth Session Ticket Response, Result %d"), CallBackParam->m_eResult);
-	if (!bLoginPerformed)
+	if (!bLoginPerformed && LoginType == EAccelByteLoginType::Steam)
 	{
 		TimerObject.Stop();
 		PerformLogin(NativePlatformCredentials);
@@ -524,6 +525,7 @@ void FOnlineAsyncTaskAccelByteLogin::OnLoginSuccess()
 	Account->SetDisplayName(ApiClient->CredentialsRef->GetUserDisplayName());
 	Account->SetAccessToken(ApiClient->CredentialsRef->GetAccessToken());
 	Account->SetPlatformUserId(ApiClient->CredentialsRef->GetPlatformUserId());
+	Account->SetUniqueDisplayName(ApiClient->CredentialsRef->GetUniqueDisplayName());
 	
 	// Retrieve the platform user information array from the account user data.
 	const TArray<FAccountUserPlatformInfo>& PlatformInfos = ApiClient->CredentialsRef->GetAccountUserData().PlatformInfos;

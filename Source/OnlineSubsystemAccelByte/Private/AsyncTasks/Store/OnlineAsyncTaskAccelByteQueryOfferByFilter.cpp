@@ -6,11 +6,16 @@
 
 using namespace AccelByte;
 
-FOnlineAsyncTaskAccelByteQueryOfferByFilter::FOnlineAsyncTaskAccelByteQueryOfferByFilter(FOnlineSubsystemAccelByte* const InABSubsystem, const FUniqueNetId& InUserId, const FOnlineStoreFilter& InFilter, const FOnQueryOnlineStoreOffersComplete& InDelegate)
+FOnlineAsyncTaskAccelByteQueryOfferByFilter::FOnlineAsyncTaskAccelByteQueryOfferByFilter(FOnlineSubsystemAccelByte* const InABSubsystem,
+	const FUniqueNetId& InUserId,
+	const FOnlineStoreFilter& InFilter,
+	const FOnQueryOnlineStoreOffersComplete& InDelegate,
+	bool InAutoCalcEstimatedPrice)
 	: FOnlineAsyncTaskAccelByte(InABSubsystem)
 	, Filter(InFilter)
 	, Delegate(InDelegate)
 	, Language(InABSubsystem->GetLanguage())
+	, AutoCalcEstimatedPrice(InAutoCalcEstimatedPrice)
 {
 	UserId = FUniqueNetIdAccelByteUser::CastChecked(InUserId);
 }
@@ -44,7 +49,7 @@ void FOnlineAsyncTaskAccelByteQueryOfferByFilter::Initialize()
 		// search by keyword, and the result filtered by categories
 		THandler<FAccelByteModelsItemPagingSlicedResult> OnSuccess = TDelegateUtils<THandler<FAccelByteModelsItemPagingSlicedResult>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryOfferByFilter::HandleSearchItem);
 		FErrorHandler OnError = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryOfferByFilter::HandleAsyncTaskError);
-		ApiClient->Item.SearchItem(Language, Filter.Keywords[0], 0, 20, TEXT(""), OnSuccess, OnError);
+		ApiClient->Item.SearchItem(Language, Filter.Keywords[0], 0, 20, TEXT(""), OnSuccess, OnError, AutoCalcEstimatedPrice);
 	}
 	
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
@@ -104,7 +109,7 @@ void FOnlineAsyncTaskAccelByteQueryOfferByFilter::HandleSearchItem(const FAccelB
 		{
 			THandler<FAccelByteModelsItemPagingSlicedResult> OnSuccess = TDelegateUtils<THandler<FAccelByteModelsItemPagingSlicedResult>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryOfferByFilter::HandleGetItemByCriteria);
 			FErrorHandler OnError = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryOfferByFilter::HandleAsyncTaskError);
-			ApiClient->Item.SearchItem(Language, Filter.Keywords[0], Offset, Limit, TEXT(""), OnSuccess, OnError);
+			ApiClient->Item.SearchItem(Language, Filter.Keywords[0], Offset, Limit, TEXT(""), OnSuccess, OnError, AutoCalcEstimatedPrice);
 			return;
 		}
 	}

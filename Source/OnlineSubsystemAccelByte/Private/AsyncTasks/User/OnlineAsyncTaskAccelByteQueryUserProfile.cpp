@@ -164,6 +164,7 @@ void FOnlineAsyncTaskAccelByteQueryUserProfile::Finalize()
 			{
 				Account->SetDisplayName(ApiClient->CredentialsRef->GetUserDisplayName());
 				Account->SetAccessToken(ApiClient->CredentialsRef->GetAccessToken());
+				Account->SetUniqueDisplayName(ApiClient->CredentialsRef->GetUniqueDisplayName());
 				IdentityInterface->AddNewAuthenticatedUser(LocalUserNum, CachedUserInfo->Id.ToSharedRef(), Account.ToSharedRef());
 			}
 		}

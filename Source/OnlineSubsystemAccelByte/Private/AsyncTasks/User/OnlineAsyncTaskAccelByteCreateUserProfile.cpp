@@ -63,6 +63,7 @@ void FOnlineAsyncTaskAccelByteCreateUserProfile::Initialize()
 		Account = MakeShared<FUserOnlineAccountAccelByte>(UserId.ToSharedRef());
 		Account->SetDisplayName(ApiClient->CredentialsRef->GetUserDisplayName());
 		Account->SetAccessToken(ApiClient->CredentialsRef->GetAccessToken());
+		Account->SetUniqueDisplayName(ApiClient->CredentialsRef->GetUniqueDisplayName());
 
 		IdentityInterface->AddNewAuthenticatedUser(LocalUserNum, UserId.ToSharedRef(), Account.ToSharedRef());
 	}

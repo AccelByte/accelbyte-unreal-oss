@@ -240,6 +240,11 @@ void FOnlineAsyncTaskAccelByteQueryUsersByIds::OnGetBasicUserInfoSuccess(const F
 			User->PublisherAvatarUrl = BasicInfo.AvatarUrl;
 			User->UniqueDisplayName = BasicInfo.DisplayName;
 
+			// By default, we would provide the initial value using the basic platform information
+			User->DisplayName = BasicInfo.DisplayName;
+			User->GameAvatarUrl = BasicInfo.AvatarUrl;
+
+			// Override based on the platform information
 			if (BasicInfo.PlatformInfos.Num() != 0)
 			{
 				for (const FAccountUserPlatformInfo& UserPlatform : BasicInfo.PlatformInfos)
@@ -248,6 +253,7 @@ void FOnlineAsyncTaskAccelByteQueryUsersByIds::OnGetBasicUserInfoSuccess(const F
 					{
 						User->GameAvatarUrl = UserPlatform.PlatformAvatarUrl;
 						User->DisplayName = UserPlatform.PlatformDisplayName;
+						break;
 					}
 				}
 			}

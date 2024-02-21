@@ -10,12 +10,14 @@ using namespace AccelByte;
 
 FOnlineAsyncTaskAccelByteGetItemByCriteria::FOnlineAsyncTaskAccelByteGetItemByCriteria(
 FOnlineSubsystemAccelByte* const InABSubsystem, const FUniqueNetId& InUserId, FAccelByteModelsItemCriteria const& InItemCriteria, int32 const& InOffset, int32 const& InLimit,
-	TArray<EAccelByteItemListSortBy> InSortBy)
+	TArray<EAccelByteItemListSortBy> InSortBy, FString const& InStoreId, bool InAutoCalcEstimatedPrice)
 	: FOnlineAsyncTaskAccelByte(InABSubsystem)
 	, ItemCriteria(InItemCriteria)
 	, Offset(InOffset)
 	, Limit(InLimit)
 	, SortBy(InSortBy)
+	, StoreId(InStoreId)
+	, AutoCalcEstimatedPrice(InAutoCalcEstimatedPrice)
 
 {
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Construct"));
@@ -37,7 +39,7 @@ void FOnlineAsyncTaskAccelByteGetItemByCriteria::Initialize()
 		(this, &FOnlineAsyncTaskAccelByteGetItemByCriteria::HandleSuccess);
 	const FErrorHandler& OnError = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr
 		(this, &FOnlineAsyncTaskAccelByteGetItemByCriteria::HandleError);
-	ApiClient->Item.GetItemsByCriteria(ItemCriteria, Offset, Limit, OnSuccess, OnError, SortBy);
+	ApiClient->Item.GetItemsByCriteria(ItemCriteria, Offset, Limit, OnSuccess, OnError, SortBy, StoreId, AutoCalcEstimatedPrice);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }

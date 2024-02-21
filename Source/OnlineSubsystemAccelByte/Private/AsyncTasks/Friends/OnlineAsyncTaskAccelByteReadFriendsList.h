@@ -81,13 +81,28 @@ private:
 	bool HasTaskFinishedAsyncWork();
 
 	/** Delegate handler for when the friends list load has completed */
-	void OnLoadFriendsListResponse(const FAccelByteModelsLoadFriendListResponse& Result);
+	int32 QueryFriendListOffset {0};
+	void QueryFriendList();
+	THandler<FAccelByteModelsQueryFriendListResponse> OnQueryFriendListSuccessDelegate;
+	void OnQueryFriendListSuccess(const FAccelByteModelsQueryFriendListResponse& Result);
+	FErrorHandler OnQueryFriendListFailedDelegate;
+	void OnQueryFriendListFailed(int32 ErrorCode, const FString& ErrorMessage);
 
 	/** Delegate handler for when the incoming friend request load has completed */
-	void OnListIncomingFriendsResponse(const FAccelByteModelsListIncomingFriendsResponse& Result);
+	int32 QueryIncomingFriendReqOffset {0};
+	void QueryIncomingFriendRequest();
+	THandler<FAccelByteModelsIncomingFriendRequests> OnQueryIncomingFriendRequestSuccessDelegate;
+	void OnQueryIncomingFriendRequestSuccess(const FAccelByteModelsIncomingFriendRequests& Result);
+	FErrorHandler OnQueryIncomingFriendRequestFailedDelegate;
+	void OnQueryIncomingFriendRequestFailed(int32 ErrorCode, const FString& ErrorMessage);
 
 	/** Delegate handler for when the outgoing friend request load has completed */
-	void OnListOutgoingFriendsResponse(const FAccelByteModelsListOutgoingFriendsResponse& Result);
+	int32 QueryOutgoingFriendReqOffset {0};
+	void QueryOutgoingFriendRequest();
+	THandler<FAccelByteModelsOutgoingFriendRequests> OnQueryOutgoingFriendRequestSuccessDelegate;
+	void OnQueryOutgoingFriendRequestSuccess(const FAccelByteModelsOutgoingFriendRequests& Result);
+	FErrorHandler OnQueryOutgoingFriendRequestFailedDelegate;
+	void OnQueryOutgoingFriendRequestFailed(int32 ErrorCode, const FString& ErrorMessage);
 
 	/** Delegate handler for when we successfully get all information for each user in our friends list */
 	void OnQueryFriendInformationComplete(bool bIsSuccessful, TArray<TSharedRef<FAccelByteUserInfo>> UsersQueried);

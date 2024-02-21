@@ -31,7 +31,7 @@ protected:
 	}
 
 protected:
-	
+
 	/** Id of the user that we are rejecting the invite of */
 	TSharedRef<const FUniqueNetIdAccelByteUser> FriendId;
 
@@ -41,8 +41,10 @@ protected:
 	/** String representing any error that occurs during this task, passed to delegate */
 	FString ErrorStr;
 
-	/** Delegate handler for when the request to reject a friend invite succeeds */
-	void OnRejectFriendResponse(const FAccelByteModelsRejectFriendsResponse& Result);
+	FVoidHandler OnRejectFriendSuccessDelegate;
+	void OnRejectFriendSuccess();
 
+	FErrorHandler OnRejectFriendFailedDelegate;
+	void OnRejectFriendFailed(int32 ErrorCode, const FString& ErrorMessage);
 };
 

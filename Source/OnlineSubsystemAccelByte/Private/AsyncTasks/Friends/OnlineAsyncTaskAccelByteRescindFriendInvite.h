@@ -47,8 +47,10 @@ private:
 	/** String representing the error that occurred in the request, if one did */
 	FString ErrorStr;
 
-	/** Delegate handler for when the request to cancel a friend invite completes */
-	void OnCancelFriendInviteResponse(const FAccelByteModelsCancelFriendsResponse& Result);
+	FVoidHandler OnCancelFriendRequestSuccessDelegate;
+	void OnCancelFriendRequestSuccess();
 
+	FErrorHandler OnCancelFriendRequestFailedDelegate;
+	void OnCancelFriendRequestFailed(int32 ErrorCode, const FString& ErrorMessage);
 };
 

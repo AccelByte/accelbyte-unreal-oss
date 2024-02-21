@@ -171,7 +171,9 @@ public:
 	virtual void GetCategory(const FString& CategoryPath, FOnlineStoreCategory& OutCategory) const;
 	virtual void QueryOffersByFilter(const FUniqueNetId& UserId, const FOnlineStoreFilter& Filter, const FOnQueryOnlineStoreOffersComplete& Delegate) override;
 	virtual void QueryOffersById(const FUniqueNetId& UserId, const TArray<FUniqueOfferId>& OfferIds, const FOnQueryOnlineStoreOffersComplete& Delegate) override;
-	virtual void QueryOfferBySku(const FUniqueNetId& UserId, const FString& Sku, const FOnQueryOnlineStoreOffersComplete& Delegate);
+	virtual void QueryOffersByFilter(const FUniqueNetId& UserId, const FOnlineStoreFilter& Filter, bool AutoCalcEstimatedPrice, const FOnQueryOnlineStoreOffersComplete& Delegate);
+	virtual void QueryOffersById(const FUniqueNetId& UserId, const TArray<FUniqueOfferId>& OfferIds, const FString& StoreId, bool AutoCalcEstimatedPrice, const FOnQueryOnlineStoreOffersComplete& Delegate);
+	virtual void QueryOfferBySku(const FUniqueNetId& UserId, const FString& Sku, const FOnQueryOnlineStoreOffersComplete& Delegate, bool AutoCalcEstimatedPrice = false);
 	virtual void QueryOfferDynamicData(const FUniqueNetId& UserId, const FUniqueOfferId& OfferId, const FOnQueryOnlineStoreOffersComplete& Delegate);
 	virtual void GetOffers(TArray<FOnlineStoreOfferRef>& OutOffers) const override;
 	virtual void GetOffers(TArray<FOnlineStoreOfferAccelByteRef>& OutOffers) const;
@@ -206,10 +208,17 @@ public:
 	 * @param ItemCriteria should be contain some parameters for query.
 	 * @param Offset Page number.
 	 * @param Limit Page size.
-	 * @param SortBy Make sure to always use more than one sort if the first sort is not an unique value for example, if you wish to sort by displayOrder,  
+	 * @param SortBy Make sure to always use more than one sort if the first sort is not an unique value for example, if you wish to sort by displayOrder,
+	 * @param StoreId The Store Id, default value is published store id
+	 * @param AutoCalcEstimatedPrice This will Auto Calculate Estimated Price. Default is false, if autoCalcEstimatedPrice is true and item is flexible bundle, will auto calc price.	 
 	 */ 
-	void GetItemsByCriteria(const FUniqueNetId& UserId, FAccelByteModelsItemCriteria const& ItemCriteria, int32 const& Offset = 0, int32 const& Limit = 20,
-		TArray<EAccelByteItemListSortBy> SortBy = {});
+	void GetItemsByCriteria(const FUniqueNetId& UserId,
+		FAccelByteModelsItemCriteria const& ItemCriteria,
+		int32 const& Offset = 0,
+		int32 const& Limit = 20,
+		TArray<EAccelByteItemListSortBy> SortBy = {},
+		FString const& StoreId = TEXT(""),
+		bool AutoCalcEstimatedPrice = false);
 	
 protected:
 	/** Instance of the subsystem that created this interface */

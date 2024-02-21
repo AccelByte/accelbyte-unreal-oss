@@ -12,6 +12,190 @@ class FOnlineSubsystemAccelByte;
 class IOnlineSubsystem;
 
 /**
+ * @brief 3rd party platform information associated with an user AccelByte account 
+ */
+class ONLINESUBSYSTEMACCELBYTE_API FAccelByteUserPlatformLinkInformation : public FUserOnlineAccount
+{
+public:
+	explicit FAccelByteUserPlatformLinkInformation(const FString& InUserId = TEXT(""));
+
+	explicit FAccelByteUserPlatformLinkInformation(const TSharedRef<const FUniqueNetId>& InUserId);
+
+	explicit FAccelByteUserPlatformLinkInformation(const TSharedRef<const FUniqueNetId>& InUserId, const FString& InDisplayName);
+
+	explicit FAccelByteUserPlatformLinkInformation(const FAccelByteUniqueIdComposite& InCompositeId);
+
+	explicit FAccelByteUserPlatformLinkInformation(const FPlatformLink& InPlatfromLinked);
+
+	virtual ~FAccelByteUserPlatformLinkInformation() override = default;
+
+	//~ Begin FOnlineUser Interface
+	virtual TSharedRef<const FUniqueNetId> GetUserId() const override { return UserIdRef; }
+	virtual FString GetRealName() const override;
+	virtual FString GetDisplayName(const FString& Platform = FString()) const override;
+	virtual bool GetUserAttribute(const FString& AttrName, FString& OutAttrValue) const override;
+	virtual bool SetUserLocalAttribute(const FString& AttrName, const FString& InAttrValue) override;
+	//~ End FOnlineUser Interface
+
+	//~ Begin FUserOnlineAccount Interface
+	virtual FString GetAccessToken() const override;
+	virtual bool SetUserAttribute(const FString& AttrName, const FString& AttrValue) override;
+	virtual bool GetAuthAttribute(const FString& AttrName, FString& OutAttrValue) const override;
+	//~ End FUserOnlineAccount Interface
+
+	//~ Begin AccelByte-specific implementation
+	/**
+	 * @brief Set user's 3rd party display name that linked with AccelByte account.
+	 * Note: The changes will not affect the value in AccelByte backend.
+	 * Only cached value that will be affected.
+	 *
+	 * @param InDisplayName The user's display name.
+	 */
+	void SetDisplayName(const FString& InDisplayName);
+
+	/**
+	 * @brief Get user's email address from the 3rd party that linked with AccelByte account.
+	 *
+	 * @return The user's email address.
+	 */
+	FString GetEmailAddress();
+
+	/**
+	 * @brief Set user's email address from the 3rd party that linked with AccelByte account.
+	 * Note: The changes will not affect the value in AccelByte backend.
+	 * Only cached value that will be affected.
+	 * 
+	 * @param InEmailAddress The user's email address.
+	 */
+	void SetEmailAddress(const FString& InEmailAddress);
+
+	/**
+	 * @brief Get the time when player that linked their 3rd party account with AccelByte account.
+	 *
+	 * @return The time when player that linked their 3rd party account.
+	 */
+	FString GetLinkedAt();
+
+	/**
+	 * @brief Set the time when player that linked their 3rd party account with AccelByte account.
+	 * Note: The changes will not affect the value in AccelByte backend.
+	 * Only cached value that will be affected.
+	 *
+	 * @param InTimeLinkedAt The time user linked their account.
+	 */
+	void SetLinkedAt(const FString& InTimeLinkedAt);
+
+	/**
+	 * @brief Get the user's namespace that linked with AccelByte account.
+	 *
+	 * @return The user's namespace.
+	 */
+	FString GetNamespace();
+
+	/**
+	 * @brief Set user's namespace that linked with AccelByte account.
+	 * Note: The changes will not affect the value in AccelByte backend.
+	 * Only cached value that will be affected.
+	 *
+	 * @param InNamespace The user's namespace.
+	 */
+	void SetNamespace(const FString& InNamespace);
+
+	/**
+	 * @brief Get the 3rd party platform ID.
+	 *
+	 * @return The 3rd party platform ID.
+	 */
+	FString GetPlatformId();
+
+	/**
+	 * @brief Set the 3rd party platform ID.
+	 * Note: The changes will not affect the value in AccelByte backend.
+	 * Only cached value that will be affected.
+	 *
+	 * @param PlatformId The 3rd party platform ID.
+	 */
+	void SetPlatformId(const FString& InPlatformId);
+
+	/**
+	 * @brief Get user's ID from the 3rd party platform.
+	 *
+	 * @return User ID from 3rd party platform.
+	 */
+	FString GetPlatformUserId();
+
+	/**
+	 * @brief Set user's ID from the 3rd party platform.
+	 * Note: The changes will not affect the value in AccelByte backend.
+	 * Only cached value that will be affected.
+	 *
+	 * @param InPlatformUserId The user's ID from the 3rd party platform.
+	 */
+	void SetPlatformUserId(const FString& InPlatformUserId);
+
+	/**
+	 * @brief Get user's AccelByte account ID.
+	 *
+	 * @return The user's AccelByte ID.
+	 */
+	FString GetAccelByteUserId();
+
+	/**
+	 * @brief Set user's AccelByte account ID.
+	 * Note: The changes will not affect the value in AccelByte backend.
+	 * Only cached value that will be affected.
+	 *
+	 * @param InAccelByteUserId The user's AccelByte ID.
+	 */
+	void SetAccelByteUserId(const FString& InAccelByteUserId);
+
+	/**
+	 * @brief Set user's 3rd party platform account group.
+	 * Note: The changes will not affect the value in AccelByte backend.
+	 * Only cached value that will be affected.
+	 *
+	 * @param InAccountGroup The user's 3rd party account group.
+	 */
+	void SetAccountGroup(const FString& InAccountGroup);
+
+	/**
+	 * @brief Get user's 3rd party account group.
+	 *
+	 * @return The user's 3rd party account group.
+	 */
+	FString GetAccountGroup();
+	//~ End AccelByte-specific implementation
+
+private:
+	/** User Id represented as a FUniqueNetId */
+	FUniqueNetIdAccelByteUserRef UserIdRef = FUniqueNetIdAccelByteUser::Invalid();
+
+	/** Display name for the related platform associated with AccelByte account */
+	FString DisplayName;
+
+	/** Email address for the related platform associated with AccelByte account */
+	FString EmailAddress;
+
+	/** The time that the related platform linked with AccelByte account */
+	FString LinkedAt;
+
+	/** Namespace for the related platform associated with AccelByte account */
+	FString Namespace;
+
+	/** Platform ID for the related platform associated with AccelByte account */
+	FString PlatformId;
+
+	/** Platform User ID for the related platform associated with AccelByte account */
+	FString PlatformUserId;
+
+	/** AccelByte account User Id */
+	FString UserId;
+
+	/** The group for the related 3rd party account */
+	FString AccountGroup;
+};
+
+/**
  * @brief Plain data structure representing an AccelByte user that is cached locally.
  *
  * Will contain their composite ID, as well as basic data about that user.

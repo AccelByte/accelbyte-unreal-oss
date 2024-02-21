@@ -41,9 +41,9 @@ void FOnlineAsyncTaskAccelByteRejectFriendInvite::Initialize()
 		if (InviteStatus == EInviteStatus::PendingInbound)
 		{
 			// Since this friend is a valid pointer and is a pending inbound invite, then we want to send a request to reject their invite
-			AccelByte::Api::Lobby::FRejectFriendsResponse OnRejectFriendResponseDelegate = TDelegateUtils<AccelByte::Api::Lobby::FRejectFriendsResponse>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteRejectFriendInvite::OnRejectFriendResponse);
-			ApiClient->Lobby.SetRejectFriendsResponseDelegate(OnRejectFriendResponseDelegate);
-			ApiClient->Lobby.RejectFriend(FriendId->GetAccelByteId());
+			OnRejectFriendSuccessDelegate = TDelegateUtils<FVoidHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteRejectFriendInvite::OnRejectFriendSuccess);
+			OnRejectFriendFailedDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteRejectFriendInvite::OnRejectFriendFailed);
+			ApiClient->Lobby.RejectFriendRequest(FriendId->GetAccelByteId(), OnRejectFriendSuccessDelegate, OnRejectFriendFailedDelegate);
 			AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sent request through lobby websocket to reject a friend request."));
 		}
 		else
@@ -94,16 +94,17 @@ void FOnlineAsyncTaskAccelByteRejectFriendInvite::TriggerDelegates()
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 
-void FOnlineAsyncTaskAccelByteRejectFriendInvite::OnRejectFriendResponse(const FAccelByteModelsRejectFriendsResponse& Result)
+void FOnlineAsyncTaskAccelByteRejectFriendInvite::OnRejectFriendSuccess()
 {
-	if (Result.Code != TEXT("0"))
-	{
-		ErrorStr = TEXT("friend-reject-failed-request-error");
-		UE_LOG_AB(Warning, TEXT("Failed to reject friend invite for user %s as the request failed on the backend. Error code: %s"), *FriendId->ToDebugString(), *Result.Code);
-		CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
-	}
-	else
-	{
-		CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
-	}
+	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
+	CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
+	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
+}
+
+void FOnlineAsyncTaskAccelByteRejectFriendInvite::OnRejectFriendFailed(int32 ErrorCode, const FString& ErrorMessage)
+{
+	AB_OSS_ASYNC_TASK_TRACE_BEGIN_VERBOSITY(Warning, TEXT("Failed to reject friend invite for user %s as the request failed on the backend. Error code: %d. Error message: %s"), *FriendId->ToDebugString(), ErrorCode, *ErrorMessage);
+	ErrorStr = TEXT("friend-reject-failed-request-error");
+	CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
+	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }

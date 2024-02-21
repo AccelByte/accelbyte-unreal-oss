@@ -39,7 +39,9 @@ private:
 	FString ErrorStr;
 
 	/** Delegate handler for when the request to unblock a player is complete */
-	void OnUnblockPlayerResponse(const FAccelByteModelsUnblockPlayerResponse& Result);
-
+	FVoidHandler OnUnblockPlayerSuccessDelegate;
+	void OnUnblockPlayerSuccess();
+	FErrorHandler OnUnblockPlayerFailedDelegate;
+	void OnUnblockPlayerFailed(int32 ErrorCode, const FString& ErrorMessage);
 };
 

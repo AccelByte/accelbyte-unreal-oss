@@ -950,6 +950,13 @@ public:
 	void SetDisplayName(const FString& InDisplayName);
 
 	/**
+	 * @brief Set user's unique display name on AccelByte services
+	 *
+	 * @param InUniqueDisplayName The user's display name
+	 */
+	void SetUniqueDisplayName(const FString& InUniqueDisplayName);
+
+	/**
 	 * @brief Get user's country on AccelByte services
 	 *
 	 * @return The user's UserCountry
@@ -1046,6 +1053,9 @@ private:
 	
 	/** Display name for the AccelByte user associated with this account */
 	FString DisplayName;
+
+	/** Unique display name for the AccelByte user associated with this account */
+	FString UniqueDisplayName;
 
 	/** Access token for the AccelByte user associated with this account */
 	FString AccessToken;

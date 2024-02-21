@@ -10,6 +10,165 @@
 #include "OnlineUserInterfaceAccelByte.h"
 #include "OnlineSubsystemUtils.h"
 
+FAccelByteUserPlatformLinkInformation::FAccelByteUserPlatformLinkInformation
+	(const FString& InUserId /*= TEXT("")*/)
+{
+	UserIdRef = FUniqueNetIdAccelByteUser::Create(InUserId);
+}
+
+FAccelByteUserPlatformLinkInformation::FAccelByteUserPlatformLinkInformation
+	(const TSharedRef<const FUniqueNetId>& InUserId)
+	: UserIdRef(FUniqueNetIdAccelByteUser::CastChecked(InUserId)) 
+{
+}
+
+FAccelByteUserPlatformLinkInformation::FAccelByteUserPlatformLinkInformation
+(const TSharedRef<const FUniqueNetId>& InUserId
+	, const FString& InDisplayName)
+	: UserIdRef(FUniqueNetIdAccelByteUser::CastChecked(InUserId))
+	, DisplayName(InDisplayName) 
+{
+}
+
+FAccelByteUserPlatformLinkInformation::FAccelByteUserPlatformLinkInformation
+	(const FAccelByteUniqueIdComposite& InCompositeId)
+	: UserIdRef(FUniqueNetIdAccelByteUser::Create(InCompositeId))
+{
+}
+
+FAccelByteUserPlatformLinkInformation::FAccelByteUserPlatformLinkInformation
+(const FPlatformLink& InPlatfromLinked)
+	: DisplayName(InPlatfromLinked.DisplayName)
+	, EmailAddress(InPlatfromLinked.EmailAddress)
+	, LinkedAt(InPlatfromLinked.LinkedAt)
+	, Namespace(InPlatfromLinked.Namespace)
+	, PlatformId(InPlatfromLinked.PlatformId)
+	, PlatformUserId(InPlatfromLinked.PlatformUserId)
+	, UserId(InPlatfromLinked.UserId)
+	, AccountGroup(InPlatfromLinked.AccountGroup)
+{
+}
+
+FString FAccelByteUserPlatformLinkInformation::GetRealName() const
+{
+	return DisplayName;
+}
+
+FString FAccelByteUserPlatformLinkInformation::GetDisplayName(const FString& Platform) const
+{
+	return DisplayName;
+}
+
+bool FAccelByteUserPlatformLinkInformation::GetUserAttribute(const FString& AttrName, FString& OutAttrValue) const
+{
+	UE_LOG_AB(Warning, TEXT("Cannot configure user attribute as the field is not supported!"));
+
+	return false;
+}
+
+bool FAccelByteUserPlatformLinkInformation::SetUserLocalAttribute(const FString& AttrName, const FString& InAttrValue)
+{
+	UE_LOG_AB(Warning, TEXT("Cannot configure user attribute as the field is not supported!"));
+
+	return false;
+}
+
+FString FAccelByteUserPlatformLinkInformation::GetAccessToken() const
+{
+	UE_LOG_AB(Warning, TEXT("Cannot configure access token as the field is not supported!"));
+
+	return TEXT("");
+}
+
+bool FAccelByteUserPlatformLinkInformation::SetUserAttribute(const FString& AttrName, const FString& AttrValue)
+{
+	UE_LOG_AB(Warning, TEXT("Cannot configure access token as the field is not supported!"));
+
+	return false;
+}
+
+bool FAccelByteUserPlatformLinkInformation::GetAuthAttribute(const FString& AttrName, FString& OutAttrValue) const
+{
+	UE_LOG_AB(Warning, TEXT("Cannot configure access token as the field is not supported!"));
+
+	return false;
+}
+
+void FAccelByteUserPlatformLinkInformation::SetDisplayName(const FString& InDisplayName)
+{
+	DisplayName = InDisplayName;
+}
+
+FString FAccelByteUserPlatformLinkInformation::GetEmailAddress()
+{
+	return EmailAddress;
+}
+
+void FAccelByteUserPlatformLinkInformation::SetEmailAddress(const FString& InEmailAddress)
+{
+	EmailAddress = InEmailAddress;
+}
+
+FString FAccelByteUserPlatformLinkInformation::GetLinkedAt()
+{
+	return LinkedAt;
+}
+
+void FAccelByteUserPlatformLinkInformation::SetLinkedAt(const FString& InTimeLinkedAt)
+{
+	LinkedAt = InTimeLinkedAt;
+}
+
+FString FAccelByteUserPlatformLinkInformation::GetNamespace()
+{
+	return Namespace;
+}
+
+void FAccelByteUserPlatformLinkInformation::SetNamespace(const FString& InNamespace)
+{
+	Namespace = InNamespace;
+}
+
+FString FAccelByteUserPlatformLinkInformation::GetPlatformId()
+{
+	return PlatformId;
+}
+
+void FAccelByteUserPlatformLinkInformation::SetPlatformId(const FString& InPlatformId)
+{
+	PlatformId = InPlatformId;
+}
+
+FString FAccelByteUserPlatformLinkInformation::GetPlatformUserId()
+{
+	return PlatformUserId;
+}
+
+void FAccelByteUserPlatformLinkInformation::SetPlatformUserId(const FString& InPlatformUserId)
+{
+	PlatformUserId = InPlatformUserId;
+}
+
+FString FAccelByteUserPlatformLinkInformation::GetAccelByteUserId()
+{
+	return UserId;
+}
+
+void FAccelByteUserPlatformLinkInformation::SetAccelByteUserId(const FString& InAccelByteUserId)
+{
+	UserId = InAccelByteUserId;
+}
+
+void FAccelByteUserPlatformLinkInformation::SetAccountGroup(const FString& InAccountGroup)
+{
+	AccountGroup = InAccountGroup;
+}
+
+FString FAccelByteUserPlatformLinkInformation::GetAccountGroup()
+{
+	return AccountGroup;
+}
+
 bool IsInvalidAccelByteId(const FString& Id)
 {
 	return !IsAccelByteIDValid(Id);

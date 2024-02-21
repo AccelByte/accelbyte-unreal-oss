@@ -110,7 +110,7 @@ bool FOnlineSubsystemAccelByte::Init()
 	PluginInitializedTime = FDateTime::UtcNow();
 
 	FAccelBytePlatformHandler PlatformHandler{};
-	PlatformHandler.AddOnPlatformPresenceChangedDelegate(AccelByte::FAccelBytePlatformHandler::FAccelBytePlatformPresenceChangedDelegate::CreateThreadSafeSP(this, &FOnlineSubsystemAccelByte::OnPresenceChanged));
+	PlatformHandler.AddPlatformPresenceChangedDelegate(AccelByte::FAccelBytePlatformPresenceChangedDelegate::CreateThreadSafeSP(this, &FOnlineSubsystemAccelByte::OnPresenceChanged));
 
 	return true;
 }
@@ -435,11 +435,15 @@ bool FOnlineSubsystemAccelByte::Tick(float DeltaTime)
 #if WITH_DEV_AUTOMATION_TESTS
 	ActiveExecTests.RemoveAll([](const TSharedPtr<FExecTestBase>& ExecTest) { return ExecTest->bIsComplete; });
 #endif
-
-	if (LogoutDelegate.IsBound())
 	{
-		LogoutDelegate.ExecuteIfBound();
+		FScopeLock Lock(&LockObject);
+		for (auto& KVPDelegate : LogoutDelegates)
+		{
+			KVPDelegate.Value.ExecuteIfBound();
+		}
+		LogoutDelegates.Empty();
 	}
+
 	return true;
 }
 
@@ -798,12 +802,6 @@ void FOnlineSubsystemAccelByte::OnLobbyConnectionClosed(int32 StatusCode, const 
 	int32 ClosedAbnormally = static_cast<int32>(AccelByte::EWebsocketErrorTypes::LocalClosedAbnormally);
 	FString LogoutReason = (StatusCode != ClosedAbnormally) ? Reason : TEXT("network-disconnection");
 
-	AccelByte::FApiClientPtr ApiClient = GetApiClient(InLocalUserNum);
-	if (ApiClient.IsValid())
-	{
-		ApiClient->CredentialsRef->ForgetAll();
-	}
-
 #if !AB_USE_V2_SESSIONS
 		TSharedPtr<FUniqueNetIdAccelByteUser const> LocalUserId = StaticCastSharedPtr<FUniqueNetIdAccelByteUser const>(IdentityInterface->GetUniquePlayerId(InLocalUserNum));
 
@@ -813,12 +811,15 @@ void FOnlineSubsystemAccelByte::OnLobbyConnectionClosed(int32 StatusCode, const 
 			PartyInterface->RemovePartyFromInterface(LocalUserId.ToSharedRef());
 		}
 #endif
-	LogoutDelegate.Unbind();
-	LogoutDelegate = FLogOutFromInterfaceDelegate::CreateLambda([&, InLocalUserNum, LogoutReason]()
 	{
-		IdentityInterface->Logout(InLocalUserNum, LogoutReason);
-		LogoutDelegate.Unbind();
-	});
+		FScopeLock Lock(&LockObject);
+		LogoutDelegates.Remove(InLocalUserNum);
+		auto LogoutDelegate = FLogOutFromInterfaceDelegate::CreateLambda([this, InLocalUserNum, LogoutReason]()
+			{
+				IdentityInterface->Logout(InLocalUserNum, LogoutReason);
+			});
+		LogoutDelegates.Emplace(InLocalUserNum, LogoutDelegate);
+	}
 
 	if (PredefinedEventInterface.IsValid())
 	{

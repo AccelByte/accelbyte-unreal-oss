@@ -169,9 +169,9 @@ void FOnlineAsyncTaskAccelByteSendFriendInvite::OnQueryInvitedFriendComplete(boo
 		InvitedFriend = MakeShared<FOnlineFriendAccelByte>(User->DisplayName, User->Id.ToSharedRef(), EInviteStatus::PendingOutbound);
 
 		// Send the actual request to send the friend request
-		AccelByte::Api::Lobby::FRequestFriendsResponse OnRequestFriendResponseDelegate = TDelegateUtils<AccelByte::Api::Lobby::FRequestFriendsResponse>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteSendFriendInvite::OnRequestFriendResponse);
-		ApiClient->Lobby.SetRequestFriendsResponseDelegate(OnRequestFriendResponseDelegate);
-		ApiClient->Lobby.RequestFriend(User->Id->GetAccelByteId());
+		OnSendFriendRequestSuccessDelegate = TDelegateUtils<FVoidHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteSendFriendInvite::OnSendFriendRequestSuccess);
+		OnSendFriendRequestFailedDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteSendFriendInvite::OnSendFriendRequestError);
+		ApiClient->Lobby.SendFriendRequest(User->Id->GetAccelByteId(), OnSendFriendRequestSuccessDelegate, OnSendFriendRequestFailedDelegate);
 	}
 	else
 	{
@@ -181,34 +181,30 @@ void FOnlineAsyncTaskAccelByteSendFriendInvite::OnQueryInvitedFriendComplete(boo
 	}
 }
 
-void FOnlineAsyncTaskAccelByteSendFriendInvite::OnRequestFriendResponse(const FAccelByteModelsRequestFriendsResponse& Result)
+void FOnlineAsyncTaskAccelByteSendFriendInvite::OnSendFriendRequestSuccess()
+{
+	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("FriendId: %s"), *InvitedFriend->GetUserId()->ToDebugString());
+	CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
+	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
+}
+
+void FOnlineAsyncTaskAccelByteSendFriendInvite::OnSendFriendRequestError(int32 ErrorCode, const FString& ErrorMessage)
 {
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("FriendId: %s"), *InvitedFriend->GetUserId()->ToDebugString());
 
-	bool bSuccess {false};
-	const int32 ErrorCode = FCString::Atoi(*Result.Code);
 	switch (ErrorCode)
 	{
-		case 0:
-			bSuccess = true;
-			break;
-		case static_cast<int32>(ErrorCodes::FriendRequesteeMaxFriendsLimitReached):
-			ErrorStr = TEXT("friend-request-failed-requestee-max-friend-limit-reached");
-			break;
-		case static_cast<int32>(ErrorCodes::FriendRequesterMaxFriendsLimitReached):
-			ErrorStr = TEXT("friend-request-failed-requester-max-friend-limit-reached");
-			break;
-		default:
-			ErrorStr = TEXT("friend-request-failed");
+	case static_cast<int32>(ErrorCodes::FriendRequesteeMaxFriendsLimitReached):
+		ErrorStr = TEXT("friend-request-failed-requestee-max-friend-limit-reached");
+		break;
+	case static_cast<int32>(ErrorCodes::FriendRequesterMaxFriendsLimitReached):
+		ErrorStr = TEXT("friend-request-failed-requester-max-friend-limit-reached");
+		break;
+	default:
+		ErrorStr = TEXT("friend-request-failed");
 	}
 
-	if(bSuccess)
-	{
-		CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
-		AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
-		return;
-	}
-	
-	AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to send friend request to user %s! Error code: %s, Message: %s"), *InvitedFriend->GetUserId()->ToDebugString(), *Result.Code, *ErrorStr);
 	CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
+
+	AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to send friend request to user %s! Error code: %d, Message: %s"), *InvitedFriend->GetUserId()->ToDebugString(), ErrorCode, *ErrorStr);
 }

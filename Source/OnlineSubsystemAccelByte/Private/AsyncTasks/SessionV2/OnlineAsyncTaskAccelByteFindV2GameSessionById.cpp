@@ -35,7 +35,14 @@ void FOnlineAsyncTaskAccelByteFindV2GameSessionById::Initialize()
 	}
 	else
 	{
-		ApiClient->Session.GetGameSessionDetails(SessionId->ToString(), OnGetGameSessionDetailsSuccessDelegate, OnGetGameSessionDetailsErrorDelegate);
+		if (ApiClient.IsValid())
+		{
+			ApiClient->Session.GetGameSessionDetails(SessionId->ToString(), OnGetGameSessionDetailsSuccessDelegate, OnGetGameSessionDetailsErrorDelegate);
+		}
+		else
+		{
+			CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
+		}
 	}
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

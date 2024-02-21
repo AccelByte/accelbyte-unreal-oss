@@ -283,6 +283,30 @@ struct ONLINESUBSYSTEMACCELBYTE_API FOnlineSessionInviteAccelByte
 	FOnlineSessionSearchResult Session{};
 };
 
+struct ONLINESUBSYSTEMACCELBYTE_API FSessionServerCheckPollItem
+{
+	/** User ID of the player currently waiting for DS */
+	FUniqueNetIdPtr SearchingPlayerId;
+
+	/** Named session waiting to get DS */
+	FName SessionName;
+
+	/** Time in UTC the next session server check will be executed */
+	FDateTime NextPollTime;
+};
+
+struct ONLINESUBSYSTEMACCELBYTE_API FSessionInviteCheckPollItem
+{
+	/** User ID of the player currently waiting for DS */
+	FUniqueNetIdPtr SearchingPlayerId;
+
+	/** Named session waiting to get DS */
+	FString SessionId;
+
+	/** Time in UTC the next session server check will be executed */
+	FDateTime NextPollTime;
+};
+
 /**
  * AccelByte specific subclass for an online session search handle. Stores ticket ID and matchmaking user ID for retrieval later.
  */
@@ -475,6 +499,9 @@ typedef FOnPromoteGameSessionLeaderComplete::FDelegate FOnPromoteGameSessionLead
 DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnGetMyActiveMatchTicketComplete, bool /*bWasSuccessful*/, FName /*SessionName*/, TSharedPtr<FOnlineSessionSearch>& /*SearchHandler*/);
 typedef FOnGetMyActiveMatchTicketComplete::FDelegate FOnGetMyActiveMatchTicketCompleteDelegate;
 
+DECLARE_MULTICAST_DELEGATE_TwoParams(FOnGetMatchTicketDetailsComplete, const FAccelByteModelsV2MatchmakingGetTicketDetailsResponse& /*TicketDetailsResult*/, const FOnlineError& /*ErrorInfo*/)
+typedef FOnGetMatchTicketDetailsComplete::FDelegate FOnGetMatchTicketDetailsCompleteDelegate;
+
 DECLARE_MULTICAST_DELEGATE_TwoParams(FOnUpdateSessionLeaderStorageComplete, FName /*SessionName*/, const FOnlineError& /*ErrorInfo*/);
 typedef FOnUpdateSessionLeaderStorageComplete::FDelegate FOnUpdateSessionLeaderStorageCompleteDelegate;
 
@@ -495,7 +522,7 @@ typedef FOnSessionRemoved::FDelegate FOnSessionRemovedDelegate;
 class ONLINESUBSYSTEMACCELBYTE_API FOnlineSessionV2AccelByte : public IOnlineSession, public TSharedFromThis<FOnlineSessionV2AccelByte, ESPMode::ThreadSafe>
 {
 public:
-	virtual ~FOnlineSessionV2AccelByte() {}
+	virtual ~FOnlineSessionV2AccelByte() override;
 
 	/**
 	 * Convenience method to get an instance of this interface from the subsystem passed in.
@@ -913,6 +940,115 @@ public:
 	bool SessionContainsMember(const FUniqueNetId& UserId, FName SessionName);
 
 	/**
+	 * Set enable match ticket status check polling.
+	 * @param Enabled true will enable match ticket check polling
+	 */
+	void SetMatchTicketCheckEnabled(const bool Enabled);
+
+	/**
+	 * Get enabled state of match ticket status check polling.
+	 * @return true if polling enabled.
+	 */
+	bool GetMatchTicketCheckEnabled() const;
+
+	/**
+	 * Set match ticket status check delay after matchmaking first started.
+	 * @param Sec Delay time in second
+	 */
+	void SetMatchTicketCheckInitialDelay(const int32 Sec);
+
+	/**
+	 * Get match ticket status check delay after matchmaking first started.
+	 * @return initial delay in sec
+	 */
+	int32 GetMatchTicketCheckInitialDelay() const;
+	
+
+	/**
+	 * Set match ticket status check delay polling if the ticket state still waiting for match after first check.
+	 * @param Sec Interval delay time in second
+	 */
+	void SetMatchTicketCheckPollInterval(const int32 Sec);
+
+	/**
+	 * Get match ticket status check delay polling if the ticket state still waiting for match after first check.
+	 * @return Interval delay time in seconds
+	 */
+	int32 GetMatchTicketCheckPollInterval() const;
+
+	/**
+	 * Set enable session server check polling. 
+	 * @param Enabled true will enable session server check polling
+	 */
+	void SetSessionServerCheckPollEnabled(bool Enabled);
+
+	/**
+	 * Get enabled state of session server check polling
+	 * @return true if polling is enabled
+	 */
+	bool GetSessionServerCheckPollEnabled() const;
+
+	/**
+	 * Set session server status check after joining a session. 
+	 * @param Sec Delay time in seconds
+	 */
+	void SetSessionServerCheckPollInitialDelay(int32 Sec);
+
+	/**
+	 * Get session server status check after joining a session.
+	 * @return Initial delay in seconds
+	 */
+	int32 GetSessionServerCheckPollInitialDelay() const;
+
+	/**
+	 * Set session server status check polling interval if the previous attempt still waiting for Server.
+	 * @param Sec interval delay in second
+	 */
+	void SetSessionServerCheckPollInterval(int32 Sec);
+
+	/**
+	 * Get session server status check polling interval if the previous attempt still waiting for server.
+	 * @return Interval delay time in seconds
+	 */
+	int32 GetSessionServerCheckPollInterval() const;
+
+	/**
+	 * Set enabled state of session invite check polling after match is found.
+	 * @param Enabled true will enable session invite check polling
+	 */
+	void SetSessionInviteCheckPollEnabled(bool Enabled);
+
+	/**
+	 * Get enabled state of session invite check polling after match is found. 
+	 * @return true if polling is enabled
+	 */
+	bool GetSessionInviteCheckPollEnabled() const;
+
+	/**
+	 * Set session invite check initial delay after match found notification is received.
+	 * @param Sec Initial delay in seconds
+	 */
+	void SetSessionInviteCheckPollInitialDelay(int32 Sec);
+
+	/**
+	 * Get session invite check initial delay after match found notification is received. 
+	 * @return Initial delay in seconds
+	 */
+	int32 GetSessionInviteCheckPollInitialDelay() const;
+
+	/**
+	 * Set session invite check interval if previous call failed.
+	 * @param Sec Initial delay in seconds
+	 */
+	void SetSessionInviteCheckPollInterval(int32 Sec);
+
+	/**
+	 * Get session invite check interval if previous call failed.
+	 * @return Interval delay in seconds
+	 */
+	int32 GetSessionInviteCheckPollInterval() const;
+
+	/**
 	 * Delegate fired when we have retrieved information on the session that our server is claimed by on the backend.
 	 *
 	 * @param SessionName the name that our server session is stored under
@@ -1040,6 +1176,11 @@ public:
 	DEFINE_ONLINE_DELEGATE_THREE_PARAM(OnGetMyActiveMatchTicketComplete, bool /*bWasSuccessful*/, FName /*SessionName*/, TSharedPtr<FOnlineSessionSearch> /*SearchHandle*/)
 
 	/**
+	 * Delegate fired when get match ticket details complete.
+	 */
+	DEFINE_ONLINE_DELEGATE_TWO_PARAM(OnGetMatchTicketDetailsComplete, const FAccelByteModelsV2MatchmakingGetTicketDetailsResponse& /*TicketDetailsResult*/, const FOnlineError& /*ErrorInfo*/)
+
+	/**
 	 * Delegate broadcast when a session that the player is in locally has been removed on the backend. Gives the game an
 	 * opportunity to clean up state.
 	 */
@@ -1108,6 +1249,41 @@ PACKAGE_SCOPE:
 	FOnlineSessionSettings CurrentMatchmakingSessionSettings{};
 
 	/**
+	 * UTC Time for the next poll to check matchmaking details,
+	 * Intended to be used for trigger manual poll matchmaking progress. 
+	 */
+	FDateTime NextMatchmakingDetailPollTime{0};
+
+	/**
+	 * enable match ticket details check polling.
+	 */
+	bool bMatchmakingDetailCheckEnabled{true};
+
+	/**
+	 * Delay time for polling match ticket details from success start matchmaking to first match ticket polling start
+	 */
+	int32 MatchTicketCheckInitialDelay{30};
+
+	/**
+	 * Delay time for polling match ticket details 
+	 */
+	int32 MatchTicketCheckPollInterval{15};
+
+	bool bSessionServerCheckPollEnabled{true};
+	int32 SessionServerCheckPollInitialDelay{30};
+	int32 SessionServerCheckPollInterval{15};
+
+	bool bSessionInviteCheckPollEnabled{true};
+	int32 SessionInviteCheckPollInitialDelay{30};
+	int32 SessionInviteCheckPollInterval{15};
+	
+	mutable FCriticalSection SessionServerCheckTimesLock;
+	TArray<FSessionServerCheckPollItem> SessionServerCheckPollTimes;
+
+	mutable FCriticalSection SessionInviteCheckTimesLock;
+	TArray<FSessionInviteCheckPollItem> SessionInviteCheckPollTimes;
+
+	/**
 	 * Global string for the environment variable to get session ID for a spawned server.
 	 */
 	static const FString ServerSessionIdEnvironmentVariable;
@@ -1119,6 +1295,31 @@ PACKAGE_SCOPE:
 	 */
 	void Init();
 
+	/**
+	* Check for updates and apply them to each stored session
+	*/
+	void UpdateSessionEntries();
+
+	/**
+	 * Get session info from match ticket and spoof match notification
+	 */
+	void OnMatchTicketCheckGetSessionInfoById(int32 LocalUserNum, bool bWasSuccessful, const FOnlineSessionSearchResult& SessionSearchResult);
+
+	/**
+	 * Check matchmaking progress in case matchmaking found notifications is not received in a timely manner.
+	 */
+	void CheckMatchmakingProgress();
+
+	/**
+	 * Check session's dedicated server readiness when notification is not received in a timely manner.
+	 */
+	void CheckSessionServerProgress();
+
+	/**
+	 * Check session's invite when notification is not received in a timely manner after match found is notified.
+	 */
+	void CheckSessionInviteAfterMatchFound();
+	
 	/**
 	 * Session tick for various background tasks
 	 */
@@ -1333,6 +1534,39 @@ PACKAGE_SCOPE:
 	 */
 	void DisconnectFromAMS();
 
+	void OnMatchTicketCheckGetMatchTicketDetails(const FAccelByteModelsV2MatchmakingGetTicketDetailsResponse& Response, const FOnlineError& OnlineError);
+	void FinalizeStartMatchmakingComplete();
+
+	/** 
+	 * Set match ticket details poll to start polling time
+	 */
+	void StartMatchTicketCheckPoll();
+
+	/**
+	 * Set match ticket details poll to next polling time
+	 */
+	void SetMatchTicketCheckPollToNextPollTime();
+
+	/**
+	 * Stop match ticket details poll to next polling time
+	 */
+	void StopMatchTicketCheckPoll();
+
+	// FOnSingleSessionResultCompleteDelegate OnFindMatchmakingGameSessionByIdCompleteDelegate;
+
+	void SendDSStatusChangedNotif(const int32 LocalUserNum, const TSharedPtr<FAccelByteModelsV2GameSession>& SessionData);
+	void StartSessionServerCheckPoll(const FUniqueNetIdPtr& SearchingPlayerId, const FName SessionName);
+	void SetSessionServerCheckPollNextPollTime(const FUniqueNetIdPtr& SearchingPlayerId, const FName SessionName);
+	void StopSessionServerCheckPoll(const FUniqueNetIdPtr& SearchingPlayerId, const FName SessionName);
+	void OnSessionServerCheckGetSession(int32 LocalUserNum, bool bWasSuccessful, const FOnlineSessionSearchResult& OnlineSessionSearchResult);
+
+	void SendSessionInviteNotif(int32 LocalUserNum, const FString& SessionId) const;
+	void StartSessionInviteCheckPoll(const FUniqueNetIdPtr& SearchingPlayerId, const FString& SessionId);
+	void SetSessionInviteCheckPollNextPollTime(const FUniqueNetIdPtr& SearchingPlayerId, const FString& SessionId);
+	void StopSessionInviteCheckPoll(const FUniqueNetIdPtr& SearchingPlayerId, const FString& SessionId);
+	void OnSessionInviteCheckGetSession(int32 LocalUserNum, bool bWasSuccessful, const FOnlineSessionSearchResult& OnlineSearchResult);
+	FOnSingleSessionResultCompleteDelegate OnSessionInviteCheckGetSessionDelegate;
+
 	/**
 	* Initialize Metric Exporter.
 	*
@@ -1532,6 +1766,13 @@ private:
 	FTickerDelegate SendServerReadyWarningReminderDelegate;
 	FDelegateHandleAlias SendServerReadyWarningReminderHandle;
 	const int SendServerReadyWarningInMinutes = 5;
+
+	FDelegateHandle GetMatchTicketDetailsCompleteDelegateHandle;
+	FOnSingleSessionResultCompleteDelegate OnMatchTicketCheckGetMatchSessionDetailsDelegate;
+
+	FOnSingleSessionResultCompleteDelegate OnSessionServerCheckGetSessionDelegate;
+
+	FOnSingleSessionResultCompleteDelegate OnFindGameSessionForInviteCompleteDelegate;
 
 	/** Hidden on purpose */
 	FOnlineSessionV2AccelByte() :

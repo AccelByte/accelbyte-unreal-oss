@@ -6,14 +6,17 @@
 
 using namespace AccelByte;
 
-FOnlineAsyncTaskAccelByteQueryOfferBySku::FOnlineAsyncTaskAccelByteQueryOfferBySku(
-	FOnlineSubsystemAccelByte* const InABSubsystem, const FUniqueNetId& InUserId, const FString& InSku,
-	const FOnQueryOnlineStoreOffersComplete& InDelegate) 
+FOnlineAsyncTaskAccelByteQueryOfferBySku::FOnlineAsyncTaskAccelByteQueryOfferBySku(FOnlineSubsystemAccelByte* const InABSubsystem,
+	const FUniqueNetId& InUserId,
+	const FString& InSku,
+	const FOnQueryOnlineStoreOffersComplete& InDelegate,
+	bool InAutoCalcEstimatedPrice) 
 	: FOnlineAsyncTaskAccelByte(InABSubsystem)
 	, Sku(InSku)
 	, Delegate(InDelegate)
 	, Offer(MakeShared<FOnlineStoreOfferAccelByte>())
 	, Language(InABSubsystem->GetLanguage())
+	, AutoCalcEstimatedPrice(InAutoCalcEstimatedPrice)
 {
 	UserId = FUniqueNetIdAccelByteUser::CastChecked(InUserId);
 }
@@ -25,7 +28,7 @@ void FOnlineAsyncTaskAccelByteQueryOfferBySku::Initialize()
 	
 	OnSuccess = TDelegateUtils<THandler<FAccelByteModelsItemInfo>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryOfferBySku::HandleGetItemBySku);
 	OnError = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryOfferBySku::HandleAsyncTaskError);
-	ApiClient->Item.GetItemBySku(Sku, Language, TEXT(""), OnSuccess, OnError);
+	ApiClient->Item.GetItemBySku(Sku, Language, TEXT(""), OnSuccess, OnError, AutoCalcEstimatedPrice);
 	
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }

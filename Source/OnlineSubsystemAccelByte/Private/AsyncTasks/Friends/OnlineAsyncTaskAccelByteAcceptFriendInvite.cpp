@@ -43,9 +43,9 @@ void FOnlineAsyncTaskAccelByteAcceptFriendInvite::Initialize()
 		if (InviteStatus == EInviteStatus::PendingInbound)
 		{
 			// Since this friend is a valid pointer and is a pending inbound invite, then we want to send a request to accept their invite
-			AccelByte::Api::Lobby::FAcceptFriendsResponse OnAcceptFriendResponseDelegate = TDelegateUtils<AccelByte::Api::Lobby::FAcceptFriendsResponse>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteAcceptFriendInvite::OnAcceptFriendResponseDelegate);
-			ApiClient->Lobby.SetAcceptFriendsResponseDelegate(OnAcceptFriendResponseDelegate);
-			ApiClient->Lobby.AcceptFriend(FriendId->GetAccelByteId());
+			OnAcceptFriendRequestSuccessDelegate = TDelegateUtils<FVoidHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteAcceptFriendInvite::OnAcceptFriendRequestSuccess);
+			OnAcceptFriendRequestFailedDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteAcceptFriendInvite::OnAcceptFriendRequestFailed);
+			ApiClient->Lobby.AcceptFriendRequest(FriendId->GetAccelByteId(), OnAcceptFriendRequestSuccessDelegate, OnAcceptFriendRequestFailedDelegate);
 			AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sent request through lobby websocket to accept a friend request."));
 		}
 		else
@@ -102,21 +102,21 @@ void FOnlineAsyncTaskAccelByteAcceptFriendInvite::TriggerDelegates()
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 
-void FOnlineAsyncTaskAccelByteAcceptFriendInvite::OnAcceptFriendResponseDelegate(const FAccelByteModelsAcceptFriendsResponse& Result)
+void FOnlineAsyncTaskAccelByteAcceptFriendInvite::OnAcceptFriendRequestSuccess()
 {
-	if (Result.Code != TEXT("0"))
-	{
-		ErrorStr = FString::Printf(TEXT("Failed to accept friend invite for user %s as the request failed on the backend. Error code: %s"), *FriendId->ToDebugString(), *Result.Code);
-		UE_LOG_AB(Warning, TEXT("%s"), *ErrorStr);
-		CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
-	}
-	else
-	{
-		Super::ExecuteCriticalSectionAction(FVoidHandler::CreateLambda([&]()
+	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""))
+	Super::ExecuteCriticalSectionAction(FVoidHandler::CreateLambda([&]()
 		{
 			Subsystem->GetPresenceInterface()->QueryPresence(*FriendId, TDelegateUtils<IOnlinePresence::FOnPresenceTaskCompleteDelegate>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteAcceptFriendInvite::OnGetUserPresenceComplete));
 		}));
-	}
+	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""))
+}
+
+void FOnlineAsyncTaskAccelByteAcceptFriendInvite::OnAcceptFriendRequestFailed(int32 ErrorCode, const FString& ErrorMessage)
+{
+	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Failed to accept friend invite for user %s as the request failed on the backend. Error code: %d. Error message: %s"), *FriendId->ToDebugString(), ErrorCode, *ErrorMessage);
+	CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
+	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""))
 }
 
 void FOnlineAsyncTaskAccelByteAcceptFriendInvite::OnGetUserPresenceComplete(const FUniqueNetId& TargetUserId, const bool bGetPresenceSuccess)

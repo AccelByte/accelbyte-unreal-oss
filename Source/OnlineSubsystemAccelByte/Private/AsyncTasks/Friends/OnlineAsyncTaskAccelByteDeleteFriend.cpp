@@ -39,17 +39,18 @@ void FOnlineAsyncTaskAccelByteDeleteFriend::Initialize()
 		if (InviteStatus == EInviteStatus::Accepted)
 		{
 			// Since this friend is a valid pointer and is actually one of our friends, then we want to send a request to remove them
-			AccelByte::Api::Lobby::FUnfriendResponse OnUnfriendResponseDelegate = TDelegateUtils<AccelByte::Api::Lobby::FUnfriendResponse>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteDeleteFriend::OnUnfriendResponse);
-			ApiClient->Lobby.SetUnfriendResponseDelegate(OnUnfriendResponseDelegate);
-			ApiClient->Lobby.Unfriend(FriendId->GetAccelByteId());
+			OnUnfriendSuccessDelegate = TDelegateUtils<FVoidHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteDeleteFriend::OnUnfriendSuccess);
+			OnUnfriendFailedDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteDeleteFriend::OnCancelFriendRequestFailed);
+			ApiClient->Lobby.Unfriend(FriendId->GetAccelByteId(), OnUnfriendSuccessDelegate, OnUnfriendFailedDelegate);
 			AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sent request through lobby websocket to remove a friend."));
 		}
 		else if (InviteStatus == EInviteStatus::PendingOutbound)
 		{	
 			// Since this friend is a valid pointer and is an outbound request we have sent to be their friend, we want to cancel this request
-			AccelByte::Api::Lobby::FCancelFriendsResponse OnCancelFriendRequestResponseDelegate = TDelegateUtils<AccelByte::Api::Lobby::FCancelFriendsResponse>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteDeleteFriend::OnCancelFriendRequestResponse);
-			ApiClient->Lobby.SetCancelFriendsResponseDelegate(OnCancelFriendRequestResponseDelegate);
-			ApiClient->Lobby.CancelFriendRequest(FriendId->GetAccelByteId());
+			OnCancelFriendRequestSuccessDelegate = TDelegateUtils<FVoidHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteDeleteFriend::OnCancelFriendRequestSuccess);
+			OnCancelFriendRequestFailedDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteDeleteFriend::OnCancelFriendRequestFailed);
+			ApiClient->Lobby.CancelFriendRequest(FriendId->GetAccelByteId(), OnCancelFriendRequestSuccessDelegate, OnCancelFriendRequestFailedDelegate);
+
 			AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sent request through lobby websocket to cancel an outbound friend request."));
 		}
 		else
@@ -110,30 +111,32 @@ void FOnlineAsyncTaskAccelByteDeleteFriend::TriggerDelegates()
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 
-void FOnlineAsyncTaskAccelByteDeleteFriend::OnUnfriendResponse(const FAccelByteModelsUnfriendResponse& Result)
+void FOnlineAsyncTaskAccelByteDeleteFriend::OnUnfriendSuccess()
 {
-	if (Result.Code != TEXT("0"))
-	{
-		ErrorStr = TEXT("friend-error-remove-failed");
-		UE_LOG_AB(Warning, TEXT("Failed to remove friend %s as the request failed on the backend. Error code: %s"), *FriendId->ToDebugString(), *Result.Code);
-		CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
-	}
-	else
-	{
-		CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
-	}
+	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("FriendId: %s"), *FriendId->ToDebugString());
+	CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
+	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 
-void FOnlineAsyncTaskAccelByteDeleteFriend::OnCancelFriendRequestResponse(const FAccelByteModelsCancelFriendsResponse& Result)
+void FOnlineAsyncTaskAccelByteDeleteFriend::OnUnfriendFailed(int32 ErrorCode, const FString& ErrorMessage)
 {
-	if (Result.Code != TEXT("0"))
-	{
-		ErrorStr = TEXT("friend-error-request-cancel-failed");
-		UE_LOG_AB(Warning, TEXT("Failed to cancel friend request for user %s as the request failed on the backend. Error code: %s"), *FriendId->ToDebugString(), *Result.Code);
-		CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
-	}
-	else
-	{
-		CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
-	}
+	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("FriendId: %s"), *FriendId->ToDebugString());
+	ErrorStr = TEXT("friend-error-remove-failed");
+	CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
+	AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Failed to remove friend %s as the request failed on the backend. Error code: %d. Error Message"), *FriendId->ToDebugString(), ErrorCode, *ErrorMessage);
+}
+
+void FOnlineAsyncTaskAccelByteDeleteFriend::OnCancelFriendRequestSuccess()
+{
+	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("FriendId: %s"), *FriendId->ToDebugString());
+	CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
+	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
+}
+
+void FOnlineAsyncTaskAccelByteDeleteFriend::OnCancelFriendRequestFailed(int32 ErrorCode,	const FString& ErrorMessage)
+{
+	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("FriendId: %s"), *FriendId->ToDebugString());
+	ErrorStr = TEXT("friend-rescind-request-failed");
+	CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
+	AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to cancel friend invate to user %s! Error code: %d. Error message: %s"), *FriendId->ToDebugString(), ErrorCode, *ErrorMessage);
 }

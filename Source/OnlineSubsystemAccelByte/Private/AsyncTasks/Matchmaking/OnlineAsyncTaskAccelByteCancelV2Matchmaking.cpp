@@ -46,6 +46,8 @@ void FOnlineAsyncTaskAccelByteCancelV2Matchmaking::Finalize()
 			return;
 		}
 
+		SessionInterface->StopMatchTicketCheckPoll();
+
 		SearchHandle->SearchState = EOnlineAsyncTaskState::Done; // #TODO Find better state for this potentially?
 
 		SessionInterface->AddCanceledTicketId(SearchHandle->TicketId);

@@ -25,9 +25,9 @@ void FOnlineAsyncTaskAccelByteRescindFriendInvite::Initialize()
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("LocalUserNum: %d; FriendId: %s"), LocalUserNum, *FriendId->ToDebugString());
 
-	AccelByte::Api::Lobby::FCancelFriendsResponse OnRequestFriendResponseDelegate = TDelegateUtils<AccelByte::Api::Lobby::FCancelFriendsResponse>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteRescindFriendInvite::OnCancelFriendInviteResponse);
-	ApiClient->Lobby.SetCancelFriendsResponseDelegate(OnRequestFriendResponseDelegate);
-	ApiClient->Lobby.CancelFriendRequest(FriendId->GetAccelByteId());
+	OnCancelFriendRequestSuccessDelegate = TDelegateUtils<FVoidHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteRescindFriendInvite::OnCancelFriendRequestSuccess);
+	OnCancelFriendRequestFailedDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteRescindFriendInvite::OnCancelFriendRequestFailed);
+	ApiClient->Lobby.CancelFriendRequest(FriendId->GetAccelByteId(), OnCancelFriendRequestSuccessDelegate, OnCancelFriendRequestFailedDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
@@ -55,20 +55,17 @@ void FOnlineAsyncTaskAccelByteRescindFriendInvite::TriggerDelegates()
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 
-void FOnlineAsyncTaskAccelByteRescindFriendInvite::OnCancelFriendInviteResponse(const FAccelByteModelsCancelFriendsResponse& Result)
+void FOnlineAsyncTaskAccelByteRescindFriendInvite::OnCancelFriendRequestSuccess()
 {
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("FriendId: %s"), *FriendId->ToDebugString());
-
-	if (Result.Code != TEXT("0"))
-	{
-		ErrorStr = TEXT("friend-rescind-request-failed");
-		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to cancel friend invate to user %s! Error code: %s"), *FriendId->ToDebugString(), *Result.Code);
-		CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
-	}
-	else
-	{
-		CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
-	}
-
+	CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
+}
+
+void FOnlineAsyncTaskAccelByteRescindFriendInvite::OnCancelFriendRequestFailed(int32 ErrorCode,	const FString& ErrorMessage)
+{
+	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("FriendId: %s"), *FriendId->ToDebugString());
+	ErrorStr = TEXT("friend-rescind-request-failed");
+	CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
+	AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to cancel friend invate to user %s! Error code: %d. Error message: %s"), *FriendId->ToDebugString(), ErrorCode, *ErrorMessage);
 }

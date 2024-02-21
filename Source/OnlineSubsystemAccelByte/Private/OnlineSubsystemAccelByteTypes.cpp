@@ -281,6 +281,13 @@ FUniqueNetIdAccelByteUserRef FUniqueNetIdAccelByteUser::Create(FAccelByteUniqueI
 
 FUniqueNetIdAccelByteUserRef FUniqueNetIdAccelByteUser::Create(FString const& InNetIdStr)
 {
+	// Prioritize check 32-character alphanumeric rather than proceed to decode & deserialize
+	bool bIsAccelByteUUIDFormat = FAccelByteUtilities::IsAccelByteIDValid(InNetIdStr);
+	if (bIsAccelByteUUIDFormat)
+	{
+		return Create(FAccelByteUniqueIdComposite(InNetIdStr));
+	}
+
 	// Check if this is a Base64 encoded string first before anything. If it is, then we want to check if we can parse
 	// JSON from it. If so, then we just want to pass it directly into a new instance of a FUniqueNetIdAccelByteUser.
 	// Otherwise, we want to pass the string directly as the AccelByte ID component of a new FUniqueNetIdAccelByteUser's
@@ -745,11 +752,19 @@ bool FUserOnlineAccountAccelByte::GetAuthAttribute(const FString& AttrName, FStr
 
 FString FUserOnlineAccountAccelByte::GetRealName() const
 {
+	if (!UniqueDisplayName.IsEmpty())
+	{
+		return UniqueDisplayName;
+	}
 	return DisplayName;
 }
 
 FString FUserOnlineAccountAccelByte::GetDisplayName(const FString& /*Platform*/) const
 {
+	if (!UniqueDisplayName.IsEmpty())
+	{
+		return UniqueDisplayName;
+	}
 	return DisplayName;
 }
 
@@ -761,6 +776,11 @@ FString FUserOnlineAccountAccelByte::GetPublicCode()
 void FUserOnlineAccountAccelByte::SetDisplayName(const FString& InDisplayName)
 {
 	DisplayName = InDisplayName;
+}
+
+void FUserOnlineAccountAccelByte::SetUniqueDisplayName(const FString& InUniqueDisplayName)
+{
+	UniqueDisplayName = InUniqueDisplayName;
 }
 
 FString FUserOnlineAccountAccelByte::GetUserCountry() const

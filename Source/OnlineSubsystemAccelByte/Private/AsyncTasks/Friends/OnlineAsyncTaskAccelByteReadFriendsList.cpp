@@ -29,19 +29,9 @@ void FOnlineAsyncTaskAccelByteReadFriendsList::Initialize()
 	// Since we will want to be able to operate on users that we have sent an invite to, as well as users that have
 	// sent invites to us, then we need to not only query the current accepted friends list, but also the outgoing
 	// and incoming friends lists. Set up all the delegates for these queries.
-	AccelByte::Api::Lobby::FLoadFriendListResponse OnLoadFriendsListResponseDelegate = TDelegateUtils<AccelByte::Api::Lobby::FLoadFriendListResponse>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteReadFriendsList::OnLoadFriendsListResponse);
-	ApiClient->Lobby.SetLoadFriendListResponseDelegate(OnLoadFriendsListResponseDelegate);
-
-	AccelByte::Api::Lobby::FListIncomingFriendsResponse OnListIncomingFriendsResponseDelegate = TDelegateUtils<AccelByte::Api::Lobby::FListIncomingFriendsResponse>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteReadFriendsList::OnListIncomingFriendsResponse);
-	ApiClient->Lobby.SetListIncomingFriendsResponseDelegate(OnListIncomingFriendsResponseDelegate);
-
-	AccelByte::Api::Lobby::FListOutgoingFriendsResponse OnListOutgoingFriendsResponseDelegate = TDelegateUtils<AccelByte::Api::Lobby::FListOutgoingFriendsResponse>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteReadFriendsList::OnListOutgoingFriendsResponse);
-	ApiClient->Lobby.SetListOutgoingFriendsResponseDelegate(OnListOutgoingFriendsResponseDelegate);
-
-	// Fire off all list requests for friends
-	ApiClient->Lobby.ListIncomingFriends();
-	ApiClient->Lobby.ListOutgoingFriends();
-	ApiClient->Lobby.LoadFriendsList();
+	QueryFriendList();
+	QueryIncomingFriendRequest();
+	QueryOutgoingFriendRequest();
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
@@ -129,67 +119,117 @@ bool FOnlineAsyncTaskAccelByteReadFriendsList::HasTaskFinishedAsyncWork()
 	return false;
 }
 
-void FOnlineAsyncTaskAccelByteReadFriendsList::OnLoadFriendsListResponse(const FAccelByteModelsLoadFriendListResponse& Result)
+void FOnlineAsyncTaskAccelByteReadFriendsList::QueryFriendList()
 {
-	if (Result.Code != TEXT("0"))
-	{
-		ErrorString = TEXT("query-friends-failed-load-current-friends");
-		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to load friends list as response was non-zero! Response code: %s"), *Result.Code);
-		CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
-		return;
-	}
+	OnQueryFriendListSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsQueryFriendListResponse>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteReadFriendsList::OnQueryFriendListSuccess);
+	OnQueryFriendListFailedDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteReadFriendsList::OnQueryFriendListFailed);
 
+	ApiClient->Lobby.QueryFriendList(OnQueryFriendListSuccessDelegate, OnQueryFriendListFailedDelegate, QueryFriendListOffset);
+}
+
+void FOnlineAsyncTaskAccelByteReadFriendsList::OnQueryFriendListSuccess(const FAccelByteModelsQueryFriendListResponse& Result)
+{
 	// Add mappings for each friend loaded to their current friend status
-	for (const FString& AccelByteId : Result.friendsId)
+	for (const FString& AccelByteId : Result.FriendIds)
 	{
 		AccelByteIdToFriendStatus.Add(AccelByteId, EInviteStatus::Accepted);
 	}
 
 	// Add all friend IDs to an array to query at the end
-	FriendIdsToQuery.Append(Result.friendsId);
-	bHasReceivedResponseForCurrentFriends = true;
+	FriendIdsToQuery.Append(Result.FriendIds);
+
+	// check next page
+	if(Result.Paging.Next.IsEmpty())
+	{
+		bHasReceivedResponseForCurrentFriends = true;
+	}
+	else
+	{
+		QueryFriendListOffset += Result.FriendIds.Num();
+		QueryFriendList();
+	}
 }
 
-void FOnlineAsyncTaskAccelByteReadFriendsList::OnListIncomingFriendsResponse(const FAccelByteModelsListIncomingFriendsResponse& Result)
+void FOnlineAsyncTaskAccelByteReadFriendsList::OnQueryFriendListFailed(int32 ErrorCode, const FString& ErrorMessage)
 {
-	if (Result.Code != TEXT("0"))
-	{
-		ErrorString = TEXT("query-friends-failed-load-incoming-friends");
-		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to load friends list as response was non-zero! Response code: %s"), *Result.Code);
-		CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
-		return;
-	}
-
-	// Add mappings for each friend loaded to their current friend status
-	for (const FString& AccelByteId : Result.friendsId)
-	{
-		AccelByteIdToFriendStatus.Add(AccelByteId, EInviteStatus::PendingInbound);
-	}
-
-	// Add all friend IDs to an array to query at the end
-	FriendIdsToQuery.Append(Result.friendsId);
-	bHasReceivedResponseForIncomingFriends = true;
+	ErrorString = TEXT("query-friends-failed-load-current-friends");
+	AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to load friends list, ErrorCode: %d, ErrorMessage: %s"), ErrorCode, *ErrorMessage);
+	CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
 }
 
-void FOnlineAsyncTaskAccelByteReadFriendsList::OnListOutgoingFriendsResponse(const FAccelByteModelsListOutgoingFriendsResponse& Result)
+void FOnlineAsyncTaskAccelByteReadFriendsList::QueryIncomingFriendRequest()
 {
-	if (Result.Code != TEXT("0"))
-	{
-		ErrorString = TEXT("query-friends-failed-load-outgoing-friends");
-		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to load friends list as response was non-zero! Response code: %s"), *Result.Code);
-		CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
-		return;
-	}
+	OnQueryIncomingFriendRequestSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsIncomingFriendRequests>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteReadFriendsList::OnQueryIncomingFriendRequestSuccess);
+	OnQueryIncomingFriendRequestFailedDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteReadFriendsList::OnQueryIncomingFriendRequestFailed);
+	ApiClient->Lobby.QueryIncomingFriendRequest(OnQueryIncomingFriendRequestSuccessDelegate, OnQueryIncomingFriendRequestFailedDelegate, QueryIncomingFriendReqOffset);
+}
 
+void FOnlineAsyncTaskAccelByteReadFriendsList::OnQueryIncomingFriendRequestSuccess(const FAccelByteModelsIncomingFriendRequests& Result)
+{
 	// Add mappings for each friend loaded to their current friend status
-	for (const FString& AccelByteId : Result.friendsId)
+	for (const FAccelByteModelsFriendRequest& IncomingReq : Result.Data)
 	{
-		AccelByteIdToFriendStatus.Add(AccelByteId, EInviteStatus::PendingOutbound);
+		AccelByteIdToFriendStatus.Add(IncomingReq.FriendID, EInviteStatus::PendingInbound);
+
+		// Add all friend IDs to an array to query at the end
+		FriendIdsToQuery.Add(IncomingReq.FriendID);
 	}
 
-	// Add all friend IDs to an array to query at the end
-	FriendIdsToQuery.Append(Result.friendsId);
-	bHasReceivedResponseForOutgoingFriends = true;
+	// check next page
+	if(Result.Paging.Next.IsEmpty())
+	{
+		bHasReceivedResponseForIncomingFriends = true;
+	}
+	else
+	{
+		QueryIncomingFriendReqOffset += Result.Data.Num();
+		QueryIncomingFriendRequest();
+	}
+}
+
+void FOnlineAsyncTaskAccelByteReadFriendsList::OnQueryIncomingFriendRequestFailed(int32 ErrorCode,	const FString& ErrorMessage)
+{
+	ErrorString = TEXT("query-friends-failed-load-incoming-friends");
+	AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to load incoming friend request, ErrorCode: %d, ErrorMessage: %s"), ErrorCode, *ErrorMessage);
+	CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
+}
+
+void FOnlineAsyncTaskAccelByteReadFriendsList::QueryOutgoingFriendRequest()
+{
+	OnQueryOutgoingFriendRequestSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsOutgoingFriendRequests>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteReadFriendsList::OnQueryOutgoingFriendRequestSuccess);
+	OnQueryOutgoingFriendRequestFailedDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteReadFriendsList::OnQueryOutgoingFriendRequestFailed);
+	ApiClient->Lobby.QueryOutgoingFriendRequest(OnQueryOutgoingFriendRequestSuccessDelegate, OnQueryOutgoingFriendRequestFailedDelegate, QueryOutgoingFriendReqOffset);
+}
+
+void FOnlineAsyncTaskAccelByteReadFriendsList::OnQueryOutgoingFriendRequestSuccess(const FAccelByteModelsOutgoingFriendRequests& Result)
+{
+	// Add mappings for each friend loaded to their current friend status
+	for (const FAccelByteModelsFriendRequest& OutgoingReq : Result.Data)
+	{
+		AccelByteIdToFriendStatus.Add(OutgoingReq.FriendID, EInviteStatus::PendingOutbound);
+
+		// Add all friend IDs to an array to query at the end
+		FriendIdsToQuery.Add(OutgoingReq.FriendID);
+	}
+
+	// check next page
+	if (Result.Paging.Next.IsEmpty())
+	{
+		bHasReceivedResponseForOutgoingFriends = true;
+	}
+	else
+	{
+		QueryOutgoingFriendReqOffset += Result.Data.Num();
+		QueryOutgoingFriendRequest();
+	}
+}
+
+void FOnlineAsyncTaskAccelByteReadFriendsList::OnQueryOutgoingFriendRequestFailed(int32 ErrorCode,
+	const FString& ErrorMessage)
+{
+	ErrorString = TEXT("query-friends-failed-load-outgoing-friends");
+	AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to load outgoing friend request, ErrorCode: %d, ErrorMessage: %s"), ErrorCode, *ErrorMessage);
+	CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
 }
 
 void FOnlineAsyncTaskAccelByteReadFriendsList::OnQueryFriendInformationComplete(bool bIsSuccessful, TArray<TSharedRef<FAccelByteUserInfo>> UsersQueried)

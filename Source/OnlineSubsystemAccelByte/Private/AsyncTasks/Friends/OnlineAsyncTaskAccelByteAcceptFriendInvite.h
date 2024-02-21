@@ -52,5 +52,11 @@ private:
 	void OnAcceptFriendResponseDelegate(const FAccelByteModelsAcceptFriendsResponse& Result);
 
 	void OnGetUserPresenceComplete(const FUniqueNetId& TargetUserId, const bool bGetPresenceSuccess);
+
+	FVoidHandler OnAcceptFriendRequestSuccessDelegate;
+	void OnAcceptFriendRequestSuccess();
+
+	FErrorHandler OnAcceptFriendRequestFailedDelegate;
+	void OnAcceptFriendRequestFailed(int32 ErrorCode, const FString& ErrorMessage);
 };
 

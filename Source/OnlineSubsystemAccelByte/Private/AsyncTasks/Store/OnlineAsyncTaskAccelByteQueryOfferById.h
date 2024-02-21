@@ -11,8 +11,12 @@ class FOnlineAsyncTaskAccelByteQueryOfferById
 	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteQueryOfferById, ESPMode::ThreadSafe>
 {
 public:
-	FOnlineAsyncTaskAccelByteQueryOfferById(FOnlineSubsystemAccelByte* const InABSubsystem, const FUniqueNetId& InUserId, const TArray<FUniqueOfferId>& InOfferIds,
-		const FOnQueryOnlineStoreOffersComplete& InDelegate);
+	FOnlineAsyncTaskAccelByteQueryOfferById(FOnlineSubsystemAccelByte* const InABSubsystem,
+		const FUniqueNetId& InUserId,
+		const TArray<FUniqueOfferId>& InOfferIds,
+		const FOnQueryOnlineStoreOffersComplete& InDelegate,
+		const FString& StoreId,
+		bool AutoCalcEstimatedPrice);
 
 	virtual void Initialize() override;
 	virtual void Finalize() override;
@@ -32,6 +36,8 @@ private:
 	TArray<FUniqueOfferId> OfferIds;
 	FString Language;
 	FOnQueryOnlineStoreOffersComplete Delegate;
+	FString StoreId;
+	bool AutoCalcEstimatedPrice;
 
 	FString ErrorMsg;
 	THandler<TArray<FAccelByteModelsItemInfo>> OnSuccess;

@@ -13,7 +13,9 @@ class FOnlineAsyncTaskAccelByteGetItemByCriteria
 {
 public:
 	FOnlineAsyncTaskAccelByteGetItemByCriteria(FOnlineSubsystemAccelByte* const InABSubsystem, const FUniqueNetId& InUserId, FAccelByteModelsItemCriteria const& ItemCriteria, int32 const& Offset, int32 const& Limit,
-		TArray<EAccelByteItemListSortBy> SortBy);
+		TArray<EAccelByteItemListSortBy> SortBy,
+		FString const& StoreId,
+		bool AutoCalcEstimatedPrice);
 
 	virtual void Initialize() override;
 	virtual void Finalize() override;
@@ -41,5 +43,7 @@ private:
 	FAccelByteModelsItemCriteria ItemCriteria;
 	int32 Offset;
 	int32 Limit;
-	TArray<EAccelByteItemListSortBy> SortBy; 
+	TArray<EAccelByteItemListSortBy> SortBy;
+	FString StoreId;
+	bool AutoCalcEstimatedPrice;
 };

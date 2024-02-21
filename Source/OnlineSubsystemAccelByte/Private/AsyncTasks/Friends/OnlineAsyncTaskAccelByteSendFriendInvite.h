@@ -79,8 +79,13 @@ private:
 	/** Delegate handler for when we complete a query for joined party member information */
 	void OnQueryInvitedFriendComplete(bool bIsSuccessful, TArray<TSharedRef<FAccelByteUserInfo>> UsersQueried);
 
-	/** Delegate handler for when the request to send a friend invite completes */
-	void OnRequestFriendResponse(const FAccelByteModelsRequestFriendsResponse& Result);
+	/** Delegate handler for when the request to send a friend invite success */
+	FVoidHandler OnSendFriendRequestSuccessDelegate;
+	void OnSendFriendRequestSuccess();
+
+	/** Delegate handler for when the request to send a friend invite failed */
+	FErrorHandler OnSendFriendRequestFailedDelegate;
+	void OnSendFriendRequestError(int32 ErrorCode, const FString& ErrorMessage);
 
 };
 

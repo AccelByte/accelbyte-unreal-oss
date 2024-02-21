@@ -40,9 +40,9 @@ void FOnlineAsyncTaskAccelByteBlockPlayer::Initialize()
 	FoundFriend = FriendsInterface->GetFriend(LocalUserNum, PlayerId.Get(), EFriendsLists::ToString(EFriendsLists::Default));
 
 	// Now, send the request to block the player through the lobby websocket
-	AccelByte::Api::Lobby::FBlockPlayerResponse OnBlockPlayerResponseDelegate = TDelegateUtils<AccelByte::Api::Lobby::FBlockPlayerResponse>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteBlockPlayer::OnBlockPlayerResponse);
-	ApiClient->Lobby.SetBlockPlayerResponseDelegate(OnBlockPlayerResponseDelegate);
-	ApiClient->Lobby.BlockPlayer(PlayerId->GetAccelByteId());
+	OnBlockPlayerSuccessDelegate = TDelegateUtils<FVoidHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteBlockPlayer::OnBlockPlayerSuccess);
+	OnBlockPlayerFailedDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteBlockPlayer::OnBlockPlayerFailed);
+	ApiClient->Lobby.BlockPlayer(PlayerId->GetAccelByteId(), OnBlockPlayerSuccessDelegate, OnBlockPlayerFailedDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
@@ -131,40 +131,38 @@ void FOnlineAsyncTaskAccelByteBlockPlayer::TriggerDelegates()
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 
-void FOnlineAsyncTaskAccelByteBlockPlayer::OnBlockPlayerResponse(const FAccelByteModelsBlockPlayerResponse& Result)
+void FOnlineAsyncTaskAccelByteBlockPlayer::OnBlockPlayerSuccess()
 {
-	if (Result.Code != TEXT("0"))
+	// If we have a friend instance already, we want to construct a blocked player instance from that friend and complete the task...
+	if (FoundFriend.IsValid())
 	{
-		ErrorStr = TEXT("block-player-request-failed");
-		UE_LOG_AB(Warning, TEXT("Failed to block player %s as the request to the backend failed! Error code: %s"), *PlayerId->ToDebugString(), *Result.Code);
-		CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
+		BlockedPlayer = MakeShared<FOnlineBlockedPlayerAccelByte>(FoundFriend->GetDisplayName(), PlayerId);
+		CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
 	}
+	// Otherwise, we need to go and query the player ID to get a display name to properly construct a blocked player...
 	else
 	{
-		// If we have a friend instance already, we want to construct a blocked player instance from that friend and complete the task...
-		if (FoundFriend.IsValid())
+		FOnlineUserCacheAccelBytePtr UserStore = Subsystem->GetUserCache();
+		if (!UserStore.IsValid())
 		{
-			BlockedPlayer = MakeShared<FOnlineBlockedPlayerAccelByte>(FoundFriend->GetDisplayName(), PlayerId);
-			CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
+			AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Could not get information on blocked user '%s'!"), *PlayerId->ToDebugString());
+			CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState);
+			return;
 		}
-		// Otherwise, we need to go and query the player ID to get a display name to properly construct a blocked player...
-		else
-		{
-			FOnlineUserCacheAccelBytePtr UserStore = Subsystem->GetUserCache();
-			if (!UserStore.IsValid())
-			{
-				AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Could not get information on blocked user '%s'!"), *PlayerId->ToDebugString());
-				CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState);
-				return;
-			}
 
-			Super::ExecuteCriticalSectionAction(FVoidHandler::CreateLambda([&]()
-			{
-				FOnQueryUsersComplete OnQueryBlockedPlayerCompleteDelegate = TDelegateUtils<FOnQueryUsersComplete>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteBlockPlayer::OnQueryBlockedPlayerComplete);
-				UserStore->QueryUsersByAccelByteIds(LocalUserNum, { PlayerId->GetAccelByteId() }, OnQueryBlockedPlayerCompleteDelegate, true);
-			}));
-		}
+		Super::ExecuteCriticalSectionAction(FVoidHandler::CreateLambda([&]()
+		{
+			FOnQueryUsersComplete OnQueryBlockedPlayerCompleteDelegate = TDelegateUtils<FOnQueryUsersComplete>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteBlockPlayer::OnQueryBlockedPlayerComplete);
+			UserStore->QueryUsersByAccelByteIds(LocalUserNum, { PlayerId->GetAccelByteId() }, OnQueryBlockedPlayerCompleteDelegate, true);
+		}));
 	}
+}
+
+void FOnlineAsyncTaskAccelByteBlockPlayer::OnBlockPlayerFailed(int32 ErrorCode, const FString& ErrorMessage)
+{
+	ErrorStr = TEXT("block-player-request-failed");
+	UE_LOG_AB(Warning, TEXT("Failed to block player %s as the request to the backend failed! Error code: %d, Error message: %s"), *PlayerId->ToDebugString(), ErrorCode, *ErrorMessage);
+	CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
 }
 
 void FOnlineAsyncTaskAccelByteBlockPlayer::OnQueryBlockedPlayerComplete(bool bIsSuccessful, TArray<TSharedRef<FAccelByteUserInfo>> UsersQueried)

@@ -114,6 +114,7 @@ void FOnlineAsyncTaskAccelByteQueryUserInfo::Finalize()
 			IdentityAccount->SetUserAttribute(ACCELBYTE_ACCOUNT_GAME_AVATAR_URL, QueriedUser->GameAvatarUrl);
 			IdentityAccount->SetUserAttribute(ACCELBYTE_ACCOUNT_PUBLISHER_AVATAR_URL, QueriedUser->PublisherAvatarUrl);
 			IdentityAccount->SetPublicCode(QueriedUser->PublicCode);
+			IdentityAccount->SetUniqueDisplayName(QueriedUser->UniqueDisplayName);
 		}
 	}
 

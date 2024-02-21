@@ -2,6 +2,36 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.12.5](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.12.5%0D0.12.4) (2024-02-21)
+
+
+### Features
+
+* add new autoCalcEstimatedPrice Param ([91a1ac5](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/91a1ac5b0dc93bd48ff3c46c76d058683da849e5))
+* change friend interaction from websocket API to REST API ([ae1bd95](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/ae1bd950f33901817c4b72ec7d1c4a2edb98fedf))
+* expose get 3rd party platform information for current user ([3987065](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/39870655ec3af435a63befc8b980f46789a01f78))
+* implement matchmaking notifications missing mitigations ([ea0ed60](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/ea0ed60e5fe88455ffdcaabfa480644c77c54692))
+* **ugc:** add some public api that can be used without login ([1b62ee7](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/1b62ee7e611f5cc999d3cc4ba82d4037109c1dd4))
+
+
+### Bug Fixes
+
+* **account:** account profile revamp ([0cd7c61](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/0cd7c614e4c8812d6835b02484e12f60ae677f8d))
+* crash when ApiClient is not valid during FindV2GameSessionById async task ([340da00](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/340da006132c07e70f03f0e7ad8d2afbd2f36f27))
+* **DisplayName:** on query user IDs success, provide the default displayname & avatar URL first, before overriding it using platform infomration ([f2188b7](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/f2188b7a4496205ed277cf8385cf57ab6e6fe2cf))
+* PerformLogin accidentally triggered by Steam Callback ([e7ad70f](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/e7ad70f39ff909483295c057c0f84db491753b53))
+* premature credentials removal when Lobby connection was closed ([d8c83f8](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/d8c83f8a458466d348fd66e6f5fd87a3ca93cfa6))
+* resolve conflict merge ([77c1ad6](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/77c1ad6347356c54d10dc6054645c75eedf6b800))
+* **session:** omit empty fields before send player attributes ([511433b](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/511433b39974e5f60a6f0bbb2d4cdd3c4e313f30))
+* **session:** Restore session should always attempt to rejoin rather than just requerying data ([2bda5be](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/2bda5bef1b62eb5515cfba5103b1a2cd7cebcc71))
+* submodule update ([6f96752](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/6f96752188af8abe0c1e39ff4d7f81769a0dd84f))
+* **UniqueNetID:** improve the UniqueNetID for 32-digit UUID input, to reduce the unnecessary decode & deserialization ([f385936](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/f3859361d3d0d86ca9be3ebe1b0f8f1982adea11))
+
+
+### Refactors
+
+* update with renamed function on PlatformHandler ([74c972b](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/74c972b9c6ca0067fa61932654239194d9b8a3bc))
+
 ### [0.12.4](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.12.4%0D0.12.3) (2024-02-05)
 
 

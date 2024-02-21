@@ -12,8 +12,11 @@ class FOnlineAsyncTaskAccelByteQueryOfferBySku
 	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteQueryOfferBySku, ESPMode::ThreadSafe>
 {
 public:
-	FOnlineAsyncTaskAccelByteQueryOfferBySku(FOnlineSubsystemAccelByte* const InABSubsystem, const FUniqueNetId& InUserId, const FString& InSku,
-		const FOnQueryOnlineStoreOffersComplete& InDelegate);
+	FOnlineAsyncTaskAccelByteQueryOfferBySku(FOnlineSubsystemAccelByte* const InABSubsystem,
+		const FUniqueNetId& InUserId,
+		const FString& InSku,
+		const FOnQueryOnlineStoreOffersComplete& InDelegate,
+		bool InAutoCalcEstimatedPrice);
 
 	virtual void Initialize() override;
 	virtual void Finalize() override;
@@ -34,6 +37,7 @@ private:
 	FOnQueryOnlineStoreOffersComplete Delegate;
 	FOnlineStoreOfferAccelByteRef Offer;
 	FString Language;
+	bool AutoCalcEstimatedPrice;
 
 	FString ErrorMsg;
 	THandler<FAccelByteModelsItemInfo> OnSuccess;

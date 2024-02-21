@@ -6,11 +6,18 @@
 
 using namespace AccelByte;
 
-FOnlineAsyncTaskAccelByteQueryOfferById::FOnlineAsyncTaskAccelByteQueryOfferById(FOnlineSubsystemAccelByte* const InABSubsystem, const FUniqueNetId& InUserId, const TArray<FUniqueOfferId>& InOfferIds, const FOnQueryOnlineStoreOffersComplete& InDelegate)
+FOnlineAsyncTaskAccelByteQueryOfferById::FOnlineAsyncTaskAccelByteQueryOfferById(FOnlineSubsystemAccelByte* const InABSubsystem,
+	const FUniqueNetId& InUserId,
+	const TArray<FUniqueOfferId>& InOfferIds,
+	const FOnQueryOnlineStoreOffersComplete& InDelegate,
+	const FString& InStoreId,
+	bool InAutoCalcEstimatedPrice)
 	: FOnlineAsyncTaskAccelByte(InABSubsystem)
 	, OfferIds(InOfferIds)
 	, Language(InABSubsystem->GetLanguage())
 	, Delegate(InDelegate)
+	, StoreId(InStoreId)
+	, AutoCalcEstimatedPrice(InAutoCalcEstimatedPrice)
 {
 	UserId = FUniqueNetIdAccelByteUser::CastChecked(InUserId);
 }
@@ -22,7 +29,7 @@ void FOnlineAsyncTaskAccelByteQueryOfferById::Initialize()
 	
 	OnSuccess = TDelegateUtils<THandler<TArray<FAccelByteModelsItemInfo>>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryOfferById::HandleGetItemByIds);
 	OnError = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryOfferById::HandleAsyncTaskError);
-	ApiClient->Item.BulkGetLocaleItems(OfferIds, TEXT(""), Language, OnSuccess, OnError);
+	ApiClient->Item.BulkGetLocaleItems(OfferIds, TEXT(""), Language, OnSuccess, OnError, StoreId, AutoCalcEstimatedPrice);
 	
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }

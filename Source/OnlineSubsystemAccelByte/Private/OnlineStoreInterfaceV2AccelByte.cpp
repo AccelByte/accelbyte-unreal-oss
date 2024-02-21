@@ -146,18 +146,28 @@ void FOnlineStoreV2AccelByte::GetCategory(const FString& CategoryPath, FOnlineSt
 
 void FOnlineStoreV2AccelByte::QueryOffersByFilter(const FUniqueNetId& UserId, const FOnlineStoreFilter& Filter, const FOnQueryOnlineStoreOffersComplete& Delegate)
 {
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteQueryOfferByFilter>(AccelByteSubsystem, UserId, Filter, Delegate);
+	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteQueryOfferByFilter>(AccelByteSubsystem, UserId, Filter, Delegate, false);
 }
 
 void FOnlineStoreV2AccelByte::QueryOffersById(const FUniqueNetId& UserId, const TArray<FUniqueOfferId>& OfferIds,
 	const FOnQueryOnlineStoreOffersComplete& Delegate)
 {
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteQueryOfferById>(AccelByteSubsystem, UserId, OfferIds, Delegate);
+	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteQueryOfferById>(AccelByteSubsystem, UserId, OfferIds, Delegate, FString(), false);
 }
 
-void FOnlineStoreV2AccelByte::QueryOfferBySku(const FUniqueNetId& UserId, const FString& Sku, const FOnQueryOnlineStoreOffersComplete& Delegate)
+void FOnlineStoreV2AccelByte::QueryOffersByFilter(const FUniqueNetId& UserId, const FOnlineStoreFilter& Filter, bool AutoCalcEstimatedPrice, const FOnQueryOnlineStoreOffersComplete& Delegate)
 {
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteQueryOfferBySku>(AccelByteSubsystem, UserId, Sku, Delegate);
+	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteQueryOfferByFilter>(AccelByteSubsystem, UserId, Filter, Delegate, AutoCalcEstimatedPrice);
+}
+
+void FOnlineStoreV2AccelByte::QueryOffersById(const FUniqueNetId& UserId, const TArray<FUniqueOfferId>& OfferIds, const FString& StoreId, bool AutoCalcEstimatedPrice, const FOnQueryOnlineStoreOffersComplete& Delegate)
+{
+	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteQueryOfferById>(AccelByteSubsystem, UserId, OfferIds, Delegate, StoreId, AutoCalcEstimatedPrice);
+}
+
+void FOnlineStoreV2AccelByte::QueryOfferBySku(const FUniqueNetId& UserId, const FString& Sku, const FOnQueryOnlineStoreOffersComplete& Delegate, bool AutoCalcEstimatedPrice)
+{
+	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteQueryOfferBySku>(AccelByteSubsystem, UserId, Sku, Delegate, AutoCalcEstimatedPrice);
 }
 
 void FOnlineStoreV2AccelByte::QueryOfferDynamicData(const FUniqueNetId& UserId, const FUniqueOfferId& OfferId, const FOnQueryOnlineStoreOffersComplete& Delegate)
@@ -254,8 +264,13 @@ void FOnlineStoreV2AccelByte::GetEstimatedPrice(const FUniqueNetId& UserId, cons
 	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGetEstimatedPrice>(AccelByteSubsystem, UserId, ItemIds, Region);
 }
 
-void FOnlineStoreV2AccelByte::GetItemsByCriteria(const FUniqueNetId& UserId, FAccelByteModelsItemCriteria const& ItemCriteria, int32 const& Offset, int32 const& Limit,
-		TArray<EAccelByteItemListSortBy> SortBy)
+void FOnlineStoreV2AccelByte::GetItemsByCriteria(const FUniqueNetId& UserId,
+	FAccelByteModelsItemCriteria const& ItemCriteria,
+	int32 const& Offset,
+	int32 const& Limit,
+	TArray<EAccelByteItemListSortBy> SortBy,
+	FString const& StoreId,
+	bool AutoCalcEstimatedPrice)
 {
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGetItemByCriteria>(AccelByteSubsystem, UserId, ItemCriteria, Offset, Limit, SortBy);
+	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGetItemByCriteria>(AccelByteSubsystem, UserId, ItemCriteria, Offset, Limit, SortBy, StoreId, AutoCalcEstimatedPrice);
 }

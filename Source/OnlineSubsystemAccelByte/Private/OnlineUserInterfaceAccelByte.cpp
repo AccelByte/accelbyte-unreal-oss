@@ -25,6 +25,7 @@
 #include "AsyncTasks/User/OnlineAsyncTaskAccelByteCheckUserAccountAvailability.h"
 #include "AsyncTasks/User/OnlineAsyncTaskAccelByteQueryUserIdMappingWithPlatform.h"
 #include "AsyncTasks/User/OnlineAsyncTaskAccelByteQueryUserIdMappingWithPlatformId.h"
+#include "AsyncTasks/User/OnlineAsyncTaskAccelByteGetUserPlatformLinks.h"
 #include "OnlineSubsystemUtils.h"
 
 #define ONLINE_ERROR_NAMESPACE "FOnlineUserAccelByte"
@@ -86,6 +87,26 @@ bool FOnlineUserAccelByte::QueryUserProfile(int32 LocalUserNum, const TArray<TSh
 	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteQueryUserProfile>(AccelByteSubsystem, LocalUserNum, UserIds, OnQueryUserProfileCompleteDelegates[LocalUserNum]);
 
 	AB_OSS_INTERFACE_TRACE_END(TEXT("Created and dispatched async task to query user information for %d IDs!"), UserIds.Num());
+	return true;
+}
+
+bool FOnlineUserAccelByte::GetUserPlatformLinks(int32 LocalUserNum)
+{
+	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("LocalUserNum: %d"), LocalUserNum);
+
+	check(AccelByteSubsystem != nullptr);
+	if (LocalUserNum < 0 || LocalUserNum >= MAX_LOCAL_PLAYERS)
+	{
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("LocalUserNum passed was out of range!"));
+		AccelByteSubsystem->ExecuteNextTick([UserInterface = SharedThis(this), LocalUserNum]()
+			{
+				UserInterface->TriggerOnGetUserPlatformLinksCompleteDelegates(LocalUserNum, false, TArray<FPlatformLink>{}, ONLINE_ERROR(EOnlineErrorResult::InvalidUser, TEXT("get-user-3rd-party-platform-information-index-out-of-range")));
+			});
+		return false;
+	}
+	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGetUserPlatformLinks>(AccelByteSubsystem, LocalUserNum);
+
+	AB_OSS_INTERFACE_TRACE_END(TEXT("Get user 3rd party platform information for LocalUserNum: %d"), LocalUserNum);
 	return true;
 }
 
@@ -357,11 +378,61 @@ void FOnlineUserAccelByte::UnlinkOtherPlatformId(const FUniqueNetId& UserId, con
 		(AccelByteSubsystem, UserId, PlatformId);
 }
 
-void FOnlineUserAccelByte::CheckUserAccountAvailability(const FUniqueNetId& UserId, const FString& DisplayName)
+void FOnlineUserAccelByte::CheckUserAccountAvailability(const FUniqueNetId& UserId, const FString& DisplayName, bool bIsSearchUniqueDisplayName)
 {
 	UE_LOG_AB(Display, TEXT("FOnlineIdentityAccelByte::CheckUserAccountAvailability"));
 	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteCheckUserAccountAvailability>
-		(AccelByteSubsystem, UserId, DisplayName);
-} 
+		(AccelByteSubsystem, UserId, DisplayName, bIsSearchUniqueDisplayName);
+}
+
+void FOnlineUserAccelByte::AddNewLinkedUserAccountToCache(const TSharedRef<const FUniqueNetId>& UserId, const TArray<FPlatformLink>& LinkedAccounts)
+{
+	TArray<FAccelByteUserPlatformLinkInformationRef> TempLinkedPlatformAccounts = {};
+
+	for (const auto& PlatformInfo : LinkedAccounts)
+	{
+
+#if UE_BUILD_SHIPPING
+		if (PlatformInfo.PlatformId.Equals("device", ESearchCase::IgnoreCase) && PlatformInfo.PlatformId.Equals("justice", ESearchCase::IgnoreCase))
+		{
+			continue;
+		}
+#endif
+
+		TempLinkedPlatformAccounts.Add(MakeShareable(new FAccelByteUserPlatformLinkInformation(PlatformInfo)));
+	}
+
+	NetIdToLinkedOnlineAccountMap.Add(UserId, TempLinkedPlatformAccounts);
+}
+
+bool FOnlineUserAccelByte::RemoveLinkedUserAccountFromCache(const TSharedRef<const FUniqueNetId>& UserId)
+{
+	bool bResult = false; 
+
+	if (NetIdToLinkedOnlineAccountMap.Remove(UserId))
+	{
+		bResult = true;
+	}
+
+	return bResult;
+}
+
+void FOnlineUserAccelByte::GetLinkedUserAccountFromCache(const TSharedRef<const FUniqueNetId>& UserId, TArray<FAccelByteUserPlatformLinkInformationRef>& OutLinkedAccounts)
+{
+	TArray<FAccelByteUserPlatformLinkInformationRef> TempLinkedPlatformAccounts = {};
+
+	if (const TArray<FAccelByteUserPlatformLinkInformationRef>* FoundAccounts = NetIdToLinkedOnlineAccountMap.Find(UserId))
+	{
+		TempLinkedPlatformAccounts = *FoundAccounts;
+	}
+	else
+	{
+		UE_LOG_AB(Warning, TEXT("The given user id doesn't have their linked account cached"));
+
+		return;
+	}
+
+	OutLinkedAccounts = TempLinkedPlatformAccounts;
+}
 
 #undef ONLINE_ERROR_NAMESPACE

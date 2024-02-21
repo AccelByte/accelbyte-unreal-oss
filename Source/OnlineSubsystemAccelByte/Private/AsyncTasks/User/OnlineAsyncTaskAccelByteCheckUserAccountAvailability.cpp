@@ -9,9 +9,10 @@
 using namespace AccelByte;
 
 FOnlineAsyncTaskAccelByteCheckUserAccountAvailability::FOnlineAsyncTaskAccelByteCheckUserAccountAvailability(
-	FOnlineSubsystemAccelByte* const InABSubsystem, const FUniqueNetId& InUserId, const FString& InDisplayName)
+	FOnlineSubsystemAccelByte* const InABSubsystem, const FUniqueNetId& InUserId, const FString& InDisplayName, bool InSearchUniqueDisplayName)
 	: FOnlineAsyncTaskAccelByte(InABSubsystem)
-	, DisplayName(InDisplayName) 
+	, DisplayName(InDisplayName)
+	, bIsSearchUniqueDisplayName(InSearchUniqueDisplayName)
 {
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Construct"));
 	
@@ -32,7 +33,7 @@ void FOnlineAsyncTaskAccelByteCheckUserAccountAvailability::Initialize()
 		(this, &FOnlineAsyncTaskAccelByteCheckUserAccountAvailability::HandleSuccess);
 	const FErrorHandler& OnError = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr
 		(this, &FOnlineAsyncTaskAccelByteCheckUserAccountAvailability::HandleError);
-	ApiClient->User.CheckUserAccountAvailability(DisplayName, OnSuccess, OnError);
+	ApiClient->User.CheckUserAccountAvailability(DisplayName, OnSuccess, OnError, bIsSearchUniqueDisplayName);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 } 

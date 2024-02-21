@@ -18,6 +18,8 @@
 #include "OnlineError.h"
 #include "OnlineSubsystemAccelBytePackage.h"
 
+typedef TSharedRef<FAccelByteUserPlatformLinkInformation, ESPMode::ThreadSafe> FAccelByteUserPlatformLinkInformationRef;
+
 /**
  * Delegate that denotes when a user report has completed.
  *
@@ -45,6 +47,17 @@ typedef FOnCreateUserProfileComplete::FDelegate FOnCreateUserProfileCompleteDele
  */
 DECLARE_MULTICAST_DELEGATE_FourParams(FOnQueryUserProfileComplete, int32 /*LocalUserNum*/, bool /*bWasSuccessful*/, const TArray<FUniqueNetIdRef>& /*UserIds*/, const FOnlineError& /*Error*/);
 typedef FOnQueryUserProfileComplete::FDelegate FOnQueryUserProfileCompleteDelegate;
+
+/**
+ * Delegate used when the GetUserPlatformLinks has completed
+ *
+ * @param LocalUserNum the controller number of the associated user that made the request
+ * @param bWasSuccessful true if the async action completed without error, false if there was an error
+ * @param UserPlatformLinks list of user platform links information that were queried
+ * @param Error information about the error condition
+ */
+DECLARE_MULTICAST_DELEGATE_FourParams(FOnGetUserPlatformLinksComplete, int32 /*LocalUserNum*/, bool /*bWasSuccessful*/, const TArray<FPlatformLink>& /*UserPlatformLinks*/, const FOnlineError& /*Error*/);
+typedef FOnGetUserPlatformLinksComplete::FDelegate FOnGetUserPlatformLinksCompleteDelegate;
 
 DECLARE_MULTICAST_DELEGATE_FourParams(FOnListUserByUserIdComplete, int32 /*LocalUserNum*/, bool /*bWasSuccessful*/, const FListUserDataResponse& /*Data*/, const FOnlineError  & /* OnlineError  */);
 typedef FOnListUserByUserIdComplete::FDelegate FOnListUserByUserIdCompleteDelegate;
@@ -122,6 +135,23 @@ public:
 	 */
 	virtual bool QueryUserProfile(int32 LocalUserNum, const TArray<TSharedRef<const FUniqueNetId>>& UserIds);
 
+	/**
+	 * Delegate used when the userProfile query request has completed
+	 *
+	 * @param LocalUserNum the controller number of the associated user that made the request
+	 * @param bWasSuccessful true if the async action completed without error, false if there was an error
+	 * @param UserIds list of user ids that were queried
+	 * @param Error information about the error condition
+	 */
+	DEFINE_ONLINE_PLAYER_DELEGATE_THREE_PARAM(MAX_LOCAL_PLAYERS, OnGetUserPlatformLinksComplete, bool /*bWasSuccessful*/, const TArray<FPlatformLink>& /*UserPlatformLinks*/, const FOnlineError& /*Error*/);
+
+	/**
+	 * Starts an async task that queries/reads user's platform accounts linked to user's account.
+	 *
+	 * @param LocalUserNum the user requesting the query
+	 */
+	virtual bool GetUserPlatformLinks(int32 LocalUserNum);
+
 	//~ Begin IOnlineUser overrides
 	virtual bool QueryUserInfo(int32 LocalUserNum, const TArray<TSharedRef<const FUniqueNetId>>& UserIds) override;
 	virtual bool GetAllUserInfo(int32 LocalUserNum, TArray<TSharedRef<class FOnlineUser>>& OutUsers) override;
@@ -181,8 +211,34 @@ public:
 	 *
 	 * @param UserId The user's user ID
 	 * @param DisplayName User's display name value to be checked.
+	 * @param bIsSearchUniqueDisplayName Whether search account availability by unique display name.
 	 */
-	void CheckUserAccountAvailability(const FUniqueNetId& UserId, const FString& DisplayName);
+	void CheckUserAccountAvailability(const FUniqueNetId& UserId, const FString& DisplayName, bool bIsSearchUniqueDisplayName = false);
+
+	/**
+	 * Add a third-party account linked with the AccelByte account to cache.
+	 *
+	 * @param UserId Unique net ID of the user for whom we want to add the linked account
+	 * @param LinkedAccount Third-party account information
+	 */
+	void AddNewLinkedUserAccountToCache(const TSharedRef<const FUniqueNetId>& UserId, const TArray<FPlatformLink>& LinkedAccounts);
+
+	/**
+	 * Remove all third-party account linked mappings for a user by their unique net ID.
+	 *
+	 * @param UserId Unique net ID of the user for whom we wish to remove mappings.
+	 *
+	 */
+	bool RemoveLinkedUserAccountFromCache(const TSharedRef<const FUniqueNetId>& UserId);
+
+	/**
+	 * Get all third-party account linked mappings for a user by their unique net ID.
+	 *
+	 * @param UserId Unique net ID of the user for whom we wish to get.
+	 * @param OutLinkedAccounts A list of linked account from the selected user.
+	 *
+	 */
+	void GetLinkedUserAccountFromCache(const TSharedRef<const FUniqueNetId>& UserId, TArray<FAccelByteUserPlatformLinkInformationRef>& OutLinkedAccounts);
 	
 PACKAGE_SCOPE:
 
@@ -224,4 +280,7 @@ private:
 
 	/** Map of external IDs (external platform user IDs or display names) to AccelByte IDs */
 	TMap<FString, TSharedRef<const FUniqueNetId>> ExternalIDToAccelByteIDMap;
+
+	/** Mapping of AccelByte net IDs to AccelByte linked user accounts */
+	TUniqueNetIdMap<TArray<FAccelByteUserPlatformLinkInformationRef>> NetIdToLinkedOnlineAccountMap;
 };

@@ -29,7 +29,7 @@ void FOnlineAsyncTaskAccelByteUnlinkOtherPlatformId::Initialize()
 		(this, &FOnlineAsyncTaskAccelByteUnlinkOtherPlatformId::HandleSuccess);
 	const FCustomErrorHandler& OnLinkOtherPlatformError = TDelegateUtils<FCustomErrorHandler>::CreateThreadSafeSelfPtr
 		(this, &FOnlineAsyncTaskAccelByteUnlinkOtherPlatformId::HandleError);
-	ApiClient->User.UnlinkOtherPlatformId(PlatformId, OnLinkOtherPlatformSuccess, OnLinkOtherPlatformError);
+	ApiClient->User.UnlinkAllOtherPlatformId(PlatformId, OnLinkOtherPlatformSuccess, OnLinkOtherPlatformError);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));	
 }

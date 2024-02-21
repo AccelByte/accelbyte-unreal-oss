@@ -52,9 +52,17 @@ void FOnlineAsyncTaskAccelByteStartV2Matchmaking::Finalize()
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 
+	const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(Subsystem->GetSessionInterface());
+	if (!ensure(SessionInterface.IsValid()))
+	{
+		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to finalize task for starting matchmaking as our session interface is invalid!"));
+		return;
+	}
+
 	if (bWasSuccessful)
 	{
 		SearchHandle->TicketId = CreateMatchTicketResponse.MatchTicketId;
+		SessionInterface->FinalizeStartMatchmakingComplete();
 
 		const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = Subsystem->GetPredefinedEventInterface();
 		if (PredefinedEventInterface.IsValid())
@@ -72,13 +80,6 @@ void FOnlineAsyncTaskAccelByteStartV2Matchmaking::Finalize()
 	}
 	else
 	{
-		const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(Subsystem->GetSessionInterface());
-		if (!ensure(SessionInterface.IsValid()))
-		{
-			AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to finalize task for starting matchmaking as our session interface is invalid!"));
-			return;
-		}
-
 		// Set the search handle's state to failed since we were not successful in starting matchmaking
 		SearchHandle->SearchState = EOnlineAsyncTaskState::Failed;
 

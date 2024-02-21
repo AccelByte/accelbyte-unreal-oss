@@ -9,10 +9,11 @@
 
 using namespace AccelByte;
 
-FOnlineAsyncTaskAccelByteJoinV2GameSession::FOnlineAsyncTaskAccelByteJoinV2GameSession(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InLocalUserId, const FName& InSessionName, bool bInIsRestoreSession)
+FOnlineAsyncTaskAccelByteJoinV2GameSession::FOnlineAsyncTaskAccelByteJoinV2GameSession(FOnlineSubsystemAccelByte* const InABInterface
+	, const FUniqueNetId& InLocalUserId
+	, const FName& InSessionName)
 	: FOnlineAsyncTaskAccelByte(InABInterface)
 	, SessionName(InSessionName)
-	, bIsRestoreSession(bInIsRestoreSession)
 {
 	UserId = FUniqueNetIdAccelByteUser::CastChecked(InLocalUserId);
 }
@@ -32,18 +33,9 @@ void FOnlineAsyncTaskAccelByteJoinV2GameSession::Initialize()
 	const FString SessionId = SessionToJoin->GetSessionIdStr();
 	AB_ASYNC_TASK_ENSURE(!SessionId.Equals(TEXT("InvalidSession")), "Failed to join game session as the session ID was invalid!");
 
-	if (bIsRestoreSession)
-	{
-		OnGetGameSessionDetailsSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsV2GameSession>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteJoinV2GameSession::OnGetGameSessionDetailsSuccess);
-		OnGetGameSessionDetailsErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteJoinV2GameSession::OnGetGameSessionDetailsError);;
-		ApiClient->Session.GetGameSessionDetails(SessionId, OnGetGameSessionDetailsSuccessDelegate, OnGetGameSessionDetailsErrorDelegate);
-	}
-	else
-	{
-		OnJoinGameSessionSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsV2GameSession>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteJoinV2GameSession::OnJoinGameSessionSuccess);
-		OnJoinGameSessionErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteJoinV2GameSession::OnJoinGameSessionError);;
-		ApiClient->Session.JoinGameSession(SessionId, OnJoinGameSessionSuccessDelegate, OnJoinGameSessionErrorDelegate);
-	}
+	OnJoinGameSessionSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsV2GameSession>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteJoinV2GameSession::OnJoinGameSessionSuccess);
+	OnJoinGameSessionErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteJoinV2GameSession::OnJoinGameSessionError);;
+	ApiClient->Session.JoinGameSession(SessionId, OnJoinGameSessionSuccessDelegate, OnJoinGameSessionErrorDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
@@ -104,9 +96,33 @@ void FOnlineAsyncTaskAccelByteJoinV2GameSession::Finalize()
 			GameSessionJoinedPayload.GameSessionId = SessionId;
 			PredefinedEventInterface->SendEvent(LocalUserNum, MakeShared<FAccelByteModelsMPV2GameSessionJoinedPayload>(GameSessionJoinedPayload));
 		}
+
+		const TSharedPtr<FOnlineSessionInfoAccelByteV2> SessionInfo = StaticCastSharedPtr<FOnlineSessionInfoAccelByteV2>(JoinedSession->SessionInfo);
+		if (!ensure(SessionInfo.IsValid()))
+		{
+			AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to start server session polling timer as our local session information instance is invalid!"));
+			return;
+		}
+
+		// if the session doesn't have DS info yet, we startup the poll to check after some time.
+		if(!SessionInfo->HasConnectionInfo())
+		{
+			SessionInterface->StartSessionServerCheckPoll(UserId, SessionName);
+		}
 	}
 	else
 	{
+		// Retrieve the pending joined session so that we can remove any pending invites or restore sessions by ID
+		FNamedOnlineSession* JoinedSession = SessionInterface->GetNamedSession(SessionName);
+		if (!ensure(JoinedSession != nullptr))
+		{
+			return;
+		}
+
+		const FString SessionId = JoinedSession->GetSessionIdStr();
+		SessionInterface->RemoveRestoreSessionById(SessionId);
+		SessionInterface->RemoveInviteById(SessionId);
+
 		// Remove pending session in session interface so that developer can retry joining, or create a new session
 		SessionInterface->RemoveNamedSession(SessionName);
 	}
@@ -185,21 +201,3 @@ void FOnlineAsyncTaskAccelByteJoinV2GameSession::OnJoinGameSessionError(int32 Er
 
 	AB_ASYNC_TASK_REQUEST_FAILED("Failed to join game session on backend!", ErrorCode, ErrorMessage);
 }
-
-void FOnlineAsyncTaskAccelByteJoinV2GameSession::OnGetGameSessionDetailsSuccess(const FAccelByteModelsV2GameSession& InUpdatedBackendSessionInfo)
-{
-	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
-
-	UpdatedBackendSessionInfo = InUpdatedBackendSessionInfo;
-	JoinSessionResult = EOnJoinSessionCompleteResult::Success;
-	CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
-
-	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
-}
-
-void FOnlineAsyncTaskAccelByteJoinV2GameSession::OnGetGameSessionDetailsError(int32 ErrorCode, const FString& ErrorMessage)
-{
-	JoinSessionResult = EOnJoinSessionCompleteResult::UnknownError; // #TODO #SESSIONv2 Maybe expand this to use a better error later?
-	AB_ASYNC_TASK_REQUEST_FAILED("Failed to restore game session on backend!", ErrorCode, ErrorMessage);
-}
-

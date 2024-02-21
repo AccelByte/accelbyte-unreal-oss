@@ -17,7 +17,9 @@ class FOnlineAsyncTaskAccelByteJoinV2GameSession
 {
 public:
 
-	FOnlineAsyncTaskAccelByteJoinV2GameSession(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InLocalUserId, const FName& InSessionName, bool bInIsRestoreSession);
+	FOnlineAsyncTaskAccelByteJoinV2GameSession(FOnlineSubsystemAccelByte* const InABInterface
+		, const FUniqueNetId& InLocalUserId
+		, const FName& InSessionName);
 
 	virtual void Initialize() override;
 	virtual void Finalize() override;
@@ -34,9 +36,6 @@ private:
 	/** Name of the local session that we are trying to join on the backend */
 	FName SessionName{};
 
-	/** Whether or not the session that we are joining is just meant to be restored */
-	bool bIsRestoreSession{false};
-
 	/** Enum used to signal what result occurred with the join session call */
 	EOnJoinSessionCompleteResult::Type JoinSessionResult;
 
@@ -50,8 +49,5 @@ private:
 	FErrorHandler OnJoinGameSessionErrorDelegate;
 	AB_ASYNC_TASK_DECLARE_SDK_DELEGATES_WITH_RESULT(JoinGameSession, FAccelByteModelsV2GameSession);
 
-	THandler<FAccelByteModelsV2GameSession> OnGetGameSessionDetailsSuccessDelegate;
-	FErrorHandler OnGetGameSessionDetailsErrorDelegate;
-	AB_ASYNC_TASK_DECLARE_SDK_DELEGATES_WITH_RESULT(GetGameSessionDetails, FAccelByteModelsV2GameSession);
 };
 

@@ -74,7 +74,9 @@ void FOnlineAsyncTaskAccelByteQueryUserIdMapping::OnSearchUserSuccessResponse(co
 	FPublicUserInfo FoundUser;
 	for (const FPublicUserInfo& User : Result.Data)
 	{
-		if (User.DisplayName.Equals(DisplayNameOrEmail, ESearchCase::IgnoreCase) || User.UserName.Equals(DisplayNameOrEmail, ESearchCase::IgnoreCase))
+		if (User.DisplayName.Equals(DisplayNameOrEmail, ESearchCase::IgnoreCase)
+			|| User.UniqueDisplayName.Equals(DisplayNameOrEmail, ESearchCase::IgnoreCase)
+			|| User.UserName.Equals(DisplayNameOrEmail, ESearchCase::IgnoreCase))
 		{
 			FoundUser = User;
 			break;

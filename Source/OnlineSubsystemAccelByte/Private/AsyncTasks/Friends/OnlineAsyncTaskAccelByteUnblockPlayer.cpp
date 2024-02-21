@@ -26,9 +26,9 @@ void FOnlineAsyncTaskAccelByteUnblockPlayer::Initialize()
 
 	// Unblocking a player is straightforward as we just will send the request to unblock them and delete the entry from
 	// the blocked players list if the unblock call is successful
-	AccelByte::Api::Lobby::FUnblockPlayerResponse OnUnblockPlayerResponseDelegate = TDelegateUtils<AccelByte::Api::Lobby::FUnblockPlayerResponse>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteUnblockPlayer::OnUnblockPlayerResponse);
-	ApiClient->Lobby.SetUnblockPlayerResponseDelegate(OnUnblockPlayerResponseDelegate);
-	ApiClient->Lobby.UnblockPlayer(PlayerId->GetAccelByteId());
+	OnUnblockPlayerSuccessDelegate = TDelegateUtils<FVoidHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteUnblockPlayer::OnUnblockPlayerSuccess);
+	OnUnblockPlayerFailedDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteUnblockPlayer::OnUnblockPlayerFailed);
+	ApiClient->Lobby.UnblockPlayer(PlayerId->GetAccelByteId(), OnUnblockPlayerSuccessDelegate, OnUnblockPlayerFailedDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
@@ -65,16 +65,14 @@ void FOnlineAsyncTaskAccelByteUnblockPlayer::TriggerDelegates()
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 
-void FOnlineAsyncTaskAccelByteUnblockPlayer::OnUnblockPlayerResponse(const FAccelByteModelsUnblockPlayerResponse& Result)
+void FOnlineAsyncTaskAccelByteUnblockPlayer::OnUnblockPlayerSuccess()
 {
-	if (Result.Code != TEXT("0"))
-	{
-		ErrorStr = TEXT("unblock-player-request-failed");
-		UE_LOG_AB(Warning, TEXT("Failed to unblock player %s as the request failed on the backend! Error code: %s"), *PlayerId->ToString(), *Result.Code);
-		CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
-	}
-	else
-	{
-		CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
-	}
+	CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
+}
+
+void FOnlineAsyncTaskAccelByteUnblockPlayer::OnUnblockPlayerFailed(int32 ErrorCode, const FString& ErrorMessage)
+{
+	ErrorStr = TEXT("unblock-player-request-failed");
+	UE_LOG_AB(Warning, TEXT("Failed to unblock player %s as the request failed on the backend! Error code: %d, Error message: %s"), *PlayerId->ToString(), ErrorCode, *ErrorMessage);
+	CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
 }

@@ -11,10 +11,11 @@
 
 using namespace AccelByte;
 
-FOnlineAsyncTaskAccelByteJoinV2Party::FOnlineAsyncTaskAccelByteJoinV2Party(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InLocalUserId, const FName& InSessionName, bool bInIsRestoreSession)
+FOnlineAsyncTaskAccelByteJoinV2Party::FOnlineAsyncTaskAccelByteJoinV2Party(FOnlineSubsystemAccelByte* const InABInterface
+	, const FUniqueNetId& InLocalUserId
+	, const FName& InSessionName)
 	: FOnlineAsyncTaskAccelByte(InABInterface)
 	, SessionName(InSessionName)
-	, bIsRestoreSession(bInIsRestoreSession)
 {
 	UserId = FUniqueNetIdAccelByteUser::CastChecked(InLocalUserId);
 }
@@ -34,20 +35,9 @@ void FOnlineAsyncTaskAccelByteJoinV2Party::Initialize()
 	const FString SessionId = JoinedSession->GetSessionIdStr();
 	AB_ASYNC_TASK_ENSURE(!SessionId.Equals(TEXT("InvalidSession")), "Failed to join party as the session we are trying to join has an invalid ID!");
 
-	// If we are just restoring the session, then we just want to get the up to date session details and construct the
-	// session as normal. Otherwise, we want to go through the actual join flow.
-	if (bIsRestoreSession)
-	{
-		OnGetPartyDetailsSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsV2PartySession>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteJoinV2Party::OnGetPartyDetailsSuccess);
-		OnGetPartyDetailsErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteJoinV2Party::OnGetPartyDetailsError);;
-		ApiClient->Session.GetPartyDetails(SessionId, OnGetPartyDetailsSuccessDelegate, OnGetPartyDetailsErrorDelegate);
-	}
-	else
-	{
-		OnJoinPartySuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsV2PartySession>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteJoinV2Party::OnJoinPartySuccess);
-		OnJoinPartyErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteJoinV2Party::OnJoinPartyError);;
-		ApiClient->Session.JoinParty(SessionId, OnJoinPartySuccessDelegate, OnJoinPartyErrorDelegate);
-	}
+	OnJoinPartySuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsV2PartySession>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteJoinV2Party::OnJoinPartySuccess);
+	OnJoinPartyErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteJoinV2Party::OnJoinPartyError);;
+	ApiClient->Session.JoinParty(SessionId, OnJoinPartySuccessDelegate, OnJoinPartyErrorDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
@@ -105,6 +95,17 @@ void FOnlineAsyncTaskAccelByteJoinV2Party::Finalize()
 	}
 	else
 	{
+		// Retrieve the pending joined session so that we can remove any pending invites or restore sessions by ID
+		FNamedOnlineSession* JoinedSession = SessionInterface->GetNamedSession(SessionName);
+		if (!ensure(JoinedSession != nullptr))
+		{
+			return;
+		}
+
+		const FString SessionId = JoinedSession->GetSessionIdStr();
+		SessionInterface->RemoveRestoreSessionById(SessionId);
+		SessionInterface->RemoveInviteById(SessionId);
+
 		// Remove pending session in session interface so that developer can retry joining, or create a new session
 		SessionInterface->RemoveNamedSession(SessionName);
 	}
@@ -156,21 +157,4 @@ void FOnlineAsyncTaskAccelByteJoinV2Party::OnJoinPartyError(int32 ErrorCode, con
 	}
 	
 	AB_ASYNC_TASK_REQUEST_FAILED("Failed to join party on backend!", ErrorCode, ErrorMessage);
-}
-
-void FOnlineAsyncTaskAccelByteJoinV2Party::OnGetPartyDetailsSuccess(const FAccelByteModelsV2PartySession& Result)
-{
-	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("PartyId: %s"), *Result.ID);
-
-	PartyInfo = Result;
-	JoinSessionResult = EOnJoinSessionCompleteResult::Success;
-	CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
-
-	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
-}
-
-void FOnlineAsyncTaskAccelByteJoinV2Party::OnGetPartyDetailsError(int32 ErrorCode, const FString& ErrorMessage)
-{
-	JoinSessionResult = EOnJoinSessionCompleteResult::UnknownError; // #TODO #SESSIONv2 Maybe expand this to use a better error later?
-	AB_ASYNC_TASK_REQUEST_FAILED("Failed to restored joined party on backend!", ErrorCode, ErrorMessage);
 }

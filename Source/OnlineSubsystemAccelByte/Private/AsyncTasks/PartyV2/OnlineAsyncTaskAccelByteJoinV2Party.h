@@ -18,7 +18,9 @@ class FOnlineAsyncTaskAccelByteJoinV2Party
 {
 public:
 
-	FOnlineAsyncTaskAccelByteJoinV2Party(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InLocalUserId, const FName& InSessionName, bool bInIsRestoreSession);
+	FOnlineAsyncTaskAccelByteJoinV2Party(FOnlineSubsystemAccelByte* const InABInterface
+		, const FUniqueNetId& InLocalUserId
+		, const FName& InSessionName);
 
 	virtual void Initialize() override;
 	virtual void Finalize() override;
@@ -35,9 +37,6 @@ private:
 	/** Name of the session to create if join is successful */
 	FName SessionName{};
 
-	/** Whether or not we are just restoring this party session. If true, we will only get the up to date session details and then finalize join. */
-	bool bIsRestoreSession{false};
-
 	/** Information on the party just obtained from the backend */
 	FAccelByteModelsV2PartySession PartyInfo{};
 
@@ -47,9 +46,5 @@ private:
 	THandler<FAccelByteModelsV2PartySession> OnJoinPartySuccessDelegate;
 	FErrorHandler OnJoinPartyErrorDelegate;
 	AB_ASYNC_TASK_DECLARE_SDK_DELEGATES_WITH_RESULT(JoinParty, FAccelByteModelsV2PartySession);
-
-	THandler<FAccelByteModelsV2PartySession> OnGetPartyDetailsSuccessDelegate;
-	FErrorHandler OnGetPartyDetailsErrorDelegate;
-	AB_ASYNC_TASK_DECLARE_SDK_DELEGATES_WITH_RESULT(GetPartyDetails, FAccelByteModelsV2PartySession);
 };
 

@@ -66,3 +66,5 @@
 #define SETTING_SESSION_END_TIME FName(TEXT("SESSIONENDTIME"))
 
 #define ACCELBYTE_ARGS_SERVERIP TEXT("serverip")
+
+const FString ClientIdPrefix = FString(TEXT("client-"));
