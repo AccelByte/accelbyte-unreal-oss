@@ -127,6 +127,14 @@ protected:
 	 */
 	bool bStoreNativePlatformCredentialOnSubsystemLoginComplete = true;
 
+	/*
+	 * flag to know if a login process is waiting for queue
+	 */
+	bool bLoginInQueue = false;
+
+	/** Set from DefaultEngine.ini, will only notify in queue if estimated time is above presentation threshold */
+	int32 LoginQueuePresentationThreshold{0};
+
 	/**
 	 * Attempts to fire off a login request with a native subsystem, if one is set up and usable.
 	 *
@@ -166,6 +174,13 @@ protected:
 	 * Delegate handler for when any AccelByte login call succeeds. 
 	 */
 	virtual void OnLoginSuccess();
+
+	/**
+	 * Delegate handler for when any AccelByte login v4 endpoints call succeeds. 
+	 */
+	virtual void OnLoginSuccessV4(const FAccelByteModelsLoginQueueTicketInfo& TicketInfo);
+
+	virtual void Tick() override;
 
 	/**
 	 * Delegate handler for when any AccelByte login call fails.

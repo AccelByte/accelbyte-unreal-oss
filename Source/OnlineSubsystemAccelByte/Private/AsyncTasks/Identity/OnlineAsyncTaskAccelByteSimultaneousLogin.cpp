@@ -185,13 +185,13 @@ void FOnlineAsyncTaskAccelByteSimultaneousLogin::PerformLogin(const FOnlineAccou
 		CurrentAsyncTaskState = ESimultaneousLoginAsyncTaskState::SecondaryPlatformLoginDone;
 		SecondaryPlatformTicket = Credentials.Token;
 
-		const FVoidHandler OnLoginSuccessDelegate = TDelegateUtils<FVoidHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteSimultaneousLogin::OnLoginSuccess);
+		const THandler<FAccelByteModelsLoginQueueTicketInfo> OnLoginSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsLoginQueueTicketInfo>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteSimultaneousLogin::OnLoginSuccessV4);
 		const FOAuthErrorHandler OnLoginErrorOAuthDelegate = TDelegateUtils<FOAuthErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteSimultaneousLogin::OnLoginErrorOAuth);
 
 		auto NativePlatformLoginType = FOnlineSubsystemAccelByteUtils::GetAccelByteLoginTypeFromNativeSubsystem(FName(NativePlatformCredentials.Type));
 		auto SecondaryPlatformLoginType = FOnlineSubsystemAccelByteUtils::GetAccelByteLoginTypeFromNativeSubsystem(FName(Credentials.Type));
 
-		ApiClient->User.LoginWithSimultaneousPlatform(
+		ApiClient->User.LoginWithSimultaneousPlatformV4(
 			ConvertOSSTypeToAccelBytePlatformType(NativePlatformLoginType),
 			NativePlatformTicket,
 			ConvertOSSTypeToAccelBytePlatformType(SecondaryPlatformLoginType),

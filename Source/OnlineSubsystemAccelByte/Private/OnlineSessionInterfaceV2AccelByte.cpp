@@ -3910,6 +3910,54 @@ int32 FOnlineSessionV2AccelByte::GetSessionInviteCheckPollInterval() const
 	return SessionInviteCheckPollInterval;
 }
 
+bool FOnlineSessionV2AccelByte::FindSessionByStringId(const FUniqueNetId& SearchingUserId
+	, const EAccelByteV2SessionType& SessionType
+	, const FString& SessionId
+	, const FOnSingleSessionResultCompleteDelegate& CompletionDelegate)
+{
+	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("SearchingUserId: %s; SessionType: %s; SessionId: %s")
+		, *SearchingUserId.ToDebugString()
+		, *FAccelByteUtilities::GetUEnumValueAsString(SessionType)
+		, *SessionId);
+
+	if (SessionType == EAccelByteV2SessionType::Unknown)
+	{
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Unable to find session when type is unknown!"));
+		return false;
+	}
+
+	if (SessionId.IsEmpty())
+	{
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Unable to find session when ID is blank!"));
+		return false;
+	}
+
+	if (!SearchingUserId.IsValid())
+	{
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Unable to find session when user ID given is invalid! SearchingUserId: %s"), *SearchingUserId.ToDebugString());
+		return false;
+	}
+
+	FUniqueNetIdAccelByteResourceRef SessionUniqueId = FUniqueNetIdAccelByteResource::Create(SessionId);
+	if (SessionType == EAccelByteV2SessionType::GameSession)
+	{
+		AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteFindV2GameSessionById>(AccelByteSubsystem
+			, SearchingUserId
+			, SessionUniqueId.Get()
+			, CompletionDelegate);
+	}
+	else if (SessionType == EAccelByteV2SessionType::PartySession)
+	{
+		AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteFindV2PartyById>(AccelByteSubsystem
+			, SearchingUserId
+			, SessionUniqueId.Get()
+			, CompletionDelegate);
+	}
+
+	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+	return true;
+}
+
 bool FOnlineSessionV2AccelByte::FindFriendSession(int32 LocalUserNum, const FUniqueNetId& Friend)
 {
 	IOnlineIdentityPtr IdentityInterface = AccelByteSubsystem->GetIdentityInterface();
@@ -6222,6 +6270,9 @@ void FOnlineSessionV2AccelByte::ConnectToDSHub(const FString& ServerName)
 	const AccelByte::GameServerApi::FOnV2BackfillProposalNotification OnV2BackfillProposalNotificationDelegate = AccelByte::GameServerApi::FOnV2BackfillProposalNotification::CreateThreadSafeSP(SharedThis(this), &FOnlineSessionV2AccelByte::OnV2BackfillProposalNotification);
 	FRegistry::ServerDSHub.SetOnV2BackfillProposalNotificationDelegate(OnV2BackfillProposalNotificationDelegate);
 
+	const AccelByte::GameServerApi::FOnV2BackfillTicketExpiredNotification OnV2BackfillTicketExpiredNotificationDelegate = AccelByte::GameServerApi::FOnV2BackfillTicketExpiredNotification::CreateThreadSafeSP(SharedThis(this), &FOnlineSessionV2AccelByte::OnV2BackfillTicketExpiredNotification);
+	FRegistry::ServerDSHub.SetOnV2BackfillTicketExpiredNotificationDelegate(OnV2BackfillTicketExpiredNotificationDelegate);
+
 	const AccelByte::GameServerApi::FOnV2SessionMemberChangedNotification OnV2SessionMemberChangedNotification = AccelByte::GameServerApi::FOnV2SessionMemberChangedNotification::CreateThreadSafeSP(SharedThis(this), &FOnlineSessionV2AccelByte::OnV2DsSessionMemberChangedNotification);
 	FRegistry::ServerDSHub.SetOnV2SessionMemberChangedNotificationDelegate(OnV2SessionMemberChangedNotification);
 
@@ -6319,6 +6370,41 @@ void FOnlineSessionV2AccelByte::OnV2BackfillProposalNotification(const FAccelByt
 		DSBackfillProposalReceivedPayload.ProposedTeams = Notification.ProposedTeams;
 		DSBackfillProposalReceivedPayload.AddedTickets = Notification.AddedTickets;
 		PredefinedEventInterface->SendEvent(-1, MakeShared<FAccelByteModelsDSBackfillProposalReceivedPayload>(DSBackfillProposalReceivedPayload));
+	}
+
+	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+}
+
+void FOnlineSessionV2AccelByte::OnV2BackfillTicketExpiredNotification(
+	const FAccelByteModelsV2MatchmakingBackfillTicketExpireNotif& Notification)
+{
+	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("TicketId: %s"), *Notification.TicketId);
+
+	// Bail if this is not a dedicated server
+	if (!IsRunningDedicatedServer())
+	{
+		AB_OSS_INTERFACE_TRACE_END(TEXT("Backfill ticket expired notification only works for dedicated server"));
+		return;
+	}
+
+	FNamedOnlineSession* Session = GetNamedSession(NAME_GameSession);
+	if (!ensureAlways(Session != nullptr))
+	{
+		AB_OSS_INTERFACE_TRACE_END(TEXT("Failed to get session instance to update stored backfill ticket ID!"));
+		return;
+	}
+
+	Session->SessionSettings.Remove(SETTING_MATCHMAKING_BACKFILL_TICKET_ID);
+
+	TriggerOnBackfillTicketExpiredReceivedDelegates(NAME_GameSession,Notification);
+
+	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = AccelByteSubsystem->GetPredefinedEventInterface();
+	if (PredefinedEventInterface.IsValid())
+	{
+		FAccelByteModelsDSBackfillTicketExpiredPayload DSBackfillTicketExpiredPayload{};
+		DSBackfillTicketExpiredPayload.PodName = FRegistry::ServerDSM.GetServerName();
+		DSBackfillTicketExpiredPayload.TicketId = Notification.TicketId;
+		PredefinedEventInterface->SendEvent(-1, MakeShared<FAccelByteModelsDSBackfillTicketExpiredPayload>(DSBackfillTicketExpiredPayload));
 	}
 
 	AB_OSS_INTERFACE_TRACE_END(TEXT(""));

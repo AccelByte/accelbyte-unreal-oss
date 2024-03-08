@@ -54,6 +54,18 @@ DECLARE_DELEGATE_TwoParams(FGenerateCodeForPublisherTokenComplete, bool /*bWasSu
 DECLARE_MULTICAST_DELEGATE_FiveParams(FAccelByteOnPlatformTokenRefreshedComplete, int32 /*LocalUserNum*/, bool /*bWasSuccessful*/, const FPlatformTokenRefreshResponse& /*RefreshResponse*/, const FName& /*PlatformName*/, const FErrorOAuthInfo& /*Error*/);
 typedef FAccelByteOnPlatformTokenRefreshedComplete::FDelegate FAccelByteOnPlatformTokenRefreshedCompleteDelegate;
 
+DECLARE_MULTICAST_DELEGATE_TwoParams(FAccelByteOnLoginQueued, int32 /*LocalUserNum*/, const FAccelByteModelsLoginQueueTicketInfo& /*TicketInfo*/);
+typedef FAccelByteOnLoginQueued::FDelegate FAccelByteOnLoginQueuedDelegate;
+
+DECLARE_MULTICAST_DELEGATE_ThreeParams(FAccelByteOnLoginQueueCancelComplete, int32 /*LocalUserNum*/, bool /*bWasSuccessful*/, const FOnlineErrorAccelByte& /*Error*/);
+typedef FAccelByteOnLoginQueueCancelComplete::FDelegate FAccelByteOnLoginQueueCancelCompleteDelegate;
+
+DECLARE_MULTICAST_DELEGATE_OneParam(FAccelByteOnLoginQueueCanceledByUser, int32 /*LocalUserNum*/);
+typedef FAccelByteOnLoginQueueCanceledByUser::FDelegate FAccelByteOnLoginQueueCanceledByUserDelegate;
+
+DECLARE_MULTICAST_DELEGATE_FourParams(FAccelByteOnLoginTicketStatusUpdated, int32 /*LocalUserNum*/, bool /*bWasSuccessful*/, const FAccelByteModelsLoginQueueTicketInfo& /*TicketInfo*/, const FOnlineErrorAccelByte& /*Error*/);
+typedef FAccelByteOnLoginTicketStatusUpdated::FDelegate FAccelByteOnLoginTicketStatusUpdatedDelegate;
+
 /**
  * AccelByte service implementation of the online identity interface
  */
@@ -222,7 +234,34 @@ public:
 	 * @param Error Information about the error condition
 	 */
 	DEFINE_ONLINE_PLAYER_DELEGATE_FOUR_PARAM(MAX_LOCAL_PLAYERS, AccelByteOnPlatformTokenRefreshedComplete, bool /*bWasSuccessful*/, const FPlatformTokenRefreshResponse& /*RefreshResponse*/, const FName& /*PlatformName*/, const FErrorOAuthInfo& /*Error*/);
+	
+	/**
+	 * Triggered when the login process is queued
+	 *
+	 * @param LocalUserNum the controller number of the associated user
+	 * @param TicketInfo Information about the queue ticket
+	 */
+	DEFINE_ONLINE_PLAYER_DELEGATE_ONE_PARAM(MAX_LOCAL_PLAYERS, AccelByteOnLoginQueued, const FAccelByteModelsLoginQueueTicketInfo& /*TicketInfo*/);
 
+	/**
+	 * Triggered when login queue cancel operation is completed
+	 *
+	 * @param LocalUserNum the controller number of the associated user
+	 * @param bWasSuccessful true if server was contacted and a valid result received
+	 * @param Error Information about the error condition
+	 */
+	DEFINE_ONLINE_PLAYER_DELEGATE_TWO_PARAM(MAX_LOCAL_PLAYERS, AccelByteOnLoginQueueCancelComplete, bool /*bWasSuccessful*/, const FOnlineErrorAccelByte& /*Error*/);
+	
+	/**
+	 * Triggered when the login process is queued
+	 *
+	 * @param LocalUserNum the controller number of the associated user
+	 * @param bWasSuccessful true if server was contacted and a valid result received
+	 * @param TicketInfo Information about the queue ticket
+	 * @param Error Information about the error condition
+	 */
+	DEFINE_ONLINE_PLAYER_DELEGATE_THREE_PARAM(MAX_LOCAL_PLAYERS, AccelByteOnLoginTicketStatusUpdated, bool /*bWasSuccessful*/, const FAccelByteModelsLoginQueueTicketInfo& /*TicketInfo*/, const FOnlineErrorAccelByte& /*Error*/)
+	
 	bool ConnectAccelByteLobby(int32 LocalUserNum);
 
 	/**
@@ -262,6 +301,8 @@ public:
 	 */
 	bool RefreshPlatformToken(int32 LocalUserNum, FName SubsystemName);
 
+	bool CancelLoginQueue(int32 LocalUserNum);
+
 PACKAGE_SCOPE:
 	/**
 	 * Used by the login async task to move data for the newly authenticated user to this identity instance.
@@ -275,6 +316,30 @@ PACKAGE_SCOPE:
 	 * Add a new authenticated server to the identity interface mappings for V2 session flow
 	 */
 	void AddAuthenticatedServer(int32 LocalUserNum);
+
+	/**
+	 * Used by login queue cancel to notify poller when user cancelled login queue
+	 * @param LoginUserNum the user num we cancelled the login
+	 */
+	void FinalizeLoginQueueCancel(int32 LoginUserNum);
+
+	/**
+	 * Used to store ticket ID according to it's user num.
+	 * @param LoginUserNum UserNum trying to login
+	 * @param TicketId Login queue ticket ID
+	 */
+	void InitializeLoginQueue(int32 LoginUserNum, const FString& TicketId);
+
+	/**
+	 * Used to clear ticket ID according to it's user num.
+	 * @param LoginUserNum UserNum trying to login
+	 */
+	void FinalizeLoginQueue(int32 LoginUserNum);
+
+	/**
+	 * Online delegate to notify poller when a user cancelled login queue
+	 */
+	DEFINE_ONLINE_DELEGATE_ONE_PARAM(AccelByteOnLoginQueueCanceledByUser, int32 /*LoginUserNum*/);
 
 private:
 	/** Disable the default constructor, as we only want to be able to construct this interface passing in the parent subsystem */
@@ -291,9 +356,14 @@ private:
 
 	/** Simple mapping for FUniqueNetIdAccelByte to LocalUserNum. Filled when users log in. */
 	TUniqueNetIdMap<int32> NetIdToLocalUserNumMap;
-
+	
 	/** Mapping of AccelByte net IDs to AccelByte user accounts. Filled when users log in. */
 	TUniqueNetIdMap<TSharedRef<FUserOnlineAccount>> NetIdToOnlineAccountMap;
+	
+	mutable FCriticalSection LocalUserNumToLoginQueueTicketLock;
+	
+	/** Mapping of local user indices to it's login queue ticket */
+	TMap<int32, FString> LocalUserNumToLoginQueueTicketMap;
 
 	FString LogoutReason; // Error Code for when we logged out
 
@@ -336,6 +406,16 @@ private:
 	 * Array of pending server login delegates, will be all fired once login is finished
 	 */
 	TArray<FOnAuthenticateServerComplete> ServerAuthDelegates;
+
+	/**
+	 * Array of booleans reflecting whether a local player at the corresponding index is currently logging in.
+	 * Prevents double log in if already in progress.
+	 */
+#if ENGINE_MAJOR_VERSION >= 5
+	TStaticArray<bool, 4> LocalPlayerLoggingIn{InPlace, false};
+#else
+	TStaticArray<bool, 4> LocalPlayerLoggingIn{false};
+#endif
 
 	/**
 	 * Handler for when we finish authenticating a server to fire off delegates

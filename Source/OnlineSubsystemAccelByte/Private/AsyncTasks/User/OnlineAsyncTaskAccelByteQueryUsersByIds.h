@@ -75,7 +75,12 @@ private:
 	/**
 	 * Actual array of user IDs that will be queried on the backend
 	 */
-	TArray<FString> UsersToQuery;
+	TQueue<FString> UsersToQuery;
+
+	/**
+	 * Native platform Ids to be queried using native OSS
+	 */
+	TArray<TSharedRef<const FUniqueNetId>> PlatformIdsToQuery;
 
 	/**
 	 * Struct of user IDs and platform ID that will be queried on the backend
@@ -102,6 +107,12 @@ private:
 	 */
 	FThreadSafeBool bHasQueriedUserPlatformInfo = false;
 
+    /**
+	 * Maximum number of users that can be queried in single request to low level SDK.
+	 * Larger request will be split into smaller requests.
+	 */
+	static constexpr int32 BasicInfoQueryLimit {20};
+
 	/**
 	 * Delegate handler for when querying platform ID mappings in bulk succeeds
 	 */
@@ -117,15 +128,20 @@ private:
 	 */
 	void GetBasicUserInfo(const TArray<FString>& AccelByteIds);
 
+	/*
+	 * Query users basic info using low level SDK (only users that is not in cache).
+	 */
+	void GetUserOtherPlatformBasicPublicInfo();
+
 	/**
 	 * Delegate handler for when querying basic user information by AccelByte IDs succeeds
 	 */
-	void OnGetBasicUserInfoSuccess(const FAccountUserPlatformInfosResponse& Result);
+	void OnGetUserOtherPlatformBasicPublicInfoSuccess(const FAccountUserPlatformInfosResponse& Result);
 
 	/**
 	 * Delegate handler for when querying basic user information by platform IDs fails
 	 */
-	void OnGetBasicUserInfoError(int32 ErrorCode, const FString& ErrorMessage);
+	void OnGetUserOtherPlatformBasicPublicInfoError(int32 ErrorCode, const FString& ErrorMessage);
 
 	/**
 	 * Make a call to query the user manually on the platform that corresponds to the one we are currently on

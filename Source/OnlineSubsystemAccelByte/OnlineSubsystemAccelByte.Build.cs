@@ -23,7 +23,7 @@ public class OnlineSubsystemAccelByte : ModuleRules
 	public OnlineSubsystemAccelByte(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PrivateDefinitions.Add("ONLINESUBSYSTEMACCELBYTE_PACKAGE=1");
-		
+
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 #if UE_5_2_OR_LATER
 		IWYUSupport = IWYUSupport.Full;
@@ -70,7 +70,7 @@ public class OnlineSubsystemAccelByte : ModuleRules
 			"AccelByteNetworkUtilities",
 			"HTTP"
 		});
-		
+
 #if UE_5_1_OR_LATER
 		PrivateDependencyModuleNames.AddRange(new string[] {
 			"OnlineBase"
@@ -80,6 +80,21 @@ public class OnlineSubsystemAccelByte : ModuleRules
 		bool bEnableV2Sessions = false;
 		GetBoolFromEngineConfig("OnlineSubsystemAccelByte", "bEnableV2Sessions", out bEnableV2Sessions);
 		PublicDefinitions.Add(string.Format("AB_USE_V2_SESSIONS={0}", bEnableV2Sessions ? 1 : 0));
+
+		string TargetPlatformName = Target.Platform.ToString().ToUpper();
+		if (TargetPlatformName == "PS5")
+		{
+			PrivateDependencyModuleNames.AddRange(new string[] {
+				"OnlineSubsystemPS5",
+			});
+		}
+
+		if (TargetPlatformName == "XSX")
+		{
+			PrivateDependencyModuleNames.AddRange(new string[] {
+				"OnlineSubsystemGDK",
+			});
+		}
 
 		if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("BuildDocs"))) return;
 

@@ -8,11 +8,18 @@
 using namespace AccelByte;
 
 FOnlineAsyncTaskAccelByteFindV2PartyById::FOnlineAsyncTaskAccelByteFindV2PartyById(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InSearchingPlayerId, const FUniqueNetId& InSessionId, const FOnSingleSessionResultCompleteDelegate& InDelegate)
-    : FOnlineAsyncTaskAccelByte(InABInterface)
+	// Initialize as a server task if we are running a dedicated server, as this doubles as a server task. Otherwise, use
+	// no flags to indicate that it is a client task.	
+	: FOnlineAsyncTaskAccelByte(InABInterface
+		, INVALID_CONTROLLERID
+		, IsRunningDedicatedServer() ? ASYNC_TASK_FLAG_BIT(EAccelByteAsyncTaskFlags::ServerTask) : ASYNC_TASK_FLAG_BIT(EAccelByteAsyncTaskFlags::None))
 	, SessionId(FUniqueNetIdAccelByteResource::CastChecked(InSessionId))
 	, Delegate(InDelegate)
 {
-	UserId = FUniqueNetIdAccelByteUser::CastChecked(InSearchingPlayerId);
+	if (!IsRunningDedicatedServer())
+	{
+		UserId = FUniqueNetIdAccelByteUser::CastChecked(InSearchingPlayerId);
+	}
 }
 
 void FOnlineAsyncTaskAccelByteFindV2PartyById::Initialize()
@@ -21,9 +28,26 @@ void FOnlineAsyncTaskAccelByteFindV2PartyById::Initialize()
 
     AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("SessionId: %s"), *SessionId->ToDebugString());
 
-	OnGetPartySessionDetailsSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsV2PartySession>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteFindV2PartyById::OnGetPartySessionDetailsSuccess);
-	OnGetPartySessionDetailsErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteFindV2PartyById::OnGetPartySessionDetailsError);
-	ApiClient->Session.GetPartyDetails(SessionId->ToString(), OnGetPartySessionDetailsSuccessDelegate, OnGetPartySessionDetailsErrorDelegate);
+	OnGetPartySessionDetailsSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsV2PartySession>>::CreateThreadSafeSelfPtr(this
+		, &FOnlineAsyncTaskAccelByteFindV2PartyById::OnGetPartySessionDetailsSuccess);
+	OnGetPartySessionDetailsErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this
+		, &FOnlineAsyncTaskAccelByteFindV2PartyById::OnGetPartySessionDetailsError);
+
+	if (IsRunningDedicatedServer())
+	{
+		FServerApiClientPtr ServerApiClient = AccelByte::FMultiRegistry::GetServerApiClient();
+		ensure(ServerApiClient.IsValid());
+
+		ServerApiClient->ServerSession.GetPartyDetails(SessionId->ToString()
+			, OnGetPartySessionDetailsSuccessDelegate
+			, OnGetPartySessionDetailsErrorDelegate);
+	}
+	else
+	{
+		ApiClient->Session.GetPartyDetails(SessionId->ToString()
+			, OnGetPartySessionDetailsSuccessDelegate
+			, OnGetPartySessionDetailsErrorDelegate);
+	}
 
     AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }

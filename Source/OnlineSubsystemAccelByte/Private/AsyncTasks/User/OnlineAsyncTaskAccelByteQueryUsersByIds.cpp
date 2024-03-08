@@ -202,26 +202,45 @@ void FOnlineAsyncTaskAccelByteQueryUsersByIds::GetBasicUserInfo(const TArray<FSt
 	}
 
 	// Get users that we already have cached and users that we need to query, filters from the AccelByteIds array
-	UserCache->GetQueryAndCacheArrays(AccelByteIds, UsersToQuery, UsersCached);
+	TArray<FString> UserIdsToQueryArray;
+	UserCache->GetQueryAndCacheArrays(AccelByteIds, UserIdsToQueryArray, UsersCached);
+
+	// Add userId that is not in the cache to the queue
+	for (const auto& AccelbyteUserId : UserIdsToQueryArray)
+	{
+		UsersToQuery.Enqueue(AccelbyteUserId);
+	}
 
 	// This means these users are already in the cache, so we can just skip the query and successfully complete
-	if (UsersToQuery.Num() <= 0)
+	if (UsersToQuery.IsEmpty())
 	{
 		CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
 		return;
 	}
 
-	// Assign the array of user ids into the platform accounts information request
-	PlatformAccountsInfoRequest.UserIds = UsersToQuery;
-
-	const THandler<FAccountUserPlatformInfosResponse> OnGetUserPlatformInfoSuccessDelegate = TDelegateUtils<THandler<FAccountUserPlatformInfosResponse>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryUsersByIds::OnGetBasicUserInfoSuccess);
-	const FErrorHandler OnGetUserPlatformInfoErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryUsersByIds::OnGetBasicUserInfoError);
-	ApiClient->User.GetUserOtherPlatformBasicPublicInfo(PlatformAccountsInfoRequest, OnGetUserPlatformInfoSuccessDelegate, OnGetUserPlatformInfoErrorDelegate);
+	GetUserOtherPlatformBasicPublicInfo();
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 
-void FOnlineAsyncTaskAccelByteQueryUsersByIds::OnGetBasicUserInfoSuccess(const FAccountUserPlatformInfosResponse& Result)
+void FOnlineAsyncTaskAccelByteQueryUsersByIds::GetUserOtherPlatformBasicPublicInfo()
+{
+	FPlatformAccountInfoRequest Request;
+
+	// Add user id to query until queue empty or limit reached
+	while (!UsersToQuery.IsEmpty() && Request.UserIds.Num() < BasicInfoQueryLimit)
+	{
+		FString AccelbyteUserId;
+		UsersToQuery.Dequeue(AccelbyteUserId);
+		Request.UserIds.Emplace(AccelbyteUserId);
+	}
+
+	const THandler<FAccountUserPlatformInfosResponse> OnGetUserPlatformInfoSuccessDelegate = TDelegateUtils<THandler<FAccountUserPlatformInfosResponse>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryUsersByIds::OnGetUserOtherPlatformBasicPublicInfoSuccess);
+	const FErrorHandler OnGetUserPlatformInfoErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryUsersByIds::OnGetUserOtherPlatformBasicPublicInfoError);
+	ApiClient->User.GetUserOtherPlatformBasicPublicInfo(Request, OnGetUserPlatformInfoSuccessDelegate, OnGetUserPlatformInfoErrorDelegate);
+}
+
+void FOnlineAsyncTaskAccelByteQueryUsersByIds::OnGetUserOtherPlatformBasicPublicInfoSuccess(const FAccountUserPlatformInfosResponse& Result)
 {
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("User information received: %d"), Result.Data.Num());
 
@@ -230,7 +249,6 @@ void FOnlineAsyncTaskAccelByteQueryUsersByIds::OnGetBasicUserInfoSuccess(const F
 	{
 		TSharedRef<const FUniqueNetIdAccelByteUser> CompositeCurrentUserId = FUniqueNetIdAccelByteUser::Create(IdentityInterface->GetUniquePlayerId(LocalUserNum).ToSharedRef().Get());
 
-		TArray<TSharedRef<const FUniqueNetId>> PlatformIdsToQuery;
 		for (const FAccountUserPlatformData& BasicInfo : Result.Data)
 		{
 			// Set up our user info struct with basic data
@@ -249,7 +267,7 @@ void FOnlineAsyncTaskAccelByteQueryUsersByIds::OnGetBasicUserInfoSuccess(const F
 			{
 				for (const FAccountUserPlatformInfo& UserPlatform : BasicInfo.PlatformInfos)
 				{
-					if (UserPlatform.PlatformId == CompositeCurrentUserId->GetPlatformId())
+					if (UserPlatform.PlatformId == CompositeCurrentUserId->GetPlatformType())
 					{
 						User->GameAvatarUrl = UserPlatform.PlatformAvatarUrl;
 						User->DisplayName = UserPlatform.PlatformDisplayName;
@@ -278,23 +296,30 @@ void FOnlineAsyncTaskAccelByteQueryUsersByIds::OnGetBasicUserInfoSuccess(const F
 			}
 		}
 
-		if (PlatformIdsToQuery.Num() > 0)
+		if (UsersToQuery.IsEmpty())
 		{
-			QueryUsersOnNativePlatform(PlatformIdsToQuery);
+			bHasQueriedBasicUserInfo = true;
+
+			if (PlatformIdsToQuery.Num() > 0)
+			{
+				QueryUsersOnNativePlatform(PlatformIdsToQuery);
+			}
+			else
+			{
+				// Just set this flag to true so that we aren't waiting on it
+				bHasQueriedUserPlatformInfo = true;
+			}
 		}
 		else
 		{
-			// Just set this flag to true so that we aren't waiting on it
-			bHasQueriedUserPlatformInfo = true;
+			GetUserOtherPlatformBasicPublicInfo();
 		}
-
-		bHasQueriedBasicUserInfo = true;
 	}
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 
-void FOnlineAsyncTaskAccelByteQueryUsersByIds::OnGetBasicUserInfoError(int32 ErrorCode, const FString& ErrorMessage)
+void FOnlineAsyncTaskAccelByteQueryUsersByIds::OnGetUserOtherPlatformBasicPublicInfoError(int32 ErrorCode, const FString& ErrorMessage)
 {
 	UE_LOG_AB(Warning, TEXT("Failed to get basic user information from backend! Error code: %d; Error message: %s"), ErrorCode, *ErrorMessage);
 	CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);

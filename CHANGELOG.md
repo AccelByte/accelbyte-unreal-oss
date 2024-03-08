@@ -2,6 +2,28 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.12.6](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.12.6%0D0.12.5) (2024-03-08)
+
+
+### Features
+
+* **backfill:** add new delegate and set notification when backfill ticket is expired ([16fc905](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/16fc90515a00e8731ad59178e93b52eae513ab71))
+* Implement login queue ([fecea37](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/fecea37833ab137c4a609dc32c93cd9244c4c890))
+* **session:** Add method for retrieving party or game session information ([58368d1](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/58368d1c3d1c2f1ff82a61a4934d39d5e337654b))
+
+
+### Bug Fixes
+
+* **AccelBytePoller:** change FTSTicker to FTickerAlias and fix UE 4.27 compilation ([ada090f](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/ada090f5ebe4a6157ca93500c504c2ae6e71ae55))
+* add PS5 and XSX dependencies in build script ([a5204c4](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/a5204c4b576e64a1cb15433bd514e69a11bd50e6))
+* change poller delegate creation to use ThreadSafeSP ([f42f1d5](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/f42f1d59cc801fae532b682317c9288474ee3e84))
+* change validation to compare platform id from backend with platform type ([60aefcf](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/60aefcf6a5d5ebb85c3031b5056b4944b7711155))
+* fix crashing issue when login queue poller initializing ([5d367eb](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/5d367ebc841ecdcdd456d2d4d10100ae0b77ffad))
+* **login:** implement per-local user flag to determine if that player is currently in the process of logging in ([f1a5793](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/f1a57934411120e861b1bf65b1e3ed490e28a577))
+* refactor simultaneous login using v4 endpoint ([86b4534](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/86b4534ad3b977ae6cf1f7264d53025a59144dc8))
+* split large basic user info query to smaller multiple request to support query more than 100 users ([04a5e84](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/04a5e84eb8c777505e2e703759ab49c1ba379d53))
+* **submodule:** update submodule ([7e36549](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/7e36549dd54066cde7ba21996968a4ba3f4fb608))
+
 ### [0.12.5](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.12.5%0D0.12.4) (2024-02-21)
 
 

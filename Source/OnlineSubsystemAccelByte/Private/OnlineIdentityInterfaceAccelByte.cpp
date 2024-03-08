@@ -34,6 +34,7 @@
 #include "AsyncTasks/Chat/OnlineAsyncTaskAccelByteConnectChat.h"
 #include "Templates/SharedPointer.h"
 #include "AsyncTasks/Identity/OnlineAsyncTaskAccelByteGenerateCodeForPublisherToken.h"
+#include "AsyncTasks/LoginQueue/OnlineAsyncTaskAccelByteLoginQueueCancelTicket.h"
 
 using namespace AccelByte;
 
@@ -92,6 +93,17 @@ bool FOnlineIdentityAccelByte::Login(int32 LocalUserNum, const FOnlineAccountCre
 		return false;
 	}
 
+	if (LocalPlayerLoggingIn[LocalUserNum])
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning
+			, TEXT("Player at index '%d' is already logging in! Ignoring subsequent call to log in.")
+			, LocalUserNum);
+		// Do not trigger delegates as it could impact handlers for previous log in attempt
+		return false;
+	}
+
+	LocalPlayerLoggingIn[LocalUserNum] = true;
+
 	// Don't attempt to authenticate again if we are already reporting as logged in
 	if (GetLoginStatus(LocalUserNum) == ELoginStatus::LoggedIn
 		&& LocalUserNumToNetIdMap.Contains(LocalUserNum)
@@ -108,6 +120,9 @@ bool FOnlineIdentityAccelByte::Login(int32 LocalUserNum, const FOnlineAccountCre
 		const TSharedPtr<FUserOnlineAccountAccelByte> UserAccountAccelByte = StaticCastSharedPtr<FUserOnlineAccountAccelByte>(UserAccount);
 		const FString ErrorStr = TEXT("login-failed-already-logged-in");
 		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("User already logged in at user index '%d'!"), LocalUserNum);
+		
+		// Clear log in progress flag
+		LocalPlayerLoggingIn[LocalUserNum] = false;
 
 		TriggerOnLoginChangedDelegates(LocalUserNum);
 		TriggerOnLoginCompleteDelegates(LocalUserNum, true, *UserIdPtr, ErrorStr); 
@@ -125,6 +140,9 @@ bool FOnlineIdentityAccelByte::Login(int32 LocalUserNum, const FOnlineAccountCre
 	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
 	if (!AccelByteSubsystemPtr.IsValid())
 	{
+		// Clear log in progress flag
+		LocalPlayerLoggingIn[LocalUserNum] = false;
+
 		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("AccelByte online subsystem is null"));
 		const FString ErrorStr = TEXT("login-failed-online-subsystem-null");
 		TriggerOnLoginChangedDelegates(LocalUserNum);
@@ -390,6 +408,13 @@ void FOnlineIdentityAccelByte::SetLoginStatus(const int32 LocalUserNum, const EL
 		return;
 	}
 
+	if (LocalPlayerLoggingIn[LocalUserNum])
+	{
+		// This method is one of the last called when log in process completes. With this in mind, update the log in
+		// state used for duplicate prevention here.
+		LocalPlayerLoggingIn[LocalUserNum] = false;
+	}
+
 	TriggerOnLoginStatusChangedDelegates(LocalUserNum, OldStatus, NewStatus, (UserId.IsValid() ? UserId.ToSharedRef().Get() : FUniqueNetIdAccelByteUser::Invalid().Get()));
 }
 
@@ -398,6 +423,26 @@ void FOnlineIdentityAccelByte::AddAuthenticatedServer(int32 LocalUserNum)
 	SetLoginStatus(LocalUserNum, ELoginStatus::LoggedIn);
 
 	// #NOTE Not adding net IDs here as servers have no user IDs, keep that in mind when making server calls
+}
+
+void FOnlineIdentityAccelByte::FinalizeLoginQueueCancel(int32 LoginUserNum)
+{
+	FScopeLock ScopeLock(&LocalUserNumToLoginQueueTicketLock);
+	LocalUserNumToLoginQueueTicketMap.Remove(LoginUserNum);
+	
+	TriggerAccelByteOnLoginQueueCanceledByUserDelegates(LoginUserNum);
+}
+
+void FOnlineIdentityAccelByte::InitializeLoginQueue(int32 LoginUserNum, const FString& TicketId)
+{
+	FScopeLock ScopeLock(&LocalUserNumToLoginQueueTicketLock);
+	LocalUserNumToLoginQueueTicketMap.Emplace(LoginUserNum, TicketId);
+}
+
+void FOnlineIdentityAccelByte::FinalizeLoginQueue(int32 LoginUserNum)
+{
+	FScopeLock ScopeLock(&LocalUserNumToLoginQueueTicketLock);
+	LocalUserNumToLoginQueueTicketMap.Remove(LoginUserNum);
 }
 
 FString FOnlineIdentityAccelByte::GetPlayerNickname(int32 LocalUserNum) const
@@ -887,6 +932,31 @@ bool FOnlineIdentityAccelByte::RefreshPlatformToken(int32 LocalUserNum, FName Su
 			, SubsystemName);
 		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Dispatching async task to refresh platform token!"));
 	}
+	return true;
+}
+
+bool FOnlineIdentityAccelByte::CancelLoginQueue(int32 LocalUserNum)
+{
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("LocalUserNum: %d"), LocalUserNum);
+
+	if(!LocalUserNumToLoginQueueTicketMap.Contains(LocalUserNum))
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("local user queue ticket not found"));
+		return false;
+	}
+
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("AccelByte online subsystem is null"));
+		return false;
+	}
+	
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteLoginQueueCancelTicket>(AccelByteSubsystemPtr.Get()
+			, LocalUserNum
+			, LocalUserNumToLoginQueueTicketMap[LocalUserNum]);
+	
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Dispatching async task to cancel login queue!"));
 	return true;
 }
 

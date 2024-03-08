@@ -454,6 +454,9 @@ typedef FOnMatchmakingCanceled::FDelegate FOnMatchmakingCanceledDelegate;
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnBackfillProposalReceived, FAccelByteModelsV2MatchmakingBackfillProposalNotif /*Proposal*/);
 typedef FOnBackfillProposalReceived::FDelegate FOnBackfillProposalReceivedDelegate;
 
+DECLARE_MULTICAST_DELEGATE_TwoParams(FOnBackfillTicketExpiredReceived, FName /*SessionName*/, FAccelByteModelsV2MatchmakingBackfillTicketExpireNotif /*BackfillExpiredTicket*/);
+typedef FOnBackfillTicketExpiredReceived::FDelegate FOnBackfillTicketExpiredReceivedDelegate;
+
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnSessionInvitesChanged, FName /*SessionName*/);
 typedef FOnSessionInvitesChanged::FDelegate FOnSessionInvitesChangedDelegate;
 
@@ -813,7 +816,7 @@ public:
 	 * session create, and passed to players to join the session without invites. To access an already generated
 	 * code, grab the SETTING_PARTYSESSION_CODE setting out of a party session's settings.
 	 */
-	bool JoinSession(const FUniqueNetId& LocalUserId, FName SessionName, const FString& Code, EAccelByteV2SessionType = EAccelByteV2SessionType::PartySession);
+	bool JoinSession(const FUniqueNetId& LocalUserId, FName SessionName, const FString& Code, EAccelByteV2SessionType SessionType = EAccelByteV2SessionType::PartySession);
 
 	/**
 	 * Generate a new party code for this party session. Once updated, this new generated code will be reflected in the
@@ -1049,6 +1052,20 @@ public:
 	int32 GetSessionInviteCheckPollInterval() const;
 
 	/**
+	 * @brief Find a game or party session by its ID.
+	 *
+	 * @param SearchingUserId ID of the user to make the find session request as
+	 * @param SessionType Type of session to search for
+	 * @param SessionId String representation of the session ID being searched for
+	 * @param CompletionDelegate Delegate fired after the operation to find the given session completes
+	 * @return true if operation to find session has started, false otherwise
+	 */
+	bool FindSessionByStringId(const FUniqueNetId& SearchingUserId
+		, const EAccelByteV2SessionType& SessionType
+		, const FString& SessionId
+		, const FOnSingleSessionResultCompleteDelegate& CompletionDelegate);
+
+	/**
 	 * Delegate fired when we have retrieved information on the session that our server is claimed by on the backend.
 	 *
 	 * @param SessionName the name that our server session is stored under
@@ -1113,6 +1130,11 @@ public:
 	 * RejectBackfillProposal to act on the proposal.
 	 */
 	DEFINE_ONLINE_DELEGATE_ONE_PARAM(OnBackfillProposalReceived, FAccelByteModelsV2MatchmakingBackfillProposalNotif /*Proposal*/);
+
+	/**
+	 * Delegate fired when the game server receives a backfill ticket expired from matchmaking.
+	 */
+	DEFINE_ONLINE_DELEGATE_TWO_PARAM(OnBackfillTicketExpiredReceived, FName /*SessionName*/, FAccelByteModelsV2MatchmakingBackfillTicketExpireNotif /*BackfillExpiredTicket*/);
 
 	/**
 	 * Delegate fired when a session's invited members list changes.
@@ -1813,6 +1835,7 @@ private:
 	//~ Begin Server Notification Handlers
 	void OnServerClaimedNotification(const FAccelByteModelsServerClaimedNotification& Notification);
 	void OnV2BackfillProposalNotification(const FAccelByteModelsV2MatchmakingBackfillProposalNotif& Notification);
+	void OnV2BackfillTicketExpiredNotification(const FAccelByteModelsV2MatchmakingBackfillTicketExpireNotif& Notification);
 	void OnV2DsSessionMemberChangedNotification(const FAccelByteModelsV2GameSession& Notification);
 	void OnDSHubConnectSuccessNotification();
 	void OnDSHubConnectionClosedNotification(int32 StatusCode, const FString& Reason, bool bWasClean);
