@@ -490,6 +490,10 @@ void FOnlineAsyncTaskAccelByteLogin::PerformLogin(const FOnlineAccountCredential
 		ApiClient->User.TryRelogin(Credentials.Id, OnLoginSuccessDelegate, OnLoginErrorOAuthDelegate);
 		AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sending async task to login with cached refresh token for the specified PlatformUserID."));
 		break;
+	case EAccelByteLoginType::OIDC:
+		ApiClient->User.LoginWithOtherPlatformId(Credentials.Id, Credentials.Token, OnLoginSuccessDelegate, OnLoginErrorOAuthDelegate, bCreateHeadlessAccount);
+		AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sending async task to login with OIDC for Id %s."), *Credentials.Id);
+		break;
 	default:
 	case EAccelByteLoginType::None:
 		ErrorStr = TEXT("login-failed-invalid-type");

@@ -1079,7 +1079,12 @@ void FOnlineSubsystemAccelByte::SetNativePlatformTokenRefreshScheduler(int32 Loc
 	{
 		NativePlatformTokenRefreshDelegateHandle = IdentityInterface->GetApiClient(LocalUserNum)->CredentialsRef->OnTokenRefreshed().AddLambda([this, LocalUserNum](bool bSuccess)
 			{
-				if (bSuccess && this != nullptr && this->GetIdentityInterface() && this->IdentityInterface->GetApiClient(LocalUserNum).IsValid())
+				const FUniqueNetIdAccelByteUserPtr UserId = StaticCastSharedPtr<const FUniqueNetIdAccelByteUser>(IdentityInterface->GetUniquePlayerId(LocalUserNum));
+				if (bSuccess 
+					&& this != nullptr 
+					&& this->GetIdentityInterface() 
+					&& this->IdentityInterface->GetApiClient(LocalUserNum).IsValid()
+					&& !UserId->GetPlatformType().IsEmpty())
 				{
 					IdentityInterface->RefreshPlatformToken(LocalUserNum);
 					if (!this->SecondaryPlatformName.IsEmpty())

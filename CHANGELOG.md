@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.12.5-1](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.12.5-1%0D0.12.5) (2024-03-15)
+
+### Features
+
+* add new Login Type to support OIDC login methods ([8ac8cc8](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/8ac8cc817223aa757f71f9ed691554ae469e5b51))
+
+
+### Bug Fixes
+
+* automatic native platform refresh triggered on non-native platform login ([8ac8cc8](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/8ac8cc817223aa757f71f9ed691554ae469e5b51))
+
+
 ### [0.12.5](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.12.5%0D0.12.4) (2024-02-21)
 
 
