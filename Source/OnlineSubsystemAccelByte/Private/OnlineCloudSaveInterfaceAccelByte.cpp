@@ -214,6 +214,13 @@ bool FOnlineCloudSaveAccelByte::GetGameRecord(int32 LocalUserNum, const FString&
 
 bool FOnlineCloudSaveAccelByte::ReplaceGameRecord(int32 LocalUserNum, const FString& Key, const FJsonObject& RecordRequest)
 {
+	// Currently we expecting this method is always called by the server, so we currently set the metadata record to ESetByMetadataRecord::SERVER
+	return ReplaceGameRecord(LocalUserNum, Key, ESetByMetadataRecord::SERVER, RecordRequest, FTTLConfig{});
+}
+
+bool FOnlineCloudSaveAccelByte::ReplaceGameRecord(int32 LocalUserNum, const FString& Key, ESetByMetadataRecord SetBy,
+	const FJsonObject& RecordRequest, const FTTLConfig& TTLConfig)
+{	
 	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("LocalUserNum: %d"), LocalUserNum);
 	const IOnlineIdentityPtr IdentityInterface = AccelByteSubsystem->GetIdentityInterface();
 	if (!IdentityInterface.IsValid())
@@ -230,7 +237,7 @@ bool FOnlineCloudSaveAccelByte::ReplaceGameRecord(int32 LocalUserNum, const FStr
 		return false;
 	}
 
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteReplaceGameRecord>(AccelByteSubsystem, LocalUserNum, Key, RecordRequest);
+	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteReplaceGameRecord>(AccelByteSubsystem, LocalUserNum, Key, SetBy, RecordRequest, TTLConfig);
 	return true;
 }
 

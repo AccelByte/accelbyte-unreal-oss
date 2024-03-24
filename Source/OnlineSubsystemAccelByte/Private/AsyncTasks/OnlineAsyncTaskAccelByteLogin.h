@@ -135,6 +135,11 @@ protected:
 	/** Set from DefaultEngine.ini, will only notify in queue if estimated time is above presentation threshold */
 	int32 LoginQueuePresentationThreshold{0};
 
+	/*
+	 * Subclass of this task can override supported native platform check.
+	 */
+	bool bByPassSupportedNativeSubsystemCheck{false};
+
 	/**
 	 * Attempts to fire off a login request with a native subsystem, if one is set up and usable.
 	 *
@@ -176,7 +181,7 @@ protected:
 	virtual void OnLoginSuccess();
 
 	/**
-	 * Delegate handler for when any AccelByte login v4 endpoints call succeeds. 
+	 * Delegate handler for when any AccelByte login v4 endpoints call succeeds.
 	 */
 	virtual void OnLoginSuccessV4(const FAccelByteModelsLoginQueueTicketInfo& TicketInfo);
 

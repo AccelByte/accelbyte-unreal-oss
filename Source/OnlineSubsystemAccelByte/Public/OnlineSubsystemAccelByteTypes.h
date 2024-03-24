@@ -80,10 +80,10 @@ enum class EAccelByteLoginType : uint8
 	Xbox,
 	PS4,
 	PS5,
-	PSPC,
 	Launcher,
 	Steam,
 	EOS,
+	OIDC,
 	ExchangeCode, // Epic Launcher
 	PublisherCode, //Credentials.Token is optional/automatically available if the game is launched from launcher 
 	RefreshToken,
@@ -101,8 +101,6 @@ static EAccelBytePlatformType ConvertOSSTypeToAccelBytePlatformType(EAccelByteLo
 		return EAccelBytePlatformType::PS4;
 	case EAccelByteLoginType::PS5:
 		return EAccelBytePlatformType::PS5;
-	case EAccelByteLoginType::PSPC:
-		return EAccelBytePlatformType::PSPC;
 	case EAccelByteLoginType::Steam:
 		return EAccelBytePlatformType::Steam;
 	case EAccelByteLoginType::EOS:

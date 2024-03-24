@@ -198,7 +198,7 @@ void FOnlineAsyncTaskAccelByteLogin::LoginWithSpecificSubsystem(IOnlineSubsystem
 	}
 
 	// Check whether we officially support login with this OSS, otherwise subsequent calls will fail
-	if (!Subsystem->IsNativeSubsystemSupported(SpecificSubsystem->GetSubsystemName()))
+	if (!Subsystem->IsNativeSubsystemSupported(SpecificSubsystem->GetSubsystemName()) && !bByPassSupportedNativeSubsystemCheck)
 	{
 		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Native subsystem is not supported by AccelByte OSS for passthrough authentication! Subsystem name: %s"), *SpecificSubsystem->GetSubsystemName().ToString());
 		CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState);
@@ -357,20 +357,27 @@ void FOnlineAsyncTaskAccelByteLogin::OnSpecificSubysystemLoginComplete(int32 Nat
 	// Set the login type for this request to be the login type corresponding to the native subsystem
 	const UEnum* LoginTypeEnum = StaticEnum<EAccelByteLoginType>();
 	LoginType = FOnlineSubsystemAccelByteUtils::GetAccelByteLoginTypeFromNativeSubsystem(SpecificSubsystem->GetSubsystemName());
-	if (LoginType == EAccelByteLoginType::None)
+	if (LoginType == EAccelByteLoginType::None && !bByPassSupportedNativeSubsystemCheck)
 	{
 		ErrorStr = TEXT("login-failed-invalid-type");
 		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Login with native subsystem failed as an invalid type was provided for the native subsystem. AccelByte subsystem may not support login with this subsystem type."));
 		CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState);
 		return;
 	}
-	
+
 	bLoginPerformed = false;
 	FString PlatformToken = FGenericPlatformHttp::UrlEncode(IdentityInterface->GetAuthToken(LoginUserNum));
 	
 	FOnlineAccountCredentials CopyCreds{};
 	CopyCreds.Id = NativePlatformCredentials.Id;//Other Subsystem doesn't rely much to the Id
-	CopyCreds.Type = LoginTypeEnum->GetNameStringByValue(static_cast<int64>(LoginType));
+	if (LoginType == EAccelByteLoginType::None && bByPassSupportedNativeSubsystemCheck)
+	{
+		CopyCreds.Type = SpecificSubsystem->GetSubsystemName().ToString();
+	}
+	else
+	{
+		CopyCreds.Type = LoginTypeEnum->GetNameStringByValue(static_cast<int64>(LoginType));
+	}
 	CopyCreds.Token = PlatformToken;
 
 	if (bStoreNativePlatformCredentialOnSubsystemLoginComplete)
@@ -493,6 +500,10 @@ void FOnlineAsyncTaskAccelByteLogin::PerformLogin(const FOnlineAccountCredential
 	case EAccelByteLoginType::CachedToken:
 		ApiClient->User.TryReloginV4(Credentials.Id, OnLoginSuccessDelegate, OnLoginErrorOAuthDelegate);
 		AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sending async task to login with cached refresh token for the specified PlatformUserID."));
+		break;
+	case EAccelByteLoginType::OIDC:
+		ApiClient->User.LoginWithOtherPlatformIdV4(Credentials.Id, Credentials.Token, OnLoginSuccessDelegate, OnLoginErrorOAuthDelegate, bCreateHeadlessAccount);
+		AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sending async task to login with OIDC for Id %s."), *Credentials.Id);
 		break;
 	default:
 	case EAccelByteLoginType::None:

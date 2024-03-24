@@ -14,10 +14,12 @@ using namespace AccelByte;
 
 #define ONLINE_ERROR_NAMESPACE "FOnlineAsyncTaskAccelByteReplaceGameRecord"
 
-FOnlineAsyncTaskAccelByteReplaceGameRecord::FOnlineAsyncTaskAccelByteReplaceGameRecord(FOnlineSubsystemAccelByte* const InABInterface, int32 InLocalUserNum, const FString& InKey, const FJsonObject& InGameRecordObj)
+FOnlineAsyncTaskAccelByteReplaceGameRecord::FOnlineAsyncTaskAccelByteReplaceGameRecord(FOnlineSubsystemAccelByte* const InABInterface, int32 InLocalUserNum, const FString& InKey, ESetByMetadataRecord InSetBy, const FJsonObject& InGameRecordObj, const FTTLConfig& InTTLConfig)
 	: FOnlineAsyncTaskAccelByte(InABInterface)
 	, Key(InKey)
+	, SetBy(InSetBy)
 	, GameRecordObj(InGameRecordObj)
+	, TTLConfig(InTTLConfig)
 {
 	LocalUserNum = InLocalUserNum;
 }
@@ -60,7 +62,7 @@ void FOnlineAsyncTaskAccelByteReplaceGameRecord::Initialize()
 	}
 
 	FServerApiClientPtr ServerApiClient = FMultiRegistry::GetServerApiClient();
-	ServerApiClient->ServerCloudSave.ReplaceGameRecord(Key, GameRecordObj, OnReplaceGameRecordSuccessDelegate, OnReplaceGameRecordErrorDelegate);
+	ServerApiClient->ServerCloudSave.ReplaceGameRecord(Key, SetBy, GameRecordObj, OnReplaceGameRecordSuccessDelegate, OnReplaceGameRecordErrorDelegate, TTLConfig);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }

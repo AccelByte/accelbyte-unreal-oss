@@ -101,11 +101,11 @@ bool FOnlineSubsystemAccelByte::Init()
 		IdentityInterface->AddOnConnectLobbyCompleteDelegate_Handle(UserNum, FOnConnectLobbyCompleteDelegate::CreateRaw(this, &FOnlineSubsystemAccelByte::OnLobbyConnectedCallback));
 	}
 
-	GConfig->GetBool(TEXT("OnlineSubsystemAccelByte"), TEXT("bAutoLobbyConnectAfterLoginSuccess"), bIsAutoLobbyConnectAfterLoginSuccess, GEngineIni);
-	GConfig->GetBool(TEXT("OnlineSubsystemAccelByte"), TEXT("bAutoChatConnectAfterLoginSuccess"), bIsAutoChatConnectAfterLoginSuccess, GEngineIni);
-	GConfig->GetBool(TEXT("OnlineSubsystemAccelByte"), TEXT("bMultipleLocalUsersEnabled"), bIsMultipleLocalUsersEnabled, GEngineIni);
-	GConfig->GetBool(TEXT("OnlineSubsystemAccelByte"), TEXT("bNativePlatformTokenRefreshManually"), bNativePlatformTokenRefreshManually, GEngineIni);
-	GConfig->GetString(TEXT("OnlineSubsystemAccelByte"), TEXT("SecondaryPlatformName"), SecondaryPlatformName, GEngineIni);
+	FAccelByteUtilities::LoadABConfigFallback(TEXT("OnlineSubsystemAccelByte"), TEXT("bAutoLobbyConnectAfterLoginSuccess"), bIsAutoLobbyConnectAfterLoginSuccess);
+	FAccelByteUtilities::LoadABConfigFallback(TEXT("OnlineSubsystemAccelByte"), TEXT("bAutoChatConnectAfterLoginSuccess"), bIsAutoChatConnectAfterLoginSuccess);
+	FAccelByteUtilities::LoadABConfigFallback(TEXT("OnlineSubsystemAccelByte"), TEXT("bMultipleLocalUsersEnabled"), bIsMultipleLocalUsersEnabled);
+	FAccelByteUtilities::LoadABConfigFallback(TEXT("OnlineSubsystemAccelByte"), TEXT("bNativePlatformTokenRefreshManually"), bNativePlatformTokenRefreshManually);
+	FAccelByteUtilities::LoadABConfigFallback(TEXT("OnlineSubsystemAccelByte"), TEXT("SecondaryPlatformName"), SecondaryPlatformName);
 
 	PluginInitializedTime = FDateTime::UtcNow();
 
@@ -456,8 +456,7 @@ bool FOnlineSubsystemAccelByte::IsNativeSubsystemSupported(const FName& NativeSu
 		SubsystemStr.Equals(TEXT("PS4"), ESearchCase::IgnoreCase) ||
 		SubsystemStr.Equals(TEXT("PS5"), ESearchCase::IgnoreCase) ||
 		SubsystemStr.Equals(TEXT("STEAM"), ESearchCase::IgnoreCase) ||
-		SubsystemStr.Equals(TEXT("EOS"), ESearchCase::IgnoreCase) ||
-		SubsystemStr.Equals(TEXT("PSPC"), ESearchCase::IgnoreCase);
+		SubsystemStr.Equals(TEXT("EOS"), ESearchCase::IgnoreCase);
 }
 
 FString FOnlineSubsystemAccelByte::GetNativePlatformNameString()
@@ -591,11 +590,6 @@ bool FOnlineSubsystemAccelByte::GetAccelBytePlatformTypeFromAuthType(const FStri
 		Result = EAccelBytePlatformType::PS5;
 		return true;
 	}
-	else if (InAuthType.Equals(TEXT("PSPC"), ESearchCase::IgnoreCase))
-	{
-		Result = EAccelBytePlatformType::PSPC;
-		return true;
-	}
 	else if (InAuthType.Equals(TEXT("LIVE"), ESearchCase::IgnoreCase) || InAuthType.Equals(TEXT("GDK"), ESearchCase::IgnoreCase))
 	{
 		Result = EAccelBytePlatformType::Live;
@@ -623,10 +617,6 @@ FString FOnlineSubsystemAccelByte::GetAccelBytePlatformStringFromAuthType(const 
 	{
 		return TEXT("ps5");
 	}
-	else if (InAuthType.Equals(TEXT("pspc"), ESearchCase::IgnoreCase))
-	{
-		return TEXT("pspc");
-	}
 	else if (InAuthType.Equals(TEXT("live"), ESearchCase::IgnoreCase) || InAuthType.Equals(TEXT("gdk"), ESearchCase::IgnoreCase))
 	{
 		return TEXT("live");
@@ -651,10 +641,6 @@ FString FOnlineSubsystemAccelByte::GetNativeSubsystemNameFromAccelBytePlatformSt
 	else if (InAccelBytePlatform.Equals(TEXT("ps5"), ESearchCase::IgnoreCase))
 	{
 		return TEXT("PS5");
-	}
-	else if (InAccelBytePlatform.Equals(TEXT("pspc"), ESearchCase::IgnoreCase))
-	{
-		return TEXT("PSPC");
 	}
 	else if (InAccelBytePlatform.Equals(TEXT("live"), ESearchCase::IgnoreCase))
 	{
@@ -1079,7 +1065,12 @@ void FOnlineSubsystemAccelByte::SetNativePlatformTokenRefreshScheduler(int32 Loc
 	{
 		NativePlatformTokenRefreshDelegateHandle = IdentityInterface->GetApiClient(LocalUserNum)->CredentialsRef->OnTokenRefreshed().AddLambda([this, LocalUserNum](bool bSuccess)
 			{
-				if (bSuccess && this != nullptr && this->GetIdentityInterface() && this->IdentityInterface->GetApiClient(LocalUserNum).IsValid())
+				const FUniqueNetIdAccelByteUserPtr UserId = StaticCastSharedPtr<const FUniqueNetIdAccelByteUser>(IdentityInterface->GetUniquePlayerId(LocalUserNum));
+				if (bSuccess 
+					&& this != nullptr 
+					&& this->GetIdentityInterface() 
+					&& this->IdentityInterface->GetApiClient(LocalUserNum).IsValid()
+					&& !UserId->GetPlatformType().IsEmpty())
 				{
 					IdentityInterface->RefreshPlatformToken(LocalUserNum);
 					if (!this->SecondaryPlatformName.IsEmpty())

@@ -138,7 +138,7 @@ void FAuthHandlerComponentAccelByte::Clear()
 
 void FAuthHandlerComponentAccelByte::LoadSettings()
 {
-	if (GConfig->GetBool(TEXT("OnlineSubsystemAccelByte"), TEXT("EnabledEncryption"), bEnabledEncryption, GEngineIni))
+	if (FAccelByteUtilities::LoadABConfigFallback(TEXT("OnlineSubsystemAccelByte"), TEXT("EnabledEncryption"), bEnabledEncryption))
 	{
 		if (bEnabledEncryption)
 		{

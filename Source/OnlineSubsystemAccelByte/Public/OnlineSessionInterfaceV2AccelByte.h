@@ -1893,6 +1893,15 @@ protected:
 
 	// Making this async task a friend so that it can add new named sessions
 	friend class FOnlineAsyncTaskAccelByteGetServerClaimedV2Session;
+
+private:
+	bool bFindMatchmakingGameSessionByIdInProgress{false};
+
+public:
+	void SetFindMatchmakingGameSessionByIdInProgress(const bool State)
+	{
+		bFindMatchmakingGameSessionByIdInProgress = State;
+	}
 };
 
 typedef TSharedPtr<FOnlineSessionV2AccelByte, ESPMode::ThreadSafe> FOnlineSessionV2AccelBytePtr;

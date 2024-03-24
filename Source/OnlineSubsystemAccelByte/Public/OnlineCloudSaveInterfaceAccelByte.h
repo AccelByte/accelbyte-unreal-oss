@@ -175,6 +175,18 @@ public:
 	 * @param RecordRequest Record to replace in the form of Json object
 	 */
 	bool ReplaceGameRecord(int32 LocalUserNum, const FString& Key, const FJsonObject& RecordRequest);
+
+	/**
+	 * @brief Replace a record by its key in namespace-level.
+	 *
+	 * @param LocalUserNum Index of user that is attempting to get game record
+	 * @param Key The record key to get
+	 * @param SetBy Metadata record set by server or client
+	 * @param RecordRequest Record to replace in the form of Json object
+	 * @param TTLConfig The configuration to control the action taken if the record has expired. If the action set to NONE, then it will not send the TTL (Time to live) meta data.
+	 */
+	bool ReplaceGameRecord(int32 LocalUserNum, const FString& Key, ESetByMetadataRecord SetBy, const FJsonObject& RecordRequest, const FTTLConfig& TTLConfig);
+	
 	void AddGameRecordToMap(const FString& Key, const TSharedRef<FAccelByteModelsGameRecord>& Record);
 
 protected:

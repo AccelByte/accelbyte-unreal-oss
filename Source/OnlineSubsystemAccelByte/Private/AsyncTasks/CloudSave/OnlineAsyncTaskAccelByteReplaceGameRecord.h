@@ -16,7 +16,7 @@ class FOnlineAsyncTaskAccelByteReplaceGameRecord
 	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteReplaceGameRecord, ESPMode::ThreadSafe>
 {
 public:
-	FOnlineAsyncTaskAccelByteReplaceGameRecord(FOnlineSubsystemAccelByte* const InABInterface, int32 InLocalUserNum, const FString& InKey, const FJsonObject& InGameRecordObj);
+	FOnlineAsyncTaskAccelByteReplaceGameRecord(FOnlineSubsystemAccelByte* const InABInterface, int32 InLocalUserNum, const FString& InKey, ESetByMetadataRecord SetBy, const FJsonObject& InGameRecordObj, const FTTLConfig& TTLConfig);
 
 	virtual void Initialize() override;
 	virtual void Finalize() override;
@@ -54,5 +54,9 @@ private:
 	 */
 	FString Key;
 
+	ESetByMetadataRecord SetBy;
+
 	FJsonObject GameRecordObj;
+
+	FTTLConfig TTLConfig;
 };

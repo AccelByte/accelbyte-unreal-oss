@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.12.7](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.12.7%0D0.12.6) (2024-03-24)
+
+
+### Features
+
+* **Login:** add new Login Type to support OIDC login methods ([9083f41](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/9083f4108d9d5948974e1d5d2f5605a859327cbc))
+
+
+### Bug Fixes
+
+* automatic native platform refresh triggered on non-native platform login ([b771445](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/b771445d915ab9e431e0d8a4f51a46e0cd79882e))
+* **MPv2:** make sure OnMatchmakingCompleteDelegate triggered once in matchmaking process ([6ab404e](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/6ab404eab49bcc71ffa5abff585a8d5082d4a457))
+* **SessionInterface:** incorrect array removal used in matchmaking polling ([dded824](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/dded82466e5c717374320b9f3db3f27023344c23))
+* **setting:** make sure all overriden settings are goes to accelbyte flag as well ([0aed076](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/0aed07609f42d94576a7a4e2647b8d8b5cae1467))
+* **TTL:** expose time to live config on several endpoints ([0406170](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/04061708bffa6cab0ea740352e9f37a17bc40918))
+
 ### [0.12.6](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.12.6%0D0.12.5) (2024-03-08)
 
 

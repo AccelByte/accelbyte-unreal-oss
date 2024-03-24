@@ -194,10 +194,6 @@ EAccelByteLoginType FOnlineSubsystemAccelByteUtils::GetAccelByteLoginTypeFromNat
 	{
 		return EAccelByteLoginType::PS5;
 	}
-	else if (SubsystemStr.Equals(TEXT("PSPC"), ESearchCase::IgnoreCase))
-	{
-		return EAccelByteLoginType::PSPC;
-	}
 	else if (SubsystemStr.Equals(TEXT("STEAM"), ESearchCase::IgnoreCase))
 	{
 		return EAccelByteLoginType::Steam;
