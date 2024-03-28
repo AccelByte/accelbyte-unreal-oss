@@ -78,6 +78,12 @@ void FOnlineAsyncTaskAccelByteConnectLobby::TriggerDelegates()
 {
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
+	if (SuppressConnectSuccessIfAlreadyConnected && bWasSuccessful)
+	{
+		AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
+		return;
+	}
+
 	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(Subsystem->GetIdentityInterface());
 	if (IdentityInterface.IsValid())
 	{

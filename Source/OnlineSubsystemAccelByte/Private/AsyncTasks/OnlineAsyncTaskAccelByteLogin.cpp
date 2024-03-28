@@ -365,9 +365,10 @@ void FOnlineAsyncTaskAccelByteLogin::OnSpecificSubysystemLoginComplete(int32 Nat
 		return;
 	}
 
-	bLoginPerformed = false;
 	FString PlatformToken = FGenericPlatformHttp::UrlEncode(IdentityInterface->GetAuthToken(LoginUserNum));
-	
+
+	bLoginPerformed = false;
+
 	FOnlineAccountCredentials CopyCreds{};
 	CopyCreds.Id = NativePlatformCredentials.Id;//Other Subsystem doesn't rely much to the Id
 	if (LoginType == EAccelByteLoginType::None && bByPassSupportedNativeSubsystemCheck)
@@ -380,14 +381,12 @@ void FOnlineAsyncTaskAccelByteLogin::OnSpecificSubysystemLoginComplete(int32 Nat
 	}
 	CopyCreds.Token = PlatformToken;
 
-	if (bStoreNativePlatformCredentialOnSubsystemLoginComplete)
+	// Save Platform Credential for Native Platform
+	// Utililized for Simultaneous Login
+	if (bIsNativePlatformCredentialLogin)
 	{
-		// Store the unique ID of the user that we are authenticating with
 		NativePlatformPlayerId = NativeUserId.AsShared();
-
-		// Construct credentials for the login type from the native subsystem, complete with the type set correctly to its name
-		NativePlatformCredentials.Type = LoginTypeEnum->GetNameStringByValue(static_cast<int64>(LoginType));
-		NativePlatformCredentials.Token = PlatformToken;
+		NativePlatformCredentials = CopyCreds;
 	}
 
 	FTimerDelegate TimerDelegate = FTimerDelegate::CreateLambda([this, CopyCreds]()
@@ -399,7 +398,7 @@ void FOnlineAsyncTaskAccelByteLogin::OnSpecificSubysystemLoginComplete(int32 Nat
 		}
 	});
 
-	if (SpecificSubsystem->GetSubsystemName().ToString().Equals(TEXT("STEAM"), ESearchCase::IgnoreCase))
+	if (SpecificSubsystem->GetSubsystemName().ToString().Equals(TEXT("STEAM"), ESearchCase::IgnoreCase) && bIsNativePlatformCredentialLogin)
 	{
 		TimerObject.StartIn(STEAM_LOGIN_DELAY, TimerDelegate);
 	}
@@ -415,7 +414,7 @@ void FOnlineAsyncTaskAccelByteLogin::OnSpecificSubysystemLoginComplete(int32 Nat
 void FOnlineAsyncTaskAccelByteLogin::OnGetAuthSessionTicketResponse(GetAuthSessionTicketResponse_t* CallBackParam)
 {
 	UE_LOG_AB(Log, TEXT("Get Auth Session Ticket Response, Result %d"), CallBackParam->m_eResult);
-	if (!bLoginPerformed && LoginType == EAccelByteLoginType::Steam)
+	if (!bLoginPerformed && LoginType == EAccelByteLoginType::Steam && bIsNativePlatformCredentialLogin)
 	{
 		TimerObject.Stop();
 		PerformLogin(NativePlatformCredentials);
@@ -519,7 +518,7 @@ void FOnlineAsyncTaskAccelByteLogin::OnLoginSuccess()
 
 	// Create a new user ID instance for the user that we just logged in as
 	FAccelByteUniqueIdComposite CompositeId;
-	CompositeId.Id = ApiClient->CredentialsRef->GetUserId();   
+	CompositeId.Id = ApiClient->CredentialsRef->GetUserId();
 
 	// Add platform information to composite ID for login
 	if (NativePlatformPlayerId.IsValid())
@@ -540,6 +539,8 @@ void FOnlineAsyncTaskAccelByteLogin::OnLoginSuccess()
 	Account->SetDisplayName(ApiClient->CredentialsRef->GetUserDisplayName());
 	Account->SetAccessToken(ApiClient->CredentialsRef->GetAccessToken());
 	Account->SetPlatformUserId(ApiClient->CredentialsRef->GetPlatformUserId());
+	Account->SetSimultaneousPlatformID(ApiClient->CredentialsRef->GetSimultaneousPlatformId());
+	Account->SetSimultaneousPlatformUserID(ApiClient->CredentialsRef->GetSimultaneousPlatformUserId());
 	Account->SetUniqueDisplayName(ApiClient->CredentialsRef->GetUniqueDisplayName());
 	
 	// Retrieve the platform user information array from the account user data.

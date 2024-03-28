@@ -31,6 +31,7 @@ public:
 
 protected:
 	virtual void Initialize() override;
+	virtual void Finalize() override;
 	virtual void TriggerDelegates() override;
 	virtual void PerformLogin(const FOnlineAccountCredentials& Credentials) override;
 

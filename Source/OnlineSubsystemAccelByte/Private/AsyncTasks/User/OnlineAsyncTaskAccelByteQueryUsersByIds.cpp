@@ -273,6 +273,12 @@ void FOnlineAsyncTaskAccelByteQueryUsersByIds::OnGetUserOtherPlatformBasicPublic
 						User->DisplayName = UserPlatform.PlatformDisplayName;
 						break;
 					}
+					FAccelByteLinkedUserInfo PlatformUserInfo;
+					PlatformUserInfo.Id =  FUniqueNetIdAccelByteUser::Create(FAccelByteUniqueIdComposite(BasicInfo.UserId, UserPlatform.PlatformId, UserPlatform.PlatformUserId));
+					PlatformUserInfo.PlatformId = UserPlatform.PlatformUserId;
+					PlatformUserInfo.AvatarUrl = UserPlatform.PlatformAvatarUrl;
+					PlatformUserInfo.DisplayName = UserPlatform.PlatformDisplayName;
+					User->LinkedPlatformInfo.Add(PlatformUserInfo);
 				}
 			}
 
@@ -351,11 +357,24 @@ void FOnlineAsyncTaskAccelByteQueryUsersByIds::QueryUsersOnNativePlatform(const 
 
 void FOnlineAsyncTaskAccelByteQueryUsersByIds::ExtractPlatformDataFromBasicUserInfo(const FAccountUserPlatformData& BasicInfo, FAccelByteUniqueIdComposite& CompositeId)
 {
+	// Grab our own user account from the identity interface to determine which platform we should grab for composite IDs
+	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(Subsystem->GetIdentityInterface());
+	if (!IdentityInterface.IsValid())
+	{
+		return;
+	}
+
+	TSharedPtr<FUserOnlineAccountAccelByte> LocalUserAccount = StaticCastSharedPtr<FUserOnlineAccountAccelByte>(IdentityInterface->GetUserAccount(UserId.ToSharedRef().Get()));
+	if (!LocalUserAccount.IsValid())
+	{
+		return;
+	}
+
 	FString FoundPlatformType;
 	FString FoundPlatformId;
 	for (const auto& KV : BasicInfo.PlatformInfos)
 	{
-		if (!KV.PlatformUserId.IsEmpty())
+		if (!KV.PlatformUserId.IsEmpty() && KV.PlatformUserId.Equals(LocalUserAccount->GetPlatformUserId()))
 		{
 			FoundPlatformId = KV.PlatformUserId;
 			FoundPlatformType = KV.PlatformId;

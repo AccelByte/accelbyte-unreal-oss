@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.12.8](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.12.8%0D0.12.7) (2024-03-28)
+
+
+### Features
+
+* **login:** store simultaneous platform user information in user account ([280c9be](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/280c9be57b7d48a9e1f6678a304217e906115679))
+* **User:** add 3rd party platform info to user cache ([908d827](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/908d827585ad21b652e785b15dcb65faa8933f7d))
+
+
+### Bug Fixes
+
+* **lobby:** suppress ConnectLobby delegate firing when session lobby serial tasks succeed ([51939ed](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/51939edc7ce63766eced9fcd0e353a08a21d1a3d))
+
 ### [0.12.7](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.12.7%0D0.12.6) (2024-03-24)
 
 

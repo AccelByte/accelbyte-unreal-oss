@@ -93,6 +93,19 @@ void FOnlineAsyncTaskAccelByteSimultaneousLogin::Initialize()
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Trying to login with type '%s'!"), *AccountCredentials.Type);
 }
 
+void FOnlineAsyncTaskAccelByteSimultaneousLogin::Finalize()
+{
+	// State is Invalid then return 
+	if (!bWasSuccessful && !ApiClient.IsValid())
+	{
+		AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
+		AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Initialize incomplete, Invalid State"));
+		return;
+	}
+
+	Super::Finalize();
+}
+
 void FOnlineAsyncTaskAccelByteSimultaneousLogin::PostProcessTriggerDelegates()
 {
 	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(Subsystem->GetIdentityInterface());
@@ -178,7 +191,10 @@ void FOnlineAsyncTaskAccelByteSimultaneousLogin::PerformLogin(const FOnlineAccou
 
 		//We SHOULD NOT store the secondary platform login result
 		//Because it will override the native (previous) result
-		bStoreNativePlatformCredentialOnSubsystemLoginComplete = false;
+
+		//Next Login is for Secondary Platform
+		//Set bIsNativePlatformCredentialLogin to false
+		bIsNativePlatformCredentialLogin = false;
 		LoginWithSpecificSubsystem(SecondaryPlatformName);
 	}
 	else if (CurrentAsyncTaskState == ESimultaneousLoginAsyncTaskState::NativePlatformLoginDone)

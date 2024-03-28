@@ -103,9 +103,14 @@ protected:
 	TSharedPtr<const FUniqueNetId> NativePlatformPlayerId = nullptr;
 
 	/*
+	 * Unique ID of the user account that we logged into with the secondary platform, will be invalid if we did not login with a secondary platform
+	 */
+	TSharedPtr<const FUniqueNetId> SecondaryPlatformPlayerId = nullptr;
+
+	/*
 	 * Credential for Native platform login
 	 */
-	FOnlineAccountCredentials NativePlatformCredentials;
+	FOnlineAccountCredentials NativePlatformCredentials{};
 
 	/*
 	 * Flag to know whether the login is already performed or not, mainly used on native login on steam, so it won't performed twice from the timer and the callback.
@@ -123,9 +128,9 @@ protected:
 	bool bCreateHeadlessAccount = true;
 
 	/*
-	 * To decide whether we need to store it to the current async task or not.
+	 * Flag denoting whether the current log in is for the native platform rather than secondary platform.
 	 */
-	bool bStoreNativePlatformCredentialOnSubsystemLoginComplete = true;
+	bool bIsNativePlatformCredentialLogin = true;
 
 	/*
 	 * flag to know if a login process is waiting for queue

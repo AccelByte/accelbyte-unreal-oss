@@ -818,6 +818,26 @@ void FUserOnlineAccountAccelByte::SetPlatformUserId(const FString& InPlatformUse
 	PlatformUserId = InPlatformUserId;
 }
 
+FString FUserOnlineAccountAccelByte::GetSimultaneousPlatformID() const
+{
+	return SimultaneousPlatformId;
+}
+
+void FUserOnlineAccountAccelByte::SetSimultaneousPlatformID(const FString& InSimultaneousPlatformID)
+{
+	SimultaneousPlatformId = InSimultaneousPlatformID;
+}
+
+FString FUserOnlineAccountAccelByte::GetSimultaneousPlatformUserID() const
+{
+	return SimultaneousPlatformUserId;
+}
+
+void FUserOnlineAccountAccelByte::SetSimultaneousPlatformUserID(const FString& InSimultaneousPlatformUserID)
+{
+	SimultaneousPlatformUserId = InSimultaneousPlatformUserID;
+}
+
 bool FUserOnlineAccountAccelByte::GetUserAttribute(const FString& AttrName, FString& OutAttrValue) const
 {
 	const FString* FoundAttr = UserAttributes.Find(AttrName);

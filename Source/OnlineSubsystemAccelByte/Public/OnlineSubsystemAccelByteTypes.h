@@ -997,6 +997,34 @@ public:
 	void SetPlatformUserId(const FString& InPlatformUserId);
 
 	/**
+	 * @brief Get Simultaneous Platform ID from AccelByte services
+	 *
+	 * @return The user's Simultaneous Platform ID
+	 */
+	FString GetSimultaneousPlatformID() const;
+
+	/**
+	 * @brief Set Simultaneous Platform ID, set on OnLoginSuccess Handler 
+	 *
+	 * @param InSimultaneousPlatformID The Simultaneous Platform ID
+	 */
+	void SetSimultaneousPlatformID(const FString& InSimultaneousPlatformID);
+
+	/**
+	* @brief Get Simultaneous Platform User ID from AccelByte services
+	*
+	* @return The user's Simultaneous Platform User ID
+	*/
+	FString GetSimultaneousPlatformUserID() const;
+
+	/**
+	* @brief Set Simultaneous Platform User ID, set on OnLoginSuccess Handler 
+	*
+	* @param InSimultaneousPlatformUserID The Simultaneous Platform User ID
+	*/
+	void SetSimultaneousPlatformUserID(const FString& InSimultaneousPlatformUserID);
+
+	/**
 	 * @brief A flag that indicates whether the user is connected to AccelByte Lobby or not
 	 *
 	 * @return bool Return connected status, true for connected and false for not connected
@@ -1063,6 +1091,12 @@ private:
 
 	/** Platform User ID associated with this account */
 	FString PlatformUserId;
+
+	/** Simultaneous Platform ID associated with this account */
+	FString SimultaneousPlatformId;
+
+	/** Simultaneous Platform User ID associated with this account */
+	FString SimultaneousPlatformUserId;
 
 	/** User country that associated with this account */
 	FString UserCountry;
