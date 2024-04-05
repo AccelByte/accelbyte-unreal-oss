@@ -748,7 +748,6 @@ bool FOnlineIdentityAccelByte::ConnectAccelByteLobby(int32 LocalUserNum)
 		}
 		else
 		{
-
 			AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteConnectLobby>(AccelByteSubsystemPtr.Get(), *GetUniquePlayerId(LocalUserNum).Get());
 			AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Dispatching async task to attempt to connect lobby!"));
 			return true;

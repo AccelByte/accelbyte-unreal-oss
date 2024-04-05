@@ -193,7 +193,10 @@ FUniqueNetIdAccelByteResourceRef FUniqueNetIdAccelByteResource::CastChecked(FUni
 
 FUniqueNetIdAccelByteResourceRef FUniqueNetIdAccelByteResource::CastChecked(FUniqueNetIdRef const& InNetIdRef)
 {
-	check(InNetIdRef->GetType() == ACCELBYTE_RESOURCE_ID_TYPE);
+	if (InNetIdRef->GetType() != ACCELBYTE_RESOURCE_ID_TYPE)
+	{
+		return Invalid();
+	};
 	return StaticCastSharedRef<const FUniqueNetIdAccelByteResource>(InNetIdRef);
 }
 
@@ -349,7 +352,10 @@ FUniqueNetIdAccelByteUserRef FUniqueNetIdAccelByteUser::CastChecked(FUniqueNetId
 
 FUniqueNetIdAccelByteUserRef FUniqueNetIdAccelByteUser::CastChecked(FUniqueNetIdRef const& InNetIdRef)
 {
-	check(InNetIdRef->GetType() == ACCELBYTE_USER_ID_TYPE);
+	if (InNetIdRef->GetType() != ACCELBYTE_USER_ID_TYPE) 
+	{ 
+		return Invalid();
+	}
 	return StaticCastSharedRef<FUniqueNetIdAccelByteUser const>(InNetIdRef);
 }
 

@@ -56,37 +56,7 @@ void FOnlineAsyncTaskAccelByteQueryOfferBySku::TriggerDelegates()
 void FOnlineAsyncTaskAccelByteQueryOfferBySku::HandleGetItemBySku(const FAccelByteModelsItemInfo& Result)
 {
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Get Success"));
-	Offer->OfferId = Result.ItemId;
-	Offer->NumericPrice = Result.RegionData[0].DiscountedPrice;
-	Offer->RegularPrice = Result.RegionData[0].Price;
-	Offer->CurrencyCode = Result.RegionData[0].CurrencyCode;
-	Offer->Title = FText::FromString(Result.Title);
-	Offer->RegionData = Result.RegionData;
-	Offer->Language = Result.Language;
-	Offer->Sku = Result.Sku;
-	Offer->Flexible = Result.Flexible;
-	Offer->Sellable = Result.Sellable;
-	Offer->Stackable = Result.Stackable;
-	Offer->Purchasable = Result.Purchasable;
-	Offer->Listable = Result.Listable;
-	Offer->SectionExclusive = Result.SectionExclusive;
-	Offer->SaleConfig = Result.SaleConfig;
-	Offer->LootBoxConfig = Result.LootBoxConfig;
-	Offer->OptionBoxConfig = Result.OptionBoxConfig;
-	if (Result.Images.Num() > 0)
-	{
-		Offer->DynamicFields.Add(TEXT("IconUrl"), Result.Images[0].ImageUrl);
-	}
-	Offer->DynamicFields.Add(TEXT("Region"), Result.Region);
-	Offer->DynamicFields.Add(TEXT("IsConsumable"), Result.EntitlementType == EAccelByteEntitlementType::CONSUMABLE ? TEXT("true") : TEXT("false"));
-	Offer->DynamicFields.Add(TEXT("Category"), Result.CategoryPath);
-	Offer->DynamicFields.Add(TEXT("Name"), Result.Name);
-	Offer->DynamicFields.Add(TEXT("ItemType"), FAccelByteUtilities::GetUEnumValueAsString(Result.ItemType));
-	Offer->DynamicFields.Add(TEXT("Sku"), Result.Sku);
-	if (Result.ItemType == EAccelByteItemType::COINS)
-	{
-		Offer->DynamicFields.Add(TEXT("TargetCurrencyCode"), Result.TargetCurrencyCode);
-	}
+	Offer->SetItem(Result);
 	CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }

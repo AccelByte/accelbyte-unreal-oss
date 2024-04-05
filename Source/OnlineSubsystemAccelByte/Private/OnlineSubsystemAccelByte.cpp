@@ -41,6 +41,7 @@
 #include "Models/AccelByteLobbyModels.h"
 #include "AccelByteUe4SdkModule.h"
 //~ End AccelByte Peer to Peer Includes
+#include "Core/AccelByteEntitlementTokenGenerator.h"
 #include "Interfaces/IPluginManager.h"
 
 #if WITH_DEV_AUTOMATION_TESTS

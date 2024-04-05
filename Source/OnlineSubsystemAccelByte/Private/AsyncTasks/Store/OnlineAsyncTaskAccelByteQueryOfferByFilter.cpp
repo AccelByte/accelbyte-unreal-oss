@@ -171,38 +171,8 @@ void FOnlineAsyncTaskAccelByteQueryOfferByFilter::FilterAndAddResults(const FAcc
 		}
 		
 		FOnlineStoreOfferAccelByteRef Offer = MakeShared<FOnlineStoreOfferAccelByte>();
-		Offer->OfferId = Item.ItemId;
-		Offer->NumericPrice = Item.RegionData[0].DiscountedPrice;
-		Offer->RegularPrice = Item.RegionData[0].Price;
-		Offer->CurrencyCode = Item.RegionData[0].CurrencyCode;
-		Offer->Title = FText::FromString(Item.Title);
-		Offer->RegionData = Item.RegionData;
-		Offer->Language = Item.Language;
-		Offer->Sku = Item.Sku;
-		Offer->Flexible = Item.Flexible;
-		Offer->Sellable = Item.Sellable;
-		Offer->Stackable = Item.Stackable;
-		Offer->Purchasable = Item.Purchasable;
-		Offer->Listable = Item.Listable;
-		Offer->SectionExclusive = Item.SectionExclusive;
-		Offer->SaleConfig = Item.SaleConfig;
-		Offer->LootBoxConfig = Item.LootBoxConfig;
-		Offer->OptionBoxConfig = Item.OptionBoxConfig;
-		if(Item.Images.Num() > 0)
-		{
-			Offer->DynamicFields.Add(TEXT("IconUrl"), Item.Images[0].ImageUrl);
-		}
-		Offer->DynamicFields.Add(TEXT("Region"), Item.Region);
-		Offer->DynamicFields.Add(TEXT("IsConsumable"), Item.EntitlementType == EAccelByteEntitlementType::CONSUMABLE ? TEXT("true") : TEXT("false"));
-		Offer->DynamicFields.Add(TEXT("Category"), Item.CategoryPath);
-		Offer->DynamicFields.Add(TEXT("Name"), Item.Name);
-		Offer->DynamicFields.Add(TEXT("ItemType"), FAccelByteUtilities::GetUEnumValueAsString(Item.ItemType));
-		Offer->DynamicFields.Add(TEXT("Sku"), Item.Sku);
-		if (Item.ItemType == EAccelByteItemType::COINS)
-		{
-			Offer->DynamicFields.Add(TEXT("TargetCurrencyCode"), Item.TargetCurrencyCode);
-		}
-		Offer->Ext = *Item.Ext.JsonObject;
+		Offer->SetItem(Item);
+
 		OfferMap.Add(Offer->OfferId, Offer);
 	}
 }

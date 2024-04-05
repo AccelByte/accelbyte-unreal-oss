@@ -14,6 +14,7 @@
 #include "OnlineSessionInterfaceV1AccelByte.h"
 #endif
 #include "OnlinePredefinedEventInterfaceAccelByte.h"
+#include "Core/AccelByteEntitlementTokenGenerator.h"
 
 using namespace AccelByte;
 
@@ -57,6 +58,7 @@ void FOnlineAsyncTaskAccelByteConnectLobby::Initialize()
 	// Send off a request to connect to the lobby websocket, as well as connect our delegates for doing so
 	ApiClient->Lobby.SetConnectSuccessDelegate(OnLobbyConnectSuccessDelegate);
 	ApiClient->Lobby.SetConnectFailedDelegate(OnLobbyConnectErrorDelegate);
+	ApiClient->Lobby.SetTokenGenerator(CreateTokenGenerator());
 	ApiClient->Lobby.Connect();
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
@@ -193,6 +195,25 @@ void FOnlineAsyncTaskAccelByteConnectLobby::UnbindDelegates()
 	OnLobbyConnectSuccessDelegate.Unbind();
 	OnLobbyConnectErrorDelegate.Unbind();
 	OnLobbyDisconnectedNotifDelegate.Unbind();
+}
+
+TSharedPtr<IAccelByteTokenGenerator> FOnlineAsyncTaskAccelByteConnectLobby::CreateTokenGenerator()
+{
+	// Check if game is using entitlement gate feature
+	bool bEnableEntitlementGateCheck{false};
+	FAccelByteUtilities::LoadABConfigFallback(TEXT("OnlineSubsystemAccelByte"), TEXT("bEnableEntitlementGateCheck"), bEnableEntitlementGateCheck, GEngineIni);
+	if (!bEnableEntitlementGateCheck)
+	{
+		return nullptr;
+	}
+
+	AccelByte::FTokenGeneratorParams Params{};
+
+	GConfig->GetArray(TEXT("OnlineSubsystemAccelByte"), TEXT("EntitlementGateCheckSkus"), Params.Skus, GEngineIni);
+	GConfig->GetArray(TEXT("OnlineSubsystemAccelByte"), TEXT("EntitlementGateCheckItemIds"), Params.ItemIds, GEngineIni);
+	GConfig->GetArray(TEXT("OnlineSubsystemAccelByte"), TEXT("EntitlementGateCheckAppIds"), Params.AppIds, GEngineIni);
+
+	return MakeShared<AccelByte::FAccelByteEntitlementTokenGenerator>(Params, ApiClient);
 }
 
 #undef ONLINE_ERROR_NAMESPACE

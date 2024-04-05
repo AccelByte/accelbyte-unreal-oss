@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.12.9](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.12.9%0D0.12.8) (2024-04-05)
+
+
+### Features
+
+* **ecommerce:** add query active sections and store front ([fbbdc5d](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/fbbdc5dd20952056c378dd61c1a59a3e25655ec5))
+* **lobby:** add entitlement token generation and check to lobby connection ([79888e8](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/79888e883536b32f2aec1bc0b36c0ed0c4caa3a3))
+
+
+### Bug Fixes
+
+* **cast:** fix unique net cast check for non AB ([5ff056b](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/5ff056bfa8276c17990856032c3579ca56c02769))
+* **cast:** fix unique net cast check for non AB ([8d6290c](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/8d6290cf2fd1b7882ac9ba85a6512a163aa0d7c6))
+* **chore:** update submodule ([9e9ace3](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/9e9ace3635608a4b7dbc987de4ac36c66cabcd8b))
+* **lobby:** fix compile issue both windows and linux ([e7a4d88](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/e7a4d881a82ec373450e3e233071e71bc53be8b0))
+* **session:** update party member setting with a correct session setting pointer ([34fbf86](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/34fbf86d1cef869a65fdfbbc17f5e80f0551b821))
+
 ### [0.12.8](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.12.8%0D0.12.7) (2024-03-28)
 
 

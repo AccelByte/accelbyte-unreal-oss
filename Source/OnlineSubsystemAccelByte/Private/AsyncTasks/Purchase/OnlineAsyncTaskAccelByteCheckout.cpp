@@ -1,5 +1,8 @@
-﻿#include "OnlineAsyncTaskAccelByteCheckout.h"
+﻿// Copyright (c) 2024 AccelByte Inc. All Rights Reserved.
+// This is licensed software from AccelByte Inc, for limitations
+// and restrictions contact your company contract manager.
 
+#include "OnlineAsyncTaskAccelByteCheckout.h"
 #include "OnlinePurchaseInterfaceAccelByte.h"
 #include "OnlinePredefinedEventInterfaceAccelByte.h"
 #include "OnlineError.h"
@@ -38,8 +41,15 @@ void FOnlineAsyncTaskAccelByteCheckout::Initialize()
 		CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
 		return;
 	}
-	
-	TSharedPtr<FOnlineStoreOffer> Offer = Subsystem->GetStoreV2Interface()->GetOffer(CheckoutRequest.PurchaseOffers[0].OfferId);
+
+	const TSharedPtr<FOnlineStoreOffer> Offer = Subsystem->GetStoreV2Interface()->GetOffer(CheckoutRequest.PurchaseOffers[0].OfferId);
+	if (!Offer.IsValid())
+	{
+		ErrorMessage = FText::FromString("Could not find Offer by ID! ");
+		AB_OSS_ASYNC_TASK_TRACE_BEGIN_VERBOSITY(Error, TEXT("Could not find Offer by ID! "));
+		CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
+		return;
+	}
 
 	FAccelByteModelsOrderCreate OrderRequest;
 	OrderRequest.Language = Language;
@@ -52,7 +62,12 @@ void FOnlineAsyncTaskAccelByteCheckout::Initialize()
 	{
 		OrderRequest.Region = *Region;
 	}
-	
+
+	if (!CheckoutRequest.PurchaseOffers[0].OfferNamespace.IsEmpty())
+	{
+		OrderRequest.SectionId = CheckoutRequest.PurchaseOffers[0].OfferNamespace;
+	}
+
 	THandler<FAccelByteModelsOrderInfo> OnSuccess = TDelegateUtils<THandler<FAccelByteModelsOrderInfo>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteCheckout::HandleCheckoutComplete);
 	FErrorHandler OnError = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteCheckout::HandleAsyncTaskError);
 	ApiClient->Order.CreateNewOrder(OrderRequest, OnSuccess, OnError);

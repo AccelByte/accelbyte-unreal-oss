@@ -2518,9 +2518,8 @@ bool FOnlineSessionV2AccelByte::ReadSessionSettingsFromSessionModel(FOnlineSessi
 					FUniqueNetIdAccelByteUserRef MemberUniqueId = FUniqueNetIdAccelByteUser::Create(MemberCompositeId);
 
 					// Populate settings from the backend into the found member settings for the player
-					TSharedPtr<FSessionSettings> FoundMemberSettings;
-					bool bSettingsFound = FindPlayerMemberSettings(OutSettings, MemberUniqueId.Get(), FoundMemberSettings);
-					if (ensureAlways(bSettingsFound))
+					FSessionSettings* FoundMemberSettings = OutSettings.MemberSettings.Find(MemberUniqueId);
+					if (ensureAlways(FoundMemberSettings != nullptr))
 					{
 						ReadMemberSettingsFromJsonObject(*FoundMemberSettings, (*JsonObjectValue).ToSharedRef());
 					}

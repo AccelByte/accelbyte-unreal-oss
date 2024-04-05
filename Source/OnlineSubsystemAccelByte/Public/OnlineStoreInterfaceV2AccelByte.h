@@ -7,6 +7,7 @@
 #include "Interfaces/OnlineStoreInterfaceV2.h"
 #include "Models/AccelByteEcommerceModels.h" 
 #include "OnlineSubsystemAccelByteTypes.h"
+#include "Models/AccelByteEcommerceModels.h"
 #include "OnlineError.h"
 #include "OnlineSubsystemAccelBytePackage.h"
 
@@ -19,7 +20,11 @@ DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnGetEstimatedPriceComplete, bool /*bWas
 typedef FOnGetEstimatedPriceComplete::FDelegate FOnGetEstimatedPriceCompleteDelegate;
 
 DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnGetItemsByCriteriaComplete, bool /*bWasSuccessful*/, const FAccelByteModelsItemPagingSlicedResult& /* Result */, const FOnlineErrorAccelByte& /*Error*/);
-typedef FOnGetItemsByCriteriaComplete::FDelegate FOnGetItemsByCriteriaCompleteDelegate; 
+typedef FOnGetItemsByCriteriaComplete::FDelegate FOnGetItemsByCriteriaCompleteDelegate;
+
+DECLARE_DELEGATE_FourParams(FOnQueryActiveSectionsComplete, bool /*bWasSuccessful*/, const TArray<FString>& /* SectionIds */, const TArray<FUniqueOfferId>& /*OfferIds*/, const FString& /*Error*/);
+
+DECLARE_DELEGATE_SixParams(FOnQueryStorefrontComplete, bool /*bWasSuccessful*/, const TArray<FString>& /* ViewIds */, const TArray<FString>& /* SectionIds */, const TArray<FUniqueOfferId>& /*OfferIds*/, const TArray<FString>& /* ItemMappingIds */, const FString& /*Error*/);
 
 /**
  * AccelByte's Offer entry for display from online store
@@ -116,10 +121,51 @@ public:
 	FAccelByteModelsItemLootBoxConfig LootBoxConfig{};
 
 	/** Option Box configuration of the Offer */
-	FAccelByteModelItemOptionBoxConfig OptionBoxConfig{};	
+	FAccelByteModelItemOptionBoxConfig OptionBoxConfig{};
 
 	/** Customized offer properties **/
 	FJsonObject Ext{};
+
+	void SetItem(const FAccelByteModelsItemInfo& Item)
+	{
+		OfferId = Item.ItemId;
+		NumericPrice = Item.RegionData[0].DiscountedPrice;
+		RegularPrice = Item.RegionData[0].Price;
+		CurrencyCode = Item.RegionData[0].CurrencyCode;
+		if (Item.RegionData[0].CurrencyType == EAccelByteItemCurrencyType::VIRTUAL)
+		{
+			PriceText = FText::Format(FTextFormat::FromString("{0} {1}"), FText::AsNumber(Item.RegionData[0].DiscountedPrice), FText::FromString(Item.RegionData[0].CurrencyCode));
+			RegularPriceText = FText::Format(FTextFormat::FromString("{0} {1}"), FText::AsNumber(Item.RegionData[0].Price), FText::FromString(Item.RegionData[0].CurrencyCode));
+		}
+		Title = FText::FromString(Item.Title);
+		RegionData = Item.RegionData;
+		Language = Item.Language;
+		Sku = Item.Sku;
+		Flexible = Item.Flexible;
+		Sellable = Item.Sellable;
+		Stackable = Item.Stackable;
+		Purchasable = Item.Purchasable;
+		Listable = Item.Listable;
+		SectionExclusive = Item.SectionExclusive;
+		SaleConfig = Item.SaleConfig;
+		LootBoxConfig = Item.LootBoxConfig;
+		OptionBoxConfig = Item.OptionBoxConfig;
+		if (Item.Images.Num() > 0)
+		{
+			DynamicFields.Add(TEXT("IconUrl"), Item.Images[0].ImageUrl);
+		}
+		DynamicFields.Add(TEXT("Region"), Item.Region);
+		DynamicFields.Add(TEXT("IsConsumable"), Item.EntitlementType == EAccelByteEntitlementType::CONSUMABLE ? TEXT("true") : TEXT("false"));
+		DynamicFields.Add(TEXT("Category"), Item.CategoryPath);
+		DynamicFields.Add(TEXT("Name"), Item.Name);
+		DynamicFields.Add(TEXT("ItemType"), FAccelByteUtilities::GetUEnumValueAsString(Item.ItemType));
+		DynamicFields.Add(TEXT("Sku"), Item.Sku);
+		if (Item.ItemType == EAccelByteItemType::COINS)
+		{
+			DynamicFields.Add(TEXT("TargetCurrencyCode"), Item.TargetCurrencyCode);
+		}
+		Ext = *Item.Ext.JsonObject;
+	}
 };
 typedef TSharedRef<FOnlineStoreOfferAccelByte> FOnlineStoreOfferAccelByteRef;
 
@@ -146,6 +192,19 @@ PACKAGE_SCOPE:
 
 	int32 GetServiceLabel();
 	void SetServiceLabel(int32 InServiceLabel);
+
+	virtual void EmplaceSections(const FUniqueNetId& UserId, const TMap<FString, TSharedRef<FAccelByteModelsSectionInfo, ESPMode::ThreadSafe>>& InSections);
+	virtual void EmplaceOffersBySection(const FUniqueNetId& UserId, const TMultiMap<FString, FOnlineStoreOfferAccelByteRef> InOffersBySection);
+	/** Critical sections for thread safe operation of Sections */
+	mutable FCriticalSection SectionsLock;
+
+	virtual void EmplaceDisplays(const TMap<FString, TSharedRef<FAccelByteModelsViewInfo, ESPMode::ThreadSafe>>& InDisplays);
+	virtual void EmplaceItemMappings(const TMap<FString, TSharedRef<FAccelByteModelsItemMapping, ESPMode::ThreadSafe>>& InMappings);
+	/** Critical sections for thread safe operation of Displays */
+	mutable FCriticalSection DisplayLock;
+	/** Critical sections for thread safe operation of ItemMappings */
+	mutable FCriticalSection ItemMappingLock;
+
 public:
 	/**
 	 * Convenience method to get an instance of this interface from the subsystem passed in.
@@ -219,13 +278,79 @@ public:
 		TArray<EAccelByteItemListSortBy> SortBy = {},
 		FString const& StoreId = TEXT(""),
 		bool AutoCalcEstimatedPrice = false);
-	
+
+	/**
+	 * @bried Get cached store displays.
+	 *
+	 * @param OutDisplays Output of cached store displays.
+	 */
+	virtual void GetDisplays(TArray<TSharedRef<FAccelByteModelsViewInfo, ESPMode::ThreadSafe>>& OutDisplays);
+
+	/**
+	 * @brief Get cached store section from specified display id.
+	 *
+	 * @param UserId The UniqueNetId of current user.
+	 * @param DisplayId The display id for cached sections.
+	 * @param OutSections Output of cached store sections.
+	 */
+	virtual void GetSectionsForDisplay(const FUniqueNetId& UserId, const FString& DisplayId, TArray<TSharedRef<FAccelByteModelsSectionInfo, ESPMode::ThreadSafe>>& OutSections);
+
+	/**
+	 * @brief Get cached offers from specified section id.
+	 *
+	 * @param UserId The UniqueNetId of current user.
+	 * @param SectionId The section id for cached offers.
+	 * @param OutOffers Output of cached offers.
+	 */
+	virtual void GetOffersForSection(const FUniqueNetId& UserId, const FString& SectionId, TArray<FOnlineStoreOfferAccelByteRef>& OutOffers);
+
+	/**
+	 * @brief Get cached other platform store item mappings.
+	 *
+	 * @param OutMappings Output of cached platform store mappings.
+	 */
+	virtual void GetItemMappings(TArray<TSharedRef<FAccelByteModelsItemMapping, ESPMode::ThreadSafe>>& OutMappings);
+
+	/**
+	 * @brief Query the store active sections based on store id, view id and region.
+	 *
+	 * @param UserId The UniqueNetId of current user.
+	 * @param StoreId The store id, for default store use empty string.
+	 * @param ViewId The view id, for default store use empty string.
+	 * @param Region The region, for default store use empty string.
+	 * @param Delegate This delegate will be called after query completed.
+	 */
+	virtual void QueryActiveSections(const FUniqueNetId& UserId, const FString& StoreId, const FString& ViewId, const FString& Region, const FOnQueryActiveSectionsComplete& Delegate);
+
+	/**
+	 * @brief Query store front based on store id, view id, region and platform.
+	 *
+	 * @param UserId The UniqueNetId of current user.
+	 * @param StoreId The store id, for default store use empty string.
+	 * @param ViewId The view id, for default store use empty string.
+	 * @param Region The region, for default store use empty string.
+	 * @param Platform The platform of third party store.
+	 * @param Delegate This delegate will be called after query completed.
+	 */
+	virtual void QueryStorefront(const FUniqueNetId& UserId, const FString& StoreId, const FString& ViewId, const FString& Region, const EAccelBytePlatformMapping& Platform, const FOnQueryStorefrontComplete& Delegate);
+
 protected:
 	/** Instance of the subsystem that created this interface */
 	FOnlineSubsystemAccelByte* AccelByteSubsystem = nullptr;
 	TMap<FUniqueCategoryId, FOnlineStoreCategory> StoreCategories; 
 	TMap<FUniqueOfferId, FOnlineStoreOfferAccelByteRef> StoreOffers;
 	FUserIDToDynamicDataMap OffersDynamicData;
+
+	struct FPlayerStorefrontData
+	{
+		TMap<FString, TSharedRef<FAccelByteModelsSectionInfo, ESPMode::ThreadSafe>> Sections{};
+		TMultiMap<FString, TSharedRef<FAccelByteModelsSectionInfo, ESPMode::ThreadSafe>> SectionsByDisplay{};
+		TMultiMap<FString, FOnlineStoreOfferAccelByteRef> OffersBySection{};
+	};
+
+	TMap<TSharedRef<const FUniqueNetIdAccelByteUser>, FPlayerStorefrontData> StorefrontData;
+	TMap<FString, TSharedRef<FAccelByteModelsViewInfo, ESPMode::ThreadSafe>> Displays;
+	TMap<FString, TSharedRef<FAccelByteModelsItemMapping, ESPMode::ThreadSafe>> ItemMappings;
 
 private:
 	int32 ServiceLabel;

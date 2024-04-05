@@ -55,6 +55,11 @@ private:
 	void UnbindDelegates();
 
 	/**
+	 * Create a new token generator for this lobby connection based on configuration values.
+	 */
+	TSharedPtr<AccelByte::IAccelByteTokenGenerator> CreateTokenGenerator();
+
+	/**
 	 * String representing the error code that occurredx
 	 */
 	FString ErrorStr;

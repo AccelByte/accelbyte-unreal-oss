@@ -11,6 +11,8 @@
 #include "AsyncTasks/Store/OnlineAsyncTaskAccelByteQueryOfferDynamicData.h"
 #include "AsyncTasks/Store/OnlineAsyncTaskAccelByteGetEstimatedPrice.h"
 #include "AsyncTasks/Store/OnlineAsyncTaskAccelByteGetItemByCriteria.h" 
+#include "AsyncTasks/Store/OnlineAsyncTaskAccelByteQueryActiveSections.h"
+#include "AsyncTasks/Store/OnlineAsyncTaskAccelByteQueryStorefront.h"
 #include "OnlineSubsystemUtils.h"
 
 FOnlineStoreV2AccelByte::FOnlineStoreV2AccelByte(FOnlineSubsystemAccelByte* InSubsystem) 
@@ -273,4 +275,91 @@ void FOnlineStoreV2AccelByte::GetItemsByCriteria(const FUniqueNetId& UserId,
 	bool AutoCalcEstimatedPrice)
 {
 	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGetItemByCriteria>(AccelByteSubsystem, UserId, ItemCriteria, Offset, Limit, SortBy, StoreId, AutoCalcEstimatedPrice);
+}
+
+void FOnlineStoreV2AccelByte::EmplaceSections(const FUniqueNetId& UserId, const TMap<FString, TSharedRef<FAccelByteModelsSectionInfo, ESPMode::ThreadSafe>>& InSections)
+{
+	const TSharedRef<const FUniqueNetIdAccelByteUser> SharedUserId = FUniqueNetIdAccelByteUser::CastChecked(UserId);
+	FScopeLock ScopeLock(&SectionsLock);
+	FPlayerStorefrontData& PlayerStorefrontData = StorefrontData.FindOrAdd(SharedUserId);
+	PlayerStorefrontData.SectionsByDisplay.Reset();
+	for (const TTuple<FString, TSharedRef<FAccelByteModelsSectionInfo, ESPMode::ThreadSafe>>& Section : InSections)
+	{
+		PlayerStorefrontData.Sections.Emplace(Section.Key, Section.Value);
+		PlayerStorefrontData.SectionsByDisplay.EmplaceUnique(Section.Value->ViewId, Section.Value);
+	}
+}
+
+void FOnlineStoreV2AccelByte::EmplaceOffersBySection(const FUniqueNetId& UserId, const TMultiMap<FString, FOnlineStoreOfferAccelByteRef> InOffersBySection)
+{
+	const TSharedRef<const FUniqueNetIdAccelByteUser> SharedUserId = FUniqueNetIdAccelByteUser::CastChecked(UserId);
+	FScopeLock ScopeLock(&SectionsLock);
+	FPlayerStorefrontData& PlayerStorefrontData = StorefrontData.FindOrAdd(SharedUserId);
+	PlayerStorefrontData.OffersBySection.Reset();
+	for (const TTuple<FString, FOnlineStoreOfferAccelByteRef>& Offers : InOffersBySection)
+	{
+		PlayerStorefrontData.OffersBySection.EmplaceUnique(Offers.Key, Offers.Value);
+	}
+}
+
+void FOnlineStoreV2AccelByte::EmplaceDisplays(const TMap<FString, TSharedRef<FAccelByteModelsViewInfo, ESPMode::ThreadSafe>>& InDisplays)
+{
+	FScopeLock ScopeLock(&DisplayLock);
+	for (const TTuple<FString, TSharedRef<FAccelByteModelsViewInfo, ESPMode::ThreadSafe>>& DisplayEntry : InDisplays)
+	{
+		Displays.Emplace(DisplayEntry.Key, DisplayEntry.Value);
+	}
+}
+
+void FOnlineStoreV2AccelByte::EmplaceItemMappings(const TMap<FString, TSharedRef<FAccelByteModelsItemMapping, ESPMode::ThreadSafe>>& InMappings)
+{
+	FScopeLock ScopeLock(&ItemMappingLock);
+	for (const TTuple<FString,TSharedRef<FAccelByteModelsItemMapping, ESPMode::ThreadSafe>>& MappingEntry : InMappings)
+	{
+		ItemMappings.Emplace(MappingEntry.Key, MappingEntry.Value);
+	}
+}
+
+void FOnlineStoreV2AccelByte::GetDisplays(TArray<TSharedRef<FAccelByteModelsViewInfo, ESPMode::ThreadSafe>>& OutDisplays)
+{
+	FScopeLock ScopeLock(&DisplayLock);
+	Displays.GenerateValueArray(OutDisplays);
+}
+
+void FOnlineStoreV2AccelByte::GetSectionsForDisplay(const FUniqueNetId& UserId, const FString& DisplayId, TArray<TSharedRef<FAccelByteModelsSectionInfo, ESPMode::ThreadSafe>>& OutSections)
+{
+	const TSharedRef<const FUniqueNetIdAccelByteUser> SharedUserId = FUniqueNetIdAccelByteUser::CastChecked(UserId);
+	FScopeLock ScopeLock(&SectionsLock);
+	FPlayerStorefrontData* PlayerStorefrontData = StorefrontData.Find(SharedUserId);
+	if (PlayerStorefrontData)
+	{
+		PlayerStorefrontData->SectionsByDisplay.MultiFind(DisplayId, OutSections);
+	}
+}
+
+void FOnlineStoreV2AccelByte::GetOffersForSection(const FUniqueNetId& UserId, const FString& SectionId, TArray<FOnlineStoreOfferAccelByteRef>& OutOffers)
+{
+	const TSharedRef<const FUniqueNetIdAccelByteUser> SharedUserId = FUniqueNetIdAccelByteUser::CastChecked(UserId);
+	FScopeLock ScopeLock(&SectionsLock);
+	FPlayerStorefrontData* PlayerStorefrontData = StorefrontData.Find(SharedUserId);
+	if (PlayerStorefrontData)
+	{
+		PlayerStorefrontData->OffersBySection.MultiFind(SectionId, OutOffers);
+	}
+}
+
+void FOnlineStoreV2AccelByte::GetItemMappings(TArray<TSharedRef<FAccelByteModelsItemMapping, ESPMode::ThreadSafe>>& OutMappings)
+{
+	FScopeLock ScopeLock(&ItemMappingLock);
+	ItemMappings.GenerateValueArray(OutMappings);
+}
+
+void FOnlineStoreV2AccelByte::QueryActiveSections(const FUniqueNetId& UserId, const FString& StoreId, const FString& ViewId, const FString& Region, const FOnQueryActiveSectionsComplete& Delegate)
+{
+	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteQueryActiveSections>(AccelByteSubsystem, UserId, StoreId, ViewId, Region, Delegate);
+}
+
+void FOnlineStoreV2AccelByte::QueryStorefront(const FUniqueNetId& UserId, const FString& StoreId, const FString& ViewId, const FString& Region, const EAccelBytePlatformMapping& Platform, const FOnQueryStorefrontComplete& Delegate)
+{
+	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteQueryStorefront>(AccelByteSubsystem, UserId, StoreId, ViewId, Region, Platform, Delegate);
 }
