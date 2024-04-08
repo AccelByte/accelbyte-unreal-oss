@@ -34,15 +34,30 @@ FOnlineAsyncTaskAccelByteLogin::FOnlineAsyncTaskAccelByteLogin(FOnlineSubsystemA
 	, const FOnlineAccountCredentials& InAccountCredentials
 	, bool bInCreateHeadlessAccount)
 	: FOnlineAsyncTaskAccelByte(InABSubsystem)
-#if (PLATFORM_WINDOWS || PLATFORM_LINUX || PLATFORM_MAC) && !UE_SERVER
-	, OnGetAuthSessionTicketResponseCallback(this, &FOnlineAsyncTaskAccelByteLogin::OnGetAuthSessionTicketResponse)
-#endif
 	, LoginUserNum(InLocalUserNum)
 	, AccountCredentials(InAccountCredentials)
 	, bCreateHeadlessAccount(bInCreateHeadlessAccount)
 {
 	LocalUserNum = INVALID_CONTROLLERID;
 }
+
+#if defined(STEAM_SDK_VER) && !UE_SERVER
+FOnlineAsyncTaskAccelByteLogin::FAccelByteSteamAuthCallback::FAccelByteSteamAuthCallback(const TDelegate<void(GetAuthSessionTicketResponse_t*)>& InDelegate)
+	: OnGetAuthSessionTicketResponseCallback(this, &FAccelByteSteamAuthCallback::OnGetAuthSessionTicketResponse)
+	, Delegate(InDelegate)
+{}
+
+FOnlineAsyncTaskAccelByteLogin::FAccelByteSteamAuthCallback::~FAccelByteSteamAuthCallback()
+{
+	Delegate.Unbind();
+	OnGetAuthSessionTicketResponseCallback.Unregister();
+}
+
+void FOnlineAsyncTaskAccelByteLogin::FAccelByteSteamAuthCallback::OnGetAuthSessionTicketResponse(GetAuthSessionTicketResponse_t* CallBackParam)
+{
+	Delegate.ExecuteIfBound(CallBackParam);
+}
+#endif
 
 void FOnlineAsyncTaskAccelByteLogin::Initialize()
 {
@@ -353,6 +368,13 @@ void FOnlineAsyncTaskAccelByteLogin::OnNativeLoginComplete(int32 NativeLocalUser
 	// Store the unique ID of the user that we are authenticating with
 	NativePlatformPlayerId = NativeUserId.AsShared();
 
+#if defined(STEAM_SDK_VER) && !UE_SERVER
+	if (NativeSubsystem->GetSubsystemName().ToString().Equals(TEXT("STEAM"), ESearchCase::IgnoreCase))
+	{
+		SteamAuthCallback = MakeShared<FAccelByteSteamAuthCallback>(TDelegateUtils<TDelegate<void(GetAuthSessionTicketResponse_t*)>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteLogin::OnGetAuthSessionTicketResponse));
+	}
+#endif
+
 	// Construct credentials for the login type from the native subsystem, complete with the type set correctly to its name
 	NativePlatformCredentials.Type = LoginTypeEnum->GetNameStringByValue(static_cast<int64>(LoginType));
 	NativePlatformCredentials.Token = FGenericPlatformHttp::UrlEncode(NativeIdentityInterface->GetAuthToken(LoginUserNum));
@@ -378,15 +400,17 @@ void FOnlineAsyncTaskAccelByteLogin::OnNativeLoginComplete(int32 NativeLocalUser
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sending login request to AccelByte backend for native user!"));
 }
 
-#if (PLATFORM_WINDOWS || PLATFORM_LINUX || PLATFORM_MAC) && !UE_SERVER
+#if defined(STEAM_SDK_VER) && !UE_SERVER
 void FOnlineAsyncTaskAccelByteLogin::OnGetAuthSessionTicketResponse(GetAuthSessionTicketResponse_t* CallBackParam)
 {
 	UE_LOG_AB(Log, TEXT("Get Auth Session Ticket Response, Result %d"), CallBackParam->m_eResult);
-	if (!bLoginPerformed)
+	if (!bLoginPerformed && SteamAuthCallback.IsValid())
 	{
 		TimerObject.Stop();
 		PerformLogin(NativePlatformCredentials);
 		bLoginPerformed = true;
+	
+		SteamAuthCallback.Reset();
 	}
 }
 #endif
@@ -395,84 +419,94 @@ void FOnlineAsyncTaskAccelByteLogin::PerformLogin(const FOnlineAccountCredential
 {
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("LoginType: %s"), *Credentials.Type);
 
-	const AccelByte::FVoidHandler OnLoginSuccessDelegate = TDelegateUtils<AccelByte::FVoidHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteLogin::OnLoginSuccess);
-	const AccelByte::FOAuthErrorHandler OnLoginErrorOAuthDelegate = TDelegateUtils<AccelByte::FOAuthErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteLogin::OnLoginErrorOAuth);
-	switch (LoginType)
+	if (ApiClient.IsValid())
 	{
-	case EAccelByteLoginType::DeviceId:
-		ApiClient->User.LoginWithDeviceId(OnLoginSuccessDelegate, OnLoginErrorOAuthDelegate, bCreateHeadlessAccount);
-		AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sending async task to login with Device ID."));
-		PlatformId = FAccelByteUtilities::GetUEnumValueAsString(EAccelBytePlatformType::Device);
-		break;
-	case EAccelByteLoginType::AccelByte:
-		ApiClient->User.LoginWithUsernameV3(Credentials.Id, Credentials.Token, OnLoginSuccessDelegate, OnLoginErrorOAuthDelegate);
-		AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sending async task to login with AccelByte credentials."));
-		break;
-	case EAccelByteLoginType::Xbox:
-		ApiClient->User.LoginWithOtherPlatform(EAccelBytePlatformType::Live, Credentials.Token, OnLoginSuccessDelegate, OnLoginErrorOAuthDelegate, bCreateHeadlessAccount);
-		AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sending async task to login with XSTS token from native online subsystem."));
-		PlatformId = FAccelByteUtilities::GetUEnumValueAsString(EAccelBytePlatformType::Live);
-		break;
-	case EAccelByteLoginType::PS4:
-		ApiClient->User.LoginWithOtherPlatform(EAccelBytePlatformType::PS4, Credentials.Token, OnLoginSuccessDelegate, OnLoginErrorOAuthDelegate, bCreateHeadlessAccount);
-		AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sending async task to login with PS4 auth token from native online subsystem."));
-		PlatformId = FAccelByteUtilities::GetUEnumValueAsString(EAccelBytePlatformType::PS4);
-		break;
-	case EAccelByteLoginType::PS5:
-		ApiClient->User.LoginWithOtherPlatform(EAccelBytePlatformType::PS5, Credentials.Token, OnLoginSuccessDelegate, OnLoginErrorOAuthDelegate, bCreateHeadlessAccount);
-		AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sending async task to login with PS5 auth token from native online subsystem."));
-		PlatformId = FAccelByteUtilities::GetUEnumValueAsString(EAccelBytePlatformType::PS5);
-		break;
-	case EAccelByteLoginType::Launcher:
-		ApiClient->User.LoginWithLauncher(OnLoginSuccessDelegate, OnLoginErrorOAuthDelegate);
-		AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sending async task to login with AccelByte launcher auth token."));
-		break;
-	case EAccelByteLoginType::PublisherCode:
-	{
-		// Allow developer to override the token code if there's another way to obtain it
-		FString Code = Credentials.Token;
-
-		// If the code is not specified, obtain the code from the default mechanism
-		if (Code.IsEmpty())
+		const AccelByte::FVoidHandler OnLoginSuccessDelegate = TDelegateUtils<AccelByte::FVoidHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteLogin::OnLoginSuccess);
+		const AccelByte::FOAuthErrorHandler OnLoginErrorOAuthDelegate = TDelegateUtils<AccelByte::FOAuthErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteLogin::OnLoginErrorOAuth);
+		switch (LoginType)
 		{
-			Code = FAccelByteUtilities::GetAuthorizationCode();
-		}
-
-		// If the code is not found, it means the game is not launched by launcher
-		if (Code.IsEmpty())
+		case EAccelByteLoginType::DeviceId:
+			ApiClient->User.LoginWithDeviceId(OnLoginSuccessDelegate, OnLoginErrorOAuthDelegate, bCreateHeadlessAccount);
+			AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sending async task to login with Device ID."));
+			PlatformId = FAccelByteUtilities::GetUEnumValueAsString(EAccelBytePlatformType::Device);
+			break;
+		case EAccelByteLoginType::AccelByte:
+			ApiClient->User.LoginWithUsernameV3(Credentials.Id, Credentials.Token, OnLoginSuccessDelegate, OnLoginErrorOAuthDelegate);
+			AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sending async task to login with AccelByte credentials."));
+			break;
+		case EAccelByteLoginType::Xbox:
+			ApiClient->User.LoginWithOtherPlatform(EAccelBytePlatformType::Live, Credentials.Token, OnLoginSuccessDelegate, OnLoginErrorOAuthDelegate, bCreateHeadlessAccount);
+			AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sending async task to login with XSTS token from native online subsystem."));
+			PlatformId = FAccelByteUtilities::GetUEnumValueAsString(EAccelBytePlatformType::Live);
+			break;
+		case EAccelByteLoginType::PS4:
+			ApiClient->User.LoginWithOtherPlatform(EAccelBytePlatformType::PS4, Credentials.Token, OnLoginSuccessDelegate, OnLoginErrorOAuthDelegate, bCreateHeadlessAccount);
+			AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sending async task to login with PS4 auth token from native online subsystem."));
+			PlatformId = FAccelByteUtilities::GetUEnumValueAsString(EAccelBytePlatformType::PS4);
+			break;
+		case EAccelByteLoginType::PS5:
+			ApiClient->User.LoginWithOtherPlatform(EAccelBytePlatformType::PS5, Credentials.Token, OnLoginSuccessDelegate, OnLoginErrorOAuthDelegate, bCreateHeadlessAccount);
+			AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sending async task to login with PS5 auth token from native online subsystem."));
+			PlatformId = FAccelByteUtilities::GetUEnumValueAsString(EAccelBytePlatformType::PS5);
+			break;
+		case EAccelByteLoginType::Launcher:
+			ApiClient->User.LoginWithLauncher(OnLoginSuccessDelegate, OnLoginErrorOAuthDelegate);
+			AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sending async task to login with AccelByte launcher auth token."));
+			break;
+		case EAccelByteLoginType::PublisherCode:
 		{
-			ErrorStr = TEXT("login-failed-request-incomplete");
-			AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Cannot login with type '%s' as it require AuthorizationGameCode from launcher!"), *Credentials.Type);
+			// Allow developer to override the token code if there's another way to obtain it
+			FString Code = Credentials.Token;
+
+			// If the code is not specified, obtain the code from the default mechanism
+			if (Code.IsEmpty())
+			{
+				Code = FAccelByteUtilities::GetAuthorizationCode();
+			}
+
+			// If the code is not found, it means the game is not launched by launcher
+			if (Code.IsEmpty())
+			{
+				ErrorStr = TEXT("login-failed-request-incomplete");
+				AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Cannot login with type '%s' as it require AuthorizationGameCode from launcher!"), *Credentials.Type);
+				break;
+			}
+
+			ApiClient->User.GenerateGameToken(Code, OnLoginSuccessDelegate, OnLoginErrorOAuthDelegate);
+			AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sending async task to login with AccelByte launcher auth token."));
 			break;
 		}
+		case EAccelByteLoginType::Steam:
 
-		ApiClient->User.GenerateGameToken(Code, OnLoginSuccessDelegate, OnLoginErrorOAuthDelegate);
-		AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sending async task to login with AccelByte launcher auth token."));
-		break;
+			ApiClient->User.LoginWithOtherPlatform(EAccelBytePlatformType::Steam, Credentials.Token, OnLoginSuccessDelegate, OnLoginErrorOAuthDelegate, bCreateHeadlessAccount);
+			AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sending async task to login with Steam auth token from native online subsystem."));
+			PlatformId = FAccelByteUtilities::GetUEnumValueAsString(EAccelBytePlatformType::Steam);
+			break;
+		case EAccelByteLoginType::RefreshToken:
+			ApiClient->User.LoginWithRefreshToken(Credentials.Token, OnLoginSuccessDelegate, OnLoginErrorOAuthDelegate);
+			AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sending async task to login with refresh token from native online subsystem."));
+			break;
+		case EAccelByteLoginType::EOS:
+			ApiClient->User.LoginWithOtherPlatform(EAccelBytePlatformType::EpicGames, Credentials.Token, OnLoginSuccessDelegate, OnLoginErrorOAuthDelegate, bCreateHeadlessAccount);
+			AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sending async task to login with Epic Games from native online subsystem."));
+			PlatformId = FAccelByteUtilities::GetUEnumValueAsString(EAccelBytePlatformType::EpicGames);
+			break;
+		case EAccelByteLoginType::CachedToken:
+			ApiClient->User.TryRelogin(Credentials.Id, OnLoginSuccessDelegate, OnLoginErrorOAuthDelegate);
+			AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sending async task to login with cached refresh token for the specified PlatformUserID."));
+			break;
+		default:
+		case EAccelByteLoginType::None:
+			ErrorStr = TEXT("login-failed-invalid-type");
+			AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Cannot login with type '%s' as it is not supported by our subsystem!"), *Credentials.Type);
+			break;
+		}
 	}
-	case EAccelByteLoginType::Steam:
-		ApiClient->User.LoginWithOtherPlatform(EAccelBytePlatformType::Steam, Credentials.Token, OnLoginSuccessDelegate, OnLoginErrorOAuthDelegate, bCreateHeadlessAccount);
-		AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sending async task to login with Steam auth token from native online subsystem."));
-		PlatformId = FAccelByteUtilities::GetUEnumValueAsString(EAccelBytePlatformType::Steam);
-		break;
-	case EAccelByteLoginType::RefreshToken:
-		ApiClient->User.LoginWithRefreshToken(Credentials.Token, OnLoginSuccessDelegate, OnLoginErrorOAuthDelegate);
-		AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sending async task to login with refresh token from native online subsystem."));
-		break;
-	case EAccelByteLoginType::EOS:
-		ApiClient->User.LoginWithOtherPlatform(EAccelBytePlatformType::EpicGames, Credentials.Token, OnLoginSuccessDelegate, OnLoginErrorOAuthDelegate, bCreateHeadlessAccount);
-		AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sending async task to login with Epic Games from native online subsystem."));
-		PlatformId = FAccelByteUtilities::GetUEnumValueAsString(EAccelBytePlatformType::EpicGames);
-		break;
-	case EAccelByteLoginType::CachedToken:
-		ApiClient->User.TryRelogin(Credentials.Id, OnLoginSuccessDelegate, OnLoginErrorOAuthDelegate);
-		AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sending async task to login with cached refresh token for the specified PlatformUserID."));
-		break;
-	default:
-	case EAccelByteLoginType::None:
-		ErrorStr = TEXT("login-failed-invalid-type");
-		AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Cannot login with type '%s' as it is not supported by our subsystem!"), *Credentials.Type);
-		break;
+	else
+	{
+		ErrorStr = TEXT("login-failed-invalid-api-client");
+		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to login because ApiClient was invalid!"));
+		CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState);
 	}
 }
 
@@ -483,6 +517,17 @@ void FOnlineAsyncTaskAccelByteLogin::OnLoginSuccess()
 	// Create a new user ID instance for the user that we just logged in as
 	FAccelByteUniqueIdComposite CompositeId;
 	CompositeId.Id = ApiClient->CredentialsRef->GetUserId();   
+
+	const IOnlineSubsystem* NativeSubsystem = IOnlineSubsystem::GetByPlatform();
+	if (NativeSubsystem != nullptr 
+		&& LoginType == FOnlineSubsystemAccelByteUtils::GetAccelByteLoginTypeFromNativeSubsystem(NativeSubsystem->GetSubsystemName()))
+	{
+		IOnlineIdentityPtr NativeIdentityInterface = NativeSubsystem->GetIdentityInterface();
+		if (NativeIdentityInterface.IsValid())
+		{
+			NativePlatformPlayerId = NativeIdentityInterface->GetUniquePlayerId(LoginUserNum);
+		}
+	}
 
 	// Add platform information to composite ID for login
 	if (NativePlatformPlayerId.IsValid())

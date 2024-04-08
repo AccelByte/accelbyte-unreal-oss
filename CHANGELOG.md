@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.12.1-1](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.12.1-1%0D0.12.1) (2024-04-08)
+
+
+### Bug Fixes
+
+* **Login:** move steamCallback to a class, only create when needed, and destroy immediately after used
+
 ### [0.12.1](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.12.1%0D0.12.0) (2024-01-02)
 
 

@@ -11,11 +11,12 @@
 #include "OnlineAgreementInterfaceAccelByte.h"
 #include "Engine/Texture.h"
 #include "AccelByteTimerObject.h"
-#if (PLATFORM_WINDOWS || PLATFORM_LINUX || PLATFORM_MAC) && !UE_SERVER
+#if defined(STEAM_SDK_VER) && !UE_SERVER
 #include "steam/steam_api.h"
 #endif
 
 namespace AccelByte { class FApiClient; }
+
 
 /**
  * Async task to authenticate a user with the AccelByte backend, either using a native platform account, or a user specified account
@@ -24,9 +25,16 @@ class FOnlineAsyncTaskAccelByteLogin
 	: public FOnlineAsyncTaskAccelByte
 	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteLogin, ESPMode::ThreadSafe>
 {
-#if (PLATFORM_WINDOWS || PLATFORM_LINUX || PLATFORM_MAC) && !UE_SERVER
-private:
-	STEAM_CALLBACK(FOnlineAsyncTaskAccelByteLogin, OnGetAuthSessionTicketResponse, GetAuthSessionTicketResponse_t, OnGetAuthSessionTicketResponseCallback);
+#if defined(STEAM_SDK_VER) && !UE_SERVER
+	class FAccelByteSteamAuthCallback {
+		public:
+		FAccelByteSteamAuthCallback(const TDelegate<void(GetAuthSessionTicketResponse_t*)>& InDelegate);
+		~FAccelByteSteamAuthCallback();
+		
+		private:
+		STEAM_CALLBACK(FAccelByteSteamAuthCallback, OnGetAuthSessionTicketResponse, GetAuthSessionTicketResponse_t, OnGetAuthSessionTicketResponseCallback);
+		TDelegate<void(GetAuthSessionTicketResponse_t*)> Delegate;
+	};
 #endif
 public:
 
@@ -121,6 +129,14 @@ private:
 	 */
 	bool bCreateHeadlessAccount = true;
 
+#if defined(STEAM_SDK_VER) && !UE_SERVER
+	/*
+	 * Object to bind steam auth callback, will only be created when login with steam
+	 */
+	TSharedPtr<FAccelByteSteamAuthCallback> SteamAuthCallback = nullptr;
+
+#endif
+
 	/**
 	 * Attempts to fire off a login request with a native subsystem, if one is set up and usable.
 	 *
@@ -167,4 +183,11 @@ private:
 	 * @param ErrorObject Object representing the error code that occurred
 	 */
 	void OnLoginErrorOAuth(int32 ErrorCode, const FString& ErrorMessage, const FErrorOAuthInfo& ErrorObject);
+
+#if defined(STEAM_SDK_VER) && !UE_SERVER
+	/**
+	* Delegate handler for when received response from steam getAuthToken
+	*/
+	void OnGetAuthSessionTicketResponse(GetAuthSessionTicketResponse_t* CallBackParam);
+#endif
 };
