@@ -27,7 +27,7 @@ void FOnlineAsyncTaskAccelByteRegisterRemoteServerV2::Initialize()
     int32 RegisterPort = 0;
     AB_ASYNC_TASK_ENSURE(SessionInterface->GetServerPort(RegisterPort), "Failed to register server to Armada as we failed to get the server's port!");
 
-	OnRegisterServerSuccessDelegate = TDelegateUtils<FVoidHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteRegisterRemoteServerV2::OnRegisterServerSuccess);
+	OnRegisterServerSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsServerInfo>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteRegisterRemoteServerV2::OnRegisterServerSuccess);
     OnRegisterServerErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteRegisterRemoteServerV2::OnRegisterServerError);;
 	FRegistry::ServerDSM.RegisterServerToDSM(RegisterPort, OnRegisterServerSuccessDelegate, OnRegisterServerErrorDelegate);
 
@@ -52,7 +52,7 @@ void FOnlineAsyncTaskAccelByteRegisterRemoteServerV2::Finalize()
 
         // Check if we have a session ID as an environment variable, if so then we want to start the process of creating
         // a local session for the server based on the backend session data
-		const FString SessionId = FPlatformMisc::GetEnvironmentVariable(TEXT("NOMAD_META_session_id"));
+		const FString SessionId = RegisterResult.Session_id;
         if (!SessionId.IsEmpty())
         {
             SessionInterface->GetServerClaimedSession(SessionName, SessionId);
@@ -79,10 +79,11 @@ void FOnlineAsyncTaskAccelByteRegisterRemoteServerV2::TriggerDelegates()
     AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 
-void FOnlineAsyncTaskAccelByteRegisterRemoteServerV2::OnRegisterServerSuccess()
+void FOnlineAsyncTaskAccelByteRegisterRemoteServerV2::OnRegisterServerSuccess(const FAccelByteModelsServerInfo& Result)
 {
     AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 
+    RegisterResult = Result;
     CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
 
     AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

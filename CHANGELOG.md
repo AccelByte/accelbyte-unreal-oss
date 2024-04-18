@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.12.1-2](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.12.1-2%0D0.12.1-1) (2024-04-18)
+
+
+### Bug Fixes
+
+* **Session:** Change DS claimed check on register success by register DS result.
+
 ### [0.12.1-1](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.12.1-1%0D0.12.1) (2024-04-08)
 
 
