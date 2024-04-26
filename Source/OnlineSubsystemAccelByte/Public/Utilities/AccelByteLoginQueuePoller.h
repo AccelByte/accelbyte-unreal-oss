@@ -44,8 +44,10 @@ protected:
 	const int32 MaxPollDelay {30};
 	const int32 MinPollDelay {3};
 	OnPollExecute OnRefreshTicketHandle;
+	const int32 DelayJitterRange {10};
 
 	virtual void RefreshTicket();
+	int32 CalculatePollDelay(const FAccelByteModelsLoginQueueTicketInfo& TicketInfo) const;
 	virtual void OnRefreshTicketComplete(bool bWasSuccessful,  const FAccelByteModelsLoginQueueTicketInfo& TicketInfo, const FOnlineErrorAccelByte& Error);
 	FOnRefreshTicketCompleteDelegate RefreshTicketCompleteHandler;
 };

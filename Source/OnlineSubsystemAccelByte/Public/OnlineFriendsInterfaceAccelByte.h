@@ -23,6 +23,9 @@ typedef FOnSyncThirdPartyPlatformFriendsComplete::FDelegate FOnSyncThirdPartyPla
 DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnSyncThirdPartyPlatformFriendsV2Complete, int32 /*LocalUserNum*/, const FOnlineError& /*ErrorInfo*/, const TArray<FAccelByteModelsSyncThirdPartyFriendsResponse>& /*Response*/)
 typedef FOnSyncThirdPartyPlatformFriendsV2Complete::FDelegate FOnSyncThirdPartyPlatformFriendsV2CompleteDelegate;
 
+DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnSyncThirdPartyBlockListComplete, int32 /*LocalUserNum*/, const FOnlineError& /*ErrorInfo*/, const TArray<FAccelByteModelsSyncThirdPartyBlockListResponse>& /*Response*/)
+typedef FOnSyncThirdPartyBlockListComplete::FDelegate FOnSyncThirdPartyBlockListCompleteDelegate;
+
 /**
  * Implementation of a friend represented in the AccelByte backend
  */
@@ -206,6 +209,8 @@ public:
 	DEFINE_ONLINE_PLAYER_DELEGATE_ONE_PARAM(MAX_LOCAL_PLAYERS, OnSyncThirdPartyPlatformFriendsComplete, const FOnlineError& /*ErrorInfo*/);
 
 	DEFINE_ONLINE_PLAYER_DELEGATE_TWO_PARAM(MAX_LOCAL_PLAYERS, OnSyncThirdPartyPlatformFriendsV2Complete, const FOnlineError& /*ErrorInfo*/, const TArray<FAccelByteModelsSyncThirdPartyFriendsResponse>& /*Response*/);
+	
+	DEFINE_ONLINE_PLAYER_DELEGATE_TWO_PARAM(MAX_LOCAL_PLAYERS, OnSyncThirdPartyBlockListComplete, const FOnlineError& /*ErrorInfo*/, const TArray<FAccelByteModelsSyncThirdPartyBlockListResponse>& /*Response*/);
 
 	virtual ~FOnlineFriendsAccelByte() override = default;
 
@@ -297,6 +302,16 @@ public:
 	 * @return true if the request was started successfully, false otherwise
 	 */
 	virtual bool SyncThirdPartyPlatformFriendV2(int32 LocalUserNum, const FAccelByteModelsSyncThirdPartyFriendsRequest& Request);
+
+	/**
+	 * Sync third party platform block list to AccelByte's block list. Makes a S2S request to the platform given to sync block list.
+	 *
+	 * @param LocalUserNum the user that sending block list sync request
+	 * @param Request request parameters for block list sync
+	 *
+	 * @return true if the request was started successfully, false otherwise
+	 */
+	virtual bool SyncThirdPartyPlatformBlockList(int32 LocalUserNum, const FAccelByteModelsSyncThirdPartyBlockListRequest& Request);
 	//~ End AccelByteFriends additional methods
 
 protected:

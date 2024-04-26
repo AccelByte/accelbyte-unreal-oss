@@ -457,7 +457,8 @@ bool FOnlineSubsystemAccelByte::IsNativeSubsystemSupported(const FName& NativeSu
 		SubsystemStr.Equals(TEXT("PS4"), ESearchCase::IgnoreCase) ||
 		SubsystemStr.Equals(TEXT("PS5"), ESearchCase::IgnoreCase) ||
 		SubsystemStr.Equals(TEXT("STEAM"), ESearchCase::IgnoreCase) ||
-		SubsystemStr.Equals(TEXT("EOS"), ESearchCase::IgnoreCase);
+		SubsystemStr.Equals(TEXT("EOS"), ESearchCase::IgnoreCase) ||
+		SubsystemStr.Equals(TEXT("PSPC"), ESearchCase::IgnoreCase);
 }
 
 FString FOnlineSubsystemAccelByte::GetNativePlatformNameString()
@@ -591,6 +592,11 @@ bool FOnlineSubsystemAccelByte::GetAccelBytePlatformTypeFromAuthType(const FStri
 		Result = EAccelBytePlatformType::PS5;
 		return true;
 	}
+	else if (InAuthType.Equals(TEXT("PSPC"), ESearchCase::IgnoreCase))
+	{
+		Result = EAccelBytePlatformType::PSPC;
+		return true;
+	}
 	else if (InAuthType.Equals(TEXT("LIVE"), ESearchCase::IgnoreCase) || InAuthType.Equals(TEXT("GDK"), ESearchCase::IgnoreCase))
 	{
 		Result = EAccelBytePlatformType::Live;
@@ -618,6 +624,10 @@ FString FOnlineSubsystemAccelByte::GetAccelBytePlatformStringFromAuthType(const 
 	{
 		return TEXT("ps5");
 	}
+	else if (InAuthType.Equals(TEXT("pspc"), ESearchCase::IgnoreCase))
+	{
+		return TEXT("pspc");
+	}
 	else if (InAuthType.Equals(TEXT("live"), ESearchCase::IgnoreCase) || InAuthType.Equals(TEXT("gdk"), ESearchCase::IgnoreCase))
 	{
 		return TEXT("live");
@@ -642,6 +652,10 @@ FString FOnlineSubsystemAccelByte::GetNativeSubsystemNameFromAccelBytePlatformSt
 	else if (InAccelBytePlatform.Equals(TEXT("ps5"), ESearchCase::IgnoreCase))
 	{
 		return TEXT("PS5");
+	}
+	else if (InAccelBytePlatform.Equals(TEXT("pspc"), ESearchCase::IgnoreCase))
+	{
+		return TEXT("PSPC");
 	}
 	else if (InAccelBytePlatform.Equals(TEXT("live"), ESearchCase::IgnoreCase))
 	{

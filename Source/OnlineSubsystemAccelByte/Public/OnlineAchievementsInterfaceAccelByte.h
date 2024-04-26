@@ -14,6 +14,8 @@ class FOnlineSubsystemAccelByte;
 using FUserAchievementMap = TMap<FString, TSharedRef<FOnlineAchievement>>;
 using FUserIdToUserAchievementMap = TMap<TSharedRef<const FUniqueNetIdAccelByteUser>, FUserAchievementMap, FDefaultSetAllocator, TUserUniqueIdConstSharedRefMapKeyFuncs<FUserAchievementMap>>;
 
+DECLARE_DELEGATE_TwoParams(FOnSendPSNEventsCompleteDelegate, bool /*bWasSuccessful*/, FAccelByteModelsAchievementBulkCreatePSNEventResponse /*Response*/);
+
 class ONLINESUBSYSTEMACCELBYTE_API FOnlineAchievementsAccelByte
 	: public IOnlineAchievements
 	, public TSharedFromThis<FOnlineAchievementsAccelByte, ESPMode::ThreadSafe>
@@ -77,7 +79,16 @@ public:
 	virtual bool ResetAchievements(const FUniqueNetId& PlayerId) override;
 #endif //!UE_BUILD_SHIPPING
 	//~ End IOnlineAchievement Interface
-	
+
+	/**
+	 * @brief Server call to send events pertaining to achievements to PSN
+	 * 
+	 * @param Request Request model describing events to send to PSN
+	 * @param CompletionDelegate Delegate fired when request to send PSN events has completed
+	 */
+	void SendPSNEvents(const FAccelByteModelsAchievementBulkCreatePSNEventRequest& Request
+		, const FOnSendPSNEventsCompleteDelegate& CompletionDelegate);
+
 protected:
 	FOnlineSubsystemAccelByte* AccelByteSubsystem = nullptr;
 

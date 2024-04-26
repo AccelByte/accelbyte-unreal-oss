@@ -19,6 +19,7 @@
 #include "AsyncTasks/Friends/OnlineAsyncTaskAccelByteUnblockPlayer.h"
 #include "AsyncTasks/Friends/OnlineAsyncTaskAccelByteGetRecentPlayer.h"
 #include "AsyncTasks/Friends/OnlineAsyncTaskAccelByteSyncThirPartyFriend.h"
+#include "AsyncTasks/Friends/OnlineAsyncTaskAccelByteSyncThirdPartyBlockList.h"
 #include "OnlineSubsystemUtils.h"
 #include "AsyncTasks/Friends/OnlineAsyncTaskAccelByteSyncThirdPartyFriendV2.h"
 #include "AsyncTasks/SessionV2/OnlineAsyncTaskAccelByteV2GetRecentPlayer.h"
@@ -640,6 +641,13 @@ bool FOnlineFriendsAccelByte::SyncThirdPartyPlatformFriendV2(int32 LocalUserNum,
 	return true;
 }
 
+bool FOnlineFriendsAccelByte::SyncThirdPartyPlatformBlockList(int32 LocalUserNum,
+	const FAccelByteModelsSyncThirdPartyBlockListRequest& Request)
+{
+	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteSyncThirdPartyBlockList>(AccelByteSubsystem, LocalUserNum, Request);
+	return true;
+}
+
 bool FOnlineFriendsAccelByte::AcceptInvite(int32 LocalUserNum, const FUniqueNetId& FriendId, const FString& ListName, const FOnAcceptInviteComplete& Delegate)
 {
 	FOnlineAsyncTaskInfo TaskInfo;
@@ -691,6 +699,11 @@ void FOnlineFriendsAccelByte::AddRecentPlayers(const FUniqueNetId& UserId, const
 
 bool FOnlineFriendsAccelByte::QueryRecentPlayers(const FUniqueNetId& UserId, const FString& Namespace)
 {
+	if (IsRunningDedicatedServer())
+	{
+		return false;
+	}
+	
 	FOnlineAsyncTaskInfo TaskInfo;
 	TaskInfo.bCreateEpicForThis = true;
 	TaskInfo.Type = ETypeOfOnlineAsyncTask::Parallel;

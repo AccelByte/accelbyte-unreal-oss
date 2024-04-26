@@ -17,7 +17,7 @@ public:
 	FAccelBytePoller();
 	~FAccelBytePoller();
 
-	bool StartPolling(const OnPollExecute& InAction, float InDelay);
+	bool StartPolling(const OnPollExecute& InAction, const float InDelay);
 	bool StopPolling();
 	bool SetDelay(int32 InDelay);
 

@@ -49,7 +49,7 @@ void FOnlineAsyncTaskAccelByteQueryUserAchievements::QueryAchievement()
 		&FOnlineAsyncTaskAccelByteQueryUserAchievements::HandleQueryAchievementError);
 
 	ApiClient->Achievement.QueryUserAchievements(
-		EAccelByteAchievementListSortBy::NONE,
+		EAccelByteGlobalAchievementListSortBy::NONE,
 		OnQueryAchievementSuccess,
 		OnError);
 

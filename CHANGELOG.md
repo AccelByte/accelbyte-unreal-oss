@@ -2,6 +2,26 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.12.10](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.12.10%0D0.12.9) (2024-04-26)
+
+
+### Features
+
+* **achievement:** implement method to call psn event sync endpoint from servers ([c9b120e](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/c9b120ee948c2b4a74e53181ad71dc87299c55cb))
+* Add OnV2SessionEndedNotification delegate ([58ad76c](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/58ad76c8e357d1802e5e8b483207ef38dad507d8))
+* **login-queue:** add jitter in login queue polling delay ([0e9c013](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/0e9c0137e3344275511655b2a872ebef88ddb8e0))
+* **session:** add recent player endpoint on high level oss for client and server ([0f8de9f](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/0f8de9f1e9979f00ca750320c6745d1a20f7e938))
+* **sync:** add endpoint for syncing blocked players from third party platform ([857dbae](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/857dbaef90fe6e2515b8aa52717eabdd5f91c18e))
+
+
+### Bug Fixes
+
+* **achievement:** update QueryUserAchievements to use global sort by ([a68a6f7](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/a68a6f7f151e7b331771bb330db61131af1e1f26))
+* **Login:** move steamCallback to a class, only create when needed, and destroy immediately after used ([fb0ea49](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/fb0ea49b42a3ff38c4d33c1cfde155b62723f605))
+* poller set delay below minDelay to minDelay instead of returning ([ce1eb93](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/ce1eb93fb96e210a09585a89d2bdb96f515f9fe4))
+* **session:** add guard to UpdateSession to prevent removing vital session settings ([af00748](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/af00748aa78971dbc103e0d798c4fe744351abfd))
+* **Session:** Change DS claimed check on register success by register DS result. ([61e0dba](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/61e0dba6681457356dc2c61d55e2660499f0efc4))
+
 ### [0.12.9](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.12.9%0D0.12.8) (2024-04-05)
 
 

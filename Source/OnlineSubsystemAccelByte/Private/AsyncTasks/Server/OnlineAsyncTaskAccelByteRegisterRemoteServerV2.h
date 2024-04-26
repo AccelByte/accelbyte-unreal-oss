@@ -40,11 +40,14 @@ private:
 	/** Delegate fired after we finish registering server */
 	FOnRegisterServerComplete Delegate;
 
+	/** Cache of register DS result if operation success */
+	FAccelByteModelsServerInfo RegisterResult;
+
 	/** Try and get the port that the server is currently bound to */
 	bool GetServerPort(int32& OutPort);
 
-	FVoidHandler OnRegisterServerSuccessDelegate;
-	void OnRegisterServerSuccess();
+	THandler<FAccelByteModelsServerInfo> OnRegisterServerSuccessDelegate;
+	void OnRegisterServerSuccess(const FAccelByteModelsServerInfo& Result);
 
 	FErrorHandler OnRegisterServerErrorDelegate;
 	void OnRegisterServerError(int32 ErrorCode, const FString& ErrorMessage);

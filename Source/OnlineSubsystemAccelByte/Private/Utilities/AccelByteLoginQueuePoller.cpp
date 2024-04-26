@@ -5,6 +5,7 @@
 #include "Utilities/AccelByteLoginQueuePoller.h"
 
 #include "AsyncTasks/LoginQueue/OnlineAsyncTaskAccelByteLoginRefreshTicket.h"
+#include "Math/UnrealMathUtility.h" 
 
 DEFINE_LOG_CATEGORY(LogAccelByteLoginQueuePoll);
 
@@ -60,7 +61,7 @@ bool FAccelByteLoginQueuePoller::StartPoll(FOnlineSubsystemAccelByte* InSubsyste
 	Ticket = InTicket;
 
 	OnRefreshTicketHandle = OnPollExecute::CreateThreadSafeSP(AsShared(), &FAccelByteLoginQueuePoller::RefreshTicket);
-	const bool bPollStarted = Poller->StartPolling(OnRefreshTicketHandle, Ticket.EstimatedWaitingTimeInSeconds);
+	const bool bPollStarted = Poller->StartPolling(OnRefreshTicketHandle, CalculatePollDelay(Ticket));
 	return bPollStarted;
 }
 
@@ -93,6 +94,32 @@ void FAccelByteLoginQueuePoller::RefreshTicket()
 	Subsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteLoginRefreshTicket>(Subsystem, LocalUserNum, Ticket.Ticket, RefreshTicketCompleteHandler);
 }
 
+int32 FAccelByteLoginQueuePoller::CalculatePollDelay(const FAccelByteModelsLoginQueueTicketInfo& TicketInfo) const
+{
+	// if ticket info have polling time, use that
+	if(TicketInfo.PlayerPollingTimeInSeconds != 0)
+	{
+		return TicketInfo.PlayerPollingTimeInSeconds;
+	}
+
+	const int32 Jitter = FMath::RandRange(-DelayJitterRange, DelayJitterRange);
+	int32 Delay = TicketInfo.EstimatedWaitingTimeInSeconds + Jitter;
+
+	if(Delay > MaxPollDelay)
+	{
+		// it's okay for jittered value to be above max
+		Delay = MaxPollDelay + Jitter;
+	}
+
+	// make sure jittered delay is not below min
+	if(Delay < MinPollDelay)
+	{
+		Delay = MinPollDelay + FMath::Abs(Jitter);
+	}
+
+	return Delay;
+}
+
 void FAccelByteLoginQueuePoller::OnRefreshTicketComplete(bool bWasSuccessful,  const FAccelByteModelsLoginQueueTicketInfo& TicketInfo, const FOnlineErrorAccelByte& Error)
 {
 	RefreshTicketCompleteHandler.Unbind();
@@ -108,17 +135,7 @@ void FAccelByteLoginQueuePoller::OnRefreshTicketComplete(bool bWasSuccessful,  c
 			StopPoll();
 		}
 
-		int32 Delay = TicketInfo.EstimatedWaitingTimeInSeconds;
-		if(Delay < MinPollDelay)
-		{
-			Delay = MinPollDelay;
-		}
-		else if(Delay > MaxPollDelay)
-		{
-			Delay = MaxPollDelay;
-		}
-
-		Poller->SetDelay(Delay);
+		Poller->SetDelay(CalculatePollDelay(TicketInfo));
 	
 		ConsecutiveErrorCount = 0;
 	}

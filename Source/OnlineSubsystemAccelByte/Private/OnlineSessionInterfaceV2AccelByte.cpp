@@ -2930,6 +2930,17 @@ bool FOnlineSessionV2AccelByte::UpdateSession(FName SessionName, FOnlineSessionS
 		return false;
 	}
 
+	FString UpdatedSessionTypeStr{};
+	if (!UpdatedSessionSettings.Get(SETTING_SESSION_TYPE, UpdatedSessionTypeStr) || UpdatedSessionTypeStr.IsEmpty())
+	{
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to update session settings as 'SETTING_SESSION_TYPE' was not set in the new settings object! Use GetSessionSettings(SessionName) to update an existing session's settings."), *SessionName.ToString());
+		AccelByteSubsystem->ExecuteNextTick([SessionInterface = AsShared(), SessionName]() {
+			SessionInterface->TriggerOnUpdateSessionCompleteDelegates(SessionName, false);
+			SessionInterface->TriggerOnSessionUpdateRequestCompleteDelegates(SessionName, false);
+		});
+		return false;
+	}
+
 	Session->SessionSettings = UpdatedSessionSettings;
 	
 	// If we don't need to refresh our session data on the backend, just bail here
@@ -6282,6 +6293,9 @@ void FOnlineSessionV2AccelByte::ConnectToDSHub(const FString& ServerName)
 	const AccelByte::GameServerApi::FOnV2SessionMemberChangedNotification OnV2SessionMemberChangedNotification = AccelByte::GameServerApi::FOnV2SessionMemberChangedNotification::CreateThreadSafeSP(SharedThis(this), &FOnlineSessionV2AccelByte::OnV2DsSessionMemberChangedNotification);
 	FRegistry::ServerDSHub.SetOnV2SessionMemberChangedNotificationDelegate(OnV2SessionMemberChangedNotification);
 
+	const AccelByte::GameServerApi::FOnV2SessionEndedNotification OnV2SessionEndedNotification = AccelByte::GameServerApi::FOnV2SessionEndedNotification::CreateThreadSafeSP(SharedThis(this), &FOnlineSessionV2AccelByte::OnV2DsSessionEndedNotification);
+	FRegistry::ServerDSHub.SetOnV2SessionEndedNotificationDelegate(OnV2SessionEndedNotification);
+
 	const AccelByte::GameServerApi::FConnectSuccess OnDSHubConnectSuccessNotificationDelegate = AccelByte::GameServerApi::FConnectSuccess::CreateThreadSafeSP(SharedThis(this), &FOnlineSessionV2AccelByte::OnDSHubConnectSuccessNotification);
 	FRegistry::ServerDSHub.SetOnConnectSuccess(OnDSHubConnectSuccessNotificationDelegate);
 
@@ -6309,6 +6323,7 @@ void FOnlineSessionV2AccelByte::DisconnectFromDSHub()
 	FRegistry::ServerDSHub.SetOnServerClaimedNotificationDelegate(AccelByte::GameServerApi::FOnServerClaimedNotification());
 	FRegistry::ServerDSHub.SetOnV2BackfillProposalNotificationDelegate(AccelByte::GameServerApi::FOnV2BackfillProposalNotification());
 	FRegistry::ServerDSHub.SetOnV2SessionMemberChangedNotificationDelegate(AccelByte::GameServerApi::FOnV2SessionMemberChangedNotification());
+	FRegistry::ServerDSHub.SetOnV2SessionEndedNotificationDelegate(AccelByte::GameServerApi::FOnV2SessionEndedNotification());
 	FRegistry::ServerDSHub.SetOnConnectSuccess(AccelByte::GameServerApi::FConnectSuccess());
 	FRegistry::ServerDSHub.SetOnConnectionClosed(AccelByte::GameServerApi::FConnectionClosed());
 	
@@ -6441,6 +6456,25 @@ void FOnlineSessionV2AccelByte::OnV2DsSessionMemberChangedNotification(const FAc
 		PredefinedEventInterface->SendEvent(-1, MakeShared<FAccelByteModelsDSMemberChangedNotifReceivedPayload>(DSMemberChangedNotifReceived));
 	}
 
+	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+}
+
+void FOnlineSessionV2AccelByte::OnV2DsSessionEndedNotification(const FAccelByteModelsSessionEndedNotification& Notification)
+{
+	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("SessionId: %s"), *Notification.Session_id);
+	
+	FNamedOnlineSession* Session = GetNamedSessionById(Notification.Session_id);
+	if (Session == nullptr)
+	{
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Could not get the session. Failed to disconnect from AMS!"));
+		return;
+	}
+	
+	if (FRegistry::ServerAMS.IsConnected() || !FRegistry::ServerDSM.GetServerName().IsEmpty())
+	{
+		TriggerOnV2SessionEndedDelegates(Session->SessionName);
+	}
+	
 	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
 }
 

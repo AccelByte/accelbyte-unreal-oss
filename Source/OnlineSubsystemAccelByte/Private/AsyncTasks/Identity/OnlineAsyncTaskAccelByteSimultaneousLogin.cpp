@@ -23,7 +23,6 @@ FOnlineAsyncTaskAccelByteSimultaneousLogin::FOnlineAsyncTaskAccelByteSimultaneou
 	: FOnlineAsyncTaskAccelByteLogin(InABSubsystem, InLocalUserNum, InAccountCredentials, bInCreateHeadlessAccount)
 {
 	LocalUserNum = INVALID_CONTROLLERID;
-	bByPassSupportedNativeSubsystemCheck = true;
 }
 
 bool FOnlineAsyncTaskAccelByteSimultaneousLogin::IsInitializeAllowed()
@@ -42,7 +41,7 @@ bool FOnlineAsyncTaskAccelByteSimultaneousLogin::IsInitializeAllowed()
 		return false; 
 	}
 
-	if (!Subsystem->IsNativeSubsystemSupported(FName(SecondaryPlatformName)) && !bByPassSupportedNativeSubsystemCheck)
+	if (!Subsystem->IsNativeSubsystemSupported(FName(SecondaryPlatformName)))
 	{
 		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to do simultaneous login, specified secondary platform is not supported (%s)"), *SecondaryPlatformName);
 		return false;
@@ -205,15 +204,18 @@ void FOnlineAsyncTaskAccelByteSimultaneousLogin::PerformLogin(const FOnlineAccou
 		const THandler<FAccelByteModelsLoginQueueTicketInfo> OnLoginSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsLoginQueueTicketInfo>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteSimultaneousLogin::OnLoginSuccessV4);
 		const FOAuthErrorHandler OnLoginErrorOAuthDelegate = TDelegateUtils<FOAuthErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteSimultaneousLogin::OnLoginErrorOAuth);
 
+		auto NativePlatformLoginType = FOnlineSubsystemAccelByteUtils::GetAccelByteLoginTypeFromNativeSubsystem(FName(NativePlatformCredentials.Type));
+		auto SecondaryPlatformLoginType = FOnlineSubsystemAccelByteUtils::GetAccelByteLoginTypeFromNativeSubsystem(FName(Credentials.Type));
+
 		ApiClient->User.LoginWithSimultaneousPlatformV4(
-			NativePlatformCredentials.Type.ToLower(),
+			ConvertOSSTypeToAccelBytePlatformType(NativePlatformLoginType),
 			NativePlatformTicket,
-			Credentials.Type.ToLower(),
+			ConvertOSSTypeToAccelBytePlatformType(SecondaryPlatformLoginType),
 			SecondaryPlatformTicket,
 			OnLoginSuccessDelegate,
 			OnLoginErrorOAuthDelegate);
 		
-		PlatformId = NativePlatformCredentials.Type;
+		PlatformId = FAccelByteUtilities::GetUEnumValueAsString(ConvertOSSTypeToAccelBytePlatformType(NativePlatformLoginType));
 	}
 }
 

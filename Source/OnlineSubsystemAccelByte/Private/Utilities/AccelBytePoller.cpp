@@ -13,7 +13,7 @@ FAccelBytePoller::FAccelBytePoller()
 {
 }
 
-bool FAccelBytePoller::StartPolling(const OnPollExecute& InAction, float InDelay)
+bool FAccelBytePoller::StartPolling(const OnPollExecute& InAction, const float InDelay)
 {
 	if(bEnabled)
 	{
@@ -26,13 +26,8 @@ bool FAccelBytePoller::StartPolling(const OnPollExecute& InAction, float InDelay
 		return false;
 	}
 
-	if(InDelay < MinInterval)
-	{
-		return false;
-	}
-
 	Action = InAction;
-	Delay = FTimespan::FromSeconds(InDelay);
+	Delay = FTimespan::FromSeconds(InDelay < MinInterval ? MinInterval : InDelay);
 
 	if(OnTickDelegate.IsBound())
 	{
@@ -76,10 +71,7 @@ bool FAccelBytePoller::Tick(float DeltaTime)
 
 bool FAccelBytePoller::SetDelay(int32 InDelay)
 {
-	if(InDelay <= MinInterval)
-		return false;
-	
-	Delay = FTimespan::FromSeconds(InDelay);
+	Delay = FTimespan::FromSeconds(InDelay < MinInterval ? MinInterval : InDelay);
 	return true;
 }
 

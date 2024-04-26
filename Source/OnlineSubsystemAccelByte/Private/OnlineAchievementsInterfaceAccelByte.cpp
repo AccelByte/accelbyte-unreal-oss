@@ -5,7 +5,7 @@
 #include "OnlineSubsystemUtils.h"
 #include "AsyncTasks/Achievement/OnlineAsyncTaskAccelByteQueryAchievement.h"
 #include "AsyncTasks/Achievement/OnlineAsyncTaskAccelByteQueryUserAchievements.h"
-
+#include "AsyncTasks/Achievement/OnlineAsyncTaskAccelByteSendPSNEvents.h"
 
 FOnlineAchievementsAccelByte::FOnlineAchievementsAccelByte(FOnlineSubsystemAccelByte* InSubsystem)
 	: AccelByteSubsystem(InSubsystem)
@@ -130,3 +130,11 @@ bool FOnlineAchievementsAccelByte::ResetAchievements(const FUniqueNetId& PlayerI
 	return false;
 }
 #endif //!UE_BUILD_SHIPPING
+
+void FOnlineAchievementsAccelByte::SendPSNEvents(const FAccelByteModelsAchievementBulkCreatePSNEventRequest& Request
+	, const FOnSendPSNEventsCompleteDelegate& CompletionDelegate)
+{
+	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteSendPSNEvents>(AccelByteSubsystem
+		, Request
+		, CompletionDelegate);
+}

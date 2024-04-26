@@ -514,6 +514,9 @@ typedef FOnUpdateSessionMemberStorageComplete::FDelegate FOnUpdateSessionMemberS
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnSendDSSessionReadyComplete, const FOnlineError& /*ErrorInfo*/)
 typedef FOnSendDSSessionReadyComplete::FDelegate FOnSendDSSessionReadyCompleteDelegate;
 
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnV2SessionEnded, FName /*SessionName*/);
+typedef FOnV2SessionEnded::FDelegate FOnV2SessionEndedDelegate;
+
 /**
  * Delegate broadcast when a session that the player is in locally has been removed on the backend. Gives the game an
  * opportunity to clean up state.
@@ -1238,6 +1241,8 @@ public:
 	 */
 	DEFINE_ONLINE_DELEGATE_ONE_PARAM(OnSendDSSessionReadyComplete, const FOnlineError& /*ErrorInfo*/);
 
+	DEFINE_ONLINE_DELEGATE_ONE_PARAM(OnV2SessionEnded, FName /*SessionName*/);
+
 #if (ENGINE_MAJOR_VERSION == 4 && ENGINE_MINOR_VERSION <= 25)
 	/**
 	 * Delegate fired when the members in a session have changed. From the UE 4.26+ base session interface delegates.
@@ -1837,6 +1842,7 @@ private:
 	void OnV2BackfillProposalNotification(const FAccelByteModelsV2MatchmakingBackfillProposalNotif& Notification);
 	void OnV2BackfillTicketExpiredNotification(const FAccelByteModelsV2MatchmakingBackfillTicketExpireNotif& Notification);
 	void OnV2DsSessionMemberChangedNotification(const FAccelByteModelsV2GameSession& Notification);
+	void OnV2DsSessionEndedNotification(const FAccelByteModelsSessionEndedNotification& Notification);
 	void OnDSHubConnectSuccessNotification();
 	void OnDSHubConnectionClosedNotification(int32 StatusCode, const FString& Reason, bool bWasClean);
 	//~ End Server Notification Handlers
