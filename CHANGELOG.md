@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.12.11](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.12.11%0D0.12.10) (2024-05-01)
+
+
+### Features
+
+* **entitlement:** expose get user entitlement history ([b7942f9](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/b7942f9692800f75d362aecf0d7fa6d909acfe5f))
+* **invitation:** add expiration information for session invitation model ([ef1d0c7](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/ef1d0c712270944dd77b118878654d5a2e180561))
+* **notification:** add a listener and delegate to listen when a Party or GameSession invitation for invitee is timeout ([5c10b62](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/5c10b62192e052f38c2bd0f3b1fc93179ab4a2fd))
+
+
+### Bug Fixes
+
+* **identity:** ensuring to reset the local player logging in status to false first even the user id is not valid after login complete. ([e757fe5](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/e757fe5cbf60579a806de4922f4c0f6e881dbb94))
+
 ### [0.12.10](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.12.10%0D0.12.9) (2024-04-26)
 
 

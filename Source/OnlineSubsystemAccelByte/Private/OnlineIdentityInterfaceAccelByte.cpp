@@ -402,11 +402,6 @@ void FOnlineIdentityAccelByte::SetLoginStatus(const int32 LocalUserNum, const EL
 {
 	const ELoginStatus::Type OldStatus = GetLoginStatus(LocalUserNum);
 	LocalUserNumToLoginStatusMap.Add(LocalUserNum, NewStatus);
-	const TSharedPtr<const FUniqueNetId> UserId = GetUniquePlayerId(LocalUserNum);
-	if (!UserId.IsValid())
-	{
-		return;
-	}
 
 	if (LocalPlayerLoggingIn[LocalUserNum])
 	{
@@ -415,7 +410,14 @@ void FOnlineIdentityAccelByte::SetLoginStatus(const int32 LocalUserNum, const EL
 		LocalPlayerLoggingIn[LocalUserNum] = false;
 	}
 
-	TriggerOnLoginStatusChangedDelegates(LocalUserNum, OldStatus, NewStatus, (UserId.IsValid() ? UserId.ToSharedRef().Get() : FUniqueNetIdAccelByteUser::Invalid().Get()));
+	const TSharedPtr<const FUniqueNetId> UserId = GetUniquePlayerId(LocalUserNum);
+	if (!UserId.IsValid())
+	{
+		// No need to trigger delegate 
+		return;
+	}
+
+	TriggerOnLoginStatusChangedDelegates(LocalUserNum, OldStatus, NewStatus, UserId.ToSharedRef().Get());
 }
 
 void FOnlineIdentityAccelByte::AddAuthenticatedServer(int32 LocalUserNum)

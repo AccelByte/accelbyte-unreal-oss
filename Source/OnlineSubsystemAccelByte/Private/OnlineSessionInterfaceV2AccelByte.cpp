@@ -587,6 +587,11 @@ FName FOnlineSessionSearchAccelByte::GetSearchingSessionName() const
 	return SearchingSessionName;
 }
 
+bool FOnlineSessionInviteAccelByte::IsExpired()
+{
+	return this->ExpiredAt <= FDateTime::Now();
+}
+
 const FString FOnlineSessionV2AccelByte::ServerSessionIdEnvironmentVariable = TEXT("NOMAD_META_session_id");
 
 FOnlineSessionV2AccelByte::FOnlineSessionV2AccelByte(FOnlineSubsystemAccelByte* InSubsystem)
@@ -1436,6 +1441,7 @@ void FOnlineSessionV2AccelByte::RegisterSessionNotificationDelegates(const FUniq
 
 	// Begin Game Session Notifications
 	BIND_LOBBY_NOTIFICATION(GameSessionInvited, InvitedToGameSession);
+	BIND_LOBBY_NOTIFICATION(GameSessionInviteTimeout, GameSessionInvitationTimeout);
 	BIND_LOBBY_NOTIFICATION(GameSessionMembersChanged, GameSessionMembersChanged);
 	BIND_LOBBY_NOTIFICATION(GameSessionUpdated, GameSessionUpdated);
 	BIND_LOBBY_NOTIFICATION(GameSessionKicked, KickedFromGameSession);
@@ -1445,6 +1451,7 @@ void FOnlineSessionV2AccelByte::RegisterSessionNotificationDelegates(const FUniq
 
 	// Begin Party Session Notifications
 	BIND_LOBBY_NOTIFICATION(PartyInvited, InvitedToPartySession);
+	BIND_LOBBY_NOTIFICATION(PartyInviteTimeout, PartySessionInvitationTimeout);
 	BIND_LOBBY_NOTIFICATION(PartyMembersChanged, PartySessionMembersChanged);
 	BIND_LOBBY_NOTIFICATION(PartyUpdated, PartySessionUpdated);
 	BIND_LOBBY_NOTIFICATION(PartyKicked, KickedFromPartySession);
@@ -5340,6 +5347,52 @@ void FOnlineSessionV2AccelByte::OnInvitedToGameSessionNotification(FAccelByteMod
 	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
 }
 
+void FOnlineSessionV2AccelByte::OnGameSessionInvitationTimeoutNotification(FAccelByteModelsV2GameSessionUserInviteTimeoutEvent InvitationTimeoutEvent, int32 LocalUserNum)
+{
+	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystem->GetIdentityInterface());
+	if (!ensure(IdentityInterface.IsValid()))
+	{
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to handle game session invitation timeout notification as our identity interface is invalid!"));
+		return;
+	}
+
+	const FUniqueNetIdPtr PlayerId = IdentityInterface->GetUniquePlayerId(LocalUserNum);
+	if (!ensure(PlayerId.IsValid()))
+	{
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to handle game session invitation timeout notification as we could not get a unique ID for player at index %d!"), LocalUserNum);
+		return;
+	}
+
+	const FUniqueNetIdPtr SessionUniqueId = CreateSessionIdFromString(InvitationTimeoutEvent.SessionID);
+	if (!ensure(SessionUniqueId.IsValid()))
+	{
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to handle game session invitation timeout notification as we could not create a valid session unique ID from the ID in the notification!"));
+		return;
+	}
+
+	auto TimeoutInvitationPtr = SessionInvites.FindByPredicate([PartyID = InvitationTimeoutEvent.SessionID](const FOnlineSessionInviteAccelByte& Invite) {
+		return Invite.Session.GetSessionIdStr().Contains(PartyID);
+		});
+
+	if (TimeoutInvitationPtr == nullptr)
+	{
+		return;
+	}
+
+	//Make a copy before remove it
+	FOnlineSessionInviteAccelByte TimeoutInvitation;
+	TimeoutInvitation.SessionType = EAccelByteV2SessionType::GameSession;
+	TimeoutInvitation.Session = TimeoutInvitationPtr->Session;
+	TimeoutInvitation.SenderId = TimeoutInvitationPtr->SenderId;
+	TimeoutInvitation.ExpiredAt = TimeoutInvitationPtr->ExpiredAt;
+
+	const FString& InviteIdToBeRemoved = TimeoutInvitationPtr->Session.GetSessionIdStr();
+	RemoveInviteById(InviteIdToBeRemoved);
+	TriggerOnV2SessionInviteTimeoutReceivedDelegates(PlayerId.ToSharedRef().Get(), TimeoutInvitation, EAccelByteV2SessionType::GameSession);
+	//TODO:
+	//const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = AccelByteSubsystem->GetPredefinedEventInterface();
+}
+
 void FOnlineSessionV2AccelByte::OnFindGameSessionForInviteComplete(int32 LocalUserNum, bool bWasSuccessful, const FOnlineSessionSearchResult& Result, FAccelByteModelsV2GameSessionUserInvitedEvent InviteEvent)
 {
 	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("LocalUserNum: %d; bWasSuccessful: %s; SessionId: %s"), LocalUserNum, LOG_BOOL_FORMAT(bWasSuccessful), *Result.GetSessionIdStr());
@@ -5419,6 +5472,7 @@ void FOnlineSessionV2AccelByte::OnFindGameSessionForInviteComplete(int32 LocalUs
 	NewInvite.SessionType = EAccelByteV2SessionType::GameSession;
 	NewInvite.Session = Result;
 	NewInvite.SenderId = SenderId;
+	NewInvite.ExpiredAt = InviteEvent.ExpiredAt;
 	SessionInvites.Emplace(NewInvite);
 
 	TriggerOnSessionInviteReceivedDelegates(PlayerId.ToSharedRef().Get(), SenderId.ToSharedRef().Get(), AccelByteSubsystem->GetAppId(), Result);
@@ -5618,6 +5672,52 @@ void FOnlineSessionV2AccelByte::OnInvitedToPartySessionNotification(FAccelByteMo
 	}
 }
 
+void FOnlineSessionV2AccelByte::OnPartySessionInvitationTimeoutNotification(FAccelByteModelsV2PartyInviteTimeoutEvent InvitationTimeoutEvent, int32 LocalUserNum)
+{
+	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystem->GetIdentityInterface());
+	if (!ensure(IdentityInterface.IsValid()))
+	{
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to handle party session invitation timeout notification as our identity interface is invalid!"));
+		return;
+	}
+
+	const FUniqueNetIdPtr PlayerId = IdentityInterface->GetUniquePlayerId(LocalUserNum);
+	if (!ensure(PlayerId.IsValid()))
+	{
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to handle party session invitation timeout notification as we could not get a unique ID for player at index %d!"), LocalUserNum);
+		return;
+	}
+
+	const FUniqueNetIdPtr SessionUniqueId = CreateSessionIdFromString(InvitationTimeoutEvent.PartyID);
+	if (!ensure(SessionUniqueId.IsValid()))
+	{
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to handle party session invitation timeout notification as we could not create a valid session unique ID from the ID in the notification!"));
+		return;
+	}
+
+	auto TimeoutInvitationPtr = SessionInvites.FindByPredicate([PartyID = InvitationTimeoutEvent.PartyID](const FOnlineSessionInviteAccelByte& Invite) {
+		return Invite.Session.GetSessionIdStr().Contains(PartyID);
+		});
+
+	if (TimeoutInvitationPtr == nullptr)
+	{
+		return;
+	}
+
+	//Make a copy before remove it
+	FOnlineSessionInviteAccelByte TimeoutInvitation;
+	TimeoutInvitation.SessionType = EAccelByteV2SessionType::PartySession;
+	TimeoutInvitation.Session = TimeoutInvitationPtr->Session;
+	TimeoutInvitation.SenderId = TimeoutInvitationPtr->SenderId;
+	TimeoutInvitation.ExpiredAt = TimeoutInvitationPtr->ExpiredAt;
+
+	const FString& InviteIdToBeRemoved = TimeoutInvitationPtr->Session.GetSessionIdStr();
+	RemoveInviteById(InviteIdToBeRemoved);
+	TriggerOnV2SessionInviteTimeoutReceivedDelegates(PlayerId.ToSharedRef().Get(), TimeoutInvitation, EAccelByteV2SessionType::PartySession);
+	//TODO:
+	//const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = AccelByteSubsystem->GetPredefinedEventInterface();
+};
+
 void FOnlineSessionV2AccelByte::OnKickedFromPartySessionNotification(FAccelByteModelsV2PartyUserKickedEvent KickedEvent, int32 LocalUserNum)
 {
 	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("SessionId: %s"), *KickedEvent.PartyID);
@@ -5738,6 +5838,7 @@ void FOnlineSessionV2AccelByte::OnFindPartySessionForInviteComplete(int32 LocalU
 	NewInvite.SessionType = EAccelByteV2SessionType::PartySession;
 	NewInvite.Session = Result;
 	NewInvite.SenderId = SenderId;
+	NewInvite.ExpiredAt = InviteEvent.ExpiredAt;
 	SessionInvites.Emplace(NewInvite);
 
 	TriggerOnSessionInviteReceivedDelegates(PlayerId.ToSharedRef().Get(), SenderId.ToSharedRef().Get(), AccelByteSubsystem->GetAppId(), Result);

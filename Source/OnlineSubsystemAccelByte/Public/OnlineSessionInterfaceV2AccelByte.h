@@ -281,6 +281,12 @@ struct ONLINESUBSYSTEMACCELBYTE_API FOnlineSessionInviteAccelByte
 
 	/** Search result containing this session for join */
 	FOnlineSessionSearchResult Session{};
+
+	/** The invitation expiration */
+	FDateTime ExpiredAt{0};
+
+	/** Check whether the invitation is already expired or not */
+	bool IsExpired();
 };
 
 struct ONLINESUBSYSTEMACCELBYTE_API FSessionServerCheckPollItem
@@ -432,6 +438,9 @@ typedef FOnQueryAllInvitesComplete::FDelegate FOnQueryAllInvitesCompleteDelegate
 
 DECLARE_MULTICAST_DELEGATE(FOnInviteListUpdated);
 typedef FOnInviteListUpdated::FDelegate FOnInviteListUpdatedDelegate;
+
+DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnV2SessionInviteTimeoutReceived, const FUniqueNetId& /*UserId*/, const FOnlineSessionInviteAccelByte& /*Invite*/, EAccelByteV2SessionType /*SessionType*/);
+typedef FOnV2SessionInviteTimeoutReceived::FDelegate FOnV2SessionInviteTimeoutReceivedDelegate;
 
 DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnV2SessionInviteReceived, const FUniqueNetId& /*UserId*/, const FUniqueNetId& /*FromId*/, const FOnlineSessionInviteAccelByte& /*Invite*/);
 typedef FOnV2SessionInviteReceived::FDelegate FOnV2SessionInviteReceivedDelegate;
@@ -1091,6 +1100,15 @@ public:
 	 * @param Invite Invite structure that can be used to either accept or reject the invite
 	 */
 	DEFINE_ONLINE_DELEGATE_THREE_PARAM(OnV2SessionInviteReceived, const FUniqueNetId& /*UserId*/, const FUniqueNetId& /*FromId*/, const FOnlineSessionInviteAccelByte& /*Invite*/);
+
+	/**
+	 * Delegate fired when we get a game session or party invite from another player is time out. Includes an AccelByte invite structure to allow for discarding the invitation.
+	 *
+	 * @param UserId ID of the local user that received the timeout invitation notif
+	 * @param Invite Invite structure that can be used to either accept or reject the invite
+	 * @param SessionType Type of invitation that has been time out [GameSession or PartySession]
+	 */
+	DEFINE_ONLINE_DELEGATE_THREE_PARAM(OnV2SessionInviteTimeoutReceived, const FUniqueNetId& /*UserId*/, const FOnlineSessionInviteAccelByte& /*Invite*/, EAccelByteV2SessionType /*SessionType*/);
 
 	/**
 	 * Delegate fired when our local list of invites has been updated
@@ -1812,6 +1830,7 @@ private:
 
 	//~ Begin Game Session Notification Handlers
 	void OnInvitedToGameSessionNotification(FAccelByteModelsV2GameSessionUserInvitedEvent InviteEvent, int32 LocalUserNum);
+	void OnGameSessionInvitationTimeoutNotification(FAccelByteModelsV2GameSessionUserInviteTimeoutEvent InviteEvent, int32 LocalUserNum);
 	void OnFindGameSessionForInviteComplete(int32 LocalUserNum, bool bWasSuccessful, const FOnlineSessionSearchResult& Result, FAccelByteModelsV2GameSessionUserInvitedEvent InviteEvent);
 	void OnGameSessionMembersChangedNotification(FAccelByteModelsV2GameSessionMembersChangedEvent MembersChangedEvent, int32 LocalUserNum);
 	void OnGameSessionUpdatedNotification(FAccelByteModelsV2GameSession UpdatedGameSession, int32 LocalUserNum);
@@ -1822,6 +1841,7 @@ private:
 
 	//~ Begin Party Session Notification Handlers
 	void OnInvitedToPartySessionNotification(FAccelByteModelsV2PartyInvitedEvent InviteEvent, int32 LocalUserNum);
+	void OnPartySessionInvitationTimeoutNotification(FAccelByteModelsV2PartyInviteTimeoutEvent InvitationTimedOutEvent, int32 LocalUserNum);
 	void OnKickedFromPartySessionNotification(FAccelByteModelsV2PartyUserKickedEvent KickedEvent, int32 LocalUserNum);
 	void OnFindPartySessionForInviteComplete(int32 LocalUserNum, bool bWasSuccessful, const FOnlineSessionSearchResult& Result, FAccelByteModelsV2PartyInvitedEvent InviteEvent);
 	void OnPartySessionMembersChangedNotification(FAccelByteModelsV2PartyMembersChangedEvent MemberChangeEvent, int32 LocalUserNum);
