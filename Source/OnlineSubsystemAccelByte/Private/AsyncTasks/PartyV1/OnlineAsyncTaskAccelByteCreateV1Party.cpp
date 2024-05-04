@@ -35,6 +35,8 @@ void FOnlineAsyncTaskAccelByteCreateV1Party::Initialize()
 		return;
 	}
 
+	API_CLIENT_CHECK_GUARD();
+
 	// Next, we want to send off a request to check on the backend if we are in a party. This way we can validate in case
 	// we're in one, but we haven't restored our state. This will tell the developer to call RestoreParties to restore
 	// that previous state and act accordingly.
@@ -106,9 +108,17 @@ void FOnlineAsyncTaskAccelByteCreateV1Party::OnGetPartyInfoResponse(const FAccel
 		CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState);
 		return;
 	}
-	
+
+	if (!IsApiClientValid())
+	{
+		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Unable to proceed the async task due to ApiClient invalid"));
+		CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState);
+		return;
+	}
+
 	// Finally, since we are not in a party, we can send the request to create one
 	AccelByte::Api::Lobby::FPartyCreateResponse OnCreatePartyResponseDelegate = TDelegateUtils<AccelByte::Api::Lobby::FPartyCreateResponse>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteCreateV1Party::OnCreatePartyResponse);
+	API_CLIENT_CHECK_GUARD();
 	ApiClient->Lobby.SetCreatePartyResponseDelegate(OnCreatePartyResponseDelegate);
 	ApiClient->Lobby.SendCreatePartyRequest();
 
@@ -126,6 +136,12 @@ void FOnlineAsyncTaskAccelByteCreateV1Party::OnCreatePartyResponse(const FAccelB
 		CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
 	}
 	else
+	if (!IsApiClientValid())
+	{
+		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Unable to proceed the async task due to ApiClient invalid"));
+		CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState);
+	}
+	else
 	{
 		// CreateParty response also has information about the party, so just copy the struct to the member so that we
 		// can construct the party object in the Finalize method
@@ -133,6 +149,7 @@ void FOnlineAsyncTaskAccelByteCreateV1Party::OnCreatePartyResponse(const FAccelB
 
 		// Send a request to get party code for the current party
 		AccelByte::Api::Lobby::FPartyGetCodeResponse OnPartyGetCodeResponseDelegate = TDelegateUtils<AccelByte::Api::Lobby::FPartyGetCodeResponse>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteCreateV1Party::OnPartyGetCodeResponse);
+		API_CLIENT_CHECK_GUARD();
 		ApiClient->Lobby.SetPartyGetCodeResponseDelegate(OnPartyGetCodeResponseDelegate);
 		ApiClient->Lobby.SendPartyGetCodeRequest();
 	}
@@ -147,6 +164,13 @@ void FOnlineAsyncTaskAccelByteCreateV1Party::OnPartyGetCodeResponse(const FAccel
 		CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
 	}
 	else
+	if (!IsApiClientValid())
+	{
+		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Unable to proceed the async task due to ApiClient invalid"));
+		CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState);
+		return;
+	}
+	else
 	{
 		PartyCode = Result.PartyCode;
 
@@ -157,5 +181,6 @@ void FOnlineAsyncTaskAccelByteCreateV1Party::OnPartyGetCodeResponse(const FAccel
 	}
 
 	// Reset the party code delegate
+	API_CLIENT_CHECK_GUARD();
 	ApiClient->Lobby.SetPartyGetCodeResponseDelegate(AccelByte::Api::Lobby::FPartyGetCodeResponse());
 }

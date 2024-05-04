@@ -27,6 +27,7 @@ void FOnlineAsyncTaskAccelByteGetUserPlatformLinks::Initialize()
 	OnSuccessDelegate = TDelegateUtils<THandler<FPagedPlatformLinks>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteGetUserPlatformLinks::OnGetUserPlatformLinksSuccess);
 	OnErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteGetUserPlatformLinks::OnGetUserPlatformLinksError);
 
+	API_CLIENT_CHECK_GUARD(ErrorString);
 	ApiClient->User.GetPlatformLinks(OnSuccessDelegate, OnErrorDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));	

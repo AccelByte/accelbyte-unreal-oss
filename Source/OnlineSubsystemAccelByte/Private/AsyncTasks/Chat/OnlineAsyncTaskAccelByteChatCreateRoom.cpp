@@ -32,6 +32,7 @@ void FOnlineAsyncTaskAccelByteChatCreateRoom::Initialize()
 	// #NOTE Passing UserIds as both members and admins, since the creating user should be both
 	Members = UserIds;
 	Admins = UserIds;
+	API_CLIENT_CHECK_GUARD(ErrorString);
 	ApiClient->Chat.CreateGroupTopic(Members, Admins, ChatRoomConfig.FriendlyName, ChatRoomConfig.bIsJoinable, OnCreateGroupTopicSuccessDelegate, OnCreateGroupTopicErrorDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

@@ -31,6 +31,7 @@ void FOnlineAsyncTaskAccelByteReadUserFile::Initialize()
 	{
 		THandler<TArray<FAccelByteModelsSlot>> OnGetAllSlotsSuccessDelegate = TDelegateUtils<THandler<TArray<FAccelByteModelsSlot>>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteReadUserFile::OnGetAllSlotsSuccess);
 		FErrorHandler OnGetAllSlotsErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteReadUserFile::OnGetAllSlotsError);
+		API_CLIENT_CHECK_GUARD();
 		ApiClient->CloudStorage.GetAllSlots(OnGetAllSlotsSuccessDelegate, OnGetAllSlotsErrorDelegate);
 	}
 	// Otherwise, just get the slot contents from the cached ID
@@ -78,6 +79,7 @@ void FOnlineAsyncTaskAccelByteReadUserFile::RunGetSlot(const FString& SlotId)
 {
 	THandler<TArray<uint8>> OnGetSlotSuccessDelegate = TDelegateUtils<THandler<TArray<uint8>>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteReadUserFile::OnGetSlotSuccess);
 	FErrorHandler OnGetSlotErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteReadUserFile::OnGetSlotError);
+	API_CLIENT_CHECK_GUARD();
 	ApiClient->CloudStorage.GetSlot(SlotId, OnGetSlotSuccessDelegate, OnGetSlotErrorDelegate);
 
 	ResolvedSlotId = SlotId;

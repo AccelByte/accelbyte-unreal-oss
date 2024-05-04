@@ -26,6 +26,7 @@ void FOnlineAsyncTaskAccelByteChatUpdateSystemMessages::Initialize()
 		this, &FOnlineAsyncTaskAccelByteChatUpdateSystemMessages::OnUpdateSystemMessagesSuccess);
 	OnUpdateSystemMessagesErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(
 		this, &FOnlineAsyncTaskAccelByteChatUpdateSystemMessages::OnUpdateSystemMessagesError);
+	API_CLIENT_CHECK_GUARD(OnlineError);
 	ApiClient->Chat.UpdateSystemMessages(ActionUpdateSystemMessages, OnUpdateSystemMessagesSuccessDelegate, OnUpdateSystemMessagesErrorDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

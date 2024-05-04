@@ -121,6 +121,8 @@ void FOnlineAsyncTaskAccelByteRefreshPlatformToken::ApiClientRefreshToBackend(EA
 {
 	auto OnSuccess = TDelegateUtils<THandler<FPlatformTokenRefreshResponse>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteRefreshPlatformToken::HandleSuccess);
 	auto OnError = TDelegateUtils<FOAuthErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteRefreshPlatformToken::HandleError);
+
+	API_CLIENT_CHECK_GUARD(ErrorMessage);
 	ApiClient->User.RefreshPlatformToken(PlatformTypeForIAM, PlatformToken, OnSuccess, OnError);
 }
 

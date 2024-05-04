@@ -118,7 +118,7 @@ void FOnlineAsyncTaskAccelByteQueryUserProfile::Initialize()
 		return;
 	}
 
-	if (!ApiClient.IsValid())
+	if (!IsApiClientValid())
 	{
 		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("ApiClient is not found! Unable to complete!"));
 		CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState);
@@ -127,6 +127,7 @@ void FOnlineAsyncTaskAccelByteQueryUserProfile::Initialize()
 
 	auto OnQueryUsersProfileCompleteDelegate = TDelegateUtils<THandler<TArray<FAccelByteModelsPublicUserProfileInfo>>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryUserProfile::OnQueryUsersProfileComplete);
 	auto OnQueryUserProfileErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryUserProfile::OnQueryUserProfileError);
+	API_CLIENT_CHECK_GUARD(ErrorStr);
 	ApiClient->UserProfile.BulkGetPublicUserProfileInfos(UserIdsToQuery, OnQueryUsersProfileCompleteDelegate, OnQueryUserProfileErrorDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
@@ -156,7 +157,9 @@ void FOnlineAsyncTaskAccelByteQueryUserProfile::Finalize()
 			UserCache->AddUsersToCache({ TempUserInfo });
 			CachedUserInfo = TempUserInfo;
 		}
-
+		
+		API_CLIENT_CHECK_GUARD(ErrorStr);
+		
 		if (!Account.IsValid())
 		{
 			Account = MakeShared<FUserOnlineAccountAccelByte>(CachedUserInfo->Id.ToSharedRef());

@@ -34,6 +34,7 @@ void FOnlineAsyncTaskAccelByteGetWalletTransactions::Initialize()
 		OnGetWalletTransactionsErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteGetWalletTransactions::OnGetWalletTransactionsError);
 
 		// Send off a request to get wallet transaction list, as well as connect our delegates for doing so
+		API_CLIENT_CHECK_GUARD(ErrorStr);
 		ApiClient->Wallet.ListWalletTransactionsByCurrencyCode(CurrencyCode, OnGetWalletTransactionsSuccessDelegate, OnGetWalletTransactionsErrorDelegate);
 	}
 	else

@@ -29,6 +29,7 @@ void FOnlineAsyncTaskAccelByteRevokeV2PartyCode::Initialize()
 
 	OnRevokeCodeSuccessDelegate = AccelByte::TDelegateUtils<FVoidHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteRevokeV2PartyCode::OnRevokeCodeSuccess);
 	OnRevokeCodeErrorDelegate = AccelByte::TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteRevokeV2PartyCode::OnRevokeCodeError);;
+	API_CLIENT_CHECK_GUARD();
 	ApiClient->Session.RevokePartyCode(SessionId, OnRevokeCodeSuccessDelegate, OnRevokeCodeErrorDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

@@ -122,6 +122,7 @@ void FOnlineAsyncTaskAccelByteQueryStatsUsers::Initialize()
 		}
 		else
 		{
+			API_CLIENT_CHECK_GUARD(ErrorMessage);
 			ApiClient->Statistic.GetUserStatItems(AccelByteUserId
 				, StatNames
 				, {}

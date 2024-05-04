@@ -30,6 +30,7 @@ void FOnlineAsyncTaskAccelByteConsumeEntitlement::Initialize()
 
 	if (!IsRunningDedicatedServer())
 	{
+		API_CLIENT_CHECK_GUARD(ErrorMessage);
 		ApiClient->Entitlement.ConsumeUserEntitlement(EntitlementId, UseCount, OnConsumeEntitlementSuccess, OnError, Options, RequestId);
 	}
 	else

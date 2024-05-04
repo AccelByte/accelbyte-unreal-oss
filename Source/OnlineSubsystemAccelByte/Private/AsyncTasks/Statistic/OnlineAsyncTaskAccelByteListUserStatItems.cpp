@@ -73,6 +73,7 @@ void FOnlineAsyncTaskAccelByteListUserStatItems::Initialize()
 				, &FOnlineAsyncTaskAccelByteListUserStatItems::OnListUserStatItemsError);
 
 			// Send off a request to query users, as well as connect our delegates for doing so
+			API_CLIENT_CHECK_GUARD(ErrorStr);
 			ApiClient->Statistic.ListUserStatItems({}
 				, {}
 				, TEXT("")

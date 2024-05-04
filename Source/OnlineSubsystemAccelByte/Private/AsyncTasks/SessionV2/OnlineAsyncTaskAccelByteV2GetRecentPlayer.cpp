@@ -23,6 +23,7 @@ void FOnlineAsyncTaskAccelByteV2GetRecentPlayer::Initialize()
 
 	OnGetRecentPlayersSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsV2SessionRecentPlayers>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteV2GetRecentPlayer::OnGetRecentPlayersSuccess);
 	OnGetRecentPlayersErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteV2GetRecentPlayer::OnGetRecentPlayersError);
+	API_CLIENT_CHECK_GUARD(ErrorStr);
 	ApiClient->Session.GetRecentPlayers(OnGetRecentPlayersSuccessDelegate, OnGetRecentPlayersErrorDelegate, GetRecentPlayerLimit);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

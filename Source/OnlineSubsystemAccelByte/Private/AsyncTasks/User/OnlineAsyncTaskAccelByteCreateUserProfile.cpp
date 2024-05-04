@@ -57,6 +57,9 @@ void FOnlineAsyncTaskAccelByteCreateUserProfile::Initialize()
 		return;
 	}
 
+	API_CLIENT_CHECK_GUARD(ErrorString);
+	ApiClient->CredentialsRef->GetUserDisplayName();
+
 	Account = StaticCastSharedPtr<FUserOnlineAccountAccelByte>(IdentityInterface->GetUserAccount(*UserId.Get()));
 	if (!Account.IsValid())
 	{
@@ -152,6 +155,7 @@ void FOnlineAsyncTaskAccelByteCreateUserProfile::CreateUserProfile()
 	// setting extra attributes for the user
 	OnCreateProfileSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsUserProfileInfo>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteCreateUserProfile::OnCreateUserProfileSuccess);
 	OnCreateProfileErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteCreateUserProfile::OnCreateUserProfileError);
+	API_CLIENT_CHECK_GUARD(ErrorString);
 	ApiClient->UserProfile.CreateUserProfile(CreateRequest, OnCreateProfileSuccessDelegate, OnCreateProfileErrorDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Fired off request to create a new default user profile for user '%s'!"), *UserId->ToDebugString());

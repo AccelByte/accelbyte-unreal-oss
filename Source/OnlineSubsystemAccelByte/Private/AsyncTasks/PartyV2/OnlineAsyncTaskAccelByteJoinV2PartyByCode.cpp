@@ -29,6 +29,7 @@ void FOnlineAsyncTaskAccelByteJoinV2PartyByCode::Initialize()
 
 	OnJoinPartyByCodeSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsV2PartySession>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteJoinV2PartyByCode::OnJoinPartyByCodeSuccess);
 	OnJoinPartyByCodeErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteJoinV2PartyByCode::OnJoinPartyByCodeError);;
+	API_CLIENT_CHECK_GUARD();
 	ApiClient->Session.JoinPartyByCode(PartyCode, OnJoinPartyByCodeSuccessDelegate, OnJoinPartyByCodeErrorDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

@@ -31,6 +31,7 @@ void FOnlineAsyncTaskAccelByteLinkOtherPlatform::Initialize()
 	const FCustomErrorHandler& OnLinkOtherPlatformError = TDelegateUtils<FCustomErrorHandler>::CreateThreadSafeSelfPtr
 		(this, &FOnlineAsyncTaskAccelByteLinkOtherPlatform::HandleError);
 
+	API_CLIENT_CHECK_GUARD(OnlineError);
 	ApiClient->User.LinkOtherPlatform(PlatformType, Ticket, OnLinkOtherPlatformSuccess, OnLinkOtherPlatformError);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));	

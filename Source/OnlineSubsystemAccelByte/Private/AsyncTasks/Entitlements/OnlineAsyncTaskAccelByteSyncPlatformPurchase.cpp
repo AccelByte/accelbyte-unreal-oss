@@ -27,6 +27,7 @@ void FOnlineAsyncTaskAccelByteSyncPlatformPurchase::Initialize()
 
 	FVoidHandler OnSyncPlatformPurchaseSuccessDelegate = TDelegateUtils<FVoidHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteSyncPlatformPurchase::OnSyncPlatformPurchaseSuccess);
 	FErrorHandler OnSyncPlatformPurchaseErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteSyncPlatformPurchase::OnSyncPlatformPurchaseError);
+	API_CLIENT_CHECK_GUARD(Error);
 	ApiClient->Entitlement.SyncPlatformPurchase(EntitlementSyncBase, PlatformEnum, OnSyncPlatformPurchaseSuccessDelegate, OnSyncPlatformPurchaseErrorDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

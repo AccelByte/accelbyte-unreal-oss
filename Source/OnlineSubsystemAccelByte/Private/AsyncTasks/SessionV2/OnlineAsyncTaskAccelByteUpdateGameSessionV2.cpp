@@ -175,6 +175,7 @@ void FOnlineAsyncTaskAccelByteUpdateGameSessionV2::Initialize()
 	}
 	else
 	{
+		API_CLIENT_CHECK_GUARD();
 		ApiClient->Session.UpdateGameSession(SessionInfo->GetSessionId().ToString(), UpdateRequest, OnUpdateGameSessionSuccessDelegate, OnUpdateGameSessionErrorDelegate);
 	}
 
@@ -271,6 +272,7 @@ void FOnlineAsyncTaskAccelByteUpdateGameSessionV2::RefreshSession()
 	}
 	else
 	{
+		API_CLIENT_CHECK_GUARD();
 		ApiClient->Session.GetGameSessionDetails(SessionId, OnRefreshGameSessionSuccessDelegate, OnRefreshGameSessionErrorDelegate);
 	}
 

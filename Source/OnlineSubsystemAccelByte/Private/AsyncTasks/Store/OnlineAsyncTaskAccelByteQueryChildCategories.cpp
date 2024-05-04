@@ -34,6 +34,7 @@ void FOnlineAsyncTaskAccelByteQueryChildCategories::Initialize()
 	OnGetChildCategoriesSuccess = TDelegateUtils<THandler<TArray<FAccelByteModelsCategoryInfo>>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryChildCategories::HandleGetChildCategoriesSuccess);
 	OnError = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryChildCategories::HandleAsyncTaskError);
 	
+	API_CLIENT_CHECK_GUARD(ErrorMsg);
 	ApiClient->Category.GetDescendantCategories(Language, CategoryPath,OnGetChildCategoriesSuccess, OnError);
 	
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

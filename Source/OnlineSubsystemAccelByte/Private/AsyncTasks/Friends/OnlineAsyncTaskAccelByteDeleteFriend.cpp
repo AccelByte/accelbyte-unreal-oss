@@ -41,6 +41,7 @@ void FOnlineAsyncTaskAccelByteDeleteFriend::Initialize()
 			// Since this friend is a valid pointer and is actually one of our friends, then we want to send a request to remove them
 			OnUnfriendSuccessDelegate = TDelegateUtils<FVoidHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteDeleteFriend::OnUnfriendSuccess);
 			OnUnfriendFailedDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteDeleteFriend::OnCancelFriendRequestFailed);
+			API_CLIENT_CHECK_GUARD(ErrorStr);
 			ApiClient->Lobby.Unfriend(FriendId->GetAccelByteId(), OnUnfriendSuccessDelegate, OnUnfriendFailedDelegate);
 			AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sent request through lobby websocket to remove a friend."));
 		}
@@ -49,6 +50,7 @@ void FOnlineAsyncTaskAccelByteDeleteFriend::Initialize()
 			// Since this friend is a valid pointer and is an outbound request we have sent to be their friend, we want to cancel this request
 			OnCancelFriendRequestSuccessDelegate = TDelegateUtils<FVoidHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteDeleteFriend::OnCancelFriendRequestSuccess);
 			OnCancelFriendRequestFailedDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteDeleteFriend::OnCancelFriendRequestFailed);
+			API_CLIENT_CHECK_GUARD(ErrorStr);
 			ApiClient->Lobby.CancelFriendRequest(FriendId->GetAccelByteId(), OnCancelFriendRequestSuccessDelegate, OnCancelFriendRequestFailedDelegate);
 
 			AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sent request through lobby websocket to cancel an outbound friend request."));

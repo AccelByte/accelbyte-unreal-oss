@@ -79,12 +79,13 @@ void FOnlineAsyncTaskAccelByteSimultaneousLogin::Initialize()
 
 	if (Subsystem->IsMultipleLocalUsersEnabled())
 	{
-		ApiClient = FMultiRegistry::GetApiClient(FString::Printf(TEXT("%d"), LoginUserNum));
+		SetApiClient(FMultiRegistry::GetApiClient(FString::Printf(TEXT("%d"), LoginUserNum)));
 	}
 	else
 	{
-		ApiClient = FMultiRegistry::GetApiClient();
+		SetApiClient(FMultiRegistry::GetApiClient());
 	}
+	API_CLIENT_CHECK_GUARD(ErrorStr);
 	ApiClient->CredentialsRef->SetClientCredentials(FRegistry::Settings.ClientId, FRegistry::Settings.ClientSecret);
 	
 	LoginWithNativeSubsystem();
@@ -95,7 +96,7 @@ void FOnlineAsyncTaskAccelByteSimultaneousLogin::Initialize()
 void FOnlineAsyncTaskAccelByteSimultaneousLogin::Finalize()
 {
 	// State is Invalid then return 
-	if (!bWasSuccessful && !ApiClient.IsValid())
+	if (!bWasSuccessful && !IsApiClientValid())
 	{
 		AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 		AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Initialize incomplete, Invalid State"));
@@ -207,6 +208,7 @@ void FOnlineAsyncTaskAccelByteSimultaneousLogin::PerformLogin(const FOnlineAccou
 		auto NativePlatformLoginType = FOnlineSubsystemAccelByteUtils::GetAccelByteLoginTypeFromNativeSubsystem(FName(NativePlatformCredentials.Type));
 		auto SecondaryPlatformLoginType = FOnlineSubsystemAccelByteUtils::GetAccelByteLoginTypeFromNativeSubsystem(FName(Credentials.Type));
 
+		API_CLIENT_CHECK_GUARD(ErrorStr);
 		ApiClient->User.LoginWithSimultaneousPlatformV4(
 			ConvertOSSTypeToAccelBytePlatformType(NativePlatformLoginType),
 			NativePlatformTicket,

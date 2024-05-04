@@ -32,6 +32,7 @@ void FOnlineAsyncTaskAccelByteGroupsUpdateGroupCustomRule::Initialize()
 	OnSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsGroupInformation>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteGroupsUpdateGroupCustomRule::OnUpdateGroupCustomRuleSuccess);
 	OnErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteGroupsUpdateGroupCustomRule::OnUpdateGroupCustomRuleError);
 
+	API_CLIENT_CHECK_GUARD(ErrorString);
 	ApiClient->Group.UpdateV2GroupCustomRule(GroupId, RequestedContent, OnSuccessDelegate, OnErrorDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

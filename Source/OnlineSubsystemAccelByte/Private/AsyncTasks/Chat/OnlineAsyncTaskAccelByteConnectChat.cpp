@@ -29,6 +29,7 @@ void FOnlineAsyncTaskAccelByteConnectChat::Initialize()
 	OnChatConnectErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteConnectChat::OnChatConnectError);
 
 	OnChatDisconnectedNotifDelegate = TDelegateUtils<AccelByte::Api::Chat::FChatDisconnectNotif>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteConnectChat::OnChatDisconnectedNotif);
+	API_CLIENT_CHECK_GUARD(ErrorStr);
 	ApiClient->Chat.SetDisconnectNotifDelegate(OnChatDisconnectedNotifDelegate);
 
 	// Send off a request to connect to the lobby websocket, as well as connect our delegates for doing so
@@ -94,6 +95,7 @@ void FOnlineAsyncTaskAccelByteConnectChat::OnChatConnectSuccess()
 
 	// set connection closed delegates to set chat connected false when connection closed is triggered
 	const Api::Chat::FChatConnectionClosed OnChatConnectionClosedDelegate = Api::Chat::FChatConnectionClosed::CreateStatic(FOnlineAsyncTaskAccelByteConnectChat::OnChatConnectionClosed, LocalUserNum, IdentityInterface, PredefinedEventInterface);
+	API_CLIENT_CHECK_GUARD(ErrorStr);
 	ApiClient->Chat.SetConnectionClosedDelegate(OnChatConnectionClosedDelegate);
 
 	CompleteTask(EAccelByteAsyncTaskCompleteState::Success);

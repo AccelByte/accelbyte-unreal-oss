@@ -39,7 +39,7 @@ void FOnlineAsyncTaskAccelByteDeleteUserRecord::Initialize()
 		if (!IdentityInterface.IsValid())
 		{
 			ErrorCode = FString::Printf(TEXT("%d"), ErrorCodes::StatusUnauthorized);
-			ErrorStr = FText::FromString(TEXT("request-failed-delete-user-record-error"));
+			ErrorStr = TEXT("request-failed-delete-user-record-error");
 			CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
 			AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to delete user record, identity interface is invalid!"));
 			return;
@@ -48,7 +48,7 @@ void FOnlineAsyncTaskAccelByteDeleteUserRecord::Initialize()
 		if (IdentityInterface->GetLoginStatus(LocalUserNum) != ELoginStatus::LoggedIn)
 		{
 			ErrorCode = FString::Printf(TEXT("%d"), ErrorCodes::StatusUnauthorized);
-			ErrorStr = FText::FromString(TEXT("request-failed-delete-user-record-error"));
+			ErrorStr = TEXT("request-failed-delete-user-record-error");
 			CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
 			AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to delete user record, not logged in!"));
 			return;
@@ -59,6 +59,7 @@ void FOnlineAsyncTaskAccelByteDeleteUserRecord::Initialize()
 	}
 	else
 	{
+		API_CLIENT_CHECK_GUARD(ErrorStr);
 		ApiClient->CloudSave.DeleteUserRecord(Key, OnDeleteUserRecordSuccessDelegate, OnDeleteUserRecordErrorDelegate);
 	}
 
@@ -90,7 +91,7 @@ void FOnlineAsyncTaskAccelByteDeleteUserRecord::TriggerDelegates()
 		}
 		else
 		{
-			CloudSaveInterface->TriggerOnDeleteUserRecordCompletedDelegates(LocalUserNum, ONLINE_ERROR(EOnlineErrorResult::RequestFailure, ErrorCode, ErrorStr), Key);
+			CloudSaveInterface->TriggerOnDeleteUserRecordCompletedDelegates(LocalUserNum, ONLINE_ERROR(EOnlineErrorResult::RequestFailure, ErrorCode, FText::FromString(ErrorStr)), Key);
 		}
 	}
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
@@ -106,7 +107,7 @@ void FOnlineAsyncTaskAccelByteDeleteUserRecord::OnDeleteUserRecordSuccess()
 void FOnlineAsyncTaskAccelByteDeleteUserRecord::OnDeleteUserRecordError(int32 Code, const FString& ErrorMessage)
 {
 	ErrorCode = FString::Printf(TEXT("%d"), Code);
-	ErrorStr = FText::FromString(TEXT("request-failed-delete-user-record-error"));
+	ErrorStr = TEXT("request-failed-delete-user-record-error");
 	UE_LOG_AB(Warning, TEXT("Failed to delete user record! Error Code: %d; Error Message: %s"), Code, *ErrorMessage);
 	CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
 }

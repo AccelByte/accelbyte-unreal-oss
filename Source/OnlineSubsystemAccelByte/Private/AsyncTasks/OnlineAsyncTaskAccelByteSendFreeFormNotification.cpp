@@ -57,6 +57,7 @@ void FOnlineAsyncTaskAccelByteSendFreeFormNotification::SendFreeFormNotification
 		FVoidHandler OnSuccess = TDelegateUtils<FVoidHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteSendFreeFormNotification::OnSendFreeFormNotificationSuccess);
 		FErrorHandler OnError = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteSendFreeFormNotification::OnSendFreeFormNotificationError);
 
+		API_CLIENT_CHECK_GUARD();
 		ApiClient->Lobby.SendNotificationToUser(Receiver, Request, true, OnSuccess, OnError);
 	}
 

@@ -56,6 +56,7 @@ void FOnlineAsyncTaskAccelByteFindV1Sessions::Initialize()
 
 	FString RegionName = TEXT("");
 	SearchSettings->QuerySettings.Get(SETTING_REGION, RegionName);
+	API_CLIENT_CHECK_GUARD();
 	ApiClient->SessionBrowser.GetGameSessions(SearchType, FString(""), OnSessionBrowserFindSuccessDelegate, OnSessionBrowserFindErrorDelegate, 0, SearchSettings->MaxSearchResults);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sent off task to find %s game sessions!"), *SearchType);

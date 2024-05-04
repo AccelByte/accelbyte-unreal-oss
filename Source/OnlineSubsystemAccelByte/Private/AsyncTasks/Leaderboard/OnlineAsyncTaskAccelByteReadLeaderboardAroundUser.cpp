@@ -61,6 +61,7 @@ void FOnlineAsyncTaskAccelByteReadLeaderboardAroundUser::Initialize()
 	const TSharedRef<const FUniqueNetIdAccelByteUser> ABUser = FUniqueNetIdAccelByteUser::CastChecked(User);
 	const FString LeaderboardCode = LeaderboardObject->LeaderboardName.ToString();
 	
+	API_CLIENT_CHECK_GUARD(ErrorMessage);
 	ApiClient->Leaderboard.GetUserRankingV3(UserId->GetAccelByteId(), LeaderboardCode, OnGetUserRankingSuccessHandler, OnRequestFailedHandler);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
@@ -155,6 +156,7 @@ void FOnlineAsyncTaskAccelByteReadLeaderboardAroundUser::OnGetUserRankingSuccess
 
 	if(bUseCycle)
 	{
+		API_CLIENT_CHECK_GUARD(ErrorMessage);
 		ApiClient->Leaderboard.GetRankingByCycle(
 			LeaderboardCode,
 			CycleId,
@@ -164,6 +166,7 @@ void FOnlineAsyncTaskAccelByteReadLeaderboardAroundUser::OnGetUserRankingSuccess
 			OnRequestFailedHandler);
 	}else
 	{
+		API_CLIENT_CHECK_GUARD(ErrorMessage);
 		ApiClient->Leaderboard.GetRankingsV3(
 			LeaderboardCode, 
 			Offset,

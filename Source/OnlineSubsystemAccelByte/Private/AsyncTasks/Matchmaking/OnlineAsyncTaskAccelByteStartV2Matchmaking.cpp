@@ -29,6 +29,8 @@ void FOnlineAsyncTaskAccelByteStartV2Matchmaking::Initialize()
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("LocalPlayerId: %s; SessionName: %s; MatchPool: %s"), *UserId->ToDebugString(), *SessionName.ToString(), *MatchPool);
 
+	API_CLIENT_CHECK_GUARD(OnlineError);
+	
 	const bool bHasCachedLatencies = ApiClient->Qos.GetCachedLatencies().Num() > 0;
 	if (!bHasCachedLatencies)
 	{
@@ -148,6 +150,7 @@ void FOnlineAsyncTaskAccelByteStartV2Matchmaking::CreateMatchTicket()
 	// Check if the caller has specified specific regions to matchmake to. If there are specifically requested regions,
 	// then filter the cached latencies, removing regions that do not match. Otherwise, just attach all latencies to the
 	// request.
+	API_CLIENT_CHECK_GUARD(OnlineError);
 	TArray<TPair<FString, float>> Latencies = ApiClient->Qos.GetCachedLatencies();
 	TArray<FString> RequestedRegions{};
 	if (FOnlineSearchSettingsAccelByte::Get(SearchHandle->QuerySettings, SETTING_GAMESESSION_REQUESTEDREGIONS, RequestedRegions) && RequestedRegions.Num() > 0)

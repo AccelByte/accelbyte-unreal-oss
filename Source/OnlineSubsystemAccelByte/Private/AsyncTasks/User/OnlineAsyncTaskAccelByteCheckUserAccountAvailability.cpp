@@ -33,6 +33,7 @@ void FOnlineAsyncTaskAccelByteCheckUserAccountAvailability::Initialize()
 		(this, &FOnlineAsyncTaskAccelByteCheckUserAccountAvailability::HandleSuccess);
 	const FErrorHandler& OnError = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr
 		(this, &FOnlineAsyncTaskAccelByteCheckUserAccountAvailability::HandleError);
+	API_CLIENT_CHECK_GUARD(ErrorMessage);
 	ApiClient->User.CheckUserAccountAvailability(DisplayName, OnSuccess, OnError, bIsSearchUniqueDisplayName);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

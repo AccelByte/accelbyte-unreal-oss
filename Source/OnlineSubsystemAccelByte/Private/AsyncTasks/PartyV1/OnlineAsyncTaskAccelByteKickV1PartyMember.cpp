@@ -54,6 +54,7 @@ void FOnlineAsyncTaskAccelByteKickV1PartyMember::Initialize()
 	}
 
 	AccelByte::Api::Lobby::FPartyKickResponse OnKickPartyMemberResponseDelegate = TDelegateUtils<AccelByte::Api::Lobby::FPartyKickResponse>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteKickV1PartyMember::OnKickPartyMemberResponse);
+	API_CLIENT_CHECK_GUARD();
 	ApiClient->Lobby.SetInvitePartyKickMemberResponseDelegate(OnKickPartyMemberResponseDelegate);
 	ApiClient->Lobby.SendKickPartyMemberRequest(TargetMemberId->GetAccelByteId());
 	

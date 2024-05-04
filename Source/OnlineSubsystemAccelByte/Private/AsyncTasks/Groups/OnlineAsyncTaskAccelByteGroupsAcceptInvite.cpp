@@ -28,6 +28,7 @@ void FOnlineAsyncTaskAccelByteGroupsAcceptInvite::Initialize()
 	OnSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsMemberRequestGroupResponse>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteGroupsAcceptInvite::OnAcceptInviteSuccess);
 	OnErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteGroupsAcceptInvite::OnAcceptInviteError);
 
+	API_CLIENT_CHECK_GUARD(ErrorString);
 	ApiClient->Group.AcceptV2GroupInvitation(GroupId, OnSuccessDelegate, OnErrorDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

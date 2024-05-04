@@ -33,6 +33,7 @@ void FOnlineAsyncTaskAccelByteCreateNewOrder::Initialize()
 		(this, &FOnlineAsyncTaskAccelByteCreateNewOrder::HandleSuccess);
 	const FErrorHandler& OnError = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr
 		(this, &FOnlineAsyncTaskAccelByteCreateNewOrder::HandleError);
+	API_CLIENT_CHECK_GUARD(ErrorMessage);
 	ApiClient->Order.CreateNewOrder(OrderCreate, OnSuccess, OnError);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

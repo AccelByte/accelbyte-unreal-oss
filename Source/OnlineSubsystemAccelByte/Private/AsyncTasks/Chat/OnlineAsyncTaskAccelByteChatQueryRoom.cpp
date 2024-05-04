@@ -28,6 +28,7 @@ void FOnlineAsyncTaskAccelByteChatQueryRoom::Initialize()
 		TDelegateUtils<AccelByte::Api::Chat::FQueryTopicResponse>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteChatQueryRoom::OnQueryRoomSuccess);
 	const FErrorHandler OnQueryRoomErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteChatQueryRoom::OnQueryRoomError);
 
+	API_CLIENT_CHECK_GUARD(ErrorString);
 	ApiClient->Chat.QueryTopic(Query, OnQueryRoomSuccessDelegate, OnQueryRoomErrorDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

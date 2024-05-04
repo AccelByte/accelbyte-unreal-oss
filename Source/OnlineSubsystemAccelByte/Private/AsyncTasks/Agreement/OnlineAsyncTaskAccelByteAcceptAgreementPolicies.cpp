@@ -90,6 +90,7 @@ void FOnlineAsyncTaskAccelByteAcceptAgreementPolicies::Initialize()
 				OnAcceptAgreementPoliciesErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteAcceptAgreementPolicies::OnAcceptAgreementPoliciesError);
 
 				// Send off a request to accept agreement policies, as well as connect our delegates for doing so
+				API_CLIENT_CHECK_GUARD(ErrorStr);
 				ApiClient->Agreement.BulkAcceptPolicyVersions(RequestedDocuments, OnAcceptAgreementPoliciesSuccessDelegate, OnAcceptAgreementPoliciesErrorDelegate);
 			}
 			else
@@ -131,6 +132,7 @@ void FOnlineAsyncTaskAccelByteAcceptAgreementPolicies::TriggerDelegates()
 			if (bIsMandatory)
 			{
 				const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(Subsystem->GetIdentityInterface());
+				API_CLIENT_CHECK_GUARD(ErrorStr);
 				if (IdentityInterface.IsValid())
 				{
 					EAccelByteLoginType Type = EAccelByteLoginType::RefreshToken;

@@ -121,6 +121,7 @@ void FOnlineAsyncTaskAccelByteResetUserStats::Initialize()
 	}
 	else
 	{
+		API_CLIENT_CHECK_GUARD(ErrorMessage);
 		ApiClient->Statistic.BulkResetMultipleUserStatItemsValue(UserStatItemValues
 			, OnBulkResetMultipleUserStatItemsValueSuccess
 			, OnError);

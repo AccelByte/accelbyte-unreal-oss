@@ -44,6 +44,7 @@ void FOnlineAsyncTaskAccelByteBulkQueryUserPresence::Initialize()
 	// Send off the actual request to get user presence
 	THandler<FAccelByteModelsBulkUserStatusNotif> OnQueryUserPresenceSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsBulkUserStatusNotif>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteBulkQueryUserPresence::OnQueryUserPresenceSuccess);
 	FErrorHandler OnQueryUserPresenceErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteBulkQueryUserPresence::OnQueryUserPresenceError);
+	API_CLIENT_CHECK_GUARD();
 	ApiClient->Lobby.BulkGetUserPresence(UsersToQuery, OnQueryUserPresenceSuccessDelegate, OnQueryUserPresenceErrorDelegate, false);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

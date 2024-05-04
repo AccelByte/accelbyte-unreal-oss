@@ -30,6 +30,7 @@ void FOnlineAsyncTaskAccelByteGroupsDeletePredefinedRule::Initialize()
 	OnSuccessDelegate = TDelegateUtils<FVoidHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteGroupsDeletePredefinedRule::OnDeletePredefinedRuleSuccess);
 	OnErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteGroupsDeletePredefinedRule::OnDeletePredefinedRuleError);
 
+	API_CLIENT_CHECK_GUARD(ErrorString);
 	ApiClient->Group.DeleteV2GroupPredefinedRule(GroupId, AllowedAction, OnSuccessDelegate, OnErrorDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

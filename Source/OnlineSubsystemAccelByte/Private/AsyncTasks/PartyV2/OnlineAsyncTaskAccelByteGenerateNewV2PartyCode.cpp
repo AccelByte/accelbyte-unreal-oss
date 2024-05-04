@@ -29,6 +29,7 @@ void FOnlineAsyncTaskAccelByteGenerateNewV2PartyCode::Initialize()
 
 	OnGenerateNewCodeSuccessDelegate = AccelByte::TDelegateUtils<THandler<FAccelByteModelsV2PartySession>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteGenerateNewV2PartyCode::OnGenerateNewCodeSuccess);
 	OnGenerateNewCodeErrorDelegate = AccelByte::TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteGenerateNewV2PartyCode::OnGenerateNewCodeError);;
+	API_CLIENT_CHECK_GUARD();
 	ApiClient->Session.GenerateNewPartyCode(SessionId, OnGenerateNewCodeSuccessDelegate, OnGenerateNewCodeErrorDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

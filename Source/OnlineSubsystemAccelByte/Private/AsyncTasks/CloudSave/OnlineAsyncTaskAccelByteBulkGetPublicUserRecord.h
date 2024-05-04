@@ -46,7 +46,7 @@ private:
 	/**
 	 * String representing the error code that occurred
 	 */
-	FText ErrorStr;
+	FString ErrorStr;
 
 	/**
 	 * String representing the record key to get

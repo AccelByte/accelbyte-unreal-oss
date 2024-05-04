@@ -126,5 +126,6 @@ void FOnlineAsyncTaskAccelByteGetMyV2MatchmakingTickets::SendGetMyTicketRequest(
 	OnGetMyMatchTicketSuccessDelegate = AccelByte::TDelegateUtils<THandler<FAccelByteModelsV2MatchmakingTicketStatuses>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteGetMyV2MatchmakingTickets::OnGetMyMatchTicketSuccess);
 	OnGetMyMatchTicketErrorDelegate = AccelByte::TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteGetMyV2MatchmakingTickets::OnGetMyMatchTicketError);;
 
+	API_CLIENT_CHECK_GUARD();
 	ApiClient->MatchmakingV2.GetMyMatchTickets(OnGetMyMatchTicketSuccessDelegate, OnGetMyMatchTicketErrorDelegate, MatchPool, Limit, Offset);
 }

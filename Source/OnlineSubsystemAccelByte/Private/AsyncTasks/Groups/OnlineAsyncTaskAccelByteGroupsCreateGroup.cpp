@@ -41,6 +41,7 @@ void FOnlineAsyncTaskAccelByteGroupsCreateGroup::Initialize()
 	OnSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsGroupInformation>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteGroupsCreateGroup::OnCreateGroupSuccess);
 	OnErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteGroupsCreateGroup::OnCreateGroupError);
 
+	API_CLIENT_CHECK_GUARD(ErrorString);
 	ApiClient->Group.CreateV2Group(NewGroupRequest, OnSuccessDelegate, OnErrorDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

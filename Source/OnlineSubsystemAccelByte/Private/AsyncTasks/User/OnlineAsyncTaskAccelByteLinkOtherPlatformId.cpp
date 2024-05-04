@@ -30,6 +30,7 @@ void FOnlineAsyncTaskAccelByteLinkOtherPlatformId::Initialize()
 		(this, &FOnlineAsyncTaskAccelByteLinkOtherPlatformId::HandleSuccess);
 	const FCustomErrorHandler& OnLinkOtherPlatformError = TDelegateUtils<FCustomErrorHandler>::CreateThreadSafeSelfPtr
 		(this, &FOnlineAsyncTaskAccelByteLinkOtherPlatformId::HandleError);
+	API_CLIENT_CHECK_GUARD(OnlineError);
 	ApiClient->User.LinkOtherPlatformId(PlatformId, Ticket, OnLinkOtherPlatformSuccess, OnLinkOtherPlatformError);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));	

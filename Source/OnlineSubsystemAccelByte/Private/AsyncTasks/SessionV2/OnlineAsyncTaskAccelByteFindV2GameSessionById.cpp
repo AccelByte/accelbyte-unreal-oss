@@ -40,8 +40,9 @@ void FOnlineAsyncTaskAccelByteFindV2GameSessionById::Initialize()
 	}
 	else
 	{
-		if (ApiClient.IsValid())
+		if (IsApiClientValid())
 		{
+			API_CLIENT_CHECK_GUARD();
 			ApiClient->Session.GetGameSessionDetails(SessionId->ToString(), OnGetGameSessionDetailsSuccessDelegate, OnGetGameSessionDetailsErrorDelegate);
 		}
 		else

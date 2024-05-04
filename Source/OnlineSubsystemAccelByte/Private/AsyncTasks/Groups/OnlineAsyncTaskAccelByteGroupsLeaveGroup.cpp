@@ -28,6 +28,7 @@ void FOnlineAsyncTaskAccelByteGroupsLeaveGroup::Initialize()
 	OnSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsMemberRequestGroupResponse>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteGroupsLeaveGroup::OnLeaveGroupSuccess);
 	OnErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteGroupsLeaveGroup::OnLeaveGroupError);
 
+	API_CLIENT_CHECK_GUARD(ErrorString);
 	ApiClient->Group.LeaveV2Group(GroupId, OnSuccessDelegate, OnErrorDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

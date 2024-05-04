@@ -25,6 +25,7 @@ void FOnlineAsyncTaskAccelByteQueryActiveSections::Initialize()
 
 	OnListActiveSectionContentsSuccessDelegate = TDelegateUtils<THandler<TArray<FAccelByteModelsSectionInfo>>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryActiveSections::OnListActiveSectionContentsSuccess);
 	OnListActiveSectionContentsErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryActiveSections::OnListActiveSectionContentsError);
+	API_CLIENT_CHECK_GUARD(ErrorMsg);
 	ApiClient->StoreDisplay.ListActiveSectionContents(StoreId, ViewId, Region, Language, OnListActiveSectionContentsSuccessDelegate, OnListActiveSectionContentsErrorDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

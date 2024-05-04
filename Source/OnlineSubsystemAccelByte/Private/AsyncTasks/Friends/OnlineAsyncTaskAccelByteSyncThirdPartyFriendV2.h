@@ -35,8 +35,8 @@ private:
 	 */
 	TArray<FAccelByteModelsSyncThirdPartyFriendsResponse> SyncPlatformResponse;
 
-	/** Text representing the error that occurred in the request, if one did. */
-	FText ErrorText;
+	/** String representing the error that occurred in the request, if one did. */
+	FString ErrorStr;
 
 	/** Online error information in case any error happen. */
 	FOnlineError OnlineError;

@@ -32,6 +32,8 @@ void FOnlineAsyncTaskAccelByteConnectLobby::Initialize()
 {
 	Super::Initialize();
 
+	API_CLIENT_CHECK_GUARD(ErrorStr);
+	
 	if (ApiClient->Lobby.IsConnected())
 	{
 		if (SuppressConnectSuccessIfAlreadyConnected)
@@ -213,7 +215,15 @@ TSharedPtr<IAccelByteTokenGenerator> FOnlineAsyncTaskAccelByteConnectLobby::Crea
 	GConfig->GetArray(TEXT("OnlineSubsystemAccelByte"), TEXT("EntitlementGateCheckItemIds"), Params.ItemIds, GEngineIni);
 	GConfig->GetArray(TEXT("OnlineSubsystemAccelByte"), TEXT("EntitlementGateCheckAppIds"), Params.AppIds, GEngineIni);
 
-	return MakeShared<AccelByte::FAccelByteEntitlementTokenGenerator>(Params, ApiClient);
+	if (IsApiClientValid()) {
+		auto apiClient = GetApiClientInternal();
+		return MakeShared<AccelByte::FAccelByteEntitlementTokenGenerator>(Params, apiClient);
+	}
+	else
+	{
+		RaiseGenericError(ErrorStr);
+		return MakeShared<AccelByte::FAccelByteEntitlementTokenGenerator>(Params, nullptr);
+	}
 }
 
 #undef ONLINE_ERROR_NAMESPACE

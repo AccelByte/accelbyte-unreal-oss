@@ -26,8 +26,9 @@ void FOnlineAsyncTaskAccelByteChatDeleteSystemMessages::Initialize()
 		this, &FOnlineAsyncTaskAccelByteChatDeleteSystemMessages::OnDeleteSystemMessagesSuccess);
 	OnDeleteSystemMessagesErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(
 		this, &FOnlineAsyncTaskAccelByteChatDeleteSystemMessages::OnDeleteSystemMessagesError);
+	API_CLIENT_CHECK_GUARD(OnlineError);
 	ApiClient->Chat.DeleteSystemMessages(MessageIds, OnDeleteSystemMessagesSuccessDelegate, OnDeleteSystemMessagesErrorDelegate);
-
+	
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 

@@ -23,6 +23,7 @@ void FOnlineAsyncTaskAccelByteQueryCategories::Initialize()
 	OnGetRootCategoriesSuccess = TDelegateUtils<THandler<TArray<FAccelByteModelsCategoryInfo>>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryCategories::HandleGetRootCategorySuccess);
 	OnError = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryCategories::HandleAsyncTaskError);
 	
+	API_CLIENT_CHECK_GUARD(ErrorMsg);
 	ApiClient->Category.GetRootCategories(Language, OnGetRootCategoriesSuccess, OnError);
 	
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
@@ -69,6 +70,7 @@ void FOnlineAsyncTaskAccelByteQueryCategories::HandleGetRootCategorySuccess(cons
 		Category.Id = CategoryInfo.CategoryPath;
 		Category.Description = FText::FromString(CategoryInfo.DisplayName);
 		OnGetDescendantCategoriesSuccess = TDelegateUtils<THandler<TArray<FAccelByteModelsCategoryInfo>>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryCategories::HandleGetDescendantCategoriesSuccess);
+		API_CLIENT_CHECK_GUARD(ErrorMsg);
 		ApiClient->Category.GetDescendantCategories(Language, CategoryInfo.CategoryPath, OnGetDescendantCategoriesSuccess, OnError);
 	}
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

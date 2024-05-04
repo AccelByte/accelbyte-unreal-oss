@@ -28,6 +28,7 @@ void FOnlineAsyncTaskAccelByteChatSendRoomChat::Initialize()
 		TDelegateUtils<AccelByte::Api::Chat::FSendChatResponse>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteChatSendRoomChat::OnSendRoomChatSuccess);
 	const FErrorHandler OnSendRoomChatErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteChatSendRoomChat::OnSendRoomChatError);
 
+	API_CLIENT_CHECK_GUARD(ErrorString);
 	ApiClient->Chat.SendChat(RoomId, ChatMessage, OnSendRoomChatSuccessDelegate, OnSendRoomChatErrorDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

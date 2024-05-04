@@ -28,6 +28,7 @@ void FOnlineAsyncTaskAccelByteUnblockPlayer::Initialize()
 	// the blocked players list if the unblock call is successful
 	OnUnblockPlayerSuccessDelegate = TDelegateUtils<FVoidHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteUnblockPlayer::OnUnblockPlayerSuccess);
 	OnUnblockPlayerFailedDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteUnblockPlayer::OnUnblockPlayerFailed);
+	API_CLIENT_CHECK_GUARD(ErrorStr);
 	ApiClient->Lobby.UnblockPlayer(PlayerId->GetAccelByteId(), OnUnblockPlayerSuccessDelegate, OnUnblockPlayerFailedDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

@@ -32,6 +32,7 @@ void FOnlineAsyncTaskAccelByteQueryUserOrders::Initialize()
 		(this, &FOnlineAsyncTaskAccelByteQueryUserOrders::HandleSuccess);
 	const FErrorHandler& OnError = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr
 		(this, &FOnlineAsyncTaskAccelByteQueryUserOrders::HandleError);
+	API_CLIENT_CHECK_GUARD(ErrorMessage);
 	ApiClient->Order.QueryUserOrders(UserOrderRequest, OnSuccess, OnError);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

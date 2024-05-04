@@ -38,6 +38,7 @@ void FOnlineAsyncTaskAccelByteGenerateNewV2GameCode::Initialize()
 	}
 	else
 	{
+		API_CLIENT_CHECK_GUARD();
 		ApiClient->Session.GenerateNewGameSessionCode(SessionId, OnGenerateNewCodeSuccessDelegate, OnGenerateNewCodeErrorDelegate);
 	}
 	

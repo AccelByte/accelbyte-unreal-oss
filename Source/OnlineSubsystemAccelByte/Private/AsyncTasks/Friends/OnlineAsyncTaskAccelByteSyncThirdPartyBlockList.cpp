@@ -32,6 +32,7 @@ void FOnlineAsyncTaskAccelByteSyncThirdPartyBlockList::Initialize()
 	}
 
 	AB_ASYNC_TASK_DEFINE_SDK_DELEGATES(FOnlineAsyncTaskAccelByteSyncThirdPartyBlockList, SyncThirdPartyBlockList, THandler<TArray<FAccelByteModelsSyncThirdPartyBlockListResponse>>);
+	API_CLIENT_CHECK_GUARD(ErrorStr);
 	ApiClient->Lobby.SyncThirdPartyBlockList(SyncRequest
 		, OnSyncThirdPartyBlockListSuccessDelegate
 		, OnSyncThirdPartyBlockListErrorDelegate);
@@ -41,7 +42,7 @@ void FOnlineAsyncTaskAccelByteSyncThirdPartyBlockList::Initialize()
 
 void FOnlineAsyncTaskAccelByteSyncThirdPartyBlockList::TriggerDelegates()
 {
-	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s, ErrorMessage: %s"), LOG_BOOL_FORMAT(bWasSuccessful), *ErrorText.ToString());
+	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s, ErrorMessage: %s"), LOG_BOOL_FORMAT(bWasSuccessful), *ErrorStr);
 
 	const TSharedPtr<FOnlineFriendsAccelByte, ESPMode::ThreadSafe> FriendInterface = StaticCastSharedPtr<FOnlineFriendsAccelByte>(Subsystem->GetFriendsInterface());
 
@@ -70,8 +71,8 @@ void FOnlineAsyncTaskAccelByteSyncThirdPartyBlockList::OnSyncThirdPartyBlockList
 {
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 
-	ErrorText = FText::FromString(TEXT("sync-other-platform-block-list-failed"));
-	OnlineError = ONLINE_ERROR(EOnlineErrorResult::RequestFailure, FString::FromInt(ErrorCode), ErrorText);
+	ErrorStr = (TEXT("sync-other-platform-block-list-failed"));
+	OnlineError = ONLINE_ERROR(EOnlineErrorResult::RequestFailure, FString::FromInt(ErrorCode), FText::FromString(ErrorStr));
 	AB_ASYNC_TASK_REQUEST_FAILED("Failed to sync third party block list!", ErrorCode, ErrorMessage);
 	
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

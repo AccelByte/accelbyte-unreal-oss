@@ -26,6 +26,7 @@ void FOnlineAsyncTaskAccelByteUpdateLeaderSessionV2Storage::Initialize()
 	OnUpdateStorageSuccessDelegate = TDelegateUtils<THandler<FJsonObjectWrapper>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteUpdateLeaderSessionV2Storage::OnUpdateLeaderStorageSuccess);
 	OnUpdateStorageErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteUpdateLeaderSessionV2Storage::OnUpdateLeaderStorageError);
 
+	API_CLIENT_CHECK_GUARD(OnlineError);
 	ApiClient->Session.UpdateLeaderStorage(SessionToUpdate->GetSessionIdStr(), Data, OnUpdateStorageSuccessDelegate, OnUpdateStorageErrorDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
@@ -62,8 +63,8 @@ void FOnlineAsyncTaskAccelByteUpdateLeaderSessionV2Storage::OnUpdateLeaderStorag
 		return;
 	}
 
-	ErrorText = FText::FromString(TEXT("update-member-storage-failed-local-session-info-invalid"));
-	OnlineError = ONLINE_ERROR(EOnlineErrorResult::RequestFailure, FString(), ErrorText);
+	ErrorStr = TEXT("update-member-storage-failed-local-session-info-invalid");
+	OnlineError = ONLINE_ERROR(EOnlineErrorResult::RequestFailure, FString(), FText::FromString(ErrorStr));
 	CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState);
 	AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed updating local session leader storage as our session info invalid"))
 }
@@ -71,8 +72,8 @@ void FOnlineAsyncTaskAccelByteUpdateLeaderSessionV2Storage::OnUpdateLeaderStorag
 void FOnlineAsyncTaskAccelByteUpdateLeaderSessionV2Storage::OnUpdateLeaderStorageError(int32 ErrorCode, const FString& ErrorMessage)
 {
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("UserId: %s"), *AccelByteUserId);
-	ErrorText = FText::FromString(TEXT("update-leader-storage-request-failed"));
-	OnlineError = ONLINE_ERROR(EOnlineErrorResult::RequestFailure, FString::FromInt(ErrorCode), ErrorText);
+	ErrorStr = TEXT("update-leader-storage-request-failed");
+	OnlineError = ONLINE_ERROR(EOnlineErrorResult::RequestFailure, FString::FromInt(ErrorCode), FText::FromString(ErrorStr));
 	CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
 	AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to update session leader storage, ErrorCode: %d, ErrorMessage: %s"), ErrorCode, *ErrorMessage);
 }

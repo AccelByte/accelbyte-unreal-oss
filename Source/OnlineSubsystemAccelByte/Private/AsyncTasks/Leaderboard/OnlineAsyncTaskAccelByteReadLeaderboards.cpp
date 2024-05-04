@@ -92,6 +92,7 @@ void FOnlineAsyncTaskAccelByteReadLeaderboards::Initialize()
 		// Call the endpoint using the stored user ids.
 		if (!IsRunningDedicatedServer())
 		{
+			API_CLIENT_CHECK_GUARD(ErrorMessage);
 			ApiClient->Leaderboard.GetBulkUserRankingV3(FriendsUserIds, LeaderboardObject->LeaderboardName.ToString(), OnReadLeaderboardsSuccessHandler, OnReadLeaderboardsFailedHandler);
 			CountRequests++;
 		}

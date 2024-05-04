@@ -26,6 +26,7 @@ void FOnlineAsyncTaskAccelByteRejectV2GameSessionInvite::Initialize()
 
 	OnRejectGameSessionInviteSuccessDelegate = AccelByte::TDelegateUtils<FVoidHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteRejectV2GameSessionInvite::OnRejectGameSessionInviteSuccess);
 	OnRejectGameSessionInviteErrorDelegate = AccelByte::TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteRejectV2GameSessionInvite::OnRejectGameSessionInviteError);;
+	API_CLIENT_CHECK_GUARD();
 	ApiClient->Session.RejectGameSessionInvite(SessionId, OnRejectGameSessionInviteSuccessDelegate, OnRejectGameSessionInviteErrorDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

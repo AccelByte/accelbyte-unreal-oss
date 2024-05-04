@@ -36,6 +36,7 @@ void FOnlineAsyncTaskAccelByteDeleteUserFile::Initialize()
 		{
 			THandler<TArray<FAccelByteModelsSlot>> OnGetAllSlotsSuccessDelegate = TDelegateUtils<THandler<TArray<FAccelByteModelsSlot>>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteDeleteUserFile::OnGetAllSlotsSuccess);
 			FErrorHandler OnGetAllSlotsErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteDeleteUserFile::OnGetAllSlotsError);
+			API_CLIENT_CHECK_GUARD();
 			ApiClient->CloudStorage.GetAllSlots(OnGetAllSlotsSuccessDelegate, OnGetAllSlotsErrorDelegate);
 		}
 		else
@@ -80,6 +81,7 @@ void FOnlineAsyncTaskAccelByteDeleteUserFile::RunDeleteSlot(const FString& SlotI
 {
 	FVoidHandler OnDeleteSlotSuccessDelegate = TDelegateUtils<FVoidHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteDeleteUserFile::OnDeleteSlotSuccess);
 	FErrorHandler OnDeleteSlotErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteDeleteUserFile::OnDeleteSlotError);
+	API_CLIENT_CHECK_GUARD();
 	ApiClient->CloudStorage.DeleteSlot(SlotId, OnDeleteSlotSuccessDelegate, OnDeleteSlotErrorDelegate);
 }
 

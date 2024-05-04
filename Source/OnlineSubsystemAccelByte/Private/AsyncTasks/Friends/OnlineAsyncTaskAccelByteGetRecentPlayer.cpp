@@ -30,6 +30,7 @@ void FOnlineAsyncTaskAccelByteGetRecentPlayer::Initialize()
 	const FErrorHandler ErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteGetRecentPlayer::OnGetRecentPlayerError);
 
 	// #AB (apin) limit only for 50 for splitgate
+	API_CLIENT_CHECK_GUARD(ErrorString);
 	ApiClient->SessionBrowser.GetRecentPlayer(UserId->GetAccelByteId(), SuccessDelegate, ErrorDelegate, 0, 50);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

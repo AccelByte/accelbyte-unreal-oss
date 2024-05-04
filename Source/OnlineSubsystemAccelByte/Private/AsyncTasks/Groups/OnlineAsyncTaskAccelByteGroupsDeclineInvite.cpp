@@ -28,6 +28,7 @@ void FOnlineAsyncTaskAccelByteGroupsDeclineInvite::Initialize()
 	OnSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsMemberRequestGroupResponse>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteGroupsDeclineInvite::OnDeclineInviteSuccess);
 	OnErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteGroupsDeclineInvite::OnDeclineInviteError);
 
+	API_CLIENT_CHECK_GUARD(ErrorString);
 	ApiClient->Group.RejectV2GroupInvitation(GroupId, OnSuccessDelegate, OnErrorDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

@@ -30,6 +30,7 @@ void FOnlineAsyncTaskAccelByteGroupsRemoveMember::Initialize()
 	OnSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsKickGroupMemberResponse>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteGroupsRemoveMember::OnRemoveMemberSuccess);
 	OnErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteGroupsRemoveMember::OnRemoveMemberError);
 
+	API_CLIENT_CHECK_GUARD(ErrorString);
 	ApiClient->Group.KickV2GroupMember(MemberId->GetAccelByteId(), GroupId, OnSuccessDelegate, OnErrorDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

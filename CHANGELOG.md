@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.12.12](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.12.12%0D0.12.11) (2024-05-04)
+
+
+### Features
+
+* **asyncTask:** add simple checker to prevent an invalid ApiClient call from AsyncTask ([3eef498](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/3eef49819d3fffe1b22773bc3a55c302346b445b))
+
+
+### Bug Fixes
+
+* **asyncTask:** swap private variable name ([5dab7db](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/5dab7db7dd44881d114abbc7199467bccb559d7d))
+
 ### [0.12.11](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.12.11%0D0.12.10) (2024-05-01)
 
 

@@ -24,6 +24,7 @@ void FOnlineAsyncTaskAccelByteChatGetSystemMessagesStats::Initialize()
 		this, &FOnlineAsyncTaskAccelByteChatGetSystemMessagesStats::OnGetSystemMessagesStatsSuccess);
 	OnGetSystemMessagesStatsErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(
 		this, &FOnlineAsyncTaskAccelByteChatGetSystemMessagesStats::OnGetSystemMessagesStatsError);
+	API_CLIENT_CHECK_GUARD(OnlineError);
 	ApiClient->Chat.GetSystemMessageStats(OnGetSystemMessagesStatsSuccessDelegate, OnGetSystemMessagesStatsErrorDelegate, OptionalParams);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

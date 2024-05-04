@@ -52,6 +52,7 @@ void FOnlineAsyncTaskAccelByteQueryEligibilities::Initialize()
 			OnQueryEligibilitiesErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryEligibilities::OnQueryEligibilitiesError);
 
 			// Send off a request to query eligibilities, as well as connect our delegates for doing so
+			API_CLIENT_CHECK_GUARD(ErrorStr);
 			ApiClient->Agreement.QueryLegalEligibilities(ApiClient->CredentialsRef->GetNamespace(), OnQueryEligibilitiesSuccessDelegate, OnQueryEligibilitiesErrorDelegate);
 		}
 	}

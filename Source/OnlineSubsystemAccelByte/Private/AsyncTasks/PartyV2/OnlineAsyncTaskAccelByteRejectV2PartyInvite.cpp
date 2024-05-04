@@ -26,6 +26,7 @@ void FOnlineAsyncTaskAccelByteRejectV2PartyInvite::Initialize()
 
 	OnRejectPartyInviteSuccessDelegate = AccelByte::TDelegateUtils<FVoidHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteRejectV2PartyInvite::OnRejectPartyInviteSuccess);
 	OnRejectPartyInviteErrorDelegate = AccelByte::TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteRejectV2PartyInvite::OnRejectPartyInviteError);;
+	API_CLIENT_CHECK_GUARD();
 	ApiClient->Session.RejectPartyInvite(SessionId, OnRejectPartyInviteSuccessDelegate, OnRejectPartyInviteErrorDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

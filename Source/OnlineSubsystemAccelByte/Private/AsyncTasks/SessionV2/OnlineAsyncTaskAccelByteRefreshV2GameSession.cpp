@@ -52,6 +52,7 @@ void FOnlineAsyncTaskAccelByteRefreshV2GameSession::Initialize()
 	}
 	else
 	{
+		API_CLIENT_CHECK_GUARD();
 		ApiClient->Session.GetGameSessionDetails(SessionId, OnRefreshGameSessionSuccessDelegate, OnRefreshGameSessionErrorDelegate);
 	}
 

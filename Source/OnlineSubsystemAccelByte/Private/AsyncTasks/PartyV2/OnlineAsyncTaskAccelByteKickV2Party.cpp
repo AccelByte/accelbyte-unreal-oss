@@ -32,6 +32,7 @@ void FOnlineAsyncTaskAccelByteKickV2Party::Initialize()
 
 	OnKickUserFromPartySuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsV2PartySession>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteKickV2Party::OnKickUserFromPartySuccess);
 	OnKickUserFromPartyErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteKickV2Party::OnKickUserFromPartyError);
+	API_CLIENT_CHECK_GUARD();
 	ApiClient->Session.KickUserFromParty(Session->GetSessionIdStr(), PlayerIdToKick->GetAccelByteId(), OnKickUserFromPartySuccessDelegate, OnKickUserFromPartyErrorDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

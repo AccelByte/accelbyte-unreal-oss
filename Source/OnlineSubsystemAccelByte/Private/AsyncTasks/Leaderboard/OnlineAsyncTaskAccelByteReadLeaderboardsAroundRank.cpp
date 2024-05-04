@@ -68,6 +68,7 @@ void FOnlineAsyncTaskAccelByteReadLeaderboardsAroundRank::Initialize()
 
 	if(bUseCycle)
 	{
+		API_CLIENT_CHECK_GUARD(ErrorMessage);
 		ApiClient->Leaderboard.GetRankingByCycle(
 			LeaderboardCode,
 			CycleId,
@@ -77,6 +78,7 @@ void FOnlineAsyncTaskAccelByteReadLeaderboardsAroundRank::Initialize()
 			OnReadLeaderboardRankErrorHandler);	
 	}else
 	{
+		API_CLIENT_CHECK_GUARD(ErrorMessage);
 		ApiClient->Leaderboard.GetRankingsV3(
 			LeaderboardCode,
 			Offset,

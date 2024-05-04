@@ -24,6 +24,7 @@ void FOnlineAsyncTaskAccelByteQueryBlockedPlayers::Initialize()
 
 	THandler<FAccelByteModelsListBlockedUserResponse> OnGetListOfBlockedUsersSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsListBlockedUserResponse>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryBlockedPlayers::OnGetListOfBlockedUsersSuccess);
 	FErrorHandler OnGetListOfBlockedUsersErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryBlockedPlayers::OnGetListOfBlockedUsersError);
+	API_CLIENT_CHECK_GUARD(ErrorStr);
 	ApiClient->Lobby.GetListOfBlockedUsers(OnGetListOfBlockedUsersSuccessDelegate, OnGetListOfBlockedUsersErrorDelegate);
 	
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

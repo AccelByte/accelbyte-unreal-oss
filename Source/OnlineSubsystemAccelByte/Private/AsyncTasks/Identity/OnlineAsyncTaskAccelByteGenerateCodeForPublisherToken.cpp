@@ -26,6 +26,7 @@ void FOnlineAsyncTaskAccelByteGenerateCodeForPublisherToken::Initialize()
 	FErrorHandler OnError = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr
 		(this, &FOnlineAsyncTaskAccelByteGenerateCodeForPublisherToken::HandleError);
 
+	API_CLIENT_CHECK_GUARD(OnlineError);
 	ApiClient->User.GenerateCodeForPublisherTokenExchange(PublisherClientID, OnSuccess, OnError);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));	

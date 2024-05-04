@@ -28,15 +28,16 @@ void FOnlineAsyncTaskAccelByteLoginRefreshTicket::Initialize()
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("LoginUserNum: %d"), LoginUserNum);
 	if (Subsystem->IsMultipleLocalUsersEnabled())
 	{
-		ApiClient = FMultiRegistry::GetApiClient(FString::Printf(TEXT("%d"), LoginUserNum));
+		SetApiClient(FMultiRegistry::GetApiClient(FString::Printf(TEXT("%d"), LoginUserNum)));
 	}
 	else
 	{
-		ApiClient = FMultiRegistry::GetApiClient();
+		SetApiClient(FMultiRegistry::GetApiClient());
 	}
 	
 	OnRefreshTicketSuccessHandler = TDelegateUtils<THandler<FAccelByteModelsLoginQueueTicketInfo>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteLoginRefreshTicket::OnRefreshTicketSuccess);
 	OnRefreshTicketErrorHandler = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteLoginRefreshTicket::OnRefreshTicketError);
+	API_CLIENT_CHECK_GUARD(ErrorStr);
 	ApiClient->LoginQueue.RefreshTicket(TicketId, OnRefreshTicketSuccessHandler, OnRefreshTicketErrorHandler);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

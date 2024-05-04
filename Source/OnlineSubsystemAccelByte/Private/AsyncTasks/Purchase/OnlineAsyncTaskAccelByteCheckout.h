@@ -32,7 +32,7 @@ private:
 	FPurchaseCheckoutRequest CheckoutRequest;
 	FOnPurchaseCheckoutComplete Delegate;
 	FString ErrorCode;
-	FText ErrorMessage;
+	FString ErrorMessage;
 	FString Language;
 
 	FPurchaseReceipt Receipt;

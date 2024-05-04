@@ -29,6 +29,7 @@ void FOnlineAsyncTaskAccelByteQueryOfferById::Initialize()
 	
 	OnSuccess = TDelegateUtils<THandler<TArray<FAccelByteModelsItemInfo>>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryOfferById::HandleGetItemByIds);
 	OnError = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryOfferById::HandleAsyncTaskError);
+	API_CLIENT_CHECK_GUARD(ErrorMsg);
 	ApiClient->Item.BulkGetLocaleItems(OfferIds, TEXT(""), Language, OnSuccess, OnError, StoreId, AutoCalcEstimatedPrice);
 	
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

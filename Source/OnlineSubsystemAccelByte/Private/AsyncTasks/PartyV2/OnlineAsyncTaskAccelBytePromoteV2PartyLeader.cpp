@@ -31,6 +31,7 @@ void FOnlineAsyncTaskAccelBytePromoteV2PartyLeader::Initialize()
 	
 	OnPromotePartyLeaderSuccessDelegate = AccelByte::TDelegateUtils<THandler<FAccelByteModelsV2PartySession>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelBytePromoteV2PartyLeader::OnPromotePartyLeaderSuccess);
 	OnPromotePartyLeaderErrorDelegate = AccelByte::TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelBytePromoteV2PartyLeader::OnPromotePartyLeaderError);;
+	API_CLIENT_CHECK_GUARD();
 	ApiClient->Session.PromotePartyLeader(SessionId, TargetMemberId->GetAccelByteId(), OnPromotePartyLeaderSuccessDelegate, OnPromotePartyLeaderErrorDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sent request to promote a member of this party to leader."));

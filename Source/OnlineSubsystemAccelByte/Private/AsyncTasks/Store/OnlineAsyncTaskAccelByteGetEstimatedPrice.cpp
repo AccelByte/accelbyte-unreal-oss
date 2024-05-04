@@ -33,6 +33,7 @@ void FOnlineAsyncTaskAccelByteGetEstimatedPrice::Initialize()
 		(this, &FOnlineAsyncTaskAccelByteGetEstimatedPrice::HandleSuccess);
 	const FErrorHandler& OnError = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr
 		(this, &FOnlineAsyncTaskAccelByteGetEstimatedPrice::HandleError);
+	API_CLIENT_CHECK_GUARD(ErrorMessage);
 	ApiClient->Item.GetEstimatedPrice(ItemIds, Region, OnSuccess, OnError);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

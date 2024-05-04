@@ -24,6 +24,7 @@ void FOnlineAsyncTaskAccelByteEnumerateUserFiles::Initialize()
 
 	THandler<TArray<FAccelByteModelsSlot>> OnGetAllSlotsSuccessDelegate = TDelegateUtils<THandler<TArray<FAccelByteModelsSlot>>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteEnumerateUserFiles::OnGetAllSlotsSuccess);
 	FErrorHandler OnGetAllSlotsErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteEnumerateUserFiles::OnGetAllSlotsError);
+	API_CLIENT_CHECK_GUARD();
 	ApiClient->CloudStorage.GetAllSlots(OnGetAllSlotsSuccessDelegate, OnGetAllSlotsErrorDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

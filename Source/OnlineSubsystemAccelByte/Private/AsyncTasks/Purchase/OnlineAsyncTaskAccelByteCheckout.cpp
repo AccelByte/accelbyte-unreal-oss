@@ -20,7 +20,7 @@ FOnlineAsyncTaskAccelByteCheckout::FOnlineAsyncTaskAccelByteCheckout(
 	, CheckoutRequest(InCheckoutRequest)
 	, Delegate(InDelegate)
 	, ErrorCode(TEXT(""))
-	, ErrorMessage(FText::FromString(TEXT("")))
+	, ErrorMessage(TEXT(""))
 	, Language(InABSubsystem->GetLanguage())
 {
 	UserId = FUniqueNetIdAccelByteUser::CastChecked(InUserId);	
@@ -45,7 +45,7 @@ void FOnlineAsyncTaskAccelByteCheckout::Initialize()
 	const TSharedPtr<FOnlineStoreOffer> Offer = Subsystem->GetStoreV2Interface()->GetOffer(CheckoutRequest.PurchaseOffers[0].OfferId);
 	if (!Offer.IsValid())
 	{
-		ErrorMessage = FText::FromString("Could not find Offer by ID! ");
+		ErrorMessage = "Could not find Offer by ID! ";
 		AB_OSS_ASYNC_TASK_TRACE_BEGIN_VERBOSITY(Error, TEXT("Could not find Offer by ID! "));
 		CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
 		return;
@@ -70,6 +70,7 @@ void FOnlineAsyncTaskAccelByteCheckout::Initialize()
 
 	THandler<FAccelByteModelsOrderInfo> OnSuccess = TDelegateUtils<THandler<FAccelByteModelsOrderInfo>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteCheckout::HandleCheckoutComplete);
 	FErrorHandler OnError = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteCheckout::HandleAsyncTaskError);
+	API_CLIENT_CHECK_GUARD(ErrorMessage);
 	ApiClient->Order.CreateNewOrder(OrderRequest, OnSuccess, OnError);
 
 	PaymentEventPayload.ItemId = OrderRequest.ItemId;
@@ -123,7 +124,7 @@ void FOnlineAsyncTaskAccelByteCheckout::TriggerDelegates()
 
 	EOnlineErrorResult Result = ((bWasSuccessful) ? EOnlineErrorResult::Success : EOnlineErrorResult::RequestFailure);
 
-	Delegate.ExecuteIfBound(ONLINE_ERROR(Result, ErrorCode, ErrorMessage), MakeShared<FPurchaseReceipt>(Receipt));
+	Delegate.ExecuteIfBound(ONLINE_ERROR(Result, ErrorCode, FText::FromString(ErrorMessage)), MakeShared<FPurchaseReceipt>(Receipt));
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 
@@ -171,7 +172,7 @@ void FOnlineAsyncTaskAccelByteCheckout::HandleAsyncTaskError(int32 Code, FString
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN_VERBOSITY(Error, TEXT("Code: %d; Message: %s"), Code, *ErrMsg);
 
 	ErrorCode = FString::Printf(TEXT("%d"), Code);
-	ErrorMessage = FText::FromString(ErrMsg);
+	ErrorMessage = ErrMsg;
 
 	CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
 

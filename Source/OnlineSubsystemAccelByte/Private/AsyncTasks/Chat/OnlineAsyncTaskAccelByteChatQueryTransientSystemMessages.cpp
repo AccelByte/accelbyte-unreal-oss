@@ -24,6 +24,7 @@ void FOnlineAsyncTaskAccelByteChatQueryTransientSystemMessages::Initialize()
 		this, &FOnlineAsyncTaskAccelByteChatQueryTransientSystemMessages::OnQuerySystemMessagesSuccess);
 	OnQuerySystemMessagesErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(
 		this, &FOnlineAsyncTaskAccelByteChatQueryTransientSystemMessages::OnQuerySystemMessagesError);
+	API_CLIENT_CHECK_GUARD(OnlineError);
 	ApiClient->Chat.QuerySystemMessage(OnQuerySystemMessagesSuccessDelegate, OnQuerySystemMessagesErrorDelegate, QueryParams);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

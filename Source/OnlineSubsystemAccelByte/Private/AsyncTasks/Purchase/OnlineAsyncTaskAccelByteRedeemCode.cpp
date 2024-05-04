@@ -33,6 +33,8 @@ void FOnlineAsyncTaskAccelByteRedeemCode::Initialize()
 
 	THandler<FAccelByteModelsFulfillmentResult> OnSuccess = TDelegateUtils<THandler<FAccelByteModelsFulfillmentResult>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteRedeemCode::HandleRedeemCodeComplete);
 	FErrorHandler OnError = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteRedeemCode::HandleAsyncTaskError);
+	FString ONLINE_ERROR_NAMESPACE = "FOnlineAsyncTaskAccelByteRedeemCode";
+	API_CLIENT_CHECK_GUARD(Error);
 	ApiClient->Fulfillment.RedeemCode(RedeemCodeRequest.Code, TEXT(""), Language, OnSuccess, OnError);
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }

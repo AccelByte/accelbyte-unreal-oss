@@ -70,12 +70,15 @@ void FOnlineAsyncTaskAccelByteLogin::Initialize()
 
 	if (Subsystem->IsMultipleLocalUsersEnabled())
 	{
-		ApiClient = FMultiRegistry::GetApiClient(FString::Printf(TEXT("%d"), LoginUserNum));
+		SetApiClient(FMultiRegistry::GetApiClient(FString::Printf(TEXT("%d"), LoginUserNum)));
 	}
 	else
 	{
-		ApiClient = FMultiRegistry::GetApiClient();
+		SetApiClient(FMultiRegistry::GetApiClient());
 	}
+	
+	API_CLIENT_CHECK_GUARD();
+	//Valid because just recently SetApiClient()
 	ApiClient->CredentialsRef->SetClientCredentials(FRegistry::Settings.ClientId, FRegistry::Settings.ClientSecret);
 
 	// If all members of the AccountCredentials struct are blank, then this should be treated as a pass through login to
@@ -124,6 +127,7 @@ void FOnlineAsyncTaskAccelByteLogin::Initialize()
 void FOnlineAsyncTaskAccelByteLogin::Finalize()
 {
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
+	API_CLIENT_CHECK_GUARD();
 
 	Subsystem->SetLocalUserNumCached(LoginUserNum);
 	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = Subsystem->GetPredefinedEventInterface();
@@ -151,13 +155,14 @@ void FOnlineAsyncTaskAccelByteLogin::Finalize()
 void FOnlineAsyncTaskAccelByteLogin::TriggerDelegates()
 {
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
+	API_CLIENT_CHECK_GUARD();
 
 	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(Subsystem->GetIdentityInterface());
 	const TSharedRef<const FUniqueNetIdAccelByteUser> ReturnId = (bWasSuccessful) ? UserId.ToSharedRef() : FUniqueNetIdAccelByteUser::Invalid();
 	if (IdentityInterface.IsValid())
 	{
 		IdentityInterface->SetLoginStatus(LoginUserNum, bWasSuccessful ? ELoginStatus::LoggedIn : ELoginStatus::NotLoggedIn);
-		if (bWasSuccessful && !ApiClient->CredentialsRef->IsComply())
+		if (bWasSuccessful && IsApiClientValid() && !ApiClient->CredentialsRef->IsComply())
 		{
 			const FOnlineAgreementAccelBytePtr AgreementInt = Subsystem->GetAgreementInterface();
 			if (ensure(AgreementInt.IsValid()))
@@ -446,8 +451,9 @@ void FOnlineAsyncTaskAccelByteLogin::OnGetAuthSessionTicketResponse(GetAuthSessi
 void FOnlineAsyncTaskAccelByteLogin::PerformLogin(const FOnlineAccountCredentials& Credentials)
 {
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("LoginType: %s"), *Credentials.Type);
+	API_CLIENT_CHECK_GUARD();
 
-	if (ApiClient.IsValid())
+	if (IsApiClientValid())
 	{
 		const AccelByte::THandler<FAccelByteModelsLoginQueueTicketInfo> OnLoginSuccessDelegate = TDelegateUtils<AccelByte::THandler<FAccelByteModelsLoginQueueTicketInfo>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteLogin::OnLoginSuccessV4);
 		const AccelByte::FOAuthErrorHandler OnLoginErrorOAuthDelegate = TDelegateUtils<AccelByte::FOAuthErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteLogin::OnLoginErrorOAuth);
@@ -547,6 +553,8 @@ void FOnlineAsyncTaskAccelByteLogin::OnLoginSuccess()
 
 	// Create a new user ID instance for the user that we just logged in as
 	FAccelByteUniqueIdComposite CompositeId;
+	API_CLIENT_CHECK_GUARD();
+
 	CompositeId.Id = ApiClient->CredentialsRef->GetUserId();
 
 	const IOnlineSubsystem* NativeSubsystem = IOnlineSubsystem::GetByPlatform();
@@ -696,6 +704,7 @@ void FOnlineAsyncTaskAccelByteLogin::Tick()
 		return;
 	}
 
+	API_CLIENT_CHECK_GUARD();
 	if(ApiClient->CredentialsRef->IsSessionValid())
 	{
 		OnLoginSuccess();

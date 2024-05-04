@@ -44,6 +44,7 @@ void FOnlineAsyncTaskAccelByteFindV2PartyById::Initialize()
 	}
 	else
 	{
+		API_CLIENT_CHECK_GUARD();
 		ApiClient->Session.GetPartyDetails(SessionId->ToString()
 			, OnGetPartySessionDetailsSuccessDelegate
 			, OnGetPartySessionDetailsErrorDelegate);

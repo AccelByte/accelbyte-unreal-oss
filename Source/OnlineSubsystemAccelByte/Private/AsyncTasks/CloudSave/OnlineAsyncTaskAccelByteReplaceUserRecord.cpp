@@ -56,6 +56,7 @@ void FOnlineAsyncTaskAccelByteReplaceUserRecord::Initialize()
 	}
 	else
 	{
+		API_CLIENT_CHECK_GUARD(ErrorStr);
 		ApiClient->CloudSave.ReplaceUserRecord(Key, IsPublicRecord, UserRecordObj, OnReplaceUserRecordSuccessDelegate, OnReplaceUserRecordErrorDelegate);
 		SetBy = FAccelByteUtilities::GetUEnumValueAsString(ESetByMetadataRecord::CLIENT);
 	}
@@ -92,7 +93,7 @@ void FOnlineAsyncTaskAccelByteReplaceUserRecord::TriggerDelegates()
 		}
 		else
 		{
-			CloudSaveInterface->TriggerOnReplaceUserRecordCompletedDelegates(LocalUserNum, ONLINE_ERROR(EOnlineErrorResult::RequestFailure, ErrorCode, ErrorStr), Key);
+			CloudSaveInterface->TriggerOnReplaceUserRecordCompletedDelegates(LocalUserNum, ONLINE_ERROR(EOnlineErrorResult::RequestFailure, ErrorCode, FText::FromString(ErrorStr)), Key);
 		}
 	}
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
@@ -108,7 +109,7 @@ void FOnlineAsyncTaskAccelByteReplaceUserRecord::OnReplaceUserRecordsSuccess()
 void FOnlineAsyncTaskAccelByteReplaceUserRecord::OnReplaceUserRecordsError(int32 Code, const FString& ErrorMessage)
 {
 	ErrorCode = FString::Printf(TEXT("%d"), Code);
-	ErrorStr = FText::FromString(TEXT("request-failed-replace-user-record-error"));
+	ErrorStr = TEXT("request-failed-replace-user-record-error");
 	UE_LOG_AB(Warning, TEXT("Failed to replace user record! Error Code: %d; Error Message: %s"), Code, *ErrorMessage);
 	CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
 }

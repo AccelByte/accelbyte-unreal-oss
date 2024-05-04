@@ -67,6 +67,7 @@ void FOnlineAsyncTaskAccelByteLeaveV1Party::Initialize()
 		SessionInt->CancelMatchmakingNotification();
 
 		AccelByte::Api::Lobby::FPartyLeaveResponse OnLeavePartyResponseDelegate = TDelegateUtils<AccelByte::Api::Lobby::FPartyLeaveResponse>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteLeaveV1Party::OnLeavePartyResponse);
+		API_CLIENT_CHECK_GUARD();
 		ApiClient->Lobby.SetLeavePartyResponseDelegate(OnLeavePartyResponseDelegate);
 		ApiClient->Lobby.SendLeavePartyRequest();
 	}

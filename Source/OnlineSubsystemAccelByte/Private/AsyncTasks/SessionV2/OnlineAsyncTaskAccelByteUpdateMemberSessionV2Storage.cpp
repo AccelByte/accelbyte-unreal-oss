@@ -26,6 +26,7 @@ void FOnlineAsyncTaskAccelByteUpdateMemberSessionV2Storage::Initialize()
 	OnUpdateStorageSuccessDelegate = TDelegateUtils<THandler<FJsonObjectWrapper>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteUpdateMemberSessionV2Storage::OnUpdateMemberStorageSuccess);
 	OnUpdateStorageErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteUpdateMemberSessionV2Storage::OnUpdateMemberStorageError);
 
+	API_CLIENT_CHECK_GUARD(OnlineError);
 	ApiClient->Session.UpdateMemberStorage(SessionToUpdate->GetSessionIdStr(), Data, OnUpdateStorageSuccessDelegate, OnUpdateStorageErrorDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

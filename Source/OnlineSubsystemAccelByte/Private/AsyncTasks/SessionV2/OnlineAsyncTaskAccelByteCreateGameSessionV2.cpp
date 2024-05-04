@@ -146,6 +146,7 @@ void FOnlineAsyncTaskAccelByteCreateGameSessionV2::Initialize()
 	OnCreateGameSessionErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteCreateGameSessionV2::OnCreateGameSessionError);;
 	if (!IsRunningDedicatedServer())
 	{
+		API_CLIENT_CHECK_GUARD();
 		ApiClient->Session.CreateGameSession(CreateRequest, OnCreateGameSessionSuccessDelegate, OnCreateGameSessionErrorDelegate);
 	}
 	else

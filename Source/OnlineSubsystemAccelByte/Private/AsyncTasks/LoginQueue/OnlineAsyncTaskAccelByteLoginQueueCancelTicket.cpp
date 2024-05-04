@@ -27,13 +27,14 @@ void FOnlineAsyncTaskAccelByteLoginQueueCancelTicket::Initialize()
 	
 	if (Subsystem->IsMultipleLocalUsersEnabled())
 	{
-		ApiClient = FMultiRegistry::GetApiClient(FString::Printf(TEXT("%d"), LoginUserNum));
+		SetApiClient(FMultiRegistry::GetApiClient(FString::Printf(TEXT("%d"), LoginUserNum)));
 	}
 	else
 	{
-		ApiClient = FMultiRegistry::GetApiClient();
+		SetApiClient(FMultiRegistry::GetApiClient());
 	}
 	
+	API_CLIENT_CHECK_GUARD(ErrorStr);
 	ApiClient->LoginQueue.CancelTicket(TicketId, OnCancelTicketSuccessHandler, OnCancelTicketErrorHandler);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

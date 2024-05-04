@@ -39,6 +39,7 @@ void FOnlineAsyncTaskAccelByteGetItemByCriteria::Initialize()
 		(this, &FOnlineAsyncTaskAccelByteGetItemByCriteria::HandleSuccess);
 	const FErrorHandler& OnError = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr
 		(this, &FOnlineAsyncTaskAccelByteGetItemByCriteria::HandleError);
+	API_CLIENT_CHECK_GUARD(ErrorMessage);
 	ApiClient->Item.GetItemsByCriteria(ItemCriteria, Offset, Limit, OnSuccess, OnError, SortBy, StoreId, AutoCalcEstimatedPrice);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

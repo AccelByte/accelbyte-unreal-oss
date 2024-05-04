@@ -28,6 +28,7 @@ void FOnlineAsyncTaskAccelByteGroupsQueryGroupInfo::Initialize()
 	OnSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsGroupInformation>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteGroupsQueryGroupInfo::OnQueryGroupInfoSuccess);
 	OnErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteGroupsQueryGroupInfo::OnQueryGroupInfoError);
 
+	API_CLIENT_CHECK_GUARD(ErrorString);
 	ApiClient->Group.GetGroup(GroupId, OnSuccessDelegate, OnErrorDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

@@ -78,6 +78,7 @@ void FOnlineAsyncTaskAccelByteInitializePlayerAttributes::OnGetPlayerCrossplayPr
 	// Send off a request to get attributes from the session service
 	OnGetPlayerAttributesSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsV2PlayerAttributes>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteInitializePlayerAttributes::OnGetPlayerAttributesSuccess);
 	OnGetPlayerAttributesErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteInitializePlayerAttributes::OnGetPlayerAttributesError);;
+	API_CLIENT_CHECK_GUARD();
 	ApiClient->Session.GetPlayerAttributes(OnGetPlayerAttributesSuccessDelegate, OnGetPlayerAttributesErrorDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
@@ -151,6 +152,7 @@ void FOnlineAsyncTaskAccelByteInitializePlayerAttributes::SendAttributeUpdateReq
 
 	OnStorePlayerAttributesSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsV2PlayerAttributes>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteInitializePlayerAttributes::OnStorePlayerAttributesSuccess);
 	OnStorePlayerAttributesErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteInitializePlayerAttributes::OnStorePlayerAttributesError);;
+	API_CLIENT_CHECK_GUARD();
 	ApiClient->Session.StorePlayerAttributes(Request, OnStorePlayerAttributesSuccessDelegate, OnStorePlayerAttributesErrorDelegate);
 }
 

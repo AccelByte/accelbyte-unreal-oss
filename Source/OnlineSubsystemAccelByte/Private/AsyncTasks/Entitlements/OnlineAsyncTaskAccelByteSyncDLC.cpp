@@ -28,6 +28,7 @@ void FOnlineAsyncTaskAccelByteSyncDLC::Initialize()
 
 	const FName NativeSubsystemName = Subsystem->GetNativePlatformName();
 
+	API_CLIENT_CHECK_GUARD(Error);
 	// Use the respective API sync depending on the platform user is on
 #ifdef STEAM_SUBSYSTEM
 	if (NativeSubsystemName == STEAM_SUBSYSTEM)

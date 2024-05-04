@@ -113,6 +113,7 @@ void FOnlineAsyncTaskAccelByteGetLocalizedPolicyContent::Initialize()
 					}
 
 					// Send off a request to get localized policy content, as well as connect our delegates for doing so
+					API_CLIENT_CHECK_GUARD(ErrorStr);
 					ApiClient->Agreement.GetLegalDocument(FString::Printf(TEXT("%s%s"), *BaseUrl, *AttachmentLocation), OnGetLocalizedPolicyContentSuccessDelegate, OnGetLocalizedPolicyContentErrorDelegate);
 				}
 			}

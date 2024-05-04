@@ -49,6 +49,7 @@ void FOnlineAsyncTaskAccelByteQueryAchievement::QueryAchievement()
 	const FErrorHandler OnError = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(
 		this, &FOnlineAsyncTaskAccelByteQueryAchievement::HandleQueryAchievementError);
 
+	API_CLIENT_CHECK_GUARD();
 	ApiClient->Achievement.QueryAchievements(
 		TEXT(""),
 		EAccelByteAchievementListSortBy::NONE,

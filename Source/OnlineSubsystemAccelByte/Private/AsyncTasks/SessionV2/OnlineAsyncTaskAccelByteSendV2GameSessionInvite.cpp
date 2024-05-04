@@ -50,6 +50,7 @@ void FOnlineAsyncTaskAccelByteSendV2GameSessionInvite::Initialize()
 	SessionId = Session->GetSessionIdStr();
 	if (!IsRunningDedicatedServer())
 	{
+		API_CLIENT_CHECK_GUARD();
 		ApiClient->Session.SendGameSessionInvite(SessionId, RecipientId->GetAccelByteId(), OnSendGameSessionInviteSuccessDelegate, OnSendGameSessionInviteErrorDelegate);
 	}
 	else

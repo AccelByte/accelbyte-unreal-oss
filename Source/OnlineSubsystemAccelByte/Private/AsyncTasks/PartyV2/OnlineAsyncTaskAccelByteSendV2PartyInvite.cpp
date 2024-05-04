@@ -33,6 +33,7 @@ void FOnlineAsyncTaskAccelByteSendV2PartyInvite::Initialize()
 	// Now, once we know we are in this party, we want to send a request to invite the player to the party
 	OnSendPartyInviteSuccessDelegate = AccelByte::TDelegateUtils<FVoidHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteSendV2PartyInvite::OnSendPartyInviteSuccess);
 	OnSendPartyInviteErrorDelegate = AccelByte::TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteSendV2PartyInvite::OnSendPartyInviteError);;
+	API_CLIENT_CHECK_GUARD();
 	ApiClient->Session.SendPartyInvite(Session->GetSessionIdStr(), RecipientId->GetAccelByteId(), OnSendPartyInviteSuccessDelegate, OnSendPartyInviteErrorDelegate);
 
 	SessionId = Session->GetSessionIdStr();

@@ -35,7 +35,8 @@ void FOnlineAsyncTaskAccelByteFindV1GameSessionById::Initialize()
 	}
 	else
 	{
-		ApiClient->SessionBrowser.GetGameSession(SessionId->ToString(), OnGetGameSessionDetailsSuccessDelegate, OnGetGameSessionDetailsErrorDelegate );
+		API_CLIENT_CHECK_GUARD();
+		ApiClient->SessionBrowser.GetGameSession(SessionId->ToString(), OnGetGameSessionDetailsSuccessDelegate, OnGetGameSessionDetailsErrorDelegate);
 	}
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

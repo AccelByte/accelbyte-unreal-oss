@@ -141,14 +141,14 @@ void FOnlineAsyncTaskAccelByteLoginQueue::ClaimAccessToken(const FString& InTick
 
 	if (Subsystem->IsMultipleLocalUsersEnabled())
 	{
-		ApiClient = FMultiRegistry::GetApiClient(FString::Printf(TEXT("%d"), LoginUserNum));
+		SetApiClient(FMultiRegistry::GetApiClient(FString::Printf(TEXT("%d"), LoginUserNum)));
 	}
 	else
 	{
-		ApiClient = FMultiRegistry::GetApiClient();
+		SetApiClient(FMultiRegistry::GetApiClient());
 	}
 	
-	if(!ApiClient.IsValid())
+	if(!IsApiClientValid())
 	{
 		AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Unable to claim access token, ApiClient is invalid"));
 		CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState);
@@ -158,6 +158,7 @@ void FOnlineAsyncTaskAccelByteLoginQueue::ClaimAccessToken(const FString& InTick
 	OnClaimAccessTokenSuccessHandler = TDelegateUtils<FVoidHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteLoginQueue::OnClaimAccessTokenSuccess);
 	OnClaimAccessTokenErrorHandler = TDelegateUtils<FOAuthErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteLoginQueue::OnClaimAccessTokenError);
 	
+	API_CLIENT_CHECK_GUARD();
 	ApiClient->User.ClaimAccessToken(InTicketId, OnClaimAccessTokenSuccessHandler, OnClaimAccessTokenErrorHandler);
 	
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

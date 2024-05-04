@@ -59,6 +59,7 @@ void FOnlineAsyncTaskAccelByteUpdateV1GameSettings::Initialize()
         UE_LOG_AB(Error, TEXT("Failed to update game settings '%s' from backend! Error code: %d; Error message: %s"), *SessionName.ToString(), ErrorCode, *ErrorMessage);
     });
 
+    API_CLIENT_CHECK_GUARD();
     ApiClient->SessionBrowser.UpdateGameSettings(SessionId, SettingJson, OnUpdateGameSessionSuccessDelegate, OnUpdateGameSessionErrorDelegate);
 
     AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sent off task to update %s game settings!"), *SessionName.ToString());

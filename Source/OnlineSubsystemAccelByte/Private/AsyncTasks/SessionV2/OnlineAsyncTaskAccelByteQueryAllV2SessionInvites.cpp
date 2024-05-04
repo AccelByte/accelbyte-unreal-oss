@@ -20,6 +20,7 @@ void FOnlineAsyncTaskAccelByteQueryAllV2SessionInvites::Initialize()
 
 	OnGetGameSessionInvitesSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsV2PaginatedGameSessionQueryResult>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryAllV2SessionInvites::OnGetGameSessionInvitesSuccess);
 	OnGetGameSessionInvitesErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryAllV2SessionInvites::OnGetGameSessionInvitesError);
+	API_CLIENT_CHECK_GUARD();
 	ApiClient->Session.GetMyGameSessions(OnGetGameSessionInvitesSuccessDelegate, OnGetGameSessionInvitesErrorDelegate, EAccelByteV2SessionMemberStatus::INVITED);
 
 	OnGetPartySessionInvitesSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsV2PaginatedPartyQueryResult>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryAllV2SessionInvites::OnGetPartySessionInvitesSuccess);

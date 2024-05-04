@@ -48,6 +48,7 @@ void FOnlineAsyncTaskAccelByteSendV1PartyInvite::Initialize()
 
 	// Now, once we know we are in this party, we want to send a request to invite the player to the party
 	AccelByte::Api::Lobby::FPartyInviteResponse OnPartyInviteResponseDelegate = TDelegateUtils<AccelByte::Api::Lobby::FPartyInviteResponse>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteSendV1PartyInvite::OnPartyInviteResponse);
+	API_CLIENT_CHECK_GUARD();
 	ApiClient->Lobby.SetInvitePartyResponseDelegate(OnPartyInviteResponseDelegate);
 	ApiClient->Lobby.SendInviteToPartyRequest(RecipientId->GetAccelByteId());
 

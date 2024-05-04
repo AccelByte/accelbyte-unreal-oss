@@ -20,6 +20,8 @@ void FOnlineAsyncTaskAccelByteGetV1PartyCode::Initialize()
 {
 	Super::Initialize();
 	AccelByte::Api::Lobby::FPartyGetCodeResponse OnPartyGetCodeResponseDelegate = TDelegateUtils<AccelByte::Api::Lobby::FPartyGetCodeResponse>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteGetV1PartyCode::OnPartyGetCodeResponse);
+
+	API_CLIENT_CHECK_GUARD();
 	ApiClient->Lobby.SetPartyGetCodeResponseDelegate(OnPartyGetCodeResponseDelegate);
 	ApiClient->Lobby.SendPartyGetCodeRequest();
 }

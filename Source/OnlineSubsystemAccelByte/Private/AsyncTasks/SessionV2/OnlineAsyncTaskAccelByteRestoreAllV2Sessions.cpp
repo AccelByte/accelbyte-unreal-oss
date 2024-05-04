@@ -27,6 +27,7 @@ void FOnlineAsyncTaskAccelByteRestoreAllV2Sessions::Initialize()
 	// Get information about the user's party, which then will give us a party to restore if we are in one
 	OnGetMyPartiesSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsV2PaginatedPartyQueryResult>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteRestoreAllV2Sessions::OnGetMyPartiesSuccess);
 	OnGetMyPartiesErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteRestoreAllV2Sessions::OnGetMyPartiesError);
+	API_CLIENT_CHECK_GUARD();
 	ApiClient->Session.GetMyParties(OnGetMyPartiesSuccessDelegate, OnGetMyPartiesErrorDelegate);
 
 	// Get information about the user's game sessions, which then will give us a game session to restore if we are in one

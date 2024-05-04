@@ -79,6 +79,7 @@ void FOnlineAsyncTaskAccelByteUpdateStats::Initialize()
 		, &FOnlineAsyncTaskAccelByteUpdateStats::HandleAsyncTaskError);
 
 	FString AdditionalKey = TEXT("");
+	API_CLIENT_CHECK_GUARD(ErrorMessage);
 	ApiClient->Statistic.BulkUpdateUserStatItemsValue(AdditionalKey
 		, BulkUpdateUserStatItems
 		, OnBulkUpdateUserStatItemsValueSuccess

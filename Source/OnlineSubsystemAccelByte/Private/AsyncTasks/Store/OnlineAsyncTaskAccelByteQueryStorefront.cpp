@@ -28,6 +28,7 @@ void FOnlineAsyncTaskAccelByteQueryStorefront::Initialize()
 	OnLoadSections =  AccelByte::TDelegateUtils<FOnQueryActiveSectionsComplete>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryStorefront::OnListActiveSectionsSuccess);
 	OnLoadItemMappingsSuccessDelegate= AccelByte::TDelegateUtils<THandler<FAccelByteModelsItemMappingsResponse>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryStorefront::OnLoadItemMappingsSuccess);
 
+	API_CLIENT_CHECK_GUARD(ErrorMsg);
 	ApiClient->StoreDisplay.GetAllViews(StoreId, Language, OnLoadDisplaysSuccessDelegate, OnQueryErrorDelegate);
 	ApiClient->Item.GetItemMappings(Platform, OnLoadItemMappingsSuccessDelegate, OnQueryErrorDelegate);
 	ExecuteCriticalSectionAction(FVoidHandler::CreateLambda([&]()

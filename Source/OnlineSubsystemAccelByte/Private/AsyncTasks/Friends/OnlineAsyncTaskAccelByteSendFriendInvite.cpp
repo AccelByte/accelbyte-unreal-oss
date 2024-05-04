@@ -49,6 +49,7 @@ void FOnlineAsyncTaskAccelByteSendFriendInvite::Initialize()
 
 		const THandler<FAccelByteModelsPublicUserProfileInfo> OnGetUserByFriendCodeSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsPublicUserProfileInfo>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteSendFriendInvite::OnGetUserByFriendCodeSuccess);
 		const FCustomErrorHandler OnGetUserByFriendCodeErrorDelegate = TDelegateUtils<FCustomErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteSendFriendInvite::OnGetUserByFriendCodeError);
+		API_CLIENT_CHECK_GUARD(ErrorStr);
 		ApiClient->UserProfile.GetUserProfilePublicInfoByPublicId(FriendCode, OnGetUserByFriendCodeSuccessDelegate, OnGetUserByFriendCodeErrorDelegate);
 	}
 	else
@@ -171,6 +172,7 @@ void FOnlineAsyncTaskAccelByteSendFriendInvite::OnQueryInvitedFriendComplete(boo
 		// Send the actual request to send the friend request
 		OnSendFriendRequestSuccessDelegate = TDelegateUtils<FVoidHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteSendFriendInvite::OnSendFriendRequestSuccess);
 		OnSendFriendRequestFailedDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteSendFriendInvite::OnSendFriendRequestError);
+		API_CLIENT_CHECK_GUARD(ErrorStr);
 		ApiClient->Lobby.SendFriendRequest(User->Id->GetAccelByteId(), OnSendFriendRequestSuccessDelegate, OnSendFriendRequestFailedDelegate);
 	}
 	else

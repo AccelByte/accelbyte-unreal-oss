@@ -29,6 +29,7 @@ void FOnlineAsyncTaskAccelByteChatJoinPublicRoom::Initialize()
 		TDelegateUtils<AccelByte::Api::Chat::FChatActionTopicResponse>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteChatJoinPublicRoom::OnJoinPublicRoomSuccess);
 	const FErrorHandler OnJoinPublicRoomErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteChatJoinPublicRoom::OnJoinPublicRoomError);
 
+	API_CLIENT_CHECK_GUARD(ErrorString);
 	ApiClient->Chat.JoinTopic(RoomId, OnJoinPublicRoomSuccessDelegate, OnJoinPublicRoomErrorDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

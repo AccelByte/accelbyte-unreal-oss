@@ -70,6 +70,7 @@ void FOnlineAsyncTaskAccelByteGetV2MatchmakingTicketDetails::SendGetMyTicketRequ
 	OnGetMatchTicketDetailSuccessDelegate = AccelByte::TDelegateUtils<THandler<FAccelByteModelsV2MatchmakingGetTicketDetailsResponse>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteGetV2MatchmakingTicketDetails::OnGetMyMatchTicketSuccess);
 	OnGetMatchTicketDetailErrorDelegate = AccelByte::TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteGetV2MatchmakingTicketDetails::OnGetMyMatchTicketError);;
 
+	API_CLIENT_CHECK_GUARD(OnlineError);
 	ApiClient->MatchmakingV2.GetMatchTicketDetails(TicketId, OnGetMatchTicketDetailSuccessDelegate, OnGetMatchTicketDetailErrorDelegate);
 }
 

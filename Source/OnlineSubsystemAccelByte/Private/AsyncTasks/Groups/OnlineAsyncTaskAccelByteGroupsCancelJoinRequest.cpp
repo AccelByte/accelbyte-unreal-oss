@@ -28,6 +28,7 @@ void FOnlineAsyncTaskAccelByteGroupsCancelJoinRequest::Initialize()
 	OnSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsMemberRequestGroupResponse>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteGroupsCancelJoinRequest::OnCancelJoinRequestSuccess);
 	OnErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteGroupsCancelJoinRequest::OnCancelJoinRequestError);
 
+	API_CLIENT_CHECK_GUARD(ErrorString);
 	ApiClient->Group.CancelJoinGroupRequest(GroupId, OnSuccessDelegate, OnErrorDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

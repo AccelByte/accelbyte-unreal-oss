@@ -23,6 +23,7 @@ void FOnlineAsyncTaskAccelByteSyncThirdPartyFriendV2::Initialize()
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("LocalUserNum: %d"), LocalUserNum);
 
 	AB_ASYNC_TASK_DEFINE_SDK_DELEGATES(FOnlineAsyncTaskAccelByteSyncThirdPartyFriendV2, SyncThirdPartyFriends, THandler<TArray<FAccelByteModelsSyncThirdPartyFriendsResponse>>);
+	API_CLIENT_CHECK_GUARD(ErrorStr);
 	ApiClient->Lobby.SyncThirdPartyFriends(SyncRequest, OnSyncThirdPartyFriendsSuccessDelegate, OnSyncThirdPartyFriendsErrorDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
@@ -30,7 +31,7 @@ void FOnlineAsyncTaskAccelByteSyncThirdPartyFriendV2::Initialize()
 
 void FOnlineAsyncTaskAccelByteSyncThirdPartyFriendV2::TriggerDelegates()
 {
-	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s, ErrorMessage: %s"), LOG_BOOL_FORMAT(bWasSuccessful), *ErrorText.ToString());
+	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s, ErrorMessage: %s"), LOG_BOOL_FORMAT(bWasSuccessful), *ErrorStr);
 
 	const TSharedPtr<FOnlineFriendsAccelByte, ESPMode::ThreadSafe> FriendInterface = StaticCastSharedPtr<FOnlineFriendsAccelByte>(Subsystem->GetFriendsInterface());
 
@@ -47,8 +48,8 @@ void FOnlineAsyncTaskAccelByteSyncThirdPartyFriendV2::OnSyncThirdPartyFriendsErr
 {
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 
-	ErrorText = FText::FromString(TEXT("sync-other-platform-friend-failed-sync"));
-	OnlineError = ONLINE_ERROR(EOnlineErrorResult::RequestFailure, FString::FromInt(ErrorCode), ErrorText);
+	ErrorStr = TEXT("sync-other-platform-friend-failed-sync");
+	OnlineError = ONLINE_ERROR(EOnlineErrorResult::RequestFailure, FString::FromInt(ErrorCode), FText::FromString(ErrorStr));
 	
 	AB_ASYNC_TASK_REQUEST_FAILED("Failed to sync third party friend!", ErrorCode, ErrorMessage);
 	

@@ -11,6 +11,7 @@
 #include "OnlineIdentityInterfaceAccelByte.h"
 #include "OnlineSubsystemAccelByte.h"
 #include "Core/AccelByteMultiRegistry.h"
+#include "Core/AccelByteError.h"
 
 #define AB_OSS_ASYNC_TASK_TRACE_BEGIN_VERBOSITY(Verbosity, Format, ...) UE_LOG_AB(Verbosity, TEXT(">>> %s::%s (AsyncTask method) was called. Args: ") Format, *GetTaskName(), *FString(__func__), ##__VA_ARGS__)
 #define AB_OSS_ASYNC_TASK_TRACE_BEGIN(Format, ...) AB_OSS_ASYNC_TASK_TRACE_BEGIN_VERBOSITY(Verbose, Format, ##__VA_ARGS__)
@@ -135,6 +136,15 @@ class FOnlineAsyncEpicTaskAccelByte;
  * back to interface methods, those methods may try and call AsShared on the unique ID, which will fail if it wasn't created
  * as a shared pointer.
  */
+
+#define API_CLIENT_CHECK_GUARD(...) \
+if (!IsApiClientValid())\
+{\
+	RaiseGenericError(__VA_ARGS__);\
+	return;\
+}\
+auto ApiClient = GetApiClientInternal();\
+
 class FOnlineAsyncTaskAccelByte : public FOnlineAsyncTaskBasic<FOnlineSubsystemAccelByte>
 {
 public:
@@ -336,9 +346,6 @@ protected:
 	/*** ID of the user that we want to perform actions with, can also be nullptr in favor of a user index. */
 	FUniqueNetIdAccelByteUserPtr UserId = nullptr;
 
-	/** API client that should be used for this task, use GetApiClient to get a valid instance */
-	AccelByte::FApiClientPtr ApiClient;
-
 	/** Flags associated with this async task */
 	uint8 Flags = 0;
 
@@ -390,6 +397,38 @@ protected:
 		FScopeLock ScopeLock(&TimeoutLock);
 		LastTaskUpdateInSeconds = FPlatformTime::Seconds();
 	}
+		
+	template<typename T>
+	void RaiseGenericError(T Args)
+	{}
+
+	void RaiseGenericError()
+	{
+		FString ErrorStr = TEXT("request-to-obtain-valid-apiclient");
+		UE_LOG_AB(Warning, TEXT("%s"), *ErrorStr);
+		CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState);
+	}
+
+	template<>
+	void RaiseGenericError<FString&>(FString& InErrorStrMember)
+	{
+		InErrorStrMember = TEXT("request-to-obtain-valid-apiclient");
+		RaiseGenericError();
+	}
+
+	template<>
+	void RaiseGenericError<FOnlineError&>(FOnlineError& InOnlineError)
+	{
+		InOnlineError.CreateError("AccelByteApiClientError", EOnlineErrorResult::RequestFailure);
+		RaiseGenericError();
+	}
+	
+	template<>
+	void RaiseGenericError<FOnlineErrorAccelByte&>(FOnlineErrorAccelByte& InOnlineError)
+	{
+		InOnlineError.CreateError("AccelByteApiClientError", static_cast<int32>(AccelByte::ErrorCodes::InvalidRequest), EOnlineErrorResult::RequestFailure);
+		RaiseGenericError();
+	}
 
 	/**
 	 * Method called when this async task has timed out. Use to add custom timeout functionality.
@@ -401,9 +440,9 @@ protected:
 	 */
 	virtual AccelByte::FApiClientPtr GetApiClient(int32 InLocalUserNum)
 	{
-		if (ApiClient.IsValid())
+		if (ApiClientInternal.IsValid())
 		{
-			return ApiClient;
+			return ApiClientInternal;
 		}
 
 		if (Subsystem == nullptr)
@@ -417,8 +456,8 @@ protected:
 			return nullptr;
 		}
 
-		ApiClient = IdentityInterface->GetApiClient(InLocalUserNum);
-		return ApiClient;
+		ApiClientInternal = IdentityInterface->GetApiClient(InLocalUserNum);
+		return ApiClientInternal;
 	}
 
 	/**
@@ -426,9 +465,9 @@ protected:
 	 */
 	virtual AccelByte::FApiClientPtr GetApiClient(FUniqueNetIdAccelByteUserRef const& InUserId)
 	{
-		if (ApiClient.IsValid())
+		if (ApiClientInternal.IsValid())
 		{
-			return ApiClient;
+			return ApiClientInternal;
 		}
 
 		const TSharedPtr<FOnlineIdentityAccelByte, ESPMode::ThreadSafe> IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(Subsystem->GetIdentityInterface());
@@ -437,8 +476,34 @@ protected:
 			return nullptr;
 		}
 
-		ApiClient = IdentityInterface->GetApiClient(InUserId.Get());
-		return ApiClient;
+		ApiClientInternal = IdentityInterface->GetApiClient(InUserId.Get());
+		return ApiClientInternal;
+	}
+
+	/**
+	 * SHOULD NOTE BE ACCESSED MANUALLY
+	 * Gets current API client member, please use the macro API_CLIENT_CHECK_GUARD(); 
+	 * to include checker and create local apiClient
+	 */
+	AccelByte::FApiClientPtr GetApiClientInternal()
+	{
+		return ApiClientInternal;
+	}
+
+	/**
+	 * Sets current API client member (expected to be used by Login async tasks)
+	 */
+	void SetApiClient(AccelByte::FApiClientPtr Input)
+	{
+		ApiClientInternal = Input;
+	}
+
+	/**
+	 * Check the validity of the ApiClient member 
+	 */
+	bool IsApiClientValid()
+	{
+		return ApiClientInternal.IsValid();
 	}
 
 	/**
@@ -496,5 +561,9 @@ protected:
 	*     IF there's a need to CreateAndDispatch....Task<>
 	*/
 	void ExecuteCriticalSectionAction(FVoidHandler Action);
+
+private:
+	/** API client that should be used for this task, use API_CLIENT_CHECK_GUARD() to get a valid instance */
+	AccelByte::FApiClientPtr ApiClientInternal;
 
 };

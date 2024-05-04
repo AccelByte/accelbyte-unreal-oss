@@ -28,6 +28,7 @@ void FOnlineAsyncTaskAccelByteGroupsQueryGroupInvites::Initialize()
 	OnSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsGetMemberRequestsListResponse>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteGroupsQueryGroupInvites::OnQueryGroupInvitesSuccess);
 	OnErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteGroupsQueryGroupInvites::OnQueryGroupInvitesError);
 
+	API_CLIENT_CHECK_GUARD(ErrorString);
 	ApiClient->Group.GetGroupInvitationRequests(RequestContent, OnSuccessDelegate, OnErrorDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

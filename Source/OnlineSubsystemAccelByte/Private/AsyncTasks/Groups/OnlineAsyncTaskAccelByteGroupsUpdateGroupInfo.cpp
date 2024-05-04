@@ -34,6 +34,7 @@ void FOnlineAsyncTaskAccelByteGroupsUpdateGroupInfo::Initialize()
 	OnSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsGroupInformation>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteGroupsUpdateGroupInfo::OnUpdateGroupInfoSuccess);
 	OnErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteGroupsUpdateGroupInfo::OnUpdateGroupInfoError);
 
+	API_CLIENT_CHECK_GUARD(ErrorString);
 	ApiClient->Group.UpdateGroup(GroupId, CompletelyReplace, RequestedContent, OnSuccessDelegate, OnErrorDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
