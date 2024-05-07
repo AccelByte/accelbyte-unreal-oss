@@ -34,7 +34,18 @@ bool FOnlineStatisticAccelByte::GetListUserStatItems(int32 LocalUserNum
 	, TArray<TSharedRef<FAccelByteModelsFetchUser>>& OutUsers)
 {
 	const IOnlineIdentityPtr IdentityInterface = AccelByteSubsystem->GetIdentityInterface();
-	TArray<TSharedRef<FAccelByteModelsFetchUser>> Users = UsersMap.FindRef(IdentityInterface->GetUniquePlayerId(LocalUserNum)->AsShared());
+	if (!IdentityInterface.IsValid())
+	{
+		return false;
+	}
+
+	FUniqueNetIdPtr LocalUserId = IdentityInterface->GetUniquePlayerId(LocalUserNum);
+	if (!LocalUserId.IsValid())
+	{
+		return false;
+	}
+
+	TArray<TSharedRef<FAccelByteModelsFetchUser>> Users = UsersMap.FindRef(LocalUserId.ToSharedRef());
 	if (Users.Num() > 0)
 	{
 		for (TSharedRef<FAccelByteModelsFetchUser> User : Users)
@@ -277,10 +288,10 @@ void FOnlineStatisticAccelByte::QueryStats(int32 LocalUserNum
 	const IOnlineIdentityPtr IdentityInterface = AccelByteSubsystem->GetIdentityInterface();
 	if (IdentityInterface.IsValid())
 	{
-		FUniqueNetIdPtr UserIdPtr = IdentityInterface->GetUniquePlayerId(LocalUserNum);
-		if (UserIdPtr.IsValid() && UserIdPtr->IsValid())
+		FUniqueNetIdPtr LocalUserId = IdentityInterface->GetUniquePlayerId(LocalUserNum);
+		if (LocalUserId.IsValid() && LocalUserId->IsValid())
 		{
-			QueryStats(UserIdPtr.ToSharedRef(), StatsUsers, StatsNames, Delegate);
+			QueryStats(LocalUserId.ToSharedRef(), StatsUsers, StatsNames, Delegate);
 		}
 		else
 		{

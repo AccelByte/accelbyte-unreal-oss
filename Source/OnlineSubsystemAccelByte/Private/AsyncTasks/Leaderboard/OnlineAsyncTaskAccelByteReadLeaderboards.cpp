@@ -166,10 +166,23 @@ void FOnlineAsyncTaskAccelByteReadLeaderboards::OnReadLeaderboardsSuccess(FAccel
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Read Leaderboards Success"));
 
 	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(Subsystem->GetIdentityInterface());
-	const FOnlineLeaderboardAccelBytePtr LeaderboardsInterface = StaticCastSharedPtr<FOnlineLeaderboardAccelByte>(Subsystem->GetLeaderboardsInterface());
-	if (!ensure(LeaderboardsInterface.IsValid()))
+	if (!IdentityInterface.IsValid())
 	{
-		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to save leaderboard data as our leaderboards interface is invalid!"));
+		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to save leaderboard data as our Identity Interface is invalid!"));
+		return;
+	}
+
+	const FOnlineLeaderboardAccelBytePtr LeaderboardsInterface = StaticCastSharedPtr<FOnlineLeaderboardAccelByte>(Subsystem->GetLeaderboardsInterface());
+	if (!LeaderboardsInterface.IsValid())
+	{
+		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to save leaderboard data as our Leaderboards Interface is invalid!"));
+		return;
+	}
+
+	FUniqueNetIdPtr LocalUserId = IdentityInterface->GetUniquePlayerId(LocalUserNum);
+	if (!LocalUserId.IsValid())
+	{
+		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to save leaderboard data as Local User is invalid!"));
 		return;
 	}
 
@@ -188,7 +201,7 @@ void FOnlineAsyncTaskAccelByteReadLeaderboards::OnReadLeaderboardsSuccess(FAccel
 		}
 
 		// Get the user account
-		TSharedPtr<FUserOnlineAccount> UserAccount = IdentityInterface->GetUserAccount(*CurrentUserId);
+		TSharedPtr<FUserOnlineAccount> UserAccount = IdentityInterface->GetUserAccount(CurrentUserId);
 
 		// Put the leaderboard value into read leaderboard object reference (row data)
 		FOnlineStatsRow* LeaderboardRow = LeaderboardObject.Get().FindPlayerRecord(*UserAccount->GetUserId());
@@ -197,7 +210,7 @@ void FOnlineAsyncTaskAccelByteReadLeaderboards::OnReadLeaderboardsSuccess(FAccel
 			LeaderboardRow = new (LeaderboardObject->Rows)
 				FOnlineStatsRow(
 					UserAccount->GetDisplayName(),
-					FUniqueNetIdAccelByteUser::CastChecked(IdentityInterface->GetUniquePlayerId(LocalUserNum).ToSharedRef()));
+					FUniqueNetIdAccelByteUser::CastChecked(LocalUserId.ToSharedRef()));
 		}
 
 		if (bUseCycle)

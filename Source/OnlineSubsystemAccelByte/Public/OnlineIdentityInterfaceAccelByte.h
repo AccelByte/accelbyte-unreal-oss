@@ -105,9 +105,9 @@ public:
 	virtual bool AutoLogin(int32 LocalUserNum) override;
 	virtual TSharedPtr<FUserOnlineAccount> GetUserAccount(const FUniqueNetId& UserId) const override;
 	virtual TArray<TSharedPtr<FUserOnlineAccount> > GetAllUserAccounts() const override;
-	virtual TSharedPtr<const FUniqueNetId> GetUniquePlayerId(int32 LocalUserNum) const override;
-	virtual TSharedPtr<const FUniqueNetId> CreateUniquePlayerId(uint8* Bytes, int32 Size) override;
-	virtual TSharedPtr<const FUniqueNetId> CreateUniquePlayerId(const FString& Str) override;
+	virtual FUniqueNetIdPtr GetUniquePlayerId(int32 LocalUserNum) const override;
+	virtual FUniqueNetIdPtr CreateUniquePlayerId(uint8* Bytes, int32 Size) override;
+	virtual FUniqueNetIdPtr CreateUniquePlayerId(const FString& Str) override;
 	virtual ELoginStatus::Type GetLoginStatus(int32 LocalUserNum) const override;
 	virtual ELoginStatus::Type GetLoginStatus(const FUniqueNetId& UserId) const override;
 	virtual FString GetPlayerNickname(int32 LocalUserNum) const override;
@@ -337,6 +337,33 @@ PACKAGE_SCOPE:
 	void FinalizeLoginQueue(int32 LoginUserNum);
 
 	/**
+	 * @brief Retrieve User Account information from given Local User.
+	 * 
+	 * @param LocalUserNum the controller number of the associated user.
+	 * 
+	 * @return SharedPtr of User Account data.
+	 */
+	virtual TSharedPtr<FUserOnlineAccount> GetUserAccount(int LocalUserNum) const;
+
+	/**
+	 * @brief Retrieve User Account information from given Local User.
+	 *
+	 * @param LocalUserId SharedRef of given Local User.
+	 *
+	 * @return SharedPtr of User Account data.
+	 */
+	virtual TSharedPtr<FUserOnlineAccount> GetUserAccount(const FUniqueNetIdRef& LocalUserId) const;
+
+	/**
+	 * @brief Retrieve User Account information from given Local User.
+	 *
+	 * @param LocalUserId SharedPtr of given Local User.
+	 *
+	 * @return SharedPtr of User Account data.
+	 */
+	virtual TSharedPtr<FUserOnlineAccount> GetUserAccount(const FUniqueNetIdPtr& LocalUserId) const;
+
+	/**
 	 * Online delegate to notify poller when a user cancelled login queue
 	 */
 	DEFINE_ONLINE_DELEGATE_ONE_PARAM(AccelByteOnLoginQueueCanceledByUser, int32 /*LoginUserNum*/);
@@ -349,7 +376,7 @@ private:
 	TWeakPtr<FOnlineSubsystemAccelByte, ESPMode::ThreadSafe> AccelByteSubsystem;
 
 	/** Simple mapping for LocalUserNum to FUniqueNetIdAccelByte for users. Filled when users log in. */
-	TMap<int32, TSharedRef<const FUniqueNetId>> LocalUserNumToNetIdMap;
+	TMap<int32, FUniqueNetIdRef> LocalUserNumToNetIdMap;
 
 	/** Mapping of local user indices to login statuses, used to query login status for a user */
 	TMap<int32, ELoginStatus::Type> LocalUserNumToLoginStatusMap;

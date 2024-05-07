@@ -27,7 +27,12 @@ bool FExecTestQueryExternalIds::Run()
 		if (IdentityInterface.IsValid())
 		{
 			// Grab the first user's FUniqueNetId and then send off a request to map external IDs passed in
-			TSharedPtr<const FUniqueNetId> UserId = IdentityInterface->GetUniquePlayerId(TEST_USER_INDEX);
+			FUniqueNetIdPtr UserId = IdentityInterface->GetUniquePlayerId(TEST_USER_INDEX);
+			
+			if (!UserId.IsValid())
+			{
+				return false;
+			}
 			
 			IOnlineUserPtr UserInterface = Subsystem->GetUserInterface();
 			if (UserInterface.IsValid())
@@ -73,7 +78,7 @@ void FExecTestQueryExternalIds::OnQueryExternalIdMappingsComplete(bool bWasSucce
 	// Log out each external ID that we were able to map, or log an warning if we failed to get a mapping
 	for (const FString& ExternalId : FoundIds)
 	{
-		TSharedPtr<const FUniqueNetId> IdMapping = UserInterface->GetExternalIdMapping(QueryOptions, ExternalId);
+		FUniqueNetIdPtr IdMapping = UserInterface->GetExternalIdMapping(QueryOptions, ExternalId);
 		
 		if (IdMapping.IsValid())
 		{

@@ -43,8 +43,8 @@ void FOnlineAsyncTaskAccelByteGetUserEntitlementHistory::Initialize()
 		return;
 	}
 
-	const TSharedPtr<FOnlineIdentityAccelByte, ESPMode::ThreadSafe> IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(Subsystem->GetIdentityInterface());
-	const TSharedPtr<const FUniqueNetId> TargetUserIdPtr = IdentityInterface->GetUniquePlayerId(LocalTargetUserNum);
+	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(Subsystem->GetIdentityInterface());
+	const FUniqueNetIdPtr TargetUserIdPtr = IdentityInterface->GetUniquePlayerId(LocalTargetUserNum);
 
 	if (!TargetUserIdPtr.IsValid())
 	{
@@ -91,7 +91,7 @@ void FOnlineAsyncTaskAccelByteGetUserEntitlementHistory::TriggerDelegates()
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 
-	const TSharedPtr<FOnlineIdentityAccelByte, ESPMode::ThreadSafe> IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(Subsystem->GetIdentityInterface());
+	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(Subsystem->GetIdentityInterface());
 	const FOnlineEntitlementsAccelBytePtr EntitlementInterface = StaticCastSharedPtr<FOnlineEntitlementsAccelByte>(Subsystem->GetEntitlementsInterface());
 
 	if (bWasSuccessful)
@@ -102,7 +102,7 @@ void FOnlineAsyncTaskAccelByteGetUserEntitlementHistory::TriggerDelegates()
 			HttpStatus = static_cast<int32>(ErrorCodes::ServiceUnavailableException);
 		}
 
-		const TSharedPtr<const FUniqueNetId> TargetUserIdPtr = IdentityInterface->GetUniquePlayerId(LocalTargetUserNum);
+		const FUniqueNetIdPtr TargetUserIdPtr = IdentityInterface->GetUniquePlayerId(LocalTargetUserNum);
 		if (!TargetUserIdPtr.IsValid())
 		{
 			ErrorString = TEXT("Failed to process the request! User id is invalid!");

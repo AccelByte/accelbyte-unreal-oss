@@ -109,12 +109,11 @@ bool FOnlineIdentityAccelByte::Login(int32 LocalUserNum, const FOnlineAccountCre
 		&& LocalUserNumToNetIdMap.Contains(LocalUserNum)
 		&& (AccountCredentials.Type != FAccelByteUtilities::GetUEnumValueAsString(EAccelByteLoginType::RefreshToken)))
 	{
-		const TSharedPtr<const FUniqueNetId> UserIdPtr = GetUniquePlayerId(LocalUserNum);
+		const FUniqueNetIdPtr LocalUserId = GetUniquePlayerId(LocalUserNum);
 		TSharedPtr<FUserOnlineAccount> UserAccount;
-		if (UserIdPtr.IsValid())
+		if (LocalUserId.IsValid())
 		{
-			const FUniqueNetId& UserId = UserIdPtr.ToSharedRef().Get();
-			UserAccount = GetUserAccount(UserId);
+			UserAccount = GetUserAccount(LocalUserId);
 		}
 
 		const TSharedPtr<FUserOnlineAccountAccelByte> UserAccountAccelByte = StaticCastSharedPtr<FUserOnlineAccountAccelByte>(UserAccount);
@@ -125,11 +124,11 @@ bool FOnlineIdentityAccelByte::Login(int32 LocalUserNum, const FOnlineAccountCre
 		LocalPlayerLoggingIn[LocalUserNum] = false;
 
 		TriggerOnLoginChangedDelegates(LocalUserNum);
-		TriggerOnLoginCompleteDelegates(LocalUserNum, true, *UserIdPtr, ErrorStr); 
+		TriggerOnLoginCompleteDelegates(LocalUserNum, true, *LocalUserId, ErrorStr);
 		FErrorOAuthInfo ErrorOAuthInfo { (int32)ErrorCodes::InvalidRequest, ErrorStr,
 			FString::Printf(TEXT("%d"), ErrorCodes::InvalidRequest), ErrorStr };
-		TriggerOnLoginWithOAuthErrorCompleteDelegates(LocalUserNum, false, *UserIdPtr, ErrorOAuthInfo);
-		TriggerAccelByteOnLoginCompleteDelegates(LocalUserNum, false, *UserIdPtr, ONLINE_ERROR_ACCELBYTE(ErrorStr));
+		TriggerOnLoginWithOAuthErrorCompleteDelegates(LocalUserNum, false, *LocalUserId, ErrorOAuthInfo);
+		TriggerAccelByteOnLoginCompleteDelegates(LocalUserNum, false, *LocalUserId, ONLINE_ERROR_ACCELBYTE(ErrorStr));
 		return false;
 	}
 
@@ -300,20 +299,45 @@ bool FOnlineIdentityAccelByte::AutoLogin(int32 LocalUserNum)
 }
 #undef ONLINE_ERROR_NAMESPACE
 
-TSharedPtr<FUserOnlineAccount> FOnlineIdentityAccelByte::GetUserAccount(const FUniqueNetId& UserId) const
+TSharedPtr<FUserOnlineAccount> FOnlineIdentityAccelByte::GetUserAccount(const FUniqueNetIdRef& UserId) const
 {
-	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("UserId: %s"), *UserId.ToDebugString());
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT(""));
 
-	const TSharedRef<FUserOnlineAccount>* Account = NetIdToOnlineAccountMap.Find(UserId.AsShared());
+	const TSharedRef<FUserOnlineAccount>* Account = NetIdToOnlineAccountMap.Find(UserId);
 	if (Account != nullptr)
 	{
-		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("FOnlineUserAccount found for user with NetID of '%s'!"), *UserId.ToDebugString());
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("FOnlineUserAccount found for user with NetID of '%s'!"), *UserId->ToDebugString());
 
 		return *Account;
 	}
 
-	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("FOnlineUserAccount not found for user with NetID of '%s'! Returning nullptr."), *UserId.ToDebugString());
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("FOnlineUserAccount not found for user with NetID of '%s'! Returning nullptr."), *UserId->ToDebugString());
 	return nullptr;
+}
+
+TSharedPtr<FUserOnlineAccount> FOnlineIdentityAccelByte::GetUserAccount(const FUniqueNetIdPtr& UserId) const
+{
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT(""));
+
+	if (!UserId.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("NetID is invalid! Returning nullptr."));
+		return nullptr;
+	}
+
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Calling GetUserAccount with SharedRef"));
+	return GetUserAccount(UserId.ToSharedRef());
+}
+
+TSharedPtr<FUserOnlineAccount> FOnlineIdentityAccelByte::GetUserAccount(const FUniqueNetId& UserId) const
+{
+	return GetUserAccount(UserId.AsShared());
+}
+
+TSharedPtr<FUserOnlineAccount> FOnlineIdentityAccelByte::GetUserAccount(int LocalUserNum) const
+{
+	const FUniqueNetIdPtr LocalUserId = GetUniquePlayerId(LocalUserNum);
+	return GetUserAccount(LocalUserId);
 }
 
 TArray<TSharedPtr<FUserOnlineAccount>> FOnlineIdentityAccelByte::GetAllUserAccounts() const
@@ -332,12 +356,12 @@ TArray<TSharedPtr<FUserOnlineAccount>> FOnlineIdentityAccelByte::GetAllUserAccou
 	return Result;
 }
 
-TSharedPtr<const FUniqueNetId> FOnlineIdentityAccelByte::GetUniquePlayerId(int32 LocalUserNum) const
+FUniqueNetIdPtr FOnlineIdentityAccelByte::GetUniquePlayerId(int32 LocalUserNum) const
 {
 	AB_OSS_PTR_INTERFACE_TRACE_BEGIN_VERBOSITY(VeryVerbose, TEXT("LocalUserNum: %d"), LocalUserNum);
 
 	const TSharedRef<const FUniqueNetId>* UserId = LocalUserNumToNetIdMap.Find(LocalUserNum);
-	if (UserId != nullptr)
+	if (UserId)
 	{
 		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(VeryVerbose, TEXT("Found NetId for LocalUserNum of '%d'. ID is '%s'."), LocalUserNum, *(*UserId)->ToDebugString());
 
@@ -348,7 +372,7 @@ TSharedPtr<const FUniqueNetId> FOnlineIdentityAccelByte::GetUniquePlayerId(int32
 	return nullptr;
 }
 
-TSharedPtr<const FUniqueNetId> FOnlineIdentityAccelByte::CreateUniquePlayerId(uint8* Bytes, int32 Size)
+FUniqueNetIdPtr FOnlineIdentityAccelByte::CreateUniquePlayerId(uint8* Bytes, int32 Size)
 {
 	if (Bytes && Size > 0)
 	{
@@ -359,7 +383,7 @@ TSharedPtr<const FUniqueNetId> FOnlineIdentityAccelByte::CreateUniquePlayerId(ui
 	return nullptr;
 }
 
-TSharedPtr<const FUniqueNetId> FOnlineIdentityAccelByte::CreateUniquePlayerId(const FString& Str)
+FUniqueNetIdPtr FOnlineIdentityAccelByte::CreateUniquePlayerId(const FString& Str)
 {
 	return FUniqueNetIdAccelByteUser::Create(Str);
 }
@@ -410,14 +434,14 @@ void FOnlineIdentityAccelByte::SetLoginStatus(const int32 LocalUserNum, const EL
 		LocalPlayerLoggingIn[LocalUserNum] = false;
 	}
 
-	const TSharedPtr<const FUniqueNetId> UserId = GetUniquePlayerId(LocalUserNum);
-	if (!UserId.IsValid())
+	const FUniqueNetIdPtr LocalUserId = GetUniquePlayerId(LocalUserNum);
+	if (!LocalUserId.IsValid())
 	{
 		// No need to trigger delegate 
 		return;
 	}
 
-	TriggerOnLoginStatusChangedDelegates(LocalUserNum, OldStatus, NewStatus, UserId.ToSharedRef().Get());
+	TriggerOnLoginStatusChangedDelegates(LocalUserNum, OldStatus, NewStatus, *LocalUserId);
 }
 
 void FOnlineIdentityAccelByte::AddAuthenticatedServer(int32 LocalUserNum)
@@ -451,11 +475,11 @@ FString FOnlineIdentityAccelByte::GetPlayerNickname(int32 LocalUserNum) const
 {
 	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("LocalUserNum: %d"), LocalUserNum);
 
-	const TSharedPtr<const FUniqueNetId> UserId = GetUniquePlayerId(LocalUserNum);
-	if (UserId.IsValid())
+	const FUniqueNetIdPtr LocalUserId = GetUniquePlayerId(LocalUserNum);
+	if (LocalUserId.IsValid() && LocalUserId->IsValid())
 	{
 		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("UserId found for User %d, getting nickname from UserId."), LocalUserNum);
-		return GetPlayerNickname(*UserId);
+		return GetPlayerNickname(*LocalUserId);
 	}
 
 	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Nickname could not be queried for user %d. Returning 'NullUser'."), LocalUserNum);
@@ -481,10 +505,10 @@ FString FOnlineIdentityAccelByte::GetAuthToken(int32 LocalUserNum) const
 {
 	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("LocalUserNum: %d"), LocalUserNum);
 
-	const TSharedPtr<const FUniqueNetId> UserId = GetUniquePlayerId(LocalUserNum);
-	if (UserId.IsValid())
+	const FUniqueNetIdPtr LocalUserId = GetUniquePlayerId(LocalUserNum);
+	if (LocalUserId.IsValid() && LocalUserId->IsValid())
 	{
-		const TSharedPtr<FUserOnlineAccount> UserAccount = GetUserAccount(UserId.ToSharedRef().Get());
+		const TSharedPtr<FUserOnlineAccount> UserAccount = GetUserAccount(LocalUserId);
 		if (UserAccount.IsValid())
 		{
 			AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Found access token for User '%d'"), LocalUserNum);
@@ -544,7 +568,7 @@ void FOnlineIdentityAccelByte::GetUserPrivilege(const FUniqueNetId& UserId, EUse
 		return;
 	}
 
-	TSharedPtr<const FUniqueNetId> NativeUserId = AccelByteCompositeId->GetPlatformUniqueId();
+	FUniqueNetIdPtr NativeUserId = AccelByteCompositeId->GetPlatformUniqueId();
 	if (!NativeUserId.IsValid())
 	{
 		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to query privileges for user as we could not get a native platform ID for them."));
@@ -720,12 +744,11 @@ bool FOnlineIdentityAccelByte::ConnectAccelByteLobby(int32 LocalUserNum)
 	// Don't attempt to connect again if we are already reporting as connected
 	if (GetLoginStatus(LocalUserNum) == ELoginStatus::LoggedIn && LocalUserNumToNetIdMap.Contains(LocalUserNum))
 	{
-		const TSharedPtr<const FUniqueNetId> UserIdPtr = GetUniquePlayerId(LocalUserNum);
+		const FUniqueNetIdPtr LocalUserId = GetUniquePlayerId(LocalUserNum);
 		TSharedPtr<FUserOnlineAccount> UserAccount;
-		if (UserIdPtr.IsValid())
+		if (LocalUserId.IsValid())
 		{
-			const FUniqueNetId& UserId = UserIdPtr.ToSharedRef().Get();
-			UserAccount = GetUserAccount(UserId);
+			UserAccount = GetUserAccount(LocalUserId);
 		}
 
 		const TSharedPtr<FUserOnlineAccountAccelByte> UserAccountAccelByte = StaticCastSharedPtr<FUserOnlineAccountAccelByte>(UserAccount);
@@ -750,7 +773,7 @@ bool FOnlineIdentityAccelByte::ConnectAccelByteLobby(int32 LocalUserNum)
 		}
 		else
 		{
-			AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteConnectLobby>(AccelByteSubsystemPtr.Get(), *GetUniquePlayerId(LocalUserNum).Get());
+			AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteConnectLobby>(AccelByteSubsystemPtr.Get(), *LocalUserId);
 			AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Dispatching async task to attempt to connect lobby!"));
 			return true;
 		}

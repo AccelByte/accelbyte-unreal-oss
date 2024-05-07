@@ -101,8 +101,8 @@ bool FOnlineLeaderboardAccelByte::ReadLeaderboardsForFriendsCycle(
 		return false;
 	}
 
-	const FUniqueNetIdPtr CurrentUserId = IdentityInterface->GetUniquePlayerId(LocalUserNum);
-	if (!CurrentUserId->IsValid())
+	const FUniqueNetIdPtr LocalUserId = IdentityInterface->GetUniquePlayerId(LocalUserNum);
+	if (!LocalUserId.IsValid() || !LocalUserId->IsValid())
 	{
 		UE_LOG_ONLINE_LEADERBOARD(Warning, TEXT("Fail to read leaderboard cycle for friends as the user id is not valid"));
 		return false;
@@ -190,8 +190,8 @@ bool FOnlineLeaderboardAccelByte::ReadLeaderboardsForFriends(
 		return false;
 	}
 
-	const FUniqueNetIdPtr CurrentUserId = IdentityInterface->GetUniquePlayerId(LocalUserNum);
-	if (!CurrentUserId->IsValid())
+	const FUniqueNetIdPtr LocalUserId = IdentityInterface->GetUniquePlayerId(LocalUserNum);
+	if (!LocalUserId.IsValid() || !LocalUserId->IsValid())
 	{
 		UE_LOG_ONLINE_LEADERBOARD(Warning, TEXT("Fail to read leaderboards for friends as the user id is not valid"));
 		return false;

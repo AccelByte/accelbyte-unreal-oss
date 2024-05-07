@@ -234,7 +234,7 @@ bool FOnlineUserAccelByte::QueryExternalIdMappings(const FUniqueNetId& UserId, c
 	return true;
 }
 
-void FOnlineUserAccelByte::GetExternalIdMappings(const FExternalIdQueryOptions& QueryOptions, const TArray<FString>& ExternalIds, TArray<TSharedPtr<const FUniqueNetId>>& OutIds)
+void FOnlineUserAccelByte::GetExternalIdMappings(const FExternalIdQueryOptions& QueryOptions, const TArray<FString>& ExternalIds, TArray<FUniqueNetIdPtr>& OutIds)
 {
 	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("External ID Count: %d"), ExternalIds.Num());
 
@@ -266,7 +266,7 @@ void FOnlineUserAccelByte::GetExternalIdMappings(const FExternalIdQueryOptions& 
 	AB_OSS_INTERFACE_TRACE_END(TEXT("Received %d valid external ID mappings!"), ValidResults);
 }
 
-TSharedPtr<const FUniqueNetId> FOnlineUserAccelByte::GetExternalIdMapping(const FExternalIdQueryOptions& QueryOptions, const FString& ExternalId)
+FUniqueNetIdPtr FOnlineUserAccelByte::GetExternalIdMapping(const FExternalIdQueryOptions& QueryOptions, const FString& ExternalId)
 {
 	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("External ID: %s"), *ExternalId);
 

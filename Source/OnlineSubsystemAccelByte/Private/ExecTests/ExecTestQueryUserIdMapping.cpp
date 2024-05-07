@@ -21,16 +21,20 @@ bool FExecTestQueryUserIdMapping::Run()
 	if (Subsystem != nullptr)
 	{
 		const IOnlineIdentityPtr IdentityInterface = Subsystem->GetIdentityInterface();
-		if (IdentityInterface != nullptr)
+		if (IdentityInterface.IsValid())
 		{
 			// Get the initial user's FUniqueNetId and then send off a request to map the DisplayNameOrEmail to a user ID
-			TSharedPtr<const FUniqueNetId> UserId = IdentityInterface->GetUniquePlayerId(0);
+			FUniqueNetIdPtr UserId = IdentityInterface->GetUniquePlayerId(0);
+			if (!UserId.IsValid())
+			{
+				return false;
+			}
 			
 			const IOnlineUserPtr UserInterface = Subsystem->GetUserInterface();
 			if (UserInterface.IsValid())
 			{
 				IOnlineUser::FOnQueryUserMappingComplete UserMappingCompleteDelegate = IOnlineUser::FOnQueryUserMappingComplete::CreateSP(AsShared(), &FExecTestQueryUserIdMapping::OnQueryUserIdMappingComplete);
-				UserInterface->QueryUserIdMapping(UserId.ToSharedRef().Get(), InitialDisplayNameOrEmail, UserMappingCompleteDelegate);
+				UserInterface->QueryUserIdMapping(*UserId.Get(), InitialDisplayNameOrEmail, UserMappingCompleteDelegate);
 
 				return true;
 			}

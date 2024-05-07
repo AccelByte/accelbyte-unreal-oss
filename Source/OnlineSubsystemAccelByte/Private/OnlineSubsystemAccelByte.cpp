@@ -148,7 +148,7 @@ bool FOnlineSubsystemAccelByte::Shutdown()
 		IdentityInterface->ClearOnLoginCompleteDelegates(UserNum, this);
 		IdentityInterface->ClearOnConnectLobbyCompleteDelegates(UserNum, this);
 
-		TSharedPtr<const FUniqueNetId> PlayerId = IdentityInterface->GetUniquePlayerId(UserNum);
+		FUniqueNetIdPtr PlayerId = IdentityInterface->GetUniquePlayerId(UserNum);
 		if (!PlayerId.IsValid())
 		{
 			continue;
@@ -771,28 +771,31 @@ void FOnlineSubsystemAccelByte::OnLobbyConnectionClosed(int32 StatusCode, const 
 		return;
 	}
 
-	const TSharedPtr<const FUniqueNetId> UserIdPtr = IdentityInterface->GetUniquePlayerId(InLocalUserNum);
-	TSharedPtr<FUserOnlineAccount> UserAccount;
+	const FUniqueNetIdPtr LocalUserId = IdentityInterface->GetUniquePlayerId(InLocalUserNum);
 
-	if (UserIdPtr.IsValid())
+	if (!LocalUserId.IsValid())
 	{
-		const FUniqueNetId& UserId = UserIdPtr.ToSharedRef().Get();
-		UserAccount = IdentityInterface->GetUserAccount(UserId);
+		UE_LOG_AB(Warning, TEXT("Error due to Local User is invalid"));
+		return;
 	}
 
-	if (UserAccount.IsValid())
+	TSharedPtr<FUserOnlineAccount> UserAccount = IdentityInterface->GetUserAccount(LocalUserId);
+	if (!UserAccount.IsValid())
 	{
-		const TSharedPtr<FUserOnlineAccountAccelByte> UserAccountAccelByte = StaticCastSharedPtr<FUserOnlineAccountAccelByte>(UserAccount);
-		UserAccountAccelByte->SetConnectedToLobby(false);
+		UE_LOG_AB(Warning, TEXT("Error due to User Account is invalid"));
+		return;
 	}
+
+	const TSharedPtr<FUserOnlineAccountAccelByte> UserAccountAccelByte = StaticCastSharedPtr<FUserOnlineAccountAccelByte>(UserAccount);
+	UserAccountAccelByte->SetConnectedToLobby(false);
 	
 	if (bIsReconnecting)
 	{
-		IdentityInterface->TriggerAccelByteOnLobbyReconnectingDelegates(InLocalUserNum, *UserIdPtr.Get(), StatusCode, Reason, WasClean);
+		IdentityInterface->TriggerAccelByteOnLobbyReconnectingDelegates(InLocalUserNum, *LocalUserId, StatusCode, Reason, WasClean);
 	}
 	else
 	{
-		IdentityInterface->TriggerAccelByteOnLobbyConnectionClosedDelegates(InLocalUserNum, *UserIdPtr.Get(), StatusCode, Reason, WasClean);
+		IdentityInterface->TriggerAccelByteOnLobbyConnectionClosedDelegates(InLocalUserNum, *LocalUserId, StatusCode, Reason, WasClean);
 	}
 
 	if (FOnlineIdentityAccelByte::IsLogoutRequired(StatusCode) == false)
@@ -825,7 +828,7 @@ void FOnlineSubsystemAccelByte::OnLobbyConnectionClosed(int32 StatusCode, const 
 	if (PredefinedEventInterface.IsValid())
 	{
 		FAccelByteModelsLobbyDisconnectedPayload LobbyDisconnectedPayload{};
-		TSharedPtr<const FUniqueNetIdAccelByteUser> AccelByteUserId = StaticCastSharedPtr<const FUniqueNetIdAccelByteUser>(UserIdPtr); 
+		FUniqueNetIdAccelByteUserPtr AccelByteUserId = StaticCastSharedPtr<const FUniqueNetIdAccelByteUser>(LocalUserId);
 		if (AccelByteUserId.IsValid())
 		{
 			LobbyDisconnectedPayload.UserId = AccelByteUserId->GetAccelByteId();
@@ -844,8 +847,11 @@ void FOnlineSubsystemAccelByte::OnLobbyReconnected(int32 InLocalUserNum)
 	{
 		TSharedPtr<FUniqueNetIdAccelByteUser const> LocalUserId = StaticCastSharedPtr<FUniqueNetIdAccelByteUser const>(IdentityInterface->GetUniquePlayerId(InLocalUserNum));
 
-		PartyInterface->RemovePartyFromInterface(LocalUserId.ToSharedRef());
-		PartyInterface->RestoreParties(LocalUserId.ToSharedRef().Get(), FOnRestorePartiesComplete());
+		if (LocalUserId.IsValid())
+		{
+			PartyInterface->RemovePartyFromInterface(LocalUserId.ToSharedRef());
+			PartyInterface->RestoreParties(LocalUserId.ToSharedRef().Get(), FOnRestorePartiesComplete());
+		}
 	}
 #endif
 }
@@ -903,7 +909,7 @@ AccelByte::FApiClientPtr FOnlineSubsystemAccelByte::GetApiClient(int32 LocalUser
 		return nullptr;
 	}
 	
-	TSharedPtr<const FUniqueNetId> PlayerId = IdentityInterface->GetUniquePlayerId(LocalUserNum);
+	FUniqueNetIdPtr PlayerId = IdentityInterface->GetUniquePlayerId(LocalUserNum);
 	AccelByte::FApiClientPtr ApiClient;
 
 	if (PlayerId.IsValid())
@@ -1085,6 +1091,7 @@ void FOnlineSubsystemAccelByte::SetNativePlatformTokenRefreshScheduler(int32 Loc
 					&& this != nullptr 
 					&& this->GetIdentityInterface() 
 					&& this->IdentityInterface->GetApiClient(LocalUserNum).IsValid()
+					&& UserId.IsValid()
 					&& !UserId->GetPlatformType().IsEmpty())
 				{
 					IdentityInterface->RefreshPlatformToken(LocalUserNum);
@@ -1136,7 +1143,7 @@ void FOnlineSubsystemAccelByte::OnPresenceChanged(EAccelBytePlatformType Platfor
 	{
 		const FUniqueNetIdPtr NetId = IdentityInterface->GetUniquePlayerId(LocalUserNum);
 		const auto LoginStatus = IdentityInterface->GetLoginStatus(LocalUserNum);
-		if (LoginStatus == ELoginStatus::LoggedIn)
+		if (LoginStatus == ELoginStatus::LoggedIn && NetId.IsValid())
 		{
 			FOnlineUserPresenceStatusAccelByte Status;
 			TSharedPtr<FOnlineUserPresence> UserPresence;

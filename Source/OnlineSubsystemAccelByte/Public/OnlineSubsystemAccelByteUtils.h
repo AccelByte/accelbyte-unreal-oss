@@ -45,7 +45,7 @@ public:
 	/**
 	 * Convenience method to get display name for either a remote or local user.
 	 */
-	static bool GetDisplayName(int32 LocalUserNum, TSharedPtr<const FUniqueNetId> UniqueId, FOnGetDisplayNameComplete Delegate, FString DisplayName=TEXT(""));
+	static bool GetDisplayName(int32 LocalUserNum, FUniqueNetIdPtr UniqueId, FOnGetDisplayNameComplete Delegate, FString DisplayName=TEXT(""));
 	
 	/**
 	 * Convert Platform User Id string into UniqueNetId

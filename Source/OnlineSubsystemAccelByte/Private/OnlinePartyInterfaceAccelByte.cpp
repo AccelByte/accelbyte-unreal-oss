@@ -735,7 +735,8 @@ TSharedPtr<FOnlinePartyAccelByte> FOnlinePartySystemAccelByte::GetFirstPartyForU
 	return nullptr;
 }
 
-TSharedPtr<const FOnlinePartyId> FOnlinePartySystemAccelByte::GetFirstPartyIdForUser(const FUniqueNetId& UserId) {
+TSharedPtr<const FOnlinePartyId> FOnlinePartySystemAccelByte::GetFirstPartyIdForUser(const FUniqueNetId& UserId) 
+{
 	TSharedRef<const FUniqueNetIdAccelByteUser> AccelbyteId = FUniqueNetIdAccelByteUser::CastChecked(UserId);
 	TSharedPtr<FOnlinePartyAccelByte> Party = GetFirstPartyForUser(AccelbyteId);
 	if (Party.IsValid()) {
@@ -846,25 +847,28 @@ void FOnlinePartySystemAccelByte::OnPartyMemberLeaveNotification(const FAccelByt
 
 	if (IdentityInterface.IsValid())
 	{
-		TSharedPtr<const FUniqueNetId> LocalPlayerUserId = IdentityInterface->GetUniquePlayerId(AccelByteSubsystem->GetLocalUserNumCached());
-		TSharedRef<const FUniqueNetIdAccelByteUser> LocalAccelByteUserId = FUniqueNetIdAccelByteUser::CastChecked(LocalPlayerUserId.ToSharedRef());
-
-		TSharedPtr<FOnlinePartyAccelByte> Party = GetFirstPartyForUser(LocalAccelByteUserId);
-		if (Party.IsValid())
+		FUniqueNetIdPtr LocalPlayerUserId = IdentityInterface->GetUniquePlayerId(AccelByteSubsystem->GetLocalUserNumCached());
+		if (LocalPlayerUserId.IsValid())
 		{
-			FAccelByteUniqueIdComposite LeftUserCompositeId;
-			LeftUserCompositeId.Id = Notification.UserID;
+			TSharedRef<const FUniqueNetIdAccelByteUser> LocalAccelByteUserId = FUniqueNetIdAccelByteUser::CastChecked(LocalPlayerUserId.ToSharedRef());
 
-			TSharedRef<const FUniqueNetIdAccelByteUser> LeftUserId = FUniqueNetIdAccelByteUser::Create(LeftUserCompositeId);
-			Party->RemoveMember(UserId, LeftUserId, EMemberExitedReason::Left);
-			RemovePartyFromInterface(LeftUserId, Party.ToSharedRef());
-		}
-		else
-		{
-			// If we're unable to retrieve the party for the local user, the local user may be in the progress of joining one, 
-			// so we'll need to wait until we're in a party before removing the target user from the party
-			FOnPartyJoinedDelegate PartyJoinedDelegate = FOnPartyJoinedDelegate::CreateRaw(this, &FOnlinePartySystemAccelByte::OnPartyJoinedCompleteMemberLeaveParty, Notification, UserId, LocalAccelByteUserId);
-			RunOnPartyJoinedComplete(PartyJoinedDelegate);
+			TSharedPtr<FOnlinePartyAccelByte> Party = GetFirstPartyForUser(LocalAccelByteUserId);
+			if (Party.IsValid())
+			{
+				FAccelByteUniqueIdComposite LeftUserCompositeId;
+				LeftUserCompositeId.Id = Notification.UserID;
+
+				TSharedRef<const FUniqueNetIdAccelByteUser> LeftUserId = FUniqueNetIdAccelByteUser::Create(LeftUserCompositeId);
+				Party->RemoveMember(UserId, LeftUserId, EMemberExitedReason::Left);
+				RemovePartyFromInterface(LeftUserId, Party.ToSharedRef());
+			}
+			else
+			{
+				// If we're unable to retrieve the party for the local user, the local user may be in the progress of joining one, 
+				// so we'll need to wait until we're in a party before removing the target user from the party
+				FOnPartyJoinedDelegate PartyJoinedDelegate = FOnPartyJoinedDelegate::CreateRaw(this, &FOnlinePartySystemAccelByte::OnPartyJoinedCompleteMemberLeaveParty, Notification, UserId, LocalAccelByteUserId);
+				RunOnPartyJoinedComplete(PartyJoinedDelegate);
+			}
 		}
 	}
 

@@ -1,7 +1,7 @@
 {
 	"FileVersion": 3,
-	"Version": 85,
-	"VersionName": "0.12.12",
+	"Version": 86,
+	"VersionName": "0.12.13",
 	"FriendlyName": "Online Subsystem AccelByte",
 	"Description": "Online Subsystem implementation for AccelByte Cloud services",
 	"Category": "Online Platform",

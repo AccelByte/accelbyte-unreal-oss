@@ -79,6 +79,11 @@ void FOnlineVoiceAccelByte::RegisterTalker(const FUniqueNetIdRef Player, const F
 
 	TArray<FAccelByteModelsV2GameSessionTeam> Teams = SessionInfo->GetTeamAssignments();
 	auto LocalPlayerId = IdentityInterface->GetUniquePlayerId(0);
+	if (!LocalPlayerId.IsValid())
+	{
+		return;
+	}
+
 	int32 LocalPlayerTeamIndex = GetPlayerTeamIndex(Teams, LocalPlayerId.ToSharedRef());
 	int32 NewPlayerTeamIndex = GetPlayerTeamIndex(Teams, Player);
 

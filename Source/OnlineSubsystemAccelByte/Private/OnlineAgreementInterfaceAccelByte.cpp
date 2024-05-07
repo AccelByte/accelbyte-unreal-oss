@@ -42,45 +42,60 @@ bool FOnlineAgreementAccelByte::QueryEligibleAgreements(int32 LocalUserNum, bool
 	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("LocalUserNum: %d"), LocalUserNum);
 
 	const IOnlineIdentityPtr IdentityInterface = AccelByteSubsystem->GetIdentityInterface();
-	if (IdentityInterface.IsValid())
+	if (!IdentityInterface.IsValid())
 	{
-		// Check whether user is connected or not yet
-		if (IdentityInterface->GetLoginStatus(LocalUserNum) == ELoginStatus::LoggedIn)
-		{
-			const TSharedPtr<const FUniqueNetId> UserIdPtr = IdentityInterface->GetUniquePlayerId(LocalUserNum);
-			TSharedPtr<FUserOnlineAccount> UserAccount;
-			if (UserIdPtr.IsValid())
-			{
-				AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteQueryEligibilities>(AccelByteSubsystem, *UserIdPtr.Get(), bNotAcceptedOnly, bAlwaysRequestToService);
-				AB_OSS_INTERFACE_TRACE_END(TEXT("Dispatching async task to attempt to query user's eligible agreements!"));
-				
-				return true;
-			}
-			else
-			{
-				const FString ErrorStr = TEXT("query-eligibilities-failed-userid-invalid");
-				AB_OSS_INTERFACE_TRACE_END(TEXT("UserId is not valid at user index '%d'!"), LocalUserNum);
-				TriggerOnQueryEligibilitiesCompletedDelegates(LocalUserNum, false, TArray<FAccelByteModelsRetrieveUserEligibilitiesResponse>{}, ErrorStr);
-				TriggerAccelByteOnQueryEligibilitiesCompletedDelegates(LocalUserNum, true, TArray<FAccelByteModelsRetrieveUserEligibilitiesResponse>{}, ONLINE_ERROR_ACCELBYTE(ErrorStr));
+		const FString ErrorStr = TEXT("query-eligibilities-invalid-state");
+		AB_OSS_INTERFACE_TRACE_END(TEXT("Identity Interface is invalid!"));
+		TriggerOnQueryEligibilitiesCompletedDelegates(LocalUserNum, false, TArray<FAccelByteModelsRetrieveUserEligibilitiesResponse>{}, ErrorStr);
+		TriggerAccelByteOnQueryEligibilitiesCompletedDelegates(LocalUserNum, true, TArray<FAccelByteModelsRetrieveUserEligibilitiesResponse>{}, ONLINE_ERROR_ACCELBYTE(ErrorStr));
 
-				return false;
-			}
-		}
+		return false;
 	}
 
-	const FString ErrorStr = TEXT("query-eligibilities-failed-not-logged-in");
-	AB_OSS_INTERFACE_TRACE_END(TEXT("User not logged in at user index '%d'!"), LocalUserNum);
-	TriggerOnQueryEligibilitiesCompletedDelegates(LocalUserNum, false, TArray<FAccelByteModelsRetrieveUserEligibilitiesResponse>{}, ErrorStr);
-	TriggerAccelByteOnQueryEligibilitiesCompletedDelegates(LocalUserNum, true, TArray<FAccelByteModelsRetrieveUserEligibilitiesResponse>{}, ONLINE_ERROR_ACCELBYTE(ErrorStr));
+	// Check whether user is connected or not yet
+	if (IdentityInterface->GetLoginStatus(LocalUserNum) != ELoginStatus::LoggedIn)
+	{
+		const FString ErrorStr = TEXT("query-eligibilities-failed-not-logged-in");
+		AB_OSS_INTERFACE_TRACE_END(TEXT("User not logged in at user index '%d'!"), LocalUserNum);
+		TriggerOnQueryEligibilitiesCompletedDelegates(LocalUserNum, false, TArray<FAccelByteModelsRetrieveUserEligibilitiesResponse>{}, ErrorStr);
+		TriggerAccelByteOnQueryEligibilitiesCompletedDelegates(LocalUserNum, true, TArray<FAccelByteModelsRetrieveUserEligibilitiesResponse>{}, ONLINE_ERROR_ACCELBYTE(ErrorStr));
 
-	return false;
+		return false;
+	}
+
+	const FUniqueNetIdPtr LocalUserId = IdentityInterface->GetUniquePlayerId(LocalUserNum);
+	if (!LocalUserId.IsValid())
+	{
+		const FString ErrorStr = TEXT("query-eligibilities-failed-userid-invalid");
+		AB_OSS_INTERFACE_TRACE_END(TEXT("UserId is not valid at user index '%d'!"), LocalUserNum);
+		TriggerOnQueryEligibilitiesCompletedDelegates(LocalUserNum, false, TArray<FAccelByteModelsRetrieveUserEligibilitiesResponse>{}, ErrorStr);
+		TriggerAccelByteOnQueryEligibilitiesCompletedDelegates(LocalUserNum, true, TArray<FAccelByteModelsRetrieveUserEligibilitiesResponse>{}, ONLINE_ERROR_ACCELBYTE(ErrorStr));
+
+		return false;
+	}
+
+	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteQueryEligibilities>(AccelByteSubsystem, *LocalUserId.Get(), bNotAcceptedOnly, bAlwaysRequestToService);
+	AB_OSS_INTERFACE_TRACE_END(TEXT("Dispatching async task to attempt to query user's eligible agreements!"));
+
+	return true;
 }
 #undef ONLINE_ERROR_NAMESPACE
 
 bool FOnlineAgreementAccelByte::GetEligibleAgreements(int32 LocalUserNum, TArray<TSharedRef<FAccelByteModelsRetrieveUserEligibilitiesResponse>>& OutEligibilites)
 {
 	const IOnlineIdentityPtr IdentityInterface = AccelByteSubsystem->GetIdentityInterface();
-	TArray<TSharedRef<FAccelByteModelsRetrieveUserEligibilitiesResponse>> Eligibilities = EligibilitiesMap.FindRef(IdentityInterface->GetUniquePlayerId(LocalUserNum)->AsShared());
+	if (!IdentityInterface.IsValid())
+	{
+		return false;
+	}
+
+	const FUniqueNetIdPtr LocalUserId = IdentityInterface->GetUniquePlayerId(LocalUserNum);
+	if (!LocalUserId.IsValid())
+	{
+		return false;
+	}
+
+	TArray<TSharedRef<FAccelByteModelsRetrieveUserEligibilitiesResponse>> Eligibilities = EligibilitiesMap.FindRef(LocalUserId.ToSharedRef());
 	if (Eligibilities.Num() > 0)
 	{
 		for (TSharedRef<FAccelByteModelsRetrieveUserEligibilitiesResponse> Eligibility : Eligibilities)
@@ -98,39 +113,41 @@ bool FOnlineAgreementAccelByte::GetLocalizedPolicyContent(int32 LocalUserNum, co
 	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("Get Localized content, BasePolicy: %s, LocalUserNum: %d"), *BasePolicyId, LocalUserNum);
 
 	const IOnlineIdentityPtr IdentityInterface = AccelByteSubsystem->GetIdentityInterface();
-	if (IdentityInterface.IsValid())
+	if (!IdentityInterface.IsValid())
 	{
-		// Check whether user is connected or not yet
-		if (IdentityInterface->GetLoginStatus(LocalUserNum) == ELoginStatus::LoggedIn)
-		{
-			const TSharedPtr<const FUniqueNetId> UserIdPtr = IdentityInterface->GetUniquePlayerId(LocalUserNum);
-			TSharedPtr<FUserOnlineAccount> UserAccount;
-			if (UserIdPtr.IsValid())
-			{
-				AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGetLocalizedPolicyContent>(AccelByteSubsystem, *UserIdPtr.Get(), BasePolicyId, LocaleCode, bAlwaysRequestToService);
-				AB_OSS_INTERFACE_TRACE_END(TEXT("Dispatching async task to attempt to get localized policy content!"));
+		const FString ErrorStr = TEXT("get-localized-content-failed-invalid");
+		AB_OSS_INTERFACE_TRACE_END(TEXT("Identity Interface is invalid!"));
+		TriggerOnGetLocalizedPolicyContentCompletedDelegates(LocalUserNum, false, TEXT(""), ErrorStr);
+		TriggerAccelByteOnGetLocalizedPolicyContentCompletedDelegates(LocalUserNum, false, TEXT(""), ONLINE_ERROR_ACCELBYTE(ErrorStr));
 
-				return true;
-			}
-			else
-			{
-				const FString ErrorStr = TEXT("get-localized-content-failed-userid-invalid");
-				AB_OSS_INTERFACE_TRACE_END(TEXT("UserId is not valid at user index '%d'!"), LocalUserNum);
-				TriggerOnGetLocalizedPolicyContentCompletedDelegates(LocalUserNum, false, TEXT(""), ErrorStr);
-				TriggerAccelByteOnGetLocalizedPolicyContentCompletedDelegates(LocalUserNum, false, TEXT(""), ONLINE_ERROR_ACCELBYTE(ErrorStr));
-
-				return false;
-			}
-		}
+		return false;
 	}
 
-	const FString ErrorStr = TEXT("get-localized-content-failed-not-logged-in");
-	AB_OSS_INTERFACE_TRACE_END(TEXT("User not logged in at user index '%d'!"), LocalUserNum);
-	TriggerOnGetLocalizedPolicyContentCompletedDelegates(LocalUserNum, false, TEXT(""), ErrorStr);
-	TriggerAccelByteOnGetLocalizedPolicyContentCompletedDelegates(LocalUserNum, false, TEXT(""), ONLINE_ERROR_ACCELBYTE(ErrorStr));
+	// Check whether user is connected or not yet
+	if (IdentityInterface->GetLoginStatus(LocalUserNum) != ELoginStatus::LoggedIn)
+	{
+		const FString ErrorStr = TEXT("get-localized-content-failed-not-logged-in");
+		AB_OSS_INTERFACE_TRACE_END(TEXT("User not logged in at user index '%d'!"), LocalUserNum);
+		TriggerOnGetLocalizedPolicyContentCompletedDelegates(LocalUserNum, false, TEXT(""), ErrorStr);
+		TriggerAccelByteOnGetLocalizedPolicyContentCompletedDelegates(LocalUserNum, false, TEXT(""), ONLINE_ERROR_ACCELBYTE(ErrorStr));
 
-	return false;
-	
+		return false;
+	}
+	const FUniqueNetIdPtr LocalUserId = IdentityInterface->GetUniquePlayerId(LocalUserNum);
+	if (!LocalUserId.IsValid())
+	{
+		const FString ErrorStr = TEXT("get-localized-content-failed-userid-invalid");
+		AB_OSS_INTERFACE_TRACE_END(TEXT("UserId is not valid at user index '%d'!"), LocalUserNum);
+		TriggerOnGetLocalizedPolicyContentCompletedDelegates(LocalUserNum, false, TEXT(""), ErrorStr);
+		TriggerAccelByteOnGetLocalizedPolicyContentCompletedDelegates(LocalUserNum, false, TEXT(""), ONLINE_ERROR_ACCELBYTE(ErrorStr));
+
+		return false;
+	}
+
+	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGetLocalizedPolicyContent>(AccelByteSubsystem, *LocalUserId.Get(), BasePolicyId, LocaleCode, bAlwaysRequestToService);
+	AB_OSS_INTERFACE_TRACE_END(TEXT("Dispatching async task to attempt to get localized policy content!"));
+
+	return true;
 }
 #undef ONLINE_ERROR_NAMESPACE
 
@@ -157,37 +174,41 @@ bool FOnlineAgreementAccelByte::AcceptAgreementPolicies(int32 LocalUserNum, cons
 	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("Accept Agreement Policies, LocalUserNum: %d"), LocalUserNum);
 
 	const IOnlineIdentityPtr IdentityInterface = AccelByteSubsystem->GetIdentityInterface();
-	if (IdentityInterface.IsValid())
+	if (!IdentityInterface.IsValid())
 	{
-		// Check whether user is connected or not yet
-		if (IdentityInterface->GetLoginStatus(LocalUserNum) == ELoginStatus::LoggedIn)
-		{
-			const TSharedPtr<const FUniqueNetId> UserIdPtr = IdentityInterface->GetUniquePlayerId(LocalUserNum);
-			TSharedPtr<FUserOnlineAccount> UserAccount;
-			if (UserIdPtr.IsValid())
-			{
-				AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteAcceptAgreementPolicies>(AccelByteSubsystem, *UserIdPtr.Get(), DocumentsToAccept);
-				AB_OSS_INTERFACE_TRACE_END(TEXT("Dispatching async task to attempt to accept agreement policies!"));
+		const FString ErrorStr = TEXT("accept-policies-failed-invalid");
+		AB_OSS_INTERFACE_TRACE_END(TEXT("User not logged in at user index '%d'!"), LocalUserNum);
+		TriggerOnAcceptAgreementPoliciesCompletedDelegates(LocalUserNum, false, ErrorStr);
+		TriggerAccelByteOnAcceptAgreementPoliciesCompletedDelegates(LocalUserNum, false, ONLINE_ERROR_ACCELBYTE(ErrorStr));
 
-				return true;
-			}
-			else
-			{
-				const FString ErrorStr = TEXT("accept-policies-failed-userid-invalid");
-				AB_OSS_INTERFACE_TRACE_END(TEXT("UserId is not valid at user index '%d'!"), LocalUserNum);
-				TriggerOnAcceptAgreementPoliciesCompletedDelegates(LocalUserNum, false, ErrorStr);
-				TriggerAccelByteOnAcceptAgreementPoliciesCompletedDelegates(LocalUserNum, false, ONLINE_ERROR_ACCELBYTE(ErrorStr));
-
-				return false;
-			}
-		}
+		return false;
 	}
 
-	const FString ErrorStr = TEXT("accept-policies-failed-not-logged-in");
-	AB_OSS_INTERFACE_TRACE_END(TEXT("User not logged in at user index '%d'!"), LocalUserNum);
-	TriggerOnAcceptAgreementPoliciesCompletedDelegates(LocalUserNum, false, ErrorStr);
-	TriggerAccelByteOnAcceptAgreementPoliciesCompletedDelegates(LocalUserNum, false, ONLINE_ERROR_ACCELBYTE(ErrorStr));
+	// Check whether user is connected or not yet
+	if (IdentityInterface->GetLoginStatus(LocalUserNum) != ELoginStatus::LoggedIn)
+	{
+		const FString ErrorStr = TEXT("accept-policies-failed-not-logged-in");
+		AB_OSS_INTERFACE_TRACE_END(TEXT("User not logged in at user index '%d'!"), LocalUserNum);
+		TriggerOnAcceptAgreementPoliciesCompletedDelegates(LocalUserNum, false, ErrorStr);
+		TriggerAccelByteOnAcceptAgreementPoliciesCompletedDelegates(LocalUserNum, false, ONLINE_ERROR_ACCELBYTE(ErrorStr));
 
-	return false;
+		return false;
+	}
+
+	const FUniqueNetIdPtr LocalUserId = IdentityInterface->GetUniquePlayerId(LocalUserNum);
+	if (!LocalUserId.IsValid())
+	{
+		const FString ErrorStr = TEXT("accept-policies-failed-userid-invalid");
+		AB_OSS_INTERFACE_TRACE_END(TEXT("UserId is not valid at user index '%d'!"), LocalUserNum);
+		TriggerOnAcceptAgreementPoliciesCompletedDelegates(LocalUserNum, false, ErrorStr);
+		TriggerAccelByteOnAcceptAgreementPoliciesCompletedDelegates(LocalUserNum, false, ONLINE_ERROR_ACCELBYTE(ErrorStr));
+
+		return false;
+	}
+
+	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteAcceptAgreementPolicies>(AccelByteSubsystem, *LocalUserId.Get(), DocumentsToAccept);
+	AB_OSS_INTERFACE_TRACE_END(TEXT("Dispatching async task to attempt to accept agreement policies!"));
+
+	return true;
 }
 #undef ONLINE_ERROR_NAMESPACE

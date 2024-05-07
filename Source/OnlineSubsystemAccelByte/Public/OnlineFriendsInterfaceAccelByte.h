@@ -141,7 +141,7 @@ public:
 	/** Init/default constructor */
 	FOnlineRecentPlayerAccelByte(const FAccelByteUserInfo& InData);
 	/** Platform Friend constructor */
-	FOnlineRecentPlayerAccelByte(const TSharedRef<const FUniqueNetId>& InUserId, const TSharedRef<const FOnlineRecentPlayer>& InPlatformRecentPlayer)
+	FOnlineRecentPlayerAccelByte(const FUniqueNetIdRef& InUserId, const TSharedRef<const FOnlineRecentPlayer>& InPlatformRecentPlayer)
 		: UserId(InUserId)
 		, PlatformRecentPlayer(InPlatformRecentPlayer)
 	{
@@ -152,7 +152,7 @@ public:
 
 PACKAGE_SCOPE:
 	/** User Id represented as a FUniqueNetId */
-	TSharedPtr<const FUniqueNetId> UserId;
+	FUniqueNetIdPtr UserId;
 	/** Cached Display Name - Used for Internal Friends List */
 	FString DisplayName;
 	/** Cached Last Seen - Used for Internal Friends List */

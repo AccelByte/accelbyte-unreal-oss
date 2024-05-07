@@ -104,17 +104,17 @@ void FOnlineAsyncTaskAccelByteSendFriendInvite::OnGetUserByFriendCodeSuccess(con
 	const TSharedPtr<FOnlineFriendsAccelByte, ESPMode::ThreadSafe> FriendInterface = StaticCastSharedPtr<FOnlineFriendsAccelByte>(Subsystem->GetFriendsInterface());
 	const TSharedPtr<FOnlineIdentityAccelByte, ESPMode::ThreadSafe> IdentityInt = StaticCastSharedPtr<FOnlineIdentityAccelByte>(Subsystem->GetIdentityInterface());
 
-	if (!FriendInterface || !IdentityInt)
+	if (!FriendInterface.IsValid() || !IdentityInt.IsValid())
 	{
 		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Unable to send friend invited friend interface or indentity interface is invalid"));
 		CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState);
 		return;
 	}
 
-	TSharedPtr<const FUniqueNetId> LocalUserId = IdentityInt->GetUniquePlayerId(LocalUserNum);
-	TSharedPtr<const FUniqueNetIdAccelByteUser> FriendUserId = FUniqueNetIdAccelByteUser::Create(Result.UserId);
+	FUniqueNetIdPtr LocalUserId = IdentityInt->GetUniquePlayerId(LocalUserNum);
+	FUniqueNetIdAccelByteUserPtr FriendUserId = FUniqueNetIdAccelByteUser::Create(Result.UserId);
 
-	if (!LocalUserId || !FriendUserId)
+	if (!LocalUserId.IsValid() || !FriendUserId.IsValid())
 	{
 		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Unable to send friend invited invalid user id"));
 		CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState);

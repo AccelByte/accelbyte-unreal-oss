@@ -51,8 +51,8 @@ void FOnlinePresenceAccelByte::OnFriendStatusChangedNotificationReceived(const F
 		return;
 	}
 
-	TSharedPtr<const FUniqueNetId> UserId = IdentityInterface->GetUniquePlayerId(LocalUserNum);
-	if (!UserId.IsValid())
+	FUniqueNetIdPtr LocalUserId = IdentityInterface->GetUniquePlayerId(LocalUserNum);
+	if (!LocalUserId.IsValid())
 	{
 		UE_LOG_AB(Warning, TEXT("Received a notification for a friend status changed, but cannot act on it as the current user's ID is not valid!"));
 		return;
@@ -62,7 +62,7 @@ void FOnlinePresenceAccelByte::OnFriendStatusChangedNotificationReceived(const F
 	// create an async task to get data about that friend and then add them to the list afterwards, and fire off the delegates
 	FAccelByteUniqueIdComposite FriendCompositeId;
 	FriendCompositeId.Id = Notification.UserID;
-	TSharedRef<const FUniqueNetIdAccelByteUser> FriendId = FUniqueNetIdAccelByteUser::Create(FriendCompositeId);
+	FUniqueNetIdAccelByteUserRef FriendId = FUniqueNetIdAccelByteUser::Create(FriendCompositeId);
 
 	TSharedPtr<FOnlineUserPresenceAccelByte> FriendPresence = FindOrCreatePresence(FriendId);
 	
@@ -76,7 +76,7 @@ void FOnlinePresenceAccelByte::OnFriendStatusChangedNotificationReceived(const F
 	FriendPresence->bIsPlayingThisGame = Notification.Availability == EAvailability::Online ? true : false;
 	FriendPresence->LastOnline = Notification.LastSeenAt;
 
-	TriggerOnPresenceReceivedDelegates(FriendId.Get(), FriendPresence.ToSharedRef());
+	TriggerOnPresenceReceivedDelegates(*FriendId, FriendPresence.ToSharedRef());
 }
 
 TMap<FString, TSharedRef<FOnlineUserPresenceAccelByte>> FOnlinePresenceAccelByte::GetCachedPresence() const

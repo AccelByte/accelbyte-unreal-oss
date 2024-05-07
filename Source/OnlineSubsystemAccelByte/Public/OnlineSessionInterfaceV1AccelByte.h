@@ -376,7 +376,7 @@ public:
 	static bool GetFromWorld(const UWorld* World, TSharedPtr<FOnlineSessionV1AccelByte, ESPMode::ThreadSafe>& OutInterfaceInstance);
 
 	//~ Begin IOnlineSession Interface
-	virtual TSharedPtr<const FUniqueNetId> CreateSessionIdFromString(const FString& SessionIdStr) override;
+	virtual FUniqueNetIdPtr CreateSessionIdFromString(const FString& SessionIdStr) override;
 	virtual FNamedOnlineSession* GetNamedSession(FName SessionName) override;
 	virtual void RemoveNamedSession(FName SessionName) override;
 	virtual EOnlineSessionState::Type GetSessionState(FName SessionName) const override;

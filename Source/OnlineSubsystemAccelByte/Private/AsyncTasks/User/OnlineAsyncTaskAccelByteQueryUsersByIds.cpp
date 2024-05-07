@@ -247,81 +247,99 @@ void FOnlineAsyncTaskAccelByteQueryUsersByIds::OnGetUserOtherPlatformBasicPublic
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("User information received: %d"), Result.Data.Num());
 
 	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(Subsystem->GetIdentityInterface());
-	if (IdentityInterface.IsValid())
+	if (!IdentityInterface.IsValid())
 	{
-		TSharedRef<const FUniqueNetIdAccelByteUser> CompositeCurrentUserId = FUniqueNetIdAccelByteUser::Create(IdentityInterface->GetUniquePlayerId(LocalUserNum).ToSharedRef().Get());
+		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Cannot query users as our Identity Interface is invalid!"));
+		CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState);
+		return;
+	}
 
-		for (const FAccountUserPlatformData& BasicInfo : Result.Data)
+	FUniqueNetIdPtr LocalUserId = IdentityInterface->GetUniquePlayerId(LocalUserNum);
+	if (!LocalUserId.IsValid())
+	{
+		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Cannot query users as Local User is invalid!"));
+		CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState);
+		return;
+	}
+
+	FUniqueNetIdAccelByteUserRef AccelByteUserId = FUniqueNetIdAccelByteUser::Create(*LocalUserId.Get());
+	if (!AccelByteUserId->IsValid())
+	{
+		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Cannot query users as AccelByte Local User is invalid!"));
+		CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState);
+		return;
+	}
+
+	for (const FAccountUserPlatformData& BasicInfo : Result.Data)
+	{
+		// Set up our user info struct with basic data
+		TSharedRef<FAccelByteUserInfo> User = MakeShared<FAccelByteUserInfo>();
+		User->bIsImportant = bIsImportant;
+		User->LastAccessedTimeInSeconds = FPlatformTime::Seconds();
+		User->PublisherAvatarUrl = BasicInfo.AvatarUrl;
+		User->UniqueDisplayName = BasicInfo.DisplayName;
+
+		// By default, we would provide the initial value using the basic platform information
+		User->DisplayName = BasicInfo.DisplayName;
+		User->GameAvatarUrl = BasicInfo.AvatarUrl;
+
+		// Override based on the platform information
+		if (BasicInfo.PlatformInfos.Num() != 0)
 		{
-			// Set up our user info struct with basic data
-			TSharedRef<FAccelByteUserInfo> User = MakeShared<FAccelByteUserInfo>();
-			User->bIsImportant = bIsImportant;
-			User->LastAccessedTimeInSeconds = FPlatformTime::Seconds();
-			User->PublisherAvatarUrl = BasicInfo.AvatarUrl;
-			User->UniqueDisplayName = BasicInfo.DisplayName;
-
-			// By default, we would provide the initial value using the basic platform information
-			User->DisplayName = BasicInfo.DisplayName;
-			User->GameAvatarUrl = BasicInfo.AvatarUrl;
-
-			// Override based on the platform information
-			if (BasicInfo.PlatformInfos.Num() != 0)
+			for (const FAccountUserPlatformInfo& UserPlatform : BasicInfo.PlatformInfos)
 			{
-				for (const FAccountUserPlatformInfo& UserPlatform : BasicInfo.PlatformInfos)
+				if (UserPlatform.PlatformId == AccelByteUserId->GetPlatformType())
 				{
-					if (UserPlatform.PlatformId == CompositeCurrentUserId->GetPlatformType())
-					{
-						User->GameAvatarUrl = UserPlatform.PlatformAvatarUrl;
-						User->DisplayName = UserPlatform.PlatformDisplayName;
-						break;
-					}
-					FAccelByteLinkedUserInfo PlatformUserInfo;
-					PlatformUserInfo.Id =  FUniqueNetIdAccelByteUser::Create(FAccelByteUniqueIdComposite(BasicInfo.UserId, UserPlatform.PlatformId, UserPlatform.PlatformUserId));
-					PlatformUserInfo.PlatformId = UserPlatform.PlatformUserId;
-					PlatformUserInfo.AvatarUrl = UserPlatform.PlatformAvatarUrl;
-					PlatformUserInfo.DisplayName = UserPlatform.PlatformDisplayName;
-					User->LinkedPlatformInfo.Add(PlatformUserInfo);
+					User->GameAvatarUrl = UserPlatform.PlatformAvatarUrl;
+					User->DisplayName = UserPlatform.PlatformDisplayName;
+					break;
 				}
-			}
-
-			// Construct a composite ID for this user
-			FAccelByteUniqueIdComposite CompositeId;
-			CompositeId.Id = BasicInfo.UserId;
-
-			ExtractPlatformDataFromBasicUserInfo(BasicInfo, CompositeId);
-
-			// Create the final user ID for the queried user
-			User->Id = FUniqueNetIdAccelByteUser::Create(CompositeId);
-
-			// Add the user to our successful queries
-			UsersQueried.Add(User);
-
-			// Also query the user on the native platform, if we have their platform information
-			TSharedPtr<const FUniqueNetId> PlatformUniqueId = User->Id->GetPlatformUniqueId();
-			if (PlatformUniqueId.IsValid() && PlatformUniqueId->IsValid())
-			{
-				PlatformIdsToQuery.Add(PlatformUniqueId.ToSharedRef());
+				FAccelByteLinkedUserInfo PlatformUserInfo;
+				PlatformUserInfo.Id =  FUniqueNetIdAccelByteUser::Create(FAccelByteUniqueIdComposite(BasicInfo.UserId, UserPlatform.PlatformId, UserPlatform.PlatformUserId));
+				PlatformUserInfo.PlatformId = UserPlatform.PlatformUserId;
+				PlatformUserInfo.AvatarUrl = UserPlatform.PlatformAvatarUrl;
+				PlatformUserInfo.DisplayName = UserPlatform.PlatformDisplayName;
+				User->LinkedPlatformInfo.Add(PlatformUserInfo);
 			}
 		}
 
-		if (UsersToQuery.IsEmpty())
-		{
-			bHasQueriedBasicUserInfo = true;
+		// Construct a composite ID for this user
+		FAccelByteUniqueIdComposite CompositeId;
+		CompositeId.Id = BasicInfo.UserId;
 
-			if (PlatformIdsToQuery.Num() > 0)
-			{
-				QueryUsersOnNativePlatform(PlatformIdsToQuery);
-			}
-			else
-			{
-				// Just set this flag to true so that we aren't waiting on it
-				bHasQueriedUserPlatformInfo = true;
-			}
+		ExtractPlatformDataFromBasicUserInfo(BasicInfo, CompositeId);
+
+		// Create the final user ID for the queried user
+		User->Id = FUniqueNetIdAccelByteUser::Create(CompositeId);
+
+		// Add the user to our successful queries
+		UsersQueried.Add(User);
+
+		// Also query the user on the native platform, if we have their platform information
+		FUniqueNetIdPtr PlatformUniqueId = User->Id->GetPlatformUniqueId();
+		if (PlatformUniqueId.IsValid() && PlatformUniqueId->IsValid())
+		{
+			PlatformIdsToQuery.Add(PlatformUniqueId.ToSharedRef());
+		}
+	}
+
+	if (UsersToQuery.IsEmpty())
+	{
+		bHasQueriedBasicUserInfo = true;
+
+		if (PlatformIdsToQuery.Num() > 0)
+		{
+			QueryUsersOnNativePlatform(PlatformIdsToQuery);
 		}
 		else
 		{
-			GetUserOtherPlatformBasicPublicInfo();
+			// Just set this flag to true so that we aren't waiting on it
+			bHasQueriedUserPlatformInfo = true;
 		}
+	}
+	else
+	{
+		GetUserOtherPlatformBasicPublicInfo();
 	}
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

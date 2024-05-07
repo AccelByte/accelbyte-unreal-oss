@@ -21,24 +21,31 @@ void FOnlineBaseAnalyticsAccelByte::OnLocalUserNumCachedSuccess()
 	int32 LocalUserNum = GetLocalUserNumCached();
 	MoveTempUserCachedEvent(LocalUserNum);
 	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystem->GetIdentityInterface());
-	if (IdentityInterface.IsValid())
+	if (!IdentityInterface.IsValid())
 	{
-		const FUniqueNetIdPtr UserId = IdentityInterface->GetUniquePlayerId(LocalUserNum);
-		const ELoginStatus::Type LoginStatus = IdentityInterface->GetLoginStatus(LocalUserNum);
-
-		if (OnLoginSuccessDelegateHandle.Find(LocalUserNum) == nullptr)
-		{
-			OnLoginSuccessDelegateHandle.Add(LocalUserNum, IdentityInterface->AddAccelByteOnLoginCompleteDelegate_Handle(LocalUserNum, FAccelByteOnLoginCompleteDelegate::CreateThreadSafeSP(this, &FOnlineBaseAnalyticsAccelByte::OnLoginSuccess)));
-		}
-
-		if (LoginStatus == ELoginStatus::LoggedIn)
-		{
-			OnLoginSuccess(LocalUserNum, true, *UserId.Get(), ONLINE_ERROR_ACCELBYTE(TEXT(""), EOnlineErrorResult::Success));
-		}
-
-		AccelByteSubsystem->OnLocalUserNumCached().Remove(OnLocalUserNumCachedDelegateHandle);
-		OnLocalUserNumCachedDelegateHandle.Reset();
+		return;
 	}
+
+	const FUniqueNetIdPtr UserId = IdentityInterface->GetUniquePlayerId(LocalUserNum);
+	if (!UserId.IsValid())
+	{
+		return;
+	}
+
+	const ELoginStatus::Type LoginStatus = IdentityInterface->GetLoginStatus(LocalUserNum);
+
+	if (OnLoginSuccessDelegateHandle.Find(LocalUserNum) == nullptr)
+	{
+		OnLoginSuccessDelegateHandle.Add(LocalUserNum, IdentityInterface->AddAccelByteOnLoginCompleteDelegate_Handle(LocalUserNum, FAccelByteOnLoginCompleteDelegate::CreateThreadSafeSP(this, &FOnlineBaseAnalyticsAccelByte::OnLoginSuccess)));
+	}
+
+	if (LoginStatus == ELoginStatus::LoggedIn)
+	{
+		OnLoginSuccess(LocalUserNum, true, *UserId.Get(), ONLINE_ERROR_ACCELBYTE(TEXT(""), EOnlineErrorResult::Success));
+	}
+
+	AccelByteSubsystem->OnLocalUserNumCached().Remove(OnLocalUserNumCachedDelegateHandle);
+	OnLocalUserNumCachedDelegateHandle.Reset();
 }
 #undef ONLINE_ERROR_NAMESPACE
 

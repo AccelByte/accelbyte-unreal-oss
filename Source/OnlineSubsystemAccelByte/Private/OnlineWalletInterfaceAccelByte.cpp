@@ -47,11 +47,10 @@ bool FOnlineWalletAccelByte::GetCurrencyList(int32 LocalUserNum, bool bAlwaysReq
 		// Check whether user is connected or not yet
 		if (IdentityInterface->GetLoginStatus(LocalUserNum) == ELoginStatus::LoggedIn)
 		{
-			const TSharedPtr<const FUniqueNetId> UserIdPtr = IdentityInterface->GetUniquePlayerId(LocalUserNum);
-			TSharedPtr<FUserOnlineAccount> UserAccount;
-			if (UserIdPtr.IsValid())
+			const FUniqueNetIdPtr LocalUserId = IdentityInterface->GetUniquePlayerId(LocalUserNum);
+			if (LocalUserId.IsValid())
 			{
-				AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGetCurrencyList>(AccelByteSubsystem, *UserIdPtr.Get(), bAlwaysRequestToService);
+				AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGetCurrencyList>(AccelByteSubsystem, *LocalUserId, bAlwaysRequestToService);
 				AB_OSS_INTERFACE_TRACE_END(TEXT("Dispatching async task to attempt to get currency list!"));
 
 				return true;
@@ -127,11 +126,10 @@ bool FOnlineWalletAccelByte::GetWalletInfoByCurrencyCode(int32 LocalUserNum, con
 		// Check whether user is connected or not yet
 		if (IdentityInterface->GetLoginStatus(LocalUserNum) == ELoginStatus::LoggedIn)
 		{
-			const TSharedPtr<const FUniqueNetId> UserIdPtr = IdentityInterface->GetUniquePlayerId(LocalUserNum);
-			TSharedPtr<FUserOnlineAccount> UserAccount;
-			if (UserIdPtr.IsValid())
+			const FUniqueNetIdPtr LocalUserId = IdentityInterface->GetUniquePlayerId(LocalUserNum);
+			if (LocalUserId.IsValid())
 			{
-				AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGetWalletInfo>(AccelByteSubsystem, *UserIdPtr.Get(), CurrencyCode, bAlwaysRequestToService);
+				AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGetWalletInfo>(AccelByteSubsystem, *LocalUserId, CurrencyCode, bAlwaysRequestToService);
 				AB_OSS_INTERFACE_TRACE_END(TEXT("Dispatching async task to attempt to get wallet info!"));
 
 				return true;
@@ -156,22 +154,33 @@ bool FOnlineWalletAccelByte::GetWalletInfoByCurrencyCode(int32 LocalUserNum, con
 
 bool FOnlineWalletAccelByte::GetWalletInfoFromCache(int32 LocalUserNum, const FString& CurrencyCode, FAccelByteModelsWalletInfo& OutWalletInfo)
 {
+	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("Get Wallet Info from Cache, LocalUserNum: %d"), LocalUserNum);
+
 	const IOnlineIdentityPtr IdentityInterface = AccelByteSubsystem->GetIdentityInterface();
-	if (IdentityInterface.IsValid())
+	if (!IdentityInterface.IsValid())
 	{
-		FScopeLock ScopeLock(&WalletInfoListLock);
-		TMap<FString, TSharedRef<FAccelByteModelsWalletInfo>> CurrencyToWalletInfoMap = UserToWalletInfoMap.FindRef(IdentityInterface->GetUniquePlayerId(LocalUserNum)->AsShared());
-		if (CurrencyToWalletInfoMap.Num() > 0)
+		return false;
+	}
+
+	FUniqueNetIdPtr LocalUserId = IdentityInterface->GetUniquePlayerId(LocalUserNum);
+	if (!LocalUserId.IsValid())
+	{
+		return false;
+	}
+
+	FScopeLock ScopeLock(&WalletInfoListLock);
+	TMap<FString, TSharedRef<FAccelByteModelsWalletInfo>> CurrencyToWalletInfoMap = UserToWalletInfoMap.FindRef(LocalUserId.ToSharedRef());
+	if (CurrencyToWalletInfoMap.Num() > 0)
+	{
+		TSharedRef<FAccelByteModelsWalletInfo>* WalletInfo = CurrencyToWalletInfoMap.Find(CurrencyCode);
+		if (WalletInfo != nullptr)
 		{
-			TSharedRef<FAccelByteModelsWalletInfo>* WalletInfo = CurrencyToWalletInfoMap.Find(CurrencyCode);
-			if (WalletInfo != nullptr)
-			{
-				OutWalletInfo = WalletInfo->Get();
-				return true;
-			}
+			OutWalletInfo = WalletInfo->Get();
+			return true;
 		}
 	}
 
+	AB_OSS_INTERFACE_TRACE_END(TEXT("User not logged in at user index '%d'!"), LocalUserNum);
 	return false;
 }
 
@@ -183,13 +192,13 @@ void FOnlineWalletAccelByte::AddWalletInfoToList(int32 LocalUserNum, const FStri
 		// Check whether user is connected or not yet
 		if (IdentityInterface->GetLoginStatus(LocalUserNum) == ELoginStatus::LoggedIn)
 		{
-			const TSharedPtr<const FUniqueNetId> UserIdPtr = IdentityInterface->GetUniquePlayerId(LocalUserNum);
-			if (UserIdPtr.IsValid())
+			const FUniqueNetIdPtr LocalUserId = IdentityInterface->GetUniquePlayerId(LocalUserNum);
+			if (LocalUserId.IsValid())
 			{
 				FScopeLock ScopeLock(&WalletInfoListLock);
-				auto CurrencyCodeToWalletInfo = UserToWalletInfoMap.FindRef(UserIdPtr.ToSharedRef());
+				auto CurrencyCodeToWalletInfo = UserToWalletInfoMap.FindRef(LocalUserId.ToSharedRef());
 				CurrencyCodeToWalletInfo.Emplace(CurrencyCode, InWalletInfo);
-				UserToWalletInfoMap.Emplace(UserIdPtr.ToSharedRef(), CurrencyCodeToWalletInfo);
+				UserToWalletInfoMap.Emplace(LocalUserId.ToSharedRef(), CurrencyCodeToWalletInfo);
 			}
 		}
 	}
@@ -205,11 +214,10 @@ bool FOnlineWalletAccelByte::ListWalletTransactionsByCurrencyCode(int32 LocalUse
 		// Check whether user is connected or not yet
 		if (IdentityInterface->GetLoginStatus(LocalUserNum) == ELoginStatus::LoggedIn)
 		{
-			const TSharedPtr<const FUniqueNetId> UserIdPtr = IdentityInterface->GetUniquePlayerId(LocalUserNum);
-			TSharedPtr<FUserOnlineAccount> UserAccount;
-			if (UserIdPtr.IsValid())
+			const FUniqueNetIdPtr LocalUserId = IdentityInterface->GetUniquePlayerId(LocalUserNum);
+			if (LocalUserId.IsValid())
 			{
-				AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGetWalletTransactions>(AccelByteSubsystem, *UserIdPtr.Get(), CurrencyCode, Offset, Limit);
+				AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGetWalletTransactions>(AccelByteSubsystem, *LocalUserId, CurrencyCode, Offset, Limit);
 				AB_OSS_INTERFACE_TRACE_END(TEXT("Dispatching async task to attempt to get wallet transaction list!"));
 
 				return true;

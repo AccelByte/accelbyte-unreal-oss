@@ -558,7 +558,7 @@ public:
 	static bool GetFromWorld(const UWorld* World, TSharedPtr<FOnlineSessionV2AccelByte, ESPMode::ThreadSafe>& OutInterfaceInstance);
 
 	// Begin IOnlineSession overrides
-	TSharedPtr<const FUniqueNetId> CreateSessionIdFromString(const FString& SessionIdStr) override;
+	FUniqueNetIdPtr CreateSessionIdFromString(const FString& SessionIdStr) override;
 	class FNamedOnlineSession* GetNamedSession(FName SessionName) override;
 	void RemoveNamedSession(FName SessionName) override;
 	bool HasPresenceSession() override;

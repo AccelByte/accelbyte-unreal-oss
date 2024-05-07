@@ -522,8 +522,8 @@ private:
 
 	//~ Begin Chat Internal Handlers
 	void OnQueryChatRoomInfoComplete(bool bWasSuccessful, TArray<FAccelByteChatRoomInfoRef> RoomList, int32 LocalUserNum);
-	void OnQueryChatMemberInfo_TriggerChatRoomMemberJoin(bool bIsSuccessful, TArray<TSharedRef<FAccelByteUserInfo>> UsersQueried, FString RoomId, TSharedPtr<const FUniqueNetId> UserId, TSharedPtr<const FUniqueNetId> MemberId);
-	void OnQueryChatRoomById_TriggerChatRoomMemberJoin(bool bWasSuccessful, FAccelByteChatRoomInfoPtr RoomInfo, int32 LocalUserNum, TSharedPtr<const FUniqueNetId> UserId, TSharedPtr<const FUniqueNetId> MemberId);
+	void OnQueryChatMemberInfo_TriggerChatRoomMemberJoin(bool bIsSuccessful, TArray<TSharedRef<FAccelByteUserInfo>> UsersQueried, FString RoomId, FUniqueNetIdPtr UserId, FUniqueNetIdPtr MemberId);
+	void OnQueryChatRoomById_TriggerChatRoomMemberJoin(bool bWasSuccessful, FAccelByteChatRoomInfoPtr RoomInfo, int32 LocalUserNum, FUniqueNetIdPtr UserId, FUniqueNetIdPtr MemberId);
 	//~ End Chat Internal Handlers
 
 	/** Cache chat room info. Populated after connect and updated on topic related events */

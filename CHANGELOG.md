@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.12.13](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.12.13%0D0.12.12) (2024-05-07)
+
+
+### Bug Fixes
+
+* crashes when dereferencing invalid TSharedPtr ([9aca17c](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/9aca17ca528ee309205636ea96ab3abc03d94d2d))
+
 ### [0.12.12](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.12.12%0D0.12.11) (2024-05-04)
 
 

@@ -58,7 +58,7 @@ void FOnlineAsyncTaskAccelByteSyncDLC::Initialize()
 		}
 
 		// Get user's platform user id 
-		TSharedPtr<const FUniqueNetId> PlatformUniqueId = UserId->GetPlatformUniqueId();
+		FUniqueNetIdPtr PlatformUniqueId = UserId->GetPlatformUniqueId();
 		if (!PlatformUniqueId.IsValid())
 		{
 			CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState);
@@ -142,7 +142,7 @@ void FOnlineAsyncTaskAccelByteSyncDLC::Initialize()
 		}
 
 		// Get user's platform user id 
-		TSharedPtr<const FUniqueNetId> UserIdPtr = IdentityInterface->GetUniquePlayerId(LocalUserNum);
+		FUniqueNetIdPtr UserIdPtr = IdentityInterface->GetUniquePlayerId(LocalUserNum);
 		if (!UserIdPtr.IsValid())
 		{
 			CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState);

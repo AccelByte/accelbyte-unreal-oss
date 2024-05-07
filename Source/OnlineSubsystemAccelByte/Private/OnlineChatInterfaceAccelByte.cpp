@@ -59,36 +59,48 @@ bool FOnlineChatAccelByte::Connect(int32 LocalUserNum)
 	}
 
 	// Don't attempt to connect again if we are already reporting as connected
-	if (IdentityInterface->GetLoginStatus(LocalUserNum) == ELoginStatus::LoggedIn)
+	if (IdentityInterface->GetLoginStatus(LocalUserNum) != ELoginStatus::LoggedIn)
 	{
-		const TSharedPtr<const FUniqueNetId> UserIdPtr = IdentityInterface->GetUniquePlayerId(LocalUserNum);
-		TSharedPtr<FUserOnlineAccount> UserAccount;
-		if (UserIdPtr.IsValid())
-		{
-			const FUniqueNetId& UserId = UserIdPtr.ToSharedRef().Get();
-			UserAccount = IdentityInterface->GetUserAccount(UserId);
-		}
+		const FString ErrorStr = TEXT("chat-connect-failed-not-logged-in");
+		AB_OSS_INTERFACE_TRACE_END(TEXT("User not logged in at user index '%d'!"), LocalUserNum);
 
-		const TSharedPtr<FUserOnlineAccountAccelByte> UserAccountAccelByte = StaticCastSharedPtr<FUserOnlineAccountAccelByte>(UserAccount);
-		if (UserAccountAccelByte->IsConnectedToChat())
-		{
-			const FString ErrorStr = TEXT("connect-failed-already-connected");
-			AB_OSS_INTERFACE_TRACE_END(TEXT("User already connected to chat at user index '%d'!"), LocalUserNum);
-
-			TriggerOnConnectChatCompleteDelegates(LocalUserNum, false, FUniqueNetIdAccelByteUser::Invalid().Get(), ErrorStr);
-			return false;
-		}
-		
-		AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteConnectChat>(AccelByteSubsystem, *IdentityInterface->GetUniquePlayerId(LocalUserNum).Get());
-		AB_OSS_INTERFACE_TRACE_END(TEXT("Dispatching async task to attempt to connect chat!"));
-		return true;
+		TriggerOnConnectChatCompleteDelegates(LocalUserNum, false, FUniqueNetIdAccelByteUser::Invalid().Get(), ErrorStr);
+		return false;
 	}
 
-	const FString ErrorStr = TEXT("connect-failed-not-logged-in");
-	AB_OSS_INTERFACE_TRACE_END(TEXT("User not logged in at user index '%d'!"), LocalUserNum);
+	FUniqueNetIdPtr LocalUserId = IdentityInterface->GetUniquePlayerId(LocalUserNum);
+	if (!LocalUserId.IsValid())
+	{
+		const FString ErrorStr = TEXT("chat-connect-failed-user-invalid");
+		AB_OSS_INTERFACE_TRACE_END(TEXT("Local User at index '%d' is invalid!"), LocalUserNum);
 
-	TriggerOnConnectChatCompleteDelegates(LocalUserNum, false, FUniqueNetIdAccelByteUser::Invalid().Get(), ErrorStr);
-	return false;
+		TriggerOnConnectChatCompleteDelegates(LocalUserNum, false, FUniqueNetIdAccelByteUser::Invalid().Get(), ErrorStr);
+		return false;
+	}
+
+	TSharedPtr<FUserOnlineAccount> UserAccount = IdentityInterface->GetUserAccount(LocalUserId);
+	if (!UserAccount.IsValid())
+	{
+		const FString ErrorStr = TEXT("chat-connect-failed-user-account-invalid");
+		AB_OSS_INTERFACE_TRACE_END(TEXT("User Account at index '%d' is invalid!"), LocalUserNum);
+
+		TriggerOnConnectChatCompleteDelegates(LocalUserNum, false, *LocalUserId.Get(), ErrorStr);
+		return false;
+	}
+
+	const TSharedPtr<FUserOnlineAccountAccelByte> UserAccountAccelByte = StaticCastSharedPtr<FUserOnlineAccountAccelByte>(UserAccount);
+	if (UserAccountAccelByte->IsConnectedToChat())
+	{
+		const FString ErrorStr = TEXT("chat-connect-failed-already-connected");
+		AB_OSS_INTERFACE_TRACE_END(TEXT("User already connected to chat at user index '%d'!"), LocalUserNum);
+
+		TriggerOnConnectChatCompleteDelegates(LocalUserNum, false, *LocalUserId.Get(), ErrorStr);
+		return false;
+	}
+		
+	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteConnectChat>(AccelByteSubsystem, *LocalUserId.Get());
+	AB_OSS_INTERFACE_TRACE_END(TEXT("Dispatching async task to attempt to connect chat!"));
+	return true;
 }
 
 bool FOnlineChatAccelByte::CreateRoom(
@@ -636,11 +648,11 @@ void FOnlineChatAccelByte::OnRemoveFromTopicNotification(const FAccelByteModelsC
 
 	RemoveMemberFromTopic(RemoveTopicEvent.SenderId, RemoveTopicEvent.TopicId);
 	TriggerOnTopicRemovedDelegates(RemoveTopicEvent.Name, RemoveTopicEvent.TopicId, RemoveTopicEvent.UserId);
-	const TSharedPtr<const FUniqueNetId> UserIdPtr = AccelByteSubsystem->GetIdentityInterface()->GetUniquePlayerId(LocalUserNum);
-	if (UserIdPtr.IsValid())
+	const FUniqueNetIdPtr LocalUserId = AccelByteSubsystem->GetIdentityInterface()->GetUniquePlayerId(LocalUserNum);
+	if (LocalUserId.IsValid())
 	{
-		TSharedPtr<const FUniqueNetId> SenderUserId = FUniqueNetIdAccelByteUser::Create(FAccelByteUniqueIdComposite(RemoveTopicEvent.SenderId));
-		TriggerOnChatRoomMemberExitDelegates(*UserIdPtr, RemoveTopicEvent.TopicId, *SenderUserId);
+		FUniqueNetIdPtr SenderUserId = FUniqueNetIdAccelByteUser::Create(FAccelByteUniqueIdComposite(RemoveTopicEvent.SenderId));
+		TriggerOnChatRoomMemberExitDelegates(*LocalUserId, RemoveTopicEvent.TopicId, *SenderUserId);
 	}
 	
 	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = AccelByteSubsystem->GetPredefinedEventInterface();
@@ -666,28 +678,28 @@ void FOnlineChatAccelByte::OnAddToTopicNotification(const FAccelByteModelsChatUp
 		return;
 	}
 
-	const TSharedPtr<const FUniqueNetId> UserIdPtr = AccelByteSubsystem->GetIdentityInterface()->GetUniquePlayerId(LocalUserNum);
-	if (!ensure(UserIdPtr.IsValid()))
+	const FUniqueNetIdPtr LocalUserId = AccelByteSubsystem->GetIdentityInterface()->GetUniquePlayerId(LocalUserNum);
+	if (!ensure(LocalUserId.IsValid()))
 	{
-		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to add to topic notification as our UserIdPtr is invalid!"));
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to add to topic notification as our LocalUserId is invalid!"));
 		return;
 	}
 	
 	// Find the room first, if the room not found fetch the room info
 	// If room found, but no member info, fetch user information
 	// If room info and member info found, trigger the ChatRoomMemberJoinDelegate
-	TSharedPtr<const FUniqueNetId> SenderUserId = FUniqueNetIdAccelByteUser::Create(FAccelByteUniqueIdComposite(AddTopicEvent.SenderId));
+	FUniqueNetIdPtr SenderUserId = FUniqueNetIdAccelByteUser::Create(FAccelByteUniqueIdComposite(AddTopicEvent.SenderId));
 	const FAccelByteChatRoomInfoRef* ChatRoomInfo = TopicIdToChatRoomInfoCached.Find(AddTopicEvent.TopicId);
 	if (ChatRoomInfo == nullptr)
 	{
 		UE_LOG_AB(Verbose, TEXT("ChatRoomInfo not found by room ID %s!"), *AddTopicEvent.TopicId);
 		// we don't have room data locally
 
-		const FOnChatQueryRoomByIdComplete OnQueryTopicResponse = FOnChatQueryRoomByIdComplete::CreateThreadSafeSP(SharedThis(this), &FOnlineChatAccelByte::OnQueryChatRoomById_TriggerChatRoomMemberJoin, UserIdPtr, SenderUserId);
+		const FOnChatQueryRoomByIdComplete OnQueryTopicResponse = FOnChatQueryRoomByIdComplete::CreateThreadSafeSP(SharedThis(this), &FOnlineChatAccelByte::OnQueryChatRoomById_TriggerChatRoomMemberJoin, LocalUserId, SenderUserId);
 		FOnlineAsyncTaskInfo TaskInfo;
 		TaskInfo.Type = ETypeOfOnlineAsyncTask::Parallel;
 		TaskInfo.bCreateEpicForThis = true;
-		AccelByteSubsystem->CreateAndDispatchAsyncTask<FOnlineAsyncTaskAccelByteChatQueryRoomById>(TaskInfo, AccelByteSubsystem, *UserIdPtr, AddTopicEvent.TopicId, OnQueryTopicResponse);
+		AccelByteSubsystem->CreateAndDispatchAsyncTask<FOnlineAsyncTaskAccelByteChatQueryRoomById>(TaskInfo, AccelByteSubsystem, *LocalUserId, AddTopicEvent.TopicId, OnQueryTopicResponse);
 	}
 	else
 	{
@@ -702,18 +714,18 @@ void FOnlineChatAccelByte::OnAddToTopicNotification(const FAccelByteModelsChatUp
 			if (!UserStore.IsValid())
 			{
 				UE_LOG_AB(Warning, TEXT("Unable to get member info as our user store instance is invalid!"));
-				TriggerOnChatRoomMemberJoinDelegates(*UserIdPtr, AddTopicEvent.TopicId, *SenderUserId);
+				TriggerOnChatRoomMemberJoinDelegates(*LocalUserId, AddTopicEvent.TopicId, *SenderUserId);
 			}
 			else
 			{
 				const TArray<FString> UserIds = {AddTopicEvent.SenderId};
-				const FOnQueryUsersComplete OnQueryUsersCompleteDelegate = FOnQueryUsersComplete::CreateThreadSafeSP(SharedThis(this), &FOnlineChatAccelByte::OnQueryChatMemberInfo_TriggerChatRoomMemberJoin, AddTopicEvent.TopicId, UserIdPtr, SenderUserId);
+				const FOnQueryUsersComplete OnQueryUsersCompleteDelegate = FOnQueryUsersComplete::CreateThreadSafeSP(SharedThis(this), &FOnlineChatAccelByte::OnQueryChatMemberInfo_TriggerChatRoomMemberJoin, AddTopicEvent.TopicId, LocalUserId, SenderUserId);
 				UserStore->QueryUsersByAccelByteIds(LocalUserNum, UserIds, OnQueryUsersCompleteDelegate);
 			}
 		}
 		else
 		{
-			TriggerOnChatRoomMemberJoinDelegates(*UserIdPtr, AddTopicEvent.TopicId, *SenderUserId);
+			TriggerOnChatRoomMemberJoinDelegates(*LocalUserId, AddTopicEvent.TopicId, *SenderUserId);
 		}
 	}	
 	
@@ -742,16 +754,16 @@ void FOnlineChatAccelByte::OnReceivedChatNotification(const FAccelByteModelsChat
 		return;
 	}
 
-	const TSharedPtr<const FUniqueNetId> UserIdPtr = IdentityInterface->GetUniquePlayerId(LocalUserNum);
-	if (!UserIdPtr.IsValid())
+	const FUniqueNetIdPtr LocalUserId = IdentityInterface->GetUniquePlayerId(LocalUserNum);
+	if (!LocalUserId.IsValid())
 	{
-		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to handle received chat notification as UserIdPtr is invalid!"));
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to handle received chat notification as LocalUserId is invalid!"));
 		return;
 	}
 
 	FAccelByteUniqueIdComposite SenderCompositeId;
 	SenderCompositeId.Id = ChatNotif.From;
-	TSharedPtr<const FUniqueNetIdAccelByteUser> SenderUserId = FUniqueNetIdAccelByteUser::Create(SenderCompositeId);
+	FUniqueNetIdAccelByteUserPtr SenderUserId = FUniqueNetIdAccelByteUser::Create(SenderCompositeId);
 
 	FChatRoomId OutChatRoomId = ChatNotif.TopicId;
 	const EAccelByteChatRoomType RoomType = GetChatRoomType(ChatNotif.TopicId);
@@ -759,16 +771,16 @@ void FOnlineChatAccelByte::OnReceivedChatNotification(const FAccelByteModelsChat
 	FAccelByteChatRoomMemberRef Member = GetAccelByteChatRoomMember(ChatNotif.From);
 	TSharedRef<FAccelByteChatMessage> OutChatMessage = MakeShared<FAccelByteChatMessage>(SenderUserId.ToSharedRef(), Member->GetNickname(), ChatNotif.Message, ChatNotif.CreatedAt);
 
-	const FUniqueNetIdAccelByteUserRef AccelByteUserId = FUniqueNetIdAccelByteUser::CastChecked(UserIdPtr.ToSharedRef());
+	const FUniqueNetIdAccelByteUserRef AccelByteUserId = FUniqueNetIdAccelByteUser::CastChecked(LocalUserId.ToSharedRef());
 	AddChatMessage(AccelByteUserId, OutChatRoomId, OutChatMessage);
 
 	if (RoomType == EAccelByteChatRoomType::PERSONAL)
 	{
-		TriggerOnChatPrivateMessageReceivedDelegates(UserIdPtr.ToSharedRef().Get(), OutChatMessage);
+		TriggerOnChatPrivateMessageReceivedDelegates(*LocalUserId, OutChatMessage);
 	}
 	else
 	{		
-		TriggerOnChatRoomMessageReceivedDelegates(UserIdPtr.ToSharedRef().Get(), ChatNotif.TopicId, OutChatMessage);
+		TriggerOnChatRoomMessageReceivedDelegates(*LocalUserId, ChatNotif.TopicId, OutChatMessage);
 	}
 
 	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
@@ -855,10 +867,10 @@ void FOnlineChatAccelByte::OnSystemMessageNotification(const FAccelByteModelsCha
 		return;
 	}
 
-	const TSharedPtr<const FUniqueNetId> UserIdPtr = IdentityInterface->GetUniquePlayerId(LocalUserNum);
-	if (!UserIdPtr.IsValid())
+	const FUniqueNetIdPtr LocalUserId = IdentityInterface->GetUniquePlayerId(LocalUserNum);
+	if (!LocalUserId.IsValid())
 	{
-		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to handle received system message notification as UserIdPtr is invalid!"));
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to handle received system message notification as LocalUserId is invalid!"));
 		return;
 	}
 
@@ -866,11 +878,11 @@ void FOnlineChatAccelByte::OnSystemMessageNotification(const FAccelByteModelsCha
 	{
 		FSystemMessageNotifMessage Message;
 		SystemMessageNotif.GetSystemMessageData(Message);
-		TriggerOnSystemMessageReceivedDelegates(UserIdPtr.ToSharedRef().Get(), Message);
+		TriggerOnSystemMessageReceivedDelegates(*LocalUserId, Message);
 	}
 	else // this is a transient system message
 	{
-		TriggerOnTransientSystemMessageReceivedDelegates(UserIdPtr.ToSharedRef().Get(), SystemMessageNotif);
+		TriggerOnTransientSystemMessageReceivedDelegates(*LocalUserId, SystemMessageNotif);
 	}
 
 	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
@@ -883,7 +895,7 @@ void FOnlineChatAccelByte::OnQueryChatRoomInfoComplete(bool bWasSuccessful, TArr
 	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
 }
 
-void FOnlineChatAccelByte::OnQueryChatMemberInfo_TriggerChatRoomMemberJoin(bool bIsSuccessful, TArray<TSharedRef<FAccelByteUserInfo>> UsersQueried, FString RoomId, TSharedPtr<const FUniqueNetId> InUserId, TSharedPtr<const FUniqueNetId> InMemberId)
+void FOnlineChatAccelByte::OnQueryChatMemberInfo_TriggerChatRoomMemberJoin(bool bIsSuccessful, TArray<TSharedRef<FAccelByteUserInfo>> UsersQueried, FString RoomId, FUniqueNetIdPtr InUserId, FUniqueNetIdPtr InMemberId)
 {
 	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("RoomId %s MemberId %s"), *RoomId, *InMemberId->ToDebugString());
 
@@ -898,7 +910,7 @@ void FOnlineChatAccelByte::OnQueryChatMemberInfo_TriggerChatRoomMemberJoin(bool 
 	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
 }
 
-void FOnlineChatAccelByte::OnQueryChatRoomById_TriggerChatRoomMemberJoin(bool bWasSuccessful, FAccelByteChatRoomInfoPtr RoomInfo, int32 LocalUserNum, TSharedPtr<const FUniqueNetId> InUserId, TSharedPtr<const FUniqueNetId> InMemberId)
+void FOnlineChatAccelByte::OnQueryChatRoomById_TriggerChatRoomMemberJoin(bool bWasSuccessful, FAccelByteChatRoomInfoPtr RoomInfo, int32 LocalUserNum, FUniqueNetIdPtr InUserId, FUniqueNetIdPtr InMemberId)
 {
 	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("MemberId %s"), *InMemberId->ToDebugString());
 	

@@ -40,7 +40,7 @@ void FOnlineAsyncTaskAccelByteCreateStatsUser::Initialize()
 		return;
 	}
 
-	if (!StatsUser->IsValid())
+	if (!StatsUser.IsValid() || !StatsUser->IsValid())
 	{
 		ErrorMessage = TEXT("request-failed-create-user-stats-error-user-invalid");
 		CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);

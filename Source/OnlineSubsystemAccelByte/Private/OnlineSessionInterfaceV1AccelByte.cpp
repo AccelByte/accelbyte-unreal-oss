@@ -387,7 +387,7 @@ FOnlineSessionSearchResult FOnlineSessionV1AccelByte::ConstructSessionResultForM
 	return Result;
 }
 
-TSharedPtr<const FUniqueNetId> FOnlineSessionV1AccelByte::CreateSessionIdFromString(const FString& SessionIdStr)
+FUniqueNetIdPtr FOnlineSessionV1AccelByte::CreateSessionIdFromString(const FString& SessionIdStr)
 {
 	if (!SessionIdStr.IsEmpty())
 	{
@@ -850,7 +850,7 @@ bool FOnlineSessionV1AccelByte::CancelMatchmaking(int32 SearchingPlayerNum, FNam
 	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("SearchingPlayerNum: %d; SessionName: %s"), SearchingPlayerNum, *SessionName.ToString());
 
 	const IOnlineIdentityPtr IdentityInterface = AccelByteSubsystem->GetIdentityInterface();
-	TSharedPtr<const FUniqueNetId> PlayerId = IdentityInterface->GetUniquePlayerId(SearchingPlayerNum);
+	FUniqueNetIdPtr PlayerId = IdentityInterface->GetUniquePlayerId(SearchingPlayerNum);
 
 	if (!PlayerId.IsValid())
 	{
@@ -931,7 +931,7 @@ bool FOnlineSessionV1AccelByte::FindSessions(int32 SearchingPlayerNum, const TSh
 	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("SearchingPlayerNum: %d"), SearchingPlayerNum);
 
 	const IOnlineIdentityPtr IdentityInterface = AccelByteSubsystem->GetIdentityInterface();
-	TSharedPtr<const FUniqueNetId> PlayerId = IdentityInterface->GetUniquePlayerId(SearchingPlayerNum);
+	FUniqueNetIdPtr PlayerId = IdentityInterface->GetUniquePlayerId(SearchingPlayerNum);
 
 	if (!PlayerId.IsValid())
 	{
@@ -1726,7 +1726,7 @@ bool FOnlineSessionV1AccelByte::IsHost(const FNamedOnlineSession& Session) const
 		return false;
 	}
 
-	TSharedPtr<const FUniqueNetId> UserId = IdentityInterface->GetUniquePlayerId(Session.HostingPlayerNum);
+	FUniqueNetIdPtr UserId = IdentityInterface->GetUniquePlayerId(Session.HostingPlayerNum);
 	return (UserId.IsValid() && (*UserId == *Session.OwningUserId));
 }
 

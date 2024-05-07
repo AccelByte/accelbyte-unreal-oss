@@ -276,7 +276,7 @@ void FOnlineAsyncTaskAccelByteLogin::LoginWithSpecificSubsystem(IOnlineSubsystem
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sending login request to native subsystem!"));
 }
 
-void FOnlineAsyncTaskAccelByteLogin::OnSpecificSubysystemLoginUIClosed(TSharedPtr<const FUniqueNetId> UniqueId, const int ControllerIndex, const FOnlineError& SubsystemError, IOnlineSubsystem* SpecificSubsystem)
+void FOnlineAsyncTaskAccelByteLogin::OnSpecificSubysystemLoginUIClosed(FUniqueNetIdPtr UniqueId, const int ControllerIndex, const FOnlineError& SubsystemError, IOnlineSubsystem* SpecificSubsystem)
 {
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("UniqueId: %s; ControllerIndex: %d; Error: %s"), ((UniqueId != nullptr) ? *UniqueId->ToString() : TEXT("nullptr")), ControllerIndex, *SubsystemError.ErrorMessage.ToString());
 	FString SpecifiedSubsystemName = *SpecificSubsystem->GetSubsystemName().ToString();

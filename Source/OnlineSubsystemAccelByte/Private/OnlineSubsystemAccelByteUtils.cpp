@@ -99,7 +99,7 @@ bool FOnlineSubsystemAccelByteUtils::GetDisplayName(int32 LocalUserNum, FString 
 	return GetDisplayName(LocalUserNum, UniqueIdObj, Delegate, DisplayName);
 }
 
-bool FOnlineSubsystemAccelByteUtils::GetDisplayName(int32 LocalUserNum, TSharedPtr<const FUniqueNetId> UniqueId, FOnGetDisplayNameComplete Delegate, FString DisplayName)
+bool FOnlineSubsystemAccelByteUtils::GetDisplayName(int32 LocalUserNum, FUniqueNetIdPtr UniqueId, FOnGetDisplayNameComplete Delegate, FString DisplayName)
 {
 	if (!UniqueId.IsValid())
 	{
@@ -109,7 +109,8 @@ bool FOnlineSubsystemAccelByteUtils::GetDisplayName(int32 LocalUserNum, TSharedP
 
 	IOnlineIdentityPtr IdentityInterface = ::Online::GetIdentityInterface(ACCELBYTE_SUBSYSTEM);
 	FUniqueNetIdPtr LocalUserId = IdentityInterface->GetUniquePlayerId(LocalUserNum);
-	if (UniqueId.IsValid() && (LocalUserId.IsValid() && LocalUserId.Get() == UniqueId.Get())) {
+	if (UniqueId.IsValid() && (LocalUserId.IsValid() && LocalUserId.Get() == UniqueId.Get())) 
+	{
 		Delegate.ExecuteIfBound(IdentityInterface->GetPlayerNickname(LocalUserId.ToSharedRef().Get()));
 		return true;
 	}

@@ -1155,7 +1155,20 @@ void FOnlineSessionV2AccelByte::OnSessionInviteCheckGetSession(int32 LocalUserNu
 		return;
 	}
 
-	const TSharedPtr<const FUniqueNetIdAccelByteUser> AccelByteUniqueUser = StaticCastSharedPtr<const FUniqueNetIdAccelByteUser>(IdentityInterface->GetUniquePlayerId(LocalUserNum));
+	const FUniqueNetIdPtr LocalUserId = IdentityInterface->GetUniquePlayerId(LocalUserNum);
+	if (!LocalUserId.IsValid())
+	{
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(VeryVerbose, TEXT("Failed to check session invite as local user is invalid!"));
+		return;
+	}
+
+	const FUniqueNetIdAccelByteUserPtr AccelByteUniqueUser = FUniqueNetIdAccelByteUser::TryCast(LocalUserId.ToSharedRef());
+	if (!AccelByteUniqueUser.IsValid())
+	{
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(VeryVerbose, TEXT("Failed to check session invite as local user is not accelbyte user!"));
+		return;
+	}
+
 	FString AccelByteId = AccelByteUniqueUser->GetAccelByteId();
 
 	const TSharedPtr<FOnlineSessionInfoAccelByteV2> SessionInfo = StaticCastSharedPtr<FOnlineSessionInfoAccelByteV2>(OnlineSearchResult.Session.SessionInfo);
@@ -1557,7 +1570,7 @@ EAccelByteV2SessionConfigurationServerType FOnlineSessionV2AccelByte::GetServerT
 	return EAccelByteV2SessionConfigurationServerType::EMPTY;
 }
 
-TSharedPtr<const FUniqueNetId> FOnlineSessionV2AccelByte::CreateSessionIdFromString(const FString& SessionIdStr)
+FUniqueNetIdPtr FOnlineSessionV2AccelByte::CreateSessionIdFromString(const FString& SessionIdStr)
 {
 	return FUniqueNetIdAccelByteResource::Create(SessionIdStr);
 }
@@ -1656,7 +1669,7 @@ bool FOnlineSessionV2AccelByte::CreateSession(int32 HostingPlayerNum, FName Sess
 		return false;
 	}
 
-	TSharedPtr<const FUniqueNetId> PlayerId = IdentityInterface->GetUniquePlayerId(HostingPlayerNum);
+	FUniqueNetIdPtr PlayerId = IdentityInterface->GetUniquePlayerId(HostingPlayerNum);
 	if (!ensure(PlayerId.IsValid()))
 	{
 		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to create session as we could not find a valid player ID for index %d!"), HostingPlayerNum);
@@ -3249,7 +3262,7 @@ bool FOnlineSessionV2AccelByte::CancelMatchmaking(int32 SearchingPlayerNum, FNam
 		return false;
 	}
 
-	TSharedPtr<const FUniqueNetId> PlayerId = IdentityInterface->GetUniquePlayerId(SearchingPlayerNum);
+	FUniqueNetIdPtr PlayerId = IdentityInterface->GetUniquePlayerId(SearchingPlayerNum);
 	if (!ensure(PlayerId.IsValid()))
 	{
 		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to cancel matchmaking as we could not get a unique ID for player at index %d!"), SearchingPlayerNum);
@@ -3305,7 +3318,7 @@ bool FOnlineSessionV2AccelByte::FindSessions(int32 SearchingPlayerNum, const TSh
 		return false;
 	}
 
-	TSharedPtr<const FUniqueNetId> PlayerId = IdentityInterface->GetUniquePlayerId(SearchingPlayerNum);
+	FUniqueNetIdPtr PlayerId = IdentityInterface->GetUniquePlayerId(SearchingPlayerNum);
 	if (!ensure(PlayerId.IsValid()))
 	{
 		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to find sessions as we could not find a unique ID for player at index %d!"), SearchingPlayerNum);
@@ -3364,7 +3377,7 @@ bool FOnlineSessionV2AccelByte::JoinSession(int32 LocalUserNum, FName SessionNam
 		return false;
 	}
 
-	TSharedPtr<const FUniqueNetId> PlayerId = IdentityInterface->GetUniquePlayerId(LocalUserNum);
+	FUniqueNetIdPtr PlayerId = IdentityInterface->GetUniquePlayerId(LocalUserNum);
 	if (!ensure(PlayerId.IsValid()))
 	{
 		UE_LOG_AB(Warning, TEXT("Failed to join session as we could not get a unique ID for player at index %d!"), LocalUserNum);
@@ -3989,7 +4002,7 @@ bool FOnlineSessionV2AccelByte::FindFriendSession(int32 LocalUserNum, const FUni
 		return false;
 	}
 
-	TSharedPtr<const FUniqueNetId> PlayerId = IdentityInterface->GetUniquePlayerId(LocalUserNum);
+	FUniqueNetIdPtr PlayerId = IdentityInterface->GetUniquePlayerId(LocalUserNum);
 	if (!ensure(PlayerId.IsValid()))
 	{
 		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to find friend session as we could not find a unique ID for player at index %d!"), LocalUserNum);
@@ -4088,7 +4101,7 @@ bool FOnlineSessionV2AccelByte::SendSessionInviteToFriend(int32 LocalUserNum, FN
 		return false;
 	}
 
-	TSharedPtr<const FUniqueNetId> PlayerId = IdentityInterface->GetUniquePlayerId(LocalUserNum);
+	FUniqueNetIdPtr PlayerId = IdentityInterface->GetUniquePlayerId(LocalUserNum);
 	if (!ensure(PlayerId.IsValid()))
 	{
 		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to send session invite as we could not get a unique ID from player index %d!"), LocalUserNum);
@@ -5599,7 +5612,7 @@ void FOnlineSessionV2AccelByte::OnDsStatusChangedNotification(FAccelByteModelsV2
 	}
 
 	const FUniqueNetIdPtr PlayerId = IdentityInterface->GetUniquePlayerId(LocalUserNum);
-	if(PlayerId.IsValid())
+	if (PlayerId.IsValid())
 	{
 		StopSessionServerCheckPoll(PlayerId, Session->SessionName);
 	}
@@ -6885,13 +6898,20 @@ bool FOnlineSessionV2AccelByte::HandleAutoJoinGameSession(const FAccelByteModels
 
 	// Check if this game session update is auto joined in the backend
 	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystem->GetIdentityInterface());
-	if (!ensure(IdentityInterface.IsValid()))
+	if (!IdentityInterface.IsValid())
 	{
 		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to handle posible auto joined game session as our identity interface is invalid!"));
 		return false;
 	}
 
-	const TSharedRef<const FUniqueNetIdAccelByteUser> UserUniqueNetId = FUniqueNetIdAccelByteUser::Create(IdentityInterface->GetUniquePlayerId(LocalUserNum).ToSharedRef().Get());
+	const FUniqueNetIdPtr LocalUserId = IdentityInterface->GetUniquePlayerId(LocalUserNum);
+	if (!LocalUserId.IsValid())
+	{
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to handle posible auto joined game session as local user is invalid!"));
+		return false;
+	}
+
+	const FUniqueNetIdAccelByteUserRef UserUniqueNetId = FUniqueNetIdAccelByteUser::Create(*LocalUserId.Get());
 	const FString UserID = UserUniqueNetId.Get().GetAccelByteId();
 
 	const FAccelByteModelsV2SessionUser* FoundMember = GameSession.Members.FindByPredicate(

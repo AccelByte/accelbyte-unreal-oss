@@ -53,4 +53,5 @@ private:
 	/** Delegate handler for when we complete a query for information about the newly blocked player */
 	void OnQueryBlockedPlayerComplete(bool bIsSuccessful, TArray<TSharedRef<FAccelByteUserInfo>> UsersQueried);
 
+	void PerformBlockedPlayerPartyOperation();
 };

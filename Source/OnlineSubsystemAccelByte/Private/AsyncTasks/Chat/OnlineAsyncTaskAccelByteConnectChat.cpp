@@ -81,8 +81,7 @@ void FOnlineAsyncTaskAccelByteConnectChat::OnChatConnectSuccess()
 	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(Subsystem->GetIdentityInterface());
 	if (IdentityInterface.IsValid())
 	{
-		const TSharedPtr<const FUniqueNetId> UserIdPtr = IdentityInterface->GetUniquePlayerId(LocalUserNum);
-		TSharedPtr<FUserOnlineAccount> UserAccount = IdentityInterface->GetUserAccount(UserId.ToSharedRef().Get());
+		TSharedPtr<FUserOnlineAccount> UserAccount = IdentityInterface->GetUserAccount(LocalUserNum);
 
 		if (UserAccount.IsValid())
 		{
@@ -115,8 +114,7 @@ void FOnlineAsyncTaskAccelByteConnectChat::OnChatDisconnectedNotif(const FAccelB
 	const TSharedPtr<FOnlineIdentityAccelByte, ESPMode::ThreadSafe> IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(Subsystem->GetIdentityInterface());
 	if (IdentityInterface.IsValid())
 	{
-		const TSharedPtr<const FUniqueNetId> UserIdPtr = IdentityInterface->GetUniquePlayerId(LocalUserNum);
-		TSharedPtr<FUserOnlineAccount> UserAccount = IdentityInterface->GetUserAccount(UserId.ToSharedRef().Get());
+		TSharedPtr<FUserOnlineAccount> UserAccount = IdentityInterface->GetUserAccount(LocalUserNum);
 
 		if (UserAccount.IsValid())
 		{
@@ -144,28 +142,34 @@ void FOnlineAsyncTaskAccelByteConnectChat::OnChatConnectionClosed(int32 StatusCo
 		return;
 	}
 
-	const TSharedPtr<const FUniqueNetId> UserIdPtr = IdentityInterface->GetUniquePlayerId(InLocalUserNum);
-	TSharedPtr<FUserOnlineAccount> UserAccount;
-
-	if (UserIdPtr.IsValid())
+	const FUniqueNetIdPtr LocalUserId = IdentityInterface->GetUniquePlayerId(InLocalUserNum);
+	if (!LocalUserId.IsValid())
 	{
-		const FUniqueNetId& UserId = UserIdPtr.ToSharedRef().Get();
-		UserAccount = IdentityInterface->GetUserAccount(UserId);
-		if (PredefinedEventInterface.IsValid())
+		UE_LOG_AB(Warning, TEXT("Error due to invalid Local User"));
+		return;
+	}
+
+	TSharedPtr<FUserOnlineAccount> UserAccount = IdentityInterface->GetUserAccount(LocalUserId);
+	if (!UserAccount.IsValid())
+	{
+		UE_LOG_AB(Warning, TEXT("Error due to invalid User Account"));
+		return;
+	}
+
+	const TSharedPtr<FUserOnlineAccountAccelByte> UserAccountAccelByte = StaticCastSharedPtr<FUserOnlineAccountAccelByte>(UserAccount);
+	UserAccountAccelByte->SetConnectedToChat(false);
+
+	if (PredefinedEventInterface.IsValid())
+	{
+		FUniqueNetIdAccelByteUserPtr AccelByteUserId = FUniqueNetIdAccelByteUser::TryCast(LocalUserId.ToSharedRef());
+		if (AccelByteUserId.IsValid())
 		{
 			FAccelByteModelsChatV2DisconnectedPayload DisconnectedPayload{};
-			DisconnectedPayload.UserId = UserId.IsValid() ? StaticCast<const FUniqueNetIdAccelByteUser&>(UserId).GetAccelByteId() : TEXT("");
+			DisconnectedPayload.UserId = AccelByteUserId->GetAccelByteId();
 			DisconnectedPayload.StatusCode = StatusCode;
 			PredefinedEventInterface->SendEvent(InLocalUserNum, MakeShared<FAccelByteModelsChatV2DisconnectedPayload>(DisconnectedPayload));
 		}
 	}
-
-	if (UserAccount.IsValid())
-	{
-		const TSharedPtr<FUserOnlineAccountAccelByte> UserAccountAccelByte = StaticCastSharedPtr<FUserOnlineAccountAccelByte>(UserAccount);
-		UserAccountAccelByte->SetConnectedToChat(false);
-	}
-
 }
 
 void FOnlineAsyncTaskAccelByteConnectChat::UnbindDelegates()

@@ -26,7 +26,7 @@
 
 #define ONLINE_ERROR_NAMESPACE "FOnlineFriendAccelByte"
 
-FOnlineFriendAccelByte::FOnlineFriendAccelByte(const FString& InDisplayName, const TSharedRef<const FUniqueNetIdAccelByteUser>& InUserId, const EInviteStatus::Type& InInviteStatus)
+FOnlineFriendAccelByte::FOnlineFriendAccelByte(const FString& InDisplayName, const FUniqueNetIdAccelByteUserRef& InUserId, const EInviteStatus::Type& InInviteStatus)
 	: DisplayName(InDisplayName)
 	, UserId(InUserId)
 	, InviteStatus(InInviteStatus)
@@ -81,7 +81,7 @@ bool FOnlineFriendAccelByte::GetUserAttribute(const FString& AttrName, FString& 
 	return false;
 }
 
-FOnlineBlockedPlayerAccelByte::FOnlineBlockedPlayerAccelByte(const FString& InDisplayName, const TSharedRef<const FUniqueNetIdAccelByteUser>& InUserId)
+FOnlineBlockedPlayerAccelByte::FOnlineBlockedPlayerAccelByte(const FString& InDisplayName, const FUniqueNetIdAccelByteUserRef& InUserId)
 	: DisplayName(InDisplayName)
 	, UserId(InUserId)
 {
@@ -170,8 +170,8 @@ void FOnlineFriendsAccelByte::OnFriendRequestAcceptedNotificationReceived(const 
 		return;
 	}
 
-	TSharedPtr<const FUniqueNetId> UserId = IdentityInterface->GetUniquePlayerId(LocalUserNum);
-	if (!UserId.IsValid())
+	FUniqueNetIdPtr LocalUserId = IdentityInterface->GetUniquePlayerId(LocalUserNum);
+	if (!LocalUserId.IsValid())
 	{
 		UE_LOG_AB(Warning, TEXT("Recieved a notification for a friend request that has been accepted, but cannot act on it as the current user's ID is not valid!"));
 		return;
@@ -180,7 +180,7 @@ void FOnlineFriendsAccelByte::OnFriendRequestAcceptedNotificationReceived(const 
 	// Create a basic composite ID for this user without platform info, we will get platform info later
 	FAccelByteUniqueIdComposite FriendCompositeId;
 	FriendCompositeId.Id = Notification.friendId;
-	TSharedRef<const FUniqueNetIdAccelByteUser> FriendId = FUniqueNetIdAccelByteUser::Create(FriendCompositeId);
+	const FUniqueNetIdAccelByteUserRef FriendId = FUniqueNetIdAccelByteUser::Create(FriendCompositeId);
 
 	// Next we want to check if the invite is already in our friends list, if it is, just update that invited user
 	// otherwise, we need to send off an async task to get info about the friend and update the friends list from there
@@ -194,7 +194,7 @@ void FOnlineFriendsAccelByte::OnFriendRequestAcceptedNotificationReceived(const 
 
 		// If we found the friend, then we want to set the status of them to be Accepted, otherwise we need to query the friend
 		// info and add that friend from the async task
-		if (FoundFriend != nullptr)
+		if (FoundFriend)
 		{
 			TSharedPtr<FOnlineFriendAccelByte> AccelByteFriend = StaticCastSharedPtr<FOnlineFriendAccelByte>(*FoundFriend);
 			AccelByteFriend->SetInviteStatus(EInviteStatus::Accepted);
@@ -203,7 +203,7 @@ void FOnlineFriendsAccelByte::OnFriendRequestAcceptedNotificationReceived(const 
 			Presence.bIsOnline = true;
 			Presence.Status.State = EOnlinePresenceState::Online;
 			AccelByteFriend->SetPresence(Presence);
-			TriggerOnInviteAcceptedDelegates(UserId.ToSharedRef().Get(), AccelByteFriend->GetUserId().Get());
+			TriggerOnInviteAcceptedDelegates(*LocalUserId, AccelByteFriend->GetUserId().Get());
 			TriggerOnFriendsChangeDelegates(LocalUserNum);
 		}
 		else
@@ -211,7 +211,7 @@ void FOnlineFriendsAccelByte::OnFriendRequestAcceptedNotificationReceived(const 
 			FOnlineAsyncTaskInfo TaskInfo;
 			TaskInfo.bCreateEpicForThis = true;
 			TaskInfo.Type = ETypeOfOnlineAsyncTask::Parallel;
-			AccelByteSubsystem->CreateAndDispatchAsyncTask<FOnlineAsyncTaskAccelByteAddFriendToList>(TaskInfo, AccelByteSubsystem, LocalUserNum, UserId.ToSharedRef().Get(), FriendId.Get(), EInviteStatus::Accepted);
+			AccelByteSubsystem->CreateAndDispatchAsyncTask<FOnlineAsyncTaskAccelByteAddFriendToList>(TaskInfo, AccelByteSubsystem, LocalUserNum, *LocalUserId, *FriendId, EInviteStatus::Accepted);
 		}
 	}
 	else
@@ -219,7 +219,7 @@ void FOnlineFriendsAccelByte::OnFriendRequestAcceptedNotificationReceived(const 
 		FOnlineAsyncTaskInfo TaskInfo;
 		TaskInfo.bCreateEpicForThis = true;
 		TaskInfo.Type = ETypeOfOnlineAsyncTask::Parallel;
-		AccelByteSubsystem->CreateAndDispatchAsyncTask<FOnlineAsyncTaskAccelByteAddFriendToList>(TaskInfo, AccelByteSubsystem, LocalUserNum, UserId.ToSharedRef().Get(), FriendId.Get(), EInviteStatus::Accepted);
+		AccelByteSubsystem->CreateAndDispatchAsyncTask<FOnlineAsyncTaskAccelByteAddFriendToList>(TaskInfo, AccelByteSubsystem, LocalUserNum, *LocalUserId, *FriendId, EInviteStatus::Accepted);
 	}
 }
 
@@ -233,8 +233,8 @@ void FOnlineFriendsAccelByte::OnFriendRequestReceivedNotificationReceived(const 
 		return;
 	}
 
-	TSharedPtr<const FUniqueNetId> UserId = IdentityInterface->GetUniquePlayerId(LocalUserNum);
-	if (!UserId.IsValid())
+	FUniqueNetIdPtr LocalUserId = IdentityInterface->GetUniquePlayerId(LocalUserNum);
+	if (!LocalUserId.IsValid())
 	{
 		UE_LOG_AB(Warning, TEXT("Recieved a notification for a friend request that has been accepted, but cannot act on it as the current user's ID is not valid!"));
 		return;
@@ -244,20 +244,19 @@ void FOnlineFriendsAccelByte::OnFriendRequestReceivedNotificationReceived(const 
 	// create an async task to get data about that friend and then add them to the list afterwards, and fire off the delegates
 	FAccelByteUniqueIdComposite FriendCompositeId;
 	FriendCompositeId.Id = Notification.friendId;
-	TSharedRef<const FUniqueNetIdAccelByteUser> FriendId = FUniqueNetIdAccelByteUser::Create(FriendCompositeId);
-
+	FUniqueNetIdAccelByteUserRef FriendId = FUniqueNetIdAccelByteUser::Create(FriendCompositeId);
 
 	FOnlineAsyncTaskInfo TaskInfo;
 	TaskInfo.bCreateEpicForThis = true;
 	TaskInfo.Type = ETypeOfOnlineAsyncTask::Parallel;
-	AccelByteSubsystem->CreateAndDispatchAsyncTask<FOnlineAsyncTaskAccelByteAddFriendToList>(TaskInfo, AccelByteSubsystem, LocalUserNum, UserId.ToSharedRef().Get(), FriendId.Get(), EInviteStatus::PendingInbound);
+	AccelByteSubsystem->CreateAndDispatchAsyncTask<FOnlineAsyncTaskAccelByteAddFriendToList>(TaskInfo, AccelByteSubsystem, LocalUserNum, *LocalUserId, *FriendId, EInviteStatus::PendingInbound);
 }
 
 void FOnlineFriendsAccelByte::OnUnfriendNotificationReceived(const FAccelByteModelsUnfriendNotif& Notification, int32 LocalUserNum)
 {
 	FAccelByteUniqueIdComposite FriendCompositeId;
 	FriendCompositeId.Id = Notification.friendId;
-	const TSharedRef<const FUniqueNetIdAccelByteUser> FriendId = FUniqueNetIdAccelByteUser::Create(FriendCompositeId);
+	const FUniqueNetIdAccelByteUserRef FriendId = FUniqueNetIdAccelByteUser::Create(FriendCompositeId);
 
 	// RemoveFriendFromList will check if the friend is already in the list, so it is safe to call with just the friend ID
 	RemoveFriendFromList(LocalUserNum, FriendId);
@@ -266,10 +265,10 @@ void FOnlineFriendsAccelByte::OnUnfriendNotificationReceived(const FAccelByteMod
 	const IOnlineIdentityPtr IdentityInterface = AccelByteSubsystem->GetIdentityInterface();
 	if (IdentityInterface.IsValid())
 	{
-		TSharedPtr<const FUniqueNetId> UserId = IdentityInterface->GetUniquePlayerId(LocalUserNum);
-		if (UserId.IsValid())
+		FUniqueNetIdPtr LocalUserId = IdentityInterface->GetUniquePlayerId(LocalUserNum);
+		if (LocalUserId.IsValid())
 		{
-			TriggerOnFriendRemovedDelegates(UserId.ToSharedRef().Get(), FriendId.Get());
+			TriggerOnFriendRemovedDelegates(*LocalUserId, *FriendId);
 		}
 	}
 }
@@ -278,7 +277,7 @@ void FOnlineFriendsAccelByte::OnRejectFriendRequestNotificationReceived(const FA
 {
 	FAccelByteUniqueIdComposite InviteCompositeId;
 	InviteCompositeId.Id = Notification.userId;
-	const TSharedRef<const FUniqueNetIdAccelByteUser> InviteeId = FUniqueNetIdAccelByteUser::Create(InviteCompositeId);
+	const FUniqueNetIdAccelByteUserRef InviteeId = FUniqueNetIdAccelByteUser::Create(InviteCompositeId);
 
 	// RemoveFriendFromList will check if the invited user is already in the list, so it is safe to call with just the invitee ID
 	RemoveFriendFromList(LocalUserNum, InviteeId);
@@ -287,10 +286,10 @@ void FOnlineFriendsAccelByte::OnRejectFriendRequestNotificationReceived(const FA
 	const IOnlineIdentityPtr IdentityInterface = AccelByteSubsystem->GetIdentityInterface();
 	if (IdentityInterface.IsValid())
 	{
-		TSharedPtr<const FUniqueNetId> UserId = IdentityInterface->GetUniquePlayerId(LocalUserNum);
-		if (UserId.IsValid())
+		FUniqueNetIdPtr LocalUserId = IdentityInterface->GetUniquePlayerId(LocalUserNum);
+		if (LocalUserId.IsValid())
 		{
-			TriggerOnInviteRejectedDelegates(UserId.ToSharedRef().Get(), InviteeId.Get());
+			TriggerOnInviteRejectedDelegates(*LocalUserId, *InviteeId);
 		}
 	}
 }
@@ -299,7 +298,7 @@ void FOnlineFriendsAccelByte::OnCancelFriendRequestNotificationReceived(const FA
 {
 	FAccelByteUniqueIdComposite InviteCompositeId;
 	InviteCompositeId.Id = Notification.userId;
-	const TSharedRef<const FUniqueNetIdAccelByteUser> InviterId = FUniqueNetIdAccelByteUser::Create(InviteCompositeId);
+	const FUniqueNetIdAccelByteUserRef InviterId = FUniqueNetIdAccelByteUser::Create(InviteCompositeId);
 
 	// RemoveFriendFromList will check if the invite we received is already in the list, so it is safe to call with just the inviter ID
 	RemoveFriendFromList(LocalUserNum, InviterId);
@@ -308,10 +307,10 @@ void FOnlineFriendsAccelByte::OnCancelFriendRequestNotificationReceived(const FA
 	const IOnlineIdentityPtr IdentityInterface = AccelByteSubsystem->GetIdentityInterface();
 	if (IdentityInterface.IsValid())
 	{
-		TSharedPtr<const FUniqueNetId> UserId = IdentityInterface->GetUniquePlayerId(LocalUserNum);
-		if (UserId.IsValid())
+		FUniqueNetIdPtr LocalUserId = IdentityInterface->GetUniquePlayerId(LocalUserNum);
+		if (LocalUserId.IsValid())
 		{
-			TriggerOnInviteAbortedDelegates(UserId.ToSharedRef().Get(), InviterId.Get());
+			TriggerOnInviteAbortedDelegates(*LocalUserId, *InviterId);
 		}
 	}
 }
@@ -417,7 +416,7 @@ void FOnlineFriendsAccelByte::AddFriendToList(int32 LocalUserNum, const TSharedP
 	TriggerOnFriendsChangeDelegates(LocalUserNum);
 }
 
-void FOnlineFriendsAccelByte::RemoveFriendFromList(int32 LocalUserNum, const TSharedRef<const FUniqueNetIdAccelByteUser>& FriendId)
+void FOnlineFriendsAccelByte::RemoveFriendFromList(int32 LocalUserNum, const FUniqueNetIdAccelByteUserRef& FriendId)
 {
 	TArray<TSharedPtr<FOnlineFriend>>* FoundFriendsList = LocalUserNumToFriendsMap.Find(LocalUserNum);
 	if (FoundFriendsList != nullptr)
@@ -434,7 +433,7 @@ void FOnlineFriendsAccelByte::RemoveFriendFromList(int32 LocalUserNum, const TSh
 	TriggerOnFriendsChangeDelegates(LocalUserNum);
 }
 
-void FOnlineFriendsAccelByte::AddBlockedPlayersToList(const TSharedRef<const FUniqueNetIdAccelByteUser>& UserId, const TArray<TSharedPtr<FOnlineBlockedPlayer>>& NewBlockedPlayers)
+void FOnlineFriendsAccelByte::AddBlockedPlayersToList(const FUniqueNetIdAccelByteUserRef& UserId, const TArray<TSharedPtr<FOnlineBlockedPlayer>>& NewBlockedPlayers)
 {
 	// Try and get a local user index for the player first, as it is needed for the changed delegate
 	const TSharedPtr<FOnlineIdentityAccelByte, ESPMode::ThreadSafe> IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystem->GetIdentityInterface());
@@ -478,8 +477,8 @@ void FOnlineFriendsAccelByte::AddBlockedPlayerToList(int32 LocalUserNum, const T
 		return;
 	}
 
-	TSharedPtr<const FUniqueNetId> UserId = IdentityInterface->GetUniquePlayerId(LocalUserNum);
-	if (!UserId.IsValid())
+	FUniqueNetIdPtr LocalUserId = IdentityInterface->GetUniquePlayerId(LocalUserNum);
+	if (!LocalUserId.IsValid())
 	{
 		UE_LOG_AB(Warning, TEXT("Failed to add blocked player to player %d's list as we could not get their unique user ID!"), LocalUserNum);
 		return;
@@ -487,7 +486,7 @@ void FOnlineFriendsAccelByte::AddBlockedPlayerToList(int32 LocalUserNum, const T
 
 	// Convert the net ID from the identity interface to an AccelByte net ID for the map query
 	FScopeLock ScopeLock(&UserIdToBlockedPlayersMapLock);
-	TSharedRef<const FUniqueNetIdAccelByteUser> NetId = FUniqueNetIdAccelByteUser::CastChecked(UserId.ToSharedRef());
+	FUniqueNetIdAccelByteUserRef NetId = FUniqueNetIdAccelByteUser::CastChecked(LocalUserId.ToSharedRef());
 	FBlockedPlayerArray* FoundBlockedPlayersList = UserIdToBlockedPlayersMap.Find(NetId);
 	if (FoundBlockedPlayersList != nullptr)
 	{
@@ -514,7 +513,7 @@ void FOnlineFriendsAccelByte::AddBlockedPlayerToList(int32 LocalUserNum, const T
 	TriggerOnBlockListChangeDelegates(LocalUserNum, EFriendsLists::ToString(EFriendsLists::Default));
 }
 
-void FOnlineFriendsAccelByte::RemoveBlockedPlayerFromList(int32 LocalUserNum, const TSharedRef<const FUniqueNetIdAccelByteUser>& PlayerId)
+void FOnlineFriendsAccelByte::RemoveBlockedPlayerFromList(int32 LocalUserNum, const FUniqueNetIdAccelByteUserRef& PlayerId)
 {
 	// First, we want to get the user's ID from the identity interface using the local user num
 	const IOnlineIdentityPtr IdentityInterface = AccelByteSubsystem->GetIdentityInterface();
@@ -524,8 +523,8 @@ void FOnlineFriendsAccelByte::RemoveBlockedPlayerFromList(int32 LocalUserNum, co
 		return;
 	}
 
-	TSharedPtr<const FUniqueNetId> UserId = IdentityInterface->GetUniquePlayerId(LocalUserNum);
-	if (!UserId.IsValid())
+	FUniqueNetIdPtr LocalUserId = IdentityInterface->GetUniquePlayerId(LocalUserNum);
+	if (!LocalUserId.IsValid())
 	{
 		UE_LOG_AB(Warning, TEXT("Failed to add blocked player to player %d's list as we could not get their unique user ID!"), LocalUserNum);
 		return;
@@ -533,7 +532,7 @@ void FOnlineFriendsAccelByte::RemoveBlockedPlayerFromList(int32 LocalUserNum, co
 
 	// Convert the net ID from the identity interface to an AccelByte net ID for the map query
 	FScopeLock ScopeLock(&UserIdToBlockedPlayersMapLock);
-	TSharedRef<const FUniqueNetIdAccelByteUser> NetId = FUniqueNetIdAccelByteUser::CastChecked(UserId.ToSharedRef());
+	const FUniqueNetIdAccelByteUserRef NetId = FUniqueNetIdAccelByteUser::CastChecked(LocalUserId.ToSharedRef());
 	FBlockedPlayerArray* FoundBlockedPlayerList = UserIdToBlockedPlayersMap.Find(NetId);
 	if (FoundBlockedPlayerList != nullptr)
 	{
@@ -673,7 +672,7 @@ bool FOnlineFriendsAccelByte::DeleteFriend(int32 LocalUserNum, const FUniqueNetI
 void FOnlineFriendsAccelByte::SetFriendAlias(int32 LocalUserNum, const FUniqueNetId& FriendId, const FString& ListName, const FString& Alias, const FOnSetFriendAliasComplete& Delegate)
 {
 	UE_LOG_AB(Warning, TEXT("FOnlineFriendsAccelByte::SetFriendAlias is not implemented"));
-	const TSharedRef<const FUniqueNetIdAccelByteUser> NetId = FUniqueNetIdAccelByteUser::CastChecked(FriendId);
+	const FUniqueNetIdAccelByteUserRef NetId = FUniqueNetIdAccelByteUser::CastChecked(FriendId);
 	AccelByteSubsystem->ExecuteNextTick([LocalUserNum, NetId, ListName, Delegate]() {
 		Delegate.ExecuteIfBound(LocalUserNum, NetId.Get(), ListName, ONLINE_ERROR(EOnlineErrorResult::NotImplemented));
 	});
@@ -682,7 +681,7 @@ void FOnlineFriendsAccelByte::SetFriendAlias(int32 LocalUserNum, const FUniqueNe
 void FOnlineFriendsAccelByte::DeleteFriendAlias(int32 LocalUserNum, const FUniqueNetId& FriendId, const FString& ListName, const FOnDeleteFriendAliasComplete& Delegate)
 {
 	UE_LOG_AB(Warning, TEXT("FOnlineFriendsAccelByte::DeleteFriendAlias is not implemented"));
-	const TSharedRef<const FUniqueNetIdAccelByteUser> NetId = FUniqueNetIdAccelByteUser::CastChecked(FriendId);
+	const FUniqueNetIdAccelByteUserRef NetId = FUniqueNetIdAccelByteUser::CastChecked(FriendId);
 	AccelByteSubsystem->ExecuteNextTick([LocalUserNum, NetId, ListName, Delegate]() {
 		Delegate.ExecuteIfBound(LocalUserNum, NetId.Get(), ListName, ONLINE_ERROR(EOnlineErrorResult::NotImplemented));
 	});
@@ -691,7 +690,7 @@ void FOnlineFriendsAccelByte::DeleteFriendAlias(int32 LocalUserNum, const FUniqu
 void FOnlineFriendsAccelByte::AddRecentPlayers(const FUniqueNetId& UserId, const TArray<FReportPlayedWithUser>& InRecentPlayers, const FString& ListName, const FOnAddRecentPlayersComplete& InCompletionDelegate)
 {
 	UE_LOG_AB(Warning, TEXT("FOnlineFriendsAccelByte::AddRecentPlayers is not implemented"));
-	const TSharedRef<const FUniqueNetIdAccelByteUser> NetId = FUniqueNetIdAccelByteUser::CastChecked(UserId);
+	const FUniqueNetIdAccelByteUserRef NetId = FUniqueNetIdAccelByteUser::CastChecked(UserId);
 	AccelByteSubsystem->ExecuteNextTick([NetId, InCompletionDelegate]() {
 		InCompletionDelegate.ExecuteIfBound(NetId.Get(), ONLINE_ERROR(EOnlineErrorResult::NotImplemented));
 	});
@@ -802,7 +801,7 @@ bool FOnlineFriendsAccelByte::GetRecentPlayers(const FUniqueNetId& UserId, const
 bool FOnlineFriendsAccelByte::GetBlockedPlayers(const FUniqueNetId& UserId, TArray<TSharedRef<FOnlineBlockedPlayer>>& OutBlockedPlayers)
 {
 	FScopeLock ScopeLock(&UserIdToBlockedPlayersMapLock);
-	const TSharedRef<const FUniqueNetIdAccelByteUser> NetId = FUniqueNetIdAccelByteUser::CastChecked(UserId);
+	const FUniqueNetIdAccelByteUserRef NetId = FUniqueNetIdAccelByteUser::CastChecked(UserId);
 	const FBlockedPlayerArray* BlockedPlayersList = UserIdToBlockedPlayersMap.Find(NetId);
 	if (BlockedPlayersList != nullptr)
 	{
@@ -835,7 +834,7 @@ void FOnlineFriendsAccelByte::DumpRecentPlayers() const
 void FOnlineFriendsAccelByte::DumpBlockedPlayers() const
 {
 	UE_LOG_AB(Log, TEXT("Blocked Players for each user..."));
-	for (const TPair<TSharedRef<const FUniqueNetIdAccelByteUser>, TArray<TSharedPtr<FOnlineBlockedPlayer>>>& KV : UserIdToBlockedPlayersMap)
+	for (const TPair<FUniqueNetIdAccelByteUserRef, TArray<TSharedPtr<FOnlineBlockedPlayer>>>& KV : UserIdToBlockedPlayersMap)
 	{
 		UE_LOG_AB(Log, TEXT("    Blocked Players for User %s:"), *KV.Key->ToString());
 		for (const TSharedPtr<FOnlineBlockedPlayer>& BlockedPlayer : KV.Value)

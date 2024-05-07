@@ -108,12 +108,12 @@ protected:
 	/*
 	 * Unique ID of the user account that we logged into on the native platform, will be invalid if we did not login with native platform
 	 */
-	TSharedPtr<const FUniqueNetId> NativePlatformPlayerId = nullptr;
+	FUniqueNetIdPtr NativePlatformPlayerId = nullptr;
 
 	/*
 	 * Unique ID of the user account that we logged into with the secondary platform, will be invalid if we did not login with a secondary platform
 	 */
-	TSharedPtr<const FUniqueNetId> SecondaryPlatformPlayerId = nullptr;
+	FUniqueNetIdPtr SecondaryPlatformPlayerId = nullptr;
 
 	/*
 	 * Credential for Native platform login
@@ -184,7 +184,7 @@ protected:
 	 * 
 	 * Specific subsystem need to be passed to maintain consistency between LoginWithSpecificSubsystem() and the delegate
 	 */
-	void OnSpecificSubysystemLoginUIClosed(TSharedPtr<const FUniqueNetId> UniqueId, const int ControllerIndex, const FOnlineError& SubsystemError, IOnlineSubsystem* SpecificSubsystem);
+	void OnSpecificSubysystemLoginUIClosed(FUniqueNetIdPtr UniqueId, const int ControllerIndex, const FOnlineError& SubsystemError, IOnlineSubsystem* SpecificSubsystem);
 	
 	/**
 	 * Perform login on the AccelByte backend using defined login type and OAuth error type
