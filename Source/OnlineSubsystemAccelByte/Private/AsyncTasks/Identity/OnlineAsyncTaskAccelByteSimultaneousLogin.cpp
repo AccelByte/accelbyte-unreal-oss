@@ -35,27 +35,28 @@ bool FOnlineAsyncTaskAccelByteSimultaneousLogin::IsInitializeAllowed()
 		return false;
 	}
 
-	if (SecondaryPlatformName.IsEmpty())
+	FName SecondaryPlatformName = Subsystem->GetSecondaryPlatformSubsystemName();
+	if (SecondaryPlatformName.IsNone())
 	{
 		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to do simultaneous login, no secondary platform specified in the DefaultEngine.ini.\n Please set the value through\n[OnlineSubsystemAccelByte]\n SecondaryPlatformName =...."));
 		return false; 
 	}
 
-	if (!Subsystem->IsNativeSubsystemSupported(FName(SecondaryPlatformName)))
+	if (!Subsystem->IsNativeSubsystemSupported(SecondaryPlatformName))
 	{
-		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to do simultaneous login, specified secondary platform is not supported (%s)"), *SecondaryPlatformName);
+		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to do simultaneous login, specified secondary platform is not supported (%s)"), *SecondaryPlatformName.ToString());
 		return false;
 	}
 
-	if (IOnlineSubsystem::Get(FName(SecondaryPlatformName)) == nullptr)
+	if (IOnlineSubsystem::Get(SecondaryPlatformName) == nullptr)
 	{
-		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to do simultaneous login, specified secondary platform is not found in the engine (%s)"), *SecondaryPlatformName);
+		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to do simultaneous login, specified secondary platform is not found in the engine (%s)"), *SecondaryPlatformName.ToString());
 		return false;
 	}
 
-	if (!IOnlineSubsystem::Get(FName(SecondaryPlatformName))->IsLoaded())
+	if (!IOnlineSubsystem::Get(SecondaryPlatformName)->IsLoaded())
 	{
-		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to do simultaneous login, specified secondary platform is not loaded (%s)"), *SecondaryPlatformName);
+		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to do simultaneous login, specified secondary platform is not loaded (%s)"), *SecondaryPlatformName.ToString());
 		return false;
 	}
 
@@ -66,7 +67,6 @@ void FOnlineAsyncTaskAccelByteSimultaneousLogin::Initialize()
 {
 	Super::Initialize();
 	CurrentAsyncTaskState = ESimultaneousLoginAsyncTaskState::Initialized;
-	GConfig->GetString(TEXT("OnlineSubsystemAccelByte"), TEXT("SecondaryPlatformName"), SecondaryPlatformName, GEngineIni);
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("LocalUserNum: %d"), LoginUserNum);
 	
@@ -195,6 +195,8 @@ void FOnlineAsyncTaskAccelByteSimultaneousLogin::PerformLogin(const FOnlineAccou
 		//Next Login is for Secondary Platform
 		//Set bIsNativePlatformCredentialLogin to false
 		bIsNativePlatformCredentialLogin = false;
+
+		FName SecondaryPlatformName = Subsystem->GetSecondaryPlatformSubsystemName();
 		LoginWithSpecificSubsystem(SecondaryPlatformName);
 	}
 	else if (CurrentAsyncTaskState == ESimultaneousLoginAsyncTaskState::NativePlatformLoginDone)

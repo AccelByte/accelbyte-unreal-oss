@@ -4,7 +4,7 @@
 
 #pragma once
 
-#include "../OnlineAsyncTaskAccelByteLogin.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteLogin.h"
 
 namespace AccelByte { class FApiClient; }
 
@@ -43,7 +43,6 @@ protected:
 private:
 	FString NativePlatformTicket{};
 	FString SecondaryPlatformTicket{};
-	FString SecondaryPlatformName{};
 	ESimultaneousLoginAsyncTaskState CurrentAsyncTaskState{};
 
 	bool IsInitializeAllowed();

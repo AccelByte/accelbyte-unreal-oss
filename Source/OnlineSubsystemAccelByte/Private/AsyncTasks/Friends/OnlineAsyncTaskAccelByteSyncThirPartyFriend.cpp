@@ -14,7 +14,7 @@ FOnlineAsyncTaskAccelByteSyncThirPartyFriend::FOnlineAsyncTaskAccelByteSyncThirP
 	, AccelByteFriendListName(InAccelByteFriendListName)
 {
 	LocalUserNum = InLocalUserNum;
-	NativeSubSystem = IOnlineSubsystem::GetByPlatform();
+	NativeSubSystem = Subsystem->GetNativePlatformSubsystem();
 	OnlineError = FOnlineError();
 }
 

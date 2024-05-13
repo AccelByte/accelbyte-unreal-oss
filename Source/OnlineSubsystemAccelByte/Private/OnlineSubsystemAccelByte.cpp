@@ -106,7 +106,14 @@ bool FOnlineSubsystemAccelByte::Init()
 	FAccelByteUtilities::LoadABConfigFallback(TEXT("OnlineSubsystemAccelByte"), TEXT("bAutoChatConnectAfterLoginSuccess"), bIsAutoChatConnectAfterLoginSuccess);
 	FAccelByteUtilities::LoadABConfigFallback(TEXT("OnlineSubsystemAccelByte"), TEXT("bMultipleLocalUsersEnabled"), bIsMultipleLocalUsersEnabled);
 	FAccelByteUtilities::LoadABConfigFallback(TEXT("OnlineSubsystemAccelByte"), TEXT("bNativePlatformTokenRefreshManually"), bNativePlatformTokenRefreshManually);
-	FAccelByteUtilities::LoadABConfigFallback(TEXT("OnlineSubsystemAccelByte"), TEXT("SecondaryPlatformName"), SecondaryPlatformName);
+	
+	FString NativePlatformNameStr{};
+	FAccelByteUtilities::LoadABConfigFallback(TEXT("OnlineSubsystem"), TEXT("NativePlatformService"), NativePlatformNameStr);
+	NativePlatformName = FName(NativePlatformNameStr);
+
+	FString SecondaryPlatformNameStr{};
+	FAccelByteUtilities::LoadABConfigFallback(TEXT("OnlineSubsystemAccelByte"), TEXT("SecondaryPlatformName"), SecondaryPlatformNameStr);
+	SecondaryPlatformName = FName(SecondaryPlatformNameStr);
 
 	PluginInitializedTime = FDateTime::UtcNow();
 
@@ -468,18 +475,17 @@ FString FOnlineSubsystemAccelByte::GetNativePlatformNameString()
 
 FName FOnlineSubsystemAccelByte::GetNativePlatformName()
 {
-	IOnlineSubsystem* NativeSubsystem = IOnlineSubsystem::GetByPlatform();
-	if (NativeSubsystem == nullptr)
+	if (!NativePlatformSubsystemNameOverride.IsNone())
 	{
-		return FName(TEXT(""));
+		return NativePlatformSubsystemNameOverride;
 	}
 
-	return NativeSubsystem->GetSubsystemName();
+	return NativePlatformName;
 }
 
 FString FOnlineSubsystemAccelByte::GetNativeAppId()
 {
-	IOnlineSubsystem* NativeSubsystem = IOnlineSubsystem::GetByPlatform();
+	IOnlineSubsystem* NativeSubsystem = GetNativePlatformSubsystem();
 	if (NativeSubsystem == nullptr)
 	{
 		return TEXT("");
@@ -670,7 +676,7 @@ FString FOnlineSubsystemAccelByte::GetNativeSubsystemNameFromAccelBytePlatformSt
 
 FString FOnlineSubsystemAccelByte::GetNativePlatformTypeAsString()
 {
-	IOnlineSubsystem* NativeSubsystem = IOnlineSubsystem::GetByPlatform();
+	IOnlineSubsystem* NativeSubsystem = GetNativePlatformSubsystem();
 	if (NativeSubsystem == nullptr)
 	{
 		return TEXT("");
@@ -994,8 +1000,7 @@ void FOnlineSubsystemAccelByte::SetNativePlatformTokenRefreshScheduler(int32 Loc
 		return;
 	}
 
-	const IOnlineSubsystem* NativeSubsystem = IOnlineSubsystem::GetByPlatform();
-
+	const IOnlineSubsystem* NativeSubsystem = GetNativePlatformSubsystem();
 	if (NativeSubsystem == nullptr)
 	{
 		UE_LOG_AB(Warning, TEXT("Native online subsystem is null!"));
@@ -1023,7 +1028,7 @@ void FOnlineSubsystemAccelByte::SetNativePlatformTokenRefreshScheduler(int32 Loc
 					return;
 				}
 
-				const IOnlineSubsystem* NativeSubsystem = IOnlineSubsystem::GetByPlatform();
+				const IOnlineSubsystem* NativeSubsystem = GetNativePlatformSubsystem();
 				if (NativeSubsystem == nullptr || NativeSubsystem->GetIdentityInterface() == nullptr)
 				{
 					UE_LOG_AB(Warning, TEXT("Native online subsystem is null or IdentityInterface is null!"));
@@ -1095,9 +1100,11 @@ void FOnlineSubsystemAccelByte::SetNativePlatformTokenRefreshScheduler(int32 Loc
 					&& !UserId->GetPlatformType().IsEmpty())
 				{
 					IdentityInterface->RefreshPlatformToken(LocalUserNum);
-					if (!this->SecondaryPlatformName.IsEmpty())
+
+					FName SecondaryPlatform = GetSecondaryPlatformSubsystemName();
+					if (!SecondaryPlatform.IsNone())
 					{
-						IdentityInterface->RefreshPlatformToken(LocalUserNum, FName(SecondaryPlatformName));
+						IdentityInterface->RefreshPlatformToken(LocalUserNum, SecondaryPlatform);
 					}
 				}
 			});
@@ -1157,5 +1164,44 @@ void FOnlineSubsystemAccelByte::OnPresenceChanged(EAccelBytePlatformType Platfor
 	}
 }
 
+FName FOnlineSubsystemAccelByte::GetSecondaryPlatformSubsystemName() const
+{
+	if (!SecondaryPlatformSubsystemNameOverride.IsNone())
+	{
+		return SecondaryPlatformSubsystemNameOverride;
+	}
+
+	return SecondaryPlatformName;
+}
+
+void FOnlineSubsystemAccelByte::SetNativePlatformSubsystemNameOverride(FName InOverrideName)
+{
+	NativePlatformSubsystemNameOverride = InOverrideName;
+}
+
+void FOnlineSubsystemAccelByte::SetSecondaryPlatformSubsystemNameOverride(FName InOverrideName)
+{
+	SecondaryPlatformSubsystemNameOverride = InOverrideName;
+}
+
+IOnlineSubsystem* FOnlineSubsystemAccelByte::GetNativePlatformSubsystem() const
+{
+	if (!NativePlatformSubsystemNameOverride.IsNone())
+	{
+		return IOnlineSubsystem::Get(NativePlatformSubsystemNameOverride);
+	}
+
+	return IOnlineSubsystem::Get(NativePlatformName);
+}
+
+IOnlineSubsystem* FOnlineSubsystemAccelByte::GetSecondaryPlatformSubsystem() const
+{
+	if (!SecondaryPlatformSubsystemNameOverride.IsNone())
+	{
+		return IOnlineSubsystem::Get(SecondaryPlatformSubsystemNameOverride);
+	}
+
+	return IOnlineSubsystem::Get(SecondaryPlatformName);
+}
 
 #undef LOCTEXT_NAMESPACE

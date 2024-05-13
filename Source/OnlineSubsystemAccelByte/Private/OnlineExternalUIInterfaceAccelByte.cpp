@@ -183,7 +183,7 @@ bool FOnlineExternalUIAccelByte::ShowSendMessageUI(int32 LocalUserNum, const FSh
 
 IOnlineExternalUIPtr FOnlineExternalUIAccelByte::GetNativePlatformExternalUI()
 {
-	IOnlineSubsystem* NativeSubsystem = IOnlineSubsystem::GetByPlatform();
+	IOnlineSubsystem* NativeSubsystem = AccelByteSubsystem->GetNativePlatformSubsystem();
 	if (NativeSubsystem == nullptr)
 	{
 		return nullptr;

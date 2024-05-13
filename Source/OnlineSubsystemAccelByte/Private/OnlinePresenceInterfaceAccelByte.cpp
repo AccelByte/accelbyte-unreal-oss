@@ -37,7 +37,7 @@ bool FOnlinePresenceAccelByte::GetFromWorld(const UWorld* World, FOnlinePresence
 
 IOnlinePresencePtr FOnlinePresenceAccelByte::GetPlatformOnlinePresenceInterface() const 
 {
-	IOnlineSubsystem* NativeSubsystem = IOnlineSubsystem::GetByPlatform();
+	IOnlineSubsystem* NativeSubsystem = AccelByteSubsystem->GetNativePlatformSubsystem();
 	return (NativeSubsystem != nullptr) ? NativeSubsystem->GetPresenceInterface() : nullptr;
 }
 

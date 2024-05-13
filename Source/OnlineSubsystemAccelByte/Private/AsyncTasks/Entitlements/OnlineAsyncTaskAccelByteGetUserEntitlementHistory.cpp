@@ -8,6 +8,17 @@ using namespace AccelByte;
 #define ONLINE_ERROR_NAMESPACE "FOnlineAsyncTaskAccelByteGetUserEntitlementHistory"
 
 FOnlineAsyncTaskAccelByteGetUserEntitlementHistory::FOnlineAsyncTaskAccelByteGetUserEntitlementHistory(FOnlineSubsystemAccelByte* const InABSubsystem
+	, const FUniqueNetId& InLocalUserId
+	, const FUniqueEntitlementId& InEntitlementId
+	, bool InForceUpdate)
+	: FOnlineAsyncTaskAccelByte(InABSubsystem)
+	, bForceUpdateEntitlementHistory(InForceUpdate)
+	, EntitlementId(InEntitlementId)
+{
+	LocalTargetUserId = FUniqueNetIdAccelByteUser::CastChecked(InLocalUserId);
+}
+
+FOnlineAsyncTaskAccelByteGetUserEntitlementHistory::FOnlineAsyncTaskAccelByteGetUserEntitlementHistory(FOnlineSubsystemAccelByte* const InABSubsystem
 	, int32 InLocalTargetUserNum
 	, const FUniqueEntitlementId& InEntitlementId
 	, bool InForceUpdate)
@@ -43,28 +54,42 @@ void FOnlineAsyncTaskAccelByteGetUserEntitlementHistory::Initialize()
 		return;
 	}
 
-	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(Subsystem->GetIdentityInterface());
-	const FUniqueNetIdPtr TargetUserIdPtr = IdentityInterface->GetUniquePlayerId(LocalTargetUserNum);
-
-	if (!TargetUserIdPtr.IsValid())
+	const TSharedPtr<FOnlineIdentityAccelByte, ESPMode::ThreadSafe> IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(Subsystem->GetIdentityInterface());
+	if (!IdentityInterface.IsValid())
 	{
-		ErrorString = TEXT("Failed to get user entitlement history! User id is invalid!");
-		HttpStatus = static_cast<int32>(ErrorCodes::InvalidRequest);
-		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to get user entitlement history! User id is invalid!"));
+		ErrorString = TEXT("Failed to process the request! Identity interface is invalid!");
+		HttpStatus = static_cast<int32>(ErrorCodes::ServiceUnavailableException);
+		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to process the request! Identity interface is invalid!"));
 		CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
-
-		return;
 	}
 
-	const FUniqueNetIdAccelByteUserPtr ABTargetUserId = FUniqueNetIdAccelByteUser::CastChecked(*TargetUserIdPtr.Get());
+	if (!LocalTargetUserId.IsValid())
+	{
+		const FUniqueNetIdPtr TargetUserIdPtr = IdentityInterface->GetUniquePlayerId(LocalTargetUserNum);
+
+		if (!TargetUserIdPtr.IsValid())
+		{
+			ErrorString = TEXT("Failed to get user entitlement history! User id is invalid!");
+			HttpStatus = static_cast<int32>(ErrorCodes::InvalidRequest);
+			AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to get user entitlement history! User id is invalid!"));
+			CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
+
+			return;
+		}
+
+		LocalTargetUserId = FUniqueNetIdAccelByteUser::CastChecked(*TargetUserIdPtr.Get());
+	}
 
 	SuccessDelegate = TDelegateUtils<THandler<TArray<FAccelByteModelsUserEntitlementHistory>>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteGetUserEntitlementHistory::OnGetUserEntitlementHistorySuccess);
 	OnErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteGetUserEntitlementHistory::OnGetUserEntitlementHistoryError);
 
 	if (bForceUpdateEntitlementHistory)
 	{
-		FServerApiClientPtr ServerApiClient = FMultiRegistry::GetServerApiClient();
-		ServerApiClient->ServerEcommerce.GetUserEntitlementHistory(ABTargetUserId->GetAccelByteId(), EntitlementId, SuccessDelegate, OnErrorDelegate);
+		if (LocalTargetUserId->IsValid())
+		{
+			FServerApiClientPtr ServerApiClient = FMultiRegistry::GetServerApiClient();
+			ServerApiClient->ServerEcommerce.GetUserEntitlementHistory(LocalTargetUserId->GetAccelByteId(), EntitlementId, SuccessDelegate, OnErrorDelegate);
+		}
 	}
 	else
 	{
@@ -77,7 +102,7 @@ void FOnlineAsyncTaskAccelByteGetUserEntitlementHistory::Initialize()
 			AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to get user entitlement history! Entitlement interface is invalid!"));
 		}
 
-		EntitlementInterface->GetCachedUserEntitlementHistory(ABTargetUserId.ToSharedRef(), EntitlementId, UserEntitlementHistoryResponse);
+		EntitlementInterface->GetCachedUserEntitlementHistory(LocalTargetUserId.ToSharedRef(), EntitlementId, UserEntitlementHistoryResponse);
 
 		CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
 	}
@@ -102,15 +127,6 @@ void FOnlineAsyncTaskAccelByteGetUserEntitlementHistory::TriggerDelegates()
 			HttpStatus = static_cast<int32>(ErrorCodes::ServiceUnavailableException);
 		}
 
-		const FUniqueNetIdPtr TargetUserIdPtr = IdentityInterface->GetUniquePlayerId(LocalTargetUserNum);
-		if (!TargetUserIdPtr.IsValid())
-		{
-			ErrorString = TEXT("Failed to process the request! User id is invalid!");
-			HttpStatus = static_cast<int32>(ErrorCodes::InvalidRequest);
-		}
-
-		const FUniqueNetIdAccelByteUserPtr ABTargetUserId = FUniqueNetIdAccelByteUser::CastChecked(*TargetUserIdPtr.Get());
-
 		if (!EntitlementInterface.IsValid())
 		{
 			ErrorString = TEXT("Failed to process the request! Entitlement interface is invalid!");
@@ -119,7 +135,7 @@ void FOnlineAsyncTaskAccelByteGetUserEntitlementHistory::TriggerDelegates()
 
 		if (bForceUpdateEntitlementHistory)
 		{
-			EntitlementInterface->AddUserEntitlementHistoryToMap(ABTargetUserId.ToSharedRef(), EntitlementId, UserEntitlementHistoryResponse);
+			EntitlementInterface->AddUserEntitlementHistoryToMap(LocalTargetUserId.ToSharedRef(), EntitlementId, UserEntitlementHistoryResponse);
 		}
 	}
 

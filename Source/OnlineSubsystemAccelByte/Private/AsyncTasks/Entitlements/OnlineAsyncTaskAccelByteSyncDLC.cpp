@@ -43,7 +43,7 @@ void FOnlineAsyncTaskAccelByteSyncDLC::Initialize()
 	{
 		FAccelByteModelsXBoxDLCSync XboxDLCSync;
 
-		IOnlineSubsystem* PlatformSubsystem = IOnlineSubsystem::GetByPlatform();
+		IOnlineSubsystem* PlatformSubsystem = Subsystem->GetNativePlatformSubsystem();
 		if (PlatformSubsystem == nullptr)
 		{
 			CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState);
@@ -127,7 +127,7 @@ void FOnlineAsyncTaskAccelByteSyncDLC::Initialize()
 	if (NativeSubsystemName == EOS_SUBSYSTEM)
 	{
 		FString EpicGamesJwtToken = TEXT("");
-		IOnlineSubsystem* PlatformSubsystem = IOnlineSubsystem::GetByPlatform();
+		IOnlineSubsystem* PlatformSubsystem = Subsystem->GetNativePlatformSubsystem();
 		if (PlatformSubsystem == nullptr)
 		{
 			CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState);

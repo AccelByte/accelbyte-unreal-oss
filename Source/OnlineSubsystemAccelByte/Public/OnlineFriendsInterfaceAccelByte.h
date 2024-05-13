@@ -26,6 +26,9 @@ typedef FOnSyncThirdPartyPlatformFriendsV2Complete::FDelegate FOnSyncThirdPartyP
 DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnSyncThirdPartyBlockListComplete, int32 /*LocalUserNum*/, const FOnlineError& /*ErrorInfo*/, const TArray<FAccelByteModelsSyncThirdPartyBlockListResponse>& /*Response*/)
 typedef FOnSyncThirdPartyBlockListComplete::FDelegate FOnSyncThirdPartyBlockListCompleteDelegate;
 
+DECLARE_MULTICAST_DELEGATE_FourParams(FOnQueryRecentTeamPlayersComplete, int32 /*LocalUserNum*/, const FString& /*Namespace*/, bool /*bWasSuccessful*/, const FString& /*Error*/)
+typedef FOnQueryRecentTeamPlayersComplete::FDelegate FOnQueryRecentTeamPlayersCompleteDelegate;
+
 /**
  * Implementation of a friend represented in the AccelByte backend
  */
@@ -176,6 +179,9 @@ PACKAGE_SCOPE:
 	/** Map of UniqueId -> Recent Players List */
 	TUniqueNetIdMap<TArray<TSharedRef<FOnlineRecentPlayerAccelByte>>> RecentPlayersMap;
 
+	/** Map of UniqueId -> Recent Team Players List */
+	TUniqueNetIdMap<TArray<TSharedRef<FOnlineRecentPlayerAccelByte>>> RecentTeamPlayersMap;
+
 	/** Constructor that is invoked by the Subsystem instance to create a friend interface instance */
 	FOnlineFriendsAccelByte(FOnlineSubsystemAccelByte* InSubsystem);
 
@@ -212,6 +218,8 @@ public:
 	
 	DEFINE_ONLINE_PLAYER_DELEGATE_TWO_PARAM(MAX_LOCAL_PLAYERS, OnSyncThirdPartyBlockListComplete, const FOnlineError& /*ErrorInfo*/, const TArray<FAccelByteModelsSyncThirdPartyBlockListResponse>& /*Response*/);
 
+	DEFINE_ONLINE_PLAYER_DELEGATE_THREE_PARAM(MAX_LOCAL_PLAYERS, OnQueryRecentTeamPlayersComplete, const FString& /*Namespace*/, bool /*bWasSuccessful*/, const FString& /*Error*/);
+
 	virtual ~FOnlineFriendsAccelByte() override = default;
 
 	/**
@@ -243,6 +251,7 @@ public:
 	virtual void DeleteFriendAlias(int32 LocalUserNum, const FUniqueNetId& FriendId, const FString& ListName, const FOnDeleteFriendAliasComplete& Delegate = FOnDeleteFriendAliasComplete()) override;
 	virtual void AddRecentPlayers(const FUniqueNetId& UserId, const TArray<FReportPlayedWithUser>& InRecentPlayers, const FString& ListName, const FOnAddRecentPlayersComplete& InCompletionDelegate) override;
 	virtual bool QueryRecentPlayers(const FUniqueNetId& UserId, const FString& Namespace) override;
+	bool QueryRecentTeamPlayers(int32 LocalUserNum, const FUniqueNetId& UserId, const FString& Namespace);
 	virtual bool BlockPlayer(int32 LocalUserNum, const FUniqueNetId& PlayerId) override;
 	virtual bool UnblockPlayer(int32 LocalUserNum, const FUniqueNetId& PlayerId) override;
 	virtual bool QueryBlockedPlayers(const FUniqueNetId& UserId) override;
@@ -253,6 +262,7 @@ public:
 	virtual TSharedPtr<FOnlineFriend> GetFriend(int32 LocalUserNum, const FUniqueNetId& FriendId, const FString& ListName) override;
 	virtual bool IsFriend(int32 LocalUserNum, const FUniqueNetId& FriendId, const FString& ListName) override;
 	virtual bool GetRecentPlayers(const FUniqueNetId& UserId, const FString& Namespace, TArray<TSharedRef<FOnlineRecentPlayer>>& OutRecentPlayers) override;
+	bool GetRecentTeamPlayers(const FUniqueNetId& UserId, const FString& Namespace, TArray<TSharedRef<FOnlineRecentPlayer>>& OutRecentPlayers) const;
 	virtual bool GetBlockedPlayers(const FUniqueNetId& UserId, TArray<TSharedRef<FOnlineBlockedPlayer>>& OutBlockedPlayers) override;
 	virtual void DumpRecentPlayers() const override;
 	virtual void DumpBlockedPlayers() const override;

@@ -35,6 +35,10 @@ void FOnlineAsyncTaskAccelByteLoginQueueCancelTicket::Initialize()
 	}
 	
 	API_CLIENT_CHECK_GUARD(ErrorStr);
+
+	OnCancelTicketSuccessHandler = TDelegateUtils<FVoidHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteLoginQueueCancelTicket::OnCancelTicketSuccess);
+	OnCancelTicketErrorHandler = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteLoginQueueCancelTicket::OnCancelTicketError);
+
 	ApiClient->LoginQueue.CancelTicket(TicketId, OnCancelTicketSuccessHandler, OnCancelTicketErrorHandler);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

@@ -196,11 +196,11 @@ void FOnlineAsyncTaskAccelByteLogin::TriggerDelegates()
 
 void FOnlineAsyncTaskAccelByteLogin::LoginWithNativeSubsystem()
 {
-	LoginWithSpecificSubsystem(IOnlineSubsystem::GetByPlatform());
+	LoginWithSpecificSubsystem(Subsystem->GetNativePlatformSubsystem());
 }
 
 //Used by child asynctask (SimultaneousLogin)
-void FOnlineAsyncTaskAccelByteLogin::LoginWithSpecificSubsystem(FString InSubsystemName)
+void FOnlineAsyncTaskAccelByteLogin::LoginWithSpecificSubsystem(FName InSubsystemName)
 {
 	FName SubsystemName(InSubsystemName);
 	LoginWithSpecificSubsystem(IOnlineSubsystem::Get(SubsystemName));
@@ -431,6 +431,7 @@ void FOnlineAsyncTaskAccelByteLogin::OnSpecificSubysystemLoginComplete(int32 Nat
 }
 
 #if defined(STEAM_SDK_VER) && !UE_SERVER
+
 void FOnlineAsyncTaskAccelByteLogin::OnGetAuthSessionTicketResponse(GetAuthSessionTicketResponse_t* CallBackParam)
 {
 	UE_LOG_AB(Log, TEXT("Get Auth Session Ticket Response, Result %d"), CallBackParam->m_eResult);
@@ -557,7 +558,7 @@ void FOnlineAsyncTaskAccelByteLogin::OnLoginSuccess()
 
 	CompositeId.Id = ApiClient->CredentialsRef->GetUserId();
 
-	const IOnlineSubsystem* NativeSubsystem = IOnlineSubsystem::GetByPlatform();
+	const IOnlineSubsystem* NativeSubsystem = Subsystem->GetNativePlatformSubsystem();
 	if (NativeSubsystem != nullptr 
 		&& LoginType == FOnlineSubsystemAccelByteUtils::GetAccelByteLoginTypeFromNativeSubsystem(NativeSubsystem->GetSubsystemName()))
 	{
@@ -684,6 +685,9 @@ void FOnlineAsyncTaskAccelByteLogin::OnLoginSuccessV4(const FAccelByteModelsLogi
 	{
 		IdentityInterface->TriggerAccelByteOnLoginQueuedDelegates(LoginUserNum, TicketInfo);
 	}
+
+	OnLoginQueueCancelledDelegate = TDelegateUtils<FAccelByteOnLoginQueueCanceledByUserDelegate>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteLogin::OnLoginQueueCancelled);
+	OnLoginQueueCancelledDelegateHandle = IdentityInterface->AddAccelByteOnLoginQueueCanceledByUserDelegate_Handle(OnLoginQueueCancelledDelegate);
 	
 	bShouldUseTimeout = false;
 	bLoginInQueue = true;
@@ -692,6 +696,28 @@ void FOnlineAsyncTaskAccelByteLogin::OnLoginSuccessV4(const FAccelByteModelsLogi
 		Subsystem->CreateAndDispatchAsyncTaskSerial<FOnlineAsyncTaskAccelByteLoginQueue>(Subsystem, LoginUserNum, TicketInfo);
 	}));
 	
+	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
+}
+
+void FOnlineAsyncTaskAccelByteLogin::OnLoginQueueCancelled(int32 InLoginUserNum)
+{
+	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Login queue cancelled for user %d"), LoginUserNum);
+
+	if(LoginUserNum != InLoginUserNum)
+	{
+		return;
+	}
+
+	bLoginInQueue = false;
+	
+	ErrorStr = TEXT("login process in queue is cancelled");
+	ErrorCode = static_cast<int32>(ErrorCodes::LoginQueueCanceled);
+	
+	ErrorOAuthObject.ErrorCode = ErrorCode;
+	ErrorOAuthObject.ErrorMessage = ErrorStr;
+	
+	CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
+
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 

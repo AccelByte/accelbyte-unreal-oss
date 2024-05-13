@@ -576,7 +576,15 @@ void FOnlineIdentityAccelByte::GetUserPrivilege(const FUniqueNetId& UserId, EUse
 		return;
 	}
 
-	const IOnlineSubsystem* NativeSubsystem = IOnlineSubsystem::GetByPlatform();
+	TSharedPtr<FOnlineSubsystemAccelByte, ESPMode::ThreadSafe> AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to query privileges for user as our internal subsystem pointer was invalid."));
+		Delegate.ExecuteIfBound(UserId, Privilege, static_cast<uint32>(EPrivilegeResults::UserNotFound));
+		return;
+	}
+
+	const IOnlineSubsystem* NativeSubsystem = AccelByteSubsystemPtr->GetNativePlatformSubsystem();
 	if (NativeSubsystem == nullptr)
 	{
 		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to query privileges for user as there is not a native platform OSS loaded."));
@@ -919,8 +927,14 @@ bool FOnlineIdentityAccelByte::RefreshPlatformToken(int32 LocalUserNum)
 {
 	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("RefreshNativePlatformToken LocalUserNum: %d"), LocalUserNum);
 
-	const IOnlineSubsystem* NativeSubsystem = IOnlineSubsystem::GetByPlatform();
-	
+	TSharedPtr<FOnlineSubsystemAccelByte, ESPMode::ThreadSafe> AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Internal subsystem pointer is invalid!"));
+		return false;
+	}
+
+	const IOnlineSubsystem* NativeSubsystem = AccelByteSubsystemPtr->GetNativePlatformSubsystem();
 	if (NativeSubsystem == nullptr)
 	{
 		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Native online subsystem is null!"));

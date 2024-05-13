@@ -460,6 +460,16 @@ PACKAGE_SCOPE:
 
 	bool IsLocalUserNumCached() const;
 
+	FName GetSecondaryPlatformSubsystemName() const;
+
+	void SetNativePlatformSubsystemNameOverride(FName InOverrideName);
+
+	void SetSecondaryPlatformSubsystemNameOverride(FName InOverrideName);
+
+	IOnlineSubsystem* GetNativePlatformSubsystem() const;
+
+	IOnlineSubsystem* GetSecondaryPlatformSubsystem() const;
+
 private:
 	/**************************************************
 	 * These are boolean that is configured from the DefaultEngine.ini
@@ -625,7 +635,13 @@ private:
 	void NativePlatformTokenRefreshScheduler(int32 LocalUserNum);
 	FDelegateHandle NativePlatformTokenRefreshDelegateHandle;
 	void OnPresenceChanged(EAccelBytePlatformType PlatformType, const FString& PlatformUserId, EAvailability AvailabilityState);
-	FString SecondaryPlatformName{};
+	
+	FName NativePlatformName{};
+	FName SecondaryPlatformName{};
+
+	FName NativePlatformSubsystemNameOverride{};
+	FName SecondaryPlatformSubsystemNameOverride{};
+
 #pragma endregion
 
 #pragma region EOS_SPECIFIC_HANDLER

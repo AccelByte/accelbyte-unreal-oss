@@ -98,7 +98,7 @@ void FOnlineAsyncTaskAccelByteQueryExternalIdMappings::OnBulkGetUserByOtherPlatf
 		
 		// Also add platform type from native subsystem and native ID, as that's usually what we'll query
 		// #NOTE (Maxwell): This will break if a different platform is being queried
-		IOnlineSubsystem* NativeSubsystem = IOnlineSubsystem::GetByPlatform();
+		IOnlineSubsystem* NativeSubsystem = Subsystem->GetNativePlatformSubsystem();
 		if (NativeSubsystem != nullptr)
 		{
 			CompositeId.PlatformType = NativeSubsystem->GetSubsystemName().ToString();

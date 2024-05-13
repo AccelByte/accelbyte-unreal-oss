@@ -12,6 +12,11 @@ class FOnlineAsyncTaskAccelByteGetUserEntitlementHistory
 {
 public:
 	FOnlineAsyncTaskAccelByteGetUserEntitlementHistory(FOnlineSubsystemAccelByte* const InABSubsystem
+		, const FUniqueNetId& InLocalUserId
+		, const FUniqueEntitlementId& InEntitlementId
+		, bool InForceUpdate);
+
+	FOnlineAsyncTaskAccelByteGetUserEntitlementHistory(FOnlineSubsystemAccelByte* const InABSubsystem
 		, int32 InLocalTargetUserNum
 		, const FUniqueEntitlementId& InEntitlementId
 		, bool InForceUpdate);
@@ -33,20 +38,23 @@ private:
 	void OnGetUserEntitlementHistoryError(int32 Code, FString const& ErrMsg);
 	FErrorHandler OnErrorDelegate;
 
-	/* User entitlement Id */
+	/* Flag to update user entitlement history from backend*/
 	bool bForceUpdateEntitlementHistory{false};
 
 	/* User entitlement Id */
-	FUniqueEntitlementId EntitlementId;
+	FUniqueNetIdAccelByteUserPtr LocalTargetUserId{nullptr};
+
+	/* User entitlement Id */
+	FUniqueEntitlementId EntitlementId{};
 
 	/* Target user to check the entitlement history */
-	int32 LocalTargetUserNum;
+	int32 LocalTargetUserNum{ 0 };
 
-	/* Incoming information for user entitlement history */
+	/* Incoming user entitlement history information for server */
 	TArray<FAccelByteModelsUserEntitlementHistory> UserEntitlementHistoryResponse{};
 
 	/* Success or Failure status code */
-	int32 HttpStatus = 0;
+	int32 HttpStatus{ 0 };
 
 	/* Error message upon failure to perform requested action */
 	FString ErrorString{};

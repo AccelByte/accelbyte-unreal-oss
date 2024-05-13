@@ -9,6 +9,7 @@
 #include "AsyncTasks/Entitlements/OnlineAsyncTaskAccelByteSyncPlatformPurchase.h"
 #include "AsyncTasks/Entitlements/OnlineAsyncTaskAccelByteSyncDLC.h"
 #include "AsyncTasks/Entitlements/OnlineAsyncTaskAccelByteGetUserEntitlementHistory.h"
+#include "AsyncTasks/Entitlements/OnlineAsyncTaskAccelByteGetCurrentUserEntitlementHistory.h"
 
 FOnlineEntitlementsAccelByte::FOnlineEntitlementsAccelByte(FOnlineSubsystemAccelByte* InSubsystem)
 	: AccelByteSubsystem(InSubsystem)
@@ -25,7 +26,7 @@ void FOnlineEntitlementsAccelByte::AddEntitlementToMap(const TSharedRef<const FU
 	ItemEntMap.Emplace(Entitlement->ItemId, Entitlement);
 }
 
-void FOnlineEntitlementsAccelByte::AddUserEntitlementHistoryToMap(const TSharedRef<const FUniqueNetIdAccelByteUser>& UserId
+void FOnlineEntitlementsAccelByte::AddUserEntitlementHistoryToMap(const FUniqueNetIdAccelByteUserRef& UserId
 	, const FUniqueEntitlementId& EntitlementId
 	, TArray<FAccelByteModelsUserEntitlementHistory> UserEntitlementHistory)
 {
@@ -34,6 +35,23 @@ void FOnlineEntitlementsAccelByte::AddUserEntitlementHistoryToMap(const TSharedR
 	FEntitlementHistory& EntitlementHistoryMap = UserEntitlementHistoryMap.FindOrAdd(UserId);
 
 	EntitlementHistoryMap.Emplace(EntitlementId, UserEntitlementHistory);
+}
+
+void FOnlineEntitlementsAccelByte::AddCurrentUserEntitlementHistoryToMap(const FUniqueNetIdAccelByteUserRef& UserId
+	, TArray<FAccelByteModelsBaseUserEntitlementHistory> CurrentUserEntitlementHistory)
+{
+	FScopeLock ScopeLock(&EntitlementMapLock);
+
+	// Get current user id
+	FCurrentUserEntitlementHistory& EntitlementHistoryMap = CurrentUserEntitlementHistoryMap.FindOrAdd(UserId);
+
+	// Extract each available entitlement id and group them
+	TMap<FString, TArray<FAccelByteModelsBaseUserEntitlementHistory>> TempMapEntitlementHistory = ExtractUserEntitlementId(CurrentUserEntitlementHistory);
+
+	for (const auto& CurrentHistory : TempMapEntitlementHistory)
+	{
+		EntitlementHistoryMap.Emplace(CurrentHistory.Key, CurrentHistory.Value);
+	}
 }
 
 bool FOnlineEntitlementsAccelByte::GetFromSubsystem(const IOnlineSubsystem* Subsystem, FOnlineEntitlementsAccelBytePtr& OutInterfaceInstance)
@@ -118,12 +136,106 @@ void FOnlineEntitlementsAccelByte::ConsumeEntitlement(const FUniqueNetId& UserId
 	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteConsumeEntitlement>(AccelByteSubsystem, UserId, EntitlementId, UseCount, Options, RequestId);
 }
 
+void FOnlineEntitlementsAccelByte::GetCurrentUserEntitlementHistory(const FUniqueNetId& UserId, const FUniqueEntitlementId& EntitlementId)
+{
+	GetCurrentUserEntitlementHistory(UserId, false, EntitlementId);
+}
+
+void FOnlineEntitlementsAccelByte::GetCurrentUserEntitlementHistory(const FUniqueNetId& UserId, const EAccelByteEntitlementClass& EntitlementClass, FDateTime StartDate, FDateTime EndDate, const FPagedQuery& Page)
+{
+	GetCurrentUserEntitlementHistory(UserId, true, TEXT(""), EntitlementClass, StartDate, EndDate, Page);
+}
+
+void FOnlineEntitlementsAccelByte::GetCurrentUserEntitlementHistory(const FUniqueNetId& UserId, bool bForceUpdate, const FUniqueEntitlementId& EntitlementId, const EAccelByteEntitlementClass& EntitlementClass, FDateTime StartDate, FDateTime EndDate, const FPagedQuery& Page)
+{
+	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGetCurrentUserEntitlementHistory>(AccelByteSubsystem, UserId, bForceUpdate, EntitlementId, EntitlementClass, StartDate, EndDate, Page);
+}
+
+void FOnlineEntitlementsAccelByte::GetCurrentUserEntitlementHistory(int32 LocalUserNum, const FUniqueEntitlementId& EntitlementId)
+{
+	GetCurrentUserEntitlementHistory(LocalUserNum, false, EntitlementId);
+}
+
+void FOnlineEntitlementsAccelByte::GetCurrentUserEntitlementHistory(int32 LocalUserNum, const EAccelByteEntitlementClass& EntitlementClass, FDateTime StartDate, FDateTime EndDate, const FPagedQuery& Page)
+{
+	GetCurrentUserEntitlementHistory(LocalUserNum, true, TEXT(""), EntitlementClass, StartDate, EndDate, Page);
+}
+
+void FOnlineEntitlementsAccelByte::GetCurrentUserEntitlementHistory(int32 LocalUserNum, bool bForceUpdate, const FUniqueEntitlementId& EntitlementId, const EAccelByteEntitlementClass& EntitlementClass, FDateTime StartDate, FDateTime EndDate, const FPagedQuery& Page)
+{
+	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGetCurrentUserEntitlementHistory>(AccelByteSubsystem, LocalUserNum, bForceUpdate, EntitlementId, EntitlementClass, StartDate, EndDate, Page);
+}
+
 void FOnlineEntitlementsAccelByte::GetUserEntitlementHistory(int32 LocalUserNum, const FUniqueEntitlementId& EntitlementId, bool bForceUpdate)
 {
 	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGetUserEntitlementHistory>(AccelByteSubsystem, LocalUserNum, EntitlementId, bForceUpdate);
 }
 
-bool FOnlineEntitlementsAccelByte::GetCachedUserEntitlementHistory(const TSharedRef<const FUniqueNetIdAccelByteUser>& InUserId, const FUniqueEntitlementId& InEntitlementId, TArray<FAccelByteModelsUserEntitlementHistory>& OutEntitlementHistory)
+void FOnlineEntitlementsAccelByte::GetUserEntitlementHistory(const FUniqueNetId& UserId, const FUniqueEntitlementId& EntitlementId, bool bForceUpdate)
+{
+	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGetUserEntitlementHistory>(AccelByteSubsystem, UserId, EntitlementId, bForceUpdate);
+}
+
+bool FOnlineEntitlementsAccelByte::GetCachedCurrentUserEntitlementHistory(const FUniqueNetIdAccelByteUserRef& InUserId, const FUniqueEntitlementId& InEntitlementId, TArray<FAccelByteModelsBaseUserEntitlementHistory>& OutEntitlementHistory)
+{
+	FScopeLock ScopeLock(&EntitlementMapLock);
+
+	if (!InUserId->IsValid())
+	{
+		UE_LOG_AB(Warning, TEXT("Failed to get entitlement history from cache as user is invalid"));
+
+		return false;
+	}
+
+	FCurrentUserEntitlementHistory& TempUserEntitlementHistoriesMap = *CurrentUserEntitlementHistoryMap.Find(InUserId);
+
+	if (TempUserEntitlementHistoriesMap.Num() == 0)
+	{
+		UE_LOG_AB(Warning, TEXT("Failed to get entitlement history from cache as there are no entitlement histories stored for this user"));
+
+		return false;
+	}
+
+	TArray<FAccelByteModelsBaseUserEntitlementHistory>& UserEntitlementHistories = *TempUserEntitlementHistoriesMap.Find(InEntitlementId);
+
+	if (UserEntitlementHistories.Num() == 0)
+	{
+		UE_LOG_AB(Warning, TEXT("Failed to get entitlement history from cache as there are no history for this entitlement"));
+
+		return false;
+	}
+
+	OutEntitlementHistory = UserEntitlementHistories;
+
+	return true;
+}
+
+bool FOnlineEntitlementsAccelByte::DeleteCachedCurrentUserEntitlementHistory(const FUniqueNetIdAccelByteUserRef& InUserId, const FUniqueEntitlementId& InEntitlementId)
+{
+	FScopeLock ScopeLock(&EntitlementMapLock);
+
+	if (!InUserId->IsValid())
+	{
+		UE_LOG_AB(Warning, TEXT("Failed to delete entitlement history from cache as user is invalid"));
+
+		return false;
+	}
+
+	FCurrentUserEntitlementHistory& TempUserEntitlementHistoriesMap = *CurrentUserEntitlementHistoryMap.Find(InUserId);
+
+	if (TempUserEntitlementHistoriesMap.Num() == 0)
+	{
+		UE_LOG_AB(Warning, TEXT("Failed to delete entitlement history from cache as there are no entitlement histories stored for this user"));
+
+		return false;
+	}
+
+	TempUserEntitlementHistoriesMap.Remove(InEntitlementId);
+
+	return true;
+}
+
+bool FOnlineEntitlementsAccelByte::GetCachedUserEntitlementHistory(const FUniqueNetIdAccelByteUserRef& InUserId, const FUniqueEntitlementId& InEntitlementId, TArray<FAccelByteModelsUserEntitlementHistory>& OutEntitlementHistory)
 {
 	FScopeLock ScopeLock(&EntitlementMapLock);
 
@@ -157,7 +269,7 @@ bool FOnlineEntitlementsAccelByte::GetCachedUserEntitlementHistory(const TShared
 	return true;
 }
 
-bool FOnlineEntitlementsAccelByte::DeleteCachedUserEntitlementHistory(const TSharedRef<const FUniqueNetIdAccelByteUser>& InUserId, const FUniqueEntitlementId& InEntitlementId)
+bool FOnlineEntitlementsAccelByte::DeleteCachedUserEntitlementHistory(const FUniqueNetIdAccelByteUserRef& InUserId, const FUniqueEntitlementId& InEntitlementId)
 {
 	FScopeLock ScopeLock(&EntitlementMapLock);
 
@@ -180,4 +292,29 @@ bool FOnlineEntitlementsAccelByte::DeleteCachedUserEntitlementHistory(const TSha
 	TempUserEntitlementHistoriesMap.Remove(InEntitlementId);
 
 	return true;
+}
+
+TMap<FString, TArray<FAccelByteModelsBaseUserEntitlementHistory>> FOnlineEntitlementsAccelByte::ExtractUserEntitlementId(TArray<FAccelByteModelsBaseUserEntitlementHistory> InCurrentUserEntitlementHistory)
+{
+	TArray<FAccelByteModelsBaseUserEntitlementHistory> TempArrayEntitlementHistories{};
+	TMap<FString, TArray<FAccelByteModelsBaseUserEntitlementHistory>> MapEntitlementHistoryResult{};
+
+	// Extract each available entitlement id
+	for (const auto& CurrentHistory : InCurrentUserEntitlementHistory)
+	{
+		TempArrayEntitlementHistories = {};
+
+		if (MapEntitlementHistoryResult.Contains(CurrentHistory.EntitlementId))
+		{
+			MapEntitlementHistoryResult[CurrentHistory.EntitlementId].Add(CurrentHistory);
+		}
+		else
+		{
+			TempArrayEntitlementHistories.Add(CurrentHistory);
+
+			MapEntitlementHistoryResult.Add(CurrentHistory.EntitlementId, TempArrayEntitlementHistories);
+		}
+	};
+
+	return MapEntitlementHistoryResult;
 }

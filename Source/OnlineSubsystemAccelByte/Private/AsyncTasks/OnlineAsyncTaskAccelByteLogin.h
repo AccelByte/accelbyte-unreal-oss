@@ -168,7 +168,7 @@ protected:
 	 * Attempts to fire off a login request with a specific subsystem, if one is set up and usable.
 	 */
 	void LoginWithSpecificSubsystem(IOnlineSubsystem* NativeSubsystem);
-	void LoginWithSpecificSubsystem(FString SubsystemName);
+	void LoginWithSpecificSubsystem(FName InSubsystemName);
 
 	/**
 	 * Callback for delegate fired when the `specified` subsystem has finished its authentication. Authenticates with the AccelByte back end upon firing.
@@ -211,6 +211,11 @@ protected:
 	 * @param ErrorObject Object representing the error code that occurred
 	 */
 	void OnLoginErrorOAuth(int32 ErrorCode, const FString& ErrorMessage, const FErrorOAuthInfo& ErrorObject);
+
+	FDelegateHandle OnLoginQueueCancelledDelegateHandle;
+	FAccelByteOnLoginQueueCanceledByUserDelegate OnLoginQueueCancelledDelegate;
+
+	void OnLoginQueueCancelled(int32 LoginUserNum);
 
 #if defined(STEAM_SDK_VER) && !UE_SERVER
 	/**

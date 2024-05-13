@@ -353,7 +353,7 @@ void FOnlineAsyncTaskAccelByteQueryUsersByIds::OnGetUserOtherPlatformBasicPublic
 
 void FOnlineAsyncTaskAccelByteQueryUsersByIds::QueryUsersOnNativePlatform(const TArray<TSharedRef<const FUniqueNetId>>& PlatformUniqueIds)
 {
-	const IOnlineSubsystem* NativeSubsystem = IOnlineSubsystem::GetByPlatform();
+	const IOnlineSubsystem* NativeSubsystem = Subsystem->GetNativePlatformSubsystem();
 	if (NativeSubsystem == nullptr)
 	{
 		UE_LOG_AB(Warning, TEXT("Unable to retrieve the native online subsystem! Skipping native platform query."));

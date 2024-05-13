@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.12.14](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.12.14%0D0.12.13) (2024-05-13)
+
+
+### Features
+
+* **analytics:** user segmentation data quality check ([a6fe68f](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/a6fe68f19d1807137725e4a9f8569943a014957b))
+* **config:** allow for runtime override of native and secondary platform subsystems ([654aa56](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/654aa56e64c4a0ed21e5ec70d2f72655c813fe2f))
+* **entitlement:** expose public get user entitlement history ([32c2eb2](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/32c2eb2e967c41d72a197687919868ff36a82376))
+
+
+### Bug Fixes
+
+* login queue keep polling after ticket is canceled ([6a7a1db](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/6a7a1db6ce0dbbfadc2d9c5dec1ee69a263751ce))
+* **session:** add API_CLIENT_CHECKGUARD in get recent player async task ([adb845e](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/adb845e52fae1d665cb4746ef736363bb952ec65))
+
 ### [0.12.13](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.12.13%0D0.12.12) (2024-05-07)
 
 

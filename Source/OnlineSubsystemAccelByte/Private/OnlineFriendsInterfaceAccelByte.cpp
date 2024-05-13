@@ -23,6 +23,7 @@
 #include "OnlineSubsystemUtils.h"
 #include "AsyncTasks/Friends/OnlineAsyncTaskAccelByteSyncThirdPartyFriendV2.h"
 #include "AsyncTasks/SessionV2/OnlineAsyncTaskAccelByteV2GetRecentPlayer.h"
+#include "AsyncTasks/SessionV2/OnlineAsyncTaskAccelByteV2GetRecentTeamPlayer.h"
 
 #define ONLINE_ERROR_NAMESPACE "FOnlineFriendAccelByte"
 
@@ -714,6 +715,30 @@ bool FOnlineFriendsAccelByte::QueryRecentPlayers(const FUniqueNetId& UserId, con
 	return true;
 }
 
+bool FOnlineFriendsAccelByte::QueryRecentTeamPlayers(int32 LocalUserNum, const FUniqueNetId& UserId, const FString& Namespace)
+{
+	if (IsRunningDedicatedServer())
+	{
+		AccelByteSubsystem->ExecuteNextTick([this, &Namespace, &LocalUserNum]() {
+			TriggerOnQueryRecentTeamPlayersCompleteDelegates(LocalUserNum, Namespace, false, TEXT("recent-team-players-invalid-request"));
+		});
+		return false;
+	}
+
+#if AB_USE_V2_SESSIONS
+	FOnlineAsyncTaskInfo TaskInfo;
+	TaskInfo.bCreateEpicForThis = true;
+	TaskInfo.Type = ETypeOfOnlineAsyncTask::Parallel;
+	AccelByteSubsystem->CreateAndDispatchAsyncTask<FOnlineAsyncTaskAccelByteV2GetRecentTeamPlayer>(TaskInfo, AccelByteSubsystem, LocalUserNum, UserId, Namespace);
+#else
+	AccelByteSubsystem->ExecuteNextTick([this, &Namespace, &LocalUserNum]() {
+		TriggerOnQueryRecentTeamPlayersCompleteDelegates(LocalUserNum, Namespace, false, TEXT("recent-team-players-invalid-request"));
+	});
+	return false;
+#endif
+	return true;
+}
+
 bool FOnlineFriendsAccelByte::BlockPlayer(int32 LocalUserNum, const FUniqueNetId& PlayerId)
 {
 	FOnlineAsyncTaskInfo TaskInfo;
@@ -792,6 +817,16 @@ bool FOnlineFriendsAccelByte::IsFriend(int32 LocalUserNum, const FUniqueNetId& F
 bool FOnlineFriendsAccelByte::GetRecentPlayers(const FUniqueNetId& UserId, const FString& Namespace, TArray<TSharedRef<FOnlineRecentPlayer>>& OutRecentPlayers)
 {
 	TArray<TSharedRef<FOnlineRecentPlayerAccelByte>> RecentPlayers = RecentPlayersMap.FindRef(UserId.AsShared());
+	for (TSharedRef<FOnlineRecentPlayerAccelByte> RecentPlayer : RecentPlayers) {
+		OutRecentPlayers.Add(RecentPlayer);
+	}
+	return true;
+}
+
+bool FOnlineFriendsAccelByte::GetRecentTeamPlayers(const FUniqueNetId& UserId, const FString& Namespace,
+	TArray<TSharedRef<FOnlineRecentPlayer>>& OutRecentPlayers) const
+{
+	TArray<TSharedRef<FOnlineRecentPlayerAccelByte>> RecentPlayers = RecentTeamPlayersMap.FindRef(UserId.AsShared());
 	for (TSharedRef<FOnlineRecentPlayerAccelByte> RecentPlayer : RecentPlayers) {
 		OutRecentPlayers.Add(RecentPlayer);
 	}
