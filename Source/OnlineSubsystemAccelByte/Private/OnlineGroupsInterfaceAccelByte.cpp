@@ -650,9 +650,8 @@ int FOnlineGroupsAccelByte::QueryConfigHeadcount()
 	if (IsGroupValid() == false)
 		return 0;
 
-	return CachedCurrentGroup->ABGroupInfo.GroupMaxMember;
-	
 	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+	return CachedCurrentGroup->ABGroupInfo.GroupMaxMember;
 }
 
 void FOnlineGroupsAccelByte::QueryConfigHeadcount(const FUniqueNetId& ContextUserId, const FOnGroupsRequestCompleted& OnCompleted)

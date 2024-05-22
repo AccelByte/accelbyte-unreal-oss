@@ -18,6 +18,9 @@ typedef FOnQueryUserOrdersComplete::FDelegate FOnQueryUserOrdersCompleteDelegate
 DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnCreateNewOrderComplete, bool /* bWasSuccessful */, const FAccelByteModelsOrderInfo& /* Result */, const FOnlineErrorAccelByte& /* Error */);
 typedef FOnCreateNewOrderComplete::FDelegate FOnCreateNewOrderCompleteDelegate;
 
+DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnPreviewOrderComplete, bool /* bWasSuccessful */, const FAccelByteModelsUserPreviewOrderResponse& /* Result */, const FOnlineErrorAccelByte& /* Error */);
+typedef FOnPreviewOrderComplete::FDelegate FOnPreviewOrderCompleteDelegate;
+
 class ONLINESUBSYSTEMACCELBYTE_API FOnlinePurchaseAccelByte : public IOnlinePurchase
 {
 PACKAGE_SCOPE:
@@ -80,6 +83,18 @@ public:
 	 * @param OrderCreate contains some parameters for create new order.
 	 */
 	void CreateNewOrder(const FUniqueNetId& UserId, const FAccelByteModelsOrderCreate& OrderCreate);
+
+	/**
+	 * Delegate called when a controller-user preview an order complete.
+	 */
+	DEFINE_ONLINE_DELEGATE_THREE_PARAM(OnPreviewOrderComplete, bool /*bWasSuccessful*/, const FAccelByteModelsUserPreviewOrderResponse& /*OrderInfo*/, const FOnlineErrorAccelByte & /*OnlineError*/);
+	/**
+	 *  Preview an order using discount code(s).
+	 *
+	 * @param UserId The user's user ID.
+	 * @param PreviewOrderRequest contains some parameters for previewing the order.
+	*/
+	void PreviewOrder(const FUniqueNetId& UserId, const FAccelByteModelsUserPreviewOrderRequest& PreviewOrderRequest);
 
 protected:
 	/** Instance of the subsystem that created this interface */

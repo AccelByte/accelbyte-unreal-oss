@@ -83,12 +83,13 @@ void FOnlineAsyncTaskAccelByteUpdatePlayerAttributes::OnGetPlayerCrossplayPrivil
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("LocalUserId: %s; Result: %d"), *LocalUserId.ToDebugString(), PrivilegeResult);
 
 	// Construct the update request model from both the previous model and the update passed into this call
-	const bool bIsCrossplayAllowed = (PrivilegeResult == 0);
+	const bool bIsCrossplayAllowed = (PrivilegeResult == 0 && AttributesToUpdate.bEnableCrossplay == true);
 	FAccelByteModelsV2StorePlayerAttributesRequest Request{};
 	Request.CurrentPlatform = Attributes.CurrentPlatform;
-	Request.Platforms = Attributes.Platforms;
+	Request.Platforms = (AttributesToUpdate.Platforms.Num() != 0) ? AttributesToUpdate.Platforms : Attributes.Platforms;
 	Request.CrossplayEnabled = (bIsCrossplayAllowed) ? AttributesToUpdate.bEnableCrossplay : false;
 	Request.Data.JsonObject = AttributesToUpdate.Data;
+	Request.Roles = AttributesToUpdate.Roles;
 
 	if (Request.Data.JsonObject.IsValid())
 	{

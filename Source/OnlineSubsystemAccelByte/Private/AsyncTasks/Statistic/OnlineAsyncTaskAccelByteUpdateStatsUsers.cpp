@@ -153,7 +153,7 @@ void FOnlineAsyncTaskAccelByteUpdateStatsUsers::OnBulkUpdateUserStatsSuccess(TAr
 
 				float NewValue = 0.0f;
 
-				TSharedPtr<FJsonValue> NewValueJson = Result[i].Details.JsonObject.Get()->TryGetField("currentValue");
+				TSharedPtr<FJsonValue> NewValueJson = Result[i].Details.JsonObject.Get()->TryGetField(TEXT("currentValue"));
 				if (NewValueJson.IsValid() && !NewValueJson->IsNull())
 				{
 					NewValue = NewValueJson->AsNumber();

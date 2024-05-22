@@ -14,6 +14,7 @@
 #include "AsyncTasks/Chat/OnlineAsyncTaskAccelByteChatDeleteSystemMessages.h"
 #include "AsyncTasks/Chat/OnlineAsyncTaskAccelByteChatJoinPublicRoom.h"
 #include "AsyncTasks/Chat/OnlineAsyncTaskAccelByteChatExitRoom.h"
+#include "AsyncTasks/Chat/OnlineAsyncTaskAccelByteChatGetConfig.h"
 #include "AsyncTasks/Chat/OnlineAsyncTaskAccelByteChatGetSystemMessagesStats.h"
 #include "AsyncTasks/Chat/OnlineAsyncTaskAccelByteChatQueryRoom.h"
 #include "AsyncTasks/Chat/OnlineAsyncTaskAccelByteChatQueryRoomById.h"
@@ -97,8 +98,18 @@ bool FOnlineChatAccelByte::Connect(int32 LocalUserNum)
 		TriggerOnConnectChatCompleteDelegates(LocalUserNum, false, *LocalUserId.Get(), ErrorStr);
 		return false;
 	}
-		
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteConnectChat>(AccelByteSubsystem, *LocalUserId.Get());
+	
+	// If auto check max limit message config is true, then get the config first from backend
+	bool bIsAutoCheckMaximumLimitChatMessage{false};
+	if (FAccelByteUtilities::LoadABConfigFallback(TEXT("OnlineSubsystemAccelByte"), TEXT("bIsAutoCheckMaximumLimitChatMessage"), bIsAutoCheckMaximumLimitChatMessage) && bIsAutoCheckMaximumLimitChatMessage)
+	{
+		AccelByteSubsystem->CreateAndDispatchAsyncTaskSerial<FOnlineAsyncTaskAccelByteChatGetConfig>(AccelByteSubsystem, *LocalUserId.Get());
+		AccelByteSubsystem->CreateAndDispatchAsyncTaskSerial<FOnlineAsyncTaskAccelByteConnectChat>(AccelByteSubsystem, *LocalUserId.Get());
+	}
+	else
+	{
+		AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteConnectChat>(AccelByteSubsystem, *LocalUserId.Get());
+	}
 	AB_OSS_INTERFACE_TRACE_END(TEXT("Dispatching async task to attempt to connect chat!"));
 	return true;
 }
@@ -205,6 +216,16 @@ bool FOnlineChatAccelByte::SendRoomChat(const FUniqueNetId& UserId, const FChatR
 		return false;
 	}
 
+	// If max chat message length is not an index none, then check the message body length compare with max chat message length
+	if (MaxChatMessageLength != INDEX_NONE)
+	{
+		if (MsgBody.Len() > MaxChatMessageLength)
+		{
+			AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Unable to send room chat as the message body is more than limit of %d characters"), MaxChatMessageLength);
+			return false;
+		}
+	}
+
 	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteChatSendRoomChat>(AccelByteSubsystem, UserId, RoomId, MsgBody);
 
 	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
@@ -215,6 +236,16 @@ bool FOnlineChatAccelByte::SendRoomChat(const FUniqueNetId& UserId, const FChatR
 bool FOnlineChatAccelByte::SendPrivateChat(const FUniqueNetId& UserId, const FUniqueNetId& RecipientId, const FString& MsgBody)
 {
 	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("UserId: %s, RecipientId: %s"), *UserId.ToDebugString(), *RecipientId.ToDebugString());
+
+	// If max chat message length is not an index none, then check the message body length compare with max chat message length
+	if (MaxChatMessageLength != INDEX_NONE)
+	{
+		if (MsgBody.Len() > MaxChatMessageLength)
+		{
+			AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Unable to send room chat as the message body is more than limit of %d characters"), MaxChatMessageLength);
+			return false;
+		}
+	}
 
 	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteChatSendPersonalChat>(AccelByteSubsystem, UserId, RecipientId, MsgBody);
 
@@ -278,6 +309,39 @@ bool FOnlineChatAccelByte::GetSystemMessageStats(const FUniqueNetId& UserId, con
 {
 	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("UserId: %s"), *UserId.ToDebugString());
 	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteChatGetSystemMessagesStats>(AccelByteSubsystem, UserId, Request);
+	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+
+	return true;
+}
+
+bool FOnlineChatAccelByte::GetChatConfig(int32 LocalUserNum)
+{
+	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("LocalUserNum: %i"), LocalUserNum);
+
+	if (IsRunningDedicatedServer())
+	{
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Get chat config is not supported for game server"));
+		return false;
+	}
+	const TSharedPtr<const FUniqueNetId> UserIdPtr = AccelByteSubsystem->GetIdentityInterface()->GetUniquePlayerId(LocalUserNum);
+	GetChatConfig(*UserIdPtr.Get());
+
+	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+
+	return true;
+}
+
+bool FOnlineChatAccelByte::GetChatConfig(const FUniqueNetId& UserId)
+{
+	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("UserId: %s"), *UserId.ToDebugString());
+
+	if (IsRunningDedicatedServer())
+	{
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Get chat config is not supported for game server"));
+		return false;
+	}
+	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteChatGetConfig>(AccelByteSubsystem, UserId);
+
 	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
 
 	return true;

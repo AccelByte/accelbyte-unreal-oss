@@ -196,6 +196,18 @@ void FOnlineAsyncTaskAccelByteLogin::TriggerDelegates()
 
 void FOnlineAsyncTaskAccelByteLogin::LoginWithNativeSubsystem()
 {
+#if WITH_EDITOR
+	FString NativePlatformName = Subsystem->GetNativePlatformNameString();
+	
+	//Case: to prevent Steam OSS running in Editor which can lead to crash
+	if (NativePlatformName.Contains("steam"))
+	{
+		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Cannot login with native subsystem from Editor using the Steam as Native Subsystem!"));
+		CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState);
+		return;
+	}
+#endif
+
 	LoginWithSpecificSubsystem(Subsystem->GetNativePlatformSubsystem());
 }
 

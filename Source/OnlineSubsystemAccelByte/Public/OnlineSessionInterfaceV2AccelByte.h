@@ -346,6 +346,11 @@ PACKAGE_SCOPE:
 	 * Name of the match pool used in current matchmaking
 	 */
 	FString MatchPool{};
+
+	/**
+	 * The list of available platforms for cross platform matchmaking
+	 */
+	TArray<FString> CrossPlatforms{};
 };
 
 #if (ENGINE_MAJOR_VERSION == 4 && ENGINE_MINOR_VERSION < 26)
@@ -407,6 +412,16 @@ struct FOnlineSessionV2AccelBytePlayerAttributes
 	 * Custom data that should be associated with this player between multiple sessions.
 	 */
 	TSharedPtr<FJsonObject> Data{nullptr};
+
+	/**
+	 * Preferred roles that associated with this player between multiple sessions.
+	 */
+	TArray<FString> Roles{};
+
+	/**
+	 * Preferred roles that associated with this player between multiple sessions.
+	 */
+	TArray<FAccelByteModelsV2PlayerAttributesPlatform> Platforms{};
 };
 
 // Begin custom delegates
@@ -1911,7 +1926,10 @@ private:
 	 * @param LocalUserNum Local user num.
 	 * @return true if successfully synced auto join game session from backend.
 	 */
-	bool HandleAutoJoinGameSession(const FAccelByteModelsV2GameSession& GameSession, int32 LocalUserNum);
+	bool HandleAutoJoinGameSession(const FAccelByteModelsV2GameSession& GameSession
+		, int32 LocalUserNum
+		, bool bHasDsError=false
+		, FString DsErrorString=FString());
 
 protected:
 	FNamedOnlineSession* AddNamedSession(FName SessionName, const FOnlineSessionSettings& SessionSettings) override;

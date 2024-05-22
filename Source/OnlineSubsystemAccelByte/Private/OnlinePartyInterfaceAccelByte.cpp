@@ -32,9 +32,9 @@ bool WarnForUsingV1PartyWithV2Sessions()
 #if AB_USE_V2_SESSIONS
 	UE_LOG_AB(Warning, TEXT("Tried to use party calls in FOnlinePartySystemAccelByte while using V2 sessions! Party logic has moved from the party interface to the session interface while using V2 sessions. Please update to using session interface for party management!"));
 	return true;
-#endif
-
+#else
 	return false;
+#endif
 }
 
 FOnlinePartyIdAccelByte::FOnlinePartyIdAccelByte(const FString& InIdStr)

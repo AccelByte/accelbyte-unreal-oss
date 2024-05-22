@@ -4,6 +4,7 @@
 
 #include "VoiceChat/AccelByteVoiceChat.h"
 #include "OnlineIdentityInterfaceAccelByte.h"
+#include "Core/AccelByteReport.h"
 #include "OnlineSubsystemTypes.h"
 #include "VoiceChat.h"
 #include "Runtime/Launch/Resources/Version.h"
@@ -352,9 +353,22 @@ FOnVoiceChatCallStatsUpdatedDelegate& FAccelByteVoiceChat::OnVoiceChatCallStatsU
 	return GetVoiceChatUser()->OnVoiceChatCallStatsUpdated();
 }
 
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >=4
+void FAccelByteVoiceChat::Set3DPosition(const FString& ChannelName, const FVector& Position)
+{
+	GetVoiceChatUser()->Set3DPosition(ChannelName, Position);
+}
+#endif
+
 void FAccelByteVoiceChat::Set3DPosition(const FString& ChannelName, const FVector& SpeakerPosition, const FVector& ListenerPosition, const FVector& ListenerForwardDirection, const FVector& ListenerUpDirection)
 {
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >=4
+	AccelByte::FReport::LogDeprecated(FString(__FUNCTION__),
+		TEXT("Set3DPosition is Deprecated - Please replace with new Set3DPosition override."));
+	Set3DPosition(ChannelName, SpeakerPosition);
+#else
 	GetVoiceChatUser()->Set3DPosition(ChannelName, SpeakerPosition, ListenerPosition, ListenerForwardDirection, ListenerUpDirection);
+#endif
 }
 
 TArray<FString> FAccelByteVoiceChat::GetChannels() const

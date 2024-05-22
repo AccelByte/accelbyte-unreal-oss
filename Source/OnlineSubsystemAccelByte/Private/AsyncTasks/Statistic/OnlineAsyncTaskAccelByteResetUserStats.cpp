@@ -192,7 +192,7 @@ void FOnlineAsyncTaskAccelByteResetUserStats::OnResetUserStatItemsSuccess(const 
 
 	for (const auto& Stat : UserStatsResetResponse)
 	{
-		float NewValue = float(Stat.Details.JsonObject.Get()->GetIntegerField("currentValue"));
+		float NewValue = float(Stat.Details.JsonObject.Get()->GetIntegerField(TEXT("currentValue")));
 
 		FString Key = Stat.StatCode;
 		FVariantData Value = NewValue;

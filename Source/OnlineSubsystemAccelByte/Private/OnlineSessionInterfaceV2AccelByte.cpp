@@ -2655,6 +2655,14 @@ TSharedRef<FJsonObject> FOnlineSessionV2AccelByte::ConvertSearchParamsToJsonObje
 			continue;
 		}
 
+		if (Param.Key == SETTING_GAMESESSION_CROSSPLATFORM)
+		{
+			// Cross platform is a special key in the match ticket attributes. So we need to send it as a snake case field with
+			// no type suffix.
+			Param.Value.Data.AddToJsonObject(OutObject, TEXT("cross_platform"), false);
+			continue;
+		}
+
 		if (ShouldSkipAddingFieldToSessionAttributes(Param.Key))
 		{
 			continue;
@@ -3653,6 +3661,8 @@ FOnlineSessionV2AccelBytePlayerAttributes FOnlineSessionV2AccelByte::GetPlayerAt
 	{
 		OutAttributes.bEnableCrossplay = FoundAttributes->CrossplayEnabled;
 		OutAttributes.Data = FoundAttributes->Data.JsonObject;
+		OutAttributes.Roles = FoundAttributes->Roles;
+		OutAttributes.Platforms = FoundAttributes->Platforms;
 	}
 
 	return OutAttributes;
@@ -5579,10 +5589,12 @@ void FOnlineSessionV2AccelByte::OnDsStatusChangedNotification(FAccelByteModelsV2
 		return;
 	}
 
+	const bool bDsStatusError = DsStatusChangeEvent.Session.DSInformation.StatusV2 == EAccelByteV2GameSessionDsStatus::FAILED_TO_REQUEST;
+
 	FNamedOnlineSession* Session = GetNamedSessionById(DsStatusChangeEvent.SessionID);
 	if (Session == nullptr)
 	{
-		if (HandleAutoJoinGameSession(DsStatusChangeEvent.Session, LocalUserNum))
+		if (HandleAutoJoinGameSession(DsStatusChangeEvent.Session, LocalUserNum, bDsStatusError, DsStatusChangeEvent.Error))
 		{
 			AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Log, TEXT("Synced auto joined game session from backend"));
 			return;
@@ -5592,8 +5604,6 @@ void FOnlineSessionV2AccelByte::OnDsStatusChangedNotification(FAccelByteModelsV2
 		return;
 	}
 
-	const bool bDsStatusError = DsStatusChangeEvent.Session.DSInformation.StatusV2 == EAccelByteV2GameSessionDsStatus::FAILED_TO_REQUEST;
-	
 	if (bDsStatusError)
 	{
 		TriggerOnSessionServerErrorDelegates(Session->SessionName, DsStatusChangeEvent.Error);
@@ -6102,6 +6112,7 @@ void FOnlineSessionV2AccelByte::OnMatchmakingStartedNotification(FAccelByteModel
 		return;
 	}
 
+	// This validation is used for party member.
 	if (!CurrentMatchmakingSearchHandle.IsValid())
 	{
 		// If we don't have a valid session search instance stored, then the party leader has started matchmaking, in which we
@@ -6112,11 +6123,25 @@ void FOnlineSessionV2AccelByte::OnMatchmakingStartedNotification(FAccelByteModel
 		CurrentMatchmakingSearchHandle->TicketId = MatchmakingStartedNotif.TicketID;
 		CurrentMatchmakingSearchHandle->MatchPool = MatchmakingStartedNotif.MatchPool;
 
+		if (MatchmakingStartedNotif.TicketInformation.CrossPlayEnabled)
+		{
+			CurrentMatchmakingSearchHandle->CrossPlatforms = MatchmakingStartedNotif.TicketInformation.CrossPlatforms;
+		}
+
 		// #TODO (Maxwell) Revisit this to somehow give developers a way to choose what session name they are matching for if a party
 		// member receives a matchmaking notification. Since matchmaking shouldn't just be limited to game sessions.
 		CurrentMatchmakingSearchHandle->SearchingSessionName = NAME_GameSession;
 
 		TriggerOnMatchmakingStartedDelegates();
+	}
+	else
+	{
+		// Since we're using user attribute (from party leader) to enable the cross play
+		// This will populate the matchmaking search handle for the party member.
+		if (MatchmakingStartedNotif.TicketInformation.CrossPlayEnabled)
+		{
+			CurrentMatchmakingSearchHandle->CrossPlatforms = MatchmakingStartedNotif.TicketInformation.CrossPlatforms;
+		}
 	}
 
 	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = AccelByteSubsystem->GetPredefinedEventInterface();
@@ -6886,7 +6911,10 @@ void FOnlineSessionV2AccelByte::OnAMSDrain()
 	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
 }
 
-bool FOnlineSessionV2AccelByte::HandleAutoJoinGameSession(const FAccelByteModelsV2GameSession& GameSession, const int32 LocalUserNum)
+bool FOnlineSessionV2AccelByte::HandleAutoJoinGameSession(const FAccelByteModelsV2GameSession& GameSession
+	, const int32 LocalUserNum
+	, bool bHasDsError
+	, FString DsErrorString)
 {
 	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("Checking if added to auto join game session from backend"));
 
@@ -6939,6 +6967,12 @@ bool FOnlineSessionV2AccelByte::HandleAutoJoinGameSession(const FAccelByteModels
 			}
 
 			TriggerOnJoinSessionCompleteDelegates(NAME_GameSession, EOnJoinSessionCompleteResult::Success);
+
+			if (bHasDsError)
+			{
+				TriggerOnSessionServerErrorDelegates(NAME_GameSession, DsErrorString);
+				UE_LOG_AB(Warning, TEXT("Auto joined session had DS error occur! Error message: %s"), *DsErrorString);
+			}
 
 			// session is auto joined, we won't be in invited state
 			StopSessionInviteCheckPoll(UserUniqueNetId, GameSession.ID);

@@ -49,6 +49,9 @@ typedef FAccelByteOnLobbyConnectionClosed::FDelegate FAccelByteOnLobbyConnection
 DECLARE_MULTICAST_DELEGATE_FiveParams(FAccelByteOnLobbyReconnecting, int32 /*LocalUserNum*/, const FUniqueNetId& /*UserId*/, int32 /*StatusCode*/, const FString& /*Reason*/, bool /*bWasClean*/);
 typedef FAccelByteOnLobbyReconnecting::FDelegate FAccelByteOnLobbyReconnectingDelegate;
 
+DECLARE_MULTICAST_DELEGATE(FAccelByteOnLobbyReconnected);
+typedef FAccelByteOnLobbyReconnected::FDelegate FAccelByteOnLobbyReconnectedDelegate;
+
 DECLARE_DELEGATE_TwoParams(FGenerateCodeForPublisherTokenComplete, bool /*bWasSuccessful*/, const FCodeForTokenExchangeResponse& Result /*Result*/);
 
 DECLARE_MULTICAST_DELEGATE_FiveParams(FAccelByteOnPlatformTokenRefreshedComplete, int32 /*LocalUserNum*/, bool /*bWasSuccessful*/, const FPlatformTokenRefreshResponse& /*RefreshResponse*/, const FName& /*PlatformName*/, const FErrorOAuthInfo& /*Error*/);
@@ -115,7 +118,11 @@ public:
 	virtual FString GetAuthToken(int32 LocalUserNum) const override;
 	virtual void RevokeAuthToken(const FUniqueNetId& UserId, const FOnRevokeAuthTokenCompleteDelegate& Delegate) override;
 	virtual void GetLinkedAccountAuthToken(int32 LocalUserNum, const FOnGetLinkedAccountAuthTokenCompleteDelegate& Delegate) const override;
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 4
+	virtual void GetUserPrivilege(const FUniqueNetId& UserId, EUserPrivileges::Type Privilege, const FOnGetUserPrivilegeCompleteDelegate& Delegate, EShowPrivilegeResolveUI ShowResolveUI = EShowPrivilegeResolveUI::Default) override;
+#else
 	virtual void GetUserPrivilege(const FUniqueNetId& UserId, EUserPrivileges::Type Privilege, const FOnGetUserPrivilegeCompleteDelegate& Delegate) override;
+#endif
 	virtual FPlatformUserId GetPlatformUserIdFromUniqueNetId(const FUniqueNetId& UniqueNetId) const override;
 	virtual FString GetAuthType() const override;
 #if ENGINE_MAJOR_VERSION > 4
@@ -223,6 +230,11 @@ public:
 	 * @param bWasClean Whether the connection reconnect with a clean status or not
 	 */
 	DEFINE_ONLINE_PLAYER_DELEGATE_FOUR_PARAM(MAX_LOCAL_PLAYERS, AccelByteOnLobbyReconnecting, const FUniqueNetId& /*UserId*/, int32 /*StatusCode*/, const FString& /*Reason*/, bool /*bWasClean*/);
+
+	/**
+	 * Called when lobby connected after try to reconnect
+	 */
+	DEFINE_ONLINE_PLAYER_DELEGATE(MAX_LOCAL_PLAYERS, AccelByteOnLobbyReconnected);
 	
 	/**
 	 * Triggered when the platform token refresh is already responded

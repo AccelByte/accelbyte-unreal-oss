@@ -133,6 +133,7 @@ void FOnlineAsyncTaskAccelByteInitializePlayerAttributes::SendAttributeUpdateReq
 	Request.CurrentPlatform = UserId->GetPlatformType();
 	Request.Data = PreviousAttributes.Data;
 	Request.Platforms = PreviousAttributes.Platforms;
+	Request.Roles = PreviousAttributes.Roles;
 
 	// Check if the current platform for the player is already in the platforms array. If so, just update the ID of the
 	// user stored in the array. Otherwise, add a new element.

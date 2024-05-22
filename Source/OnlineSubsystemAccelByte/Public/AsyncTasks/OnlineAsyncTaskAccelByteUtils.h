@@ -39,7 +39,11 @@ class TDelegateUtils<DELEGATE_TEMPLATE_TYPE>
 
 public:
 	template <typename UserClass, typename... VarTypes>
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 4
+	[[nodiscard]] inline static DELEGATE_TEMPLATE_TYPE CreateThreadSafeSelfPtr(TSelfPtr<UserClass, ESPMode::ThreadSafe>* InUserObjectRef, typename TMemFunPtrType<false, UserClass, RetValType(ParamTypes..., VarTypes...)>::Type InFunc, VarTypes... Vars)
+#else
 	UE_NODISCARD inline static DELEGATE_TEMPLATE_TYPE CreateThreadSafeSelfPtr(TSelfPtr<UserClass, ESPMode::ThreadSafe> *InUserObjectRef, typename TMemFunPtrType<false, UserClass, RetValType(ParamTypes..., VarTypes...)>::Type InFunc, VarTypes... Vars)
+#endif
 	{
 		static_assert(!TIsConst<UserClass>::Value, "Attempting to bind a delegate with a const object pointer and non-const member function.");
 
@@ -48,7 +52,11 @@ public:
 		return Result;
 	}
 	template <typename UserClass, typename... VarTypes>
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 4
+	[[nodiscard]] inline static DELEGATE_TEMPLATE_TYPE CreateThreadSafeSelfPtr(TSelfPtr<UserClass, ESPMode::ThreadSafe>* InUserObjectRef, typename TMemFunPtrType<true, UserClass, RetValType(ParamTypes..., VarTypes...)>::Type InFunc, VarTypes... Vars)
+#else
 	UE_NODISCARD inline static DELEGATE_TEMPLATE_TYPE CreateThreadSafeSelfPtr(TSelfPtr<UserClass, ESPMode::ThreadSafe> *InUserObjectRef, typename TMemFunPtrType<true, UserClass, RetValType(ParamTypes..., VarTypes...)>::Type InFunc, VarTypes... Vars)
+#endif
 	{
 		DELEGATE_TEMPLATE_TYPE Result = DELEGATE_TEMPLATE_TYPE::CreateThreadSafeSP(StaticCastSharedRef<const UserClass>(InUserObjectRef->GetInternalSP()), InFunc, Forward<VarTypes>(Vars)...);
 

@@ -165,7 +165,7 @@ bool FOnlineAuthAccelByte::VerifyAuthToken(const FString& AuthToken, FString& Us
 	// Verify the JWT with the RSA public key
 	for (const FJsonObjectWrapper& Key : JwkSet.keys)
 	{
-		const FRsaPublicKey PublicKey(Key.JsonObject->GetStringField("n"), Key.JsonObject->GetStringField("e"));
+		const FRsaPublicKey PublicKey(Key.JsonObject->GetStringField(TEXT("n")), Key.JsonObject->GetStringField(TEXT("e")));
 		const EJwtResult VerifyResult = Jwt.VerifyWith(PublicKey);
 		if (VerifyResult == EJwtResult::Ok)
 		{

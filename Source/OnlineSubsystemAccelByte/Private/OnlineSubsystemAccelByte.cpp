@@ -860,6 +860,14 @@ void FOnlineSubsystemAccelByte::OnLobbyReconnected(int32 InLocalUserNum)
 		}
 	}
 #endif
+	
+	if (!IdentityInterface.IsValid())
+	{
+		UE_LOG_AB(Warning, TEXT("Error due to IdentityInterface is invalid"));
+		return;
+	}
+
+	IdentityInterface->TriggerAccelByteOnLobbyReconnectedDelegates(InLocalUserNum);	
 }
 
 void FOnlineSubsystemAccelByte::ResetLocalUserNumCached()

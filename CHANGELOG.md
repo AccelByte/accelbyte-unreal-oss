@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.12.15](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.12.15%0D0.12.14) (2024-05-22)
+
+
+### Features
+
+* add roles to the player session attribute ([6611f74](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/6611f748ea5072ca88132683639ca9c06fed93c4))
+* changes to support unreal 5.4 ([64ca45b](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/64ca45b0be7fd414ea87b2d5075e42ce975a400a))
+* **chat:** check the max length of the message if auto check flag is active ([6c2cead](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/6c2ceadf8de313823327808d77c187e5aef89fc0))
+* **MMv2:** MM start notification for cross play ([25172b1](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/25172b1925b57656992d0f54b8ec6adfec7033a8))
+
+
+### Bug Fixes
+
+* **asyncTask:** update the AsyncTask to respect the bShouldUseTimeout configuration correctly ([3067c20](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/3067c2092b57f8803e137449ce31864d738b4d40))
+* **lobby:** add a reconnected delegate fire after reconnected to lobby ([b6c7b14](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/b6c7b147bbbdeed2c037028c953d59b12b94a950))
+* **session:** bubble DS error delegate to auto join sessions ([1ea0432](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/1ea0432927e9657b38c35a41c5d88beefb1828a8))
+
 ### [0.12.14](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.12.14%0D0.12.13) (2024-05-13)
 
 

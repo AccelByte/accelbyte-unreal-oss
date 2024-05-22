@@ -272,6 +272,11 @@ public:
 	 */
 	virtual bool HasTaskTimedOut()
 	{
+		if (!bShouldUseTimeout)
+		{
+			return false;
+		}
+
 		// As a child task, it has different mechanism to check whether timeout or not
 		if (Epic != nullptr)
 		{

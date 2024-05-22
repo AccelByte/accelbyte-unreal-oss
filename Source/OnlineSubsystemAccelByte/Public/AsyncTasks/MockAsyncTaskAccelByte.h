@@ -62,7 +62,7 @@ public:
 	FMockAsyncTaskAccelByte(
 		FOnlineSubsystemAccelByte* const InABSubsystem,
 		MockAsyncTaskParameter& InParameter,
-		bool bInShouldUseTimeout = false);
+		bool bInShouldUseTimeout = true);
 
 	virtual void TriggerDelegates() override;
 

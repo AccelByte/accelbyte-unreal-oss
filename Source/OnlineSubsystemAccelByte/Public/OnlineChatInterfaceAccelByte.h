@@ -77,6 +77,9 @@ typedef FOnQueryTransientSystemMessageComplete::FDelegate FOnQueryTransientSyste
 DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnGetSystemMessageStatsComplete, const FUniqueNetId& /*UserId*/, const FAccelByteGetSystemMessageStatsResponse& /*SystemMessagesStats*/, const FOnlineError& /*ErrorInfo*/)
 typedef FOnGetSystemMessageStatsComplete::FDelegate FOnGetSystemMessageStatsCompleteDelegate;
 
+DECLARE_MULTICAST_DELEGATE_FourParams(FOnGetChatConfigComplete, int32 /*LocalUserNum*/, bool /*bWasSuccessful*/, const FAccelByteModelsChatPublicConfigResponse& /*ChatPublicConfigResponse*/, const FString& /*Error*/);
+typedef FOnGetChatConfigComplete::FDelegate FOnGetChatConfigCompleteDelegate;
+
 //~ End custom delegates
 
 class FAccelByteChatMessage;
@@ -340,6 +343,24 @@ public:
 	 */
 	bool GetSystemMessageStats(const FUniqueNetId& UserId, const FAccelByteGetSystemMessageStatsRequest& Request = {});
 
+	/**
+	 * Get chat configuration of the namespace
+	 * Listen to OnGetChatConfigComplete delegate for the result after the action completed
+	 * 
+	 * @param LocalUserNum target local user num that perform this action
+	 * @return if successfully started the async operation
+	 */
+	bool GetChatConfig(int32 LocalUserNum);
+
+	/**
+	 * Get chat configuration of the namespace
+	 * Listen to OnGetChatConfigComplete delegate for the result after the action completed
+	 * 
+	 * @param UserId id of user that perform this action
+	 * @return if successfully started the async operation
+	 */
+	bool GetChatConfig(const FUniqueNetId& UserId);
+
 	virtual bool IsChatAllowed(const FUniqueNetId& UserId, const FUniqueNetId& RecipientId) const override;
 	virtual void GetJoinedRooms(const FUniqueNetId& UserId, TArray<FChatRoomId>& OutRooms) override;
 	virtual TSharedPtr<FChatRoomInfo> GetRoomInfo(const FUniqueNetId& UserId, const FChatRoomId& RoomId) override;
@@ -467,6 +488,11 @@ public:
 	*/
 	DEFINE_ONLINE_DELEGATE_THREE_PARAM(OnGetSystemMessageStatsComplete, const FUniqueNetId& /*UserId*/, const FAccelByteGetSystemMessageStatsResponse& /*SystemMessagesStats*/, const FOnlineError& /*ErrorInfo*/);
 
+	/**
+	* Delegate fired when action to get chat config completed.
+	*/
+	DEFINE_ONLINE_PLAYER_DELEGATE_THREE_PARAM(MAX_LOCAL_PLAYERS, OnGetChatConfigComplete, bool /*bWasSuccessful*/, const FAccelByteModelsChatPublicConfigResponse& /*ChatPublicConfigResponse*/, const FString& /*Error*/);
+
 	/*
 	No trigger for this delegate
 	DEFINE_ONLINE_DELEGATE_THREE_PARAM(OnChatRoomMemberUpdate, const FUniqueNetId&, const FChatRoomId&, const FUniqueNetId&);
@@ -504,6 +530,14 @@ PACKAGE_SCOPE:
 	* Get cached room member
 	*/
 	FAccelByteChatRoomMemberRef GetAccelByteChatRoomMember(const FString& UserId);
+	/**
+	* Cache current maximum chat message length
+	*/
+	void SetMaxChatMessageLength(int32 InMaxChatMessageLength) { MaxChatMessageLength = InMaxChatMessageLength; }
+	/**
+	* Get current maximum chat message length
+	*/
+	int32 GetMaxChatMessageLength() const { return MaxChatMessageLength; }
 	//~ End Utility functions
 
 private:
@@ -532,4 +566,7 @@ private:
 	TMap<FString, FAccelByteChatRoomMemberRef> UserIdToChatRoomMemberCached;
 	/** Cache live chat messages */
 	FUserIdToRoomChatMessages UserIdToChatRoomMessagesCached;
+
+	/** Cache maximum chat message length*/
+	int32 MaxChatMessageLength{INDEX_NONE};
 };

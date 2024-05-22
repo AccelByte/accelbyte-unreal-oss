@@ -8,6 +8,7 @@
 #include "AsyncTasks/Purchase/OnlineAsyncTaskAccelByteQueryUserOrders.h"
 #include "AsyncTasks/Purchase/OnlineAsyncTaskAccelByteCreateNewOrder.h"
 #include "OnlineSubsystemUtils.h"
+#include "AsyncTasks/Purchase/OnlineAsyncTaskAccelBytePreviewOrder.h"
 
 FOnlinePurchaseAccelByte::FOnlinePurchaseAccelByte(FOnlineSubsystemAccelByte* InSubsystem) : AccelByteSubsystem(InSubsystem)
 {
@@ -93,4 +94,9 @@ void FOnlinePurchaseAccelByte::QueryUserOrders(const FUniqueNetId& UserId, const
 void FOnlinePurchaseAccelByte::CreateNewOrder(const FUniqueNetId& UserId, const FAccelByteModelsOrderCreate& OrderCreate)
 {
 	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteCreateNewOrder>(AccelByteSubsystem, UserId, OrderCreate);
+}
+
+void FOnlinePurchaseAccelByte::PreviewOrder(const FUniqueNetId& UserId,	const FAccelByteModelsUserPreviewOrderRequest& PreviewOrderRequest)
+{
+	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelBytePreviewOrder>(AccelByteSubsystem, UserId, PreviewOrderRequest);
 }
