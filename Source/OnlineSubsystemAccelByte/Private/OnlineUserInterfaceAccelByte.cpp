@@ -27,6 +27,7 @@
 #include "AsyncTasks/User/OnlineAsyncTaskAccelByteQueryUserIdMappingWithPlatformId.h"
 #include "AsyncTasks/User/OnlineAsyncTaskAccelByteGetUserPlatformLinks.h"
 #include "OnlineSubsystemUtils.h"
+#include "AsyncTasks/User/OnlineAsyncTaskAccelByteValidateUserInput.h"
 
 #define ONLINE_ERROR_NAMESPACE "FOnlineUserAccelByte"
 
@@ -433,6 +434,13 @@ void FOnlineUserAccelByte::GetLinkedUserAccountFromCache(const TSharedRef<const 
 	}
 
 	OutLinkedAccounts = TempLinkedPlatformAccounts;
+}
+
+void FOnlineUserAccelByte::ValidateUserInput(int32 LocalUserNum, const FUserInputValidationRequest& UserInputValidationRequest)
+{
+	UE_LOG_AB(Display, TEXT("FOnlineUserAccelByte::ValidateUserInput"));
+	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteValidateUserInput>
+		(AccelByteSubsystem, LocalUserNum, UserInputValidationRequest);
 }
 
 #undef ONLINE_ERROR_NAMESPACE

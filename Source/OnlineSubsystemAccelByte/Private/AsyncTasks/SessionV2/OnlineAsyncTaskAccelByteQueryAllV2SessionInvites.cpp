@@ -87,8 +87,9 @@ void FOnlineAsyncTaskAccelByteQueryAllV2SessionInvites::OnGetGameSessionInvitesS
 
 	for (const FAccelByteModelsV2GameSession& Session : Result.Data)
 	{
-		FOnlineSessionInviteAccelByte Invite;
+		FOnlineSessionInviteAccelByte Invite{};
 		Invite.SessionType = EAccelByteV2SessionType::GameSession;
+		Invite.RecipientId = UserId;
 
 		if (!SessionInterface->ConstructGameSessionFromBackendSessionModel(Session, Invite.Session.Session))
 		{
@@ -120,8 +121,9 @@ void FOnlineAsyncTaskAccelByteQueryAllV2SessionInvites::OnGetPartySessionInvites
 
 	for (const FAccelByteModelsV2PartySession& Session : Result.Data)
 	{
-		FOnlineSessionInviteAccelByte Invite;
+		FOnlineSessionInviteAccelByte Invite{};
 		Invite.SessionType = EAccelByteV2SessionType::PartySession;
+		Invite.RecipientId = UserId;
 
 		if (!SessionInterface->ConstructPartySessionFromBackendSessionModel(Session, Invite.Session.Session))
 		{

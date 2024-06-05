@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.12.16](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.12.16%0D0.12.15) (2024-06-05)
+
+
+### Features
+
+* **logout:** clean up local cached session data when user logs out ([473b44e](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/473b44e425b341a5817133a4f4b49ad0c47d3971))
+* **NewProfanityFilter:** add new endpoint for validate user input ([a89358e](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/a89358ef7d28b46f3bc5b66a9833d02a2abf7e32))
+* **user:** use logout instead of revoke ([fff67fe](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/fff67fe0e85a9917f4e6300b533f7de513e769d7))
+
+
+### Bug Fixes
+
+* notifications were triggered by the recovery system even when the user has logged out ([f9d4a60](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/f9d4a604963702e9bd86069b3d0881b782bf724a))
+
 ### [0.12.15](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.12.15%0D0.12.14) (2024-05-22)
 
 

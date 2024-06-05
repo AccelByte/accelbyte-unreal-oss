@@ -266,6 +266,9 @@ struct ONLINESUBSYSTEMACCELBYTE_API FOnlineRestoredSessionAccelByte
 
 	/** Search result of the restored session */
 	FOnlineSessionSearchResult Session{};
+
+	/** ID of the player that restored this session */
+	FUniqueNetIdPtr LocalOwnerId{nullptr};
 };
 
 /**
@@ -275,6 +278,9 @@ struct ONLINESUBSYSTEMACCELBYTE_API FOnlineSessionInviteAccelByte
 {
 	/** Type of session that this invite is for */
 	EAccelByteV2SessionType SessionType{EAccelByteV2SessionType::Unknown};
+
+	/** ID of the player that received this session invite */
+	FUniqueNetIdPtr RecipientId{nullptr};
 
 	/** ID of the user that sent this invite, could be nullptr */
 	FUniqueNetIdPtr SenderId{nullptr};
@@ -1745,6 +1751,14 @@ PACKAGE_SCOPE:
 	 * @return true if request sent to the session service
 	 */
 	bool SendDSSessionReady();
+
+	/**
+	 * @brief Clean up data related to a user when that user has logged out.
+	 * Called internally by FOnlineIdentityAccelByte::OnLogout.
+	 *
+	 * @param LocalUserId ID of the user that has logged out that we want to clean up after
+	 */
+	void HandleUserLogoutCleanUp(const FUniqueNetId& LocalUserId);
 
 private:
 	/** Parent subsystem of this interface instance */

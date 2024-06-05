@@ -35,6 +35,7 @@
 #include "Templates/SharedPointer.h"
 #include "AsyncTasks/Identity/OnlineAsyncTaskAccelByteGenerateCodeForPublisherToken.h"
 #include "AsyncTasks/LoginQueue/OnlineAsyncTaskAccelByteLoginQueueCancelTicket.h"
+#include "OnlineSessionInterfaceV2AccelByte.h"
 
 using namespace AccelByte;
 
@@ -213,7 +214,11 @@ bool FOnlineIdentityAccelByte::Logout(int32 LocalUserNum, FString Reason)
 		{
 			ApiClient->Lobby.Disconnect(true);
 		}
-		ApiClient->User.Logout(OnLogoutSuccessDelegate, OnLogoutFailedDelegate);
+		if (ApiClient->Chat.IsConnected())
+		{
+			ApiClient->Chat.Disconnect();
+		}
+		ApiClient->User.LogoutV3(OnLogoutSuccessDelegate, OnLogoutFailedDelegate);
 	}
 	else
 	{
@@ -818,6 +823,22 @@ void FOnlineIdentityAccelByte::AddNewAuthenticatedUser(int32 LocalUserNum, const
 void FOnlineIdentityAccelByte::OnLogout(const int32 LocalUserNum, bool bWasSuccessful)
 {
 	SetLoginStatus(LocalUserNum, ELoginStatus::NotLoggedIn);
+
+#if AB_USE_V2_SESSIONS
+	// Signal to the session interface that a player has logged out to clean the local cache
+	FOnlineSessionV2AccelBytePtr SessionInterface{};
+	const TSharedRef<const FUniqueNetId>* LocalPlayerId = LocalUserNumToNetIdMap.Find(LocalUserNum);
+
+	TSharedPtr<FOnlineSubsystemAccelByte, ESPMode::ThreadSafe> PinnedSubsystem = AccelByteSubsystem.Pin();
+	const bool bSessionInterfaceValid = PinnedSubsystem.IsValid() &&
+		FOnlineSessionV2AccelByte::GetFromSubsystem(PinnedSubsystem.Get(), SessionInterface);
+	if (LocalPlayerId != nullptr && bSessionInterfaceValid)
+	{
+		SessionInterface->HandleUserLogoutCleanUp((*LocalPlayerId).Get());
+	}
+#endif
+
+	// Signal to game client that log out has completed
 	TriggerOnLogoutCompleteDelegates(LocalUserNum, bWasSuccessful);
 	TriggerAccelByteOnLogoutCompleteDelegates(LocalUserNum, bWasSuccessful, ONLINE_ERROR_ACCELBYTE(bWasSuccessful? TEXT("") : TEXT("error-failed-to-logout"), bWasSuccessful? EOnlineErrorResult::Success : EOnlineErrorResult::RequestFailure));
 

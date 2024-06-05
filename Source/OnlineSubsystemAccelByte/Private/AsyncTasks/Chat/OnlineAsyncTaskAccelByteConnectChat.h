@@ -45,7 +45,7 @@ private:
 	AccelByte::Api::Chat::FChatDisconnectNotif OnChatDisconnectedNotifDelegate;
 
 	/** Delegate handler for when a chat connection is disconnected. */
-	static void OnChatConnectionClosed(int32 StatusCode, const FString& Reason, bool WasClean, int32 InLocalUserNum, const FOnlineIdentityAccelBytePtr IdentityInterface, const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface);
+	void OnChatConnectionClosed(int32 InLocalUserNum, const FString& Reason, bool WasClean, int32 StatusCode);
 
 	void UnbindDelegates();
 

@@ -655,6 +655,10 @@ void FOnlineChatAccelByte::RegisterChatDelegates(const FUniqueNetId& PlayerId)
 	const FChatDisconnectNotificationDelegate OnChatDisconnectNotificationDelegate = FChatDisconnectNotificationDelegate::CreateThreadSafeSP(SharedThis(this), &FOnlineChatAccelByte::OnChatDisconnectedNotification, LocalUserNum);
 	ApiClient->Chat.SetDisconnectNotifDelegate(OnChatDisconnectNotificationDelegate);
 
+	typedef AccelByte::Api::Chat::FChatConnectionClosed FChatConnectionClosedDelegate;
+	const FChatConnectionClosedDelegate OnChatConnectionClosedDelegate = FChatConnectionClosedDelegate::CreateThreadSafeSP(SharedThis(this), &FOnlineChatAccelByte::OnChatConnectionClosed, LocalUserNum);
+	ApiClient->Chat.SetConnectionClosedDelegate(OnChatConnectionClosedDelegate);
+
 	typedef AccelByte::Api::Chat::FChatNotif FReceivedChatNotificationDelegate;
 	const FReceivedChatNotificationDelegate OnReceivedChatNotificationDelegate = FReceivedChatNotificationDelegate::CreateThreadSafeSP(SharedThis(this), &FOnlineChatAccelByte::OnReceivedChatNotification, LocalUserNum);
 	ApiClient->Chat.SetChatNotifDelegate(OnReceivedChatNotificationDelegate);
@@ -702,6 +706,15 @@ void FOnlineChatAccelByte::OnChatDisconnectedNotification(const FAccelByteModels
 	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("Message: %s"), *DisconnectEvent.Message);
 
 	TriggerOnChatDisconnectedDelegates(DisconnectEvent.Message);
+
+	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+}
+
+void FOnlineChatAccelByte::OnChatConnectionClosed(int32 StatusCode, const FString& Reason, bool bWasClean, int32 LocalUserNum)
+{
+	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("Chat connection closed: status code %d, reason %s, bWasClean %s"), StatusCode, *Reason, bWasClean?TEXT("true"):TEXT("false"));
+
+	TriggerOnChatConnectionClosedDelegates(LocalUserNum, StatusCode, Reason, bWasClean);
 
 	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
 }

@@ -93,9 +93,13 @@ void FOnlineAsyncTaskAccelByteConnectChat::OnChatConnectSuccess()
 	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = Subsystem->GetPredefinedEventInterface();
 
 	// set connection closed delegates to set chat connected false when connection closed is triggered
-	const Api::Chat::FChatConnectionClosed OnChatConnectionClosedDelegate = Api::Chat::FChatConnectionClosed::CreateStatic(FOnlineAsyncTaskAccelByteConnectChat::OnChatConnectionClosed, LocalUserNum, IdentityInterface, PredefinedEventInterface);
-	API_CLIENT_CHECK_GUARD(ErrorStr);
-	ApiClient->Chat.SetConnectionClosedDelegate(OnChatConnectionClosedDelegate);
+	ChatInterface->AddOnChatConnectionClosedDelegate_Handle(LocalUserNum, FOnChatConnectionClosedDelegate::CreateLambda([this](int32 UserNum, int32 StatusCode, const FString Reason, bool bWasClean)
+	{
+		if (UserNum == LocalUserNum)
+		{
+			OnChatConnectionClosed(UserNum, Reason, bWasClean, StatusCode);
+		}
+	}));
 
 	CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
@@ -131,11 +135,11 @@ void FOnlineAsyncTaskAccelByteConnectChat::OnChatDisconnectedNotif(const FAccelB
 	CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
 }
 
-void FOnlineAsyncTaskAccelByteConnectChat::OnChatConnectionClosed(int32 StatusCode, const FString& Reason,
-	bool WasClean, int32 InLocalUserNum, const FOnlineIdentityAccelBytePtr IdentityInterface, const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface)
+void FOnlineAsyncTaskAccelByteConnectChat::OnChatConnectionClosed(int32 InLocalUserNum, const FString& Reason, bool WasClean, int32 StatusCode)
 {
 	UE_LOG_AB(Warning, TEXT("Lobby connection closed. Reason '%s' Code : '%d'"), *Reason, StatusCode);
 
+	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(Subsystem->GetIdentityInterface());
 	if (!IdentityInterface.IsValid())
 	{
 		UE_LOG_AB(Warning, TEXT("Error due to either IdentityInterface or ChatInteface is invalid"));
@@ -159,6 +163,7 @@ void FOnlineAsyncTaskAccelByteConnectChat::OnChatConnectionClosed(int32 StatusCo
 	const TSharedPtr<FUserOnlineAccountAccelByte> UserAccountAccelByte = StaticCastSharedPtr<FUserOnlineAccountAccelByte>(UserAccount);
 	UserAccountAccelByte->SetConnectedToChat(false);
 
+	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = Subsystem->GetPredefinedEventInterface();
 	if (PredefinedEventInterface.IsValid())
 	{
 		FUniqueNetIdAccelByteUserPtr AccelByteUserId = FUniqueNetIdAccelByteUser::TryCast(LocalUserId.ToSharedRef());

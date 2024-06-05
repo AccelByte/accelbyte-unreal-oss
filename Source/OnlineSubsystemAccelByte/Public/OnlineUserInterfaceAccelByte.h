@@ -77,6 +77,9 @@ typedef FOnUnlinkOtherPlatformIdComplete::FDelegate FOnUnlinkOtherPlatformIdComp
 DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnCheckUserAccountAvailabilityComplete, bool /*bWasSuccessful*/, bool /*bUserExisted*/, const FOnlineError & /*OnlineError*/);
 typedef FOnCheckUserAccountAvailabilityComplete::FDelegate FOnCheckUserAccountAvailabilityCompleteDelegate;
 
+DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnValidateUserInputComplete, const FUserInputValidationResponse& /*UserInputValidationResponse*/, bool /*bWasSuccessful*/, const FOnlineError & /*OnlineError*/);
+typedef FOnValidateUserInputComplete::FDelegate FOnValidateUserInputCompleteDelegate;
+
 class ONLINESUBSYSTEMACCELBYTE_API FOnlineUserAccelByte : public IOnlineUser, public TSharedFromThis<FOnlineUserAccelByte, ESPMode::ThreadSafe>
 {
 public:
@@ -239,6 +242,12 @@ public:
 	 *
 	 */
 	void GetLinkedUserAccountFromCache(const TSharedRef<const FUniqueNetId>& UserId, TArray<FAccelByteUserPlatformLinkInformationRef>& OutLinkedAccounts);
+
+	/*
+	 * Unlinks user's current account from their other account in other platform, especially to support OIDC
+	 */
+	DEFINE_ONLINE_DELEGATE_THREE_PARAM(OnValidateUserInputComplete, const FUserInputValidationResponse& /*UserInputValidationResponse*/, bool /*bWasSuccessful*/, const FOnlineError & /*OnlineError*/);
+	void ValidateUserInput(int32 LocalUserNum, const FUserInputValidationRequest& UserInputValidationRequest);
 	
 PACKAGE_SCOPE:
 

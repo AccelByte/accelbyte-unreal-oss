@@ -113,7 +113,8 @@ void FOnlineAsyncTaskAccelByteRestoreAllV2Sessions::OnGetMyGameSessionsSuccess(c
 			continue;
 		}
 
-		FOnlineRestoredSessionAccelByte RestoredSession;
+		FOnlineRestoredSessionAccelByte RestoredSession{};
+		RestoredSession.LocalOwnerId = UserId;
 		RestoredSession.SessionType = EAccelByteV2SessionType::GameSession;
 
 		if (!SessionInterface->ConstructGameSessionFromBackendSessionModel(Session, RestoredSession.Session.Session))
@@ -165,8 +166,9 @@ void FOnlineAsyncTaskAccelByteRestoreAllV2Sessions::OnGetMyPartiesSuccess(const 
 			continue;
 		}
 
-		FOnlineRestoredSessionAccelByte RestoredSession;
+		FOnlineRestoredSessionAccelByte RestoredSession{};
 		RestoredSession.SessionType = EAccelByteV2SessionType::PartySession;
+		RestoredSession.LocalOwnerId = UserId;
 
 		if (!SessionInterface->ConstructPartySessionFromBackendSessionModel(Session, RestoredSession.Session.Session))
 		{

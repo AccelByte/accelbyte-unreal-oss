@@ -29,6 +29,9 @@ struct FAccelByteChatRoomConfig {
 DECLARE_MULTICAST_DELEGATE_FourParams(FOnConnectChatComplete, int32 /*LocalUserNum*/, bool /*bWasSuccessful*/, const FUniqueNetId& /*UserId*/, const FString& /*Error*/);
 typedef FOnConnectChatComplete::FDelegate FOnConnectChatCompleteDelegate;
 
+DECLARE_MULTICAST_DELEGATE_FourParams(FOnChatConnectionClosed, int32 /*LocalUserNum*/, int32 /* StatusCode */, const FString& /* Reason */, bool /* bWasClean */);
+typedef FOnChatConnectionClosed::FDelegate FOnChatConnectionClosedDelegate;
+
 DECLARE_MULTICAST_DELEGATE_FourParams(FOnSendChatComplete, FString /*UserId*/, FString /*MsgBody*/, FString /*RoomId*/, bool /*bWasSuccessful*/);
 typedef FOnSendChatComplete::FDelegate FOnSendChatCompleteDelegate;
 
@@ -493,6 +496,11 @@ public:
 	*/
 	DEFINE_ONLINE_PLAYER_DELEGATE_THREE_PARAM(MAX_LOCAL_PLAYERS, OnGetChatConfigComplete, bool /*bWasSuccessful*/, const FAccelByteModelsChatPublicConfigResponse& /*ChatPublicConfigResponse*/, const FString& /*Error*/);
 
+	/**
+	* Delegate fired when chat connection closed.
+	*/
+	DEFINE_ONLINE_PLAYER_DELEGATE_THREE_PARAM(MAX_LOCAL_PLAYERS, OnChatConnectionClosed, int32 /* StatusCode */, const FString& /* Reason */, bool /* bWasClean */);
+
 	/*
 	No trigger for this delegate
 	DEFINE_ONLINE_DELEGATE_THREE_PARAM(OnChatRoomMemberUpdate, const FUniqueNetId&, const FChatRoomId&, const FUniqueNetId&);
@@ -543,6 +551,7 @@ PACKAGE_SCOPE:
 private:
 	//~ Begin Chat Notification Handlers
 	void OnChatDisconnectedNotification(const FAccelByteModelsChatDisconnectNotif& DisconnectEvent, int32 LocalUserNum);
+	void OnChatConnectionClosed(int32 StatusCode, const FString& Reason, bool bWasClean, int32 LocalUserNum);
 	void OnRemoveFromTopicNotification(const FAccelByteModelsChatUpdateUserTopicNotif& RemoveTopicEvent, int32 LocalUserNum);
 	void OnAddToTopicNotification(const FAccelByteModelsChatUpdateUserTopicNotif& AddTopicEvent, int32 LocalUserNum);
 	void OnReceivedChatNotification(const FAccelByteModelsChatNotif& ChatNotif, int32 LocalUserNum);

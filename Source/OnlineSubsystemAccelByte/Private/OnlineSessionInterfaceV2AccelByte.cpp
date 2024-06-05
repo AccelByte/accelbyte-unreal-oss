@@ -3110,7 +3110,15 @@ bool FOnlineSessionV2AccelByte::DestroySession(FName SessionName, const FOnDestr
 
 	Session->SessionState = EOnlineSessionState::Destroying;
 
-	if (!IsRunningDedicatedServer())
+	// Get owner log in status to determine if we are able to issue a 'LeaveSession' call for this session
+	FOnlineIdentityAccelBytePtr IdentityInterface{};
+	ELoginStatus::Type LoginStatus = ELoginStatus::NotLoggedIn;
+	if (Session->LocalOwnerId.IsValid() && FOnlineIdentityAccelByte::GetFromSubsystem(AccelByteSubsystem, IdentityInterface))
+	{
+		LoginStatus = IdentityInterface->GetLoginStatus(Session->LocalOwnerId.ToSharedRef().Get());
+	}
+
+	if (!IsRunningDedicatedServer() && LoginStatus == ELoginStatus::LoggedIn)
 	{
 		// Grab local owner ID so that we can make a call to leave session on their behalf
 		if (!ensure(Session->LocalOwnerId.IsValid()))
@@ -3130,11 +3138,10 @@ bool FOnlineSessionV2AccelByte::DestroySession(FName SessionName, const FOnDestr
 		LeaveSession(SessionOwnerId.Get(), SessionType, Session->GetSessionIdStr(), OnLeaveSessionCompleteDelegate);
 		
 		AB_OSS_INTERFACE_TRACE_END(TEXT("Sending request for player '%s' to leave session!"), *SessionOwnerId->ToDebugString());
-
 	}
 	else
 	{
-		// If this is a server, just remove the session from the interface and move on
+		// If this is a server or the owning player is not logged in, just remove the session from the interface and move on
 		RemoveNamedSession(SessionName);
 		
 		AccelByteSubsystem->ExecuteNextTick([SessionInterface = AsShared(), SessionName, CompletionDelegate]() {
@@ -5403,8 +5410,9 @@ void FOnlineSessionV2AccelByte::OnGameSessionInvitationTimeoutNotification(FAcce
 	}
 
 	//Make a copy before remove it
-	FOnlineSessionInviteAccelByte TimeoutInvitation;
+	FOnlineSessionInviteAccelByte TimeoutInvitation{};
 	TimeoutInvitation.SessionType = EAccelByteV2SessionType::GameSession;
+	TimeoutInvitation.RecipientId = PlayerId;
 	TimeoutInvitation.Session = TimeoutInvitationPtr->Session;
 	TimeoutInvitation.SenderId = TimeoutInvitationPtr->SenderId;
 	TimeoutInvitation.ExpiredAt = TimeoutInvitationPtr->ExpiredAt;
@@ -5491,8 +5499,9 @@ void FOnlineSessionV2AccelByte::OnFindGameSessionForInviteComplete(int32 LocalUs
 		return;
 	}
 
-	FOnlineSessionInviteAccelByte NewInvite;
+	FOnlineSessionInviteAccelByte NewInvite{};
 	NewInvite.SessionType = EAccelByteV2SessionType::GameSession;
+	NewInvite.RecipientId = PlayerId;
 	NewInvite.Session = Result;
 	NewInvite.SenderId = SenderId;
 	NewInvite.ExpiredAt = InviteEvent.ExpiredAt;
@@ -5728,8 +5737,9 @@ void FOnlineSessionV2AccelByte::OnPartySessionInvitationTimeoutNotification(FAcc
 	}
 
 	//Make a copy before remove it
-	FOnlineSessionInviteAccelByte TimeoutInvitation;
+	FOnlineSessionInviteAccelByte TimeoutInvitation{};
 	TimeoutInvitation.SessionType = EAccelByteV2SessionType::PartySession;
+	TimeoutInvitation.RecipientId = PlayerId;
 	TimeoutInvitation.Session = TimeoutInvitationPtr->Session;
 	TimeoutInvitation.SenderId = TimeoutInvitationPtr->SenderId;
 	TimeoutInvitation.ExpiredAt = TimeoutInvitationPtr->ExpiredAt;
@@ -5857,8 +5867,9 @@ void FOnlineSessionV2AccelByte::OnFindPartySessionForInviteComplete(int32 LocalU
 		return;
 	}
 
-	FOnlineSessionInviteAccelByte NewInvite;
+	FOnlineSessionInviteAccelByte NewInvite{};
 	NewInvite.SessionType = EAccelByteV2SessionType::PartySession;
+	NewInvite.RecipientId = PlayerId;
 	NewInvite.Session = Result;
 	NewInvite.SenderId = SenderId;
 	NewInvite.ExpiredAt = InviteEvent.ExpiredAt;
@@ -6891,6 +6902,65 @@ bool FOnlineSessionV2AccelByte::SendDSSessionReady()
 	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteSendDSSessionReady>(AccelByteSubsystem, true);
 	AB_OSS_INTERFACE_TRACE_END(TEXT("Sending server ready to session service"));
 	return true;
+}
+
+void FOnlineSessionV2AccelByte::HandleUserLogoutCleanUp(const FUniqueNetId& LocalUserId)
+{
+	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("LocalUserId: %s"), *LocalUserId.ToDebugString());
+	
+	// If current matchmaking search was invoked by this user, reset the handle
+	if (CurrentMatchmakingSearchHandle.IsValid() && (CurrentMatchmakingSearchHandle->SearchingPlayerId.ToSharedRef().Get()) == LocalUserId)
+	{
+		CurrentMatchmakingSearchHandle.Reset();
+	}
+
+	StopMatchTicketCheckPoll();
+
+	// Gather all named sessions that the player was an owner of to destroy
+	TArray<FName> SessionsToDestroy{};
+	{
+		FScopeLock ScopeLock(&SessionLock);
+		for (TPair<FName, TSharedPtr<FNamedOnlineSession>>& SessionEntry : Sessions)
+		{
+			FUniqueNetIdPtr LocalOwnerId = SessionEntry.Value->LocalOwnerId;
+			if (!LocalOwnerId.IsValid())
+			{
+				continue;
+			}
+
+#if AB_USE_V2_SESSIONS
+			TSharedPtr<FOnlineSessionInfoAccelByteV2> SessionInfo = StaticCastSharedPtr<FOnlineSessionInfoAccelByteV2>(SessionEntry.Value->SessionInfo);
+			StopSessionInviteCheckPoll(LocalUserId.AsShared(), SessionInfo->GetSessionId().ToString());
+#endif
+
+			StopSessionServerCheckPoll(LocalUserId.AsShared(), SessionEntry.Key);
+
+			if (LocalOwnerId.ToSharedRef().Get() == LocalUserId)
+			{
+				SessionsToDestroy.Emplace(SessionEntry.Key);
+			}
+		}
+	}
+
+	for (const FName& SessionName : SessionsToDestroy)
+	{
+		DestroySession(SessionName);
+	}
+
+	// Remove any restored session that was restored by the logged out player
+	RestoredSessions.RemoveAll([&LocalUserId](const FOnlineRestoredSessionAccelByte& RestoredSession) {
+		return RestoredSession.LocalOwnerId.ToSharedRef().Get() == LocalUserId;
+	});
+
+	// Remove any session invite that was recieved by the logged out player
+	SessionInvites.RemoveAll([&LocalUserId](const FOnlineSessionInviteAccelByte& SessionInvite) {
+		return SessionInvite.RecipientId.ToSharedRef().Get() == LocalUserId;
+	});
+
+	// Remove cached player attributes from map
+	UserIdToPlayerAttributesMap.Remove(LocalUserId.AsShared());
+
+	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
 }
 
 void FOnlineSessionV2AccelByte::OnAMSDrain()
