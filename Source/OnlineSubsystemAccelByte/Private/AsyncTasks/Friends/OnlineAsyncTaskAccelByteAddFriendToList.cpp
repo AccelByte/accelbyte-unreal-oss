@@ -80,12 +80,12 @@ void FOnlineAsyncTaskAccelByteAddFriendToList::TriggerDelegates()
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 
-void FOnlineAsyncTaskAccelByteAddFriendToList::OnQueryFriendComplete(bool bIsSuccessful, TArray<TSharedRef<FAccelByteUserInfo>> UsersQueried)
+void FOnlineAsyncTaskAccelByteAddFriendToList::OnQueryFriendComplete(bool bIsSuccessful, TArray<TSharedRef<FAccelByteUserInfo, ESPMode::ThreadSafe>> UsersQueried)
 {
 	if (bIsSuccessful && UsersQueried.IsValidIndex(0))
 	{
-		TSharedRef<FAccelByteUserInfo>& Friend = UsersQueried[0];
-		FriendObject = MakeShared<FOnlineFriendAccelByte>(Friend->DisplayName, Friend->Id.ToSharedRef(), InviteStatus);
+		TSharedRef<FAccelByteUserInfo, ESPMode::ThreadSafe>& Friend = UsersQueried[0];
+		FriendObject = MakeShared<FOnlineFriendAccelByte>(Friend, InviteStatus);
 		CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
 	}
 	else

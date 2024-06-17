@@ -158,16 +158,16 @@ void FOnlineAsyncTaskAccelByteSendFriendInvite::QueryInvitedFriend(const FString
 	}));
 }
 
-void FOnlineAsyncTaskAccelByteSendFriendInvite::OnQueryInvitedFriendComplete(bool bIsSuccessful, TArray<TSharedRef<FAccelByteUserInfo>> UsersQueried)
+void FOnlineAsyncTaskAccelByteSendFriendInvite::OnQueryInvitedFriendComplete(bool bIsSuccessful, TArray<FAccelByteUserInfoRef> UsersQueried)
 {
 	if (bIsSuccessful && UsersQueried.IsValidIndex(0))
 	{
-		TSharedRef<FAccelByteUserInfo> User = UsersQueried[0];
+		FAccelByteUserInfoRef User = UsersQueried[0];
 
 		// Create the friend instance first, and then try and send the invite, this will only be added to the list if the
 		// invite request successfully sends. Use the queried ID instead of the AccelByte ID, as that will have their
 		// platform ID filled out
-		InvitedFriend = MakeShared<FOnlineFriendAccelByte>(User->DisplayName, User->Id.ToSharedRef(), EInviteStatus::PendingOutbound);
+		InvitedFriend = MakeShared<FOnlineFriendAccelByte>(User, EInviteStatus::PendingOutbound);
 
 		// Send the actual request to send the friend request
 		OnSendFriendRequestSuccessDelegate = TDelegateUtils<FVoidHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteSendFriendInvite::OnSendFriendRequestSuccess);

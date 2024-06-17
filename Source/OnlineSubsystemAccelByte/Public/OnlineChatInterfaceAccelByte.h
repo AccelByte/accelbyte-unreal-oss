@@ -529,7 +529,7 @@ PACKAGE_SCOPE:
 	/**
 	* Add Chat Room Member Information to cache
 	*/
-	void AddChatRoomMembers(TArray<TSharedRef<FAccelByteUserInfo>> Users);
+	void AddChatRoomMembers(TArray<FAccelByteUserInfoRef> Users);
 	/**
 	* Add Chat message to cache
 	*/
@@ -565,7 +565,7 @@ private:
 
 	//~ Begin Chat Internal Handlers
 	void OnQueryChatRoomInfoComplete(bool bWasSuccessful, TArray<FAccelByteChatRoomInfoRef> RoomList, int32 LocalUserNum);
-	void OnQueryChatMemberInfo_TriggerChatRoomMemberJoin(bool bIsSuccessful, TArray<TSharedRef<FAccelByteUserInfo>> UsersQueried, FString RoomId, FUniqueNetIdPtr UserId, FUniqueNetIdPtr MemberId);
+	void OnQueryChatMemberInfo_TriggerChatRoomMemberJoin(bool bIsSuccessful, TArray<FAccelByteUserInfoRef> UsersQueried, FString RoomId, FUniqueNetIdPtr UserId, FUniqueNetIdPtr MemberId);
 	void OnQueryChatRoomById_TriggerChatRoomMemberJoin(bool bWasSuccessful, FAccelByteChatRoomInfoPtr RoomInfo, int32 LocalUserNum, FUniqueNetIdPtr UserId, FUniqueNetIdPtr MemberId);
 	//~ End Chat Internal Handlers
 

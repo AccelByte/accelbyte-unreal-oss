@@ -42,13 +42,13 @@ private:
 	FString ErrorString;
 
 	/** Information on all recent players that we queried */
-	TArray<TSharedRef<FAccelByteUserInfo>> RecentPlayersQueried;
+	TArray<FAccelByteUserInfoRef> RecentPlayersQueried;
 
 	void OnGetRecentPlayerSuccess(const FAccelByteModelsSessionBrowserRecentPlayerGetResult &InResult);
 	
 	void OnGetRecentPlayerError(int32 ErrorCode, const FString& ErrorMessage);
 
 	/** Delegate handler for when we finish querying for recent player information */
-	void OnQueryRecentPlayersComplete(bool bIsSuccessful, TArray<TSharedRef<FAccelByteUserInfo>> UsersQueried);
+	void OnQueryRecentPlayersComplete(bool bIsSuccessful, TArray<FAccelByteUserInfoRef> UsersQueried);
 
 };

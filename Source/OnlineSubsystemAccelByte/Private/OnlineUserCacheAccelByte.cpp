@@ -179,6 +179,26 @@ FOnlineUserCacheAccelByte::FOnlineUserCacheAccelByte(FOnlineSubsystemAccelByte* 
 {
 }
 
+void FOnlineUserCacheAccelByte::Init()
+{
+	if (!FAccelByteUtilities::LoadABConfigFallback(TEXT("OnlineSubsystemAccelByte")
+		, TEXT("bEnableStalenessChecking")
+		, bEnableStalenessChecking))
+	{
+		UE_LOG_AB(Verbose, TEXT("'bEnableStalenessChecking' is not specified in DefaultEngine.ini, or on command line. Defaulting to '%s'."), LOG_BOOL_FORMAT(bEnableStalenessChecking));
+	}
+
+	// Using int here as 'LoadABConfigFallback' does not have an override for double values
+	int32 TimeUntilStaleSecondsInt { static_cast<int32>(TimeUntilStaleSeconds) };
+	if (!FAccelByteUtilities::LoadABConfigFallback(TEXT("OnlineSubsystemAccelByte")
+		, TEXT("TimeUntilStaleSeconds")
+		, TimeUntilStaleSecondsInt))
+	{
+		UE_LOG_AB(Verbose, TEXT("'TimeUntilStaleSeconds' is not specified in DefaultEngine.ini, or on command line. Defaulting to %d seconds."), TimeUntilStaleSecondsInt);
+	}
+	TimeUntilStaleSeconds = static_cast<double>(TimeUntilStaleSecondsInt);
+}
+
 bool FOnlineUserCacheAccelByte::GetFromSubsystem(const IOnlineSubsystem* Subsystem, FOnlineUserCacheAccelBytePtr& OutInterfaceInstance)
 {
 	const FOnlineSubsystemAccelByte* ABSubsystem = static_cast<const FOnlineSubsystemAccelByte*>(Subsystem);
@@ -213,9 +233,9 @@ int32 FOnlineUserCacheAccelByte::Purge()
 	// purge them from the user cache maps
 	const double CurrentTimeInSeconds = FPlatformTime::Seconds();
 
-	TMap<FString, TSharedRef<FAccelByteUserInfo>> FilteredUserMap;
+	TMap<FString, FAccelByteUserInfoRef> FilteredUserMap;
 	FilteredUserMap.Reserve(AccelByteIdToUserInfoMap.Num());
-	for (const TPair<FString, TSharedRef<FAccelByteUserInfo>>& UserIdToUserInfo : AccelByteIdToUserInfoMap)
+	for (const TPair<FString, FAccelByteUserInfoRef>& UserIdToUserInfo : AccelByteIdToUserInfoMap)
 	{
 		const double ElapsedTimeInSeconds = CurrentTimeInSeconds - UserIdToUserInfo.Value->LastAccessedTimeInSeconds;
 		if (ElapsedTimeInSeconds >= UserCachePurgeTimeoutSeconds && !UserIdToUserInfo.Value->bIsImportant)
@@ -227,10 +247,10 @@ int32 FOnlineUserCacheAccelByte::Purge()
 	int32 ItemsPurged = 0;
 
 	// Now iterate through the users that we got back from the filter and remove them from the real maps
-	for (const TPair<FString, TSharedRef<FAccelByteUserInfo>>& UserIdToUserInfo : FilteredUserMap)
+	for (const TPair<FString, FAccelByteUserInfoRef>& UserIdToUserInfo : FilteredUserMap)
 	{
 		// Remove the user from the AccelByte ID cache map
-		TSharedPtr<const FAccelByteUserInfo> UserInfo = UserIdToUserInfo.Value;
+		TSharedPtr<const FAccelByteUserInfo, ESPMode::ThreadSafe> UserInfo = UserIdToUserInfo.Value;
 		AccelByteIdToUserInfoMap.Remove(UserIdToUserInfo.Key);
 
 		// Check if the user has a platform ID, if so format it and remove them from the platform cache
@@ -267,19 +287,27 @@ bool FOnlineUserCacheAccelByte::IsUserCached(const FAccelByteUniqueIdComposite& 
 	return false;
 }
 
-void FOnlineUserCacheAccelByte::GetQueryAndCacheArrays(const TArray<FString>& AccelByteIds, TArray<FString>& UsersToQuery, TArray<TSharedRef<FAccelByteUserInfo>>& UsersInCache)
+void FOnlineUserCacheAccelByte::GetQueryAndCacheArrays(const TArray<FString>& AccelByteIds, TArray<FString>& UsersToQuery, TArray<FAccelByteUserInfoRef>& UsersInCache)
 {
 	for (const FString& AccelByteId : AccelByteIds)
 	{
-		const TSharedRef<FAccelByteUserInfo>* FoundCachedUser = AccelByteIdToUserInfoMap.Find(AccelByteId);
+		const FAccelByteUserInfoRef* FoundCachedUser = AccelByteIdToUserInfoMap.Find(AccelByteId);
 		if (FoundCachedUser != nullptr)
 		{
-			UsersInCache.Add(*FoundCachedUser);
+			// We have found a user in our cache, check if their data is stale
+			const bool bIsStale = bEnableStalenessChecking && IsUserDataStale(*(*FoundCachedUser)->Id.Get());
+			if (!bIsStale)
+			{
+				// Data is not stale, return this user as a cached user and continue to next ID to check
+				UsersInCache.Add(*FoundCachedUser);
+				continue;
+			}
+
+			// #NOTE New data requested from backend will end up overwriting the data in the cache. With this in mind,
+			// there is no need to set 'bIsForcedStale' to false, as the overwrite will handle it for us.
 		}
-		else
-		{
-			UsersToQuery.Add(AccelByteId);
-		}
+	
+		UsersToQuery.Add(AccelByteId);
 	}
 }
 
@@ -292,7 +320,7 @@ bool FOnlineUserCacheAccelByte::QueryUsersByAccelByteIds(int32 LocalUserNum, con
 	if (FilteredIds.Num() <= 0)
 	{
 		UE_LOG_AB(Warning, TEXT("FOnlineUserStoreAccelByte::QueryUsersByAccelByteIds called with an empty array of IDs, skipping this call!"));
-		Delegate.ExecuteIfBound(true, TArray<TSharedRef<FAccelByteUserInfo>>());
+		Delegate.ExecuteIfBound(true, TArray<FAccelByteUserInfoRef>());
 		return false;
 	}
 
@@ -309,14 +337,14 @@ bool FOnlineUserCacheAccelByte::QueryUsersByPlatformIds(int32 LocalUserNum, cons
 	if (PlatformType.IsEmpty())
 	{
 		UE_LOG_AB(Warning, TEXT("FOnlineUserStoreAccelByte::QueryUsersByPlatformIds called with a blank platform type, skipping this call!"));
-		Delegate.ExecuteIfBound(true, TArray<TSharedRef<FAccelByteUserInfo>>());
+		Delegate.ExecuteIfBound(true, TArray<FAccelByteUserInfoRef>());
 		return false;
 	}
 
 	if (PlatformIds.Num() <= 0)
 	{
 		UE_LOG_AB(Warning, TEXT("FOnlineUserStoreAccelByte::QueryUsersByPlatformIds called with an empty array of IDs, skipping this call!"));
-		Delegate.ExecuteIfBound(true, TArray<TSharedRef<FAccelByteUserInfo>>());
+		Delegate.ExecuteIfBound(true, TArray<FAccelByteUserInfoRef>());
 		return false;
 	}
 
@@ -333,7 +361,7 @@ bool FOnlineUserCacheAccelByte::QueryUsersByAccelByteIds(const FUniqueNetId& Use
 	if (FilteredIds.Num() <= 0)
 	{
 		UE_LOG_AB(Warning, TEXT("FOnlineUserStoreAccelByte::QueryUsersByAccelByteIds called with an empty array of IDs, skipping this call!"));
-		Delegate.ExecuteIfBound(true, TArray<TSharedRef<FAccelByteUserInfo>>());
+		Delegate.ExecuteIfBound(true, TArray<FAccelByteUserInfoRef>());
 		return false;
 	}
 
@@ -354,14 +382,14 @@ bool FOnlineUserCacheAccelByte::QueryUsersByPlatformIds(const FUniqueNetId& User
 	if (PlatformType.IsEmpty())
 	{
 		UE_LOG_AB(Warning, TEXT("FOnlineUserStoreAccelByte::QueryUsersByPlatformIds called with a blank platform type, skipping this call!"));
-		Delegate.ExecuteIfBound(true, TArray<TSharedRef<FAccelByteUserInfo>>());
+		Delegate.ExecuteIfBound(true, TArray<FAccelByteUserInfoRef>());
 		return false;
 	}
 
 	if (PlatformIds.Num() <= 0)
 	{
 		UE_LOG_AB(Warning, TEXT("FOnlineUserStoreAccelByte::QueryUsersByPlatformIds called with an empty array of IDs, skipping this call!"));
-		Delegate.ExecuteIfBound(true, TArray<TSharedRef<FAccelByteUserInfo>>());
+		Delegate.ExecuteIfBound(true, TArray<FAccelByteUserInfoRef>());
 		return false;
 	}
 
@@ -369,7 +397,7 @@ bool FOnlineUserCacheAccelByte::QueryUsersByPlatformIds(const FUniqueNetId& User
 	return true;
 }
 
-TSharedPtr<const FAccelByteUserInfo> FOnlineUserCacheAccelByte::GetUser(const FUniqueNetId& UserId)
+TSharedPtr<const FAccelByteUserInfo, ESPMode::ThreadSafe> FOnlineUserCacheAccelByte::GetUser(const FUniqueNetId& UserId)
 {
 	// Lock while we access the cache
 	FScopeLock ScopeLock(&CacheLock);
@@ -383,7 +411,7 @@ TSharedPtr<const FAccelByteUserInfo> FOnlineUserCacheAccelByte::GetUser(const FU
 
 	// Otherwise, query as if it is a platform ID
 	const FString PlatformId = ConvertPlatformTypeAndIdToCacheKey(UserId.GetType().ToString(), UserId.ToString());
-	const TSharedRef<FAccelByteUserInfo>* FoundUserInfo = PlatformIdToUserInfoMap.Find(PlatformId);
+	const FAccelByteUserInfoRef* FoundUserInfo = PlatformIdToUserInfoMap.Find(PlatformId);
 	if (FoundUserInfo != nullptr)
 	{
 		(*FoundUserInfo)->LastAccessedTimeInSeconds = FPlatformTime::Seconds();
@@ -393,13 +421,13 @@ TSharedPtr<const FAccelByteUserInfo> FOnlineUserCacheAccelByte::GetUser(const FU
 	return nullptr;
 }
 
-TSharedPtr<const FAccelByteUserInfo> FOnlineUserCacheAccelByte::GetUser(const FAccelByteUniqueIdComposite& UserId)
+TSharedPtr<const FAccelByteUserInfo, ESPMode::ThreadSafe> FOnlineUserCacheAccelByte::GetUser(const FAccelByteUniqueIdComposite& UserId)
 {
 	// Lock while we access the cache
 	FScopeLock ScopeLock(&CacheLock);
 
 	// Start by checking the cache for the user associated with the AccelByte ID, if we have one to query
-	TSharedRef<FAccelByteUserInfo>* FoundUserInfo = nullptr;
+	FAccelByteUserInfoRef* FoundUserInfo = nullptr;
 	if (!UserId.Id.IsEmpty())
 	{
 		FoundUserInfo = AccelByteIdToUserInfoMap.Find(UserId.Id);
@@ -421,9 +449,81 @@ TSharedPtr<const FAccelByteUserInfo> FOnlineUserCacheAccelByte::GetUser(const FA
 	return nullptr;
 }
 
-void FOnlineUserCacheAccelByte::AddUsersToCache(const TArray<TSharedRef<FAccelByteUserInfo>>& UsersQueried)
+bool FOnlineUserCacheAccelByte::IsStalenessCheckEnabled() const
 {
-	for (const TSharedRef<FAccelByteUserInfo>& User : UsersQueried)
+	return bEnableStalenessChecking;
+}
+
+double FOnlineUserCacheAccelByte::GetTimeUntilStaleSeconds() const
+{
+	return TimeUntilStaleSeconds;
+}
+
+void FOnlineUserCacheAccelByte::SetStalenessCheckEnabled(bool bInEnableStalenessChecking)
+{
+	bEnableStalenessChecking = bInEnableStalenessChecking;
+}
+
+void FOnlineUserCacheAccelByte::SetTimeUntilStaleSeconds(double InTimeUntilStaleSeconds)
+{
+	TimeUntilStaleSeconds = InTimeUntilStaleSeconds;
+}
+
+bool FOnlineUserCacheAccelByte::SetUserDataAsStale(const FUniqueNetId& UserUniqueId)
+{
+	FUniqueNetIdAccelByteUserPtr UserUniqueAccelByteId = FUniqueNetIdAccelByteUser::TryCast(UserUniqueId);
+	if (!UserUniqueId.IsValid())
+	{
+		UE_LOG_AB(Warning, TEXT("Failed to 'SetUserDataAsStale' in user cache as the passed in unique ID was not a valid AccelByte user ID! Unique ID: %s"), *UserUniqueId.ToDebugString());
+		return false;
+	}
+
+	return SetUserDataAsStale(UserUniqueAccelByteId->GetAccelByteId());
+}
+
+bool FOnlineUserCacheAccelByte::SetUserDataAsStale(const FString& InAccelByteId)
+{
+	const FAccelByteUserInfoRef* FoundCachedUser = AccelByteIdToUserInfoMap.Find(InAccelByteId);
+	if (FoundCachedUser == nullptr)
+	{
+		return false;
+	}
+
+	(*FoundCachedUser)->bIsForcedStale = true;
+	return true;
+}
+
+bool FOnlineUserCacheAccelByte::IsUserDataStale(const FUniqueNetId& UserUniqueId)
+{
+	FUniqueNetIdAccelByteUserPtr UserUniqueAccelByteId = FUniqueNetIdAccelByteUser::TryCast(UserUniqueId);
+	if (!UserUniqueId.IsValid())
+	{
+		UE_LOG_AB(Warning, TEXT("Failed to check 'bIsUserDataStale' in user cache as the passed in unique ID was not a valid AccelByte user ID! Unique ID: %s"), *UserUniqueId.ToDebugString());
+		return false;
+	}
+
+	return IsUserDataStale(UserUniqueAccelByteId->GetAccelByteId());
+}
+
+bool FOnlineUserCacheAccelByte::IsUserDataStale(const FString& InAccelByteId)
+{
+	const FAccelByteUserInfoRef* FoundCachedUser = AccelByteIdToUserInfoMap.Find(InAccelByteId);
+	if (FoundCachedUser == nullptr)
+	{
+		return true;
+	}
+
+	if ((*FoundCachedUser)->bIsForcedStale)
+	{
+		return true;
+	}
+
+	return ((*FoundCachedUser)->LastUpdatedTime + FTimespan::FromSeconds(GetTimeUntilStaleSeconds())) >= FDateTime::UtcNow();
+}
+
+void FOnlineUserCacheAccelByte::AddUsersToCache(const TArray<FAccelByteUserInfoRef>& UsersQueried)
+{
+	for (const FAccelByteUserInfoRef& User : UsersQueried)
 	{
 		if (User->PublicCode.IsEmpty())
 		{
@@ -436,14 +536,29 @@ void FOnlineUserCacheAccelByte::AddUsersToCache(const TArray<TSharedRef<FAccelBy
 				}
 			}
 		}
+
 		// Add the user to the AccelByte ID mapping cache first
-		AccelByteIdToUserInfoMap.Add(User->Id->GetAccelByteId(), User);
+		if (AccelByteIdToUserInfoMap.Find(User->Id->GetAccelByteId()))
+		{
+			AccelByteIdToUserInfoMap[User->Id->GetAccelByteId()]->CopyValue(User.Get());
+		}
+		else
+		{
+			AccelByteIdToUserInfoMap.Emplace(User->Id->GetAccelByteId(), User);
+		}
 
 		// Try and add the user to the platform mapping cache if they have platform information
 		if (User->Id->HasPlatformInformation())
 		{
 			const FString PlatformId = ConvertPlatformTypeAndIdToCacheKey(User->Id->GetPlatformType(), User->Id->GetPlatformId());
-			PlatformIdToUserInfoMap.Add(PlatformId, User);
+			if (PlatformIdToUserInfoMap.Find(PlatformId))
+			{
+				PlatformIdToUserInfoMap[PlatformId]->CopyValue(User.Get());
+			}
+			else
+			{
+				PlatformIdToUserInfoMap.Emplace(PlatformId, User);
+			}
 		}
 	}
 }
@@ -463,7 +578,7 @@ void FOnlineUserCacheAccelByte::AddPublicCodeToCache(const FUniqueNetId& UserId,
 
 	// Otherwise, query as if it is a platform ID
 	const FString PlatformId = ConvertPlatformTypeAndIdToCacheKey(UserId.GetType().ToString(), UserId.ToString());
-	const TSharedRef<FAccelByteUserInfo>* FoundUserInfo = PlatformIdToUserInfoMap.Find(PlatformId);
+	const FAccelByteUserInfoRef* FoundUserInfo = PlatformIdToUserInfoMap.Find(PlatformId);
 	if (FoundUserInfo != nullptr)
 	{
 		(*FoundUserInfo)->LastAccessedTimeInSeconds = FPlatformTime::Seconds();
@@ -473,7 +588,7 @@ void FOnlineUserCacheAccelByte::AddPublicCodeToCache(const FUniqueNetId& UserId,
 	{
 		// Create a new user info
 		FAccelByteUniqueIdComposite CompositeId{UserId.ToString(), UserId.GetType().ToString(), PlatformId};
-		TSharedRef<FAccelByteUserInfo> User = MakeShared<FAccelByteUserInfo>();
+		FAccelByteUserInfoRef User = MakeShared<FAccelByteUserInfo, ESPMode::ThreadSafe>();
 		User->Id = FUniqueNetIdAccelByteUser::Create(CompositeId);
 		User->PublicCode = PublicCode;
 		AddUsersToCache({ User });
@@ -486,7 +601,7 @@ void FOnlineUserCacheAccelByte::AddPublicCodeToCache(const FAccelByteUniqueIdCom
 	FScopeLock ScopeLock(&CacheLock);
 
 	// Start by checking the cache for the user associated with the AccelByte ID, if we have one to query
-	TSharedRef<FAccelByteUserInfo>* FoundUserInfo = nullptr;
+	FAccelByteUserInfoRef* FoundUserInfo = nullptr;
 	if (!UserId.Id.IsEmpty())
 	{
 		FoundUserInfo = AccelByteIdToUserInfoMap.Find(UserId.Id);
@@ -507,7 +622,7 @@ void FOnlineUserCacheAccelByte::AddPublicCodeToCache(const FAccelByteUniqueIdCom
 	else
 	{
 		// Create a new user info
-		TSharedRef<FAccelByteUserInfo> User = MakeShared<FAccelByteUserInfo>();
+		FAccelByteUserInfoRef User = MakeShared<FAccelByteUserInfo, ESPMode::ThreadSafe>();
 		User->Id = FUniqueNetIdAccelByteUser::Create(UserId);
 		User->PublicCode = PublicCode;
 		AddUsersToCache({ User });
@@ -529,7 +644,7 @@ void FOnlineUserCacheAccelByte::AddLinkedPlatformInfoToCache(const FUniqueNetId&
 
 	// Otherwise, query as if it is a platform ID
 	const FString PlatformId = ConvertPlatformTypeAndIdToCacheKey(UserId.GetType().ToString(), UserId.ToString());
-	const TSharedRef<FAccelByteUserInfo>* FoundUserInfo = PlatformIdToUserInfoMap.Find(PlatformId);
+	const FAccelByteUserInfoRef* FoundUserInfo = PlatformIdToUserInfoMap.Find(PlatformId);
 	if (FoundUserInfo != nullptr)
 	{
 		(*FoundUserInfo)->LastAccessedTimeInSeconds = FPlatformTime::Seconds();
@@ -539,7 +654,7 @@ void FOnlineUserCacheAccelByte::AddLinkedPlatformInfoToCache(const FUniqueNetId&
 	{
 		// Create a new user info
 		FAccelByteUniqueIdComposite CompositeId{UserId.ToString(), UserId.GetType().ToString(), PlatformId};
-		TSharedRef<FAccelByteUserInfo> User = MakeShared<FAccelByteUserInfo>();
+		FAccelByteUserInfoRef User = MakeShared<FAccelByteUserInfo, ESPMode::ThreadSafe>();
 		User->Id = FUniqueNetIdAccelByteUser::Create(CompositeId);
 		User->LinkedPlatformInfo = LinkedPlatformInfo;
 		AddUsersToCache({ User });
@@ -552,7 +667,7 @@ void FOnlineUserCacheAccelByte::AddLinkedPlatformInfoToCache(const FAccelByteUni
 	FScopeLock ScopeLock(&CacheLock);
 
 	// Start by checking the cache for the user associated with the AccelByte ID, if we have one to query
-	TSharedRef<FAccelByteUserInfo>* FoundUserInfo = nullptr;
+	FAccelByteUserInfoRef* FoundUserInfo = nullptr;
 	if (!UserId.Id.IsEmpty())
 	{
 		FoundUserInfo = AccelByteIdToUserInfoMap.Find(UserId.Id);
@@ -573,7 +688,7 @@ void FOnlineUserCacheAccelByte::AddLinkedPlatformInfoToCache(const FAccelByteUni
 	else
 	{
 		// Create a new user info
-		TSharedRef<FAccelByteUserInfo> User = MakeShared<FAccelByteUserInfo>();
+		FAccelByteUserInfoRef User = MakeShared<FAccelByteUserInfo, ESPMode::ThreadSafe>();
 		User->Id = FUniqueNetIdAccelByteUser::Create(UserId);
 		User->LinkedPlatformInfo = LinkedPlatformInfo;
 		AddUsersToCache({ User });
@@ -584,4 +699,20 @@ FString FOnlineUserCacheAccelByte::ConvertPlatformTypeAndIdToCacheKey(const FStr
 {
 	const FString PlatformId = FString::Printf(TEXT("%s;%s"), *Type, *Id);
 	return PlatformId;
+}
+
+void FAccelByteUserInfo::CopyValue(const FAccelByteUserInfo& Data)
+{
+	Id = Data.Id;
+	DisplayName = Data.DisplayName;
+	UniqueDisplayName = Data.UniqueDisplayName;
+	PublicCode = Data.PublicCode.IsEmpty() ? PublicCode : Data.PublicCode;
+	GameAvatarUrl = Data.GameAvatarUrl;
+	PublisherAvatarUrl = Data.PublisherAvatarUrl;
+	CustomAttributes = Data.CustomAttributes;
+	LinkedPlatformInfo = Data.LinkedPlatformInfo;
+	bIsImportant = Data.bIsImportant;
+	LastAccessedTimeInSeconds = FPlatformTime::Seconds();
+	LastUpdatedTime = FDateTime::UtcNow();
+	bIsForcedStale = false;
 }

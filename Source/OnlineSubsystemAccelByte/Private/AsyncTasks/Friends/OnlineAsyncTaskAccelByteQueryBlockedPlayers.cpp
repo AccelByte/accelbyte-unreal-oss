@@ -96,13 +96,13 @@ void FOnlineAsyncTaskAccelByteQueryBlockedPlayers::OnGetListOfBlockedUsersError(
 	CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
 }
 
-void FOnlineAsyncTaskAccelByteQueryBlockedPlayers::OnQueryBlockedPlayersComplete(bool bIsSuccessful, TArray<TSharedRef<FAccelByteUserInfo>> UsersQueried)
+void FOnlineAsyncTaskAccelByteQueryBlockedPlayers::OnQueryBlockedPlayersComplete(bool bIsSuccessful, TArray<FAccelByteUserInfoRef> UsersQueried)
 {
 	if (bIsSuccessful)
 	{
-		for (const TSharedRef<FAccelByteUserInfo>& BlockedPlayer : UsersQueried)
+		for (const FAccelByteUserInfoRef& BlockedPlayer : UsersQueried)
 		{
-			FoundBlockedPlayers.Add(MakeShared<FOnlineBlockedPlayerAccelByte>(BlockedPlayer->DisplayName, BlockedPlayer->Id.ToSharedRef()));
+			FoundBlockedPlayers.Add(MakeShared<FOnlineBlockedPlayerAccelByte>(BlockedPlayer));
 		}
 		CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
 	}

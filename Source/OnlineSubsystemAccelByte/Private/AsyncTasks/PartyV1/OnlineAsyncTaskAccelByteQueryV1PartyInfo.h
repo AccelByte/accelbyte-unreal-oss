@@ -14,7 +14,7 @@ struct FAccelBytePartyInfo
 	/**
 	 * Array containing information on each member of the party
 	 */
-	TArray<TSharedRef<FAccelByteUserInfo>> MemberInfo;
+	TArray<FAccelByteUserInfoRef> MemberInfo;
 
 	/**
 	 * Instance of data associated with this specific party
@@ -124,7 +124,7 @@ private:
 	bool HasFinishedAsyncWork();
 
 	/** Delegate handler for when our request to query all party members completes */
-	void OnQueryPartyMembersComplete(bool bIsSuccessful, TArray<TSharedRef<FAccelByteUserInfo>> UsersQueried);
+	void OnQueryPartyMembersComplete(bool bIsSuccessful, TArray<FAccelByteUserInfoRef> UsersQueried);
 
 	/** Delegate handler for when a request to get party storage data succeeds */
 	void OnGetPartyStorageSuccess(const FAccelByteModelsPartyDataNotif& Result);

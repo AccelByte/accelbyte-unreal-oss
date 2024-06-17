@@ -36,10 +36,10 @@ private:
 	FAccelByteModelsPartyGetInvitedNotice Notification;
 
 	/** Information on the user that we retrieved either from cache or the backend */
-	TSharedPtr<FAccelByteUserInfo> NotificationSenderInfo;
+	FAccelByteUserInfoPtr NotificationSenderInfo;
 
 	/** Delegate handler for when we complete a query for joined party member information */
-	void OnQueryNotificationSenderComplete(bool bIsSuccessful, TArray<TSharedRef<FAccelByteUserInfo>> UsersQueried);
+	void OnQueryNotificationSenderComplete(bool bIsSuccessful, TArray<FAccelByteUserInfoRef> UsersQueried);
 
 };
 

@@ -37,12 +37,12 @@ private:
 	void OnQueryRoomError(int32 ErrorCode, const FString& ErrorMessage);
 	void OnQueryRoomSuccess(const FAccelByteModelsChatQueryTopicByIdResponse& Response);
 	/** Delegate handler for when we successfully get all information for each member */
-	void OnQueryMemberInformationComplete(bool bIsSuccessful, TArray<TSharedRef<FAccelByteUserInfo>> UsersQueried);
+	void OnQueryMemberInformationComplete(bool bIsSuccessful, TArray<FAccelByteUserInfoRef> UsersQueried);
 
 	FChatRoomId RoomId;
 	FOnChatQueryRoomByIdComplete Delegate;
 	FString ErrorString{};
 	FAccelByteChatRoomInfoPtr RoomInfo;
-	TArray<TSharedRef<FAccelByteUserInfo>> FoundUsers;
+	TArray<FAccelByteUserInfoRef> FoundUsers;
 };
 #pragma once

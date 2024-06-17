@@ -36,10 +36,10 @@ void FOnlineAsyncTaskAccelByteV2GetRecentPlayer::Finalize()
 	if (bWasSuccessful)
 	{
 		TArray<TSharedRef<FOnlineRecentPlayerAccelByte>> RecentPlayers;
-		for (const TSharedRef<FAccelByteUserInfo>& RecentPlayerInfo : RecentPlayersQueried)
+		for (const FAccelByteUserInfoRef& RecentPlayerInfo : RecentPlayersQueried)
 		{
 			FString AccelByteId = RecentPlayerInfo->Id->GetAccelByteId();
-			TSharedPtr<FOnlineRecentPlayerAccelByte> NewRecent = MakeShared<FOnlineRecentPlayerAccelByte>(RecentPlayerInfo.Get());
+			TSharedPtr<FOnlineRecentPlayerAccelByte> NewRecent = MakeShared<FOnlineRecentPlayerAccelByte>(RecentPlayerInfo);
 			NewRecent->LastSeen = RecentPlayerResultMap[AccelByteId].LastPlayedTime;
 			RecentPlayers.Add(NewRecent.ToSharedRef());
 		}
@@ -109,7 +109,7 @@ void FOnlineAsyncTaskAccelByteV2GetRecentPlayer::OnGetRecentPlayersError(int32 E
 	CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
 }
 
-void FOnlineAsyncTaskAccelByteV2GetRecentPlayer::OnQueryRecentPlayersComplete(bool bSuccess, TArray<TSharedRef<FAccelByteUserInfo>> UsersQueried)
+void FOnlineAsyncTaskAccelByteV2GetRecentPlayer::OnQueryRecentPlayersComplete(bool bSuccess, TArray<FAccelByteUserInfoRef> UsersQueried)
 {
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 

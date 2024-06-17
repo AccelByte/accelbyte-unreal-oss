@@ -589,7 +589,17 @@ FName FOnlineSessionSearchAccelByte::GetSearchingSessionName() const
 
 bool FOnlineSessionInviteAccelByte::IsExpired()
 {
-	return this->ExpiredAt <= FDateTime::Now();
+	auto SynchedServerTime = AccelByte::FRegistry::TimeManager.GetCurrentServerTime();
+	
+	// If we are unable to sync with the server time
+	if (SynchedServerTime <= FDateTime::MinValue())
+	{
+		return this->ExpiredAt <= FDateTime::UtcNow();
+	}
+	else
+	{
+		return this->ExpiredAt <= SynchedServerTime;
+	}
 }
 
 const FString FOnlineSessionV2AccelByte::ServerSessionIdEnvironmentVariable = TEXT("NOMAD_META_session_id");

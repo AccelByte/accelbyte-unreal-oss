@@ -29,6 +29,32 @@ typedef FOnSyncThirdPartyBlockListComplete::FDelegate FOnSyncThirdPartyBlockList
 DECLARE_MULTICAST_DELEGATE_FourParams(FOnQueryRecentTeamPlayersComplete, int32 /*LocalUserNum*/, const FString& /*Namespace*/, bool /*bWasSuccessful*/, const FString& /*Error*/)
 typedef FOnQueryRecentTeamPlayersComplete::FDelegate FOnQueryRecentTeamPlayersCompleteDelegate;
 
+class ONLINESUBSYSTEMACCELBYTE_API FOnlineUserInfoAccelByte 
+{
+PACKAGE_SCOPE:
+	FString GetDisplayName(const FString& Platform = FString()) const;
+
+	TSharedPtr<FAccelByteUserInfo, ESPMode::ThreadSafe> GetUserInfo() const;
+
+	/** Info of this online user */
+	TWeakPtr<FAccelByteUserInfo, ESPMode::ThreadSafe> UserInfo;
+public:
+	/** Constructor for creating a OnlineUserInfo from a UserInfo */
+	FOnlineUserInfoAccelByte(const TSharedRef<FAccelByteUserInfo, ESPMode::ThreadSafe>& InUserInfo);
+
+	/** Constructor for creating a OnlineUserInfo with null UserInfo */
+	FOnlineUserInfoAccelByte();
+
+	virtual ~FOnlineUserInfoAccelByte() {};
+	
+	void SetUserInfo(const TSharedPtr<FAccelByteUserInfo, ESPMode::ThreadSafe>& InUserInfo)
+	{
+		UserInfo = InUserInfo;
+	}
+
+	virtual FString GetUniqueDisplayName() const;
+};
+
 /**
  * Implementation of a friend represented in the AccelByte backend
  */
@@ -36,8 +62,11 @@ class ONLINESUBSYSTEMACCELBYTE_API FOnlineFriendAccelByte : public FOnlineFriend
 {
 PACKAGE_SCOPE:
 
-	/** Constructor for creating a friend from a string display name and a shared ref to a friend ID, use if we already have an ID for a friend */
+	/** [Deprecated] Constructor for creating a friend from a string display name and a shared ref to a friend ID, use if we already have an ID for a friend */
 	FOnlineFriendAccelByte(const FString& InDisplayName, const TSharedRef<const FUniqueNetIdAccelByteUser>& InUserId, const EInviteStatus::Type& InInviteStatus);
+
+	/** Constructor for creating a friend from a UserInfo, use if we already have an UserInfo for a friend */
+	FOnlineFriendAccelByte(const TSharedRef<FAccelByteUserInfo, ESPMode::ThreadSafe>& InUserInfo, const EInviteStatus::Type& InInviteStatus);
 
 	/** Method for the friends interface to update invite status if the friend changes state */
 	void SetInviteStatus(const EInviteStatus::Type& InInviteStatus)
@@ -52,7 +81,7 @@ PACKAGE_SCOPE:
 	{
 		Presence = InPresence;
 	}
-	
+
 public:
 	
 	//~ Begin FOnlineFriend
@@ -67,12 +96,13 @@ public:
 	virtual bool GetUserAttribute(const FString& AttrName, FString& OutAttrValue) const override;
 	//~ End FOnlineUser
 
+	virtual FString GetUniqueDisplayName() const;
 private:
 
-	/** Display name of this friend user */
+	/** [Deprecated] Display name of this friend user */
 	FString DisplayName;
 
-	/** ID of this friend user */
+	/** [Deprecated] ID of this friend user */
 	TSharedRef<const FUniqueNetIdAccelByteUser> UserId;
 	
 	/** Map of attributes for this friend user */
@@ -90,6 +120,7 @@ private:
 	/** Presence info for this friend */
 	FOnlineUserPresence Presence;
 
+	FOnlineUserInfoAccelByte OnlineUserInfo;
 };
 
 /**
@@ -100,6 +131,7 @@ class FOnlineBlockedPlayerAccelByte : public FOnlineBlockedPlayer
 PACKAGE_SCOPE:
 
 	FOnlineBlockedPlayerAccelByte(const FString& InDisplayName, const TSharedRef<const FUniqueNetIdAccelByteUser>& InUserId);
+	FOnlineBlockedPlayerAccelByte(const TSharedRef<FAccelByteUserInfo, ESPMode::ThreadSafe>& InUserInfo);
 
 public:
 
@@ -110,17 +142,19 @@ public:
 	virtual bool GetUserAttribute(const FString& AttrName, FString& OutAttrValue) const override;
 	//~ End FOnlineUser
 
+	virtual FString GetUniqueDisplayName() const;
 private:
 
-	/** Display name of this blocked user */
+	/** [Deprecated] Display name of this blocked user */
 	FString DisplayName;
 
-	/** ID of this blocked user */
+	/** [Deprecated] ID of this blocked user */
 	TSharedRef<const FUniqueNetIdAccelByteUser> UserId;
 
 	/** Map of attributes for this blocked user */
 	TMap<FString, FString> UserAttributesMap;
 
+	FOnlineUserInfoAccelByte OnlineUserInfo;
 };
 
 using FBlockedPlayerArray = TArray<TSharedPtr<FOnlineBlockedPlayer>>;
@@ -140,13 +174,27 @@ public:
 
 	virtual FDateTime GetLastSeen() const override;
 	virtual const FOnlineUserPresence& GetPresence() const;
+	virtual FString GetUniqueDisplayName() const;
 
-	/** Init/default constructor */
+	/** [Deprecated] Init/default constructor */
 	FOnlineRecentPlayerAccelByte(const FAccelByteUserInfo& InData);
+	/** Init/default constructor */
+	FOnlineRecentPlayerAccelByte(const TSharedRef<FAccelByteUserInfo, ESPMode::ThreadSafe>& InUserInfo)
+		: UserId(InUserInfo->Id.ToSharedRef())
+		, OnlineUserInfo(FOnlineUserInfoAccelByte(InUserInfo))
+	{
+	}
 	/** Platform Friend constructor */
 	FOnlineRecentPlayerAccelByte(const FUniqueNetIdRef& InUserId, const TSharedRef<const FOnlineRecentPlayer>& InPlatformRecentPlayer)
 		: UserId(InUserId)
 		, PlatformRecentPlayer(InPlatformRecentPlayer)
+	{
+	}
+	/** Platform Friend constructor with UserInfo*/
+	FOnlineRecentPlayerAccelByte(const TSharedRef<FAccelByteUserInfo, ESPMode::ThreadSafe>& InUserInfo, const TSharedRef<const FOnlineRecentPlayer>& InPlatformRecentPlayer)
+		: UserId(InUserInfo->Id.ToSharedRef())
+		, PlatformRecentPlayer(InPlatformRecentPlayer)
+		, OnlineUserInfo(FOnlineUserInfoAccelByte(InUserInfo))
 	{
 	}
 
@@ -168,6 +216,8 @@ PACKAGE_SCOPE:
 
 	/** Map of attributes for this blocked user */
 	TMap<FString, FString> UserAttributesMap;
+
+	FOnlineUserInfoAccelByte OnlineUserInfo;
 };
 
 /**

@@ -105,7 +105,7 @@ private:
 	void OnQueryOutgoingFriendRequestFailed(int32 ErrorCode, const FString& ErrorMessage);
 
 	/** Delegate handler for when we successfully get all information for each user in our friends list */
-	void OnQueryFriendInformationComplete(bool bIsSuccessful, TArray<TSharedRef<FAccelByteUserInfo>> UsersQueried);
+	void OnQueryFriendInformationComplete(bool bIsSuccessful, TArray<FAccelByteUserInfoRef> UsersQueried);
 	
 	void OnGetUserPresenceComplete(const FAccelByteModelsBulkUserStatusNotif& Statuses);
 };

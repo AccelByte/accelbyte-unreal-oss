@@ -140,7 +140,7 @@ void FOnlineAsyncTaskAccelByteQueryUsersByIds::TriggerDelegates()
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
 	// Concatenate array of queried and cached users to return to the delegate
-	TArray<TSharedRef<FAccelByteUserInfo>> ReturnUsers;
+	TArray<FAccelByteUserInfoRef> ReturnUsers;
 	
 	// Only append queried and cached arrays on success
 	if (bWasSuccessful)
@@ -270,30 +270,45 @@ void FOnlineAsyncTaskAccelByteQueryUsersByIds::OnGetUserOtherPlatformBasicPublic
 		return;
 	}
 
+	FOnlineUserCacheAccelBytePtr UserCache = Subsystem->GetUserCache();
+	if (!UserCache.IsValid())
+	{
+		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Cannot query users as AccelByte user cache interface is invalid!"));
+		CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState);
+		return;
+	}
+
 	for (const FAccountUserPlatformData& BasicInfo : Result.Data)
 	{
-		// Set up our user info struct with basic data
-		TSharedRef<FAccelByteUserInfo> User = MakeShared<FAccelByteUserInfo>();
+		// Construct a composite ID for this user
+		FAccelByteUniqueIdComposite CompositeId;
+		CompositeId.Id = BasicInfo.UserId;
+
+		ExtractPlatformDataFromBasicUserInfo(BasicInfo, CompositeId);
+
+		// Set up our user info struct with basic data, get existing userInfo if not exist, create new
+		FAccelByteUserInfoPtr User = ConstCastSharedPtr<FAccelByteUserInfo>(UserCache->GetUser(CompositeId));
+		if (!User.IsValid())
+		{
+			User = MakeShared<FAccelByteUserInfo, ESPMode::ThreadSafe>();
+			User->Id = FUniqueNetIdAccelByteUser::Create(CompositeId);
+		}
 		User->bIsImportant = bIsImportant;
 		User->LastAccessedTimeInSeconds = FPlatformTime::Seconds();
 		User->PublisherAvatarUrl = BasicInfo.AvatarUrl;
-		User->UniqueDisplayName = BasicInfo.DisplayName;
+		User->UniqueDisplayName = BasicInfo.UniqueDisplayName;
+		User->LastUpdatedTime = FDateTime::UtcNow();
 
 		// By default, we would provide the initial value using the basic platform information
 		User->DisplayName = BasicInfo.DisplayName;
 		User->GameAvatarUrl = BasicInfo.AvatarUrl;
 
 		// Override based on the platform information
+		User->LinkedPlatformInfo.Empty();
 		if (BasicInfo.PlatformInfos.Num() != 0)
 		{
 			for (const FAccountUserPlatformInfo& UserPlatform : BasicInfo.PlatformInfos)
 			{
-				if (UserPlatform.PlatformId == AccelByteUserId->GetPlatformType())
-				{
-					User->GameAvatarUrl = UserPlatform.PlatformAvatarUrl;
-					User->DisplayName = UserPlatform.PlatformDisplayName;
-					break;
-				}
 				FAccelByteLinkedUserInfo PlatformUserInfo;
 				PlatformUserInfo.Id =  FUniqueNetIdAccelByteUser::Create(FAccelByteUniqueIdComposite(BasicInfo.UserId, UserPlatform.PlatformId, UserPlatform.PlatformUserId));
 				PlatformUserInfo.PlatformId = UserPlatform.PlatformUserId;
@@ -303,17 +318,8 @@ void FOnlineAsyncTaskAccelByteQueryUsersByIds::OnGetUserOtherPlatformBasicPublic
 			}
 		}
 
-		// Construct a composite ID for this user
-		FAccelByteUniqueIdComposite CompositeId;
-		CompositeId.Id = BasicInfo.UserId;
-
-		ExtractPlatformDataFromBasicUserInfo(BasicInfo, CompositeId);
-
-		// Create the final user ID for the queried user
-		User->Id = FUniqueNetIdAccelByteUser::Create(CompositeId);
-
 		// Add the user to our successful queries
-		UsersQueried.Add(User);
+		UsersQueried.Add(User.ToSharedRef());
 
 		// Also query the user on the native platform, if we have their platform information
 		FUniqueNetIdPtr PlatformUniqueId = User->Id->GetPlatformUniqueId();

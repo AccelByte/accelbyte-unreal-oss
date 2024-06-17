@@ -41,7 +41,7 @@ private:
 	FString JoinedAccelByteId;
 
 	/** Information about the user that joined this party */
-	TSharedPtr<FAccelByteUserInfo> JoinedPartyMember;
+	FAccelByteUserInfoPtr JoinedPartyMember;
 
 	/** Flag representing whether we have gotten basic member info for the user yet */
 	FThreadSafeBool bHasRetrievedMemberInfo = false;
@@ -62,7 +62,7 @@ private:
 	FThreadSafeBool bHasRetrievedMemberRanks = false;
 
 	/** Delegate handler for when we complete a query for joined party member information */
-	void OnQueryJoinedPartyMemberComplete(bool bIsSuccessful, TArray<TSharedRef<FAccelByteUserInfo>> UsersQueried);
+	void OnQueryJoinedPartyMemberComplete(bool bIsSuccessful, TArray<FAccelByteUserInfoRef> UsersQueried);
 
 };
 

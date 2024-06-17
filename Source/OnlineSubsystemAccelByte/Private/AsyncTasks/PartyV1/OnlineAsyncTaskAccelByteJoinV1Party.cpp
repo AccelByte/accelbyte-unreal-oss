@@ -105,7 +105,7 @@ void FOnlineAsyncTaskAccelByteJoinV1Party::Finalize()
 		PartyInterface->RemoveInviteForParty(UserId.ToSharedRef(), JoinedPartyId.ToSharedRef(), EPartyInvitationRemovedReason::Accepted);
 
 		// Add party information for all members in the party locally so that we can query for them if needed
-		for (const TSharedRef<FAccelByteUserInfo>& Member : PartyMemberInfo)
+		for (const FAccelByteUserInfoRef& Member : PartyMemberInfo)
 		{
 			PartyInterface->AddPartyToInterface(Member->Id.ToSharedRef(), Party);
 		}
@@ -241,7 +241,7 @@ void FOnlineAsyncTaskAccelByteJoinV1Party::OnQueryPartyInfoComplete(bool bIsSucc
 		PartyMemberInfo = Result.MemberInfo;
 		PartyData = Result.PartyData;
 		TArray<FString> PartyMemberUid;
-		for(TSharedRef<FAccelByteUserInfo>& Member : PartyMemberInfo)
+		for(FAccelByteUserInfoRef& Member : PartyMemberInfo)
 		{
 			PartyMemberUid.Add(Member->Id->GetAccelByteId());
 		}

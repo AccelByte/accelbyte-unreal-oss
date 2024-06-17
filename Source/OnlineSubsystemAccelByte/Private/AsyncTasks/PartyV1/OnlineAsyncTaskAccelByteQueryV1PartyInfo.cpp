@@ -94,7 +94,7 @@ bool FOnlineAsyncTaskAccelByteQueryV1PartyInfo::HasFinishedAsyncWork()
 		bHasRetrievedPartyStorage;
 }
 
-void FOnlineAsyncTaskAccelByteQueryV1PartyInfo::OnQueryPartyMembersComplete(bool bIsSuccessful, TArray<TSharedRef<FAccelByteUserInfo>> UsersQueried)
+void FOnlineAsyncTaskAccelByteQueryV1PartyInfo::OnQueryPartyMembersComplete(bool bIsSuccessful, TArray<FAccelByteUserInfoRef> UsersQueried)
 {
 	SetLastUpdateTimeToCurrentTime();
 	if (bIsSuccessful)

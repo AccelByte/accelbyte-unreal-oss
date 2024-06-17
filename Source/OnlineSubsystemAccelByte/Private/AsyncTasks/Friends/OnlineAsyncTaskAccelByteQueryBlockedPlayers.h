@@ -47,7 +47,7 @@ private:
 	void OnGetListOfBlockedUsersError(int32 ErrorCode, const FString& ErrorMessage);
 
 	/** Delegate handler for when we get information on all blocked users */
-	void OnQueryBlockedPlayersComplete(bool bIsSuccessful, TArray<TSharedRef<FAccelByteUserInfo>> UsersQueried);
+	void OnQueryBlockedPlayersComplete(bool bIsSuccessful, TArray<FAccelByteUserInfoRef> UsersQueried);
 
 };
 

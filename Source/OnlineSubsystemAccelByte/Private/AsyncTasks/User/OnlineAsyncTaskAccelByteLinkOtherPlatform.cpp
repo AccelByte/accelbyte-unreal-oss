@@ -37,6 +37,13 @@ void FOnlineAsyncTaskAccelByteLinkOtherPlatform::Initialize()
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));	
 }
 
+void FOnlineAsyncTaskAccelByteLinkOtherPlatform::Finalize()
+{
+	const FOnlineUserCacheAccelBytePtr UserCacheInterface = Subsystem->GetUserCache();
+	auto LinkedUser = UserCacheInterface->GetUser(*UserId.Get());
+	UserCacheInterface->SetUserDataAsStale(LinkedUser->Id->GetAccelByteId());
+}
+
 void FOnlineAsyncTaskAccelByteLinkOtherPlatform::TriggerDelegates()
 {
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("TriggerDelegates"));

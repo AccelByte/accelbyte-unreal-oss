@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.12.17](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.12.17%0D0.12.16) (2024-06-17)
+
+
+### Features
+
+* **OnlineFriend:** add UserInfo to OnlineFriend to able to get info like friend's platform's displayName ([82708d8](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/82708d8ebd5a717c910e21f0360e00556fd91488))
+* **usercache:** change how to update userInfo, copy the new value to existing data instead of overwrite it ([e2cda5f](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/e2cda5ffd913c2948b677c10421e6b4f36f24855))
+* **usercache:** implement concept of 'stale' cached user data to allow for refresh when older than configured time ([e2089e5](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/e2089e578f20ac3ac5c48b88b7a3027bf9ebf18e))
+
+
+### Bug Fixes
+
+* incorrect display name assigned for other users data ([4afb6af](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/4afb6af87760135a2f0cd0c7ac8e0b9d3346895c))
+* incorrect unique display name assigned to the user info data ([bc8c593](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/bc8c59308434d7c0dbd2f065eecac9b23545f8a5))
+* missing ESPMode::ThreadSafe for TSharedRef<FAccelByteUserInfo> ([4a227f0](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/4a227f09d7521a3be3d13ca0a52cd82d51461f11))
+* **SessionInvite:** improve the expiration calculation for the timeout invitation ([519a528](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/519a52803b3d59919c193b4bd5c5d1aa43387fa3))
+
 ### [0.12.16](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.12.16%0D0.12.15) (2024-06-05)
 
 

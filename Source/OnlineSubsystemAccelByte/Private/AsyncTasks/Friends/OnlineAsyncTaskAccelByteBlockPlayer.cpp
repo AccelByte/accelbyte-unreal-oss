@@ -100,29 +100,20 @@ void FOnlineAsyncTaskAccelByteBlockPlayer::TriggerDelegates()
 
 void FOnlineAsyncTaskAccelByteBlockPlayer::OnBlockPlayerSuccess()
 {
-	// If we have a friend instance already, we want to construct a blocked player instance from that friend and complete the task...
-	if (FoundFriend.IsValid())
+	// We'll need to get the UserInfo from UserCache
+	FOnlineUserCacheAccelBytePtr UserStore = Subsystem->GetUserCache();
+	if (!UserStore.IsValid())
 	{
-		BlockedPlayer = MakeShared<FOnlineBlockedPlayerAccelByte>(FoundFriend->GetDisplayName(), PlayerId);
-		CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
+		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Could not get information on blocked user '%s'!"), *PlayerId->ToDebugString());
+		CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState);
+		return;
 	}
-	// Otherwise, we need to go and query the player ID to get a display name to properly construct a blocked player...
-	else
-	{
-		FOnlineUserCacheAccelBytePtr UserStore = Subsystem->GetUserCache();
-		if (!UserStore.IsValid())
-		{
-			AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Could not get information on blocked user '%s'!"), *PlayerId->ToDebugString());
-			CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState);
-			return;
-		}
 
-		Super::ExecuteCriticalSectionAction(FVoidHandler::CreateLambda([&]()
-		{
-			FOnQueryUsersComplete OnQueryBlockedPlayerCompleteDelegate = TDelegateUtils<FOnQueryUsersComplete>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteBlockPlayer::OnQueryBlockedPlayerComplete);
-			UserStore->QueryUsersByAccelByteIds(LocalUserNum, { PlayerId->GetAccelByteId() }, OnQueryBlockedPlayerCompleteDelegate, true);
-		}));
-	}
+	Super::ExecuteCriticalSectionAction(FVoidHandler::CreateLambda([&]()
+	{
+		FOnQueryUsersComplete OnQueryBlockedPlayerCompleteDelegate = TDelegateUtils<FOnQueryUsersComplete>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteBlockPlayer::OnQueryBlockedPlayerComplete);
+		UserStore->QueryUsersByAccelByteIds(LocalUserNum, { PlayerId->GetAccelByteId() }, OnQueryBlockedPlayerCompleteDelegate, true);
+	}));
 }
 
 void FOnlineAsyncTaskAccelByteBlockPlayer::OnBlockPlayerFailed(int32 ErrorCode, const FString& ErrorMessage)
@@ -132,12 +123,12 @@ void FOnlineAsyncTaskAccelByteBlockPlayer::OnBlockPlayerFailed(int32 ErrorCode, 
 	CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
 }
 
-void FOnlineAsyncTaskAccelByteBlockPlayer::OnQueryBlockedPlayerComplete(bool bIsSuccessful, TArray<TSharedRef<FAccelByteUserInfo>> UsersQueried)
+void FOnlineAsyncTaskAccelByteBlockPlayer::OnQueryBlockedPlayerComplete(bool bIsSuccessful, TArray<FAccelByteUserInfoRef> UsersQueried)
 {
 	if (bIsSuccessful && UsersQueried.IsValidIndex(0))
 	{
-		TSharedRef<FAccelByteUserInfo> User = UsersQueried[0];
-		BlockedPlayer = MakeShared<FOnlineBlockedPlayerAccelByte>(User->DisplayName, User->Id.ToSharedRef());
+		FAccelByteUserInfoRef User = UsersQueried[0];
+		BlockedPlayer = MakeShared<FOnlineBlockedPlayerAccelByte>(User);
 		CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
 	}
 	else

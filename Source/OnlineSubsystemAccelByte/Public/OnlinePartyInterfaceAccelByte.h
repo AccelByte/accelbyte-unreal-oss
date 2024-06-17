@@ -159,13 +159,13 @@ PACKAGE_SCOPE:
 	 * Internal method to construct a party instance from an AccelByte party join info structure as well as a map of user IDs
 	 * to display names for each member of the party.
 	 */
-	static TSharedRef<FOnlinePartyAccelByte> CreatePartyFromPartyInfo(const TSharedRef<const FUniqueNetIdAccelByteUser> LocalUserId, const TSharedRef<FOnlinePartySystemAccelByte, ESPMode::ThreadSafe> PartyInterface, const FAccelByteModelsPartyJoinResponse& PartyInfo, const TArray<TSharedRef<FAccelByteUserInfo>>& PartyMemberInfo, const TSharedRef<FOnlinePartyData>& InPartyData = MakeShared<FOnlinePartyData>(), const FString& PartyCode=TEXT(""), const FAccelByteModelsBulkUserStatusNotif& InPartyMemberStatus = FAccelByteModelsBulkUserStatusNotif());
+	static TSharedRef<FOnlinePartyAccelByte> CreatePartyFromPartyInfo(const TSharedRef<const FUniqueNetIdAccelByteUser> LocalUserId, const TSharedRef<FOnlinePartySystemAccelByte, ESPMode::ThreadSafe> PartyInterface, const FAccelByteModelsPartyJoinResponse& PartyInfo, const TArray<FAccelByteUserInfoRef>& PartyMemberInfo, const TSharedRef<FOnlinePartyData>& InPartyData = MakeShared<FOnlinePartyData>(), const FString& PartyCode=TEXT(""), const FAccelByteModelsBulkUserStatusNotif& InPartyMemberStatus = FAccelByteModelsBulkUserStatusNotif());
 
 	/**
 	 * Internal method to construct a party instance from an AccelByte party info structure as well as a map of user IDs
 	 * to display names for each member of the party.
 	 */
-	static TSharedRef<FOnlinePartyAccelByte> CreatePartyFromPartyInfo(const TSharedRef<const FUniqueNetIdAccelByteUser> LocalUserId, const TSharedRef<FOnlinePartySystemAccelByte, ESPMode::ThreadSafe> PartyInterface, const FAccelByteModelsInfoPartyResponse& PartyInfo, const TArray<TSharedRef<FAccelByteUserInfo>>& PartyMemberInfo, const TSharedRef<FOnlinePartyData>& InPartyData = MakeShared<FOnlinePartyData>(), const FString& PartyCode = TEXT(""), const FAccelByteModelsBulkUserStatusNotif& InPartyMemberStatus = FAccelByteModelsBulkUserStatusNotif());
+	static TSharedRef<FOnlinePartyAccelByte> CreatePartyFromPartyInfo(const TSharedRef<const FUniqueNetIdAccelByteUser> LocalUserId, const TSharedRef<FOnlinePartySystemAccelByte, ESPMode::ThreadSafe> PartyInterface, const FAccelByteModelsInfoPartyResponse& PartyInfo, const TArray<FAccelByteUserInfoRef>& PartyMemberInfo, const TSharedRef<FOnlinePartyData>& InPartyData = MakeShared<FOnlinePartyData>(), const FString& PartyCode = TEXT(""), const FAccelByteModelsBulkUserStatusNotif& InPartyMemberStatus = FAccelByteModelsBulkUserStatusNotif());
 
 	/** Internal method for interface and async tasks to add members to this party object */
 	void AddMember(const TSharedRef<const FUniqueNetIdAccelByteUser>& LocalUserId, const TSharedRef<FOnlinePartyMemberAccelByte>& Member);

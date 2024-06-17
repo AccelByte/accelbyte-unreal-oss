@@ -90,12 +90,12 @@ private:
 	/**
 	 * Array of users that we were able to query from the backend
 	 */
-	TArray<TSharedRef<FAccelByteUserInfo>> UsersQueried;
+	TArray<FAccelByteUserInfoRef> UsersQueried;
 
 	/**
 	 * Array of users that we already had cached in our user store
 	 */
-	TArray<TSharedRef<FAccelByteUserInfo>> UsersCached;
+	TArray<FAccelByteUserInfoRef> UsersCached;
 
 	/**
 	 * Flag representing whether we have finished querying basic user info

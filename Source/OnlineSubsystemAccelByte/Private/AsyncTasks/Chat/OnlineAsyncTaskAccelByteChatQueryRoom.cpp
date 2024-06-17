@@ -115,7 +115,7 @@ void FOnlineAsyncTaskAccelByteChatQueryRoom::OnQueryRoomSuccess(const FAccelByte
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 
-void FOnlineAsyncTaskAccelByteChatQueryRoom::OnQueryMemberInformationComplete(bool bIsSuccessful, TArray<TSharedRef<FAccelByteUserInfo>> UsersQueried)
+void FOnlineAsyncTaskAccelByteChatQueryRoom::OnQueryMemberInformationComplete(bool bIsSuccessful, TArray<FAccelByteUserInfoRef> UsersQueried)
 {
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Length: %d"), UsersQueried.Num());
 	SetLastUpdateTimeToCurrentTime();

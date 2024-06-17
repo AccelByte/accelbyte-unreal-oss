@@ -43,7 +43,7 @@ private:
 	FOnQueryUserInfoComplete Delegate;
 
 	/** Array of users that we have retrieved from the query */
-	TArray<TSharedRef<FAccelByteUserInfo>> UsersQueried;
+	TArray<FAccelByteUserInfoRef> UsersQueried;
 
 	/** Array of user IDs that we successfully queried (should be the same as initial, but may also differ if a user isn't found) */
 	TArray<TSharedRef<const FUniqueNetId>> QueriedUserIds;
@@ -52,6 +52,6 @@ private:
 	FString ErrorStr;
 
 	/** Delegate handler for when we complete a query for users from the backend */
-	void OnQueryUsersComplete(bool bIsSuccessful, TArray<TSharedRef<FAccelByteUserInfo>> InUsersQueried);
+	void OnQueryUsersComplete(bool bIsSuccessful, TArray<FAccelByteUserInfoRef> InUsersQueried);
 
 };

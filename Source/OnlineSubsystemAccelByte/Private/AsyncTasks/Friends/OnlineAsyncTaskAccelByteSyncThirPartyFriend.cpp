@@ -178,7 +178,7 @@ void FOnlineAsyncTaskAccelByteSyncThirPartyFriend::OnBulkGetUserByOtherPlatformU
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Failed to get accelbyte user ids using 3rd party user ids, ErrorCode: %d, ErrorMessage: %s"), ErrorCode, *ErrorMessage);
 }
 
-void FOnlineAsyncTaskAccelByteSyncThirPartyFriend::OnQuerySyncedFriendComplete(bool bIsSuccessful,	TArray<TSharedRef<FAccelByteUserInfo>> UsersQueried)
+void FOnlineAsyncTaskAccelByteSyncThirPartyFriend::OnQuerySyncedFriendComplete(bool bIsSuccessful,	TArray<FAccelByteUserInfoRef> UsersQueried)
 {
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("LocalUserNum: %d"), LocalUserNum);
 
@@ -193,7 +193,7 @@ void FOnlineAsyncTaskAccelByteSyncThirPartyFriend::OnQuerySyncedFriendComplete(b
 				continue;
 			}
 
-			SyncedFriends.Add(MakeShared<FOnlineFriendAccelByte>(User->DisplayName, User->Id.ToSharedRef(), EInviteStatus::Accepted));
+			SyncedFriends.Add(MakeShared<FOnlineFriendAccelByte>(User, EInviteStatus::Accepted));
 			BulkFriendsRequest.FriendIds.Add(User->Id->GetAccelByteId());
 		}
 

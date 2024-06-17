@@ -27,10 +27,68 @@
 
 #define ONLINE_ERROR_NAMESPACE "FOnlineFriendAccelByte"
 
+FOnlineUserInfoAccelByte::FOnlineUserInfoAccelByte(const TSharedRef<FAccelByteUserInfo, ESPMode::ThreadSafe>& InUserInfo)
+	: UserInfo(InUserInfo)
+{
+}
+
+FOnlineUserInfoAccelByte::FOnlineUserInfoAccelByte()
+	:UserInfo(nullptr)
+{}
+
+FString FOnlineUserInfoAccelByte::GetDisplayName(const FString& Platform) const
+{
+	TSharedPtr<FAccelByteUserInfo, ESPMode::ThreadSafe> UserInfoPtr = UserInfo.Pin();
+	if (UserInfoPtr.IsValid())
+	{
+		if (!Platform.IsEmpty())
+		{
+			for (const auto& PlatformInfo : UserInfoPtr->LinkedPlatformInfo)
+			{
+				if (PlatformInfo.Id.IsValid()
+					&& (PlatformInfo.Id->GetPlatformType().ToLower() == Platform.ToLower()))
+				{
+					return PlatformInfo.DisplayName;
+				}
+			}
+		}
+		return UserInfoPtr->DisplayName;
+	}
+	return TEXT("");
+}
+
+TSharedPtr<FAccelByteUserInfo, ESPMode::ThreadSafe> FOnlineUserInfoAccelByte::GetUserInfo() const
+{
+	TSharedPtr<FAccelByteUserInfo, ESPMode::ThreadSafe> UserInfoPtr = UserInfo.Pin();
+	if (UserInfoPtr.IsValid())
+	{
+		return UserInfoPtr;
+	}
+	return nullptr;
+}
+
+FString FOnlineUserInfoAccelByte::GetUniqueDisplayName() const
+{
+	TSharedPtr<FAccelByteUserInfo, ESPMode::ThreadSafe> UserInfoPtr = UserInfo.Pin();
+	if (UserInfoPtr.IsValid())
+	{
+		return UserInfoPtr->UniqueDisplayName;
+	}
+	return TEXT("");
+}
+
 FOnlineFriendAccelByte::FOnlineFriendAccelByte(const FString& InDisplayName, const FUniqueNetIdAccelByteUserRef& InUserId, const EInviteStatus::Type& InInviteStatus)
 	: DisplayName(InDisplayName)
 	, UserId(InUserId)
 	, InviteStatus(InInviteStatus)
+{
+}
+
+FOnlineFriendAccelByte::FOnlineFriendAccelByte(const TSharedRef<FAccelByteUserInfo, ESPMode::ThreadSafe>& InUserInfo, const EInviteStatus::Type& InInviteStatus)
+	: DisplayName(InUserInfo->DisplayName)
+	, UserId(InUserInfo->Id.ToSharedRef())
+	, InviteStatus(InInviteStatus)
+	, OnlineUserInfo(FOnlineUserInfoAccelByte(InUserInfo))
 {
 }
 
@@ -58,16 +116,37 @@ const FOnlineUserPresence& FOnlineFriendAccelByte::GetPresence() const
 
 TSharedRef<const FUniqueNetId> FOnlineFriendAccelByte::GetUserId() const
 {
+	TSharedPtr<FAccelByteUserInfo, ESPMode::ThreadSafe> UserInfoPtr = OnlineUserInfo.GetUserInfo();
+	if (UserInfoPtr.IsValid() && UserInfoPtr->Id.IsValid())
+	{
+		return UserInfoPtr->Id.ToSharedRef();
+	}
+
+	UE_LOG_AB(VeryVerbose, TEXT("Failed to 'GetUserId' from 'UserInfo', using the default value instead."));
 	return UserId;
 }
 
 FString FOnlineFriendAccelByte::GetRealName() const
 {
+	TSharedPtr<FAccelByteUserInfo, ESPMode::ThreadSafe> UserInfoPtr = OnlineUserInfo.GetUserInfo();
+	if (UserInfoPtr.IsValid())
+	{
+		return UserInfoPtr->DisplayName;
+	}
+
+	UE_LOG_AB(VeryVerbose, TEXT("Failed to 'GetRealName' from 'UserInfo', using the default value instead."));
 	return DisplayName;
 }
 
 FString FOnlineFriendAccelByte::GetDisplayName(const FString& Platform) const
 {
+	const FString UserInfoDisplayName = OnlineUserInfo.GetDisplayName(Platform);
+	if (!UserInfoDisplayName.IsEmpty())
+	{
+		return UserInfoDisplayName;
+	}
+
+	UE_LOG_AB(VeryVerbose, TEXT("Failed to 'GetDisplayName' from 'UserInfo', using the default value instead."));
 	return DisplayName;
 }
 
@@ -82,24 +161,64 @@ bool FOnlineFriendAccelByte::GetUserAttribute(const FString& AttrName, FString& 
 	return false;
 }
 
+FString FOnlineFriendAccelByte::GetUniqueDisplayName() const
+{
+	const FString UserInfoUniqueDisplayName = OnlineUserInfo.GetUniqueDisplayName();
+	if (!UserInfoUniqueDisplayName.IsEmpty())
+	{
+		return UserInfoUniqueDisplayName;
+	}
+
+	UE_LOG_AB(VeryVerbose, TEXT("Failed to 'GetUniqueDisplayName' from 'UserInfo', using the default value instead."));
+	return DisplayName;
+}
+
 FOnlineBlockedPlayerAccelByte::FOnlineBlockedPlayerAccelByte(const FString& InDisplayName, const FUniqueNetIdAccelByteUserRef& InUserId)
 	: DisplayName(InDisplayName)
 	, UserId(InUserId)
 {
 }
 
+FOnlineBlockedPlayerAccelByte::FOnlineBlockedPlayerAccelByte(const TSharedRef<FAccelByteUserInfo, ESPMode::ThreadSafe>& InUserInfo)
+	: DisplayName(InUserInfo->DisplayName)
+	, UserId(InUserInfo->Id.ToSharedRef())
+	, OnlineUserInfo(FOnlineUserInfoAccelByte(InUserInfo))
+{
+}
+
 TSharedRef<const FUniqueNetId> FOnlineBlockedPlayerAccelByte::GetUserId() const
 {
+	TSharedPtr<FAccelByteUserInfo, ESPMode::ThreadSafe> UserInfoPtr = OnlineUserInfo.GetUserInfo();
+	if (UserInfoPtr.IsValid() && UserInfoPtr->Id.IsValid())
+	{
+		return UserInfoPtr->Id.ToSharedRef();
+	}
+
+	UE_LOG_AB(VeryVerbose, TEXT("Failed to 'GetUserId' from 'UserInfo', using the default value instead."));
 	return UserId;
 }
 
 FString FOnlineBlockedPlayerAccelByte::GetRealName() const
 {
+	TSharedPtr<FAccelByteUserInfo, ESPMode::ThreadSafe> UserInfoPtr = OnlineUserInfo.GetUserInfo();
+	if (UserInfoPtr.IsValid())
+	{
+		return UserInfoPtr->DisplayName;
+	}
+
+	UE_LOG_AB(VeryVerbose, TEXT("Failed to 'GetRealName' from 'UserInfo', using the default value instead."));
 	return DisplayName;
 }
 
 FString FOnlineBlockedPlayerAccelByte::GetDisplayName(const FString& Platform) const
 {
+	const FString UserInfoDisplayName = OnlineUserInfo.GetDisplayName(Platform);
+	if (!UserInfoDisplayName.IsEmpty())
+	{
+		return UserInfoDisplayName;
+	}
+
+	UE_LOG_AB(VeryVerbose, TEXT("Failed to 'GetDisplayName' from 'UserInfo', using the default value instead."));
 	return DisplayName;
 }
 
@@ -114,18 +233,51 @@ bool FOnlineBlockedPlayerAccelByte::GetUserAttribute(const FString& AttrName, FS
 	return false;
 }
 
+FString FOnlineBlockedPlayerAccelByte::GetUniqueDisplayName() const
+{
+	const FString UserInfoUniqueDisplayName = OnlineUserInfo.GetUniqueDisplayName();
+	if (!UserInfoUniqueDisplayName.IsEmpty())
+	{
+		return UserInfoUniqueDisplayName;
+	}
+
+	UE_LOG_AB(VeryVerbose, TEXT("Failed to 'GetUniqueDisplayName' from 'UserInfo', using the default value instead."));
+	return DisplayName;
+}
+
 TSharedRef<const FUniqueNetId> FOnlineRecentPlayerAccelByte::GetUserId() const
 {
+	TSharedPtr<FAccelByteUserInfo, ESPMode::ThreadSafe> UserInfoPtr = OnlineUserInfo.GetUserInfo();
+	if (UserInfoPtr.IsValid() && UserInfoPtr->Id.IsValid())
+	{
+		return UserInfoPtr->Id.ToSharedRef();
+	}
+
+	UE_LOG_AB(VeryVerbose, TEXT("Failed to 'GetUserId' from 'UserInfo', using the default value instead."));
 	return UserId.ToSharedRef();
 }
 
 FString FOnlineRecentPlayerAccelByte::GetRealName() const
 {
+	TSharedPtr<FAccelByteUserInfo, ESPMode::ThreadSafe> UserInfoPtr = OnlineUserInfo.GetUserInfo();
+	if (UserInfoPtr.IsValid())
+	{
+		return UserInfoPtr->DisplayName;
+	}
+
+	UE_LOG_AB(VeryVerbose, TEXT("Failed to 'GetRealName' from 'UserInfo', using the default value instead."));
 	return DisplayName;
 }
 
 FString FOnlineRecentPlayerAccelByte::GetDisplayName(const FString& Platform) const
 {
+	const FString UserInfoDisplayName = OnlineUserInfo.GetDisplayName(Platform);
+	if (!UserInfoDisplayName.IsEmpty())
+	{
+		return UserInfoDisplayName;
+	}
+
+	UE_LOG_AB(VeryVerbose, TEXT("Failed to 'GetDisplayName' from 'UserInfo', using the default value instead."));
 	return DisplayName;
 }
 
@@ -148,6 +300,18 @@ FDateTime FOnlineRecentPlayerAccelByte::GetLastSeen() const
 const FOnlineUserPresence& FOnlineRecentPlayerAccelByte::GetPresence() const
 {
 	return Presence;
+}
+
+FString FOnlineRecentPlayerAccelByte::GetUniqueDisplayName() const
+{
+	const FString UserInfoUniqueDisplayName = OnlineUserInfo.GetUniqueDisplayName();
+	if (!UserInfoUniqueDisplayName.IsEmpty())
+	{
+		return UserInfoUniqueDisplayName;
+	}
+
+	UE_LOG_AB(VeryVerbose, TEXT("Failed to 'GetUniqueDisplayName' from 'UserInfo', using the default value instead."));
+	return DisplayName;
 }
 
 FOnlineRecentPlayerAccelByte::FOnlineRecentPlayerAccelByte(const FAccelByteUserInfo& InData)

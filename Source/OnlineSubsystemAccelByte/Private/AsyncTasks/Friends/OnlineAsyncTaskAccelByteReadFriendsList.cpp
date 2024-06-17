@@ -236,12 +236,12 @@ void FOnlineAsyncTaskAccelByteReadFriendsList::OnQueryOutgoingFriendRequestFaile
 	CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
 }
 
-void FOnlineAsyncTaskAccelByteReadFriendsList::OnQueryFriendInformationComplete(bool bIsSuccessful, TArray<TSharedRef<FAccelByteUserInfo>> UsersQueried)
+void FOnlineAsyncTaskAccelByteReadFriendsList::OnQueryFriendInformationComplete(bool bIsSuccessful, TArray<FAccelByteUserInfoRef> UsersQueried)
 {
 	SetLastUpdateTimeToCurrentTime();
 	if (bIsSuccessful)
 	{
-		for (const TSharedRef<FAccelByteUserInfo>& FriendInfo : UsersQueried)
+		for (const FAccelByteUserInfoRef& FriendInfo : UsersQueried)
 		{
 			EInviteStatus::Type* FoundInviteStatus = AccelByteIdToFriendStatus.Find(FriendInfo->Id->GetAccelByteId());
 			if (FoundInviteStatus == nullptr)
@@ -249,7 +249,7 @@ void FOnlineAsyncTaskAccelByteReadFriendsList::OnQueryFriendInformationComplete(
 				continue;
 			}
 
-			TSharedPtr<FOnlineFriendAccelByte> Friend = MakeShared<FOnlineFriendAccelByte>(FriendInfo->DisplayName, FriendInfo->Id.ToSharedRef(), *FoundInviteStatus);
+			TSharedPtr<FOnlineFriendAccelByte> Friend = MakeShared<FOnlineFriendAccelByte>(FriendInfo, *FoundInviteStatus);
 			Friend->SetUserAttribute(ACCELBYTE_ACCOUNT_GAME_AVATAR_URL, FriendInfo->GameAvatarUrl);
 			Friend->SetUserAttribute(ACCELBYTE_ACCOUNT_PUBLISHER_AVATAR_URL, FriendInfo->PublisherAvatarUrl);
 			

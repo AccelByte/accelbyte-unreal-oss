@@ -40,7 +40,7 @@ private:
 	TMap<FString, FAccelByteModelsV2SessionRecentPlayer> RecentPlayerResultMap;
 	
 	/** Information on all recent players that we queried */
-	TArray<TSharedRef<FAccelByteUserInfo>> RecentPlayersQueried;
+	TArray<FAccelByteUserInfoRef> RecentPlayersQueried;
 
 	/** Cached error string **/
 	FString ErrorStr;
@@ -56,7 +56,7 @@ private:
 	/** Delegate handler for when we finish querying for recent player information */
 	FOnQueryUsersComplete OnQueryRecentPlayersCompleteDelegate;
 	
-	void OnQueryRecentPlayersComplete(bool bIsSuccessful, TArray<TSharedRef<FAccelByteUserInfo>> UsersQueried);
+	void OnQueryRecentPlayersComplete(bool bIsSuccessful, TArray<FAccelByteUserInfoRef> UsersQueried);
 
 };
 

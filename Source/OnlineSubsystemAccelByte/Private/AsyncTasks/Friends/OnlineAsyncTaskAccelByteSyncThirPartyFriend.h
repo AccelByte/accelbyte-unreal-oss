@@ -60,7 +60,7 @@ private:
 	void OnBulkGetUserByOtherPlatformUserIdsError(int32 ErrorCode, const FString& ErrorMessage);
 
 	/** Handler for completed a query for joined party member information */
-	void OnQuerySyncedFriendComplete(bool bIsSuccessful, TArray<TSharedRef<FAccelByteUserInfo>> UsersQueried);
+	void OnQuerySyncedFriendComplete(bool bIsSuccessful, TArray<FAccelByteUserInfoRef> UsersQueried);
 
 	/** Handler for successful adding 3rd party platform friend to current user. */
 	void OnBulkFriendRequestSuccess();

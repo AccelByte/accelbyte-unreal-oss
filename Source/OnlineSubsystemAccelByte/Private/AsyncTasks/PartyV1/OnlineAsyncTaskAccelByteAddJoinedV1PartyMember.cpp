@@ -73,7 +73,7 @@ bool FOnlineAsyncTaskAccelByteAddJoinedV1PartyMember::HasFinishedAsyncWork()
 	return bHasRetrievedMemberInfo /*&& bHasRetrievedMemberStats && bHasRetrievedMemberCustomizations && bHasRetrievedMemberProgression && bHasRetrievedMemberDailyPlayStreak && bHasRetrievedMemberRanks*/;
 }
 
-void FOnlineAsyncTaskAccelByteAddJoinedV1PartyMember::OnQueryJoinedPartyMemberComplete(bool bIsSuccessful, TArray<TSharedRef<FAccelByteUserInfo>> UsersQueried)
+void FOnlineAsyncTaskAccelByteAddJoinedV1PartyMember::OnQueryJoinedPartyMemberComplete(bool bIsSuccessful, TArray<FAccelByteUserInfoRef> UsersQueried)
 {
 	SetLastUpdateTimeToCurrentTime();
 

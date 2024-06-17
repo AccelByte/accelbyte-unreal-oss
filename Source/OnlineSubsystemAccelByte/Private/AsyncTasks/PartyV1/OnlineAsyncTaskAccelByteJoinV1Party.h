@@ -62,7 +62,7 @@ private:
 	EJoinPartyCompletionResult CompletionResult;
 
 	/** Array of party member IDs to their display names, used in Finalize to construct member instances */
-	TArray<TSharedRef<FAccelByteUserInfo>> PartyMemberInfo;
+	TArray<FAccelByteUserInfoRef> PartyMemberInfo;
 
 	/** Information on the party joined from the backend, used in Finalize to set up party object */
 	FAccelByteModelsPartyJoinResponse PartyInfo;

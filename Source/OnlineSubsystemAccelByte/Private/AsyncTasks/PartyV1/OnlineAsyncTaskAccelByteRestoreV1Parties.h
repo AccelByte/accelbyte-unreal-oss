@@ -38,7 +38,7 @@ private:
 	FOnRestorePartiesComplete CompletionDelegate;
 
 	/** Array of party member IDs to their display names, used in Finalize to construct member instances */
-	TArray<TSharedRef<FAccelByteUserInfo>> PartyMemberInfo;
+	TArray<FAccelByteUserInfoRef> PartyMemberInfo;
 
 	/** Flag representing whether we have any party info to restore, as this call can succeed but have no current party */
 	FThreadSafeBool bUserHasPartyToRestore = false;

@@ -79,13 +79,14 @@ void FOnlineAsyncTaskAccelByteQueryUserInfo::Finalize()
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 
 	// Iterate through each account that we have received from the backend and add to our user interface
-	for (const TSharedRef<FAccelByteUserInfo>& QueriedUser : UsersQueried)
+	for (const FAccelByteUserInfoRef& QueriedUser : UsersQueried)
 	{
 		// Construct the user information instance and add the ID of the user to our QueriedUserIds array that will be passed to the completion delegate
 		TSharedRef<FUserOnlineAccountAccelByte> User = MakeShared<FUserOnlineAccountAccelByte>(QueriedUser->Id.ToSharedRef(), QueriedUser->DisplayName);
 		User->SetPublicCode(QueriedUser->PublicCode);
 		User->SetUserAttribute(ACCELBYTE_ACCOUNT_GAME_AVATAR_URL, QueriedUser->GameAvatarUrl);
 		User->SetUserAttribute(ACCELBYTE_ACCOUNT_PUBLISHER_AVATAR_URL, QueriedUser->PublisherAvatarUrl);
+		User->SetUniqueDisplayName(QueriedUser->UniqueDisplayName);
 
 		// Add the ID of this user to the list of IDs that we have queried. This will be passed to the delegate to inform
 		// consumer of which users we successfully have cached info for.
@@ -130,7 +131,7 @@ void FOnlineAsyncTaskAccelByteQueryUserInfo::TriggerDelegates()
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 
-void FOnlineAsyncTaskAccelByteQueryUserInfo::OnQueryUsersComplete(bool bIsSuccessful, TArray<TSharedRef<FAccelByteUserInfo>> InUsersQueried)
+void FOnlineAsyncTaskAccelByteQueryUserInfo::OnQueryUsersComplete(bool bIsSuccessful, TArray<FAccelByteUserInfoRef> InUsersQueried)
 {
 	if (bIsSuccessful)
 	{

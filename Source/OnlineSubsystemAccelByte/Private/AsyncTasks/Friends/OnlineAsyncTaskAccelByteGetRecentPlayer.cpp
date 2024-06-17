@@ -43,9 +43,9 @@ void FOnlineAsyncTaskAccelByteGetRecentPlayer::Finalize()
 	if (bWasSuccessful)
 	{
 		TArray<TSharedRef<FOnlineRecentPlayerAccelByte>> RecentPlayers;
-		for (const TSharedRef<FAccelByteUserInfo>& RecentPlayerInfo : RecentPlayersQueried)
+		for (const FAccelByteUserInfoRef& RecentPlayerInfo : RecentPlayersQueried)
 		{
-			RecentPlayers.Add(MakeShared<FOnlineRecentPlayerAccelByte>(RecentPlayerInfo.Get()));
+			RecentPlayers.Add(MakeShared<FOnlineRecentPlayerAccelByte>(RecentPlayerInfo));
 		}
 
 		const TSharedPtr<FOnlineFriendsAccelByte, ESPMode::ThreadSafe> FriendsInterface = StaticCastSharedPtr<FOnlineFriendsAccelByte>(Subsystem->GetFriendsInterface());
@@ -96,7 +96,7 @@ void FOnlineAsyncTaskAccelByteGetRecentPlayer::OnGetRecentPlayerError(int32 Erro
 	CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
 }
 
-void FOnlineAsyncTaskAccelByteGetRecentPlayer::OnQueryRecentPlayersComplete(bool bIsSuccessful, TArray<TSharedRef<FAccelByteUserInfo>> UsersQueried)
+void FOnlineAsyncTaskAccelByteGetRecentPlayer::OnQueryRecentPlayersComplete(bool bIsSuccessful, TArray<FAccelByteUserInfoRef> UsersQueried)
 {
 	if (bIsSuccessful)
 	{

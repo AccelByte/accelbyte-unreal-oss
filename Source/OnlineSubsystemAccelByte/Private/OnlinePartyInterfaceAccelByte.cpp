@@ -109,7 +109,7 @@ const uint32 FOnlinePartyAccelByte::GetMemberCount() const
 	return UserIdToPartyMemberMap.Num();
 }
 
-TSharedRef<FOnlinePartyAccelByte> FOnlinePartyAccelByte::CreatePartyFromPartyInfo(const TSharedRef<const FUniqueNetIdAccelByteUser> LocalUserId, const TSharedRef<FOnlinePartySystemAccelByte, ESPMode::ThreadSafe> PartyInterface, const FAccelByteModelsPartyJoinResponse& PartyInfo, const TArray<TSharedRef<FAccelByteUserInfo>>& PartyMemberInfo, const TSharedRef<FOnlinePartyData>& InPartyData, const FString& PartyCode, const FAccelByteModelsBulkUserStatusNotif& InPartyMemberStatus)
+TSharedRef<FOnlinePartyAccelByte> FOnlinePartyAccelByte::CreatePartyFromPartyInfo(const TSharedRef<const FUniqueNetIdAccelByteUser> LocalUserId, const TSharedRef<FOnlinePartySystemAccelByte, ESPMode::ThreadSafe> PartyInterface, const FAccelByteModelsPartyJoinResponse& PartyInfo, const TArray<FAccelByteUserInfoRef>& PartyMemberInfo, const TSharedRef<FOnlinePartyData>& InPartyData, const FString& PartyCode, const FAccelByteModelsBulkUserStatusNotif& InPartyMemberStatus)
 {
 	FAccelByteModelsInfoPartyResponse NewPartyInfo;
 	NewPartyInfo.Code = PartyInfo.Code;
@@ -122,7 +122,7 @@ TSharedRef<FOnlinePartyAccelByte> FOnlinePartyAccelByte::CreatePartyFromPartyInf
 	return CreatePartyFromPartyInfo(LocalUserId, PartyInterface, NewPartyInfo, PartyMemberInfo, InPartyData, PartyCode, InPartyMemberStatus);
 }
 
-TSharedRef<FOnlinePartyAccelByte> FOnlinePartyAccelByte::CreatePartyFromPartyInfo(const TSharedRef<const FUniqueNetIdAccelByteUser> LocalUserId, const TSharedRef<FOnlinePartySystemAccelByte, ESPMode::ThreadSafe> PartyInterface, const FAccelByteModelsInfoPartyResponse& PartyInfo, const TArray<TSharedRef<FAccelByteUserInfo>>& PartyMemberInfo, const TSharedRef<FOnlinePartyData>& InPartyData, const FString& PartyCode, const FAccelByteModelsBulkUserStatusNotif& InPartyMemberStatus)
+TSharedRef<FOnlinePartyAccelByte> FOnlinePartyAccelByte::CreatePartyFromPartyInfo(const TSharedRef<const FUniqueNetIdAccelByteUser> LocalUserId, const TSharedRef<FOnlinePartySystemAccelByte, ESPMode::ThreadSafe> PartyInterface, const FAccelByteModelsInfoPartyResponse& PartyInfo, const TArray<FAccelByteUserInfoRef>& PartyMemberInfo, const TSharedRef<FOnlinePartyData>& InPartyData, const FString& PartyCode, const FAccelByteModelsBulkUserStatusNotif& InPartyMemberStatus)
 {
 	// Fill out a basic config of flags that we know/support for this party
 	FPartyConfiguration Config;
@@ -130,7 +130,7 @@ TSharedRef<FOnlinePartyAccelByte> FOnlinePartyAccelByte::CreatePartyFromPartyInf
 	Config.bIsAcceptingMembers = true;
 
 	// Find the leader in the members array so that we can give the correct ID for them
-	const TSharedRef<FAccelByteUserInfo>* FoundPartyLeader = PartyMemberInfo.FindByPredicate([&PartyInfo](const TSharedRef<FAccelByteUserInfo>& Member) {
+	const FAccelByteUserInfoRef* FoundPartyLeader = PartyMemberInfo.FindByPredicate([&PartyInfo](const FAccelByteUserInfoRef& Member) {
 		return Member->Id->GetAccelByteId() == PartyInfo.LeaderId;
 	});
 
@@ -147,7 +147,7 @@ TSharedRef<FOnlinePartyAccelByte> FOnlinePartyAccelByte::CreatePartyFromPartyInf
 	}
 
 	TSharedRef<FOnlinePartyAccelByte> Party = MakeShared<FOnlinePartyAccelByte>(PartyInterface, PartyInfo.PartyId, PartyInfo.InvitationToken, Config, LeaderCompositeId, InPartyData);
-	for (const TSharedRef<FAccelByteUserInfo>& Member : PartyMemberInfo)
+	for (const FAccelByteUserInfoRef& Member : PartyMemberInfo)
 	{
 		TSharedRef<FOnlinePartyMemberAccelByte> PartyMember = MakeShared<FOnlinePartyMemberAccelByte>(Member->Id.ToSharedRef(), Member->DisplayName);
 		const FAccelByteModelsUserStatusNotif* MemberStatus = InPartyMemberStatus.Data.FindByPredicate([&Member](FAccelByteModelsUserStatusNotif const& Status)

@@ -259,6 +259,23 @@ private:
 	double LastAccessedTimeInSeconds{ 0.0 };
 
 	/**
+	 * UTC date and time of this user's data last updated. Data will be considered 'stale' after exceed the stale time that configured on the User Cache Interface.
+	 * Once a user is stale, their cached data is not returned to the client directly, instead a request for new data will be made.
+	 */
+	FDateTime LastUpdatedTime{ 0 };
+
+	/**
+	 * Whether this cached player's data should be considered stale regardless of whether the 'LastUpdatedTime' has been exceed the stale state.
+	 * Set through 'FOnlineUserCacheAccelByte::SetUserDataAsStale'.
+	 */
+	bool bIsForcedStale { false };
+
+	/**
+	 * Copy UserInfo value 
+	 */
+	void CopyValue(const FAccelByteUserInfo& Data);
+
+	/**
 	 * Setting the query async task as a friend class to set importance and last accessed
 	 */
 	friend class FOnlineAsyncTaskAccelByteQueryUsersByIds;
@@ -270,13 +287,16 @@ private:
 
 };
 
+typedef TSharedRef<FAccelByteUserInfo, ESPMode::ThreadSafe> FAccelByteUserInfoRef;
+typedef TSharedPtr<FAccelByteUserInfo, ESPMode::ThreadSafe> FAccelByteUserInfoPtr;
+
 /**
  * Delegate for when querying a user through the user cache finishes.
  *
  * @param bIsSuccessful Whether or not the query overall was a success
  * @param UserIds IDs of the users that we were successfully able to query, and thus are in the cache
  */
-DECLARE_DELEGATE_TwoParams(FOnQueryUsersComplete, bool /*bIsSuccessful*/, TArray<TSharedRef<FAccelByteUserInfo>> /*UsersQueried*/);
+DECLARE_DELEGATE_TwoParams(FOnQueryUsersComplete, bool /*bIsSuccessful*/, TArray<FAccelByteUserInfoRef> /*UsersQueried*/);
 
 /**
  * Manages users that are queried from the AccelByte backend, making bulk calls to retrieve user data, as well as getting
@@ -373,12 +393,70 @@ public:
 	 * Attempt to get a user from the cache by an AccelByte unique ID. This ID comes from either an FAccelByteUserInfo::Id
 	 * field, or from the result of a query users call.
 	 */
-	TSharedPtr<const FAccelByteUserInfo> GetUser(const FUniqueNetId& UserId);
+	TSharedPtr<const FAccelByteUserInfo, ESPMode::ThreadSafe> GetUser(const FUniqueNetId& UserId);
 
 	/**
 	 * Attempt to get a user from the cache by a composite ID structure.
 	 */
-	TSharedPtr<const FAccelByteUserInfo> GetUser(const FAccelByteUniqueIdComposite& UserId);
+	TSharedPtr<const FAccelByteUserInfo, ESPMode::ThreadSafe> GetUser(const FAccelByteUniqueIdComposite& UserId);
+
+	/**
+	 * Checks if staleness checks for cached user data is enabled.
+	 */
+	bool IsStalenessCheckEnabled() const;
+
+	/**
+	 * Returns the length of time in seconds that it takes for a user's cached data to become stale.
+	 */
+	double GetTimeUntilStaleSeconds() const;
+
+	/**
+	 * Enable or disable staleness checks in the user cache. Intended for runtime testing of cache.
+	 * Prefer using ini or command line to enable or disable staleness checks.
+	 */
+	void SetStalenessCheckEnabled(bool bInEnableStalenessChecking);
+
+	/**
+	 * Set the amount of time in seconds that it takes for a user's cached data to become stale.
+	 * Intended for runtime testing of cache. Prefer using ini or command line to control staleness time.
+	 */
+	void SetTimeUntilStaleSeconds(double InTimeUntilStaleSeconds);
+
+	/**
+	 * Attempts to mark the referenced user's cached data as stale. If found, the force stale flag on the user's data
+	 * will be updated, and the next request to get user data will request new data for this user, regardless of whether
+	 * the stale datetime has been reached. This flag will be reset after the request is processed.
+	 *
+	 * @param UserUniqueId Unique ID of the user that we wish to set as stale, must be an AccelByte unique ID
+	 * @return true if flag was set, false otherwise
+	 */
+	bool SetUserDataAsStale(const FUniqueNetId& UserUniqueId);
+
+	/**
+	 * Attempts to mark the referenced user's cached data as stale. If found, the force stale flag on the user's data
+	 * will be updated, and the next request to get user data will request new data for this user, regardless of whether
+	 * the stale datetime has been reached. This flag will be reset after the request is processed.
+	 *
+	 * @param InAccelByteId String representation of the user ID that you wish to mark stale
+	 * @return true if flag was set, false otherwise
+	 */
+	bool SetUserDataAsStale(const FString& InAccelByteId);
+
+	/**
+	* Check whether user's cached data has become stale.
+	*
+	* @param UserUniqueId Unique ID of the user that we wish to check the staleness, must be an AccelByte unique ID
+	* @return true if data stale, false otherwise
+	*/
+	bool IsUserDataStale(const FUniqueNetId& UserUniqueId);
+
+	/**
+	* Check whether user's cached data has become stale.
+	*
+	* @param InAccelByteId String representation of the user ID that you wish to check the staleness
+	* @return true if data stale, false otherwise
+	*/
+	bool IsUserDataStale(const FString& InAccelByteId);
 
 PACKAGE_SCOPE:
 
@@ -389,9 +467,15 @@ PACKAGE_SCOPE:
 	FOnlineUserCacheAccelByte(FOnlineSubsystemAccelByte* InSubsystem);
 
 	/**
+	 * Initialize the user cache. This will load configuration values from the engine INI for the cache. Called from
+	 * the subsystem initialization method.
+	 */
+	void Init();
+
+	/**
 	 * Add an array of freshly queried users to the user cache
 	 */
-	void AddUsersToCache(const TArray<TSharedRef<FAccelByteUserInfo>>& UsersQueried);
+	void AddUsersToCache(const TArray<FAccelByteUserInfoRef>& UsersQueried);
 
 	/**
 	 * Add PublicCode to a user cache, create new if not exist
@@ -435,7 +519,7 @@ PACKAGE_SCOPE:
 	 * Method used by user queries to get an array of users that we still need to query, as well as shared instances to
 	 * users that we have already queried and can retrieve from the cache
 	 */
-	void GetQueryAndCacheArrays(const TArray<FString>& AccelByteIds, TArray<FString>& UsersToQuery, TArray<TSharedRef<FAccelByteUserInfo>>& UsersInCache);
+	void GetQueryAndCacheArrays(const TArray<FString>& AccelByteIds, TArray<FString>& UsersToQuery, TArray<FAccelByteUserInfoRef>& UsersInCache);
 
 private:
 
@@ -453,18 +537,31 @@ private:
 	/**
 	 * User cache that maps AccelByte IDs to shared user instances
 	 */
-	TMap<FString, TSharedRef<FAccelByteUserInfo>> AccelByteIdToUserInfoMap;
+	TMap<FString, FAccelByteUserInfoRef> AccelByteIdToUserInfoMap;
 
 	/**
 	 * User cache that maps platform type and ID to shared user instances. The key is just
 	 * a string that combines both type and ID, in the following format: "TYPE;ID".
 	 */
-	TMap<FString, TSharedRef<FAccelByteUserInfo>> PlatformIdToUserInfoMap;
+	TMap<FString, FAccelByteUserInfoRef> PlatformIdToUserInfoMap;
 
 	/**
 	 * AccelByte online subsystem instance that owns this user cache.
 	 */
 	FOnlineSubsystemAccelByte* Subsystem;
+
+	/**
+	 * Should the user cache take staleness into account? If false, users in cache will never become stale
+	 * and their data will never be queried after the initial request. Staleness checks are enabled by default.
+	 */
+	bool bEnableStalenessChecking { true };
+
+	/**
+	 * Amount of time in seconds that a user's cached data will be considered stale. Once this time is reached, any
+	 * future call to query that user's data will result in a new request. By default, a user's cached data is stale
+	 * after ten minutes.
+	 */
+	double TimeUntilStaleSeconds { 600.0 };
 
 	/**
 	 * Default constructor deleted, as we only want to be able to have an instance owned by a subsystem

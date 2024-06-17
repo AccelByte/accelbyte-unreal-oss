@@ -574,7 +574,7 @@ FAccelByteChatRoomInfoPtr FOnlineChatAccelByte::GetTopic(const FString& TopicId)
 	return nullptr;
 }
 
-void FOnlineChatAccelByte::AddChatRoomMembers(TArray<TSharedRef<FAccelByteUserInfo>> Users)
+void FOnlineChatAccelByte::AddChatRoomMembers(TArray<FAccelByteUserInfoRef> Users)
 {
 	for (const auto& UserInfo : Users)
 	{
@@ -972,7 +972,7 @@ void FOnlineChatAccelByte::OnQueryChatRoomInfoComplete(bool bWasSuccessful, TArr
 	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
 }
 
-void FOnlineChatAccelByte::OnQueryChatMemberInfo_TriggerChatRoomMemberJoin(bool bIsSuccessful, TArray<TSharedRef<FAccelByteUserInfo>> UsersQueried, FString RoomId, FUniqueNetIdPtr InUserId, FUniqueNetIdPtr InMemberId)
+void FOnlineChatAccelByte::OnQueryChatMemberInfo_TriggerChatRoomMemberJoin(bool bIsSuccessful, TArray<FAccelByteUserInfoRef> UsersQueried, FString RoomId, FUniqueNetIdPtr InUserId, FUniqueNetIdPtr InMemberId)
 {
 	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("RoomId %s MemberId %s"), *RoomId, *InMemberId->ToDebugString());
 

@@ -41,7 +41,7 @@ private:
 	TSharedPtr<FOnlineFriend> FriendObject;
 
 	/** Delegate handler for when we complete a query for friend information */
-	void OnQueryFriendComplete(bool bIsSuccessful, TArray<TSharedRef<FAccelByteUserInfo>> UsersQueried);
+	void OnQueryFriendComplete(bool bIsSuccessful, TArray<TSharedRef<FAccelByteUserInfo, ESPMode::ThreadSafe>> UsersQueried);
 
 };
 

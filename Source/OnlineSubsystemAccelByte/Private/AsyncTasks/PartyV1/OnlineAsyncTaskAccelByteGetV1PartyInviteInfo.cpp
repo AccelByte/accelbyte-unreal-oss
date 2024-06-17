@@ -60,7 +60,7 @@ void FOnlineAsyncTaskAccelByteGetV1PartyInviteInfo::Finalize()
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 
-void FOnlineAsyncTaskAccelByteGetV1PartyInviteInfo::OnQueryNotificationSenderComplete(bool bIsSuccessful, TArray<TSharedRef<FAccelByteUserInfo>> UsersQueried)
+void FOnlineAsyncTaskAccelByteGetV1PartyInviteInfo::OnQueryNotificationSenderComplete(bool bIsSuccessful, TArray<FAccelByteUserInfoRef> UsersQueried)
 {
 	if (bIsSuccessful && UsersQueried.IsValidIndex(0))
 	{

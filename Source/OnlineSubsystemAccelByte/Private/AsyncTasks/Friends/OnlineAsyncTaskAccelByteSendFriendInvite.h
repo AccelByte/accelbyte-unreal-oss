@@ -77,7 +77,7 @@ private:
 	void QueryInvitedFriend(const FString& FriendId);
 
 	/** Delegate handler for when we complete a query for joined party member information */
-	void OnQueryInvitedFriendComplete(bool bIsSuccessful, TArray<TSharedRef<FAccelByteUserInfo>> UsersQueried);
+	void OnQueryInvitedFriendComplete(bool bIsSuccessful, TArray<FAccelByteUserInfoRef> UsersQueried);
 
 	/** Delegate handler for when the request to send a friend invite success */
 	FVoidHandler OnSendFriendRequestSuccessDelegate;
