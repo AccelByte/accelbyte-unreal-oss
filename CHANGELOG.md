@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.12.18](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.12.18%0D0.12.17) (2024-06-30)
+
+
+### Features
+
+* **login:** add support to login with Apple on iOS ([bf95fb0](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/bf95fb079fce2676ee5de5b8bf8c65226d92a75b))
+
+
+### Bug Fixes
+
+* **session:** fix refresh session not triggering OnSessionUpdateReceived after successful refresh ([78c2a05](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/78c2a05b811567ef344456c73f31ff9928b57f88))
+
 ### [0.12.17](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.12.17%0D0.12.16) (2024-06-17)
 
 

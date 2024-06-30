@@ -60,6 +60,22 @@ void FOnlineAsyncTaskAccelByteLogin::FAccelByteSteamAuthCallback::OnGetAuthSessi
 }
 #endif
 
+bool FOnlineAsyncTaskAccelByteLogin::ShouldInitiateNativePlatformLogin(FOnlineAccountCredentials const& InAccountCredentials
+	, FName& OutSubsystemName)
+{
+	bool bShouldInitiate = false;
+
+	if (!InAccountCredentials.Type.IsEmpty() && InAccountCredentials.Id.IsEmpty() && InAccountCredentials.Token.IsEmpty())
+	{
+		FString PlatformString = Subsystem->GetAccelBytePlatformStringFromAuthType(InAccountCredentials.Type);
+		FString NativeSubsystemName = Subsystem->GetNativeSubsystemNameFromAccelBytePlatformString(PlatformString);
+		OutSubsystemName = FName(NativeSubsystemName);
+		bShouldInitiate = Subsystem->IsNativeSubsystemSupported(OutSubsystemName);
+	}
+
+	return bShouldInitiate;
+}
+
 void FOnlineAsyncTaskAccelByteLogin::Initialize()
 {
 	Super::Initialize();
@@ -103,7 +119,14 @@ void FOnlineAsyncTaskAccelByteLogin::Initialize()
 			CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState);
 			return;
 		}
-		
+
+		FName NativeSubsystemName;
+		if (ShouldInitiateNativePlatformLogin(AccountCredentials, NativeSubsystemName))
+		{
+			LoginWithSpecificSubsystem(NativeSubsystemName);
+			return;
+		}
+
 		LoginType = static_cast<EAccelByteLoginType>(Result);
 	}
 	else
@@ -214,8 +237,7 @@ void FOnlineAsyncTaskAccelByteLogin::LoginWithNativeSubsystem()
 //Used by child asynctask (SimultaneousLogin)
 void FOnlineAsyncTaskAccelByteLogin::LoginWithSpecificSubsystem(FName InSubsystemName)
 {
-	FName SubsystemName(InSubsystemName);
-	LoginWithSpecificSubsystem(IOnlineSubsystem::Get(SubsystemName));
+	LoginWithSpecificSubsystem(IOnlineSubsystem::Get(InSubsystemName));
 }
 
 void FOnlineAsyncTaskAccelByteLogin::LoginWithSpecificSubsystem(IOnlineSubsystem* SpecificSubsystem)
@@ -245,6 +267,10 @@ void FOnlineAsyncTaskAccelByteLogin::LoginWithSpecificSubsystem(IOnlineSubsystem
 		return;
 	}
 
+	// Add login complete delegate as some log in UI sometimes call login method internally
+	FOnLoginCompleteDelegate IdentityLoginComplete = TDelegateUtils<FOnLoginCompleteDelegate>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteLogin::OnSpecificSubysystemLoginComplete, SpecificSubsystem);
+	LoginCompletedHandle = IdentityInterface->AddOnLoginCompleteDelegate_Handle(LoginUserNum, IdentityLoginComplete);
+
 	// If the native subsystem reports not logged in, try and open the native login UI first. Native OSSes for platforms
 	// like GDK will report NotLoggedIn if there is not a user logged in on the particular controller index.
 	bool bLoginUIOpened = false;
@@ -266,10 +292,6 @@ void FOnlineAsyncTaskAccelByteLogin::LoginWithSpecificSubsystem(IOnlineSubsystem
 		AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Login UI opened for native platform, allowing user to select account to log in to."));
 		return;
 	}
-	
-	// If we don't have a log in UI, then just send off a request to log in with blank credentials (default native account)
-	FOnLoginCompleteDelegate IdentityLoginComplete = TDelegateUtils<FOnLoginCompleteDelegate>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteLogin::OnSpecificSubysystemLoginComplete, SpecificSubsystem);
-	IdentityInterface->AddOnLoginCompleteDelegate_Handle(LoginUserNum, IdentityLoginComplete);
 	
 	// Add Type credential parameter for EOS.
 	FOnlineAccountCredentials AccountCredential;
@@ -328,9 +350,12 @@ void FOnlineAsyncTaskAccelByteLogin::OnSpecificSubysystemLoginUIClosed(FUniqueNe
 		return;
 	}
 
-	FOnLoginCompleteDelegate IdentityLoginComplete = TDelegateUtils<FOnLoginCompleteDelegate>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteLogin::OnSpecificSubysystemLoginComplete, SpecificSubsystem);
-	IdentityInterface->AddOnLoginCompleteDelegate_Handle(ControllerIndex, IdentityLoginComplete);
-	
+	if (!LoginCompletedHandle.IsValid())
+	{
+		FOnLoginCompleteDelegate IdentityLoginComplete = TDelegateUtils<FOnLoginCompleteDelegate>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteLogin::OnSpecificSubysystemLoginComplete, SpecificSubsystem);
+		IdentityInterface->AddOnLoginCompleteDelegate_Handle(ControllerIndex, IdentityLoginComplete);
+	}
+
 	// Add Type credential parameter for EOS.
 	if(SpecificSubsystem->GetSubsystemName().ToString().Equals(TEXT("EOS"),ESearchCase::IgnoreCase))
 	{
@@ -396,8 +421,39 @@ void FOnlineAsyncTaskAccelByteLogin::OnSpecificSubysystemLoginComplete(int32 Nat
 		CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState);
 		return;
 	}
+
+	FString PlatformToken = IdentityInterface->GetAuthToken(LoginUserNum);
+	if (LoginType == EAccelByteLoginType::Google)
+	{
+		const FUniqueNetIdPtr UserIdPtr = IdentityInterface->GetUniquePlayerId(LocalUserNum);
+		if (!UserIdPtr.IsValid())
+		{
+			ErrorStr = TEXT("login-failed-user-invalid-type");
+			AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Retrieve user from native subsystem failed as an invalid type was provided for the native subsystem. AccelByte subsystem may not support login without valid user"));
+			CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState);
+			return;
+		}
+
+		const TSharedPtr<FUserOnlineAccount> UserAccountPtr = IdentityInterface->GetUserAccount(*UserIdPtr.Get());
+		if (!UserAccountPtr.IsValid())
+		{
+			ErrorStr = TEXT("login-failed-account-invalid-type");
+			AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Retrieve user account from native subsystem failed as an invalid type was provided for the native subsystem. AccelByte subsystem may not support login without valid user account"));
+			CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState);
+			return;
+		}
+
+		if (!UserAccountPtr->GetAuthAttribute(AUTH_ATTR_ID_TOKEN, PlatformToken)
+			&& !UserAccountPtr->GetAuthAttribute(AUTH_ATTR_AUTHORIZATION_CODE, PlatformToken))
+		{
+			ErrorStr = TEXT("login-failed-platform-token-retrieval");
+			AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Retrieve platform token failed for the native user. AccelByte subsystem may not support login without valid platform token"));
+			CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState);
+			return;
+		}
+	}
 	
-	FString PlatformToken = FGenericPlatformHttp::UrlEncode(IdentityInterface->GetAuthToken(LoginUserNum));
+	FString EncodedToken = FGenericPlatformHttp::UrlEncode(PlatformToken);
 
 	bLoginPerformed = false;
 
@@ -411,7 +467,7 @@ void FOnlineAsyncTaskAccelByteLogin::OnSpecificSubysystemLoginComplete(int32 Nat
 	FOnlineAccountCredentials CopyCreds{};
 	CopyCreds.Id = NativePlatformCredentials.Id;//Other Subsystem doesn't rely much to the Id
 	CopyCreds.Type = LoginTypeEnum->GetNameStringByValue(static_cast<int64>(LoginType));
-	CopyCreds.Token = PlatformToken;
+	CopyCreds.Token = EncodedToken;
 
 	// Save Platform Credential for Native Platform
 	// Utililized for Simultaneous Login
@@ -486,6 +542,12 @@ void FOnlineAsyncTaskAccelByteLogin::PerformLogin(const FOnlineAccountCredential
 			AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sending async task to login with XSTS token from native online subsystem."));
 			PlatformId = FAccelByteUtilities::GetUEnumValueAsString(EAccelBytePlatformType::Live);
 			break;
+		case EAccelByteLoginType::Google:
+		case EAccelByteLoginType::GooglePlayGames:
+			ApiClient->User.LoginWithOtherPlatformV4(EAccelBytePlatformType::GooglePlayGames, Credentials.Token, OnLoginSuccessDelegate, OnLoginErrorOAuthDelegate, bCreateHeadlessAccount);
+			AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sending async task to login with Google Play Games token from native online subsystem."));
+			PlatformId = FAccelByteUtilities::GetUEnumValueAsString(EAccelBytePlatformType::GooglePlayGames);
+			break;
 		case EAccelByteLoginType::PS4:
 			ApiClient->User.LoginWithOtherPlatformV4(EAccelBytePlatformType::PS4, Credentials.Token, OnLoginSuccessDelegate, OnLoginErrorOAuthDelegate, bCreateHeadlessAccount);
 			AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sending async task to login with PS4 auth token from native online subsystem."));
@@ -495,6 +557,11 @@ void FOnlineAsyncTaskAccelByteLogin::PerformLogin(const FOnlineAccountCredential
 			ApiClient->User.LoginWithOtherPlatformV4(EAccelBytePlatformType::PS5, Credentials.Token, OnLoginSuccessDelegate, OnLoginErrorOAuthDelegate, bCreateHeadlessAccount);
 			AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sending async task to login with PS5 auth token from native online subsystem."));
 			PlatformId = FAccelByteUtilities::GetUEnumValueAsString(EAccelBytePlatformType::PS5);
+			break;
+		case EAccelByteLoginType::Apple:
+			ApiClient->User.LoginWithOtherPlatformV4(EAccelBytePlatformType::Apple, Credentials.Token, OnLoginSuccessDelegate, OnLoginErrorOAuthDelegate, bCreateHeadlessAccount);
+			AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sending async task to login with Apple auth token from native online subsystem."));
+			PlatformId = FAccelByteUtilities::GetUEnumValueAsString(EAccelBytePlatformType::Apple);
 			break;
 		case EAccelByteLoginType::Launcher:
 			ApiClient->User.LoginWithLauncherV4(OnLoginSuccessDelegate, OnLoginErrorOAuthDelegate);

@@ -63,6 +63,12 @@ public:
 	 */
 	static EAccelByteLoginType GetAccelByteLoginTypeFromNativeSubsystem(const FName& SubsystemName);
 
+	/**
+	 * Convert a native subsystem name to a login type enum value. Used to determine which path the token from the native OSS
+	 * should take on the backend to properly authenticate.
+	 */
+	static EAccelBytePlatformType GetAccelBytePlatformTypeFromAuthType(const FString& InAuthType);
+
 	static void AddUserPlatform(const FString &UserId, const FString PlatformName);
 	static FString GetUserPlatform(const FString &UserId);
 	static void AddUserJoinTime(const FString &UserId, const FString Value);

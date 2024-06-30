@@ -461,14 +461,8 @@ bool FOnlineSubsystemAccelByte::Tick(float DeltaTime)
 bool FOnlineSubsystemAccelByte::IsNativeSubsystemSupported(const FName& NativeSubsystemName)
 {
 	// Convert the subsystem FName to a string and compare to OSSes we know to support
-	const FString SubsystemStr = NativeSubsystemName.ToString();
-	return SubsystemStr.Equals(TEXT("GDK"), ESearchCase::IgnoreCase) ||
-		SubsystemStr.Equals(TEXT("Live"), ESearchCase::IgnoreCase) ||
-		SubsystemStr.Equals(TEXT("PS4"), ESearchCase::IgnoreCase) ||
-		SubsystemStr.Equals(TEXT("PS5"), ESearchCase::IgnoreCase) ||
-		SubsystemStr.Equals(TEXT("STEAM"), ESearchCase::IgnoreCase) ||
-		SubsystemStr.Equals(TEXT("EOS"), ESearchCase::IgnoreCase) ||
-		SubsystemStr.Equals(TEXT("PSPC"), ESearchCase::IgnoreCase);
+	EAccelByteLoginType LoginType = FOnlineSubsystemAccelByteUtils::GetAccelByteLoginTypeFromNativeSubsystem(NativeSubsystemName);
+	return LoginType != EAccelByteLoginType::None;
 }
 
 FString FOnlineSubsystemAccelByte::GetNativePlatformNameString()
@@ -586,66 +580,20 @@ void FOnlineSubsystemAccelByte::ResetParentTaskHasBeenSet()
 
 bool FOnlineSubsystemAccelByte::GetAccelBytePlatformTypeFromAuthType(const FString& InAuthType, EAccelBytePlatformType& Result)
 {
-	if (InAuthType.Equals(TEXT("STEAM"), ESearchCase::IgnoreCase))
-	{
-		Result = EAccelBytePlatformType::Steam;
-		return true;
-	}
-	else if (InAuthType.Equals(TEXT("PS4"), ESearchCase::IgnoreCase))
-	{
-		Result = EAccelBytePlatformType::PS4CrossGen;
-		return true;
-	}
-	else if (InAuthType.Equals(TEXT("PS5"), ESearchCase::IgnoreCase))
-	{
-		Result = EAccelBytePlatformType::PS5;
-		return true;
-	}
-	else if (InAuthType.Equals(TEXT("PSPC"), ESearchCase::IgnoreCase))
-	{
-		Result = EAccelBytePlatformType::PSPC;
-		return true;
-	}
-	else if (InAuthType.Equals(TEXT("LIVE"), ESearchCase::IgnoreCase) || InAuthType.Equals(TEXT("GDK"), ESearchCase::IgnoreCase))
-	{
-		Result = EAccelBytePlatformType::Live;
-		return true;
-	}
-	else if (InAuthType.Equals(TEXT("EPICGAMES"), ESearchCase::IgnoreCase) || InAuthType.Equals(TEXT("EOS"), ESearchCase::IgnoreCase))
-	{
-		Result = EAccelBytePlatformType::EpicGames;
-		return true;
-	}
-	return false;
+	Result = FOnlineSubsystemAccelByteUtils::GetAccelBytePlatformTypeFromAuthType(InAuthType);
+	return Result != EAccelBytePlatformType::None;
 }
 
 FString FOnlineSubsystemAccelByte::GetAccelBytePlatformStringFromAuthType(const FString& InAuthType)
 {
-	if (InAuthType.Equals(TEXT("steam"), ESearchCase::IgnoreCase))
+	EAccelBytePlatformType PlatformType = FOnlineSubsystemAccelByteUtils::GetAccelBytePlatformTypeFromAuthType(InAuthType);
+
+	if (PlatformType == EAccelBytePlatformType::None)
 	{
-		return TEXT("steam");
+		return TEXT("");
 	}
-	else if (InAuthType.Equals(TEXT("ps4"), ESearchCase::IgnoreCase))
-	{
-		return TEXT("ps4");
-	}
-	else if (InAuthType.Equals(TEXT("ps5"), ESearchCase::IgnoreCase))
-	{
-		return TEXT("ps5");
-	}
-	else if (InAuthType.Equals(TEXT("pspc"), ESearchCase::IgnoreCase))
-	{
-		return TEXT("pspc");
-	}
-	else if (InAuthType.Equals(TEXT("live"), ESearchCase::IgnoreCase) || InAuthType.Equals(TEXT("gdk"), ESearchCase::IgnoreCase))
-	{
-		return TEXT("live");
-	}
-	else if (InAuthType.Equals(TEXT("epicgames"), ESearchCase::IgnoreCase) || InAuthType.Equals(TEXT("eos"), ESearchCase::IgnoreCase))
-	{
-		return TEXT("epicgames");
-	}
-	return TEXT("");
+
+	return FAccelByteUtilities::GetPlatformString(PlatformType);
 }
 
 FString FOnlineSubsystemAccelByte::GetNativeSubsystemNameFromAccelBytePlatformString(const FString& InAccelBytePlatform)
@@ -661,6 +609,15 @@ FString FOnlineSubsystemAccelByte::GetNativeSubsystemNameFromAccelBytePlatformSt
 	else if (InAccelBytePlatform.Equals(TEXT("ps5"), ESearchCase::IgnoreCase))
 	{
 		return TEXT("PS5");
+	}
+	else if (InAccelBytePlatform.Equals(TEXT("apple"), ESearchCase::IgnoreCase))
+	{
+		return TEXT("APPLE");
+	}
+	else if (InAccelBytePlatform.Equals(TEXT("google"), ESearchCase::IgnoreCase)
+		|| InAccelBytePlatform.Equals(TEXT("googleplaygames"), ESearchCase::IgnoreCase))
+	{
+		return TEXT("GOOGLE");
 	}
 	else if (InAccelBytePlatform.Equals(TEXT("pspc"), ESearchCase::IgnoreCase))
 	{
@@ -695,11 +652,13 @@ FString FOnlineSubsystemAccelByte::GetSimplifiedNativePlatformName()
 
 FString FOnlineSubsystemAccelByte::GetSimplifiedNativePlatformName(const FString& PlatformName)
 {
-	if (PlatformName.Equals(TEXT("gdk"), ESearchCase::IgnoreCase) || PlatformName.Equals(TEXT("live"), ESearchCase::IgnoreCase))
+	if (PlatformName.Equals(TEXT("gdk"), ESearchCase::IgnoreCase) 
+		|| PlatformName.Equals(TEXT("live"), ESearchCase::IgnoreCase))
 	{
 		return TEXT("XBOX");
 	}
-	else if (PlatformName.Equals(TEXT("ps4"), ESearchCase::IgnoreCase) || PlatformName.Equals(TEXT("ps5"), ESearchCase::IgnoreCase))
+	else if (PlatformName.Equals(TEXT("ps4"), ESearchCase::IgnoreCase) 
+		|| PlatformName.Equals(TEXT("ps5"), ESearchCase::IgnoreCase))
 	{
 		return TEXT("PSN");
 	}
@@ -707,7 +666,17 @@ FString FOnlineSubsystemAccelByte::GetSimplifiedNativePlatformName(const FString
 	{
 		return TEXT("STEAM");
 	}
-	else if (PlatformName.Equals(TEXT("eos"), ESearchCase::IgnoreCase) || PlatformName.Equals(TEXT("epicgames"), ESearchCase::IgnoreCase))
+	else if (PlatformName.Equals(TEXT("apple"), ESearchCase::IgnoreCase))
+	{
+		return TEXT("APPLE");
+	}
+	else if (PlatformName.Equals(TEXT("google"), ESearchCase::IgnoreCase) 
+		|| PlatformName.Equals(TEXT("googleplaygames"), ESearchCase::IgnoreCase))
+	{
+		return TEXT("GOOGLE");
+	}
+	else if (PlatformName.Equals(TEXT("eos"), ESearchCase::IgnoreCase) 
+		|| PlatformName.Equals(TEXT("epicgames"), ESearchCase::IgnoreCase))
 	{
 		return TEXT("EPICGAMES");
 	}

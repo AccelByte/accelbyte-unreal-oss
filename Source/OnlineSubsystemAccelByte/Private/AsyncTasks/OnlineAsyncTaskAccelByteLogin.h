@@ -5,6 +5,7 @@
 
 #include "AsyncTasks/OnlineAsyncTaskAccelByteUtils.h"
 #include "AsyncTasks/OnlineAsyncTaskAccelByte.h"
+#include "Interfaces/OnlineIdentityInterface.h"
 #include "OnlineSubsystemAccelByteTypes.h"
 #include "OnlineIdentityInterfaceAccelByte.h"
 #include "OnlineUserInterfaceAccelByte.h"
@@ -148,6 +149,8 @@ protected:
 	/** Set from DefaultEngine.ini, will only notify in queue if estimated time is above presentation threshold */
 	int32 LoginQueuePresentationThreshold{0};
 
+	FDelegateHandle LoginCompletedHandle;
+
 #if defined(STEAM_SDK_VER) && !UE_SERVER
 	/*
 	 * Object to bind steam auth callback, will only be created when login with steam
@@ -216,6 +219,8 @@ protected:
 	FAccelByteOnLoginQueueCanceledByUserDelegate OnLoginQueueCancelledDelegate;
 
 	void OnLoginQueueCancelled(int32 LoginUserNum);
+
+	bool ShouldInitiateNativePlatformLogin(FOnlineAccountCredentials const& InAccountCredentials, FName& OutSubsystemName);
 
 #if defined(STEAM_SDK_VER) && !UE_SERVER
 	/**

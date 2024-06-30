@@ -82,12 +82,19 @@ void FOnlineAsyncTaskAccelByteRefreshV2GameSession::TriggerDelegates()
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
-	if (bWasSuccessful && bWasSessionRemoved)
+	if (bWasSuccessful)
 	{
 		FOnlineSessionV2AccelBytePtr SessionInterface = nullptr;
 		if (ensureAlways(FOnlineSessionV2AccelByte::GetFromSubsystem(Subsystem, SessionInterface)))
 		{
-			SessionInterface->TriggerOnSessionRemovedDelegates(SessionName);
+			if (bWasSessionRemoved)
+			{
+				SessionInterface->TriggerOnSessionRemovedDelegates(SessionName);
+			}
+			else
+			{
+				SessionInterface->TriggerOnSessionUpdateReceivedDelegates(SessionName);
+			}
 		}
 	}
 

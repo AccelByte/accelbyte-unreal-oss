@@ -6,6 +6,7 @@
 #include "Interfaces/OnlineUserInterface.h"
 #include "Online.h"
 #include "OnlineSubsystemAccelByteTypes.h"
+#include "OnlineSubsystemNames.h"
 #include "OnlineSubsystemUtils.h"
 
 FDelegateHandle FOnlineSubsystemAccelByteUtils::QueryUserHandle = FDelegateHandle();
@@ -179,14 +180,21 @@ EAccelByteLoginType FOnlineSubsystemAccelByteUtils::GetAccelByteLoginTypeFromNat
 {
 	const FString SubsystemStr = SubsystemName.ToString();
 	const UEnum* LoginTypeEnum = StaticEnum<EAccelByteLoginType>();
-	if (SubsystemStr.Equals(TEXT("GDK"), ESearchCase::IgnoreCase) || SubsystemStr.Equals(TEXT("Live"), ESearchCase::IgnoreCase))
+	if (SubsystemName.IsNone())
+	{
+		return EAccelByteLoginType::None;
+	}
+
+	if (SubsystemStr.Equals(TEXT("GDK"), ESearchCase::IgnoreCase) 
+		|| SubsystemStr.Equals(TEXT("Live"), ESearchCase::IgnoreCase))
 	{
 		return EAccelByteLoginType::Xbox;
 	}
-	else if (SubsystemStr.Equals(TEXT("PS4"), ESearchCase::IgnoreCase))
+	else if (SubsystemStr.Equals(TEXT("PS4"), ESearchCase::IgnoreCase)
+		|| SubsystemStr.Equals(PS4_SUBSYSTEM.ToString(), ESearchCase::IgnoreCase))
 	{
 #if defined(WITH_CROSSGENSDK) && WITH_CROSSGENSDK
-		return EAccelByteLoginType::PS5;
+		return EAccelByteLoginType::PS4CrossGen;
 #else
 		return EAccelByteLoginType::PS4;
 #endif
@@ -199,17 +207,80 @@ EAccelByteLoginType FOnlineSubsystemAccelByteUtils::GetAccelByteLoginTypeFromNat
 	{
 		return EAccelByteLoginType::PSPC;
 	}
-	else if (SubsystemStr.Equals(TEXT("STEAM"), ESearchCase::IgnoreCase))
+	else if (SubsystemStr.Equals(TEXT("STEAM"), ESearchCase::IgnoreCase)
+		|| SubsystemStr.Equals(STEAM_SUBSYSTEM.ToString(), ESearchCase::IgnoreCase))
 	{
 		return EAccelByteLoginType::Steam;
 	}
-	else if (SubsystemStr.Equals(TEXT("EOS"), ESearchCase::IgnoreCase))
+	else if (SubsystemStr.Equals(TEXT("EOS"), ESearchCase::IgnoreCase)
+		|| SubsystemStr.Equals(EOS_SUBSYSTEM.ToString(), ESearchCase::IgnoreCase))
 	{
 		return EAccelByteLoginType::EOS;
 	}
+	else if (SubsystemStr.Equals(TEXT("APPLE"), ESearchCase::IgnoreCase) 
+		|| SubsystemStr.Equals(APPLE_SUBSYSTEM.ToString(), ESearchCase::IgnoreCase))
+	{
+		return EAccelByteLoginType::Apple;
+	}
+	else if (SubsystemStr.Equals(TEXT("GOOGLE"), ESearchCase::IgnoreCase)
+		|| SubsystemStr.Equals(GOOGLE_SUBSYSTEM.ToString(), ESearchCase::IgnoreCase))
+	{
+		return EAccelByteLoginType::Google;
+	}
+	/* TODO: uncomment when able to authenticate GooglePlay using Server Auth Code
+	else if (SubsystemStr.Equals(TEXT("GOOGLEPLAY"), ESearchCase::IgnoreCase)
+		|| SubsystemStr.Equals(GOOGLEPLAY_SUBSYSTEM.ToString(), ESearchCase::IgnoreCase))
+	{
+		return EAccelByteLoginType::GooglePlayGames;
+	}
+	*/
 
 	UE_LOG_AB(Warning, TEXT("Failed to convert subsystem '%s' to a usable login type for the AccelByte OSS! Most likely this subsystem is unsupported"), *SubsystemStr);
 	return EAccelByteLoginType::None;
+}
+
+EAccelBytePlatformType FOnlineSubsystemAccelByteUtils::GetAccelBytePlatformTypeFromAuthType(const FString& InAuthType)
+{
+	if (InAuthType.Equals(TEXT("STEAM"), ESearchCase::IgnoreCase))
+	{
+		return EAccelBytePlatformType::Steam;
+	}
+	else if (InAuthType.Equals(TEXT("PS4"), ESearchCase::IgnoreCase))
+	{
+#if defined(WITH_CROSSGENSDK) && WITH_CROSSGENSDK
+		return EAccelBytePlatformType::PS4CrossGen;
+#else
+		return EAccelBytePlatformType::PS4;
+#endif
+	}
+	else if (InAuthType.Equals(TEXT("PS5"), ESearchCase::IgnoreCase))
+	{
+		return EAccelBytePlatformType::PS5;
+	}
+	else if (InAuthType.Equals(TEXT("APPLE"), ESearchCase::IgnoreCase))
+	{
+		return EAccelBytePlatformType::Apple;
+	}
+	else if (InAuthType.Equals(TEXT("GOOGLE"), ESearchCase::IgnoreCase) 
+		|| InAuthType.Equals(TEXT("GOOGLEPLAYGAMES"), ESearchCase::IgnoreCase))
+	{
+		return EAccelBytePlatformType::GooglePlayGames;
+	}
+	else if (InAuthType.Equals(TEXT("PSPC"), ESearchCase::IgnoreCase))
+	{
+		return EAccelBytePlatformType::PSPC;
+	}
+	else if (InAuthType.Equals(TEXT("LIVE"), ESearchCase::IgnoreCase) 
+		|| InAuthType.Equals(TEXT("GDK"), ESearchCase::IgnoreCase))
+	{
+		return EAccelBytePlatformType::Live;
+	}
+	else if (InAuthType.Equals(TEXT("EPICGAMES"), ESearchCase::IgnoreCase) 
+		|| InAuthType.Equals(TEXT("EOS"), ESearchCase::IgnoreCase))
+	{
+		return EAccelBytePlatformType::EpicGames;
+	}
+	return EAccelBytePlatformType::None;
 }
 
 TMap<FString, FString> FOnlineSubsystemAccelByteUtils::UserPlatformMaps;
