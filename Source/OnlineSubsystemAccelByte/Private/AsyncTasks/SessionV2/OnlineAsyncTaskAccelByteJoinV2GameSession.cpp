@@ -106,7 +106,7 @@ void FOnlineAsyncTaskAccelByteJoinV2GameSession::Finalize()
 		}
 
 		// if the session doesn't have DS info yet, we startup the poll to check after some time.
-		if(!SessionInfo->HasConnectionInfo())
+		if(!SessionInfo->HasConnectionInfo() && SessionInfo->GetServerType() == EAccelByteV2SessionConfigurationServerType::DS)
 		{
 			SessionInterface->StartSessionServerCheckPoll(UserId, SessionName);
 		}

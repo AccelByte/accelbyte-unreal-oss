@@ -67,4 +67,6 @@
 
 #define ACCELBYTE_ARGS_SERVERIP TEXT("serverip")
 
+#define STORAGE_SESSION_NAME TEXT("session_name")
+
 const FString ClientIdPrefix = FString(TEXT("client-"));

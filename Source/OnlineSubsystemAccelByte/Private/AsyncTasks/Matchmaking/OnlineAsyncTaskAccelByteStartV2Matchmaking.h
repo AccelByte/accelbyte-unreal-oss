@@ -49,6 +49,8 @@ private:
 
 	TSharedPtr<FJsonObject> AttributesJsonObject;
 
+	TSharedPtr<FJsonObject> StorageJsonObject;
+
 	THandler<TArray<TPair<FString, float>>> OnGetLatenciesSuccessDelegate;
 	FErrorHandler OnGetLatenciesErrorDelegate;
 

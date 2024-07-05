@@ -220,14 +220,26 @@ void FOnlineAsyncTaskAccelByteLogin::TriggerDelegates()
 void FOnlineAsyncTaskAccelByteLogin::LoginWithNativeSubsystem()
 {
 #if WITH_EDITOR
-	FString NativePlatformName = Subsystem->GetNativePlatformNameString();
+	const FString NativePlatformName = Subsystem->GetNativePlatformNameString();
 	
 	//Case: to prevent Steam OSS running in Editor which can lead to crash
 	if (NativePlatformName.Contains("steam"))
 	{
-		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Cannot login with native subsystem from Editor using the Steam as Native Subsystem!"));
-		CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState);
-		return;
+		if (const FOnlineSubsystemModule* OnlineSubsystemModule = FModuleManager::GetModulePtr<FOnlineSubsystemModule>("OnlineSubsystem"))
+		{
+			if (!OnlineSubsystemModule->DoesInstanceExist(FName(*NativePlatformName)))
+			{
+				AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Cannot login with Steam native subsystem from Editor since the steam subsystem module is not exist!"));
+				CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState);
+				return;
+			}
+		}
+		else
+		{
+			AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Cannot login with Steam native subsystem from Editor since the online subsystem module is not valid!"));
+			CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState);
+			return;
+		}
 	}
 #endif
 

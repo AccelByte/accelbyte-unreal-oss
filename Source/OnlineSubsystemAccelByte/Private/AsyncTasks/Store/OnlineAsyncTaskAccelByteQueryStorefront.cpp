@@ -27,10 +27,11 @@ void FOnlineAsyncTaskAccelByteQueryStorefront::Initialize()
 	OnLoadDisplaysSuccessDelegate = AccelByte::TDelegateUtils<THandler<TArray<FAccelByteModelsViewInfo>>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryStorefront::OnLoadDisplaysSuccess);
 	OnLoadSections =  AccelByte::TDelegateUtils<FOnQueryActiveSectionsComplete>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryStorefront::OnListActiveSectionsSuccess);
 	OnLoadItemMappingsSuccessDelegate= AccelByte::TDelegateUtils<THandler<FAccelByteModelsItemMappingsResponse>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryStorefront::OnLoadItemMappingsSuccess);
+	OnLoadItemMappingsErrorDelegate = AccelByte::TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryStorefront::HandleLoadItemMappingsErrorError);
 
 	API_CLIENT_CHECK_GUARD(ErrorMsg);
 	ApiClient->StoreDisplay.GetAllViews(StoreId, Language, OnLoadDisplaysSuccessDelegate, OnQueryErrorDelegate);
-	ApiClient->Item.GetItemMappings(Platform, OnLoadItemMappingsSuccessDelegate, OnQueryErrorDelegate);
+	ApiClient->Item.GetItemMappings(Platform, OnLoadItemMappingsSuccessDelegate, OnLoadItemMappingsErrorDelegate);
 	ExecuteCriticalSectionAction(FVoidHandler::CreateLambda([&]()
 	{
 		Subsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteQueryActiveSections>(Subsystem, UserId.ToSharedRef().Get(), StoreId, ViewId, Region, OnLoadSections);
@@ -119,6 +120,21 @@ void FOnlineAsyncTaskAccelByteQueryStorefront::OnLoadItemMappingsSuccess(const F
 
 	bLoadedItemMappings = true;
 	HandleStepComplete();
+
+	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
+}
+
+void FOnlineAsyncTaskAccelByteQueryStorefront::HandleLoadItemMappingsErrorError(int32 Code, FString const& ErrMsg)
+{
+	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("%s"), *ErrMsg);
+
+	// Not all environment has item mapping, starter environment is one of them.
+	// We still consider this task success if the item mappings not found.
+	if (Code == static_cast<int32>(AccelByte::ErrorCodes::ItemConfigNotFoundInNamespace))
+	{
+		bLoadedItemMappings = true;
+		HandleStepComplete();
+	}
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }

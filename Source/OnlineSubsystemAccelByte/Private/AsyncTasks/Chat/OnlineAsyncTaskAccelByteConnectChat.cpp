@@ -49,6 +49,8 @@ void FOnlineAsyncTaskAccelByteConnectChat::Finalize()
 		ConnectedPayload.UserId = UserId.IsValid() ? UserId->GetAccelByteId() : TEXT("");
 		PredefinedEventInterface->SendEvent(LocalUserNum, MakeShared<FAccelByteModelsChatV2ConnectedPayload>(ConnectedPayload));
 	}
+
+	UnbindDelegates();
 }
 
 void FOnlineAsyncTaskAccelByteConnectChat::TriggerDelegates()
@@ -89,17 +91,6 @@ void FOnlineAsyncTaskAccelByteConnectChat::OnChatConnectSuccess()
 			UserAccountAccelByte->SetConnectedToChat(true);
 		}
 	}
-	
-	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = Subsystem->GetPredefinedEventInterface();
-
-	// set connection closed delegates to set chat connected false when connection closed is triggered
-	ChatInterface->AddOnChatConnectionClosedDelegate_Handle(LocalUserNum, FOnChatConnectionClosedDelegate::CreateLambda([this](int32 UserNum, int32 StatusCode, const FString Reason, bool bWasClean)
-	{
-		if (UserNum == LocalUserNum)
-		{
-			OnChatConnectionClosed(UserNum, Reason, bWasClean, StatusCode);
-		}
-	}));
 
 	CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
@@ -129,52 +120,8 @@ void FOnlineAsyncTaskAccelByteConnectChat::OnChatDisconnectedNotif(const FAccelB
 
 	ErrorStr = TEXT("login-failed-chat-connect-error");
 
-	UnbindDelegates();
-
 	UE_LOG_AB(Warning, TEXT("Chat disconnected. Reason '%s'"), *Result.Message);
 	CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
-}
-
-void FOnlineAsyncTaskAccelByteConnectChat::OnChatConnectionClosed(int32 InLocalUserNum, const FString& Reason, bool WasClean, int32 StatusCode)
-{
-	UE_LOG_AB(Warning, TEXT("Lobby connection closed. Reason '%s' Code : '%d'"), *Reason, StatusCode);
-
-	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(Subsystem->GetIdentityInterface());
-	if (!IdentityInterface.IsValid())
-	{
-		UE_LOG_AB(Warning, TEXT("Error due to either IdentityInterface or ChatInteface is invalid"));
-		return;
-	}
-
-	const FUniqueNetIdPtr LocalUserId = IdentityInterface->GetUniquePlayerId(InLocalUserNum);
-	if (!LocalUserId.IsValid())
-	{
-		UE_LOG_AB(Warning, TEXT("Error due to invalid Local User"));
-		return;
-	}
-
-	TSharedPtr<FUserOnlineAccount> UserAccount = IdentityInterface->GetUserAccount(LocalUserId);
-	if (!UserAccount.IsValid())
-	{
-		UE_LOG_AB(Warning, TEXT("Error due to invalid User Account"));
-		return;
-	}
-
-	const TSharedPtr<FUserOnlineAccountAccelByte> UserAccountAccelByte = StaticCastSharedPtr<FUserOnlineAccountAccelByte>(UserAccount);
-	UserAccountAccelByte->SetConnectedToChat(false);
-
-	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = Subsystem->GetPredefinedEventInterface();
-	if (PredefinedEventInterface.IsValid())
-	{
-		FUniqueNetIdAccelByteUserPtr AccelByteUserId = FUniqueNetIdAccelByteUser::TryCast(LocalUserId.ToSharedRef());
-		if (AccelByteUserId.IsValid())
-		{
-			FAccelByteModelsChatV2DisconnectedPayload DisconnectedPayload{};
-			DisconnectedPayload.UserId = AccelByteUserId->GetAccelByteId();
-			DisconnectedPayload.StatusCode = StatusCode;
-			PredefinedEventInterface->SendEvent(InLocalUserNum, MakeShared<FAccelByteModelsChatV2DisconnectedPayload>(DisconnectedPayload));
-		}
-	}
 }
 
 void FOnlineAsyncTaskAccelByteConnectChat::UnbindDelegates()

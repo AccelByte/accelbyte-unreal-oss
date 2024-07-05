@@ -2,6 +2,30 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.12.19](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.12.19%0D0.12.18) (2024-07-05)
+
+
+### Features
+
+* add new delegate OnMatchmakingCanceledReason ([75d553b](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/75d553b26ba7cd09815c58b6b876a3c35c768e73))
+* add session name when starting matchmaking and get session name in storage when auto join session and matchmaking started ([dfcfff0](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/dfcfff0d9ff774b918c5d6a9952ef9feeed7aed5))
+* add storage parameter in start matchmaking ([8fe28a6](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/8fe28a6d2b555ceaa441b408dc3e3a8d83c47ecc))
+* insert session name to leader storage when creating game session ([feff30b](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/feff30bc8e75724cf2833cbba0af5ea69a41e8c6))
+* **login:** add support to login with Apple on iOS ([6d0feaa](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/6d0feaa1134e65f0fd53d2a77887bc9faef9e64c))
+* **mpv2:** add session invite cancelation ([385bb90](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/385bb900c491956f1a2d33d3937c0664c6019d3c))
+* **turn:** get turn server latencies when matchmaking with P2P server ([46af355](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/46af35591d17e02aa8b9f5bbb41b5168c46b4b57))
+
+
+### Bug Fixes
+
+* add session info valid check before stopping invite check poll ([c11ef7f](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/c11ef7f2087e1cf2f0fec7ee6646c5a47be2482e))
+* add session storage when constructing from backend model ([87288b4](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/87288b47fb467f62e36fd901ceffdaad01b1cc79))
+* **asyncTask:** Apple LoginType switch case AsyncTaskLogin ([1718f24](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/1718f240bdee9e8ed5d7dee1553469449e2217bb))
+* **chat:** handle chat connection closed in chat interface instead of async task ([b5e73b1](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/b5e73b1d49ef1ee5cd6f8cfdc8dd620cff512b3e))
+* **ecommerce:** complete query store front async task as success if item mapping not found ([f71d1d9](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/f71d1d93c849a0969c539ca8dc608e0ea2b5d506))
+* **login:** add a checker for the steam module existency. ([ddbcae9](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/ddbcae9e78b51d0d30ff4de24c4294e460061611))
+* **session:** fix refresh session not triggering OnSessionUpdateReceived after successful refresh ([4ed224f](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/4ed224f98a160a899a984dc70f91fb9a4c01bbc3))
+
 ### [0.12.18](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.12.18%0D0.12.17) (2024-06-30)
 
 

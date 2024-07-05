@@ -714,6 +714,10 @@ void FOnlineChatAccelByte::OnChatConnectionClosed(int32 StatusCode, const FStrin
 {
 	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("Chat connection closed: status code %d, reason %s, bWasClean %s"), StatusCode, *Reason, bWasClean?TEXT("true"):TEXT("false"));
 
+	UpdateUserAccount(LocalUserNum);
+
+	SendDisconnectPredefinedEvent(StatusCode, LocalUserNum);
+
 	TriggerOnChatConnectionClosedDelegates(LocalUserNum, StatusCode, Reason, bWasClean);
 
 	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
@@ -1160,4 +1164,62 @@ void FAccelByteChatRoomInfo::AddMember(const FString& UserId)
 void FAccelByteChatRoomInfo::RemoveMember(const FString& UserId)
 {
 	TopicData.Members.Remove(UserId);
+}
+
+bool FOnlineChatAccelByte::UpdateUserAccount(const int32 LocalUserNum)
+{
+	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystem->GetIdentityInterface());
+	if (!IdentityInterface.IsValid())
+	{
+		UE_LOG_AB(Warning, TEXT("Failed updating user account due to invalid IdentityInterface"));
+		return false;
+	}
+
+	const FUniqueNetIdPtr LocalUserId = IdentityInterface->GetUniquePlayerId(LocalUserNum);
+	if (!LocalUserId.IsValid())
+	{
+		UE_LOG_AB(Warning, TEXT("Failed updating user account due to invalidLocal User"));
+		return false;
+	}
+
+	TSharedPtr<FUserOnlineAccount> UserAccount = IdentityInterface->GetUserAccount(LocalUserId);
+	if (!UserAccount.IsValid())
+	{
+		UE_LOG_AB(Warning, TEXT("Failed updating user account due to invalid User Account"));
+		return false;
+	}
+
+	const TSharedPtr<FUserOnlineAccountAccelByte> UserAccountAccelByte = StaticCastSharedPtr<FUserOnlineAccountAccelByte>(UserAccount);
+	UserAccountAccelByte->SetConnectedToChat(false);
+	return true;
+}
+
+void FOnlineChatAccelByte::SendDisconnectPredefinedEvent(int32 StatusCode, int32 LocalUserNum)
+{
+	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = AccelByteSubsystem->GetPredefinedEventInterface();
+	if (PredefinedEventInterface.IsValid())
+	{
+		const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystem->GetIdentityInterface());
+		if (!IdentityInterface.IsValid())
+		{
+			UE_LOG_AB(Warning, TEXT("Failed sending disconnect predefined event due to invalid IdentityInterface"));
+			return;
+		}
+
+		const FUniqueNetIdPtr LocalUserId = IdentityInterface->GetUniquePlayerId(LocalUserNum);
+		if (!LocalUserId.IsValid())
+		{
+			UE_LOG_AB(Warning, TEXT("Failed  sending disconnect predefined event due to invalidLocal User"));
+			return;
+		}
+
+		const FUniqueNetIdAccelByteUserPtr AccelByteUserId = FUniqueNetIdAccelByteUser::TryCast(LocalUserId.ToSharedRef());
+		if (AccelByteUserId.IsValid())
+		{
+			FAccelByteModelsChatV2DisconnectedPayload DisconnectedPayload{};
+			DisconnectedPayload.UserId = AccelByteUserId->GetAccelByteId();
+			DisconnectedPayload.StatusCode = StatusCode;
+			PredefinedEventInterface->SendEvent(LocalUserNum, MakeShared<FAccelByteModelsChatV2DisconnectedPayload>(DisconnectedPayload));
+		}
+	}
 }

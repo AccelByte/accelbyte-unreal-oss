@@ -35,6 +35,9 @@ private:
 	THandler<FAccelByteModelsItemMappingsResponse> OnLoadItemMappingsSuccessDelegate;
 	void OnLoadItemMappingsSuccess(const FAccelByteModelsItemMappingsResponse& MappingsResponse);
 
+	FErrorHandler OnLoadItemMappingsErrorDelegate;
+	void HandleLoadItemMappingsErrorError(int32 Code, FString const& ErrMsg);
+	
 	FErrorHandler OnQueryErrorDelegate;
 	void HandleQueryError(int32 Code, FString const& ErrMsg);
 

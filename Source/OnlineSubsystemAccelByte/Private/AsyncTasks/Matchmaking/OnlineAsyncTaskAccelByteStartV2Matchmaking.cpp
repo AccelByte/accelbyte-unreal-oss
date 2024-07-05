@@ -3,6 +3,8 @@
 // and restrictions contact your company contract manager.
 
 #include "OnlineAsyncTaskAccelByteStartV2Matchmaking.h"
+
+#include "Core/AccelByteError.h"
 #include "OnlineSessionInterfaceV2AccelByte.h"
 #include "OnlineSubsystemAccelByteSessionSettings.h"
 #include "OnlineSessionSettingsAccelByte.h"
@@ -30,17 +32,24 @@ void FOnlineAsyncTaskAccelByteStartV2Matchmaking::Initialize()
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("LocalPlayerId: %s; SessionName: %s; MatchPool: %s"), *UserId->ToDebugString(), *SessionName.ToString(), *MatchPool);
 
 	API_CLIENT_CHECK_GUARD(OnlineError);
+
+	OnGetLatenciesSuccessDelegate = TDelegateUtils<THandler<TArray<TPair<FString, float>>>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteStartV2Matchmaking::OnGetLatenciesSuccess);
+	OnGetLatenciesErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteStartV2Matchmaking::OnGetLatenciesError);
 	
-	const bool bHasCachedLatencies = ApiClient->Qos.GetCachedLatencies().Num() > 0;
-	if (!bHasCachedLatencies)
-	{
-		// If for some reason we have no latencies cached on the SDK, make a request to get latencies
-		OnGetLatenciesSuccessDelegate = TDelegateUtils<THandler<TArray<TPair<FString, float>>>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteStartV2Matchmaking::OnGetLatenciesSuccess);
-		OnGetLatenciesErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteStartV2Matchmaking::OnGetLatenciesError);
-
-		ApiClient->Qos.GetServerLatencies(OnGetLatenciesSuccessDelegate, OnGetLatenciesErrorDelegate);
-
+	if (SearchHandle->GetIsP2PMatchmaking())
+	{		
+		ApiClient->TurnManager.GetTurnServerLatencies(OnGetLatenciesSuccessDelegate, OnGetLatenciesErrorDelegate);
 		return;
+	}
+	else
+	{
+		const bool bHasCachedLatencies = ApiClient->Qos.GetCachedLatencies().Num() > 0;
+		if (!bHasCachedLatencies)
+		{
+			// If for some reason we have no latencies cached on the SDK, make a request to get latencies
+			ApiClient->Qos.GetServerLatencies(OnGetLatenciesSuccessDelegate, OnGetLatenciesErrorDelegate);
+			return;
+		}
 	}
 
 	CreateMatchTicket();
@@ -167,6 +176,29 @@ void FOnlineAsyncTaskAccelByteStartV2Matchmaking::CreateMatchTicket()
 
 	AttributesJsonObject = SessionInterface->ConvertSearchParamsToJsonObject(SearchHandle->QuerySettings);
 	Optionals.Attributes.JsonObject = AttributesJsonObject;
+
+	if(SearchHandle->GetSearchStorage().IsValid())
+	{
+		if(SearchHandle->GetSearchStorage()->Values.Num() > 4)
+		{
+			const FString ErrorMsg = TEXT("Storage cannot have more than 4 items"); 
+			UE_LOG_AB(Warning, TEXT("Failed to start matchmaking as the call to create a ticket failed! Error code: %d; Error message: %s"), ErrorCodes::InvalidRequest, *ErrorMsg);
+			OnlineError = ONLINE_ERROR(EOnlineErrorResult::InvalidParams, FString::FromInt(static_cast<int32>(ErrorCodes::InvalidRequest)), FText::FromString(ErrorMsg));
+			CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
+
+			AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to start matchmaking, storage cannot have more than 4 items!"));
+			return;
+		}
+	
+		StorageJsonObject = SearchHandle->GetSearchStorage();
+	}
+	else
+	{
+		StorageJsonObject = MakeShared<FJsonObject>();
+	}
+	
+	StorageJsonObject->SetStringField(STORAGE_SESSION_NAME, SessionName.ToString());
+	Optionals.Storage.JsonObject = StorageJsonObject;
 
 	ApiClient->MatchmakingV2.CreateMatchTicket(MatchPool, OnStartMatchmakingSuccessDelegate, OnStartMatchmakingErrorDelegate, Optionals);
 

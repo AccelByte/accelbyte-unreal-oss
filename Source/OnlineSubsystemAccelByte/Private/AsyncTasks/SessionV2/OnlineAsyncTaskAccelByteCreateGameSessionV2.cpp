@@ -142,6 +142,9 @@ void FOnlineAsyncTaskAccelByteCreateGameSessionV2::Initialize()
 
 	CreateRequest.Attributes.JsonObject = SessionInterface->ConvertSessionSettingsToJsonObject(NewSessionSettings);
 
+	CreateRequest.Storage.Leader.JsonObject = MakeShared<FJsonObject>();
+	CreateRequest.Storage.Leader.JsonObject->SetStringField(STORAGE_SESSION_NAME, SessionName.ToString());
+
 	OnCreateGameSessionSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsV2GameSession>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteCreateGameSessionV2::OnCreateGameSessionSuccess);
 	OnCreateGameSessionErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteCreateGameSessionV2::OnCreateGameSessionError);;
 	if (!IsRunningDedicatedServer())

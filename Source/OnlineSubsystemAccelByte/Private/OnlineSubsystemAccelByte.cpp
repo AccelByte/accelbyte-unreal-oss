@@ -785,12 +785,12 @@ void FOnlineSubsystemAccelByte::OnLobbyConnectionClosed(int32 StatusCode, const 
 	FString LogoutReason = (StatusCode != ClosedAbnormally) ? Reason : TEXT("network-disconnection");
 
 #if !AB_USE_V2_SESSIONS
-		TSharedPtr<FUniqueNetIdAccelByteUser const> LocalUserId = StaticCastSharedPtr<FUniqueNetIdAccelByteUser const>(IdentityInterface->GetUniquePlayerId(InLocalUserNum));
+		TSharedPtr<FUniqueNetIdAccelByteUser const> LocalUserIdAccelByte = StaticCastSharedPtr<FUniqueNetIdAccelByteUser const>(IdentityInterface->GetUniquePlayerId(InLocalUserNum));
 
 		// make sure user is valid (still logged in) before removing party in party interface
-		if (LocalUserId.IsValid())
+		if (LocalUserIdAccelByte.IsValid())
 		{
-			PartyInterface->RemovePartyFromInterface(LocalUserId.ToSharedRef());
+			PartyInterface->RemovePartyFromInterface(LocalUserIdAccelByte.ToSharedRef());
 		}
 #endif
 	{

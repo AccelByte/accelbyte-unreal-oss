@@ -578,4 +578,7 @@ private:
 
 	/** Cache maximum chat message length*/
 	int32 MaxChatMessageLength{INDEX_NONE};
+
+	bool UpdateUserAccount(int32 LocalUserNum);
+	void SendDisconnectPredefinedEvent(int32 StatusCode, int32 LocalUserNum);
 };

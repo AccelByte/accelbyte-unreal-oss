@@ -331,6 +331,10 @@ public:
 	FUniqueNetIdPtr GetSearchingPlayerId() const;
 	FString GetTicketId() const;
 	FName GetSearchingSessionName() const;
+	TSharedPtr<FJsonObject>& GetSearchStorage();
+	bool GetIsP2PMatchmaking() const;
+	void SetIsP2PMatchmaking(const bool IsP2PMatchmaking);
+	void SetSearchStorage(TSharedPtr<FJsonObject> const& JsonObject);
 
 PACKAGE_SCOPE:
 	/**
@@ -357,6 +361,16 @@ PACKAGE_SCOPE:
 	 * The list of available platforms for cross platform matchmaking
 	 */
 	TArray<FString> CrossPlatforms{};
+
+	/**
+	 * Additional shared data not considered for matchmaking
+	 */
+	TSharedPtr<FJsonObject> SearchStorage{};
+	
+	/**
+	 * Flag to check if the current matchmaking is for P2P and getting the latencies from turn server list.
+	 */
+	bool bIsP2PMatchmaking{false};
 };
 
 #if (ENGINE_MAJOR_VERSION == 4 && ENGINE_MINOR_VERSION < 26)
@@ -481,6 +495,9 @@ typedef FOnMatchmakingExpired::FDelegate FOnMatchmakingExpiredDelegate;
 DECLARE_MULTICAST_DELEGATE(FOnMatchmakingCanceled)
 typedef FOnMatchmakingCanceled::FDelegate FOnMatchmakingCanceledDelegate;
 
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnMatchmakingCanceledReason, const FOnlineErrorAccelByte& /*Error*/)
+typedef FOnMatchmakingCanceledReason::FDelegate FOnMatchmakingCanceledReasonDelegate;
+
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnBackfillProposalReceived, FAccelByteModelsV2MatchmakingBackfillProposalNotif /*Proposal*/);
 typedef FOnBackfillProposalReceived::FDelegate FOnBackfillProposalReceivedDelegate;
 
@@ -546,6 +563,12 @@ typedef FOnSendDSSessionReadyComplete::FDelegate FOnSendDSSessionReadyCompleteDe
 
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnV2SessionEnded, FName /*SessionName*/);
 typedef FOnV2SessionEnded::FDelegate FOnV2SessionEndedDelegate;
+
+DECLARE_MULTICAST_DELEGATE_FourParams(FOnCancelSessionInviteComplete, const FUniqueNetId& /*LocalUserId*/, FName /*SessionName*/, const FUniqueNetId& /*Invitee*/, const FOnlineError& /*ErrorInfo*/)
+typedef FOnCancelSessionInviteComplete::FDelegate FOnCancelSessionInviteCompleteDelegate;
+
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnSessionInviteCanceled, const FString& /*SessionID*/)
+typedef FOnSessionInviteCanceled::FDelegate FOnSessionInviteCanceledDelegate;
 
 /**
  * Delegate broadcast when a session that the player is in locally has been removed on the backend. Gives the game an
@@ -975,6 +998,10 @@ public:
 	 */
 	bool SessionContainsMember(const FUniqueNetId& UserId, FName SessionName);
 
+	bool CancelSessionInvite(int32 LocalUserNum, FName SessionName, const FUniqueNetId& Invitee);
+	
+	bool CancelSessionInvite(const FUniqueNetId& LocalUserId, FName SessionName, const FUniqueNetId& Invitee);
+
 	/**
 	 * Set enable match ticket status check polling.
 	 * @param Enabled true will enable match ticket check polling
@@ -1099,6 +1126,19 @@ public:
 		, const FOnSingleSessionResultCompleteDelegate& CompletionDelegate);
 
 	/**
+	 * Begins cloud based matchmaking for a session
+	 *
+	 * @param LocalPlayers the ids of all local players that will participate in the match
+	 * @param SessionName the name of the session to use, usually will be GAME_SESSION_NAME
+	 * @param NewSessionSettings the desired settings to match against or create with when forming new sessions
+	 * @param SearchSettings the desired settings that the matched session will have.
+	 * @param CompletionDelegate Delegate triggered when call complete
+	 *
+	 * @return true if successful searching for sessions, false otherwise
+	 */
+	bool StartMatchmaking(const TArray<FSessionMatchmakingUser>& LocalPlayers, FName SessionName, const FOnlineSessionSettings& NewSessionSettings, TSharedRef<FOnlineSessionSearchAccelByte>& SearchSettings, const FOnStartMatchmakingComplete& CompletionDelegate);
+	
+	/**
 	 * Delegate fired when we have retrieved information on the session that our server is claimed by on the backend.
 	 *
 	 * @param SessionName the name that our server session is stored under
@@ -1167,6 +1207,11 @@ public:
 	 */
 	DEFINE_ONLINE_DELEGATE(OnMatchmakingCanceled);
 
+	/**
+	 * Delegate fired when matchmaking ticket has been canceled with reason as parameter.
+	 */
+	DEFINE_ONLINE_DELEGATE_ONE_PARAM(OnMatchmakingCanceledReason, const FOnlineErrorAccelByte& /*Error*/);
+	
 	/**
 	 * Delegate fired when the game server receives a backfill proposal from matchmaking. Use AcceptBackfillProposal and
 	 * RejectBackfillProposal to act on the proposal.
@@ -1281,6 +1326,10 @@ public:
 	DEFINE_ONLINE_DELEGATE_ONE_PARAM(OnSendDSSessionReadyComplete, const FOnlineError& /*ErrorInfo*/);
 
 	DEFINE_ONLINE_DELEGATE_ONE_PARAM(OnV2SessionEnded, FName /*SessionName*/);
+
+	DEFINE_ONLINE_DELEGATE_FOUR_PARAM(OnCancelSessionInviteComplete, const FUniqueNetId& /*LocalUserId*/, FName /*SessionName*/, const FUniqueNetId& /*Invitee*/, const FOnlineError& /*ErrorInfo*/)
+
+	DEFINE_ONLINE_DELEGATE_ONE_PARAM(OnSessionInviteCanceled, const FString& /*SessionID*/)
 
 #if (ENGINE_MAJOR_VERSION == 4 && ENGINE_MINOR_VERSION <= 25)
 	/**
@@ -1866,6 +1915,7 @@ private:
 	void OnKickedFromGameSessionNotification(FAccelByteModelsV2GameSessionUserKickedEvent KickedEvent, int32 LocalUserNum);
 	void OnDsStatusChangedNotification(FAccelByteModelsV2DSStatusChangedNotif DsStatusChangeEvent, int32 LocalUserNum);
 	void OnGameSessionInviteRejectedNotification(FAccelByteModelsV2GameSessionUserRejectedEvent RejectEvent, int32 LocalUserNum);
+	void OnGameSessionInviteCanceledNotification(const FAccelByteModelsV2GameSessionInviteCanceledEvent& CanceledEvent, int32 LocalUserNum);
 	//~ End Game Session Notification Handlers
 
 	//~ Begin Party Session Notification Handlers
@@ -1876,6 +1926,7 @@ private:
 	void OnPartySessionMembersChangedNotification(FAccelByteModelsV2PartyMembersChangedEvent MemberChangeEvent, int32 LocalUserNum);
 	void OnPartySessionUpdatedNotification(FAccelByteModelsV2PartySession UpdatedPartySession, int32 LocalUserNum);
 	void OnPartySessionInviteRejectedNotification(FAccelByteModelsV2PartyUserRejectedEvent RejectEvent, int32 LocalUserNum);
+	void OnPartySessionInviteCanceledNotification(const FAccelByteModelsV2PartyInviteCanceledEvent& CanceledEvent, int32 LocalUserNum);
 	//~ End Party Session Notification Handlers
 
 	//~ Begin Matchmaking Notification Handlers
@@ -1899,6 +1950,12 @@ private:
 	//~ Begin Session Storage Notification Handler
 	void OnSessionStorageChangedNotification(FAccelByteModelsV2SessionStorageChangedEvent Notification, int32 LocalUserNum);
 	//~ End Session Storage Notification Handler
+
+	//~ Begin Lobby Multicast Notification Handler
+	void UnbindLobbyMulticastDelegate();
+	FDelegateHandle OnGameSessionInviteCanceledHandle;
+	FDelegateHandle OnPartyInviteCanceledHandle;
+	//~ End Lobby Multicast Notification Handler
 
 	void UpdateSessionMembers(FNamedOnlineSession* Session, const TArray<FAccelByteModelsV2SessionUser>& PreviousMembers, const bool bHasInvitedPlayersChanged);
 
@@ -1960,6 +2017,10 @@ public:
 	{
 		bFindMatchmakingGameSessionByIdInProgress = State;
 	}
+
+private:
+	void UpdateSessionInvite(const FOnlineSessionInviteAccelByte& NewInvite);
+	bool RemoveSessionInvite(const FString& ID);
 };
 
 typedef TSharedPtr<FOnlineSessionV2AccelByte, ESPMode::ThreadSafe> FOnlineSessionV2AccelBytePtr;

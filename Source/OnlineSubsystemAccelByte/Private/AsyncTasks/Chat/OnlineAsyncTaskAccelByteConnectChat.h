@@ -44,14 +44,10 @@ private:
 	void OnChatDisconnectedNotif(const FAccelByteModelsChatDisconnectNotif&);
 	AccelByte::Api::Chat::FChatDisconnectNotif OnChatDisconnectedNotifDelegate;
 
-	/** Delegate handler for when a chat connection is disconnected. */
-	void OnChatConnectionClosed(int32 InLocalUserNum, const FString& Reason, bool WasClean, int32 StatusCode);
-
 	void UnbindDelegates();
 
 	/**
 	 * String representing the error code that occurred
 	 */
 	FString ErrorStr;
-
 };
