@@ -6229,6 +6229,9 @@ void FOnlineSessionV2AccelByte::RegisterJoinedSessionMember(FNamedOnlineSession*
 	{
 		RegisterPlayer(Session->SessionName, JoinedUserId.ToSharedRef().Get(), false);
 		TriggerOnSessionParticipantsChangeDelegates(Session->SessionName, JoinedUserId.ToSharedRef().Get(), true);
+#if ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION >= 2
+		TriggerOnSessionParticipantJoinedDelegates(Session->SessionName, JoinedUserId.ToSharedRef().Get());
+#endif
 	}
 }
 
@@ -6252,6 +6255,10 @@ void FOnlineSessionV2AccelByte::UnregisterLeftSessionMember(FNamedOnlineSession*
 	TriggerOnSessionParticipantRemovedDelegates(Session->SessionName, LeftUserId.ToSharedRef().Get());
 #endif
 	TriggerOnSessionParticipantsChangeDelegates(Session->SessionName, LeftUserId.ToSharedRef().Get(), false);
+#if ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION >= 2
+	const EOnSessionParticipantLeftReason LeftReason = LeftMember.StatusV2 == EAccelByteV2SessionMemberStatus::KICKED ? EOnSessionParticipantLeftReason::Kicked : EOnSessionParticipantLeftReason::Left;
+	TriggerOnSessionParticipantLeftDelegates(Session->SessionName, LeftUserId.ToSharedRef().Get(), LeftReason);
+#endif
 
 	// If the user that has left is ourselves, then we want to destroy this session as well. Developers will need to listen
 	// to OnDestroySessionComplete to ensure that they are catching being booted out of a session from the backend.

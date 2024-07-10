@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.12.20](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.12.20%0D0.12.19) (2024-07-10)
+
+
+### Features
+
+* **sessionv2:** trigger FOnSessionParticipantJoined and FOnSessionParticipantLeft starting from UE 5.2 ([a1a42b4](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/a1a42b49e658a2b4dbe63eeb19fe0ade04838824))
+
 ### [0.12.19](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.12.19%0D0.12.18) (2024-07-05)
 
 
