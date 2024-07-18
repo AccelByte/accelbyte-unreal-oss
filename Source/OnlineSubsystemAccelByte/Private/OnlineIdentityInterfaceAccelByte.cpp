@@ -185,11 +185,13 @@ bool FOnlineIdentityAccelByte::Logout(int32 LocalUserNum, FString Reason)
 
 	LogoutReason = Reason;
 
-	FVoidHandler OnLogoutSuccessDelegate = FVoidHandler::CreateThreadSafeSP(AsShared(), &FOnlineIdentityAccelByte::OnLogout, LocalUserNum, true);
-	FErrorHandler OnLogoutFailedDelegate = FErrorHandler::CreateLambda([IdentityInterface = AsShared(), LocalUserNum](int32 ErrorCode, const FString& ErrorMessage) {
-		UE_LOG_AB(Error, TEXT("Logging out with AccelByte OSS failed! Code: %d; Message: %s"), ErrorCode, *ErrorMessage);
-		IdentityInterface->OnLogout(LocalUserNum, false);
-	});
+	FVoidHandler OnLogoutSuccessDelegate = FVoidHandler::CreateThreadSafeSP(AsShared()
+		, &FOnlineIdentityAccelByte::OnLogout
+		, LocalUserNum
+		, true);
+	FErrorHandler OnLogoutFailedDelegate = FErrorHandler::CreateThreadSafeSP(AsShared()
+		, &FOnlineIdentityAccelByte::OnLogoutError
+		, LocalUserNum);
 
 	if (!IsRunningDedicatedServer())
 	{
@@ -847,6 +849,12 @@ void FOnlineIdentityAccelByte::OnLogout(const int32 LocalUserNum, bool bWasSucce
 		UE_LOG_AB(Log, TEXT("Logging out with AccelByte OSS succeeded! LocalUserNum: %d"), LocalUserNum);
 		RemoveUserFromMappings(LocalUserNum);
 	}
+}
+
+void FOnlineIdentityAccelByte::OnLogoutError(int32 ErrorCode, const FString& ErrorMessage, int32 LocalUserNum)
+{
+	UE_LOG_AB(Error, TEXT("Logging out with AccelByte OSS failed! Code: %d; Message: %s"), ErrorCode, *ErrorMessage);
+	OnLogout(LocalUserNum, false);
 }
 #undef ONLINE_ERROR_NAMESPACE
 

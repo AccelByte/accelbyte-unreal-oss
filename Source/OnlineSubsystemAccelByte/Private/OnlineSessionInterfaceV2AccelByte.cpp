@@ -55,6 +55,7 @@
 #include "OnlinePredefinedEventInterfaceAccelByte.h"
 #include "OnlineSubsystemAccelByte.h"
 #include "OnlineSubsystemAccelByteDefines.h"
+#include "Misc/Timespan.h"
 #include "Api/AccelByteLobbyApi.h"
 #include "AccelByteNetworkUtilities.h"
 #include "OnlineSessionSettingsAccelByte.h"
@@ -615,14 +616,14 @@ bool FOnlineSessionInviteAccelByte::IsExpired()
 	auto SynchedServerTime = AccelByte::FRegistry::TimeManager.GetCurrentServerTime();
 	
 	// If we are unable to sync with the server time
-	if (SynchedServerTime <= FDateTime::MinValue())
+	FDateTime CurrentTime = FDateTime::UtcNow();
+	if (SynchedServerTime > FDateTime::MinValue())
 	{
-		return this->ExpiredAt <= FDateTime::UtcNow();
+		CurrentTime = SynchedServerTime;
 	}
-	else
-	{
-		return this->ExpiredAt <= SynchedServerTime;
-	}
+
+	FTimespan DeltaTime = ExpiredAt - CurrentTime;
+	return DeltaTime.GetTotalSeconds() < 1.0f;
 }
 
 const FString FOnlineSessionV2AccelByte::ServerSessionIdEnvironmentVariable = TEXT("NOMAD_META_session_id");

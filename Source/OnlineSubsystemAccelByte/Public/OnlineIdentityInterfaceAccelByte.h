@@ -407,7 +407,7 @@ private:
 	FString LogoutReason; // Error Code for when we logged out
 
 	/**
-	 * Call when the user logged out.
+	 * @brief Call when the user logged out.
 	 * 
 	 * @param LocalUserNum Index of the user who logged out
 	 * @param bWasSuccessful True if the user is successfully logged out or False otherwise.
@@ -415,7 +415,16 @@ private:
 	void OnLogout(const int32 LocalUserNum, bool bWasSuccessful);
 
 	/**
-	 * Remove all mappings for a user by their user index. Should only be called when the user logs out.
+	 * @brief Call when the user failed to logged out.
+	 * 
+	 * @param ErrorCode
+	 * @param ErrorMessage
+	 * @param LocalUserNum Index of the user who logged out
+	 */
+	void OnLogoutError(int32 ErrorCode, const FString& ErrorMessage, int32 LocalUserNum);
+
+	/**
+	 * @brief Remove all mappings for a user by their user index. Should only be called when the user logs out.
 	 * 
 	 * @param LocalUserNum Index of the user that we wish to remove mappings for
 	 */

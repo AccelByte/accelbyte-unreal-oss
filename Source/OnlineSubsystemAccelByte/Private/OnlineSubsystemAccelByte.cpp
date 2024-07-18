@@ -98,11 +98,13 @@ bool FOnlineSubsystemAccelByte::Init()
 	AsyncTaskManagerThread.Reset(FRunnableThread::Create(AsyncTaskManager.Get(), *FString::Printf(TEXT("OnlineAsyncTaskThread %s"), *InstanceName.ToString())));
 	check(AsyncTaskManagerThread.IsValid());
 
-	for(int UserNum = 0; UserNum < MAX_LOCAL_PLAYERS; UserNum++)
+	for (int UserNum = 0; UserNum < MAX_LOCAL_PLAYERS; UserNum++)
 	{
 		// Note @damar disabling this, this should be handled for each user.
-		IdentityInterface->AddOnLoginCompleteDelegate_Handle(UserNum, FOnLoginCompleteDelegate::CreateRaw(this, &FOnlineSubsystemAccelByte::OnLoginCallback));
-		IdentityInterface->AddOnConnectLobbyCompleteDelegate_Handle(UserNum, FOnConnectLobbyCompleteDelegate::CreateRaw(this, &FOnlineSubsystemAccelByte::OnLobbyConnectedCallback));
+		IdentityInterface->AddOnLoginCompleteDelegate_Handle(UserNum
+			, FOnLoginCompleteDelegate::CreateThreadSafeSP(AsShared(), &FOnlineSubsystemAccelByte::OnLoginCallback));
+		IdentityInterface->AddOnConnectLobbyCompleteDelegate_Handle(UserNum
+			, FOnConnectLobbyCompleteDelegate::CreateThreadSafeSP(AsShared(), &FOnlineSubsystemAccelByte::OnLobbyConnectedCallback));
 	}
 
 	FAccelByteUtilities::LoadABConfigFallback(TEXT("OnlineSubsystemAccelByte"), TEXT("bAutoLobbyConnectAfterLoginSuccess"), bIsAutoLobbyConnectAfterLoginSuccess);
@@ -121,7 +123,8 @@ bool FOnlineSubsystemAccelByte::Init()
 	PluginInitializedTime = FDateTime::UtcNow();
 
 	FAccelBytePlatformHandler PlatformHandler{};
-	PlatformHandler.AddPlatformPresenceChangedDelegate(AccelByte::FAccelBytePlatformPresenceChangedDelegate::CreateThreadSafeSP(this, &FOnlineSubsystemAccelByte::OnPresenceChanged));
+	PlatformHandler.AddPlatformPresenceChangedDelegate(AccelByte::FAccelBytePlatformPresenceChangedDelegate::CreateThreadSafeSP(this
+		, &FOnlineSubsystemAccelByte::OnPresenceChanged));
 
 	return true;
 }
@@ -158,6 +161,13 @@ bool FOnlineSubsystemAccelByte::Shutdown()
 		IdentityInterface->ClearOnLoginCompleteDelegates(UserNum, this);
 		IdentityInterface->ClearOnConnectLobbyCompleteDelegates(UserNum, this);
 
+		auto ApiClient = GetApiClient(UserNum);
+		if (ApiClient.IsValid() && NativeTokenRefreshHandles.Contains(UserNum) && NativeTokenRefreshHandles[UserNum].IsValid())
+		{
+			ApiClient->CredentialsRef->OnTokenRefreshed().Remove(NativeTokenRefreshHandles[UserNum]);
+			NativeTokenRefreshHandles.Remove(UserNum);
+		}
+
 		FUniqueNetIdPtr PlayerId = IdentityInterface->GetUniquePlayerId(UserNum);
 		if (!PlayerId.IsValid())
 		{
@@ -167,6 +177,8 @@ bool FOnlineSubsystemAccelByte::Shutdown()
 		TSharedRef<const FUniqueNetIdAccelByteUser> AccelByteCompositeId = FUniqueNetIdAccelByteUser::CastChecked(PlayerId.ToSharedRef());
 		AccelByte::FMultiRegistry::RemoveApiClient(AccelByteCompositeId->GetAccelByteId());
 	}
+
+	LogoutDelegates.Empty();
 
 	// Reset all of our references to our shared interfaces to effectively destroy them if nothing else is using the memory
 	PartyInterface.Reset();
@@ -686,21 +698,25 @@ FString FOnlineSubsystemAccelByte::GetSimplifiedNativePlatformName(const FString
 
 void FOnlineSubsystemAccelByte::OnLoginCallback(int32 LocalUserNum, bool bWasSuccessful, const FUniqueNetId& UserId, const FString& Error)
 {
-	if (!bWasSuccessful || IsRunningDedicatedServer())
+	if (!bWasSuccessful 
+		|| IsRunningDedicatedServer()
+		|| !IdentityInterface.IsValid())
 	{
 		return;
 	}
 
 	// listen to Message Notif Lobby
 	const AccelByte::FApiClientPtr ApiClient = IdentityInterface->GetApiClient(LocalUserNum); 
-	const AccelByte::Api::Lobby::FMessageNotif Delegate = AccelByte::Api::Lobby::FMessageNotif::CreateRaw(this, &FOnlineSubsystemAccelByte::OnMessageNotif, LocalUserNum);		
+	const AccelByte::Api::Lobby::FMessageNotif Delegate = AccelByte::Api::Lobby::FMessageNotif::CreateThreadSafeSP(AsShared()
+		, &FOnlineSubsystemAccelByte::OnMessageNotif
+		, LocalUserNum);
 	if (!ApiClient.IsValid())
 	{
 		return;
 	}
-	
+
 	ApiClient->Lobby.SetMessageNotifDelegate(Delegate);
-	if (bIsAutoLobbyConnectAfterLoginSuccess && IdentityInterface.IsValid())
+	if (bIsAutoLobbyConnectAfterLoginSuccess)
 	{
 		IdentityInterface->ConnectAccelByteLobby(LocalUserNum);
 	}
@@ -726,14 +742,21 @@ void FOnlineSubsystemAccelByte::OnLobbyConnectedCallback(int32 LocalUserNum, boo
 	
 	if (ApiClient.IsValid())
 	{
-		const auto OnLobbyConnectionClosedDelegate = AccelByte::Api::Lobby::FConnectionClosed::CreateThreadSafeSP(AsShared(), &FOnlineSubsystemAccelByte::OnLobbyConnectionClosed, LocalUserNum, false);
+		const auto OnLobbyConnectionClosedDelegate = AccelByte::Api::Lobby::FConnectionClosed::CreateThreadSafeSP(AsShared()
+			, &FOnlineSubsystemAccelByte::OnLobbyConnectionClosed
+			, LocalUserNum
+			, false);
 		ApiClient->Lobby.SetConnectionClosedDelegate(OnLobbyConnectionClosedDelegate);
 
-		// #NOTE (Wiwing): Overwrite connect Lobby success delegate for reconnection
-		const auto OnLobbyReconnectionDelegate = Api::Lobby::FConnectSuccess::CreateThreadSafeSP(AsShared(), &FOnlineSubsystemAccelByte::OnLobbyReconnected, LocalUserNum);
+		const auto OnLobbyReconnectionDelegate = Api::Lobby::FConnectSuccess::CreateThreadSafeSP(AsShared()
+			, &FOnlineSubsystemAccelByte::OnLobbyReconnected
+			, LocalUserNum);
 		ApiClient->Lobby.SetConnectSuccessDelegate(OnLobbyReconnectionDelegate);
 
-		const auto OnLobbyReconnectingDelegate = AccelByte::Api::Lobby::FConnectionClosed::CreateThreadSafeSP(AsShared(), &FOnlineSubsystemAccelByte::OnLobbyConnectionClosed, LocalUserNum, true);
+		const auto OnLobbyReconnectingDelegate = AccelByte::Api::Lobby::FConnectionClosed::CreateThreadSafeSP(AsShared()
+			, &FOnlineSubsystemAccelByte::OnLobbyConnectionClosed
+			, LocalUserNum
+			, true);
 		ApiClient->Lobby.SetReconnectingDelegate(OnLobbyReconnectingDelegate);
 	}
 }
@@ -750,7 +773,6 @@ void FOnlineSubsystemAccelByte::OnLobbyConnectionClosed(int32 StatusCode, const 
 	}
 
 	const FUniqueNetIdPtr LocalUserId = IdentityInterface->GetUniquePlayerId(InLocalUserNum);
-
 	if (!LocalUserId.IsValid())
 	{
 		UE_LOG_AB(Warning, TEXT("Error due to Local User is invalid"));
@@ -766,7 +788,6 @@ void FOnlineSubsystemAccelByte::OnLobbyConnectionClosed(int32 StatusCode, const 
 
 	const TSharedPtr<FUserOnlineAccountAccelByte> UserAccountAccelByte = StaticCastSharedPtr<FUserOnlineAccountAccelByte>(UserAccount);
 	UserAccountAccelByte->SetConnectedToLobby(false);
-	
 	if (bIsReconnecting)
 	{
 		IdentityInterface->TriggerAccelByteOnLobbyReconnectingDelegates(InLocalUserNum, *LocalUserId, StatusCode, Reason, WasClean);
@@ -796,9 +817,15 @@ void FOnlineSubsystemAccelByte::OnLobbyConnectionClosed(int32 StatusCode, const 
 	{
 		FScopeLock Lock(&LockObject);
 		LogoutDelegates.Remove(InLocalUserNum);
-		auto LogoutDelegate = FLogOutFromInterfaceDelegate::CreateLambda([this, InLocalUserNum, LogoutReason]()
+		TWeakPtr<IOnlineIdentity, ESPMode::ThreadSafe> IdentityInterfaceWPtr = IdentityInterface;
+		auto LogoutDelegate = FLogOutFromInterfaceDelegate::CreateLambda([IdentityInterfaceWPtr, InLocalUserNum, LogoutReason]()
 			{
-				IdentityInterface->Logout(InLocalUserNum, LogoutReason);
+				auto IdentityInterfacePtr = IdentityInterfaceWPtr.Pin();
+				if (IdentityInterfacePtr.IsValid())
+				{
+					auto IdentityInterfaceAccelBytePtr = StaticCastSharedPtr<FOnlineIdentityAccelByte, IOnlineIdentity, ESPMode::ThreadSafe>(IdentityInterfacePtr);
+					IdentityInterfaceAccelBytePtr->Logout(InLocalUserNum, LogoutReason);
+				}
 			});
 		LogoutDelegates.Emplace(InLocalUserNum, LogoutDelegate);
 	}
@@ -840,6 +867,43 @@ void FOnlineSubsystemAccelByte::OnLobbyReconnected(int32 InLocalUserNum)
 	}
 
 	IdentityInterface->TriggerAccelByteOnLobbyReconnectedDelegates(InLocalUserNum);	
+}
+
+void FOnlineSubsystemAccelByte::OnNativeTokenRefreshed(bool bWasSuccessful, int32 LocalUserNum)
+{
+	if (!bWasSuccessful)
+	{
+		UE_LOG_AB(Log, TEXT("Refresh Native Platform Token failed."));
+		return;
+	}
+
+	if (!IdentityInterface.IsValid())
+	{
+		UE_LOG_AB(Warning, TEXT("Error due to IdentityInterface is invalid"));
+		return;
+	}
+
+	auto ApiClient = GetApiClient(LocalUserNum);
+	if (!ApiClient.IsValid())
+	{
+		UE_LOG_AB(Warning, TEXT("Error due to ApiClient is invalid"));
+		return;
+	}
+
+	const FUniqueNetIdAccelByteUserPtr UserId = StaticCastSharedPtr<const FUniqueNetIdAccelByteUser>(IdentityInterface->GetUniquePlayerId(LocalUserNum));
+	if (!UserId.IsValid() || UserId->GetPlatformType().IsEmpty())
+	{
+		UE_LOG_AB(Warning, TEXT("Error due to UniqueNetId is invalid"));
+		return;
+	}
+
+	IdentityInterface->RefreshPlatformToken(LocalUserNum);
+
+	FName SecondaryPlatform = GetSecondaryPlatformSubsystemName();
+	if (!SecondaryPlatform.IsNone())
+	{
+		IdentityInterface->RefreshPlatformToken(LocalUserNum, SecondaryPlatform);
+	}
 }
 
 void FOnlineSubsystemAccelByte::ResetLocalUserNumCached()
@@ -973,24 +1037,36 @@ void FOnlineSubsystemAccelByte::SetNativePlatformTokenRefreshScheduler(int32 Loc
 
 	//No matter what, either enable or disable scheduler
 	//We still need to remove delegate
-	IdentityInterface->GetApiClient(LocalUserNum)->CredentialsRef->OnTokenRefreshed().Remove(NativePlatformTokenRefreshDelegateHandle);
+	auto ApiClient = GetApiClient(LocalUserNum);
+	if (!ApiClient.IsValid())
+	{
+		UE_LOG_AB(Warning, TEXT("ApiClient for given UserNum is not valid. Cannot schedule the refresh Native Platform Token."));
+		return;
+	}
+
+	if (NativeTokenRefreshHandles.Contains(LocalUserNum) && NativeTokenRefreshHandles[LocalUserNum].IsValid())
+	{
+		ApiClient->CredentialsRef->OnTokenRefreshed().Remove(NativeTokenRefreshHandles[LocalUserNum]);
+		NativeTokenRefreshHandles.Remove(LocalUserNum);
+	}
 
 	if (!bEnableScheduler)
 	{
+		UE_LOG_AB(Warning, TEXT("Refresh Native Platform Token Scheduler is disabled."));
 		return;
 	}
 
 	const IOnlineSubsystem* NativeSubsystem = GetNativePlatformSubsystem();
-	if (NativeSubsystem == nullptr)
+	if (!NativeSubsystem)
 	{
-		UE_LOG_AB(Warning, TEXT("Native online subsystem is null!"));
+		UE_LOG_AB(Warning, TEXT("Native OnlineSubsystem is null!"));
 		return;
 	}
 
 	FName NativeSubsystemName = NativeSubsystem->GetSubsystemName();
 	if (!NativeSubsystemName.IsValid() || NativeSubsystemName.ToString().IsEmpty())
 	{
-		UE_LOG_AB(Warning, TEXT("Native online subsystem name is empty!"));
+		UE_LOG_AB(Warning, TEXT("Native OnlineSubsystem name is empty!"));
 		return;
 	}
 
@@ -1009,20 +1085,29 @@ void FOnlineSubsystemAccelByte::SetNativePlatformTokenRefreshScheduler(int32 Loc
 				}
 
 				const IOnlineSubsystem* NativeSubsystem = GetNativePlatformSubsystem();
-				if (NativeSubsystem == nullptr || NativeSubsystem->GetIdentityInterface() == nullptr)
+				if (!NativeSubsystem)
 				{
-					UE_LOG_AB(Warning, TEXT("Native online subsystem is null or IdentityInterface is null!"));
+					UE_LOG_AB(Warning, TEXT("Native OnlineSubsystem is null!"));
 					return;
 				}
+
+				auto NativeIdentityInterface = NativeSubsystem->GetIdentityInterface();
+				if (NativeIdentityInterface.IsValid())
+				{
+					UE_LOG_AB(Warning, TEXT("Native IdentityInterface is invalid!"));
+					return;
+				}
+
 				FName NativeSubsystemName = NativeSubsystem->GetSubsystemName();
-				if (!NativeSubsystemName.IsValid() || NativeSubsystemName.ToString().IsEmpty() || !NativeSubsystemName.ToString().Contains("EOS"))
+				if (!NativeSubsystemName.IsValid() 
+					|| NativeSubsystemName.ToString().IsEmpty() 
+					|| !NativeSubsystemName.ToString().Contains("EOS"))
 				{
-					UE_LOG_AB(Warning, TEXT("Native online subsystem name is empty or invalid!"));
+					UE_LOG_AB(Warning, TEXT("Native OnlineSubsystemName is empty or invalid!"));
 					return;
 				}
 
-				FString CurrentAuthToken = NativeSubsystem->GetIdentityInterface()->GetAuthToken(LocalUserNum);
-
+				FString CurrentAuthToken = NativeIdentityInterface->GetAuthToken(LocalUserNum);
 				if (CurrentAuthToken.IsEmpty())
 				{
 					UE_LOG_AB(Warning, TEXT("EOS token can't be obtained and empty. Stopping the EOS Auth Token detector."));
@@ -1046,7 +1131,7 @@ void FOnlineSubsystemAccelByte::SetNativePlatformTokenRefreshScheduler(int32 Loc
 				{
 					UE_LOG_AB(Log, TEXT("EOS token changed/refreshed locally."));
 					// Trigger refresh to IAM
-					if (this->GetIdentityInterface() && this->IdentityInterface->GetApiClient(LocalUserNum).IsValid())
+					if (IdentityInterface.IsValid() && IdentityInterface->GetApiClient(LocalUserNum).IsValid())
 					{
 						UE_LOG_AB(Log, TEXT("Trigger EOS token refresh to backend."));
 						IdentityInterface->RefreshPlatformToken(LocalUserNum);
@@ -1069,25 +1154,10 @@ void FOnlineSubsystemAccelByte::SetNativePlatformTokenRefreshScheduler(int32 Loc
  	}
 	else
 	{
-		NativePlatformTokenRefreshDelegateHandle = IdentityInterface->GetApiClient(LocalUserNum)->CredentialsRef->OnTokenRefreshed().AddLambda([this, LocalUserNum](bool bSuccess)
-			{
-				const FUniqueNetIdAccelByteUserPtr UserId = StaticCastSharedPtr<const FUniqueNetIdAccelByteUser>(IdentityInterface->GetUniquePlayerId(LocalUserNum));
-				if (bSuccess 
-					&& this != nullptr 
-					&& this->GetIdentityInterface() 
-					&& this->IdentityInterface->GetApiClient(LocalUserNum).IsValid()
-					&& UserId.IsValid()
-					&& !UserId->GetPlatformType().IsEmpty())
-				{
-					IdentityInterface->RefreshPlatformToken(LocalUserNum);
-
-					FName SecondaryPlatform = GetSecondaryPlatformSubsystemName();
-					if (!SecondaryPlatform.IsNone())
-					{
-						IdentityInterface->RefreshPlatformToken(LocalUserNum, SecondaryPlatform);
-					}
-				}
-			});
+		FDelegateHandle DelegateHandle = ApiClient->CredentialsRef->OnTokenRefreshed().AddThreadSafeSP(AsShared()
+			, &FOnlineSubsystemAccelByte::OnNativeTokenRefreshed
+			, LocalUserNum);
+		NativeTokenRefreshHandles.Emplace(LocalUserNum, DelegateHandle);
 	}
 }
 
@@ -1095,12 +1165,23 @@ void FOnlineSubsystemAccelByte::NativePlatformTokenRefreshScheduler(int32 LocalU
 {
 	if (IsRunningDedicatedServer())
 	{
-		UE_LOG_AB(Log, TEXT("Dedicated server doesn't need to refresh platform token"));
+		UE_LOG_AB(Warning, TEXT("Dedicated server doesn't need to refresh platform token"));
 		return;
 	}
 
 	//Clean the listener as always
-	IdentityInterface->GetApiClient(LocalUserNum)->CredentialsRef->OnTokenRefreshed().Remove(NativePlatformTokenRefreshDelegateHandle);
+	auto ApiClient = GetApiClient(LocalUserNum);
+	if (!ApiClient.IsValid())
+	{
+		UE_LOG_AB(Warning, TEXT("ApiClient for given UserNum is not valid. Cannot schedule the refresh Native Platform Token."));
+		return;
+	}
+
+	if (NativeTokenRefreshHandles.Contains(LocalUserNum) && NativeTokenRefreshHandles[LocalUserNum].IsValid())
+	{
+		ApiClient->CredentialsRef->OnTokenRefreshed().Remove(NativeTokenRefreshHandles[LocalUserNum]);
+		NativeTokenRefreshHandles.Remove(LocalUserNum);
+	}
 
 	//Check the configuration again if there's a change in the runtime
 	GConfig->GetBool(TEXT("OnlineSubsystemAccelByte"), TEXT("bNativePlatformTokenRefreshManually"), bNativePlatformTokenRefreshManually, GEngineIni);
@@ -1108,11 +1189,6 @@ void FOnlineSubsystemAccelByte::NativePlatformTokenRefreshScheduler(int32 LocalU
 	if (bNativePlatformTokenRefreshManually)
 	{
 		UE_LOG_AB(Log, TEXT("Native Platform Token is NOT automatically refreshed. Please handle it manually by using AccelByte's IdentityInterface->RefreshPlatformToken() ."));
-		return;
-	}
-	if (!IdentityInterface->GetApiClient(LocalUserNum).IsValid())
-	{
-		UE_LOG_AB(Warning, TEXT("Cannot find the LocalUserNum from the ApiClient. Cannot schedule the refresh Native Platform Token."));
 		return;
 	}
 

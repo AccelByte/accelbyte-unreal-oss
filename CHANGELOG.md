@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.12.21](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.12.21%0D0.12.20) (2024-07-18)
+
+
+### Bug Fixes
+
+* crashes due to IdentityInterface is null ([fc142b2](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/fc142b2ca162cfa8d628734ce0e8c776566c51d7))
+* miss precision calculation in the Expired SessionInvite time ([7cd1b1b](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/7cd1b1b9ff67388a3c7faecdd83c2092fc3d6dfc))
+
 ### [0.12.20](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.12.20%0D0.12.19) (2024-07-10)
 
 

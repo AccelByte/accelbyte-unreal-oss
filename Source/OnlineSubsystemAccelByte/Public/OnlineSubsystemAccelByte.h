@@ -618,6 +618,10 @@ private:
 
 	void OnLobbyReconnected(int32 InLocalUserNum);
 
+	void OnEOSRefreshTracked(int32 LocalUserNum);
+
+	void OnNativeTokenRefreshed(bool bWasSuccessful, int32 InLocalUserNum);
+
 	void SendInitializedEvent();
 
 	DECLARE_DELEGATE(FLogOutFromInterfaceDelegate)
@@ -633,7 +637,6 @@ private:
 	 * Behavior can be overriden by SetNativePlatformTokenRefreshScheduler() public function.
 	 */
 	void NativePlatformTokenRefreshScheduler(int32 LocalUserNum);
-	FDelegateHandle NativePlatformTokenRefreshDelegateHandle;
 	void OnPresenceChanged(EAccelBytePlatformType PlatformType, const FString& PlatformUserId, EAvailability AvailabilityState);
 	
 	FName NativePlatformName{};
@@ -642,6 +645,7 @@ private:
 	FName NativePlatformSubsystemNameOverride{};
 	FName SecondaryPlatformSubsystemNameOverride{};
 
+	TMap<int32, FDelegateHandle> NativeTokenRefreshHandles;
 #pragma endregion
 
 #pragma region EOS_SPECIFIC_HANDLER
