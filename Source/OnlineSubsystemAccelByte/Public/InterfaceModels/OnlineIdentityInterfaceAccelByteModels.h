@@ -11,26 +11,33 @@ class FOnlineAccountCredentialsAccelByte : public FOnlineAccountCredentials
 public:
 	EAccelByteLoginType LoginType;
 	bool bCreateHeadlessAccount = true;
+	FAccelByteLoginWithOtherPlatformOptionalParameters OptionalParams = {};
 
 	FOnlineAccountCredentialsAccelByte(EAccelByteLoginType InType
 		, const FString& InId
 		, const FString& InToken
-		, bool bInCreateHeadlessAccount = true)
+		, bool bInCreateHeadlessAccount = true
+		, FAccelByteLoginWithOtherPlatformOptionalParameters InOptionalParams = {})
 		: FOnlineAccountCredentials(FAccelByteUtilities::GetUEnumValueAsString(InType), InId, InToken)
 		, LoginType{ InType }
 		, bCreateHeadlessAccount(bInCreateHeadlessAccount)
+		, OptionalParams(InOptionalParams)
 	{}
 
 	FOnlineAccountCredentialsAccelByte(FOnlineAccountCredentials AccountCredentials
-		, bool bInCreateHeadlessAccount = true)
+		, bool bInCreateHeadlessAccount = true
+		, FAccelByteLoginWithOtherPlatformOptionalParameters InOptionalParams = {})
 		: FOnlineAccountCredentials(AccountCredentials.Type, AccountCredentials.Id, AccountCredentials.Token)
 		, LoginType{ FAccelByteUtilities::GetUEnumValueFromString<EAccelByteLoginType>(AccountCredentials.Type) }
 		, bCreateHeadlessAccount(bInCreateHeadlessAccount)
+		, OptionalParams(InOptionalParams)
 	{}
 
-	FOnlineAccountCredentialsAccelByte(bool bInCreateHeadlessAccount) //Login with native oss
+	FOnlineAccountCredentialsAccelByte(bool bInCreateHeadlessAccount //Login with native oss
+		, FAccelByteLoginWithOtherPlatformOptionalParameters InOptionalParams = {})
 		: FOnlineAccountCredentials()
 		, bCreateHeadlessAccount(bInCreateHeadlessAccount)
+		, OptionalParams(InOptionalParams)
 	{}
 };
 

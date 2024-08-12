@@ -46,8 +46,26 @@ private:
 	/** Query options that were passed in when the request was initiated */
 	FExternalIdQueryOptions QueryOptions;
 
+	/** PlatformTypeEnumValue we want to query*/
+	int64 PlatformTypeEnumValue{-1};
+
 	/** Array of external IDs that a mapping was requested for */
 	TArray<FString> InitialExternalIds;
+
+	/**
+	 * Array of IDs that's split to Max element count.
+	 */
+	TArray<TArray<FString>> SplitUserIds;
+
+	/**
+	 * Array of user IDs returned from query by platform user IDs
+	 */
+	TArray<FPlatformUserIdMap> QueriedUserMapByPlatformUserIds;
+
+	/**
+	 * Index of the split user IDs we last fetch
+	 */
+	FThreadSafeCounter LastSplitQueryIndex {0};
 
 	/** Map of external IDs to AccelByte user IDs */
 	TMap<FString, TSharedRef<const FUniqueNetId>> ExternalIdToFoundAccelByteIdMap;
@@ -70,4 +88,8 @@ private:
 	 */
 	void OnBulkGetUserByOtherPlatformIdsError(int32 ErrorCode, const FString& ErrorMessage);
 
+	/**
+	* Method to query User by Other Platform with an array of User IDs
+	*/
+	void BulkGetUserByOtherPlatformUserIds(const TArray<FString>& InUserIds);
 };

@@ -374,6 +374,16 @@ public:
 	virtual bool SyncThirdPartyPlatformBlockList(int32 LocalUserNum, const FAccelByteModelsSyncThirdPartyBlockListRequest& Request);
 	//~ End AccelByteFriends additional methods
 
+	/**
+	 * Partially read friends list.
+	 * 
+	 * @param LocalUserNum the user that sending read friends list request
+	 * @param InviteStatus the status of friends to request. For now only support Accepted, PendingInbound, and PendingOutbound. Unknown will query all of them. Default is Unknown.
+	 * @param Offset offset to start the query. Default is 0.
+	 * @param Limit limit of the query. Use -1 to query all data. Default is 20.
+	 */
+	virtual bool ReadFriendsList(int32 LocalUserNum, const EInviteStatus::Type& InviteStatus = EInviteStatus::Unknown, int32 Offset = 0, int32 Limit = 20, const FOnReadFriendsListComplete& Delegate = FOnReadFriendsListComplete());
+
 protected:
 
 	/** Instance of the subsystem that created this interface */

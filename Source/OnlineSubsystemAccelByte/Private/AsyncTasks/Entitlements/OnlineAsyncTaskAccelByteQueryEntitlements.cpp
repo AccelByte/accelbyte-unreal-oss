@@ -60,7 +60,7 @@ void FOnlineAsyncTaskAccelByteQueryEntitlements::HandleQueryEntitlementSuccess(F
 	}
 	for(FAccelByteModelsEntitlementInfo const& EntInfo : Result.Data)
 	{
-		TSharedRef<FOnlineEntitlement> Entitlement = MakeShared<FOnlineEntitlement>();
+		TSharedRef<FOnlineEntitlementAccelByte> Entitlement = MakeShared<FOnlineEntitlementAccelByte>();
 		Entitlement->Id = EntInfo.Id;
 		Entitlement->Name = EntInfo.Name;
 		Entitlement->Namespace = EntInfo.Namespace;
@@ -70,6 +70,7 @@ void FOnlineAsyncTaskAccelByteQueryEntitlements::HandleQueryEntitlementSuccess(F
 		Entitlement->ItemId = EntInfo.ItemId;
 		Entitlement->RemainingCount = EntInfo.UseCount;
 		Entitlement->StartDate = EntInfo.StartDate;
+		Entitlement->SetBackendEntitlementInfo(EntInfo);
 		
 		const auto CachedEntitlement = EntitlementsInterface->GetEntitlement(*UserId.Get(), EntInfo.Id);
 		if (CachedEntitlement.IsValid())

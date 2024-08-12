@@ -35,6 +35,38 @@ typedef FOnGetCurrentUserEntitlementHistoryComplete::FDelegate FOnGetCurrentUser
 DECLARE_MULTICAST_DELEGATE_FourParams(FOnGetUserEntitlementHistoryComplete, int32 /*LocalUserNum*/, bool /*bWasSuccessful*/, const TArray<FAccelByteModelsUserEntitlementHistory>& /*Entitlement History*/, const FOnlineError& /*Error*/);
 typedef FOnGetUserEntitlementHistoryComplete::FDelegate FOnGetUserEntitlementHistoryCompleteDelegate;
 
+#define ENTITLEMENT_ATTR_KEY_SKU TEXT("SKU")
+
+struct ONLINESUBSYSTEMACCELBYTE_API FOnlineEntitlementAccelByte : FOnlineEntitlement
+{
+public:
+	/**
+	 * 
+	 * @param AttrName Attribute name key
+	 * @param OutAttrValue Output value of the attribute associated with the name
+	 * @return boolean if OutAttrValue has value
+	 */
+	virtual bool GetAttribute(const FString& AttrName, FString& OutAttrValue) const override;
+
+	/**
+	 * 
+	 * @return Entitlement Info available from AccelByte backend
+	 */
+	virtual FAccelByteModelsEntitlementInfo GetBackendEntitlementInfo() const;
+	
+PACKAGE_SCOPE:
+	TMap<FString, FString> ExtraAttributes;
+
+	FAccelByteModelsEntitlementInfo BackendEntitlementInfo;
+
+	/** Set attribute value, allow overwrite if the attribute name already exist */
+	virtual bool SetAttribute(const FString& AttrName, const FString& AttrValue);
+
+	virtual bool SetBackendEntitlementInfo(const FAccelByteModelsEntitlementInfo Info);
+	
+	virtual ~FOnlineEntitlementAccelByte() override;
+};
+
 class ONLINESUBSYSTEMACCELBYTE_API FOnlineEntitlementsAccelByte : public IOnlineEntitlements
 {
 PACKAGE_SCOPE:

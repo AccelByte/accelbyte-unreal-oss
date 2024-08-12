@@ -2,6 +2,30 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.12.22](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.12.22%0D0.12.21) (2024-08-12)
+
+
+### Features
+
+* **chatv2:** add API to get and set user chat configuration ([4d1e99c](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/4d1e99c367499037cfcbb1f826a1c4d854fc4ecb))
+* expose SKU and backend entitlement data in FOnlineEntitlementAccelByte ([7b2c474](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/7b2c47477ace2e5ecf2171d457e0609c12d64fdb))
+* **friends:** add paged readFriendsList ([4224f6b](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/4224f6bbaddec2416eab3acf0b72404b57338555))
+* **Login:** add additional optional parameter to allow serviceLabel for authentication ([37a2824](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/37a28248d2dc0380044c2216b509ccb5524d998e))
+* **session:** add set server timeout and reset server timeout ([3267a86](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/3267a86cf8bbb606bbfcbc57b23b44543bc5033b))
+* **user:** use v2 endpoints for query users and add basic query ([d7eb8b8](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/d7eb8b885342d3e6890078028f08e188243d78fc))
+
+
+### Bug Fixes
+
+* add platform info in presence status properties in ReadFriendList and Presence received ([872038c](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/872038c43b85c0619c0d640c3546a9dd879c8f75))
+* **identity:** add error details in case of login task timeout ([ce39874](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/ce398743e2e327fec9334bdef20705f351720bb7))
+* **purchase:** change order price and discountedPrice to match item quantity ([0cc19bb](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/0cc19bb0bfdeaaf3dfc6b114db9f1d46357bf363))
+
+
+### Refactors
+
+* implement BulkGetUserByOtherPlatformUserIdsV4 when query user by platform user ID ([710a84c](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/710a84c269efd3f683bc64c14b5d99ab6425db18))
+
 ### [0.12.21](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.12.21%0D0.12.20) (2024-07-18)
 
 

@@ -55,8 +55,8 @@ void FOnlineAsyncTaskAccelByteCheckout::Initialize()
 	OrderRequest.Language = Language;
 	OrderRequest.ItemId = CheckoutRequest.PurchaseOffers[0].OfferId;
 	OrderRequest.Quantity = CheckoutRequest.PurchaseOffers[0].Quantity;
-	OrderRequest.Price = Offer->RegularPrice;
-	OrderRequest.DiscountedPrice = Offer->NumericPrice;
+	OrderRequest.Price = Offer->RegularPrice*OrderRequest.Quantity;
+	OrderRequest.DiscountedPrice = Offer->NumericPrice*OrderRequest.Quantity;
 	OrderRequest.CurrencyCode = Offer->CurrencyCode;
 	if(FString* Region = Offer->DynamicFields.Find(TEXT("Region")))
 	{
@@ -169,7 +169,7 @@ void FOnlineAsyncTaskAccelByteCheckout::HandleCheckoutComplete(const FAccelByteM
 
 void FOnlineAsyncTaskAccelByteCheckout::HandleAsyncTaskError(int32 Code, FString const& ErrMsg)
 {
-	AB_OSS_ASYNC_TASK_TRACE_BEGIN_VERBOSITY(Error, TEXT("Code: %d; Message: %s"), Code, *ErrMsg);
+	AB_OSS_ASYNC_TASK_TRACE_BEGIN_VERBOSITY(Warning, TEXT("Code: %d; Message: %s"), Code, *ErrMsg);
 
 	ErrorCode = FString::Printf(TEXT("%d"), Code);
 	ErrorMessage = ErrMsg;

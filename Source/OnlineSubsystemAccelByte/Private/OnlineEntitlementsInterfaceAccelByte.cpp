@@ -11,6 +11,41 @@
 #include "AsyncTasks/Entitlements/OnlineAsyncTaskAccelByteGetUserEntitlementHistory.h"
 #include "AsyncTasks/Entitlements/OnlineAsyncTaskAccelByteGetCurrentUserEntitlementHistory.h"
 
+#pragma region FOnlineEntitlementAccelByte Methods
+bool FOnlineEntitlementAccelByte::GetAttribute(const FString& AttrName, FString& OutAttrValue) const
+{
+	if(!ExtraAttributes.Contains(AttrName))
+	{
+		return false;
+	}
+
+	OutAttrValue = ExtraAttributes[AttrName];
+	return true;
+}
+
+FAccelByteModelsEntitlementInfo FOnlineEntitlementAccelByte::GetBackendEntitlementInfo() const
+{
+	return BackendEntitlementInfo;
+}
+
+bool FOnlineEntitlementAccelByte::SetAttribute(const FString& AttrName, const FString& AttrValue)
+{
+	ExtraAttributes.Emplace(AttrName, AttrValue);
+
+	return true;
+}
+
+bool FOnlineEntitlementAccelByte::SetBackendEntitlementInfo(const FAccelByteModelsEntitlementInfo Info)
+{
+	BackendEntitlementInfo = Info;
+	SetAttribute(ENTITLEMENT_ATTR_KEY_SKU, Info.Sku);
+	return true;
+}
+
+FOnlineEntitlementAccelByte::~FOnlineEntitlementAccelByte()
+{}
+#pragma endregion 
+
 FOnlineEntitlementsAccelByte::FOnlineEntitlementsAccelByte(FOnlineSubsystemAccelByte* InSubsystem)
 	: AccelByteSubsystem(InSubsystem)
 {

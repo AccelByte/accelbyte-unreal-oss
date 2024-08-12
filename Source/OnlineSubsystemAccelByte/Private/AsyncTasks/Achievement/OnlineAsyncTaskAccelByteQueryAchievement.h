@@ -5,6 +5,7 @@
 
 #include "AsyncTasks/OnlineAsyncTaskAccelByte.h"
 #include "AsyncTasks/OnlineAsyncTaskAccelByteUtils.h"
+#include "InterfaceModels/OnlineUserInterfaceAccelByteModels.h"
 
 class FOnlineAsyncTaskAccelByteQueryAchievement
 	: public FOnlineAsyncTaskAccelByte
@@ -14,6 +15,12 @@ public:
 	FOnlineAsyncTaskAccelByteQueryAchievement(
 		FOnlineSubsystemAccelByte* const Subsystem,
 		FUniqueNetId const& InPlayerId,
+		FOnQueryAchievementsCompleteDelegate const& InDelegate);
+
+	FOnlineAsyncTaskAccelByteQueryAchievement(
+		FOnlineSubsystemAccelByte* const Subsystem,
+		FUniqueNetId const& InPlayerId,
+		FAccelByteQueryAchievementDescriptionParameters const& InRequestParameters,
 		FOnQueryAchievementsCompleteDelegate const& InDelegate);
 
 	virtual void Initialize() override;
@@ -27,11 +34,13 @@ protected:
 	}
 
 private:
-	void QueryAchievement();
+	void QueryAchievement(int32 Offset, int32 Limit);
 	void HandleQueryAchievementSuccess(FAccelByteModelsPaginatedPublicAchievement const& Response);
 	void HandleQueryAchievementError(int32 ErrorCode, FString const& ErrorMessage);
 
-	TSharedPtr<FAccelByteModelsPaginatedPublicAchievement> PaginatedPublicAchievementPtr;
+	TArray<FAccelByteModelsPublicAchievement> PublicAchievements{};
 	FOnQueryAchievementsCompleteDelegate Delegate;
 	bool bWasSuccessful;
+
+	FAccelByteQueryAchievementDescriptionParameters RequestParameters = {};
 };

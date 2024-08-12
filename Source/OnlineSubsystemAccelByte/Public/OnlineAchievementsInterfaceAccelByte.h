@@ -7,6 +7,8 @@
 #include "Core/AccelByteApiClient.h"
 #include "Interfaces/OnlineAchievementsInterface.h"
 #include "OnlineSubsystemAccelBytePackage.h"
+#include "Models/AccelByteAchievementModels.h"
+#include "InterfaceModels/OnlineAchievementInterfaceAccelByteModels.h"
 
 class IOnlineSubsystem;
 class FOnlineSubsystemAccelByte;
@@ -41,6 +43,7 @@ public:
 	//~ Begin IOnlineAchievement Interface
 
 	/**
+	 * [DEPRECATED] Please use the new 'QueryUserAchievements' for the replacement
 	 * Used by a user to query a list of their achievements.
 	 * Include achieved and in-progress.
 	 *
@@ -52,6 +55,21 @@ public:
 		const FOnQueryAchievementsCompleteDelegate& Delegate) override;
 
 	/**
+	 * Used by a user to query a list of their achievements.
+	 * Include achieved and in-progress.
+	 *
+	 * @param PlayerId - User ID requesting to query their achievements
+	 * @param RequestParameters - Optional parameters that contains of Sort By, Page, Tag and Unlocked Flag.
+	 * Each of the optional parameters have their own default value.
+	 * @param Delegate - Return delegate indicating the success of this method
+	 */
+	virtual void QueryAchievements(
+		const FUniqueNetId& PlayerId,
+		const FAccelByteQueryAchievementsParameters& RequestParameters,
+		const FOnQueryAchievementsCompleteDelegate& Delegate);
+
+	/**
+	 * [DEPRECATED] Please use the new 'QueryAllAchievements' for the replacement
 	 * Used by a user to query a list of all available achievements.
 	 *
 	 * @param PlayerId - User ID requesting to query their achievements
@@ -60,6 +78,19 @@ public:
 	virtual void QueryAchievementDescriptions(
 		const FUniqueNetId& PlayerId,
 		const FOnQueryAchievementsCompleteDelegate& Delegate) override;
+
+	/**
+	 * Used by a user to query a list of all available achievements.
+	 *
+	 * @param PlayerId - User ID requesting to query their achievements
+	 * @param RequestParameters - Request parameters that contains of Sort By, Page, Tag and Global Achievement Flag. 
+	 * Each of the optional parameters have their own default value.
+	 * @param Delegate - Return delegate indicating the success of this method
+	 */
+	virtual void QueryAchievementDescriptions(
+		const FUniqueNetId& PlayerId,
+		const FAccelByteQueryAchievementDescriptionParameters& RequestParameters,
+		const FOnQueryAchievementsCompleteDelegate& Delegate);
 
 	virtual void WriteAchievements(
 		const FUniqueNetId& PlayerId,

@@ -125,12 +125,17 @@ void FOnlineAsyncTaskAccelByteQueryUserProfile::Initialize()
 		return;
 	}
 
-	auto OnQueryUsersProfileCompleteDelegate = TDelegateUtils<THandler<TArray<FAccelByteModelsPublicUserProfileInfo>>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryUserProfile::OnQueryUsersProfileComplete);
-	auto OnQueryUserProfileErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryUserProfile::OnQueryUserProfileError);
-	API_CLIENT_CHECK_GUARD(ErrorStr);
-	ApiClient->UserProfile.BulkGetPublicUserProfileInfos(UserIdsToQuery, OnQueryUsersProfileCompleteDelegate, OnQueryUserProfileErrorDelegate);
+	QueryUserProfile(UserIdsToQuery);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
+}
+
+void FOnlineAsyncTaskAccelByteQueryUserProfile::QueryUserProfile(const TArray<FString>& UserIds)
+{
+	auto OnQueryUsersProfileCompleteDelegate = TDelegateUtils<THandler<FAccelByteModelsPublicUserProfileInfoV2>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryUserProfile::OnQueryUsersProfileComplete);
+	auto OnQueryUserProfileErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryUserProfile::OnQueryUserProfileError);
+	API_CLIENT_CHECK_GUARD(ErrorStr);
+	ApiClient->UserProfile.BulkGetPublicUserProfileInfosV2(UserIds, OnQueryUsersProfileCompleteDelegate, OnQueryUserProfileErrorDelegate);
 }
 
 void FOnlineAsyncTaskAccelByteQueryUserProfile::Finalize()
@@ -215,13 +220,21 @@ void FOnlineAsyncTaskAccelByteQueryUserProfile::TriggerDelegates()
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 
-void FOnlineAsyncTaskAccelByteQueryUserProfile::OnQueryUsersProfileComplete(const TArray<FAccelByteModelsPublicUserProfileInfo>& InUsersQueried)
+void FOnlineAsyncTaskAccelByteQueryUserProfile::OnQueryUsersProfileComplete(const FAccelByteModelsPublicUserProfileInfoV2& InUsersQueried)
 {
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 
-	UsersQueried = InUsersQueried;
-	CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
-	AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Successfully have a user profile!"));
+	UsersQueried.Append(InUsersQueried.UserProfileInfos);
+
+	if (InUsersQueried.NotProcessed.Num() > 0)
+	{
+		QueryUserProfile(InUsersQueried.NotProcessed);
+	}
+	else
+	{
+		CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
+		AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Successfully have a user profile!"));
+	}
 }
 
 void FOnlineAsyncTaskAccelByteQueryUserProfile::OnQueryUserProfileError(int32 ErrorCode, const FString& ErrorMessage)

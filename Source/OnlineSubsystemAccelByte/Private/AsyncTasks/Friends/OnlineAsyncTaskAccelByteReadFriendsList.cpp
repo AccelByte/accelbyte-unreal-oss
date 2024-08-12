@@ -12,10 +12,23 @@
 
 using namespace AccelByte;
 
-FOnlineAsyncTaskAccelByteReadFriendsList::FOnlineAsyncTaskAccelByteReadFriendsList(FOnlineSubsystemAccelByte* const InABInterface, int32 InLocalUserNum, const FString& InListName, const FOnReadFriendsListComplete& InDelegate)
+FOnlineAsyncTaskAccelByteReadFriendsList::FOnlineAsyncTaskAccelByteReadFriendsList(FOnlineSubsystemAccelByte* const InABInterface
+	, int32 InLocalUserNum
+	, const FString& InListName
+	, const EInviteStatus::Type& InInviteStatus
+	, int32 InOffset
+	, int32 InLimit
+	, const FOnReadFriendsListComplete& InDelegate)
 	: FOnlineAsyncTaskAccelByte(InABInterface, true)
 	, ListName(InListName)
 	, Delegate(InDelegate)
+	, InviteStatus(InInviteStatus)
+	, QueryFriendListOffset(InOffset)
+	, QueryFriendListLimit(InLimit)
+	, QueryIncomingFriendReqOffset(InOffset)
+	, QueryIncomingFriendReqLimit(InLimit)
+	, QueryOutgoingFriendReqOffset(InOffset)
+	, QueryOutgoingFriendReqLimit(InLimit)
 {
 	LocalUserNum = InLocalUserNum;
 }
@@ -29,9 +42,30 @@ void FOnlineAsyncTaskAccelByteReadFriendsList::Initialize()
 	// Since we will want to be able to operate on users that we have sent an invite to, as well as users that have
 	// sent invites to us, then we need to not only query the current accepted friends list, but also the outgoing
 	// and incoming friends lists. Set up all the delegates for these queries.
-	QueryFriendList();
-	QueryIncomingFriendRequest();
-	QueryOutgoingFriendRequest();
+	if (InviteStatus == EInviteStatus::Accepted || InviteStatus == EInviteStatus::Unknown)
+	{
+		QueryFriendList();
+	}
+	else
+	{
+		bHasReceivedResponseForCurrentFriends = true;
+	}
+	if (InviteStatus == EInviteStatus::PendingInbound || InviteStatus == EInviteStatus::Unknown)
+	{
+		QueryIncomingFriendRequest();
+	}
+	else
+	{
+		bHasReceivedResponseForIncomingFriends = true;
+	}
+	if (InviteStatus == EInviteStatus::PendingOutbound || InviteStatus == EInviteStatus::Unknown)
+	{
+		QueryOutgoingFriendRequest();
+	}
+	else
+	{
+		bHasReceivedResponseForOutgoingFriends = true;
+	}
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
@@ -45,7 +79,7 @@ void FOnlineAsyncTaskAccelByteReadFriendsList::Tick()
 		if (FriendIdsToQuery.Num() > 0)
 		{
 			API_CLIENT_CHECK_GUARD(ErrorString);
-			ApiClient->Lobby.BulkGetUserPresence(FriendIdsToQuery,
+			ApiClient->Lobby.BulkGetUserPresenceV2(FriendIdsToQuery,
 				TDelegateUtils<THandler<FAccelByteModelsBulkUserStatusNotif>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteReadFriendsList::OnGetUserPresenceComplete),
 				FErrorHandler::CreateLambda([this](int32 Code, FString const& ErrMsg)
 					{
@@ -126,7 +160,18 @@ void FOnlineAsyncTaskAccelByteReadFriendsList::QueryFriendList()
 	OnQueryFriendListFailedDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteReadFriendsList::OnQueryFriendListFailed);
 
 	API_CLIENT_CHECK_GUARD(ErrorString);
-	ApiClient->Lobby.QueryFriendList(OnQueryFriendListSuccessDelegate, OnQueryFriendListFailedDelegate, QueryFriendListOffset);
+
+	int32 Limit = MaximumQueryLimit;
+	if (QueryFriendListLimit > MaximumQueryLimit)
+	{
+		QueryFriendListLimit -= MaximumQueryLimit;
+	}
+	else if(QueryFriendListLimit > 0)
+	{
+		Limit = QueryFriendListLimit;
+		QueryFriendListLimit = 0;
+	}
+	ApiClient->Lobby.QueryFriendList(OnQueryFriendListSuccessDelegate, OnQueryFriendListFailedDelegate, QueryFriendListOffset, Limit);
 }
 
 void FOnlineAsyncTaskAccelByteReadFriendsList::OnQueryFriendListSuccess(const FAccelByteModelsQueryFriendListResponse& Result)
@@ -141,13 +186,13 @@ void FOnlineAsyncTaskAccelByteReadFriendsList::OnQueryFriendListSuccess(const FA
 	FriendIdsToQuery.Append(Result.FriendIds);
 
 	// check next page
-	if(Result.Paging.Next.IsEmpty())
+	if(Result.Paging.Next.IsEmpty() || QueryFriendListLimit == 0)
 	{
 		bHasReceivedResponseForCurrentFriends = true;
 	}
 	else
 	{
-		QueryFriendListOffset += Result.FriendIds.Num();
+		QueryFriendListOffset += MaximumQueryLimit;
 		QueryFriendList();
 	}
 }
@@ -156,7 +201,7 @@ void FOnlineAsyncTaskAccelByteReadFriendsList::OnQueryFriendListFailed(int32 Err
 {
 	ErrorString = TEXT("query-friends-failed-load-current-friends");
 	AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to load friends list, ErrorCode: %d, ErrorMessage: %s"), ErrorCode, *ErrorMessage);
-	CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
+	bHasReceivedResponseForCurrentFriends = true;
 }
 
 void FOnlineAsyncTaskAccelByteReadFriendsList::QueryIncomingFriendRequest()
@@ -164,7 +209,18 @@ void FOnlineAsyncTaskAccelByteReadFriendsList::QueryIncomingFriendRequest()
 	OnQueryIncomingFriendRequestSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsIncomingFriendRequests>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteReadFriendsList::OnQueryIncomingFriendRequestSuccess);
 	OnQueryIncomingFriendRequestFailedDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteReadFriendsList::OnQueryIncomingFriendRequestFailed);
 	API_CLIENT_CHECK_GUARD(ErrorString);
-	ApiClient->Lobby.QueryIncomingFriendRequest(OnQueryIncomingFriendRequestSuccessDelegate, OnQueryIncomingFriendRequestFailedDelegate, QueryIncomingFriendReqOffset);
+
+	int32 Limit = MaximumQueryLimit;
+	if (QueryIncomingFriendReqLimit > MaximumQueryLimit)
+	{
+		QueryIncomingFriendReqLimit -= MaximumQueryLimit;
+	}
+	else if(QueryIncomingFriendReqLimit > 0)
+	{
+		Limit = QueryIncomingFriendReqLimit;
+		QueryIncomingFriendReqLimit = 0;
+	}
+	ApiClient->Lobby.QueryIncomingFriendRequest(OnQueryIncomingFriendRequestSuccessDelegate, OnQueryIncomingFriendRequestFailedDelegate, QueryIncomingFriendReqOffset,Limit);
 }
 
 void FOnlineAsyncTaskAccelByteReadFriendsList::OnQueryIncomingFriendRequestSuccess(const FAccelByteModelsIncomingFriendRequests& Result)
@@ -179,13 +235,13 @@ void FOnlineAsyncTaskAccelByteReadFriendsList::OnQueryIncomingFriendRequestSucce
 	}
 
 	// check next page
-	if(Result.Paging.Next.IsEmpty())
+	if(Result.Paging.Next.IsEmpty() || QueryIncomingFriendReqLimit == 0)
 	{
 		bHasReceivedResponseForIncomingFriends = true;
 	}
 	else
 	{
-		QueryIncomingFriendReqOffset += Result.Data.Num();
+		QueryIncomingFriendReqOffset += MaximumQueryLimit;
 		QueryIncomingFriendRequest();
 	}
 }
@@ -194,7 +250,7 @@ void FOnlineAsyncTaskAccelByteReadFriendsList::OnQueryIncomingFriendRequestFaile
 {
 	ErrorString = TEXT("query-friends-failed-load-incoming-friends");
 	AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to load incoming friend request, ErrorCode: %d, ErrorMessage: %s"), ErrorCode, *ErrorMessage);
-	CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
+	bHasReceivedResponseForIncomingFriends = true;
 }
 
 void FOnlineAsyncTaskAccelByteReadFriendsList::QueryOutgoingFriendRequest()
@@ -202,7 +258,18 @@ void FOnlineAsyncTaskAccelByteReadFriendsList::QueryOutgoingFriendRequest()
 	OnQueryOutgoingFriendRequestSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsOutgoingFriendRequests>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteReadFriendsList::OnQueryOutgoingFriendRequestSuccess);
 	OnQueryOutgoingFriendRequestFailedDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteReadFriendsList::OnQueryOutgoingFriendRequestFailed);
 	API_CLIENT_CHECK_GUARD(ErrorString);
-	ApiClient->Lobby.QueryOutgoingFriendRequest(OnQueryOutgoingFriendRequestSuccessDelegate, OnQueryOutgoingFriendRequestFailedDelegate, QueryOutgoingFriendReqOffset);
+
+	int32 Limit = MaximumQueryLimit;
+	if (QueryOutgoingFriendReqLimit > MaximumQueryLimit)
+	{
+		QueryOutgoingFriendReqLimit -= MaximumQueryLimit;
+	}
+	else if(QueryOutgoingFriendReqLimit > 0)
+	{
+		Limit = QueryOutgoingFriendReqLimit;
+		QueryOutgoingFriendReqLimit = 0;
+	}
+	ApiClient->Lobby.QueryOutgoingFriendRequest(OnQueryOutgoingFriendRequestSuccessDelegate, OnQueryOutgoingFriendRequestFailedDelegate, QueryOutgoingFriendReqOffset, Limit);
 }
 
 void FOnlineAsyncTaskAccelByteReadFriendsList::OnQueryOutgoingFriendRequestSuccess(const FAccelByteModelsOutgoingFriendRequests& Result)
@@ -217,13 +284,13 @@ void FOnlineAsyncTaskAccelByteReadFriendsList::OnQueryOutgoingFriendRequestSucce
 	}
 
 	// check next page
-	if (Result.Paging.Next.IsEmpty())
+	if (Result.Paging.Next.IsEmpty() || QueryOutgoingFriendReqLimit == 0)
 	{
 		bHasReceivedResponseForOutgoingFriends = true;
 	}
 	else
 	{
-		QueryOutgoingFriendReqOffset += Result.Data.Num();
+		QueryOutgoingFriendReqOffset += MaximumQueryLimit;
 		QueryOutgoingFriendRequest();
 	}
 }
@@ -233,7 +300,7 @@ void FOnlineAsyncTaskAccelByteReadFriendsList::OnQueryOutgoingFriendRequestFaile
 {
 	ErrorString = TEXT("query-friends-failed-load-outgoing-friends");
 	AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to load outgoing friend request, ErrorCode: %d, ErrorMessage: %s"), ErrorCode, *ErrorMessage);
-	CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
+	bHasReceivedResponseForOutgoingFriends = true;
 }
 
 void FOnlineAsyncTaskAccelByteReadFriendsList::OnQueryFriendInformationComplete(bool bIsSuccessful, TArray<FAccelByteUserInfoRef> UsersQueried)
@@ -260,6 +327,7 @@ void FOnlineAsyncTaskAccelByteReadFriendsList::OnQueryFriendInformationComplete(
 				Presence.bIsOnline = UserPresenceStatus->Availability == EAvailability::Online;
 				Presence.Status.StatusStr = UserPresenceStatus->Activity;
 				Presence.Status.State = UserPresenceStatus->Availability == EAvailability::Online ? EOnlinePresenceState::Online : EOnlinePresenceState::Offline;
+				Presence.Status.Properties.Add(DefaultPlatformKey, UserPresenceStatus->Platform);
 				Friend->SetPresence(Presence);
 			}
 
@@ -287,7 +355,7 @@ void FOnlineAsyncTaskAccelByteReadFriendsList::OnGetUserPresenceComplete(const F
 	{
 		SetLastUpdateTimeToCurrentTime();
 		API_CLIENT_CHECK_GUARD(ErrorString);
-		ApiClient->Lobby.BulkGetUserPresence(Statuses.NotProcessed,
+		ApiClient->Lobby.BulkGetUserPresenceV2(Statuses.NotProcessed,
 			TDelegateUtils<THandler<FAccelByteModelsBulkUserStatusNotif>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteReadFriendsList::OnGetUserPresenceComplete),
 			FErrorHandler::CreateLambda([this](int32 Code, FString const& ErrMsg)
 				{

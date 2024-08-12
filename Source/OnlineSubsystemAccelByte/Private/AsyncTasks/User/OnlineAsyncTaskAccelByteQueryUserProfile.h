@@ -60,8 +60,11 @@ private:
 	/** Delegate to fire on completion */
 	FOnQueryUserProfileComplete Delegate;
 
+	/** Initial query user profile endpoint */
+	void QueryUserProfile(const TArray<FString>& UserIds);
+	
 	/** Delegate handler for when we complete a query for users from the backend */
-	void OnQueryUsersProfileComplete(const TArray<FAccelByteModelsPublicUserProfileInfo>& InUsersQueried);
+	void OnQueryUsersProfileComplete(const FAccelByteModelsPublicUserProfileInfoV2& InUsersQueried);
 
 	/**
 	 * Delegate handler for when getting the user's profile from the game namespace from the AccelByte SDK fails.

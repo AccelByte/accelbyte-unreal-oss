@@ -121,11 +121,9 @@ void FOnlineAsyncTaskAccelByteSyncThirPartyFriend::OnReadNativeFriendListComplet
 			OtherPlatformUserIds.Add(NativeFriend->GetUserId()->ToString());
 		}
 
-		const EAccelBytePlatformType PlatformType = FOnlineSubsystemAccelByteUtils::GetCurrentAccelBytePlatformType(NativeSubSystem->GetSubsystemName());
-		const THandler<FBulkPlatformUserIdResponse> OnBulkGetUserSuccess = TDelegateUtils<THandler<FBulkPlatformUserIdResponse>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteSyncThirPartyFriend::OnBulkGetUserByOtherPlatformUserIdsSuccess);
-		const FErrorHandler OnBulkGetUserError = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteSyncThirPartyFriend::OnBulkGetUserByOtherPlatformUserIdsError);
-		API_CLIENT_CHECK_GUARD(OnlineError);
-		ApiClient->User.BulkGetUserByOtherPlatformUserIds(PlatformType, OtherPlatformUserIds, OnBulkGetUserSuccess, OnBulkGetUserError);
+		FAccelByteUtilities::SplitArraysToNum(OtherPlatformUserIds, 100, SplitUserIds);
+
+		BulkGetUserByOtherPlatformUserIds(SplitUserIds[LastSplitQueryIndex.GetValue()]);
 		AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 	}
 	else
@@ -141,8 +139,19 @@ void FOnlineAsyncTaskAccelByteSyncThirPartyFriend::OnReadNativeFriendListComplet
 void FOnlineAsyncTaskAccelByteSyncThirPartyFriend::OnBulkGetUserByOtherPlatformUserIdsSuccess(const FBulkPlatformUserIdResponse& Result)
 {
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("LocalUserNum: %d"), LocalUserNum);
+	
+	QueriedUserMapByPlatformUserIds.Append(Result.UserIdPlatforms);
+	LastSplitQueryIndex.Increment();
+	SetLastUpdateTimeToCurrentTime();
+	
+	if(LastSplitQueryIndex.GetValue() < SplitUserIds.Num())
+	{
+		BulkGetUserByOtherPlatformUserIds(SplitUserIds[LastSplitQueryIndex.GetValue()]);
+		AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Querying next platform user Ids"));
+		return;
+	}
 
-	if (Result.UserIdPlatforms.Num() <= 0)
+	if (QueriedUserMapByPlatformUserIds.Num() <= 0)
 	{
 		OnlineError = ONLINE_ERROR(EOnlineErrorResult::Success, FString(), ErrorText);
 		CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
@@ -151,7 +160,7 @@ void FOnlineAsyncTaskAccelByteSyncThirPartyFriend::OnBulkGetUserByOtherPlatformU
 	}
 
 	TArray<FString> UserIds;
-	for (const auto& UserData : Result.UserIdPlatforms)
+	for (const auto& UserData : QueriedUserMapByPlatformUserIds)
 	{
 		UserIds.Add(UserData.UserId);
 	}
@@ -235,6 +244,15 @@ void FOnlineAsyncTaskAccelByteSyncThirPartyFriend::OnBulkFriendRequestError(int3
 	OnlineError = ONLINE_ERROR(EOnlineErrorResult::RequestFailure, FString::FromInt(ErrorCode), ErrorText);
 	CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Failed to sync third party friend, ErrorCode: %d, ErrorMessage: %s"), ErrorCode, *ErrorMessage);
+}
+
+void FOnlineAsyncTaskAccelByteSyncThirPartyFriend::BulkGetUserByOtherPlatformUserIds(const TArray<FString>& InUserIds)
+{
+	const EAccelBytePlatformType PlatformType = FOnlineSubsystemAccelByteUtils::GetCurrentAccelBytePlatformType(NativeSubSystem->GetSubsystemName());
+	const THandler<FBulkPlatformUserIdResponse> OnBulkGetUserSuccess = TDelegateUtils<THandler<FBulkPlatformUserIdResponse>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteSyncThirPartyFriend::OnBulkGetUserByOtherPlatformUserIdsSuccess);
+	const FErrorHandler OnBulkGetUserError = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteSyncThirPartyFriend::OnBulkGetUserByOtherPlatformUserIdsError);
+	API_CLIENT_CHECK_GUARD(OnlineError);
+	ApiClient->User.BulkGetUserByOtherPlatformUserIdsV4(PlatformType, InUserIds, OnBulkGetUserSuccess, OnBulkGetUserError);
 }
 
 #undef ONLINE_ERROR_NAMESPACE

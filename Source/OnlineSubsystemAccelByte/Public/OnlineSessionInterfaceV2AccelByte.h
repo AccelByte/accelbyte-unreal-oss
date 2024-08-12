@@ -744,6 +744,16 @@ public:
 	void UnregisterServer(FName SessionName, const FOnUnregisterServerComplete& Delegate = FOnUnregisterServerComplete());
 
 	/**
+	 * Set Timeout for the dedicated server.
+	 */
+	void SetServerTimeout(int32 NewTimeout);
+
+	/**
+	 * Reset the dedicated server's timeout
+	 */
+	void ResetServerTimeout();
+
+	/**
 	 * Get session type from session by its name
 	 */
 	EAccelByteV2SessionType GetSessionTypeByName(const FName& SessionName);
@@ -1643,6 +1653,18 @@ PACKAGE_SCOPE:
 	 * Send ready message to AMS
 	 */
 	void SendReadyToAMS();
+
+	/**
+	* @brief set DS session timeout to the new number given.
+	* 
+	* @param NewTimeout new number for DS session timeout.
+	*/
+	void SetDSTimeout(int32 NewTimeout);
+
+	/**
+	* @brief reset DS session timeout to the one that already set in the fleet settings.
+	*/
+	void ResetDSTimeout();
 
 	/**
 	 * Disconnect a server from the AMS, unregistering any delegates bound.

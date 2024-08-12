@@ -21,7 +21,7 @@ namespace AccelByte { class FApiClient; }
 /**
  * Async task to authenticate a user with the AccelByte backend, either using a native platform account, or a user specified account
  */
-class FOnlineAsyncTaskAccelByteLogin
+class ONLINESUBSYSTEMACCELBYTE_API FOnlineAsyncTaskAccelByteLogin
 	: public FOnlineAsyncTaskAccelByte
 	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteLogin, ESPMode::ThreadSafe>
 {
@@ -40,12 +40,13 @@ public:
 
 	FOnlineAsyncTaskAccelByteLogin(FOnlineSubsystemAccelByte* const InABSubsystem
 		, int32 InLocalUserNum
-		, const FOnlineAccountCredentials& InAccountCredentials
+		, const FOnlineAccountCredentialsAccelByte& InAccountCredentials
 		, bool bInCreateHeadlessAccount = true);
 
 	virtual void Initialize() override;
 	virtual void Finalize() override;
 	virtual void TriggerDelegates() override;
+	virtual void OnTaskTimedOut() override;
 
 protected:
 
@@ -62,7 +63,7 @@ protected:
 	/**
 	 * Credentials of the account that we wish to login with
 	 */
-	FOnlineAccountCredentials AccountCredentials;
+	FOnlineAccountCredentialsAccelByte AccountCredentials;
 
 	/**
 	 * String representing the error code that occurred

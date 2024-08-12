@@ -10,6 +10,7 @@
 #include "Models/AccelByteLobbyModels.h"
 #include "Models/AccelByteUserModels.h"
 #include "OnlineUserCacheAccelByte.h"
+#include "OnlineSubsystemTypes.h"
 
 /**
  * Async task to try and read the user's friends list from the backend through the Lobby websocket.
@@ -20,7 +21,13 @@ class FOnlineAsyncTaskAccelByteReadFriendsList
 {
 public:
 
-	FOnlineAsyncTaskAccelByteReadFriendsList(FOnlineSubsystemAccelByte* const InABInterface, int32 InLocalUserNum, const FString& InListName, const FOnReadFriendsListComplete& InDelegate);
+	FOnlineAsyncTaskAccelByteReadFriendsList(FOnlineSubsystemAccelByte* const InABInterface
+		, int32 InLocalUserNum
+		, const FString& InListName
+		, const EInviteStatus::Type& InInviteStatus
+		, int32 InOffset
+		, int32 InLimit
+		, const FOnReadFriendsListComplete& InDelegate);
 
 	virtual void Initialize() override;
 	virtual void Tick() override;
@@ -77,11 +84,15 @@ private:
 	
 	TMap<FString, FAccelByteModelsUserStatusNotif> AccelByteIdToPresence;
 
+	/** Friend status to query */
+	EInviteStatus::Type InviteStatus;
+
 	/** Convenience method for checking in tick whether the task is still waiting on async work from the backend */
 	bool HasTaskFinishedAsyncWork();
 
 	/** Delegate handler for when the friends list load has completed */
 	int32 QueryFriendListOffset {0};
+	int32 QueryFriendListLimit{ 0 };
 	void QueryFriendList();
 	THandler<FAccelByteModelsQueryFriendListResponse> OnQueryFriendListSuccessDelegate;
 	void OnQueryFriendListSuccess(const FAccelByteModelsQueryFriendListResponse& Result);
@@ -90,6 +101,7 @@ private:
 
 	/** Delegate handler for when the incoming friend request load has completed */
 	int32 QueryIncomingFriendReqOffset {0};
+	int32 QueryIncomingFriendReqLimit{ 0 };
 	void QueryIncomingFriendRequest();
 	THandler<FAccelByteModelsIncomingFriendRequests> OnQueryIncomingFriendRequestSuccessDelegate;
 	void OnQueryIncomingFriendRequestSuccess(const FAccelByteModelsIncomingFriendRequests& Result);
@@ -98,6 +110,7 @@ private:
 
 	/** Delegate handler for when the outgoing friend request load has completed */
 	int32 QueryOutgoingFriendReqOffset {0};
+	int32 QueryOutgoingFriendReqLimit{ 0 };
 	void QueryOutgoingFriendRequest();
 	THandler<FAccelByteModelsOutgoingFriendRequests> OnQueryOutgoingFriendRequestSuccessDelegate;
 	void OnQueryOutgoingFriendRequestSuccess(const FAccelByteModelsOutgoingFriendRequests& Result);

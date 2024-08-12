@@ -76,6 +76,18 @@ FOnlineAsyncTaskAccelByteQueryUsersByIds::FOnlineAsyncTaskAccelByteQueryUsersByI
 	UserId = FUniqueNetIdAccelByteUser::CastChecked(InUserId);
 }
 
+void FOnlineAsyncTaskAccelByteQueryUsersByIds::BulkGetUserByOtherPlatformUserIds(const TArray<FString>& InUserIds)
+{
+	EAccelBytePlatformType ABPlatformType;
+	if (Subsystem->GetAccelBytePlatformTypeFromAuthType(PlatformType, ABPlatformType))
+	{
+		const THandler<FBulkPlatformUserIdResponse> OnBulkGetUserSuccess = TDelegateUtils<THandler<FBulkPlatformUserIdResponse>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryUsersByIds::OnBulkQueryPlatformIdMappingsSuccess);
+		const FErrorHandler OnBulkGetUserError = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryUsersByIds::OnBulkQueryPlatformIdMappingsError);
+		API_CLIENT_CHECK_GUARD();
+		ApiClient->User.BulkGetUserByOtherPlatformUserIdsV4(ABPlatformType, InUserIds, OnBulkGetUserSuccess, OnBulkGetUserError);
+	}
+}
+
 void FOnlineAsyncTaskAccelByteQueryUsersByIds::Initialize()
 {
 	Super::Initialize();
@@ -89,6 +101,8 @@ void FOnlineAsyncTaskAccelByteQueryUsersByIds::Initialize()
 		return;
 	}
 
+	FAccelByteUtilities::SplitArraysToNum(UserIds, MaximumQueryLimit, SplitUserIds);
+
 	// If these are already AccelByte IDs, then we just want to run a bulk query for the users
 	if (PlatformType == ACCELBYTE_QUERY_TYPE)
 	{
@@ -96,14 +110,7 @@ void FOnlineAsyncTaskAccelByteQueryUsersByIds::Initialize()
 	}
 	else
 	{
-		EAccelBytePlatformType ABPlatformType;
-		if (Subsystem->GetAccelBytePlatformTypeFromAuthType(PlatformType, ABPlatformType))
-		{
-			const THandler<FBulkPlatformUserIdResponse> OnBulkGetUserSuccess = TDelegateUtils<THandler<FBulkPlatformUserIdResponse>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryUsersByIds::OnBulkQueryPlatformIdMappingsSuccess);
-			const FErrorHandler OnBulkGetUserError = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryUsersByIds::OnBulkQueryPlatformIdMappingsError);
-			API_CLIENT_CHECK_GUARD();
-			ApiClient->User.BulkGetUserByOtherPlatformUserIds(ABPlatformType, UserIds, OnBulkGetUserSuccess, OnBulkGetUserError);
-		}
+		BulkGetUserByOtherPlatformUserIds(SplitUserIds[LastSplitQueryIndex.GetValue()]);
 	}
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
@@ -123,7 +130,7 @@ void FOnlineAsyncTaskAccelByteQueryUsersByIds::Finalize()
 {
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
-	if (bWasSuccessful)
+	if (UsersQueried.Num() > 0)
 	{
 		FOnlineUserCacheAccelBytePtr UserCache = Subsystem->GetUserCache();
 		if (UserCache.IsValid())
@@ -143,9 +150,13 @@ void FOnlineAsyncTaskAccelByteQueryUsersByIds::TriggerDelegates()
 	TArray<FAccelByteUserInfoRef> ReturnUsers;
 	
 	// Only append queried and cached arrays on success
-	if (bWasSuccessful)
+	if(UsersQueried.Num() > 0)
 	{
 		ReturnUsers.Append(UsersQueried);
+	}
+
+	if(UsersCached.Num() > 0)
+	{
 		ReturnUsers.Append(UsersCached);
 	}
 
@@ -159,10 +170,21 @@ void FOnlineAsyncTaskAccelByteQueryUsersByIds::OnBulkQueryPlatformIdMappingsSucc
 {
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Mappings found: %d"), Result.UserIdPlatforms.Num());
 
-	if (Result.UserIdPlatforms.Num() > 0)
+	QueriedUserMapByPlatformUserIds.Append(Result.UserIdPlatforms);
+	LastSplitQueryIndex.Increment();
+	SetLastUpdateTimeToCurrentTime();
+	
+	if(LastSplitQueryIndex.GetValue() < SplitUserIds.Num())
+	{
+		BulkGetUserByOtherPlatformUserIds(SplitUserIds[LastSplitQueryIndex.GetValue()]);
+		AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Querying next platform user Ids"));
+		return;
+	}
+
+	if (QueriedUserMapByPlatformUserIds.Num() > 0)
 	{
 		TArray<FString> AccelByteIds;
-		for (const FPlatformUserIdMap& UserIdMapping : Result.UserIdPlatforms)
+		for (const FPlatformUserIdMap& UserIdMapping : QueriedUserMapByPlatformUserIds)
 		{
 			AccelByteIds.Add(UserIdMapping.UserId);
 		}
@@ -229,7 +251,7 @@ void FOnlineAsyncTaskAccelByteQueryUsersByIds::GetUserOtherPlatformBasicPublicIn
 	FPlatformAccountInfoRequest Request;
 
 	// Add user id to query until queue empty or limit reached
-	while (!UsersToQuery.IsEmpty() && Request.UserIds.Num() < BasicInfoQueryLimit)
+	while (!UsersToQuery.IsEmpty() && Request.UserIds.Num() < MaximumQueryLimit)
 	{
 		FString AccelbyteUserId;
 		UsersToQuery.Dequeue(AccelbyteUserId);

@@ -7,6 +7,8 @@
 #include "AsyncTasks/Achievement/OnlineAsyncTaskAccelByteQueryUserAchievements.h"
 #include "AsyncTasks/Achievement/OnlineAsyncTaskAccelByteSendPSNEvents.h"
 
+using namespace AccelByte;
+
 FOnlineAchievementsAccelByte::FOnlineAchievementsAccelByte(FOnlineSubsystemAccelByte* InSubsystem)
 	: AccelByteSubsystem(InSubsystem)
 {
@@ -56,16 +58,60 @@ void FOnlineAchievementsAccelByte::QueryAchievements(
 	const FUniqueNetId& PlayerId,
 	const FOnQueryAchievementsCompleteDelegate& Delegate)
 {
+	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("UserId: %s"), *PlayerId.ToDebugString());
+
+	FReport::LogDeprecated(FString(__FUNCTION__), TEXT("old 'QueryAchievements' function is deprecated - please use the new 'QueryAchievements' for the replacement"));
+
 	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteQueryUserAchievements>(
 		AccelByteSubsystem, PlayerId, Delegate);
+
+	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+}
+
+void FOnlineAchievementsAccelByte::QueryAchievements(
+	const FUniqueNetId& PlayerId,
+	const FAccelByteQueryAchievementsParameters& RequestParameters,
+	const FOnQueryAchievementsCompleteDelegate& Delegate)
+{
+	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("UserId: %s"), *PlayerId.ToDebugString());
+
+	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteQueryUserAchievements>(
+		AccelByteSubsystem,
+		PlayerId,
+		RequestParameters,
+		Delegate);
+
+	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
 }
 
 void FOnlineAchievementsAccelByte::QueryAchievementDescriptions(
 	const FUniqueNetId& PlayerId,
 	const FOnQueryAchievementsCompleteDelegate& Delegate)
 {
+	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("UserId: %s"), *PlayerId.ToDebugString());
+
+	FReport::LogDeprecated(FString(__FUNCTION__), TEXT("old 'QueryAchievementDescriptions' function is deprecated - please use the new 'QueryAchievementDescriptions' for the replacement"));
+
 	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteQueryAchievement>(
 		AccelByteSubsystem, PlayerId, Delegate);
+
+	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+}
+
+void FOnlineAchievementsAccelByte::QueryAchievementDescriptions(
+	const FUniqueNetId& PlayerId,
+	const FAccelByteQueryAchievementDescriptionParameters& RequestParameters,
+	const FOnQueryAchievementsCompleteDelegate& Delegate)
+{
+	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("UserId: %s"), *PlayerId.ToDebugString());
+
+	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteQueryAchievement>(
+		AccelByteSubsystem,
+		PlayerId,
+		RequestParameters,
+		Delegate);
+
+	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
 }
 
 EOnlineCachedResult::Type FOnlineAchievementsAccelByte::GetCachedAchievementDescription(

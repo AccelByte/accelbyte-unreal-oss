@@ -63,6 +63,21 @@ private:
 	TArray<FString> UserIds;
 
 	/**
+	 * Array of IDs that's split to Max element count.
+	 */
+	TArray<TArray<FString>> SplitUserIds;
+
+	/**
+	 * Array of user IDs returned from query by platform user IDs
+	 */
+	TArray<FPlatformUserIdMap> QueriedUserMapByPlatformUserIds;
+
+	/**
+	 * Index of the split user IDs we last fetch
+	 */
+	FThreadSafeCounter LastSplitQueryIndex {0};
+
+	/**
 	 * Whether all of these users that we are querying will be marked as important.
 	 */
 	bool bIsImportant;
@@ -107,12 +122,6 @@ private:
 	 */
 	FThreadSafeBool bHasQueriedUserPlatformInfo = false;
 
-    /**
-	 * Maximum number of users that can be queried in single request to low level SDK.
-	 * Larger request will be split into smaller requests.
-	 */
-	static constexpr int32 BasicInfoQueryLimit {20};
-
 	/**
 	 * Delegate handler for when querying platform ID mappings in bulk succeeds
 	 */
@@ -154,4 +163,8 @@ private:
 	 */
 	void ExtractPlatformDataFromBasicUserInfo(const FAccountUserPlatformData& BasicInfo, FAccelByteUniqueIdComposite& CompositeId);
 
+	/**
+	* Method to query User by Other Platform with an array of User IDs
+	*/
+	void BulkGetUserByOtherPlatformUserIds(const TArray<FString>& InUserIds);
 };

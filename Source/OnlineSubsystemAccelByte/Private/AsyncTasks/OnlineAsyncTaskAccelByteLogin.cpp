@@ -32,7 +32,7 @@ using namespace AccelByte;
 
 FOnlineAsyncTaskAccelByteLogin::FOnlineAsyncTaskAccelByteLogin(FOnlineSubsystemAccelByte* const InABSubsystem
 	, int32 InLocalUserNum
-	, const FOnlineAccountCredentials& InAccountCredentials
+	, const FOnlineAccountCredentialsAccelByte& InAccountCredentials
 	, bool bInCreateHeadlessAccount)
 	: FOnlineAsyncTaskAccelByte(InABSubsystem)
 	, LoginUserNum(InLocalUserNum)
@@ -566,7 +566,7 @@ void FOnlineAsyncTaskAccelByteLogin::PerformLogin(const FOnlineAccountCredential
 			PlatformId = FAccelByteUtilities::GetUEnumValueAsString(EAccelBytePlatformType::PS4);
 			break;
 		case EAccelByteLoginType::PS5:
-			ApiClient->User.LoginWithOtherPlatformV4(EAccelBytePlatformType::PS5, Credentials.Token, OnLoginSuccessDelegate, OnLoginErrorOAuthDelegate, bCreateHeadlessAccount);
+			ApiClient->User.LoginWithOtherPlatformV4(EAccelBytePlatformType::PS5, Credentials.Token, OnLoginSuccessDelegate, OnLoginErrorOAuthDelegate, bCreateHeadlessAccount,  AccountCredentials.OptionalParams);
 			AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sending async task to login with PS5 auth token from native online subsystem."));
 			PlatformId = FAccelByteUtilities::GetUEnumValueAsString(EAccelBytePlatformType::PS5);
 			break;
@@ -849,6 +849,18 @@ void FOnlineAsyncTaskAccelByteLogin::OnLoginErrorOAuth(int32 InErrorCode, const 
 		}
 	}
 	CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
+}
+
+
+void FOnlineAsyncTaskAccelByteLogin::OnTaskTimedOut()
+{
+	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("LocalUserNum: %d"), LoginUserNum);
+
+	Super::OnTaskTimedOut();
+	ErrorCode = static_cast<int32>(EOnlineErrorResult::RequestFailure);
+	ErrorStr = TEXT("Login task timeout while waiting for response from backend.");
+
+	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 
 #undef ONLINE_ERROR_NAMESPACE

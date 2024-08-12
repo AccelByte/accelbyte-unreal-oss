@@ -35,6 +35,21 @@ private:
 	FString AccelByteFriendListName;
 
 	/**
+	 * Array of IDs that's split to Max element count.
+	 */
+	TArray<TArray<FString>> SplitUserIds;
+
+	/**
+	 * Array of user IDs returned from query by platform user IDs
+	 */
+	TArray<FPlatformUserIdMap> QueriedUserMapByPlatformUserIds;
+
+	/**
+	 * Index of the split user IDs we last fetch
+	 */
+	FThreadSafeCounter LastSplitQueryIndex {0};
+
+	/**
 	 * Array of shared pointer to the friends instance that we are synced to,
 	 * only gets passed to the friend interface if the sync was successful,
 	 * otherwise this just gets cleaned up with the task
@@ -67,4 +82,9 @@ private:
 
 	/** Handler for failed adding 3rd party platform friend to current user. */
 	void OnBulkFriendRequestError(int32 ErrorCode, const FString& ErrorMessage);
+
+	/**
+	* Method to query User by Other Platform with an array of User IDs
+	*/
+	void BulkGetUserByOtherPlatformUserIds(const TArray<FString>& InUserIds);
 };

@@ -75,6 +75,7 @@ void FOnlinePresenceAccelByte::OnFriendStatusChangedNotificationReceived(const F
 	FriendPresence->bIsOnline = Notification.Availability == EAvailability::Online ? true : false;
 	FriendPresence->bIsPlayingThisGame = Notification.Availability == EAvailability::Online ? true : false;
 	FriendPresence->LastOnline = Notification.LastSeenAt;
+	FriendPresence->Status.Properties.Add(DefaultPlatformKey, Notification.Platform);
 
 	TriggerOnPresenceReceivedDelegates(*FriendId, FriendPresence.ToSharedRef());
 }

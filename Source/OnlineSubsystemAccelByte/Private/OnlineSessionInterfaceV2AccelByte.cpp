@@ -4962,6 +4962,46 @@ void FOnlineSessionV2AccelByte::UnregisterServer(FName SessionName, const FOnUnr
 	}
 }
 
+void FOnlineSessionV2AccelByte::SetServerTimeout(int32 NewTimeout)
+{
+	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT(""));
+
+	// Only dedicated servers should be able to set timeout
+	if (!IsRunningDedicatedServer())
+	{
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to set server timeout as the current game instance is not a dedicated server!"));
+		return;
+	}
+
+	if (IsServerUseAMS() && !FRegistry::ServerSettings.DSId.IsEmpty())
+	{
+		SetDSTimeout(NewTimeout);
+
+		AB_OSS_INTERFACE_TRACE_END(TEXT("Send set server timeout to AMS!"));
+		return;
+	}
+}
+
+void FOnlineSessionV2AccelByte::ResetServerTimeout()
+{
+	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT(""));
+
+	// Only dedicated servers should be able to reset timeout
+	if (!IsRunningDedicatedServer())
+	{
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to reset server timeout as the current game instance is not a dedicated server!"));
+		return;
+	}
+
+	if (IsServerUseAMS() && !FRegistry::ServerSettings.DSId.IsEmpty())
+	{
+		ResetDSTimeout();
+
+		AB_OSS_INTERFACE_TRACE_END(TEXT("Send reset server timeout to AMS!"));
+		return;
+	}
+}
+
 EAccelByteV2SessionType FOnlineSessionV2AccelByte::GetSessionTypeByName(const FName& SessionName)
 {
 	FNamedOnlineSession* Session = GetNamedSession(SessionName);
@@ -6896,6 +6936,43 @@ void FOnlineSessionV2AccelByte::SendReadyToAMS()
 		return;
 	}
 	FRegistry::ServerAMS.SendReadyMessage();
+
+	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+}
+
+void FOnlineSessionV2AccelByte::SetDSTimeout(int32 NewTimeout)
+{
+	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("Send DS Timeout Message to AMS"));
+
+	if (!IsRunningDedicatedServer())
+	{
+		AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+		return;
+	}
+
+	if (NewTimeout > 1)
+	{
+		FRegistry::ServerAMS.SetDSTimeout(NewTimeout);
+	}
+	else
+	{
+		FRegistry::ServerAMS.SetDSTimeout(1);
+	}
+
+	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+}
+
+void FOnlineSessionV2AccelByte::ResetDSTimeout()
+{
+	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("Send DS Reset Timeout Message to AMS"));
+
+	if (!IsRunningDedicatedServer())
+	{
+		AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+		return;
+	}
+
+	FRegistry::ServerAMS.ResetDSTimeout();
 
 	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
 }

@@ -14,10 +14,21 @@ FOnlineAsyncTaskAccelByteQueryAchievement::FOnlineAsyncTaskAccelByteQueryAchieve
 	FUniqueNetId const& InPlayerId,
 	FOnQueryAchievementsCompleteDelegate const& InDelegate)
 	: FOnlineAsyncTaskAccelByte(Subsystem),
-	  Delegate(InDelegate), bWasSuccessful(false)
+	Delegate(InDelegate)
 {
 	UserId = FUniqueNetIdAccelByteUser::CastChecked(InPlayerId);
-	PaginatedPublicAchievementPtr = MakeShared<FAccelByteModelsPaginatedPublicAchievement>();
+}
+
+FOnlineAsyncTaskAccelByteQueryAchievement::FOnlineAsyncTaskAccelByteQueryAchievement(
+	FOnlineSubsystemAccelByte* const Subsystem,
+	FUniqueNetId const& InPlayerId,
+	FAccelByteQueryAchievementDescriptionParameters const& InRequestParameters,
+	FOnQueryAchievementsCompleteDelegate const& InDelegate)
+	: FOnlineAsyncTaskAccelByte(Subsystem),
+	Delegate(InDelegate),
+	RequestParameters(InRequestParameters)
+{
+	UserId = FUniqueNetIdAccelByteUser::CastChecked(InPlayerId);
 }
 
 void FOnlineAsyncTaskAccelByteQueryAchievement::Initialize()
@@ -25,8 +36,16 @@ void FOnlineAsyncTaskAccelByteQueryAchievement::Initialize()
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 
 	FOnlineAsyncTaskAccelByte::Initialize();
-	QueryAchievement();
-	
+
+	if (RequestParameters.Page.Count == -1 || RequestParameters.Page.Count >= 100)
+	{
+		QueryAchievement(RequestParameters.Page.Start, 100);
+	}
+	else
+	{
+		QueryAchievement(RequestParameters.Page.Start, RequestParameters.Page.Count);
+	}
+
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 
@@ -40,7 +59,7 @@ void FOnlineAsyncTaskAccelByteQueryAchievement::TriggerDelegates()
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 
-void FOnlineAsyncTaskAccelByteQueryAchievement::QueryAchievement()
+void FOnlineAsyncTaskAccelByteQueryAchievement::QueryAchievement(int32 Offset, int32 Limit)
 {
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Starting query achievement"));
 
@@ -51,10 +70,14 @@ void FOnlineAsyncTaskAccelByteQueryAchievement::QueryAchievement()
 
 	API_CLIENT_CHECK_GUARD();
 	ApiClient->Achievement.QueryAchievements(
-		TEXT(""),
-		EAccelByteAchievementListSortBy::NONE,
+		RequestParameters.Language,
+		RequestParameters.SortBy,
 		OnQueryAchievementSuccess,
-		OnError);
+		OnError,
+		Offset,
+		Limit,
+		RequestParameters.Tag,
+		RequestParameters.bGlobalAchievement);
 	
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
@@ -64,8 +87,59 @@ void FOnlineAsyncTaskAccelByteQueryAchievement::HandleQueryAchievementSuccess(
 {
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 
-	bWasSuccessful = true;
-	PaginatedPublicAchievementPtr = MakeShared<FAccelByteModelsPaginatedPublicAchievement>(Response);
+	if (Response.Data.Num() != 0)
+	{
+		PublicAchievements.Append(Response.Data);
+
+		if (RequestParameters.Page.Count != -1)
+		{
+			RequestParameters.Page.Count -= 1;
+
+			if (RequestParameters.Page.Count == 0)
+			{
+				CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
+			}
+		}
+
+		// Check if 
+		if (!Response.Paging.Next.IsEmpty())
+		{
+			FString UrlOut;
+			FString Params;
+			Response.Paging.Next.Split(TEXT("?"), &UrlOut, &Params);
+			if (!Params.IsEmpty())
+			{
+				TArray<FString> ParamsArray;
+				Params.ParseIntoArray(ParamsArray, TEXT("&"));
+				int32 Offset = -1;
+				int32 Limit = -1;
+				for (const FString& Param : ParamsArray)
+				{
+					FString Key;
+					FString Value;
+					Param.Split(TEXT("="), &Key, &Value);
+					if (Key.Equals(TEXT("offset")) && Value.IsNumeric())
+					{
+						Offset = FCString::Atoi(*Value);
+					}
+					else if (Key.Equals(TEXT("limit")) && Value.IsNumeric())
+					{
+						Limit = FCString::Atoi(*Value);
+					}
+
+					if (Offset != -1 && Limit != -1)
+					{
+						QueryAchievement(Offset, Limit);
+						return;
+					}
+				}
+			}
+		}
+	}
+	else
+	{
+		UE_LOG_AB(Log, TEXT("[Warning] Success to get achievement items but the result is empty!"));
+	}
 
 	CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
 
@@ -88,7 +162,7 @@ void FOnlineAsyncTaskAccelByteQueryAchievement::Finalize()
 	const TSharedPtr<FOnlineAchievementsAccelByte, ESPMode::ThreadSafe> AchievementInterface =
 		StaticCastSharedPtr<FOnlineAchievementsAccelByte>(Subsystem->GetAchievementsInterface());
 	
-	for(auto& Data : PaginatedPublicAchievementPtr->Data)
+	for(auto& Data : PublicAchievements)
 	{
 		const TSharedRef<FOnlineAchievementDesc> Achievement = MakeShared<FOnlineAchievementDesc>();
 		Achievement->Title = FText::FromString(Data.Name);

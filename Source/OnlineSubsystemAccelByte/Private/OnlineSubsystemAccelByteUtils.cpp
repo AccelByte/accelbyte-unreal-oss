@@ -280,6 +280,10 @@ EAccelBytePlatformType FOnlineSubsystemAccelByteUtils::GetAccelBytePlatformTypeF
 	{
 		return EAccelBytePlatformType::EpicGames;
 	}
+	else if (InAuthType.Equals(TEXT("DEVICE"), ESearchCase::IgnoreCase))
+	{
+		return EAccelBytePlatformType::Device;
+	}
 	return EAccelBytePlatformType::None;
 }
 

@@ -83,6 +83,12 @@ typedef FOnGetSystemMessageStatsComplete::FDelegate FOnGetSystemMessageStatsComp
 DECLARE_MULTICAST_DELEGATE_FourParams(FOnGetChatConfigComplete, int32 /*LocalUserNum*/, bool /*bWasSuccessful*/, const FAccelByteModelsChatPublicConfigResponse& /*ChatPublicConfigResponse*/, const FString& /*Error*/);
 typedef FOnGetChatConfigComplete::FDelegate FOnGetChatConfigCompleteDelegate;
 
+DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnGetUserChatConfigurationComplete, const int32 /*LocalUserNum*/, const FAccelByteModelsGetUserChatConfigurationResponse& /*UserChatConfiguration*/, const FOnlineError& /*ErrorInfo*/)
+typedef FOnGetUserChatConfigurationComplete::FDelegate FOnGetUserChatConfigurationCompleteDelegate;
+
+DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnSetUserChatConfigurationComplete, const int32 /*LocalUserNum*/, const FAccelByteSetUserChatConfigurationResponse& /*SetUserChatConfigurationResponse*/, const FOnlineError& /*ErrorInfo*/)
+typedef FOnSetUserChatConfigurationComplete::FDelegate FOnSetUserChatConfigurationCompleteDelegate;
+
 //~ End custom delegates
 
 class FAccelByteChatMessage;
@@ -364,6 +370,44 @@ public:
 	 */
 	bool GetChatConfig(const FUniqueNetId& UserId);
 
+	/**
+	 * Get chat configuration for current user.
+	 * Listen to OnGetUserChatConfigurationComplete delegate for the result after the action completed.
+	 * 
+	 * @param LocalUserNum target local user num that perform this action.
+	 * @return if successfully started the async operation.
+	 */
+	bool GetUserConfiguration(const int32 LocalUserNum);
+
+	/**
+	 * Get chat configuration for current user.
+	 * Listen to OnGetUserChatConfigurationComplete delegate for the result after the action completed.
+	 * 
+	 * @param UserId id of user that perform this action.
+	 * @return if successfully started the async operation.
+	 */
+	bool GetUserConfiguration(const FUniqueNetId& UserId);
+
+	/**
+	 * Set chat configuration for current user.
+	 * Listen to OnSetUserChatConfigurationComplete delegate for the result after the action completed.
+	 * 
+	 * @param LocalUserNum target local user num that perform this action.
+	 * @param Configuration user chat configuration.
+	 * @return if successfully started the async operation
+	 */
+	bool SetUserConfiguration(const int32 LocalUserNum, const FAccelByteModelsSetUserChatConfigurationRequest& Configuration);
+
+	/**
+	 * Set chat configuration for current user
+	 * Listen to OnSetUserChatConfigurationComplete delegate for the result after the action completed
+	 * 
+	 * @param UserId id of user that perform this action
+	 * @param Configuration user chat configuration.
+	 * @return if successfully started the async operation
+	 */
+	bool SetUserConfiguration(const FUniqueNetId& UserId, const FAccelByteModelsSetUserChatConfigurationRequest& Configuration);
+
 	virtual bool IsChatAllowed(const FUniqueNetId& UserId, const FUniqueNetId& RecipientId) const override;
 	virtual void GetJoinedRooms(const FUniqueNetId& UserId, TArray<FChatRoomId>& OutRooms) override;
 	virtual TSharedPtr<FChatRoomInfo> GetRoomInfo(const FUniqueNetId& UserId, const FChatRoomId& RoomId) override;
@@ -506,6 +550,16 @@ public:
 	DEFINE_ONLINE_DELEGATE_THREE_PARAM(OnChatRoomMemberUpdate, const FUniqueNetId&, const FChatRoomId&, const FUniqueNetId&);
 	*/
 
+	/**
+	* Delegate fired when action to get user chat configuration completed.
+	*/
+	DEFINE_ONLINE_PLAYER_DELEGATE_TWO_PARAM(MAX_LOCAL_PLAYERS, OnGetUserChatConfigurationComplete, const FAccelByteModelsGetUserChatConfigurationResponse& /*UserChatConfiguration*/, const FOnlineError& /*ErrorInfo*/)
+
+	/**
+	* Delegate fired when action to set user chat configuration completed.
+	*/
+	DEFINE_ONLINE_PLAYER_DELEGATE_TWO_PARAM(MAX_LOCAL_PLAYERS, OnSetUserChatConfigurationComplete, const FAccelByteSetUserChatConfigurationResponse& /*UserChatConfiguration*/, const FOnlineError& /*ErrorInfo*/)
+	
 PACKAGE_SCOPE:
 	void RegisterChatDelegates(const FUniqueNetId& PlayerId);
 

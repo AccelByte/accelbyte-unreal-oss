@@ -15,7 +15,7 @@ FOnlineAsyncTaskAccelByteConsumeEntitlement::FOnlineAsyncTaskAccelByteConsumeEnt
 	, RequestId(InRequestId)
 {
 	UserId = FUniqueNetIdAccelByteUser::CastChecked(InUserId);
-	Entitlement = MakeShared<FOnlineEntitlement>();
+	Entitlement = MakeShared<FOnlineEntitlementAccelByte>();
 	Entitlement->Id = EntitlementId;
 }
 
@@ -80,6 +80,7 @@ void FOnlineAsyncTaskAccelByteConsumeEntitlement::HandleConsumeEntitlementSucces
 	Entitlement->ConsumedCount = UseCount;
 	Entitlement->RemainingCount = Result.UseCount;
 	Entitlement->StartDate = Result.StartDate;
+	Entitlement->SetBackendEntitlementInfo(Result);
 
 	CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
 }

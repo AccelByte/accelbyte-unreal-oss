@@ -247,7 +247,7 @@ void FOnlineAsyncTaskAccelByteJoinV1Party::OnQueryPartyInfoComplete(bool bIsSucc
 		}
 
 		API_CLIENT_CHECK_GUARD();
-		ApiClient->Lobby.BulkGetUserPresence(PartyMemberUid,
+		ApiClient->Lobby.BulkGetUserPresenceV2(PartyMemberUid,
 			TDelegateUtils<THandler<FAccelByteModelsBulkUserStatusNotif>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteJoinV1Party::OnGetUserPresenceComplete),
 			FErrorHandler::CreateLambda([this](int32 Code, FString const& ErrMsg)
 			{
@@ -317,7 +317,7 @@ void FOnlineAsyncTaskAccelByteJoinV1Party::OnGetUserPresenceComplete(const FAcce
 	{
 		SetLastUpdateTimeToCurrentTime();
 		API_CLIENT_CHECK_GUARD();
-		ApiClient->Lobby.BulkGetUserPresence(Statuses.NotProcessed,
+		ApiClient->Lobby.BulkGetUserPresenceV2(Statuses.NotProcessed,
 			TDelegateUtils<THandler<FAccelByteModelsBulkUserStatusNotif>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteJoinV1Party::OnGetUserPresenceComplete),
 			FErrorHandler::CreateLambda([this](int32 Code, FString const& ErrMsg)
 				{

@@ -45,7 +45,7 @@ void FOnlineAsyncTaskAccelByteBulkQueryUserPresence::Initialize()
 	THandler<FAccelByteModelsBulkUserStatusNotif> OnQueryUserPresenceSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsBulkUserStatusNotif>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteBulkQueryUserPresence::OnQueryUserPresenceSuccess);
 	FErrorHandler OnQueryUserPresenceErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteBulkQueryUserPresence::OnQueryUserPresenceError);
 	API_CLIENT_CHECK_GUARD();
-	ApiClient->Lobby.BulkGetUserPresence(UsersToQuery, OnQueryUserPresenceSuccessDelegate, OnQueryUserPresenceErrorDelegate, false);
+	ApiClient->Lobby.BulkGetUserPresenceV2(UsersToQuery, OnQueryUserPresenceSuccessDelegate, OnQueryUserPresenceErrorDelegate, false);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
@@ -106,8 +106,18 @@ void FOnlineAsyncTaskAccelByteBulkQueryUserPresence::OnQueryUserPresenceSuccess(
 
 		PresenceResult.Emplace(PresenceData.UserID, Presence.ToSharedRef());
 	}
-	
-	CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
+
+	if (Result.NotProcessed.Num() > 0)
+	{
+		THandler<FAccelByteModelsBulkUserStatusNotif> OnQueryUserPresenceSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsBulkUserStatusNotif>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteBulkQueryUserPresence::OnQueryUserPresenceSuccess);
+		FErrorHandler OnQueryUserPresenceErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteBulkQueryUserPresence::OnQueryUserPresenceError);
+		API_CLIENT_CHECK_GUARD();
+		ApiClient->Lobby.BulkGetUserPresenceV2(Result.NotProcessed, OnQueryUserPresenceSuccessDelegate, OnQueryUserPresenceErrorDelegate, false);
+	}
+	else
+	{
+		CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
+	}
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }

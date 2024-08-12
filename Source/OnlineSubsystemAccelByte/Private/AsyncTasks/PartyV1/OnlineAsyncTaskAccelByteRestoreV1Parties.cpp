@@ -180,7 +180,7 @@ void FOnlineAsyncTaskAccelByteRestoreV1Parties::OnQueryPartyInfoComplete(bool bI
 		THandler<FAccelByteModelsBulkUserStatusNotif> OnQueryPartyMembersStatusCompleteDelegate = TDelegateUtils<THandler<FAccelByteModelsBulkUserStatusNotif>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteRestoreV1Parties::OnGetPartyMemberConnectStatusSuccess);
 		const FErrorHandler OnGetPartyMemberStatusesErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteRestoreV1Parties::OnGetPartyMemberConnectStatusFailed);
 		API_CLIENT_CHECK_GUARD();
-		ApiClient->Lobby.BulkGetUserPresence(PartyMemberStrings, OnQueryPartyMembersStatusCompleteDelegate, OnGetPartyMemberStatusesErrorDelegate);
+		ApiClient->Lobby.BulkGetUserPresenceV2(PartyMemberStrings, OnQueryPartyMembersStatusCompleteDelegate, OnGetPartyMemberStatusesErrorDelegate);
 	}
 	else
 	{
@@ -238,7 +238,7 @@ void FOnlineAsyncTaskAccelByteRestoreV1Parties::OnGetPartyMemberConnectStatusSuc
 		THandler<FAccelByteModelsBulkUserStatusNotif> OnQueryPartyMembersStatusCompleteDelegate = TDelegateUtils<THandler<FAccelByteModelsBulkUserStatusNotif>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteRestoreV1Parties::OnGetPartyMemberConnectStatusSuccess);
 		const FErrorHandler OnGetPartyMemberStatusesErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteRestoreV1Parties::OnGetPartyMemberConnectStatusFailed);
 		API_CLIENT_CHECK_GUARD();
-		ApiClient->Lobby.BulkGetUserPresence(Statuses.NotProcessed, OnQueryPartyMembersStatusCompleteDelegate, OnGetPartyMemberStatusesErrorDelegate);
+		ApiClient->Lobby.BulkGetUserPresenceV2(Statuses.NotProcessed, OnQueryPartyMembersStatusCompleteDelegate, OnGetPartyMemberStatusesErrorDelegate);
 	}
 	else
 	{

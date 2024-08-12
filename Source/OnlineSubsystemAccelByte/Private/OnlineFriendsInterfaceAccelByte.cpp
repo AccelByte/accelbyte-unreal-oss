@@ -539,11 +539,10 @@ void FOnlineFriendsAccelByte::AddFriendsToList(int32 LocalUserNum, const TArray<
 	TArray<TSharedPtr<FOnlineFriend>>* FoundFriendsList = LocalUserNumToFriendsMap.Find(LocalUserNum);
 	if (FoundFriendsList != nullptr)
 	{
-		// Since we do not want duplicate entries for friends in the list, and this is only really called by ReadFriendsList
-		// which gets the full friends list with invites already, then we just want to clear the existing array and add our
-		// new friends list that we just retrieved
-		FoundFriendsList->Empty(NewFriends.Num());
-		FoundFriendsList->Append(NewFriends);
+		for (const auto& NewFriend : NewFriends)
+		{
+			AddFriendToList(LocalUserNum, NewFriend);
+		}
 	}
 	else
 	{
@@ -732,13 +731,34 @@ bool FOnlineFriendsAccelByte::GetFromWorld(const UWorld* World, FOnlineFriendsAc
 	return GetFromSubsystem(Subsystem, OutInterfaceInstance);
 }
 
-bool FOnlineFriendsAccelByte::ReadFriendsList(int32 LocalUserNum, const FString& ListName, const FOnReadFriendsListComplete& Delegate)
+bool FOnlineFriendsAccelByte::ReadFriendsList(int32 LocalUserNum, const EInviteStatus::Type& InviteStatus, int32 Offset, int32 Limit, const FOnReadFriendsListComplete& Delegate)
 {
+	if (InviteStatus != EInviteStatus::Accepted
+		&& InviteStatus != EInviteStatus::PendingInbound
+		&& InviteStatus != EInviteStatus::PendingOutbound
+		&& InviteStatus != EInviteStatus::Unknown)
+	{
+		UE_LOG_AB(Warning, TEXT("Failed to read friends list as InviteStatus is not supported."));
+		Delegate.ExecuteIfBound(LocalUserNum, false, FString(""), TEXT("query-friends-invite-status-invalid"));
+		return false;
+	}
+
+	if (Limit == 0 || Limit < -1)
+	{
+		UE_LOG_AB(Warning, TEXT("Failed to read friends list as limit is 0 or smaller than -1."));
+		Delegate.ExecuteIfBound(LocalUserNum, false, FString(""), TEXT("query-friends-limit-invalid"));
+		return false;
+	}
 	FOnlineAsyncTaskInfo TaskInfo;
 	TaskInfo.bCreateEpicForThis = true;
 	TaskInfo.Type = ETypeOfOnlineAsyncTask::Parallel;
-	AccelByteSubsystem->CreateAndDispatchAsyncTask<FOnlineAsyncTaskAccelByteReadFriendsList>(TaskInfo, AccelByteSubsystem, LocalUserNum, ListName, Delegate);
+	AccelByteSubsystem->CreateAndDispatchAsyncTask<FOnlineAsyncTaskAccelByteReadFriendsList>(TaskInfo, AccelByteSubsystem, LocalUserNum, TEXT(""), InviteStatus, Offset, Limit, Delegate);
 	return true;
+}
+
+bool FOnlineFriendsAccelByte::ReadFriendsList(int32 LocalUserNum, const FString& ListName, const FOnReadFriendsListComplete& Delegate)
+{
+	return ReadFriendsList(LocalUserNum, EInviteStatus::Unknown, 0, -1, Delegate);
 }
 
 bool FOnlineFriendsAccelByte::DeleteFriendsList(int32 LocalUserNum, const FString& ListName, const FOnDeleteFriendsListComplete& Delegate)

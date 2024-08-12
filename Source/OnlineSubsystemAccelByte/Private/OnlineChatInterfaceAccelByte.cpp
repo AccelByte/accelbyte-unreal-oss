@@ -23,6 +23,8 @@
 #include "AsyncTasks/Chat/OnlineAsyncTaskAccelByteChatSendPersonalChat.h"
 #include "AsyncTasks/Chat/OnlineAsyncTaskAccelByteChatSendRoomChat.h"
 #include "AsyncTasks/Chat/OnlineAsyncTaskAccelByteChatUpdateSystemMessages.h"
+#include "AsyncTasks/Chat/OnlineAsyncTaskAccelByteGetUserChatConfiguration.h"
+#include "AsyncTasks/Chat/OnlineAsyncTaskAccelByteSetUserChatConfiguration.h"
 
 using namespace AccelByte;
 
@@ -342,6 +344,86 @@ bool FOnlineChatAccelByte::GetChatConfig(const FUniqueNetId& UserId)
 	}
 	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteChatGetConfig>(AccelByteSubsystem, UserId);
 
+	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+
+	return true;
+}
+
+bool FOnlineChatAccelByte::GetUserConfiguration(const int32 LocalUserNum)
+{
+	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("LocalUserNum: %i"), LocalUserNum);
+
+	if (IsRunningDedicatedServer())
+	{
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Get user chat configuration is not supported for game server"));
+		return false;
+	}
+
+	const FUniqueNetIdPtr UserIdPtr = AccelByteSubsystem->GetIdentityInterface()->GetUniquePlayerId(LocalUserNum);
+
+	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+	
+	return GetUserConfiguration(*UserIdPtr);
+}
+
+bool FOnlineChatAccelByte::GetUserConfiguration(const FUniqueNetId& UserId)
+{
+	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("UserId: %s"), *UserId.ToDebugString());
+
+	if (IsRunningDedicatedServer())
+	{
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Get user chat configuration is not supported for game server"));
+		return false;
+	}
+
+	if (!UserId.IsValid())
+	{
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Get user chat configuration failed as the user id is invalid"));
+		return false;
+	}
+
+	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGetUserChatConfiguration>(AccelByteSubsystem, UserId);
+	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+
+	return true;
+}
+
+bool FOnlineChatAccelByte::SetUserConfiguration(const int32 LocalUserNum
+	, const FAccelByteModelsSetUserChatConfigurationRequest& Configuration)
+{
+	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("LocalUserNum: %i"), LocalUserNum);
+
+	if (IsRunningDedicatedServer())
+	{
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Set user chat configuration is not supported for game server"));
+		return false;
+	}
+
+	const TSharedPtr<const FUniqueNetId> UserIdPtr = AccelByteSubsystem->GetIdentityInterface()->GetUniquePlayerId(LocalUserNum);
+
+	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+
+	return SetUserConfiguration(*UserIdPtr, Configuration);
+}
+
+bool FOnlineChatAccelByte::SetUserConfiguration(const FUniqueNetId& UserId
+	, const FAccelByteModelsSetUserChatConfigurationRequest& Configuration)
+{
+	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("UserId: %s"), *UserId.ToDebugString());
+
+	if (IsRunningDedicatedServer())
+	{
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Set user chat configuration is not supported for game server"));
+		return false;
+	}
+
+	if (!UserId.IsValid())
+	{
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Set user chat configuration failed as the user id is invalid"));
+		return false;
+	}
+
+	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteSetUserChatConfiguration>(AccelByteSubsystem, UserId, Configuration);
 	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
 
 	return true;

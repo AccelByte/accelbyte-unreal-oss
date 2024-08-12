@@ -25,6 +25,14 @@ FOnlineAsyncTaskAccelByteQueryExternalIdMappings::FOnlineAsyncTaskAccelByteQuery
 	UserId = FUniqueNetIdAccelByteUser::CastChecked(InUserId);
 }
 
+void FOnlineAsyncTaskAccelByteQueryExternalIdMappings::BulkGetUserByOtherPlatformUserIds(const TArray<FString>& InUserIds)
+{
+	const THandler<FBulkPlatformUserIdResponse> OnBulkGetUserByOtherPlatformIdsSuccessDelegate = TDelegateUtils<THandler<FBulkPlatformUserIdResponse>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryExternalIdMappings::OnBulkGetUserByOtherPlatformIdsSuccess);
+	const FErrorHandler OnBulkGetUserByOtherPlatformIdsErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryExternalIdMappings::OnBulkGetUserByOtherPlatformIdsError);
+	API_CLIENT_CHECK_GUARD(ErrorStr);
+	ApiClient->User.BulkGetUserByOtherPlatformUserIdsV4(static_cast<EAccelBytePlatformType>(PlatformTypeEnumValue), InUserIds, OnBulkGetUserByOtherPlatformIdsSuccessDelegate, OnBulkGetUserByOtherPlatformIdsErrorDelegate);
+}
+
 void FOnlineAsyncTaskAccelByteQueryExternalIdMappings::Initialize()
 {
 	Super::Initialize();
@@ -44,8 +52,8 @@ void FOnlineAsyncTaskAccelByteQueryExternalIdMappings::Initialize()
 	}
 	
 	const UEnum* PlatformTypeEnum = StaticEnum<EAccelBytePlatformType>();
-	int64 Result = PlatformTypeEnum->GetValueByNameString(QueryOptions.AuthType);
-	if (Result == INDEX_NONE)
+	PlatformTypeEnumValue = PlatformTypeEnum->GetValueByNameString(QueryOptions.AuthType);
+	if (PlatformTypeEnumValue == INDEX_NONE)
 	{
 		ErrorStr = TEXT("external-id-type-invalid");
 		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Auth type unsupported by OSS! Check EAccelBytePlatformType definition for supported auth types. Query Type: %s"), *QueryOptions.AuthType);
@@ -53,10 +61,9 @@ void FOnlineAsyncTaskAccelByteQueryExternalIdMappings::Initialize()
 		return;
 	}
 
-	const THandler<FBulkPlatformUserIdResponse> OnBulkGetUserByOtherPlatformIdsSuccessDelegate = TDelegateUtils<THandler<FBulkPlatformUserIdResponse>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryExternalIdMappings::OnBulkGetUserByOtherPlatformIdsSuccess);
-	const FErrorHandler OnBulkGetUserByOtherPlatformIdsErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryExternalIdMappings::OnBulkGetUserByOtherPlatformIdsError);
-	API_CLIENT_CHECK_GUARD(ErrorStr);
-	ApiClient->User.BulkGetUserByOtherPlatformUserIds(static_cast<EAccelBytePlatformType>(Result), InitialExternalIds, OnBulkGetUserByOtherPlatformIdsSuccessDelegate, OnBulkGetUserByOtherPlatformIdsErrorDelegate);
+	FAccelByteUtilities::SplitArraysToNum(InitialExternalIds, 100, SplitUserIds);
+
+	BulkGetUserByOtherPlatformUserIds(SplitUserIds[LastSplitQueryIndex.GetValue()]);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
@@ -90,6 +97,17 @@ void FOnlineAsyncTaskAccelByteQueryExternalIdMappings::TriggerDelegates()
 void FOnlineAsyncTaskAccelByteQueryExternalIdMappings::OnBulkGetUserByOtherPlatformIdsSuccess(const FBulkPlatformUserIdResponse& Result)
 {
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Result Amount: %d"), Result.UserIdPlatforms.Num());
+
+	QueriedUserMapByPlatformUserIds.Append(Result.UserIdPlatforms);
+	LastSplitQueryIndex.Increment();
+	SetLastUpdateTimeToCurrentTime();
+	
+	if(LastSplitQueryIndex.GetValue() < SplitUserIds.Num())
+	{
+		BulkGetUserByOtherPlatformUserIds(SplitUserIds[LastSplitQueryIndex.GetValue()]);
+		AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Querying next platform user Ids"));
+		return;
+	}
 
 	for (const FPlatformUserIdMap& Mapping : Result.UserIdPlatforms)
 	{
