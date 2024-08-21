@@ -418,3 +418,8 @@ EAccelBytePlatformType FOnlineSubsystemAccelByteUtils::GetCurrentAccelBytePlatfo
 	}
 	return PlatformType;
 }
+
+bool FOnlineSubsystemAccelByteUtils::IsValidLocalUserNum(const int32& InLocalUserNum)
+{
+	return InLocalUserNum >= 0 && InLocalUserNum < MAX_LOCAL_PLAYERS;
+}

@@ -80,7 +80,6 @@ void FOnlineAsyncTaskAccelByteFindV2GameSessionById::TriggerDelegates()
 	Delegate.ExecuteIfBound(LocalUserNum, bWasSuccessful, FoundSessionResult);
 
 	const TSharedPtr<FOnlineSessionV2AccelByte, ESPMode::ThreadSafe> SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(Subsystem->GetSessionInterface());
-	SessionInterface->SetFindMatchmakingGameSessionByIdInProgress(false);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }

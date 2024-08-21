@@ -87,7 +87,7 @@ void FOnlineAsyncTaskAccelByteLoginQueue::TriggerDelegates()
 		return;
 	}
 
-	IdentityInterface->TriggerAccelByteOnLoginTicketStatusUpdatedDelegates(LoginUserNum, bWasSuccessful, {},
+	IdentityInterface->TriggerAccelByteOnLoginTicketStatusUpdatedDelegates(LoginUserNum, false, {},
 			ONLINE_ERROR_ACCELBYTE(ErrorCode, EOnlineErrorResult::RequestFailure));
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
@@ -108,7 +108,7 @@ void FOnlineAsyncTaskAccelByteLoginQueue::OnPollTicketRefreshed(const FAccelByte
 	// only trigger ticket status updated when estimated wait time is above presentation threshold
 	if(InTicket.EstimatedWaitingTimeInSeconds > PresentationThreshold)
 	{
-		IdentityInterface->TriggerAccelByteOnLoginTicketStatusUpdatedDelegates(LoginUserNum, bWasSuccessful, InTicket,
+		IdentityInterface->TriggerAccelByteOnLoginTicketStatusUpdatedDelegates(LoginUserNum, true, InTicket,
 			ONLINE_ERROR_ACCELBYTE(ErrorCode, EOnlineErrorResult::Success));
 	}
 	

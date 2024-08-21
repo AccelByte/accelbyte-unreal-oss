@@ -15,6 +15,7 @@
 #include "OnlineSubsystemAccelByte.h"
 #include "Interfaces/OnlineIdentityInterface.h"
 #include "OnlineSubsystemAccelByteTypes.h"
+#include "Core/AccelByteTask.h"
 #include "Core/AccelByteMultiRegistry.h"
 #include "Core/AccelByteUtilities.h"
 #include "OnlineErrorAccelByte.h"
@@ -81,7 +82,7 @@ public:
 	 * @param InSubsystem Subsystem that owns this identity interface
 	 */
 	FOnlineIdentityAccelByte(FOnlineSubsystemAccelByte* InSubsystem);
-	virtual ~FOnlineIdentityAccelByte() override = default;
+	virtual ~FOnlineIdentityAccelByte() override;
 
 	/**
 	 * Convenience method to get an instance of this interface from the subsystem passed in.
@@ -405,6 +406,8 @@ private:
 	TMap<int32, FString> LocalUserNumToLoginQueueTicketMap;
 
 	FString LogoutReason; // Error Code for when we logged out
+
+	TMap<int32, AccelByte::FAccelByteTaskWPtr> LocalUserNumToLogoutTask;
 
 	/**
 	 * @brief Call when the user logged out.

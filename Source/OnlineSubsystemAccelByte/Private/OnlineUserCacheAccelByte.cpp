@@ -313,6 +313,13 @@ void FOnlineUserCacheAccelByte::GetQueryAndCacheArrays(const TArray<FString>& Ac
 
 bool FOnlineUserCacheAccelByte::QueryUsersByAccelByteIds(int32 LocalUserNum, const TArray<FString>& AccelByteIds, const FOnQueryUsersComplete& Delegate, bool bIsImportant/*=false*/)
 {
+	if (!FOnlineSubsystemAccelByteUtils::IsValidLocalUserNum(LocalUserNum))
+	{
+		UE_LOG_AB(Warning, TEXT("FOnlineUserStoreAccelByte::QueryUsersByAccelByteIds called with invalid LocalUserNum: %d, skipping this call!"), LocalUserNum);
+		Delegate.ExecuteIfBound(true, TArray<FAccelByteUserInfoRef>());
+		return false;
+	}
+
 	// Remove all IDs that are not valid AccelByte IDs
 	TArray<FString> FilteredIds = AccelByteIds;
 	FilteredIds.RemoveAll(IsInvalidAccelByteId);
@@ -325,6 +332,12 @@ bool FOnlineUserCacheAccelByte::QueryUsersByAccelByteIds(int32 LocalUserNum, con
 	}
 
 	FOnlineUserAccelBytePtr UserInterface = StaticCastSharedPtr<FOnlineUserAccelByte>(Subsystem->GetUserInterface());
+	if (!UserInterface.IsValid())
+	{
+		UE_LOG_AB(Warning, TEXT("FOnlineUserStoreAccelByte::QueryUsersByAccelByteIds UserInterface is invalid, skipping this call!"));
+		Delegate.ExecuteIfBound(true, TArray<FAccelByteUserInfoRef>());
+		return false;
+	}
 
 	//Run QueryUserProfile after QueryUsersByIds to get Info like FriendId
 	Subsystem->CreateAndDispatchAsyncTaskSerial<FOnlineAsyncTaskAccelByteQueryUsersByIds>(Subsystem, LocalUserNum, FilteredIds, bIsImportant, Delegate);
@@ -366,11 +379,31 @@ bool FOnlineUserCacheAccelByte::QueryUsersByAccelByteIds(const FUniqueNetId& Use
 	}
 
 	FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(Subsystem->GetIdentityInterface());
+	if (!IdentityInterface.IsValid())
+	{
+		UE_LOG_AB(Warning, TEXT("FOnlineUserStoreAccelByte::QueryUsersByAccelByteIds IdentityInterface is invalid, skipping this call!"));
+		Delegate.ExecuteIfBound(true, TArray<FAccelByteUserInfoRef>());
+		return false;
+	}
+	
 	FOnlineUserAccelBytePtr UserInterface = StaticCastSharedPtr<FOnlineUserAccelByte>(Subsystem->GetUserInterface());
+	if (!UserInterface.IsValid())
+	{
+		UE_LOG_AB(Warning, TEXT("FOnlineUserStoreAccelByte::QueryUsersByAccelByteIds UserInterface is invalid, skipping this call!"));
+		Delegate.ExecuteIfBound(true, TArray<FAccelByteUserInfoRef>());
+		return false;
+	}
 
-	int32 LocalUserNum;
-	IdentityInterface->GetLocalUserNum(UserId, LocalUserNum);
+	int32 LocalUserNum = INVALID_CONTROLLERID;
+	const bool bLocalUserNumFound = IdentityInterface->GetLocalUserNum(UserId, LocalUserNum);
 
+	if (!bLocalUserNumFound || !FOnlineSubsystemAccelByteUtils::IsValidLocalUserNum(LocalUserNum))
+	{
+		UE_LOG_AB(Warning, TEXT("FOnlineUserStoreAccelByte::QueryUsersByAccelByteIds LocalUserNum is invalid, skipping this call!"));
+		Delegate.ExecuteIfBound(true, TArray<FAccelByteUserInfoRef>());
+		return false;
+	}
+	
 	//Run QueryUserProfile after QueryUsersByIds to get Info like FriendId
 	Subsystem->CreateAndDispatchAsyncTaskSerial<FOnlineAsyncTaskAccelByteQueryUsersByIds>(Subsystem, UserId, FilteredIds, bIsImportant, Delegate);
 	Subsystem->CreateAndDispatchAsyncTaskSerial<FOnlineAsyncTaskAccelByteQueryUserProfile>(Subsystem, UserId, FilteredIds, UserInterface->OnQueryUserProfileCompleteDelegates[LocalUserNum]);
@@ -437,7 +470,12 @@ TSharedPtr<const FAccelByteUserInfo, ESPMode::ThreadSafe> FOnlineUserCacheAccelB
 	if (FoundUserInfo == nullptr && (!UserId.PlatformType.IsEmpty() && !UserId.PlatformId.IsEmpty()))
 	{
 		const FString PlatformId = ConvertPlatformTypeAndIdToCacheKey(UserId.PlatformType, UserId.PlatformId);
-		FoundUserInfo = PlatformIdToUserInfoMap.Find(PlatformId);
+		FAccelByteUserInfoRef* FoundUserInfoTemp = PlatformIdToUserInfoMap.Find(PlatformId);
+		// Check if platform accelbyte id is match with composite user id. If the same then set the user info from platform cache
+		if (FoundUserInfoTemp && FoundUserInfoTemp->Get().Id->GetAccelByteId() == UserId.Id)
+		{
+			FoundUserInfo = FoundUserInfoTemp;
+		}
 	}
 
 	if (FoundUserInfo != nullptr)

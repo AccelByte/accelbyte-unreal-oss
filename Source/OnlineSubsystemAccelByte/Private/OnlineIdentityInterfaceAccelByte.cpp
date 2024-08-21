@@ -51,6 +51,18 @@ FOnlineIdentityAccelByte::FOnlineIdentityAccelByte(FOnlineSubsystemAccelByte* In
 	check(AccelByteSubsystem != nullptr);
 }
 
+FOnlineIdentityAccelByte::~FOnlineIdentityAccelByte()
+{
+	for (auto& TaskPair : LocalUserNumToLogoutTask)
+	{
+		auto TaskPtr = TaskPair.Value.Pin();
+		if (TaskPtr.IsValid())
+		{
+			TaskPtr->Cancel();
+		}
+	}
+}
+
 bool FOnlineIdentityAccelByte::GetFromSubsystem(const IOnlineSubsystem* Subsystem, FOnlineIdentityAccelBytePtr& OutInterfaceInstance)
 {
 	OutInterfaceInstance = StaticCastSharedPtr<FOnlineIdentityAccelByte>(Subsystem->GetIdentityInterface());
@@ -220,7 +232,8 @@ bool FOnlineIdentityAccelByte::Logout(int32 LocalUserNum, FString Reason)
 		{
 			ApiClient->Chat.Disconnect();
 		}
-		ApiClient->User.LogoutV3(OnLogoutSuccessDelegate, OnLogoutFailedDelegate);
+		auto TaskWPtr = ApiClient->User.LogoutV3(OnLogoutSuccessDelegate, OnLogoutFailedDelegate);
+		LocalUserNumToLogoutTask.Emplace(LocalUserNum, TaskWPtr);
 	}
 	else
 	{
@@ -849,12 +862,14 @@ void FOnlineIdentityAccelByte::OnLogout(const int32 LocalUserNum, bool bWasSucce
 		UE_LOG_AB(Log, TEXT("Logging out with AccelByte OSS succeeded! LocalUserNum: %d"), LocalUserNum);
 		RemoveUserFromMappings(LocalUserNum);
 	}
+	LocalUserNumToLogoutTask.Remove(LocalUserNum);
 }
 
 void FOnlineIdentityAccelByte::OnLogoutError(int32 ErrorCode, const FString& ErrorMessage, int32 LocalUserNum)
 {
 	UE_LOG_AB(Error, TEXT("Logging out with AccelByte OSS failed! Code: %d; Message: %s"), ErrorCode, *ErrorMessage);
 	OnLogout(LocalUserNum, false);
+	LocalUserNumToLogoutTask.Remove(LocalUserNum);
 }
 #undef ONLINE_ERROR_NAMESPACE
 

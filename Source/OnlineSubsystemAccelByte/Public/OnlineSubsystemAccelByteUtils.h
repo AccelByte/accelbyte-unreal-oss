@@ -90,6 +90,13 @@ public:
 
 	static EAccelBytePlatformType GetCurrentAccelBytePlatformType(const FName& NativeSubsystemName);
 
+	/**
+	 * Check if the local user num is in valid range of maximum local user.
+	 *
+	 * @return True if the local user num is in the range of maximum local user for current platform.
+	 */
+	static bool IsValidLocalUserNum(const int32& InLocalUserNum);
+
 private:
 
 	/**

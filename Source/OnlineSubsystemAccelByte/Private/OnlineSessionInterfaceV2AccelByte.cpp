@@ -851,6 +851,15 @@ void FOnlineSessionV2AccelByte::OnMatchTicketCheckGetSessionInfoById(int32 Local
 	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT(""));
 
 	OnMatchTicketCheckGetMatchSessionDetailsDelegate.Unbind();
+
+	// check if we already received actual match found notification but CurrentMatchmakingSearchHandle is still valid (still query resulting session)
+	// but not actually stopping mitigation polling since it'll be stopped once we triggered match complete delegate
+	if(bFindMatchmakingGameSessionByIdInProgress)
+	{
+		AB_OSS_INTERFACE_TRACE_END(TEXT("already received match found notification, skipping matchmaking notif mitigation"));
+		return;
+	}
+	
 	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystem->GetIdentityInterface());
 	if (!ensure(IdentityInterface.IsValid()))
 	{
@@ -918,6 +927,14 @@ void FOnlineSessionV2AccelByte::OnMatchTicketCheckGetMatchTicketDetails(
 	if (!ensure(IdentityInterface.IsValid()))
 	{
 		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Log, TEXT("Failed to check matchmaking progress as identity interface is invalid!"));
+		return;
+	}
+
+	// check if we already received actual match found notification but CurrentMatchmakingSearchHandle is still valid (still query resulting session)
+	// but not actually stopping mitigation polling since it'll be stopped once we triggered match complete delegate
+	if(bFindMatchmakingGameSessionByIdInProgress)
+	{
+		AB_OSS_INTERFACE_TRACE_END(TEXT("already received match found notification, skipping matchmaking notif mitigation"));
 		return;
 	}
 
@@ -1177,12 +1194,13 @@ void FOnlineSessionV2AccelByte::StopSessionInviteCheckPoll(const FUniqueNetIdPtr
 
 void FOnlineSessionV2AccelByte::OnSessionInviteCheckGetSession(int32 LocalUserNum, bool bWasSuccessful, const FOnlineSessionSearchResult& OnlineSearchResult)
 {
-	if(!bWasSuccessful)
+	// if invitation get info exist that means we received a notification while checking get session, no need to continue mitigation process
+	if(SessionInvitationGetInfoInProgressExist(OnlineSearchResult.GetSessionIdStr()))
 	{
-		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(VeryVerbose, TEXT("Failed to check session invite, query session data failed!"));
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(VeryVerbose, TEXT("Session invitation received while invite notif mitigation is in process, stopping session invite mitigation"));
 		return;
 	}
-	
+
 	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystem->GetIdentityInterface());
 	if (!ensure(IdentityInterface.IsValid()))
 	{
@@ -5550,6 +5568,7 @@ void FOnlineSessionV2AccelByte::OnInvitedToGameSessionNotification(FAccelByteMod
 		return;
 	}
 
+	SetSessionInvitationGetInfoInProgress(InviteEvent.SessionID);
 	OnFindGameSessionForInviteCompleteDelegate = FOnSingleSessionResultCompleteDelegate::CreateThreadSafeSP(SharedThis(this), &FOnlineSessionV2AccelByte::OnFindGameSessionForInviteComplete, InviteEvent);
 	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteFindV2GameSessionById>(AccelByteSubsystem, PlayerId.ToSharedRef().Get(), SessionUniqueId.ToSharedRef().Get(), OnFindGameSessionForInviteCompleteDelegate);
 
@@ -5619,6 +5638,8 @@ void FOnlineSessionV2AccelByte::OnFindGameSessionForInviteComplete(int32 LocalUs
 	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("LocalUserNum: %d; bWasSuccessful: %s; SessionId: %s"), LocalUserNum, LOG_BOOL_FORMAT(bWasSuccessful), *Result.GetSessionIdStr());
 
 	OnFindGameSessionForInviteCompleteDelegate.Unbind();
+
+	RemoveSessionInvitationGetInfoInProgress(InviteEvent.SessionID);
 
 	if (!bWasSuccessful)
 	{
@@ -6505,6 +6526,13 @@ void FOnlineSessionV2AccelByte::OnMatchmakingCanceledNotification(FAccelByteMode
 		return;
 	}
 
+	// Check if this notification is the one we are actively matchmaking
+	if(CurrentMatchmakingSearchHandle->TicketId != MatchmakingCanceledNotif.TicketID)
+	{
+		AB_OSS_INTERFACE_TRACE_END(TEXT("Received matchmaking canceled notification with ID %s, but differs from current active ticket %s. Ignoring."), *MatchmakingCanceledNotif.TicketID, *CurrentMatchmakingSearchHandle->TicketId);
+		return;
+	}
+
 	// Add ticket ID to the canceled array
 	AddCanceledTicketId(CurrentMatchmakingSearchHandle->TicketId);
 
@@ -6528,6 +6556,8 @@ void FOnlineSessionV2AccelByte::OnMatchmakingCanceledNotification(FAccelByteMode
 void FOnlineSessionV2AccelByte::OnFindMatchmakingGameSessionByIdComplete(int32 LocalUserNum, bool bWasSuccessful, const FOnlineSessionSearchResult& Result)
 {
 	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT(""));
+
+	SetFindMatchmakingGameSessionByIdInProgress(false);
 
 	if (!CurrentMatchmakingSearchHandle.IsValid())
 	{
@@ -7424,6 +7454,29 @@ void FOnlineSessionV2AccelByte::OnGameSessionInviteRejectedNotification(FAccelBy
 	TriggerOnSessionUpdateReceivedDelegates(Session->SessionName);
 
 	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+}
+
+void FOnlineSessionV2AccelByte::SetFindMatchmakingGameSessionByIdInProgress(const bool State)
+{
+	bFindMatchmakingGameSessionByIdInProgress = State;
+}
+
+void FOnlineSessionV2AccelByte::SetSessionInvitationGetInfoInProgress(const FString& SessionId)
+{
+	FScopeLock Lock(&SessionInvitationGetInfoInProgressLock);
+	SessionInvitationGetInfoInProgress.Emplace(SessionId);
+}
+
+void FOnlineSessionV2AccelByte::RemoveSessionInvitationGetInfoInProgress(const FString& SessionId)
+{
+	FScopeLock Lock(&SessionInvitationGetInfoInProgressLock);
+	SessionInvitationGetInfoInProgress.Remove(SessionId);
+}
+
+bool FOnlineSessionV2AccelByte::SessionInvitationGetInfoInProgressExist(const FString& SessionId)
+{
+	FScopeLock Lock(&SessionInvitationGetInfoInProgressLock);
+	return SessionInvitationGetInfoInProgress.Contains(SessionId);
 }
 
 void FOnlineSessionV2AccelByte::UpdateSessionInvite(const FOnlineSessionInviteAccelByte& NewInvite)

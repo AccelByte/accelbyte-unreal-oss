@@ -2033,14 +2033,14 @@ protected:
 
 private:
 	bool bFindMatchmakingGameSessionByIdInProgress{false};
-
-public:
-	void SetFindMatchmakingGameSessionByIdInProgress(const bool State)
-	{
-		bFindMatchmakingGameSessionByIdInProgress = State;
-	}
-
-private:
+	FCriticalSection SessionInvitationGetInfoInProgressLock{};
+	TArray<FString> SessionInvitationGetInfoInProgress{};
+	
+	void SetFindMatchmakingGameSessionByIdInProgress(bool State);
+	void SetSessionInvitationGetInfoInProgress(const FString& SessionId);
+	void RemoveSessionInvitationGetInfoInProgress(const FString& SessionId);
+	bool SessionInvitationGetInfoInProgressExist(const FString& SessionId);
+	
 	void UpdateSessionInvite(const FOnlineSessionInviteAccelByte& NewInvite);
 	bool RemoveSessionInvite(const FString& ID);
 };

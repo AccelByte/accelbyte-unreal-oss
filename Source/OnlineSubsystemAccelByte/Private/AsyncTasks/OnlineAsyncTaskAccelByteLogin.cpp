@@ -649,14 +649,18 @@ void FOnlineAsyncTaskAccelByteLogin::OnLoginSuccess()
 
 	CompositeId.Id = ApiClient->CredentialsRef->GetUserId();
 
-	const IOnlineSubsystem* NativeSubsystem = Subsystem->GetNativePlatformSubsystem();
-	if (NativeSubsystem != nullptr 
-		&& LoginType == FOnlineSubsystemAccelByteUtils::GetAccelByteLoginTypeFromNativeSubsystem(NativeSubsystem->GetSubsystemName()))
+	FName NativeSubsystemName;
+	if (ShouldInitiateNativePlatformLogin(AccountCredentials, NativeSubsystemName))
 	{
-		IOnlineIdentityPtr NativeIdentityInterface = NativeSubsystem->GetIdentityInterface();
-		if (NativeIdentityInterface.IsValid())
+		const IOnlineSubsystem* NativeSubsystem = Subsystem->GetNativePlatformSubsystem();
+		if (NativeSubsystem != nullptr
+			&& LoginType == FOnlineSubsystemAccelByteUtils::GetAccelByteLoginTypeFromNativeSubsystem(NativeSubsystemName))
 		{
-			NativePlatformPlayerId = NativeIdentityInterface->GetUniquePlayerId(LoginUserNum);
+			IOnlineIdentityPtr NativeIdentityInterface = NativeSubsystem->GetIdentityInterface();
+			if (NativeIdentityInterface.IsValid())
+			{
+				NativePlatformPlayerId = NativeIdentityInterface->GetUniquePlayerId(LoginUserNum);
+			}
 		}
 	}
 

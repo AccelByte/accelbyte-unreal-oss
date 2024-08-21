@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.12.23](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.12.23%0D0.12.22) (2024-08-21)
+
+
+### Bug Fixes
+
+* check TicketID is the same when receive matchmaking canceled notification ([181ee23](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/181ee2321c3cfe20fa201fb8f2cb59e26677c1d5))
+* crash when trying to fetch NativeSubsystem during OnLoginSuccess ([131960c](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/131960caa2d131cb465db604a206524bc5415ac5))
+* crashes when Logging out during shutdown due to accessing object that has been destroyed ([5f02515](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/5f02515fee71bdf5b75f0a8971bc00293a957ab3))
+* fix race condition causing OnMatchmakingComplete triggered 2x ([b3b217b](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/b3b217b7e0628b9417b445648dce9f13a5905321))
+* fix race condition causing session invite triggers 2x ([2ab3f0e](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/2ab3f0e4ab5935ae7b5be4712298127c6d11e730))
+* login queue ticket updated triggered with wrong success state ([2ae3ab6](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/2ae3ab6c1f914a05639f4ef1049adb0f574132c0))
+* **user:** add guard for invalid interface and local user num before dispatching query user task ([1177e26](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/1177e26bc56ce850c52a29eab674522210b1bf17))
+* **UserCache:** check platform user info if accelbyte id is match from requested user ([920023b](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/920023bffd79c7ebb3f81eeb73ca4369f72ca60a))
+
 ### [0.12.22](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.12.22%0D0.12.21) (2024-08-12)
 
 

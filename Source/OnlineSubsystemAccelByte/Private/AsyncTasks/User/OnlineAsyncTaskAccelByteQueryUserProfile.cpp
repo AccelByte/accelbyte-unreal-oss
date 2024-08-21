@@ -168,7 +168,7 @@ void FOnlineAsyncTaskAccelByteQueryUserProfile::Finalize()
 		if (!Account.IsValid())
 		{
 			Account = MakeShared<FUserOnlineAccountAccelByte>(CachedUserInfo->Id.ToSharedRef());
-			if (UserId.Get() == CachedUserInfo->Id.Get())
+			if (UserId.IsValid() && UserId->GetAccelByteId() == CachedUserInfo->Id->GetAccelByteId())
 			{
 				Account->SetDisplayName(ApiClient->CredentialsRef->GetUserDisplayName());
 				Account->SetAccessToken(ApiClient->CredentialsRef->GetAccessToken());
