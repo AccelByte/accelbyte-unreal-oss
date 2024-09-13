@@ -77,14 +77,8 @@ void FOnlineAsyncTaskAccelByteSimultaneousLogin::Initialize()
 		return;
 	}
 
-	if (Subsystem->IsMultipleLocalUsersEnabled())
-	{
-		SetApiClient(FMultiRegistry::GetApiClient(FString::Printf(TEXT("%d"), LoginUserNum)));
-	}
-	else
-	{
-		SetApiClient(FMultiRegistry::GetApiClient());
-	}
+	InitApiClient();
+
 	API_CLIENT_CHECK_GUARD(ErrorStr);
 	ApiClient->CredentialsRef->SetClientCredentials(FRegistry::Settings.ClientId, FRegistry::Settings.ClientSecret);
 	

@@ -4,6 +4,7 @@
 
 #include "AsyncTasks/OnlineAsyncTaskAccelByte.h"
 #include "AsyncTasks/OnlineAsyncEpicTaskAccelByte.h"
+#include "Core/AccelByteMultiRegistry.h"
 
 void FOnlineAsyncTaskAccelByte::ExecuteCriticalSectionAction(FVoidHandler Action)
 {
@@ -57,4 +58,16 @@ void FOnlineAsyncTaskAccelByte::ForcefullySetTimeoutState()
 	OnTaskTimedOut();
 	DeltaTickAccumulation += TaskTimeoutInSeconds;
 	LastTaskUpdateInSeconds -= TaskTimeoutInSeconds;
+}
+
+void FOnlineAsyncTaskAccelByte::InitApiClientForLogin(int LoginUserNum)
+{
+	if (Subsystem->IsMultipleLocalUsersEnabled())
+	{
+		SetApiClient(AccelByte::FMultiRegistry::GetApiClient(FString::Printf(TEXT("%s/%d"), *Subsystem->GetInstanceName().ToString(), LoginUserNum)));
+	}
+	else
+	{
+		SetApiClient(AccelByte::FMultiRegistry::GetApiClient());
+	}
 }

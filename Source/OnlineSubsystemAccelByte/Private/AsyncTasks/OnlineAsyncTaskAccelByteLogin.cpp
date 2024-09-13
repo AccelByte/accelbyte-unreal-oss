@@ -84,14 +84,7 @@ void FOnlineAsyncTaskAccelByteLogin::Initialize()
 	
 	GConfig->GetInt(TEXT("OnlineSubsystemAccelByte"), TEXT("LoginQueuePresentationThreshold"), LoginQueuePresentationThreshold, GEngineIni);
 
-	if (Subsystem->IsMultipleLocalUsersEnabled())
-	{
-		SetApiClient(FMultiRegistry::GetApiClient(FString::Printf(TEXT("%d"), LoginUserNum)));
-	}
-	else
-	{
-		SetApiClient(FMultiRegistry::GetApiClient());
-	}
+	InitApiClient();
 	
 	API_CLIENT_CHECK_GUARD();
 	//Valid because just recently SetApiClient()
@@ -215,6 +208,11 @@ void FOnlineAsyncTaskAccelByteLogin::TriggerDelegates()
 	}
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
+}
+
+void FOnlineAsyncTaskAccelByteLogin::InitApiClient()
+{
+	InitApiClientForLogin(LoginUserNum);
 }
 
 void FOnlineAsyncTaskAccelByteLogin::LoginWithNativeSubsystem()

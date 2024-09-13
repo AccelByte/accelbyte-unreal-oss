@@ -161,6 +161,12 @@ protected:
 #endif
 
 	/**
+	 * Initializes the ApiClient for this login, using ContextName/LocalUserNum as the key if multiple users are enabled,
+	 * or using the global default ApiClient if not
+	 */
+	void InitApiClient();
+
+	/**
 	 * Attempts to fire off a login request with a native subsystem, if one is set up and usable.
 	 *
 	 * @param LocalUserNum Index of the user that we want to try and auth with native subsystem pass through
