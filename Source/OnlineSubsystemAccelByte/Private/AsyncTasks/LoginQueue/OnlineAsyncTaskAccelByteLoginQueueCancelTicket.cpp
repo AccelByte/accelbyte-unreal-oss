@@ -25,15 +25,8 @@ void FOnlineAsyncTaskAccelByteLoginQueueCancelTicket::Initialize()
 
 	Super::Initialize();
 	
-	if (Subsystem->IsMultipleLocalUsersEnabled())
-	{
-		SetApiClient(FMultiRegistry::GetApiClient(FString::Printf(TEXT("%d"), LoginUserNum)));
-	}
-	else
-	{
-		SetApiClient(FMultiRegistry::GetApiClient());
-	}
-	
+	InitApiClientForLogin(LoginUserNum);
+		
 	API_CLIENT_CHECK_GUARD(ErrorStr);
 
 	OnCancelTicketSuccessHandler = TDelegateUtils<FVoidHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteLoginQueueCancelTicket::OnCancelTicketSuccess);

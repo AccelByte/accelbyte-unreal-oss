@@ -496,6 +496,14 @@ protected:
 	}
 
 	/**
+	 * Initializes the ApiClient for this login, using ContextName/LocalUserNum as the key if multiple users are enabled,
+	 * or using the global default ApiClient if not
+	 *
+	 * @param LoginUserNum The local user num being used to temporarily identify an API client
+	 */
+	void InitApiClientForLogin(int LoginUserNum);
+	
+	/**
 	 * Sets current API client member (expected to be used by Login async tasks)
 	 */
 	void SetApiClient(AccelByte::FApiClientPtr Input)

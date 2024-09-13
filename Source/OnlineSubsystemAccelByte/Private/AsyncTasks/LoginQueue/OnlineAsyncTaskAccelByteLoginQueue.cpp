@@ -139,15 +139,8 @@ void FOnlineAsyncTaskAccelByteLoginQueue::ClaimAccessToken(const FString& InTick
 {
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("LocalUserNum: %d, TicketId: %s"), LoginUserNum, *InTicketId);
 
-	if (Subsystem->IsMultipleLocalUsersEnabled())
-	{
-		SetApiClient(FMultiRegistry::GetApiClient(FString::Printf(TEXT("%d"), LoginUserNum)));
-	}
-	else
-	{
-		SetApiClient(FMultiRegistry::GetApiClient());
-	}
-	
+	InitApiClientForLogin(LoginUserNum);
+
 	if(!IsApiClientValid())
 	{
 		AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Unable to claim access token, ApiClient is invalid"));

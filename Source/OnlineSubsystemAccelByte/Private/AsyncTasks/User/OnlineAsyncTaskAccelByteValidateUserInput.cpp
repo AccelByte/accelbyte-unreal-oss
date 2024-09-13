@@ -28,7 +28,7 @@ void FOnlineAsyncTaskAccelByteValidateUserInput::Initialize()
 	// Ensure to always get api client since the endpoint is able to call without authorization
 	if (Subsystem->GetApiClient(LocalUserNum) == nullptr)
 	{
-		SetApiClient(FMultiRegistry::GetApiClient(FString::Printf(TEXT("%d"), LocalUserNum)));
+		SetApiClient(FMultiRegistry::GetApiClient(FString::Printf(TEXT("%s/%d"), *Subsystem->GetInstanceName().ToString(), LocalUserNum)));
 	}
 	API_CLIENT_CHECK_GUARD(OnlineError)
 	
