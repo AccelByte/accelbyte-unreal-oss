@@ -28,6 +28,8 @@ FOnlineAsyncTaskAccelByteCreateStatsUser::FOnlineAsyncTaskAccelByteCreateStatsUs
 
 void FOnlineAsyncTaskAccelByteCreateStatsUser::Initialize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	Super::Initialize();
 	
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
@@ -48,7 +50,7 @@ void FOnlineAsyncTaskAccelByteCreateStatsUser::Initialize()
 		return;
 	}
 
-	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(Subsystem->GetIdentityInterface());
+	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(SubsystemPin->GetIdentityInterface());
 	if (!IdentityInterface.IsValid())
 	{
 		ErrorMessage = TEXT("request-failed-create-user-stats-error-identity-invalid");
@@ -82,11 +84,13 @@ void FOnlineAsyncTaskAccelByteCreateStatsUser::Initialize()
 
 void FOnlineAsyncTaskAccelByteCreateStatsUser::Finalize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	Super::Finalize();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Finalize"));
 
-	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = Subsystem->GetPredefinedEventInterface();
+	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = SubsystemPin->GetPredefinedEventInterface();
 	if (bWasSuccessful && PredefinedEventInterface.IsValid())
 	{
 		TSharedPtr<FAccelByteModelsUserStatItemCreatedPayload> UserStatItemCreatedPayload = MakeShared<FAccelByteModelsUserStatItemCreatedPayload>();

@@ -35,11 +35,13 @@ void FOnlineAsyncTaskAccelByteGetUserPlatformLinks::Initialize()
 
 void FOnlineAsyncTaskAccelByteGetUserPlatformLinks::TriggerDelegates()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	Super::TriggerDelegates();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 
-	const FOnlineUserAccelBytePtr UserInterface = StaticCastSharedPtr<FOnlineUserAccelByte>(Subsystem->GetUserInterface());
+	const FOnlineUserAccelBytePtr UserInterface = StaticCastSharedPtr<FOnlineUserAccelByte>(SubsystemPin->GetUserInterface());
 	if (!UserInterface.IsValid())
 	{
 		UE_LOG_AB(Warning, TEXT("[Error] Failed to process the request! User interface is not valid!"));
@@ -63,6 +65,8 @@ void FOnlineAsyncTaskAccelByteGetUserPlatformLinks::TriggerDelegates()
 
 void FOnlineAsyncTaskAccelByteGetUserPlatformLinks::Finalize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	Super::Finalize();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
@@ -73,7 +77,7 @@ void FOnlineAsyncTaskAccelByteGetUserPlatformLinks::Finalize()
 		return;
 	}
 
-	TSharedPtr<FOnlineUserAccelByte, ESPMode::ThreadSafe> UserInterface = StaticCastSharedPtr<FOnlineUserAccelByte>(Subsystem->GetUserInterface());
+	TSharedPtr<FOnlineUserAccelByte, ESPMode::ThreadSafe> UserInterface = StaticCastSharedPtr<FOnlineUserAccelByte>(SubsystemPin->GetUserInterface());
 	if (!UserInterface.IsValid())
 	{
 		UE_LOG_AB(Warning, TEXT("[Error] Failed to cache the user 3rd party platform information because the user interface is not valid!"));

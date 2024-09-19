@@ -50,11 +50,13 @@ FOnlineAsyncTaskAccelByteUpdateStatsUsers::FOnlineAsyncTaskAccelByteUpdateStatsU
 
 void FOnlineAsyncTaskAccelByteUpdateStatsUsers::Initialize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	Super::Initialize();
 	
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Initialized"));
 
-	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(Subsystem->GetIdentityInterface());
+	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(SubsystemPin->GetIdentityInterface());
 	if (!IdentityInterface.IsValid())
 	{
 		ErrorMessage = TEXT("request-failed-bulk-update-users-stats-error");
@@ -90,11 +92,13 @@ void FOnlineAsyncTaskAccelByteUpdateStatsUsers::Initialize()
 
 void FOnlineAsyncTaskAccelByteUpdateStatsUsers::Finalize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	Super::Finalize();
 	
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Finalize"));
 
-	const FOnlineStatisticAccelBytePtr StatisticInterface = StaticCastSharedPtr<FOnlineStatisticAccelByte>(Subsystem->GetStatsInterface());
+	const FOnlineStatisticAccelBytePtr StatisticInterface = StaticCastSharedPtr<FOnlineStatisticAccelByte>(SubsystemPin->GetStatsInterface());
 	if (StatisticInterface.IsValid())
 	{
 		for (const auto& UserStatsPair : OnlineUsersStatsPairs)
@@ -102,7 +106,7 @@ void FOnlineAsyncTaskAccelByteUpdateStatsUsers::Finalize()
 			StatisticInterface->EmplaceStats(UserStatsPair);
 		}
 	}
-	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = Subsystem->GetPredefinedEventInterface();
+	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = SubsystemPin->GetPredefinedEventInterface();
 	if (PredefinedEventInterface.IsValid())
 	{
 		for (const auto& UserStatsPair : OnlineUsersStatsPairs)

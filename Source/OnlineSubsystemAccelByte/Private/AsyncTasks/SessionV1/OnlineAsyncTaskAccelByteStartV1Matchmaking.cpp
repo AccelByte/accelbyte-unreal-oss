@@ -41,6 +41,8 @@ FOnlineAsyncTaskAccelByteStartV1Matchmaking::FOnlineAsyncTaskAccelByteStartV1Mat
 
 void FOnlineAsyncTaskAccelByteStartV1Matchmaking::Initialize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	Super::Initialize();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Session Name: %s"), *SessionName.ToString());
@@ -61,7 +63,7 @@ void FOnlineAsyncTaskAccelByteStartV1Matchmaking::Initialize()
 	
 	// AccelByte matchmaking requires that you are in a party when you send a request to start matchmaking, thus here we
 	// check if the player is already in a party on the party interface. If we are not, then the call will fail.
-	const FOnlinePartySystemAccelBytePtr PartyInterface = StaticCastSharedPtr<FOnlinePartySystemAccelByte>(Subsystem->GetPartyInterface());
+	const FOnlinePartySystemAccelBytePtr PartyInterface = StaticCastSharedPtr<FOnlinePartySystemAccelByte>(SubsystemPin->GetPartyInterface());
 	if (!PartyInterface.IsValid())
 	{
 		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Error, TEXT("Failed to create matchmaking session '%s', as we could not get the party interface to check if the host is in a party."), *SessionName.ToString());
@@ -86,7 +88,7 @@ void FOnlineAsyncTaskAccelByteStartV1Matchmaking::Initialize()
 	}
 
 	// Setup the session attributes for matchmaking
-	TSharedPtr<FOnlineUserAccelByte, ESPMode::ThreadSafe> UserInterface = StaticCastSharedPtr<FOnlineUserAccelByte>(Subsystem->GetUserInterface());
+	TSharedPtr<FOnlineUserAccelByte, ESPMode::ThreadSafe> UserInterface = StaticCastSharedPtr<FOnlineUserAccelByte>(SubsystemPin->GetUserInterface());
 
 	API_CLIENT_CHECK_GUARD(ErrorStringKey);
 	SearchSettings->SearchState = EOnlineAsyncTaskState::InProgress;
@@ -121,9 +123,11 @@ void FOnlineAsyncTaskAccelByteStartV1Matchmaking::Finalize()
 
 void FOnlineAsyncTaskAccelByteStartV1Matchmaking::TriggerDelegates()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
-	const TSharedPtr<FOnlineSessionV1AccelByte, ESPMode::ThreadSafe> SessionInterface = StaticCastSharedPtr<FOnlineSessionV1AccelByte>(Subsystem->GetSessionInterface());
+	const TSharedPtr<FOnlineSessionV1AccelByte, ESPMode::ThreadSafe> SessionInterface = StaticCastSharedPtr<FOnlineSessionV1AccelByte>(SubsystemPin->GetSessionInterface());
 	if (!bWasSuccessful)
 	{
 		if (SessionInterface.IsValid())

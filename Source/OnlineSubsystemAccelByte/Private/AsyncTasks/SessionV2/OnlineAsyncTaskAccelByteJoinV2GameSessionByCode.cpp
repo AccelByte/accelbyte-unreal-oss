@@ -15,12 +15,14 @@ FOnlineAsyncTaskAccelByteJoinV2GameSessionByCode::FOnlineAsyncTaskAccelByteJoinV
 
 void FOnlineAsyncTaskAccelByteJoinV2GameSessionByCode::Initialize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	Super::Initialize();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("UserId: %s; SessionName: %s; PartyCode: %s"), *UserId->ToDebugString(), *SessionName.ToString(), *Code);
 
 	FOnlineSessionV2AccelBytePtr SessionInterface = nullptr;
-	AB_ASYNC_TASK_ENSURE(FOnlineSessionV2AccelByte::GetFromSubsystem(Subsystem, SessionInterface), "Failed to join party by code as our session interface instance is invalid!");
+	AB_ASYNC_TASK_ENSURE(FOnlineSessionV2AccelByte::GetFromSubsystem(SubsystemPin.Get(),  SessionInterface), "Failed to join party by code as our session interface instance is invalid!");
 
 	FNamedOnlineSession* JoinedSession = SessionInterface->GetNamedSession(SessionName);
 	AB_ASYNC_TASK_ENSURE(JoinedSession != nullptr, "Failed to join party by code as the session that we are trying to join for is invalid!");
@@ -35,6 +37,8 @@ void FOnlineAsyncTaskAccelByteJoinV2GameSessionByCode::Initialize()
 
 void FOnlineAsyncTaskAccelByteJoinV2GameSessionByCode::Finalize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	Super::Finalize();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
@@ -42,7 +46,7 @@ void FOnlineAsyncTaskAccelByteJoinV2GameSessionByCode::Finalize()
 	// Regardless of whether we were successful in joining this party by code or not, destroy the previously created named
 	// session instance. If successful, a new one will be made in subsequent calls.
 	FOnlineSessionV2AccelBytePtr SessionInterface = nullptr;
-	if (!FOnlineSessionV2AccelByte::GetFromSubsystem(Subsystem, SessionInterface))
+	if (!FOnlineSessionV2AccelByte::GetFromSubsystem(SubsystemPin.Get(),  SessionInterface))
 	{
 		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to finalize joining a game session by code as our session interface is invalid!"));
 		bWasSuccessful = false;
@@ -73,7 +77,7 @@ void FOnlineAsyncTaskAccelByteJoinV2GameSessionByCode::Finalize()
 	JoinResult.Session = ConstructedSession;
 	SessionInterface->JoinSession(UserId.ToSharedRef().Get(), SessionName, JoinResult);
 
-	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = Subsystem->GetPredefinedEventInterface();
+	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = SubsystemPin->GetPredefinedEventInterface();
 	if (PredefinedEventInterface.IsValid())
 	{
 		FAccelByteModelsMPV2GameSessionJoinedPayload GameSessionJoinedPayload{};
@@ -87,6 +91,8 @@ void FOnlineAsyncTaskAccelByteJoinV2GameSessionByCode::Finalize()
 
 void FOnlineAsyncTaskAccelByteJoinV2GameSessionByCode::TriggerDelegates()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	Super::TriggerDelegates();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
@@ -99,7 +105,7 @@ void FOnlineAsyncTaskAccelByteJoinV2GameSessionByCode::TriggerDelegates()
 
 	// In the event of an error trying to join by code, notify the caller through the join session delegate that we failed to join
 	FOnlineSessionV2AccelBytePtr SessionInterface = nullptr;
-	if (!FOnlineSessionV2AccelByte::GetFromSubsystem(Subsystem, SessionInterface))
+	if (!FOnlineSessionV2AccelByte::GetFromSubsystem(SubsystemPin.Get(),  SessionInterface))
 	{
 		return;
 	}

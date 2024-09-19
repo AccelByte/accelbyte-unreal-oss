@@ -48,6 +48,8 @@ void FOnlineAsyncTaskAccelByteGroupsFindGroups::TriggerDelegates()
 
 void FOnlineAsyncTaskAccelByteGroupsFindGroups::Finalize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	Super::Finalize();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
@@ -56,7 +58,7 @@ void FOnlineAsyncTaskAccelByteGroupsFindGroups::Finalize()
 		return;
 
 	FOnlineGroupsAccelBytePtr GroupsInterface;
-	if(!ensure(FOnlineGroupsAccelByte::GetFromSubsystem(Subsystem, GroupsInterface)))
+	if(!ensure(FOnlineGroupsAccelByte::GetFromSubsystem(SubsystemPin.Get(),  GroupsInterface)))
 	{
 		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to FindGroups, groups interface instance is not valid!"));
 		return;
@@ -64,7 +66,7 @@ void FOnlineAsyncTaskAccelByteGroupsFindGroups::Finalize()
 
 	GroupsInterface->SetCachedGroupResults(AccelByteModelsGetGroupListResponse);
 
-	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = Subsystem->GetPredefinedEventInterface();
+	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = SubsystemPin->GetPredefinedEventInterface();
 	if (PredefinedEventInterface.IsValid())
 	{
 		FAccelByteModelsGroupFindPayload GroupFindPayload{};

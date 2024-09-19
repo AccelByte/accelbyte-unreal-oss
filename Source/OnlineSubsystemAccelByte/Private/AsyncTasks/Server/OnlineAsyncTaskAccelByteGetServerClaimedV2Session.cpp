@@ -32,11 +32,13 @@ void FOnlineAsyncTaskAccelByteGetServerClaimedV2Session::Initialize()
 
 void FOnlineAsyncTaskAccelByteGetServerClaimedV2Session::Finalize()
 {
+    TRY_PIN_SUBSYSTEM()
+
     Super::Finalize();
 
     AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
-	const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(Subsystem->GetSessionInterface());
+	const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(SubsystemPin->GetSessionInterface());
 	if (!ensure(SessionInterface.IsValid()))
     {
         AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to finalize data for the session that has claimed this server as our session interface is invalid!"));
@@ -66,11 +68,13 @@ void FOnlineAsyncTaskAccelByteGetServerClaimedV2Session::Finalize()
 
 void FOnlineAsyncTaskAccelByteGetServerClaimedV2Session::TriggerDelegates()
 {
+    TRY_PIN_SUBSYSTEM()
+
     Super::TriggerDelegates();
 
     AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
-	const TSharedPtr<FOnlineSessionV2AccelByte, ESPMode::ThreadSafe> SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(Subsystem->GetSessionInterface());
+	const TSharedPtr<FOnlineSessionV2AccelByte, ESPMode::ThreadSafe> SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(SubsystemPin->GetSessionInterface());
 	if (!ensure(SessionInterface.IsValid()))
     {
 		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to trigger delegates for notifying about claimed session as our session interface is invalid!"));

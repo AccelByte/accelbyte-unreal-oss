@@ -36,14 +36,16 @@ void FOnlineAsyncTaskAccelByteUnblockPlayer::Initialize()
 
 void FOnlineAsyncTaskAccelByteUnblockPlayer::Finalize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
 	if (bWasSuccessful)
 	{
-		const TSharedPtr<FOnlineFriendsAccelByte, ESPMode::ThreadSafe> FriendsInterface = StaticCastSharedPtr<FOnlineFriendsAccelByte>(Subsystem->GetFriendsInterface());
+		const TSharedPtr<FOnlineFriendsAccelByte, ESPMode::ThreadSafe> FriendsInterface = StaticCastSharedPtr<FOnlineFriendsAccelByte>(SubsystemPin->GetFriendsInterface());
 		FriendsInterface->RemoveBlockedPlayerFromList(LocalUserNum, PlayerId);
 
-		const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = Subsystem->GetPredefinedEventInterface();
+		const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = SubsystemPin->GetPredefinedEventInterface();
 		if (PredefinedEventInterface.IsValid() && PlayerId->IsValid())
 		{
 			FAccelByteModelsUserBlockedPayload UserBlockedPayload{};
@@ -58,9 +60,11 @@ void FOnlineAsyncTaskAccelByteUnblockPlayer::Finalize()
 
 void FOnlineAsyncTaskAccelByteUnblockPlayer::TriggerDelegates()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 	
-	const IOnlineFriendsPtr FriendsInterface = Subsystem->GetFriendsInterface();
+	const IOnlineFriendsPtr FriendsInterface = SubsystemPin->GetFriendsInterface();
 	FriendsInterface->TriggerOnUnblockedPlayerCompleteDelegates(LocalUserNum, bWasSuccessful, PlayerId.Get(), EFriendsLists::ToString(EFriendsLists::Default), ErrorStr);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

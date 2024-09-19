@@ -31,11 +31,13 @@ FOnlineAsyncTaskAccelByteReadLeaderboardAroundUser::FOnlineAsyncTaskAccelByteRea
 
 void FOnlineAsyncTaskAccelByteReadLeaderboardAroundUser::Initialize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	Super::Initialize();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Initialized"));
 	
-	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(Subsystem->GetIdentityInterface());
+	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(SubsystemPin->GetIdentityInterface());
 	if (!IdentityInterface.IsValid())
 	{
 		ErrorMessage = TEXT("request-failed-read-leaderboards-error-identity-invalid");
@@ -69,6 +71,8 @@ void FOnlineAsyncTaskAccelByteReadLeaderboardAroundUser::Initialize()
 
 void FOnlineAsyncTaskAccelByteReadLeaderboardAroundUser::Finalize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	Super::Finalize();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Finalize"));
@@ -77,7 +81,7 @@ void FOnlineAsyncTaskAccelByteReadLeaderboardAroundUser::Finalize()
 
 	if (bWasSuccessful)
 	{
-		const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = Subsystem->GetPredefinedEventInterface();
+		const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = SubsystemPin->GetPredefinedEventInterface();
 		if (PredefinedEventInterface.IsValid())
 		{
 			FAccelByteModelsLeaderboardGetUserRankingPayload LeaderboardGetUserRankingPayload{};
@@ -93,11 +97,13 @@ void FOnlineAsyncTaskAccelByteReadLeaderboardAroundUser::Finalize()
 
 void FOnlineAsyncTaskAccelByteReadLeaderboardAroundUser::TriggerDelegates()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	Super::TriggerDelegates();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
-	const FOnlineLeaderboardAccelBytePtr LeaderboardsInterface = StaticCastSharedPtr<FOnlineLeaderboardAccelByte>(Subsystem->GetLeaderboardsInterface());
+	const FOnlineLeaderboardAccelBytePtr LeaderboardsInterface = StaticCastSharedPtr<FOnlineLeaderboardAccelByte>(SubsystemPin->GetLeaderboardsInterface());
 	if (!ensure(LeaderboardsInterface.IsValid()))
 	{
 		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to trigger delegates to read leaderboards as our leaderboards interface is invalid!"));

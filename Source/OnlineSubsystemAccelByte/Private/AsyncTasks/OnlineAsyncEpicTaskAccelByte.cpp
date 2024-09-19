@@ -33,6 +33,8 @@ void FOnlineAsyncEpicTaskAccelByte::TriggerDelegates()
 
 void FOnlineAsyncEpicTaskAccelByte::Tick()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	// If we are not currently in the working state, then kick off the work we need to do for the task
 	if (CurrentState != EAccelByteAsyncTaskState::Working)
 	{
@@ -94,11 +96,11 @@ void FOnlineAsyncEpicTaskAccelByte::Tick()
 			CurrentTask->Tick(Delta);
 			if (CurrentTask->IsDone())
 			{
-				if (Subsystem == nullptr)
+				if (!SubsystemPin.IsValid())
 				{
 					continue;
 				}
-				Subsystem->AddTaskToOutQueue(CurrentTask);
+				SubsystemPin->AddTaskToOutQueue(CurrentTask);
 				continue;
 			}
 		}
@@ -130,10 +132,7 @@ void FOnlineAsyncEpicTaskAccelByte::Tick()
 
 void FOnlineAsyncEpicTaskAccelByte::Timeout()
 {
-	if (Subsystem == nullptr)
-	{
-		return;
-	}
+	TRY_PIN_SUBSYSTEM()
 
 	TDoubleLinkedList<TArray<FOnlineAsyncTaskAccelByte*>>::TDoubleLinkedListNode* Node = TaskContainer.GetHead();
 
@@ -149,7 +148,7 @@ void FOnlineAsyncEpicTaskAccelByte::Timeout()
 				continue;
 			}
 			CurrentTask->ForcefullySetTimeoutState();
-			Subsystem->AddTaskToOutQueue(CurrentTask);
+			SubsystemPin->AddTaskToOutQueue(CurrentTask);
 		}
 
 		Node = Node->GetNextNode();

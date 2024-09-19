@@ -33,12 +33,14 @@ FOnlineAsyncTaskAccelByteJoinV1Party::FOnlineAsyncTaskAccelByteJoinV1Party(FOnli
 
 void FOnlineAsyncTaskAccelByteJoinV1Party::Initialize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	Super::Initialize();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("UserId: %s; %s"), *UserId->ToDebugString(), *GetJoinInfoString());
 
 	// Attempt to get party invite token before sending off a request to join a party
-	const FOnlinePartySystemAccelBytePtr PartyInterface = StaticCastSharedPtr<FOnlinePartySystemAccelByte>(Subsystem->GetPartyInterface());
+	const FOnlinePartySystemAccelBytePtr PartyInterface = StaticCastSharedPtr<FOnlinePartySystemAccelByte>(SubsystemPin->GetPartyInterface());
 	if (!PartyInterface.IsValid())
 	{
 		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Could not join party '%s' as the party interface was invalid!"), *GetPartyInfoForError());
@@ -85,9 +87,11 @@ void FOnlineAsyncTaskAccelByteJoinV1Party::Tick()
 
 void FOnlineAsyncTaskAccelByteJoinV1Party::Finalize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
-	const TSharedPtr<FOnlinePartySystemAccelByte, ESPMode::ThreadSafe> PartyInterface = StaticCastSharedPtr<FOnlinePartySystemAccelByte>(Subsystem->GetPartyInterface());
+	const TSharedPtr<FOnlinePartySystemAccelByte, ESPMode::ThreadSafe> PartyInterface = StaticCastSharedPtr<FOnlinePartySystemAccelByte>(SubsystemPin->GetPartyInterface());
 	if (!PartyInterface.IsValid())
 	{
 		UE_LOG_AB(Warning, TEXT("Failed to join party as the party interface instance was invalid!"));
@@ -126,13 +130,15 @@ void FOnlineAsyncTaskAccelByteJoinV1Party::Finalize()
 
 void FOnlineAsyncTaskAccelByteJoinV1Party::TriggerDelegates()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
 	if (bWasSuccessful)
 	{
 		Delegate.ExecuteIfBound(UserId.ToSharedRef().Get(), JoinedPartyId.ToSharedRef().Get(), CompletionResult, NotApprovedReason);
 
-		const TSharedPtr<FOnlinePartySystemAccelByte, ESPMode::ThreadSafe> PartyInterface = StaticCastSharedPtr<FOnlinePartySystemAccelByte>(Subsystem->GetPartyInterface());
+		const TSharedPtr<FOnlinePartySystemAccelByte, ESPMode::ThreadSafe> PartyInterface = StaticCastSharedPtr<FOnlinePartySystemAccelByte>(SubsystemPin->GetPartyInterface());
 		if (PartyInterface.IsValid())
 		{
 			PartyInterface->TriggerOnPartyJoinedDelegates(UserId.ToSharedRef().Get(), JoinedPartyId.ToSharedRef().Get());
@@ -148,6 +154,8 @@ void FOnlineAsyncTaskAccelByteJoinV1Party::TriggerDelegates()
 
 void FOnlineAsyncTaskAccelByteJoinV1Party::OnGetPartyInfoResponse(const FAccelByteModelsInfoPartyResponse& Result)
 {
+	TRY_PIN_SUBSYSTEM()
+
 	SetLastUpdateTimeToCurrentTime();
 
 	// Check whether we successfully got information on a party, if so, this means that we are already in a party on the backend
@@ -161,7 +169,7 @@ void FOnlineAsyncTaskAccelByteJoinV1Party::OnGetPartyInfoResponse(const FAccelBy
 	}
 
 	// Attempt to get party invite token before sending off a request to join a party
-	const FOnlinePartySystemAccelBytePtr PartyInterface = StaticCastSharedPtr<FOnlinePartySystemAccelByte>(Subsystem->GetPartyInterface());
+	const FOnlinePartySystemAccelBytePtr PartyInterface = StaticCastSharedPtr<FOnlinePartySystemAccelByte>(SubsystemPin->GetPartyInterface());
 	if (!PartyInterface.IsValid())
 	{
 		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Could not join party %s as the party interface was invalid!"), *GetPartyInfoForError());
@@ -223,8 +231,10 @@ void FOnlineAsyncTaskAccelByteJoinV1Party::OnJoinPartyResponse(const FAccelByteM
 
 	Super::ExecuteCriticalSectionAction(FVoidHandler::CreateLambda([&]()
 		{
+			TRY_PIN_SUBSYSTEM()
+
 		FOnQueryPartyInfoComplete OnQueryPartyInfoCompleteDelegate = TDelegateUtils<FOnQueryPartyInfoComplete>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteJoinV1Party::OnQueryPartyInfoComplete);
-		Subsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteQueryV1PartyInfo>(Subsystem, UserId.ToSharedRef().Get(), Result.PartyId, Result.Members, OnQueryPartyInfoCompleteDelegate);
+		SubsystemPin->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteQueryV1PartyInfo>(SubsystemPin.Get(), UserId.ToSharedRef().Get(), Result.PartyId, Result.Members, OnQueryPartyInfoCompleteDelegate);
 		}));
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

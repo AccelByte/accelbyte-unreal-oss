@@ -30,9 +30,11 @@ void FOnlineAsyncTaskAccelByteGetServerTime::Initialize()
 
 void FOnlineAsyncTaskAccelByteGetServerTime::TriggerDelegates() 
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
-	const IOnlineTimePtr TimeInterface = Subsystem->GetTimeInterface();
+	const IOnlineTimePtr TimeInterface = SubsystemPin->GetTimeInterface();
 	if (TimeInterface.IsValid()) 
 	{
 		TimeInterface->TriggerOnQueryServerUtcTimeCompleteDelegates(bWasSuccessful, LocalCachedServerTime->ToString(), ErrorMessage);
@@ -43,7 +45,9 @@ void FOnlineAsyncTaskAccelByteGetServerTime::TriggerDelegates()
 
 void FOnlineAsyncTaskAccelByteGetServerTime::HandleGetServerTimeSuccess(FTime const& Result)
 {
-	const FOnlineTimeAccelBytePtr TimeInterface =  StaticCastSharedPtr<FOnlineTimeAccelByte>(Subsystem->GetTimeInterface());
+	TRY_PIN_SUBSYSTEM()
+
+	const FOnlineTimeAccelBytePtr TimeInterface =  StaticCastSharedPtr<FOnlineTimeAccelByte>(SubsystemPin->GetTimeInterface());
 	if (TimeInterface.IsValid())
 	{
 		CompleteTask(EAccelByteAsyncTaskCompleteState::Success);

@@ -17,7 +17,7 @@ class FOnlineAsyncTaskAccelByteLeaveV2Party
 {
 public:
 
-	FOnlineAsyncTaskAccelByteLeaveV2Party(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InLocalUserId, const FString& InSessionId, const FOnLeaveSessionComplete& InDelegate);
+	FOnlineAsyncTaskAccelByteLeaveV2Party(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InLocalUserId, const FString& InSessionId, const FOnLeaveSessionComplete& InDelegate, bool bInUserKicked);
 
 	virtual void Initialize() override;
 	virtual void Finalize() override;
@@ -51,4 +51,7 @@ private:
 
 	FErrorHandler OnLeavePartyErrorDelegate;
 	void OnLeavePartyError(int32 ErrorCode, const FString& ErrorMessage);
+
+	/** Flag denoting whether the user is kicked, if so skip calling leave party. */
+	bool bUserKicked{false};
 };

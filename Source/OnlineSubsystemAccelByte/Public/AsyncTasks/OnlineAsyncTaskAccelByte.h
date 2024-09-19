@@ -145,6 +145,19 @@ if (!IsApiClientValid())\
 }\
 auto ApiClient = GetApiClientInternal();\
 
+#define TRY_PIN_SUBSYSTEM_RAW(bCompleteTaskIfInvalid, .../*returned variable if the SubsystemPin invalid*/) \
+auto SubsystemPin = AccelByteSubsystem.Pin();\
+if (!SubsystemPin.IsValid())\
+{\
+	if (!bIsComplete && bCompleteTaskIfInvalid)\
+	{ CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState); }\
+	return __VA_ARGS__;\
+}\
+
+#define TRY_PIN_SUBSYSTEM(.../*returned variable if the SubsystemPin invalid*/) TRY_PIN_SUBSYSTEM_RAW(true, __VA_ARGS__)
+
+#define TRY_PIN_SUBSYSTEM_CONSTRUCTOR() TRY_PIN_SUBSYSTEM_RAW(false)
+
 class FOnlineAsyncTaskAccelByte : public FOnlineAsyncTaskBasic<FOnlineSubsystemAccelByte>
 {
 public:
@@ -192,8 +205,14 @@ public:
 		, int32 InLocalUserNum
 		, uint8 InFlags)
 		: FOnlineAsyncTaskBasic(InABSubsystem)
+#if ENGINE_MAJOR_VERSION >= 5
+		, AccelByteSubsystem(InABSubsystem->AsWeak())
+#else
+		, AccelByteSubsystem(InABSubsystem->AsShared())
+#endif
 		, LocalUserNum(InLocalUserNum)
 		, Flags(InFlags)
+		, Subsystem(InABSubsystem)
 	{
 		bShouldUseTimeout = HasFlag(EAccelByteAsyncTaskFlags::UseTimeout);
 
@@ -316,10 +335,24 @@ public:
 		Epic = AssignedEpic;
 	}
 
+	bool SetLocalUserNum(int32 InLocalUserNum)
+	{
+		if (LocalUserNum >= INVALID_CONTROLLERID
+			&& LocalUserNum < MAX_LOCAL_PLAYERS)
+		{
+			LocalUserNum = InLocalUserNum;
+			return true;
+		}
+		return false;
+	}
+
 protected:
 
 	/** Adding this type definition here to easily signify when we want to call a super method, like other UE4 constructs */
 	using Super = FOnlineAsyncTaskAccelByte;
+
+	/** Need to use this instead of using parent's member FOnlineAsyncTaskBasic::Subsystem T* raw pointer */
+	TWeakPtr<FOnlineSubsystemAccelByte, ESPMode::ThreadSafe> AccelByteSubsystem;
 
 	/** Enum representing the current state of a task as a whole */
 	EAccelByteAsyncTaskState CurrentState = EAccelByteAsyncTaskState::Uninitialized;
@@ -445,6 +478,8 @@ protected:
 	 */
 	virtual AccelByte::FApiClientPtr GetApiClient(int32 InLocalUserNum)
 	{
+		TRY_PIN_SUBSYSTEM(nullptr)
+
 		if (ApiClientInternal.IsValid())
 		{
 			return ApiClientInternal;
@@ -455,7 +490,7 @@ protected:
 			return nullptr;
 		}
 
-		const TSharedPtr<FOnlineIdentityAccelByte, ESPMode::ThreadSafe> IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(Subsystem->GetIdentityInterface());
+		const TSharedPtr<FOnlineIdentityAccelByte, ESPMode::ThreadSafe> IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(SubsystemPin->GetIdentityInterface());
 		if (!IdentityInterface.IsValid())
 		{
 			return nullptr;
@@ -470,12 +505,14 @@ protected:
 	 */
 	virtual AccelByte::FApiClientPtr GetApiClient(FUniqueNetIdAccelByteUserRef const& InUserId)
 	{
+		TRY_PIN_SUBSYSTEM(nullptr)
+
 		if (ApiClientInternal.IsValid())
 		{
 			return ApiClientInternal;
 		}
 
-		const TSharedPtr<FOnlineIdentityAccelByte, ESPMode::ThreadSafe> IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(Subsystem->GetIdentityInterface());
+		const TSharedPtr<FOnlineIdentityAccelByte, ESPMode::ThreadSafe> IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(SubsystemPin->GetIdentityInterface());
 		if (!IdentityInterface.IsValid())
 		{
 			return nullptr;
@@ -516,7 +553,9 @@ protected:
 	 */
 	void GetOtherUserIdentifiers()
 	{
-		const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(Subsystem->GetIdentityInterface());
+		TRY_PIN_SUBSYSTEM()
+
+		const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(SubsystemPin->GetIdentityInterface());
 		if (!IdentityInterface.IsValid())
 		{
 			return;
@@ -571,4 +610,6 @@ private:
 	/** API client that should be used for this task, use API_CLIENT_CHECK_GUARD() to get a valid instance */
 	AccelByte::FApiClientPtr ApiClientInternal;
 
+	/** Forcefully redefintion of Subsystem to prevent the child task accessing parent's public FOnlineAsyncTaskBasic::Subsystem T* raw pointer */
+	FOnlineSubsystemAccelByte* Subsystem;
 };

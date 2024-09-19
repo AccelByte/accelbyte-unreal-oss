@@ -35,12 +35,14 @@ void FOnlineAsyncTaskAccelByteChatExitRoom::Initialize()
 
 void FOnlineAsyncTaskAccelByteChatExitRoom::TriggerDelegates()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	Super::TriggerDelegates();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 
 	FOnlineChatAccelBytePtr ChatInterface;
-	if (!ensure(FOnlineChatAccelByte::GetFromSubsystem(Subsystem, ChatInterface)))
+	if (!ensure(FOnlineChatAccelByte::GetFromSubsystem(SubsystemPin.Get(),  ChatInterface)))
 	{
 		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to exit chat room as our chat interface instance is not valid!"));
 		return;
@@ -52,12 +54,14 @@ void FOnlineAsyncTaskAccelByteChatExitRoom::TriggerDelegates()
 
 void FOnlineAsyncTaskAccelByteChatExitRoom::Finalize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	Super::Finalize();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
 	FOnlineChatAccelBytePtr ChatInterface;
-	if (!ensure(FOnlineChatAccelByte::GetFromSubsystem(Subsystem, ChatInterface)))
+	if (!ensure(FOnlineChatAccelByte::GetFromSubsystem(SubsystemPin.Get(),  ChatInterface)))
 	{
 		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to exit chat room as our chat interface instance is not valid!"));
 		return;
@@ -67,7 +71,7 @@ void FOnlineAsyncTaskAccelByteChatExitRoom::Finalize()
 	{
 		ChatInterface->RemoveTopic(RoomId);
 		
-		const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = Subsystem->GetPredefinedEventInterface();
+		const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = SubsystemPin->GetPredefinedEventInterface();
 		if (PredefinedEventInterface.IsValid())
 		{
 			FAccelByteModelsChatV2TopicQuitPayload TopicQuitPayload{};

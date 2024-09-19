@@ -19,11 +19,13 @@ FOnlineAsyncTaskAccelByteGetWalletInfo::FOnlineAsyncTaskAccelByteGetWalletInfo(F
 
 void FOnlineAsyncTaskAccelByteGetWalletInfo::Initialize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	Super::Initialize();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Getting wallet info, UserId: %s"), *UserId->ToDebugString());
 
-	const FOnlineWalletAccelBytePtr WalletInterface = StaticCastSharedPtr<FOnlineWalletAccelByte>(Subsystem->GetWalletInterface());
+	const FOnlineWalletAccelBytePtr WalletInterface = StaticCastSharedPtr<FOnlineWalletAccelByte>(SubsystemPin->GetWalletInterface());
 	if (WalletInterface.IsValid())
 	{
 		FAccelByteModelsWalletInfo WalletInfo;
@@ -55,9 +57,11 @@ void FOnlineAsyncTaskAccelByteGetWalletInfo::Initialize()
 
 void FOnlineAsyncTaskAccelByteGetWalletInfo::TriggerDelegates()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
-	const FOnlineWalletAccelBytePtr WalletInterface = StaticCastSharedPtr<FOnlineWalletAccelByte>(Subsystem->GetWalletInterface());
+	const FOnlineWalletAccelBytePtr WalletInterface = StaticCastSharedPtr<FOnlineWalletAccelByte>(SubsystemPin->GetWalletInterface());
 	if (WalletInterface.IsValid())
 	{
 		if (bWasSuccessful)
@@ -75,9 +79,11 @@ void FOnlineAsyncTaskAccelByteGetWalletInfo::TriggerDelegates()
 
 void FOnlineAsyncTaskAccelByteGetWalletInfo::OnGetWalletInfoSuccess(const FAccelByteModelsWalletInfo& Result)
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 
-	const FOnlineWalletAccelBytePtr WalletInterface = StaticCastSharedPtr<FOnlineWalletAccelByte>(Subsystem->GetWalletInterface());
+	const FOnlineWalletAccelBytePtr WalletInterface = StaticCastSharedPtr<FOnlineWalletAccelByte>(SubsystemPin->GetWalletInterface());
 	if (WalletInterface.IsValid())
 	{
 		WalletInterface->AddWalletInfoToList(LocalUserNum, CurrencyCode, MakeShared<FAccelByteModelsWalletInfo>(Result));

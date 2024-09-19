@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2022 AccelByte Inc. All Rights Reserved.
+// Copyright (c) 2021 - 2024 AccelByte Inc. All Rights Reserved.
 // This is licensed software from AccelByte Inc, for limitations
 // and restrictions contact your company contract manager.
 
@@ -801,12 +801,18 @@ void FUserOnlineAccountAccelByte::SetUserCountry(const FString& InUserCountry)
 
 FString FUserOnlineAccountAccelByte::GetAccessToken() const
 {
-	return AccessToken;
+	auto PinnedCredentialRef = CredentialsRef.Pin();
+	if (PinnedCredentialRef.IsValid())
+	{
+		return PinnedCredentialRef->GetAccessToken();
+	}
+
+	return FString();
 }
 
-void FUserOnlineAccountAccelByte::SetAccessToken(const FString& InAccessToken)
+void FUserOnlineAccountAccelByte::SetCredentialsRef(AccelByte::FBaseCredentialsRef InCredentialsRef)
 {
-	AccessToken = InAccessToken;
+	CredentialsRef = InCredentialsRef;
 }
 
 void FUserOnlineAccountAccelByte::SetPublicCode(const FString& InPublicCode)

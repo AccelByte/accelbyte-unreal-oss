@@ -20,7 +20,8 @@ public:
 
 	FOnlineAsyncTaskAccelByteJoinV2Party(FOnlineSubsystemAccelByte* const InABInterface
 		, const FUniqueNetId& InLocalUserId
-		, const FName& InSessionName);
+		, const FName& InSessionName
+		, bool bInHasLocalUserJoined);
 
 	virtual void Initialize() override;
 	virtual void Finalize() override;
@@ -36,6 +37,12 @@ protected:
 private:
 	/** Name of the session to create if join is successful */
 	FName SessionName{};
+
+	/**
+	 * Whether the local user attempting to join this session has already joined it from the backend perspective.
+	 * If true, the JoinParty API call will be skipped and existing data in the pending session will be used.
+	 */
+	bool bHasLocalUserJoined{false};
 
 	/** Information on the party just obtained from the backend */
 	FAccelByteModelsV2PartySession PartyInfo{};

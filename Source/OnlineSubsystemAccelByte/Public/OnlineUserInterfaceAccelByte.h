@@ -103,6 +103,7 @@ public:
 	 * @returns boolean that is true if we could get an instance of the interface, false otherwise
 	 */
 	static bool GetFromSubsystem(const IOnlineSubsystem* Subsystem, TSharedPtr<FOnlineUserAccelByte, ESPMode::ThreadSafe>& OutInterfaceInstance);
+	static bool GetFromSubsystem(const FOnlineSubsystemAccelByte* SubsystemAB, TSharedPtr<FOnlineUserAccelByte, ESPMode::ThreadSafe>& OutInterfaceInstance);
 
 	/**
 	 * Starts an async task that create the profiles for the requesting user. Will trigger OnCreateUserProfileComplete Online Delegate when Complete

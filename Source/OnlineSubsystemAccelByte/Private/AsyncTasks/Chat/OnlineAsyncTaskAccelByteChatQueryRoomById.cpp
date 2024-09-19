@@ -47,12 +47,14 @@ void FOnlineAsyncTaskAccelByteChatQueryRoomById::TriggerDelegates()
 
 void FOnlineAsyncTaskAccelByteChatQueryRoomById::Finalize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	Super::Finalize();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
 	FOnlineChatAccelBytePtr ChatInterface;
-	if (ensure(FOnlineChatAccelByte::GetFromSubsystem(Subsystem, ChatInterface)))
+	if (ensure(FOnlineChatAccelByte::GetFromSubsystem(SubsystemPin.Get(), ChatInterface)))
 	{
 		if (bWasSuccessful)
 		{
@@ -76,6 +78,8 @@ void FOnlineAsyncTaskAccelByteChatQueryRoomById::OnQueryRoomError(int32 ErrorCod
 
 void FOnlineAsyncTaskAccelByteChatQueryRoomById::OnQueryRoomSuccess(const FAccelByteModelsChatQueryTopicByIdResponse& Response)
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Processed: %s"), *Response.Processed.ToIso8601());
 
 	SetLastUpdateTimeToCurrentTime();
@@ -84,7 +88,7 @@ void FOnlineAsyncTaskAccelByteChatQueryRoomById::OnQueryRoomSuccess(const FAccel
 	RoomInfo->SetTopicData(Response.Data);
 
 	FOnlineChatAccelBytePtr ChatInterface;
-	if (ensure(FOnlineChatAccelByte::GetFromSubsystem(Subsystem, ChatInterface)))
+	if (ensure(FOnlineChatAccelByte::GetFromSubsystem(SubsystemPin.Get(), ChatInterface)))
 	{
 		// add to cache immediately to avoid race condition
 		ChatInterface->AddTopic(RoomInfo.ToSharedRef());
@@ -96,7 +100,7 @@ void FOnlineAsyncTaskAccelByteChatQueryRoomById::OnQueryRoomSuccess(const FAccel
 		UserIds.AddUnique(Id);
 	}
 
-	FOnlineUserCacheAccelBytePtr UserStore = Subsystem->GetUserCache();
+	FOnlineUserCacheAccelBytePtr UserStore = SubsystemPin->GetUserCache();
 	if (!UserStore.IsValid())
 	{
 		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Could not query chat room by id %s as our user store instance is invalid!"), *RoomId);

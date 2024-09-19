@@ -28,6 +28,8 @@ FOnlineAsyncTaskAccelByteCheckout::FOnlineAsyncTaskAccelByteCheckout(
 
 void FOnlineAsyncTaskAccelByteCheckout::Initialize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 	Super::Initialize();
 
@@ -42,7 +44,7 @@ void FOnlineAsyncTaskAccelByteCheckout::Initialize()
 		return;
 	}
 
-	const TSharedPtr<FOnlineStoreOffer> Offer = Subsystem->GetStoreV2Interface()->GetOffer(CheckoutRequest.PurchaseOffers[0].OfferId);
+	const TSharedPtr<FOnlineStoreOffer> Offer = SubsystemPin->GetStoreV2Interface()->GetOffer(CheckoutRequest.PurchaseOffers[0].OfferId);
 	if (!Offer.IsValid())
 	{
 		ErrorMessage = "Could not find Offer by ID! ";
@@ -80,10 +82,12 @@ void FOnlineAsyncTaskAccelByteCheckout::Initialize()
 
 void FOnlineAsyncTaskAccelByteCheckout::Finalize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 	Super::Finalize();
-	const FOnlinePurchaseAccelBytePtr PurchaseInterface = StaticCastSharedPtr<FOnlinePurchaseAccelByte>(Subsystem->GetPurchaseInterface());
-	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = Subsystem->GetPredefinedEventInterface();
+	const FOnlinePurchaseAccelBytePtr PurchaseInterface = StaticCastSharedPtr<FOnlinePurchaseAccelByte>(SubsystemPin->GetPurchaseInterface());
+	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = SubsystemPin->GetPredefinedEventInterface();
 	
 	if (bWasSuccessful && PurchaseInterface.IsValid())
 	{

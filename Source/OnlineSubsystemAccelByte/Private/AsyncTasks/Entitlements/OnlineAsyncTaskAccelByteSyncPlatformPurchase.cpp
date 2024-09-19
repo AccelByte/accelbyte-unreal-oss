@@ -57,7 +57,9 @@ void FOnlineAsyncTaskAccelByteSyncPlatformPurchase::OnSyncPlatformPurchaseError(
 
 EAccelBytePlatformSync FOnlineAsyncTaskAccelByteSyncPlatformPurchase::GetNavitePlatformSyncType()
 {
-	FName PlatformName = Subsystem->GetNativePlatformName();
+	TRY_PIN_SUBSYSTEM(EAccelBytePlatformSync::OTHER)
+
+	FName PlatformName = SubsystemPin->GetNativePlatformName();
 #ifdef STEAM_SUBSYSTEM
 	if (PlatformName == STEAM_SUBSYSTEM)
 	{
@@ -81,7 +83,7 @@ EAccelBytePlatformSync FOnlineAsyncTaskAccelByteSyncPlatformPurchase::GetNaviteP
 	{
 		if (EntitlementSyncBase.ServiceLabel == 0)
 		{
-			const FOnlineStoreV2AccelBytePtr StoreInt = StaticCastSharedPtr<FOnlineStoreV2AccelByte>(Subsystem->GetStoreV2Interface());
+			const FOnlineStoreV2AccelBytePtr StoreInt = StaticCastSharedPtr<FOnlineStoreV2AccelByte>(SubsystemPin->GetStoreV2Interface());
 			if (StoreInt.IsValid())
 			{
 				EntitlementSyncBase.ServiceLabel = StoreInt->GetServiceLabel();
@@ -95,7 +97,7 @@ EAccelBytePlatformSync FOnlineAsyncTaskAccelByteSyncPlatformPurchase::GetNaviteP
 	{
 		if (EntitlementSyncBase.ServiceLabel == 0)
 		{
-			const FOnlineStoreV2AccelBytePtr StoreInt = StaticCastSharedPtr<FOnlineStoreV2AccelByte>(Subsystem->GetStoreV2Interface());
+			const FOnlineStoreV2AccelBytePtr StoreInt = StaticCastSharedPtr<FOnlineStoreV2AccelByte>(SubsystemPin->GetStoreV2Interface());
 			if (StoreInt.IsValid())
 			{
 				EntitlementSyncBase.ServiceLabel = StoreInt->GetServiceLabel();

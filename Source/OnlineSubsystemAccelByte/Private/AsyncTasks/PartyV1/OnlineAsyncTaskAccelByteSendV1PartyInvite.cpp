@@ -22,12 +22,14 @@ FOnlineAsyncTaskAccelByteSendV1PartyInvite::FOnlineAsyncTaskAccelByteSendV1Party
 
 void FOnlineAsyncTaskAccelByteSendV1PartyInvite::Initialize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	Super::Initialize();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("UserId: %s; PartyId: %s; Recipient ID: %s"), *UserId->ToString(), *PartyId->ToString(), *Recipient.Id->ToDebugString());
 
 	// First, we want to check if the player is in this party before attempting to send an invite
-	const TSharedPtr<FOnlinePartySystemAccelByte, ESPMode::ThreadSafe> PartyInterface = StaticCastSharedPtr<FOnlinePartySystemAccelByte>(Subsystem->GetPartyInterface());
+	const TSharedPtr<FOnlinePartySystemAccelByte, ESPMode::ThreadSafe> PartyInterface = StaticCastSharedPtr<FOnlinePartySystemAccelByte>(SubsystemPin->GetPartyInterface());
 	if (!PartyInterface.IsValid())
 	{
 		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Could not invite player '%s' to party '%s' as the party interface instance is invalid!"), *Recipient.Id->ToString(), *PartyId->ToString());
@@ -57,13 +59,15 @@ void FOnlineAsyncTaskAccelByteSendV1PartyInvite::Initialize()
 
 void FOnlineAsyncTaskAccelByteSendV1PartyInvite::Finalize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
 	if (bWasSuccessful)
 	{
 		// Get our party interface instance, then get our party object for the user specified, and then add the player ID
 		// to the array of player IDs that we have invited to this party
-		const TSharedPtr<FOnlinePartySystemAccelByte, ESPMode::ThreadSafe> PartyInterface = StaticCastSharedPtr<FOnlinePartySystemAccelByte>(Subsystem->GetPartyInterface());
+		const TSharedPtr<FOnlinePartySystemAccelByte, ESPMode::ThreadSafe> PartyInterface = StaticCastSharedPtr<FOnlinePartySystemAccelByte>(SubsystemPin->GetPartyInterface());
 		if (PartyInterface.IsValid())
 		{
 			TSharedPtr<FOnlinePartyAccelByte> PartyObject = PartyInterface->GetPartyForUser(UserId.ToSharedRef(), PartyId);

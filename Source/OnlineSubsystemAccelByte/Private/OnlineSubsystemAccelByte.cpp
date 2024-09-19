@@ -858,15 +858,23 @@ void FOnlineSubsystemAccelByte::OnLobbyReconnected(int32 InLocalUserNum)
 			PartyInterface->RestoreParties(LocalUserId.ToSharedRef().Get(), FOnRestorePartiesComplete());
 		}
 	}
-#endif
-	
-	if (!IdentityInterface.IsValid())
+#else
+	if (SessionInterface.IsValid())
 	{
-		UE_LOG_AB(Warning, TEXT("Error due to IdentityInterface is invalid"));
-		return;
+		SessionInterface->RefreshActiveSessions(FOnRefreshActiveSessionsComplete::CreateLambda(
+			[InLocalUserNum](bool bWasSuccessful, const TArray<FName>& RemovedSessionNames)
+		{
+			UE_LOG_AB(Log, TEXT("Refresh Active Sessions after reconnected completed. LocalUserNum: %d; bWasSuccessful: %s; Total RemovedSessionNames: %d"),
+				InLocalUserNum, LOG_BOOL_FORMAT(bWasSuccessful), RemovedSessionNames.Num());
+		}));
 	}
+	else
+	{
+		UE_LOG_AB(Warning, TEXT("Error due to SessionInterface is invalid"));
+	}
+#endif
 
-	IdentityInterface->TriggerAccelByteOnLobbyReconnectedDelegates(InLocalUserNum);	
+	IdentityInterface->TriggerAccelByteOnLobbyReconnectedDelegates(InLocalUserNum);
 }
 
 void FOnlineSubsystemAccelByte::OnNativeTokenRefreshed(bool bWasSuccessful, int32 LocalUserNum)

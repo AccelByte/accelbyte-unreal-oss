@@ -22,6 +22,8 @@ FOnlineAsyncTaskAccelByteUpdatePlayerAttributes::FOnlineAsyncTaskAccelByteUpdate
 
 void FOnlineAsyncTaskAccelByteUpdatePlayerAttributes::Initialize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	Super::Initialize();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("LocalUserId: %s"), *UserId->ToDebugString());
@@ -29,7 +31,7 @@ void FOnlineAsyncTaskAccelByteUpdatePlayerAttributes::Initialize()
 	// To begin, grab a copy of the current internal attributes model for this player from the session interface. By
 	// this point attributes should be populated as it is done at login.
 	FOnlineSessionV2AccelBytePtr SessionInterface{};
-	AB_ASYNC_TASK_ENSURE(FOnlineSessionV2AccelByte::GetFromSubsystem(Subsystem, SessionInterface), "Failed to get session interface instance from subsystem")
+	AB_ASYNC_TASK_ENSURE(FOnlineSessionV2AccelByte::GetFromSubsystem(SubsystemPin.Get(), SessionInterface), "Failed to get session interface instance from subsystem")
 
 	FAccelByteModelsV2PlayerAttributes* FoundAttributes = SessionInterface->GetInternalPlayerAttributes(UserId.ToSharedRef().Get());
 	AB_ASYNC_TASK_ENSURE(FoundAttributes != nullptr, "Failed to get internal player attributes from the session interface")
@@ -39,7 +41,7 @@ void FOnlineAsyncTaskAccelByteUpdatePlayerAttributes::Initialize()
 	// Then, we need to check if the player is allowed to play crossplay at all on their local platform, so query the
 	// identity interface for that
 	FOnlineIdentityAccelBytePtr IdentityInterface{};
-	AB_ASYNC_TASK_ENSURE(FOnlineIdentityAccelByte::GetFromSubsystem(Subsystem, IdentityInterface), "Failed to get identity interface instance from subsystem")
+	AB_ASYNC_TASK_ENSURE(FOnlineIdentityAccelByte::GetFromSubsystem(SubsystemPin.Get(), IdentityInterface), "Failed to get identity interface instance from subsystem")
 
 	IOnlineIdentity::FOnGetUserPrivilegeCompleteDelegate OnGetPlayerCrossplayPrivilegeDelegate = TDelegateUtils<IOnlineIdentity::FOnGetUserPrivilegeCompleteDelegate>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteUpdatePlayerAttributes::OnGetPlayerCrossplayPrivilege);
 	IdentityInterface->GetUserPrivilege(UserId.ToSharedRef().Get(), EUserPrivileges::CanUserCrossPlay, OnGetPlayerCrossplayPrivilegeDelegate);
@@ -55,8 +57,10 @@ void FOnlineAsyncTaskAccelByteUpdatePlayerAttributes::Finalize()
 
 	if (bWasSuccessful)
 	{
+		TRY_PIN_SUBSYSTEM()
+
 		FOnlineSessionV2AccelBytePtr SessionInterface{};
-		if (!ensureAlwaysMsgf(FOnlineSessionV2AccelByte::GetFromSubsystem(Subsystem, SessionInterface), TEXT("Failed to get session interface instance from subsystem")))
+		if (!ensureAlwaysMsgf(FOnlineSessionV2AccelByte::GetFromSubsystem(SubsystemPin.Get(), SessionInterface), TEXT("Failed to get session interface instance from subsystem")))
 		{
 			return;
 		}

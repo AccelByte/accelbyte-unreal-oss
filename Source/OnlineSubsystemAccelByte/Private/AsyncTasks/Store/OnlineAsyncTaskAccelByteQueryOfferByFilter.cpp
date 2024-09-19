@@ -59,10 +59,12 @@ void FOnlineAsyncTaskAccelByteQueryOfferByFilter::Initialize()
 
 void FOnlineAsyncTaskAccelByteQueryOfferByFilter::Finalize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 	FOnlineAsyncTaskAccelByte::Finalize();
 	
-	const FOnlineStoreV2AccelBytePtr StoreV2Interface = StaticCastSharedPtr<FOnlineStoreV2AccelByte>(Subsystem->GetStoreV2Interface());
+	const FOnlineStoreV2AccelBytePtr StoreV2Interface = StaticCastSharedPtr<FOnlineStoreV2AccelByte>(SubsystemPin->GetStoreV2Interface());
 	StoreV2Interface->EmplaceOffers(OfferMap);
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }

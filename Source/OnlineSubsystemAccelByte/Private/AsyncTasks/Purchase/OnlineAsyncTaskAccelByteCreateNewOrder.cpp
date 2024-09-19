@@ -41,11 +41,13 @@ void FOnlineAsyncTaskAccelByteCreateNewOrder::Initialize()
 
 void FOnlineAsyncTaskAccelByteCreateNewOrder::Finalize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Finalized"));
 	
 	Super::Finalize();
 
-	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = Subsystem->GetPredefinedEventInterface();
+	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = SubsystemPin->GetPredefinedEventInterface();
 	if (PredefinedEventInterface.IsValid())
 	{
 		if (bWasSuccessful)
@@ -74,10 +76,12 @@ void FOnlineAsyncTaskAccelByteCreateNewOrder::Finalize()
 
 void FOnlineAsyncTaskAccelByteCreateNewOrder::TriggerDelegates()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Trigger Delegates"));
 	
 	Super::TriggerDelegates();
-	const FOnlinePurchaseAccelBytePtr PurchaseInterface = StaticCastSharedPtr<FOnlinePurchaseAccelByte>(Subsystem->GetPurchaseInterface());
+	const FOnlinePurchaseAccelBytePtr PurchaseInterface = StaticCastSharedPtr<FOnlinePurchaseAccelByte>(SubsystemPin->GetPurchaseInterface());
 	if (PurchaseInterface.IsValid())
 	{
 		const FOnlineErrorAccelByte OnlineError = bWasSuccessful ? ONLINE_ERROR_ACCELBYTE(TEXT(""), EOnlineErrorResult::Success) :

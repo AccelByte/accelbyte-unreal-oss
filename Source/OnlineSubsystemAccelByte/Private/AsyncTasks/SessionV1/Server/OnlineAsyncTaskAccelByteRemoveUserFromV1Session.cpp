@@ -20,6 +20,8 @@ FOnlineAsyncTaskAccelByteRemoveUserFromV1Session::FOnlineAsyncTaskAccelByteRemov
 
 void FOnlineAsyncTaskAccelByteRemoveUserFromV1Session::Initialize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	Super::Initialize();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("ChannelName: %s"), *ChannelName);
@@ -31,7 +33,7 @@ void FOnlineAsyncTaskAccelByteRemoveUserFromV1Session::Initialize()
 		return;
 	}
 
-	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(Subsystem->GetIdentityInterface());
+	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(SubsystemPin->GetIdentityInterface());
 	if (!IdentityInterface.IsValid())
 	{
 		AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Failed to remove user from session as our identity interface was invalid!"));

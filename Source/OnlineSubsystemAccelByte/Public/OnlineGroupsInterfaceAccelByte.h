@@ -130,6 +130,7 @@ public:
 	 * @returns boolean that is true if we could get an instance of the interface, false otherwise
 	 */
 	static bool GetFromSubsystem(const IOnlineSubsystem* Subsystem, TSharedPtr<FOnlineGroupsAccelByte, ESPMode::ThreadSafe>& OutInterfaceInstance);
+	static bool GetFromSubsystem(const FOnlineSubsystemAccelByte* Subsystem, TSharedPtr<FOnlineGroupsAccelByte, ESPMode::ThreadSafe>& OutInterfaceInstance);
 
 	//~ Start - AccelByte Methods
 	/**

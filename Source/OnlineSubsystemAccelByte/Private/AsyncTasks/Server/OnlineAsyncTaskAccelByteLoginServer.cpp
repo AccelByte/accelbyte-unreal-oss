@@ -31,11 +31,13 @@ void FOnlineAsyncTaskAccelByteLoginServer::Initialize()
 
 void FOnlineAsyncTaskAccelByteLoginServer::Finalize()
 {
+    TRY_PIN_SUBSYSTEM()
+
     AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
     if (bWasSuccessful)
     {
-		const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(Subsystem->GetIdentityInterface());
+		const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(SubsystemPin->GetIdentityInterface());
 		if (!ensure(IdentityInterface.IsValid()))
         {
             AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to finalize server login as our identity interface is invalid!"));
@@ -43,7 +45,7 @@ void FOnlineAsyncTaskAccelByteLoginServer::Finalize()
         }
 
         IdentityInterface->AddAuthenticatedServer(LocalUserNum);
-        Subsystem->SetLocalUserNumCached(LocalUserNum);
+        SubsystemPin->SetLocalUserNumCached(LocalUserNum);
     }
 
     AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
@@ -51,9 +53,11 @@ void FOnlineAsyncTaskAccelByteLoginServer::Finalize()
 
 void FOnlineAsyncTaskAccelByteLoginServer::TriggerDelegates()
 {
+    TRY_PIN_SUBSYSTEM()
+
     AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 	
-    const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(Subsystem->GetIdentityInterface());
+    const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(SubsystemPin->GetIdentityInterface());
 	if (!ensure(IdentityInterface.IsValid()))
 	{
 		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to trigger delegates for server login as our identity interface is invalid!"));
@@ -69,6 +73,8 @@ void FOnlineAsyncTaskAccelByteLoginServer::TriggerDelegates()
 
 void FOnlineAsyncTaskAccelByteLoginServer::OnLoginServerSuccess()
 {
+    TRY_PIN_SUBSYSTEM()
+
     AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 
     // After logging in, create the user ID instance.
@@ -82,9 +88,9 @@ void FOnlineAsyncTaskAccelByteLoginServer::OnLoginServerSuccess()
         // Also create an account instance for them, this will be fed back to the identity interface after login
         TSharedPtr<FUserOnlineAccountAccelByte> Account;
         Account = MakeShared<FUserOnlineAccountAccelByte>(UserId.ToSharedRef()); 
-        Account->SetAccessToken(FRegistry::ServerCredentials.GetAccessToken());
+        Account->SetCredentialsRef(FRegistry::ServerCredentialsRef);
 
-        const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(Subsystem->GetIdentityInterface());
+        const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(SubsystemPin->GetIdentityInterface());
         if (IdentityInterface.IsValid())
         {
             IdentityInterface->AddNewAuthenticatedUser(LocalUserNum, UserId.ToSharedRef(), Account.ToSharedRef()); 

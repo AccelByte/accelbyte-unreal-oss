@@ -33,11 +33,13 @@ void FOnlineAsyncTaskAccelByteGetUserChatConfiguration::Initialize()
 
 void FOnlineAsyncTaskAccelByteGetUserChatConfiguration::Finalize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	Super::Finalize();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("UserId: %s"), *UserId->ToDebugString());
 
-	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = Subsystem->GetPredefinedEventInterface();
+	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = SubsystemPin->GetPredefinedEventInterface();
 	if (PredefinedEventInterface.IsValid() && bWasSuccessful)
 	{
 		FAccelByteModelsChatGetUserConfigPayload Payload{};
@@ -51,13 +53,15 @@ void FOnlineAsyncTaskAccelByteGetUserChatConfiguration::Finalize()
 
 void FOnlineAsyncTaskAccelByteGetUserChatConfiguration::TriggerDelegates()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	Super::TriggerDelegates();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("UserId: %s, bWasSuccessful: %s, ErrorMessage: %s")
 		, *UserId->ToDebugString(), LOG_BOOL_FORMAT(bWasSuccessful), *OnlineError.ErrorMessage.ToString());
 
 	FOnlineChatAccelBytePtr ChatInterface;
-	FOnlineChatAccelByte::GetFromSubsystem(Subsystem, ChatInterface);
+	FOnlineChatAccelByte::GetFromSubsystem(SubsystemPin.Get(),  ChatInterface);
 	if (!ChatInterface.IsValid())
 	{
 		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to trigger delegate for get user chat configuration as our chat interface invalid!"));

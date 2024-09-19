@@ -29,11 +29,13 @@ void FOnlineAsyncTaskAccelByteGetV2MatchmakingTicketDetails::Initialize()
 
 void FOnlineAsyncTaskAccelByteGetV2MatchmakingTicketDetails::TriggerDelegates()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	Super::TriggerDelegates();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("TicketId: %s"), *TicketId);
 
-	const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(Subsystem->GetSessionInterface());
+	const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(SubsystemPin->GetSessionInterface());
 	if (!ensure(SessionInterface.IsValid()))
 	{
 		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to trigger delegates for starting matchmaking as our session interface is invalid!"));

@@ -31,10 +31,12 @@ void FOnlineAsyncTaskAccelByteQueryOfferDynamicData::Initialize()
 
 void FOnlineAsyncTaskAccelByteQueryOfferDynamicData::Finalize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Finalized"));
 	Super::Finalize();
 	
-	const FOnlineStoreV2AccelBytePtr StoreV2Interface = StaticCastSharedPtr<FOnlineStoreV2AccelByte>(Subsystem->GetStoreV2Interface());
+	const FOnlineStoreV2AccelBytePtr StoreV2Interface = StaticCastSharedPtr<FOnlineStoreV2AccelByte>(SubsystemPin->GetStoreV2Interface());
 	StoreV2Interface->EmplaceOfferDynamicData(*UserId.Get(), MakeShared<FAccelByteModelsItemDynamicData>(DynamicData));
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }

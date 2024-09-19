@@ -159,8 +159,10 @@ void FOnlineAsyncTaskAccelByteQueryAchievement::HandleQueryAchievementError(
 
 void FOnlineAsyncTaskAccelByteQueryAchievement::Finalize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	const TSharedPtr<FOnlineAchievementsAccelByte, ESPMode::ThreadSafe> AchievementInterface =
-		StaticCastSharedPtr<FOnlineAchievementsAccelByte>(Subsystem->GetAchievementsInterface());
+		StaticCastSharedPtr<FOnlineAchievementsAccelByte>(SubsystemPin->GetAchievementsInterface());
 	
 	for(auto& Data : PublicAchievements)
 	{
@@ -173,7 +175,7 @@ void FOnlineAsyncTaskAccelByteQueryAchievement::Finalize()
 		AchievementInterface->AddPublicAchievementToMap(Data.AchievementCode,Achievement);
 	}
 
-	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = Subsystem->GetPredefinedEventInterface();
+	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = SubsystemPin->GetPredefinedEventInterface();
 	if (PredefinedEventInterface.IsValid())
 	{
 		FAccelByteModelsAchievementGetUsersPayload AchievementGetUsersPayload{};

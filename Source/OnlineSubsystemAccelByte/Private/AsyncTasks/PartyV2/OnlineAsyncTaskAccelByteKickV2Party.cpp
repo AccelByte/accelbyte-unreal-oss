@@ -20,11 +20,13 @@ FOnlineAsyncTaskAccelByteKickV2Party::FOnlineAsyncTaskAccelByteKickV2Party(FOnli
 
 void FOnlineAsyncTaskAccelByteKickV2Party::Initialize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	Super::Initialize();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("LocalUserId: %s; SessionName: %s; PlayerIdToKick: %s"), *UserId->ToDebugString(), *SessionName.ToString(), *PlayerIdToKick->ToDebugString());
 
-	const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(Subsystem->GetSessionInterface());
+	const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(SubsystemPin->GetSessionInterface());
 	AB_ASYNC_TASK_ENSURE(SessionInterface.IsValid(), "Failed to kick player from party as our session interface is invalid!");
 
 	FNamedOnlineSession* Session = SessionInterface->GetPartySession();
@@ -40,11 +42,13 @@ void FOnlineAsyncTaskAccelByteKickV2Party::Initialize()
 
 void FOnlineAsyncTaskAccelByteKickV2Party::Finalize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
 	if (bWasSuccessful)
 	{
-		const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(Subsystem->GetSessionInterface());
+		const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(SubsystemPin->GetSessionInterface());
 		if (!ensure(SessionInterface.IsValid()))
 		{
 			AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to finalize kicking a player from party session as our session interface is invalid!"));
@@ -53,7 +57,7 @@ void FOnlineAsyncTaskAccelByteKickV2Party::Finalize()
 
 		SessionInterface->UnregisterPlayer(SessionName, PlayerIdToKick.Get());
 
-		const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = Subsystem->GetPredefinedEventInterface();
+		const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = SubsystemPin->GetPredefinedEventInterface();
 		if (PredefinedEventInterface.IsValid())
 		{
 			FAccelByteModelsMPV2PartySessionKickedPayload PartySessionKickedPayload{};
@@ -68,11 +72,13 @@ void FOnlineAsyncTaskAccelByteKickV2Party::Finalize()
 
 void FOnlineAsyncTaskAccelByteKickV2Party::TriggerDelegates()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
 	if (bWasSuccessful)
 	{
-		const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(Subsystem->GetSessionInterface());
+		const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(SubsystemPin->GetSessionInterface());
 		if (!ensure(SessionInterface.IsValid()))
 		{
 			AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to trigger delegates for kicking a player from party session as our session interface is invalid!"));

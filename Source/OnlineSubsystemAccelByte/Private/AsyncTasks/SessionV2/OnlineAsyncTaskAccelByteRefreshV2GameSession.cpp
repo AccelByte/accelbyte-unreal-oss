@@ -14,9 +14,11 @@ FOnlineAsyncTaskAccelByteRefreshV2GameSession::FOnlineAsyncTaskAccelByteRefreshV
 	, SessionName(InSessionName)
 	, Delegate(InDelegate)
 {
+	TRY_PIN_SUBSYSTEM_CONSTRUCTOR()
+
 	if (!IsRunningDedicatedServer())
 	{
-		IOnlineSessionPtr SessionInterface = Subsystem->GetSessionInterface();
+		IOnlineSessionPtr SessionInterface = SubsystemPin->GetSessionInterface();
 		if (ensure(SessionInterface.IsValid()))
 		{
 			FNamedOnlineSession* Session = SessionInterface->GetNamedSession(SessionName);
@@ -30,11 +32,13 @@ FOnlineAsyncTaskAccelByteRefreshV2GameSession::FOnlineAsyncTaskAccelByteRefreshV
 
 void FOnlineAsyncTaskAccelByteRefreshV2GameSession::Initialize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	Super::Initialize();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("SessionName: %s"), *SessionName.ToString());
 
-	const TSharedPtr<FOnlineSessionV2AccelByte, ESPMode::ThreadSafe> SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(Subsystem->GetSessionInterface());
+	const TSharedPtr<FOnlineSessionV2AccelByte, ESPMode::ThreadSafe> SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(SubsystemPin->GetSessionInterface());
 	check(SessionInterface.IsValid());
 
 	FNamedOnlineSession* Session = SessionInterface->GetNamedSession(SessionName);
@@ -61,16 +65,25 @@ void FOnlineAsyncTaskAccelByteRefreshV2GameSession::Initialize()
 
 void FOnlineAsyncTaskAccelByteRefreshV2GameSession::Finalize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	Super::Finalize();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
-	const TSharedPtr<FOnlineSessionV2AccelByte, ESPMode::ThreadSafe> SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(Subsystem->GetSessionInterface());
+	const TSharedPtr<FOnlineSessionV2AccelByte, ESPMode::ThreadSafe> SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(SubsystemPin->GetSessionInterface());
 	if (SessionInterface.IsValid())
 	{
-		// We don't care about this out flag in this case
-		bool bIsConnectingToP2P = false;
-		SessionInterface->UpdateInternalGameSession(SessionName, RefreshedGameSession, bIsConnectingToP2P);
+		if (bWasSessionRemoved)
+		{
+			SessionInterface->RemoveNamedSession(SessionName);
+		}
+		else
+		{
+			// We don't care about this out flag in this case
+			bool bIsConnectingToP2P = false;
+			SessionInterface->UpdateInternalGameSession(SessionName, RefreshedGameSession, bIsConnectingToP2P);
+		}
 	}
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
@@ -78,6 +91,8 @@ void FOnlineAsyncTaskAccelByteRefreshV2GameSession::Finalize()
 
 void FOnlineAsyncTaskAccelByteRefreshV2GameSession::TriggerDelegates()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	Super::TriggerDelegates();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
@@ -85,7 +100,7 @@ void FOnlineAsyncTaskAccelByteRefreshV2GameSession::TriggerDelegates()
 	if (bWasSuccessful)
 	{
 		FOnlineSessionV2AccelBytePtr SessionInterface = nullptr;
-		if (ensureAlways(FOnlineSessionV2AccelByte::GetFromSubsystem(Subsystem, SessionInterface)))
+		if (ensureAlways(FOnlineSessionV2AccelByte::GetFromSubsystem(SubsystemPin.Get(), SessionInterface)))
 		{
 			if (bWasSessionRemoved)
 			{

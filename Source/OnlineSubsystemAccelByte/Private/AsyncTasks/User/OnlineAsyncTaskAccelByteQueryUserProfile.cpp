@@ -31,13 +31,15 @@ FOnlineAsyncTaskAccelByteQueryUserProfile::FOnlineAsyncTaskAccelByteQueryUserPro
 	// corresponding maps.
 	UserIdsToQuery.Empty(InitialUserIds.Num());
 
+	TRY_PIN_SUBSYSTEM_CONSTRUCTOR()
+
 	// Iterate through each user ID that we have been requested to query for, convert them to string IDs, and then fire
 	// off a request to get account user profile for each user
 	for (FUniqueNetIdRef const& NetId : InitialUserIds)
 	{
 		if (NetId->GetType() != ACCELBYTE_USER_ID_TYPE)
 		{
-			UE_LOG_AB(Warning, TEXT("NetId passed to FOnlineUserAccelByte::QueryUserProfile (%s) was an invalid type (%s). Query the external mapping first to convert to an AccelByte ID. Skipping this ID!"), *(Subsystem->GetInstanceName().ToString()), *(NetId->GetType().ToString()));
+			UE_LOG_AB(Warning, TEXT("NetId passed to FOnlineUserAccelByte::QueryUserProfile (%s) was an invalid type (%s). Query the external mapping first to convert to an AccelByte ID. Skipping this ID!"), *(SubsystemPin->GetInstanceName().ToString()), *(NetId->GetType().ToString()));
 			continue;
 		}
 
@@ -77,13 +79,15 @@ FOnlineAsyncTaskAccelByteQueryUserProfile::FOnlineAsyncTaskAccelByteQueryUserPro
 	// corresponding maps.
 	UserIdsToQuery.Empty(InitialUserIds.Num());
 
+	TRY_PIN_SUBSYSTEM_CONSTRUCTOR()
+
 	// Iterate through each user ID that we have been requested to query for, convert them to string IDs, and then fire
 	// off a request to get account user profile for each user
 	for (FUniqueNetIdRef const& NetId : InitialUserIds)
 	{
 		if (NetId->GetType() != ACCELBYTE_USER_ID_TYPE)
 		{
-			UE_LOG_AB(Warning, TEXT("NetId passed to FOnlineUserAccelByte::QueryUserProfile (%s) was an invalid type (%s). Query the external mapping first to convert to an AccelByte ID. Skipping this ID!"), *(Subsystem->GetInstanceName().ToString()), *(NetId->GetType().ToString()));
+			UE_LOG_AB(Warning, TEXT("NetId passed to FOnlineUserAccelByte::QueryUserProfile (%s) was an invalid type (%s). Query the external mapping first to convert to an AccelByte ID. Skipping this ID!"), *(SubsystemPin->GetInstanceName().ToString()), *(NetId->GetType().ToString()));
 			continue;
 		}
 
@@ -140,10 +144,12 @@ void FOnlineAsyncTaskAccelByteQueryUserProfile::QueryUserProfile(const TArray<FS
 
 void FOnlineAsyncTaskAccelByteQueryUserProfile::Finalize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 
-	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(Subsystem->GetIdentityInterface());
-	const FOnlineUserCacheAccelBytePtr UserCache = Subsystem->GetUserCache();
+	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(SubsystemPin->GetIdentityInterface());
+	const FOnlineUserCacheAccelBytePtr UserCache = SubsystemPin->GetUserCache();
 
 	for (const auto& InUserQueried : UsersQueried)
 	{
@@ -171,7 +177,7 @@ void FOnlineAsyncTaskAccelByteQueryUserProfile::Finalize()
 			if (UserId.IsValid() && UserId->GetAccelByteId() == CachedUserInfo->Id->GetAccelByteId())
 			{
 				Account->SetDisplayName(ApiClient->CredentialsRef->GetUserDisplayName());
-				Account->SetAccessToken(ApiClient->CredentialsRef->GetAccessToken());
+				Account->SetCredentialsRef(ApiClient->CredentialsRef);
 				Account->SetUniqueDisplayName(ApiClient->CredentialsRef->GetUniqueDisplayName());
 				IdentityInterface->AddNewAuthenticatedUser(LocalUserNum, CachedUserInfo->Id.ToSharedRef(), Account.ToSharedRef());
 			}
@@ -182,7 +188,7 @@ void FOnlineAsyncTaskAccelByteQueryUserProfile::Finalize()
 		Account->SetUserAttribute(TEXT("AvatarSmallURL"), InUserQueried.AvatarSmallUrl);
 		Account->SetUserAttribute(TEXT("AvatarLargeURL"), InUserQueried.AvatarLargeUrl);
 
-		TSharedPtr<FOnlineUserAccelByte, ESPMode::ThreadSafe> UserInterfacePtr = StaticCastSharedPtr<FOnlineUserAccelByte>(Subsystem->GetUserInterface());
+		TSharedPtr<FOnlineUserAccelByte, ESPMode::ThreadSafe> UserInterfacePtr = StaticCastSharedPtr<FOnlineUserAccelByte>(SubsystemPin->GetUserInterface());
 		if (InUserQueried.PublicId.IsEmpty())
 		{
 			UE_LOG_AB(Warning, TEXT("Failed to set FriendCode text. Player FriendCode (PublicCode) is empty!"));
@@ -199,7 +205,7 @@ void FOnlineAsyncTaskAccelByteQueryUserProfile::Finalize()
 		QueriedUserIds.Add(FoundUserId);
 
 		// Add the new user information instance to the user interface's cache so the developer can retrieve it in the delegate handler
-		TSharedPtr<FOnlineUserAccelByte, ESPMode::ThreadSafe> UserInterface = StaticCastSharedPtr<FOnlineUserAccelByte>(Subsystem->GetUserInterface());
+		TSharedPtr<FOnlineUserAccelByte, ESPMode::ThreadSafe> UserInterface = StaticCastSharedPtr<FOnlineUserAccelByte>(SubsystemPin->GetUserInterface());
 		if (UserInterface != nullptr)
 		{
 			UserInterface->AddUserInfo(FoundUserId, Account.ToSharedRef());

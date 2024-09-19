@@ -70,9 +70,11 @@ void FOnlineAsyncTaskAccelByteQueryExternalIdMappings::Initialize()
 
 void FOnlineAsyncTaskAccelByteQueryExternalIdMappings::Finalize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 
-	TSharedPtr<FOnlineUserAccelByte, ESPMode::ThreadSafe> UserInterface = StaticCastSharedPtr<FOnlineUserAccelByte>(Subsystem->GetUserInterface());
+	TSharedPtr<FOnlineUserAccelByte, ESPMode::ThreadSafe> UserInterface = StaticCastSharedPtr<FOnlineUserAccelByte>(SubsystemPin->GetUserInterface());
 	if (UserInterface != nullptr)
 	{
 		UserInterface->AddExternalIdMappings(ExternalIdToFoundAccelByteIdMap);
@@ -109,6 +111,8 @@ void FOnlineAsyncTaskAccelByteQueryExternalIdMappings::OnBulkGetUserByOtherPlatf
 		return;
 	}
 
+	TRY_PIN_SUBSYSTEM()
+
 	for (const FPlatformUserIdMap& Mapping : Result.UserIdPlatforms)
 	{
 		FAccelByteUniqueIdComposite CompositeId;
@@ -116,7 +120,7 @@ void FOnlineAsyncTaskAccelByteQueryExternalIdMappings::OnBulkGetUserByOtherPlatf
 		
 		// Also add platform type from native subsystem and native ID, as that's usually what we'll query
 		// #NOTE (Maxwell): This will break if a different platform is being queried
-		IOnlineSubsystem* NativeSubsystem = Subsystem->GetNativePlatformSubsystem();
+		IOnlineSubsystem* NativeSubsystem = SubsystemPin->GetNativePlatformSubsystem();
 		if (NativeSubsystem != nullptr)
 		{
 			CompositeId.PlatformType = NativeSubsystem->GetSubsystemName().ToString();

@@ -23,6 +23,8 @@ FOnlineAsyncTaskAccelByteDeleteStatsUsers::FOnlineAsyncTaskAccelByteDeleteStatsU
 
 void FOnlineAsyncTaskAccelByteDeleteStatsUsers::Initialize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	Super::Initialize();
 	
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Initialized"));
@@ -43,7 +45,7 @@ void FOnlineAsyncTaskAccelByteDeleteStatsUsers::Initialize()
 		return;
 	}
 
-	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(Subsystem->GetIdentityInterface());
+	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(SubsystemPin->GetIdentityInterface());
 	if (!IdentityInterface.IsValid())
 	{
 		ErrorMessage = TEXT("request-failed-delete-user-stats-error-identity-invalid");
@@ -79,11 +81,13 @@ void FOnlineAsyncTaskAccelByteDeleteStatsUsers::Initialize()
 
 void FOnlineAsyncTaskAccelByteDeleteStatsUsers::Finalize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Finalize"));
 	Super::Finalize();
 
-	const FOnlineStatisticAccelBytePtr StatisticInterface = StaticCastSharedPtr<FOnlineStatisticAccelByte>(Subsystem->GetStatsInterface());
-	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = Subsystem->GetPredefinedEventInterface();
+	const FOnlineStatisticAccelBytePtr StatisticInterface = StaticCastSharedPtr<FOnlineStatisticAccelByte>(SubsystemPin->GetStatsInterface());
+	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = SubsystemPin->GetPredefinedEventInterface();
 	if (bWasSuccessful && StatisticInterface.IsValid())
 	{
 		FAccelByteModelsUserStatItemDeletedPayload UserStatItemDeletedPayload{};
@@ -108,10 +112,12 @@ void FOnlineAsyncTaskAccelByteDeleteStatsUsers::Finalize()
 
 void FOnlineAsyncTaskAccelByteDeleteStatsUsers::TriggerDelegates()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s")
 		, LOG_BOOL_FORMAT(bWasSuccessful));
 
-	const FOnlineStatisticAccelBytePtr StatisticInterface = StaticCastSharedPtr<FOnlineStatisticAccelByte>(Subsystem->GetStatsInterface());
+	const FOnlineStatisticAccelBytePtr StatisticInterface = StaticCastSharedPtr<FOnlineStatisticAccelByte>(SubsystemPin->GetStatsInterface());
 	if (!ensure(StatisticInterface.IsValid()))
 	{
 		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to trigger delegates for delete user statistic as our statistic interface is invalid!"));
@@ -127,9 +133,11 @@ void FOnlineAsyncTaskAccelByteDeleteStatsUsers::TriggerDelegates()
 
 void FOnlineAsyncTaskAccelByteDeleteStatsUsers::OnDeleteUserStatsSuccess()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Delete User Stats Success"));
 
-	const FOnlineStatisticAccelBytePtr StatisticInterface = StaticCastSharedPtr<FOnlineStatisticAccelByte>(Subsystem->GetStatsInterface());
+	const FOnlineStatisticAccelBytePtr StatisticInterface = StaticCastSharedPtr<FOnlineStatisticAccelByte>(SubsystemPin->GetStatsInterface());
 	TSharedPtr<const FOnlineStatsUserStats> CurrentUserStats = StatisticInterface->GetStats(StatsUser.ToSharedRef());
 
 	for (const auto& UserStat : CurrentUserStats->Stats)

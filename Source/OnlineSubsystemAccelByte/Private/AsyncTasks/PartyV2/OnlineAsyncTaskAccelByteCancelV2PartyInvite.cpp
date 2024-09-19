@@ -19,11 +19,13 @@ FOnlineAsyncTaskAccelByteCancelV2PartyInvite::FOnlineAsyncTaskAccelByteCancelV2P
 
 void FOnlineAsyncTaskAccelByteCancelV2PartyInvite::Initialize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Canceling %s session invite, local user id %s, invitee id %s"), *SessionName.ToString(), *UserId->ToDebugString(), *InviteeId->ToDebugString())
 
 	Super::Initialize();
 
-	const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(Subsystem->GetSessionInterface());
+	const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(SubsystemPin->GetSessionInterface());
 	if (!SessionInterface.IsValid())
 	{
 		ErrorText = FText::FromString(TEXT("cancel-party-invite-session-interface-invalid"));
@@ -55,11 +57,13 @@ void FOnlineAsyncTaskAccelByteCancelV2PartyInvite::Initialize()
 
 void FOnlineAsyncTaskAccelByteCancelV2PartyInvite::TriggerDelegates()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""))
 
 	Super::TriggerDelegates();
 
-	const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(Subsystem->GetSessionInterface());
+	const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(SubsystemPin->GetSessionInterface());
 	if (!SessionInterface.IsValid())
 	{
 		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to trigger delegates as our SessionInterface is invalid"))

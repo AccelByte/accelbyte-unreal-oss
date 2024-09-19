@@ -135,6 +135,16 @@ bool FOnlineGroupsAccelByte::GetFromSubsystem(const IOnlineSubsystem* Subsystem,
 	return OutInterfaceInstance.IsValid();
 }
 
+bool FOnlineGroupsAccelByte::GetFromSubsystem(const FOnlineSubsystemAccelByte* Subsystem, TSharedPtr<FOnlineGroupsAccelByte, ESPMode::ThreadSafe>& OutInterfaceInstance)
+{
+	if (Subsystem == nullptr)
+	{
+		return false;
+	}
+	OutInterfaceInstance = StaticCastSharedPtr<FOnlineGroupsAccelByte>(Subsystem->GetGroupsInterface());
+	return OutInterfaceInstance.IsValid();
+}
+
 void FOnlineGroupsAccelByte::CreateGroup(const FUniqueNetId& UserIdCreatingGroup, const FAccelByteGroupsInfo& InGroupInfo, const FOnGroupsRequestCompleted& OnCompleted)
 {
 	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("UserIdCreatingGroup: %s"), *UserIdCreatingGroup.ToDebugString());

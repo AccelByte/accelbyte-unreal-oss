@@ -28,12 +28,14 @@ FOnlineAsyncTaskAccelByteQueryV1PartyInfo::FOnlineAsyncTaskAccelByteQueryV1Party
 
 void FOnlineAsyncTaskAccelByteQueryV1PartyInfo::Initialize()
 {
+	TRY_PIN_SUBSYSTEM()
+
     Super::Initialize();
 
     AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("PartyId: %s; Member count: %d"), *PartyId, Members.Num());
 
 	// First, we want to send off a request to get basic information for each party member, such as display name
-	FOnlineUserCacheAccelBytePtr UserStore = Subsystem->GetUserCache();
+	FOnlineUserCacheAccelBytePtr UserStore = SubsystemPin->GetUserCache();
 	if (!UserStore.IsValid())
 	{
 		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Could not query user information for all party members as our user store instance is invalid!"));

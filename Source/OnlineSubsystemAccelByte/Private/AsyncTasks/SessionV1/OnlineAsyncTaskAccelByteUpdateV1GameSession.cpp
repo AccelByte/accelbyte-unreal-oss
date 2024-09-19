@@ -14,16 +14,20 @@ FOnlineAsyncTaskAccelByteUpdateV1GameSession::FOnlineAsyncTaskAccelByteUpdateV1G
     , CurrentPlayer(InCurrentPlayer)
     , bShouldRefreshOnlineData(InBShouldRefreshOnlineData)
 {
-    LocalUserNum = Subsystem->GetLocalUserNumCached();
+    TRY_PIN_SUBSYSTEM_CONSTRUCTOR()
+
+    LocalUserNum = SubsystemPin->GetLocalUserNumCached();
 }
 
 void FOnlineAsyncTaskAccelByteUpdateV1GameSession::Initialize()
 {
+    TRY_PIN_SUBSYSTEM()
+
     Super::Initialize();
 
     AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("SessionName: %s"), *SessionName.ToString());
 
-    const IOnlineSessionPtr SessionInterface = Subsystem->GetSessionInterface();
+    const IOnlineSessionPtr SessionInterface = SubsystemPin->GetSessionInterface();
     check(SessionInterface != nullptr);
 
     FNamedOnlineSession* Session = SessionInterface->GetNamedSession(SessionName);
@@ -60,10 +64,11 @@ void FOnlineAsyncTaskAccelByteUpdateV1GameSession::Initialize()
 
 void FOnlineAsyncTaskAccelByteUpdateV1GameSession::TriggerDelegates()
 {
+    TRY_PIN_SUBSYSTEM()
+
     AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 
-    check(Subsystem != nullptr);
-    const IOnlineSessionPtr SessionInterface = Subsystem->GetSessionInterface();
+    const IOnlineSessionPtr SessionInterface = SubsystemPin->GetSessionInterface();
     SessionInterface->TriggerOnUpdateSessionCompleteDelegates(SessionName, bWasSuccessful);
 
     AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

@@ -26,12 +26,14 @@ FOnlineAsyncTaskAccelByteCreateV2Party::FOnlineAsyncTaskAccelByteCreateV2Party(F
 
 void FOnlineAsyncTaskAccelByteCreateV2Party::Initialize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	Super::Initialize();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("UserId: %s"), *UserId->ToDebugString());
 
 	// First, check if we are in a party locally, if so then we should fail and say to call leave party
-	const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(Subsystem->GetSessionInterface());
+	const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(SubsystemPin->GetSessionInterface());
 	AB_ASYNC_TASK_ENSURE(SessionInterface.IsValid(), "Failed to create party as our session interface is invalid!");
 
 	JoinType = SessionInterface->GetJoinabiltyFromSessionSettings(NewSessionSettings);
@@ -49,9 +51,11 @@ void FOnlineAsyncTaskAccelByteCreateV2Party::Initialize()
 
 void FOnlineAsyncTaskAccelByteCreateV2Party::Finalize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
-	const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(Subsystem->GetSessionInterface());
+	const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(SubsystemPin->GetSessionInterface());
 	if (!ensure(SessionInterface.IsValid()))
 	{
 		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to finalize party creation task as our session interface is invalid!"));
@@ -61,7 +65,7 @@ void FOnlineAsyncTaskAccelByteCreateV2Party::Finalize()
 	if (bWasSuccessful)
 	{
 		SessionInterface->FinalizeCreatePartySession(SessionName, PartyInfo);
-		const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = Subsystem->GetPredefinedEventInterface();
+		const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = SubsystemPin->GetPredefinedEventInterface();
 		if (PredefinedEventInterface.IsValid())
 		{
 			FAccelByteModelsMPV2PartySessionCreatedPayload PartyCreatedPayload{};
@@ -80,9 +84,11 @@ void FOnlineAsyncTaskAccelByteCreateV2Party::Finalize()
 
 void FOnlineAsyncTaskAccelByteCreateV2Party::TriggerDelegates()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
-	const TSharedPtr<FOnlineSessionV2AccelByte, ESPMode::ThreadSafe> SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(Subsystem->GetSessionInterface());
+	const TSharedPtr<FOnlineSessionV2AccelByte, ESPMode::ThreadSafe> SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(SubsystemPin->GetSessionInterface());
 	if (ensure(SessionInterface.IsValid()))
 	{
 		SessionInterface->TriggerOnCreateSessionCompleteDelegates(SessionName, bWasSuccessful);
@@ -93,6 +99,8 @@ void FOnlineAsyncTaskAccelByteCreateV2Party::TriggerDelegates()
 
 void FOnlineAsyncTaskAccelByteCreateV2Party::OnGetMyPartiesSuccess(const FAccelByteModelsV2PaginatedPartyQueryResult& Result)
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("PlayerInParty: %s"), LOG_BOOL_FORMAT(Result.Data.Num() > 0));
 
 	// Filter the resulting array by making sure our status is joined or connected, otherwise we won't be able to create a
@@ -104,7 +112,7 @@ void FOnlineAsyncTaskAccelByteCreateV2Party::OnGetMyPartiesSuccess(const FAccelB
 
 		if (FoundMember != nullptr)
 		{
-			return FoundMember->Status == EAccelByteV2SessionMemberStatus::JOINED || FoundMember->Status == EAccelByteV2SessionMemberStatus::CONNECTED;
+			return FoundMember->StatusV2 == EAccelByteV2SessionMemberStatus::JOINED || FoundMember->StatusV2 == EAccelByteV2SessionMemberStatus::CONNECTED;
 		}
 
 		return false;
@@ -134,7 +142,7 @@ void FOnlineAsyncTaskAccelByteCreateV2Party::OnGetMyPartiesSuccess(const FAccelB
 		return;
 	}
 
-	const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(Subsystem->GetSessionInterface());
+	const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(SubsystemPin->GetSessionInterface());
 	AB_ASYNC_TASK_ENSURE(SessionInterface.IsValid(), "Failed to create party session as our session interface was invalid!");
 
 	CreatePartyRequest.Attributes.JsonObject = SessionInterface->ConvertSessionSettingsToJsonObject(NewSessionSettings);

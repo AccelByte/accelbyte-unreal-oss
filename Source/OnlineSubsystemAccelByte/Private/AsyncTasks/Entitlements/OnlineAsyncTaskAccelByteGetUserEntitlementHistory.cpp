@@ -31,6 +31,8 @@ FOnlineAsyncTaskAccelByteGetUserEntitlementHistory::FOnlineAsyncTaskAccelByteGet
 
 void FOnlineAsyncTaskAccelByteGetUserEntitlementHistory::Initialize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	FOnlineAsyncTaskAccelByte::Initialize();
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 
@@ -54,7 +56,7 @@ void FOnlineAsyncTaskAccelByteGetUserEntitlementHistory::Initialize()
 		return;
 	}
 
-	const TSharedPtr<FOnlineIdentityAccelByte, ESPMode::ThreadSafe> IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(Subsystem->GetIdentityInterface());
+	const TSharedPtr<FOnlineIdentityAccelByte, ESPMode::ThreadSafe> IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(SubsystemPin->GetIdentityInterface());
 	if (!IdentityInterface.IsValid())
 	{
 		ErrorString = TEXT("Failed to process the request! Identity interface is invalid!");
@@ -93,7 +95,7 @@ void FOnlineAsyncTaskAccelByteGetUserEntitlementHistory::Initialize()
 	}
 	else
 	{
-		const FOnlineEntitlementsAccelBytePtr EntitlementInterface = StaticCastSharedPtr<FOnlineEntitlementsAccelByte>(Subsystem->GetEntitlementsInterface());
+		const FOnlineEntitlementsAccelBytePtr EntitlementInterface = StaticCastSharedPtr<FOnlineEntitlementsAccelByte>(SubsystemPin->GetEntitlementsInterface());
 
 		if (!EntitlementInterface.IsValid())
 		{
@@ -112,12 +114,14 @@ void FOnlineAsyncTaskAccelByteGetUserEntitlementHistory::Initialize()
 
 void FOnlineAsyncTaskAccelByteGetUserEntitlementHistory::TriggerDelegates()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	Super::TriggerDelegates();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 
-	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(Subsystem->GetIdentityInterface());
-	const FOnlineEntitlementsAccelBytePtr EntitlementInterface = StaticCastSharedPtr<FOnlineEntitlementsAccelByte>(Subsystem->GetEntitlementsInterface());
+	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(SubsystemPin->GetIdentityInterface());
+	const FOnlineEntitlementsAccelBytePtr EntitlementInterface = StaticCastSharedPtr<FOnlineEntitlementsAccelByte>(SubsystemPin->GetEntitlementsInterface());
 
 	if (bWasSuccessful)
 	{

@@ -21,12 +21,14 @@ FOnlineAsyncTaskAccelByteKickV1PartyMember::FOnlineAsyncTaskAccelByteKickV1Party
 
 void FOnlineAsyncTaskAccelByteKickV1PartyMember::Initialize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	Super::Initialize();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("UserId: %s; PartyId: %s; TargetMemberId: %s"), *UserId->ToDebugString(), *PartyId->ToString(), *TargetMemberId->ToDebugString());
 
 	// First, grab our party interface instance to do some checks before attempting to kick a member
-	const TSharedPtr<FOnlinePartySystemAccelByte, ESPMode::ThreadSafe> PartyInterface = StaticCastSharedPtr<FOnlinePartySystemAccelByte>(Subsystem->GetPartyInterface());
+	const TSharedPtr<FOnlinePartySystemAccelByte, ESPMode::ThreadSafe> PartyInterface = StaticCastSharedPtr<FOnlinePartySystemAccelByte>(SubsystemPin->GetPartyInterface());
 	if (!PartyInterface.IsValid())
 	{
 		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to initiate kicking a member '%s' from this party '%s' as the party interface instance was not valid!"), *TargetMemberId->ToDebugString(), *PartyId->ToString());
@@ -63,12 +65,14 @@ void FOnlineAsyncTaskAccelByteKickV1PartyMember::Initialize()
 
 void FOnlineAsyncTaskAccelByteKickV1PartyMember::Finalize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
 	if (bWasSuccessful)
 	{
 		// First, grab our party interface instance to grab our party instance
-		const TSharedPtr<FOnlinePartySystemAccelByte, ESPMode::ThreadSafe> PartyInterface = StaticCastSharedPtr<FOnlinePartySystemAccelByte>(Subsystem->GetPartyInterface());
+		const TSharedPtr<FOnlinePartySystemAccelByte, ESPMode::ThreadSafe> PartyInterface = StaticCastSharedPtr<FOnlinePartySystemAccelByte>(SubsystemPin->GetPartyInterface());
 		if (!PartyInterface.IsValid())
 		{
 			AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to finalize kicking party member as the party interface was not valid!"));

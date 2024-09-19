@@ -54,11 +54,13 @@ FOnlineAsyncTaskAccelByteQueryStatsUsers::FOnlineAsyncTaskAccelByteQueryStatsUse
 
 void FOnlineAsyncTaskAccelByteQueryStatsUsers::Initialize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	Super::Initialize();
 	
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 
-	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(Subsystem->GetIdentityInterface());
+	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(SubsystemPin->GetIdentityInterface());
 	if (!IdentityInterface.IsValid())
 	{
 		ErrorMessage = TEXT("request-failed-query-stats-user-error-identity-invalid");
@@ -136,10 +138,12 @@ void FOnlineAsyncTaskAccelByteQueryStatsUsers::Initialize()
 
 void FOnlineAsyncTaskAccelByteQueryStatsUsers::Finalize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 	Super::Finalize();
 
-	const FOnlineStatisticAccelBytePtr StatisticInterface = StaticCastSharedPtr<FOnlineStatisticAccelByte>(Subsystem->GetStatsInterface());
+	const FOnlineStatisticAccelBytePtr StatisticInterface = StaticCastSharedPtr<FOnlineStatisticAccelByte>(SubsystemPin->GetStatsInterface());
 	if (StatisticInterface.IsValid())
 	{
 		for (const auto& UserStatsPair : OnlineUsersStatsPairs)
@@ -148,7 +152,7 @@ void FOnlineAsyncTaskAccelByteQueryStatsUsers::Finalize()
 		}
 	}
 
-	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = Subsystem->GetPredefinedEventInterface();
+	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = SubsystemPin->GetPredefinedEventInterface();
 	if (bWasSuccessful && PredefinedEventInterface.IsValid())
 	{
 		TSharedPtr<FAccelByteModelsUserStatItemGetItemsByCodesPayload> UserStatItemGetItemsByCodesPayload = MakeShared<FAccelByteModelsUserStatItemGetItemsByCodesPayload>();

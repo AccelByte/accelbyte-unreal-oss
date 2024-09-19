@@ -15,11 +15,15 @@ FOnlineAsyncTaskAccelByteUnregisterPlayersV1::FOnlineAsyncTaskAccelByteUnregiste
 	, SessionName(InSessionName)
 	, Players(InPlayers)
 {
-	LocalUserNum = Subsystem->GetLocalUserNumCached();
+	TRY_PIN_SUBSYSTEM_CONSTRUCTOR()
+
+	LocalUserNum = SubsystemPin->GetLocalUserNumCached();
 }
 
 void FOnlineAsyncTaskAccelByteUnregisterPlayersV1::Initialize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	Super::Initialize();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("SessionName: %s"), *SessionName.ToString());
@@ -33,7 +37,7 @@ void FOnlineAsyncTaskAccelByteUnregisterPlayersV1::Initialize()
 
 	PendingPlayerUnregistrations.Set(Players.Num());
 
-	const IOnlineSessionPtr SessionInterface = Subsystem->GetSessionInterface();
+	const IOnlineSessionPtr SessionInterface = SubsystemPin->GetSessionInterface();
 	check(SessionInterface != nullptr);
 
 	FNamedOnlineSession* Session = SessionInterface->GetNamedSession(SessionName);
@@ -108,9 +112,11 @@ void FOnlineAsyncTaskAccelByteUnregisterPlayersV1::Tick()
 
 void FOnlineAsyncTaskAccelByteUnregisterPlayersV1::TriggerDelegates()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 
-	const TSharedPtr<FOnlineSessionV1AccelByte, ESPMode::ThreadSafe> SessionInterface = StaticCastSharedPtr<FOnlineSessionV1AccelByte>(Subsystem->GetSessionInterface());
+	const TSharedPtr<FOnlineSessionV1AccelByte, ESPMode::ThreadSafe> SessionInterface = StaticCastSharedPtr<FOnlineSessionV1AccelByte>(SubsystemPin->GetSessionInterface());
 	if (SessionInterface.IsValid())
 	{
 		SessionInterface->TriggerOnUnregisterPlayersCompleteDelegates(SessionName, SuccessfullyUnregisteredPlayers, bWasSuccessful);

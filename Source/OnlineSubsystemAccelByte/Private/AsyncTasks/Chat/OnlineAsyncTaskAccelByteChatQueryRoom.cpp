@@ -36,12 +36,14 @@ void FOnlineAsyncTaskAccelByteChatQueryRoom::Initialize()
 
 void FOnlineAsyncTaskAccelByteChatQueryRoom::TriggerDelegates()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	Super::TriggerDelegates();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 
 	FOnlineChatAccelBytePtr ChatInterface;
-	if (ensure(FOnlineChatAccelByte::GetFromSubsystem(Subsystem, ChatInterface)))
+	if (ensure(FOnlineChatAccelByte::GetFromSubsystem(SubsystemPin.Get(),  ChatInterface)))
 	{
 		if (bWasSuccessful)
 		{
@@ -81,6 +83,8 @@ void FOnlineAsyncTaskAccelByteChatQueryRoom::OnQueryRoomError(int32 ErrorCode, c
 
 void FOnlineAsyncTaskAccelByteChatQueryRoom::OnQueryRoomSuccess(const FAccelByteModelsChatQueryTopicResponse& Response)
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Processed: %s, Length: %d"), *Response.Processed.ToIso8601(), Response.Data.Num());
 	SetLastUpdateTimeToCurrentTime();
 	
@@ -97,7 +101,7 @@ void FOnlineAsyncTaskAccelByteChatQueryRoom::OnQueryRoomSuccess(const FAccelByte
 		}
 	}
 
-	FOnlineUserCacheAccelBytePtr UserStore = Subsystem->GetUserCache();
+	FOnlineUserCacheAccelBytePtr UserStore = SubsystemPin->GetUserCache();
 	if (!UserStore.IsValid())
 	{
 		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Could not query chat room as our user store instance is invalid!"));

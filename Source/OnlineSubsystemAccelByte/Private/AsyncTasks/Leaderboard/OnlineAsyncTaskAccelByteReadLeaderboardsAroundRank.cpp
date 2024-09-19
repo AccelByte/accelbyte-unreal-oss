@@ -24,12 +24,17 @@ FOnlineAsyncTaskAccelByteReadLeaderboardsAroundRank::FOnlineAsyncTaskAccelByteRe
 
 	LeaderboardReadRef->ReadState = EOnlineAsyncTaskState::InProgress;
 
-	Offset = InRank - InRange;
-	Limit = InRange * 2;
-
-	if(Offset < 0)
+	Offset = FMath::Max(0, InRank - InRange); // make sure we don't go below 0 offset
+	
+	if(InRank <= InRange)
 	{
-		Offset = 0;
+		// we want the range above pivot, while below the pivot is limited to current rank
+		Limit = InRange + InRank;
+	}
+	else
+	{
+		// we want the range above, range below and THE pivot
+		Limit = (InRange * 2) + 1;
 	}
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
@@ -37,12 +42,14 @@ FOnlineAsyncTaskAccelByteReadLeaderboardsAroundRank::FOnlineAsyncTaskAccelByteRe
 
 void FOnlineAsyncTaskAccelByteReadLeaderboardsAroundRank::Initialize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	Super::Initialize();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Initialized"));
 
 
-	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(Subsystem->GetIdentityInterface());
+	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(SubsystemPin->GetIdentityInterface());
 	if (!IdentityInterface.IsValid())
 	{
 		ErrorMessage = TEXT("request-failed-read-leaderboards-error-identity-invalid");
@@ -92,6 +99,8 @@ void FOnlineAsyncTaskAccelByteReadLeaderboardsAroundRank::Initialize()
 
 void FOnlineAsyncTaskAccelByteReadLeaderboardsAroundRank::Finalize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	Super::Finalize();
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Finalize"));
 
@@ -99,7 +108,7 @@ void FOnlineAsyncTaskAccelByteReadLeaderboardsAroundRank::Finalize()
 
 	if (bWasSuccessful)
 	{
-		const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = Subsystem->GetPredefinedEventInterface();
+		const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = SubsystemPin->GetPredefinedEventInterface();
 		if (PredefinedEventInterface.IsValid())
 		{
 			if (bUseCycle)
@@ -127,11 +136,13 @@ void FOnlineAsyncTaskAccelByteReadLeaderboardsAroundRank::Finalize()
 
 void FOnlineAsyncTaskAccelByteReadLeaderboardsAroundRank::TriggerDelegates()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	Super::TriggerDelegates();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("TriggerDelegates"));
 
-	const FOnlineLeaderboardAccelBytePtr LeaderboardsInterfacePtr = StaticCastSharedPtr<FOnlineLeaderboardAccelByte>(Subsystem->GetLeaderboardsInterface());
+	const FOnlineLeaderboardAccelBytePtr LeaderboardsInterfacePtr = StaticCastSharedPtr<FOnlineLeaderboardAccelByte>(SubsystemPin->GetLeaderboardsInterface());
 
 	if(!ensure(LeaderboardsInterfacePtr.IsValid()))
 	{
@@ -150,10 +161,12 @@ void FOnlineAsyncTaskAccelByteReadLeaderboardsAroundRank::Tick()
 
 void FOnlineAsyncTaskAccelByteReadLeaderboardsAroundRank::OnReadLeaderboardRankSuccess(FAccelByteModelsLeaderboardRankingResultV3 const& Result)
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Read Leaderboards Success"));
 
-	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(Subsystem->GetIdentityInterface());
-	const FOnlineLeaderboardAccelBytePtr LeaderboardsInterface = StaticCastSharedPtr<FOnlineLeaderboardAccelByte>(Subsystem->GetLeaderboardsInterface());
+	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(SubsystemPin->GetIdentityInterface());
+	const FOnlineLeaderboardAccelBytePtr LeaderboardsInterface = StaticCastSharedPtr<FOnlineLeaderboardAccelByte>(SubsystemPin->GetLeaderboardsInterface());
 	if (!ensure(LeaderboardsInterface.IsValid()))
 	{
 		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to save leaderboard data as our leaderboards interface is invalid!"));

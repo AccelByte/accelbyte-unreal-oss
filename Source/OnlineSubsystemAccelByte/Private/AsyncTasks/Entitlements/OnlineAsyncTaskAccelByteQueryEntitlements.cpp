@@ -31,10 +31,12 @@ void FOnlineAsyncTaskAccelByteQueryEntitlements::Initialize()
 
 void FOnlineAsyncTaskAccelByteQueryEntitlements::TriggerDelegates()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 	FOnlineAsyncTaskAccelByte::TriggerDelegates();
 	
-	Subsystem->GetEntitlementsInterface()->TriggerOnQueryEntitlementsCompleteDelegates(bWasSuccessful, *UserId, Namespace, ErrorMessage);
+	SubsystemPin->GetEntitlementsInterface()->TriggerOnQueryEntitlementsCompleteDelegates(bWasSuccessful, *UserId, Namespace, ErrorMessage);
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 
@@ -51,7 +53,9 @@ void FOnlineAsyncTaskAccelByteQueryEntitlements::QueryEntitlement(int32 Offset, 
 
 void FOnlineAsyncTaskAccelByteQueryEntitlements::HandleQueryEntitlementSuccess(FAccelByteModelsEntitlementPagingSlicedResult const& Result)
 {	
-	const TSharedPtr<FOnlineEntitlementsAccelByte, ESPMode::ThreadSafe> EntitlementsInterface = StaticCastSharedPtr<FOnlineEntitlementsAccelByte>(Subsystem->GetEntitlementsInterface());
+	TRY_PIN_SUBSYSTEM()
+
+	const TSharedPtr<FOnlineEntitlementsAccelByte, ESPMode::ThreadSafe> EntitlementsInterface = StaticCastSharedPtr<FOnlineEntitlementsAccelByte>(SubsystemPin->GetEntitlementsInterface());
 	if (!EntitlementsInterface.IsValid())
 	{
 		ErrorMessage = TEXT("Entitlement Interface is not valid!");

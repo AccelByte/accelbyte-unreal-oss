@@ -78,8 +78,10 @@ FOnlineAsyncTaskAccelByteQueryUsersByIds::FOnlineAsyncTaskAccelByteQueryUsersByI
 
 void FOnlineAsyncTaskAccelByteQueryUsersByIds::BulkGetUserByOtherPlatformUserIds(const TArray<FString>& InUserIds)
 {
+	TRY_PIN_SUBSYSTEM()
+
 	EAccelBytePlatformType ABPlatformType;
-	if (Subsystem->GetAccelBytePlatformTypeFromAuthType(PlatformType, ABPlatformType))
+	if (SubsystemPin->GetAccelBytePlatformTypeFromAuthType(PlatformType, ABPlatformType))
 	{
 		const THandler<FBulkPlatformUserIdResponse> OnBulkGetUserSuccess = TDelegateUtils<THandler<FBulkPlatformUserIdResponse>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryUsersByIds::OnBulkQueryPlatformIdMappingsSuccess);
 		const FErrorHandler OnBulkGetUserError = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryUsersByIds::OnBulkQueryPlatformIdMappingsError);
@@ -128,11 +130,13 @@ void FOnlineAsyncTaskAccelByteQueryUsersByIds::Tick()
 
 void FOnlineAsyncTaskAccelByteQueryUsersByIds::Finalize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
 	if (UsersQueried.Num() > 0)
 	{
-		FOnlineUserCacheAccelBytePtr UserCache = Subsystem->GetUserCache();
+		FOnlineUserCacheAccelBytePtr UserCache = SubsystemPin->GetUserCache();
 		if (UserCache.IsValid())
 		{
 			UserCache->AddUsersToCache(UsersQueried);
@@ -207,6 +211,8 @@ void FOnlineAsyncTaskAccelByteQueryUsersByIds::OnBulkQueryPlatformIdMappingsErro
 
 void FOnlineAsyncTaskAccelByteQueryUsersByIds::GetBasicUserInfo(const TArray<FString>& AccelByteIds)
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("IDs to query: %d"), AccelByteIds.Num());
 
 	if (AccelByteIds.Num() <= 0)
@@ -216,7 +222,7 @@ void FOnlineAsyncTaskAccelByteQueryUsersByIds::GetBasicUserInfo(const TArray<FSt
 		return;
 	}
 
-	const FOnlineUserCacheAccelBytePtr UserCache = Subsystem->GetUserCache();
+	const FOnlineUserCacheAccelBytePtr UserCache = SubsystemPin->GetUserCache();
 	if (!UserCache.IsValid())
 	{
 		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Cannot query users as our user store instance is invalid!"));
@@ -266,9 +272,11 @@ void FOnlineAsyncTaskAccelByteQueryUsersByIds::GetUserOtherPlatformBasicPublicIn
 
 void FOnlineAsyncTaskAccelByteQueryUsersByIds::OnGetUserOtherPlatformBasicPublicInfoSuccess(const FAccountUserPlatformInfosResponse& Result)
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("User information received: %d"), Result.Data.Num());
 
-	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(Subsystem->GetIdentityInterface());
+	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(SubsystemPin->GetIdentityInterface());
 	if (!IdentityInterface.IsValid())
 	{
 		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Cannot query users as our Identity Interface is invalid!"));
@@ -292,7 +300,7 @@ void FOnlineAsyncTaskAccelByteQueryUsersByIds::OnGetUserOtherPlatformBasicPublic
 		return;
 	}
 
-	FOnlineUserCacheAccelBytePtr UserCache = Subsystem->GetUserCache();
+	FOnlineUserCacheAccelBytePtr UserCache = SubsystemPin->GetUserCache();
 	if (!UserCache.IsValid())
 	{
 		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Cannot query users as AccelByte user cache interface is invalid!"));
@@ -381,7 +389,9 @@ void FOnlineAsyncTaskAccelByteQueryUsersByIds::OnGetUserOtherPlatformBasicPublic
 
 void FOnlineAsyncTaskAccelByteQueryUsersByIds::QueryUsersOnNativePlatform(const TArray<TSharedRef<const FUniqueNetId>>& PlatformUniqueIds)
 {
-	const IOnlineSubsystem* NativeSubsystem = Subsystem->GetNativePlatformSubsystem();
+	TRY_PIN_SUBSYSTEM()
+
+	const IOnlineSubsystem* NativeSubsystem = SubsystemPin->GetNativePlatformSubsystem();
 	if (NativeSubsystem == nullptr)
 	{
 		UE_LOG_AB(Warning, TEXT("Unable to retrieve the native online subsystem! Skipping native platform query."));
@@ -405,8 +415,10 @@ void FOnlineAsyncTaskAccelByteQueryUsersByIds::QueryUsersOnNativePlatform(const 
 
 void FOnlineAsyncTaskAccelByteQueryUsersByIds::ExtractPlatformDataFromBasicUserInfo(const FAccountUserPlatformData& BasicInfo, FAccelByteUniqueIdComposite& CompositeId)
 {
+	TRY_PIN_SUBSYSTEM()
+
 	// Grab our own user account from the identity interface to determine which platform we should grab for composite IDs
-	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(Subsystem->GetIdentityInterface());
+	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(SubsystemPin->GetIdentityInterface());
 	if (!IdentityInterface.IsValid())
 	{
 		return;

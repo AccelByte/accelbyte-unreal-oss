@@ -21,13 +21,15 @@ FOnlineAsyncTaskAccelByteRejectFriendInvite::FOnlineAsyncTaskAccelByteRejectFrie
 
 void FOnlineAsyncTaskAccelByteRejectFriendInvite::Initialize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	Super::Initialize();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("FriendId: %s"), *FriendId->ToDebugString());
 
 	// Attempt to get a pointer to the friend in the friends list to make sure that we have their invite in our list
 	// otherwise, the request will fail
-	const IOnlineFriendsPtr FriendsInterface = Subsystem->GetFriendsInterface();
+	const IOnlineFriendsPtr FriendsInterface = SubsystemPin->GetFriendsInterface();
 	const TSharedPtr<FOnlineFriend> InviteeFriend = FriendsInterface->GetFriend(LocalUserNum, FriendId.Get(), ListName);
 
 	// Check if we have the friend in our list currently, as well as whether the friend in our list is an inbound friend,
@@ -64,15 +66,17 @@ void FOnlineAsyncTaskAccelByteRejectFriendInvite::Initialize()
 
 void FOnlineAsyncTaskAccelByteRejectFriendInvite::Finalize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
 	// If the request was successful, then we want to get rid of this user from our friends list
 	if (bWasSuccessful)
 	{
-		const TSharedPtr<FOnlineFriendsAccelByte, ESPMode::ThreadSafe> FriendInterface = StaticCastSharedPtr<FOnlineFriendsAccelByte>(Subsystem->GetFriendsInterface());
+		const TSharedPtr<FOnlineFriendsAccelByte, ESPMode::ThreadSafe> FriendInterface = StaticCastSharedPtr<FOnlineFriendsAccelByte>(SubsystemPin->GetFriendsInterface());
 		FriendInterface->RemoveFriendFromList(LocalUserNum, FriendId);
 
-		const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = Subsystem->GetPredefinedEventInterface();
+		const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = SubsystemPin->GetPredefinedEventInterface();
 		if (PredefinedEventInterface.IsValid() && FriendId->IsValid())
 		{
 			FAccelByteModelsFriendRequestRejectedPayload FriendRequestRejectedPayload{};
@@ -87,9 +91,11 @@ void FOnlineAsyncTaskAccelByteRejectFriendInvite::Finalize()
 
 void FOnlineAsyncTaskAccelByteRejectFriendInvite::TriggerDelegates()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
-	const IOnlineFriendsPtr FriendsInterface = Subsystem->GetFriendsInterface();
+	const IOnlineFriendsPtr FriendsInterface = SubsystemPin->GetFriendsInterface();
 	FriendsInterface->TriggerOnRejectInviteCompleteDelegates(LocalUserNum, bWasSuccessful, FriendId.Get(), ListName, ErrorStr);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

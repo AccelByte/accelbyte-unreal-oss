@@ -11,20 +11,24 @@ using namespace AccelByte;
 
 FOnlineAsyncTaskAccelByteJoinV2GameSession::FOnlineAsyncTaskAccelByteJoinV2GameSession(FOnlineSubsystemAccelByte* const InABInterface
 	, const FUniqueNetId& InLocalUserId
-	, const FName& InSessionName)
+	, const FName& InSessionName
+	, bool bInHasLocalUserJoined)
 	: FOnlineAsyncTaskAccelByte(InABInterface)
 	, SessionName(InSessionName)
+	, bHasLocalUserJoined(bInHasLocalUserJoined)
 {
 	UserId = FUniqueNetIdAccelByteUser::CastChecked(InLocalUserId);
 }
 
 void FOnlineAsyncTaskAccelByteJoinV2GameSession::Initialize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	Super::Initialize();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("UserId: %s; SessionName: %s"), *UserId->ToDebugString(), *SessionName.ToString());
 
-	const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(Subsystem->GetSessionInterface());
+	const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(SubsystemPin->GetSessionInterface());
 	AB_ASYNC_TASK_ENSURE(SessionInterface.IsValid(), "Failed to join game session as our session interface instance is invalid!");
 
 	FNamedOnlineSession* SessionToJoin = SessionInterface->GetNamedSession(SessionName);
@@ -33,8 +37,30 @@ void FOnlineAsyncTaskAccelByteJoinV2GameSession::Initialize()
 	const FString SessionId = SessionToJoin->GetSessionIdStr();
 	AB_ASYNC_TASK_ENSURE(!SessionId.Equals(TEXT("InvalidSession")), "Failed to join game session as the session ID was invalid!");
 
+	if (bHasLocalUserJoined)
+	{
+		// Local player has already joined this session as far as the backend is concerned. With that in mind, grab the
+		// session data from the pending named session created and manually call OnJoinGameSessionSuccess with that data.
+		// That way, we skip the unnecessary JoinGameSession API call and still go through normal flow of setting up
+		// the local session cache with proper session data. If some how we do not have valid data for the pending named
+		// session, then we will fall back to doing the join session API call to retrieve that data. Session service will
+		// return a no-op success response if we do end up calling while joined.
+		TSharedPtr<FOnlineSessionInfoAccelByteV2> SessionInfo = StaticCastSharedPtr<FOnlineSessionInfoAccelByteV2>(SessionToJoin->SessionInfo);
+		if (SessionInfo.IsValid())
+		{
+			TSharedPtr<FAccelByteModelsV2GameSession> GameSessionData = SessionInfo->GetBackendSessionDataAsGameSession();
+			if (GameSessionData.IsValid())
+			{
+				OnJoinGameSessionSuccess(GameSessionData.ToSharedRef().Get());
+				return;
+			}
+		}
+
+		// No early return here as we want to flow into the join API call if the above conditions are not met
+	}
+
 	OnJoinGameSessionSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsV2GameSession>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteJoinV2GameSession::OnJoinGameSessionSuccess);
-	OnJoinGameSessionErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteJoinV2GameSession::OnJoinGameSessionError);;
+	OnJoinGameSessionErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteJoinV2GameSession::OnJoinGameSessionError);
 	API_CLIENT_CHECK_GUARD();
 	ApiClient->Session.JoinGameSession(SessionId, OnJoinGameSessionSuccessDelegate, OnJoinGameSessionErrorDelegate);
 
@@ -43,9 +69,11 @@ void FOnlineAsyncTaskAccelByteJoinV2GameSession::Initialize()
 
 void FOnlineAsyncTaskAccelByteJoinV2GameSession::Finalize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
-	const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(Subsystem->GetSessionInterface());
+	const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(SubsystemPin->GetSessionInterface());
 	if (!ensure(SessionInterface.IsValid()))
 	{
 		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to finalize joining a game session as our session interface is invalid!"));
@@ -89,7 +117,7 @@ void FOnlineAsyncTaskAccelByteJoinV2GameSession::Finalize()
 		// joining, we would apply that to the joined session
 		SessionInterface->UpdateInternalGameSession(SessionName, UpdatedBackendSessionInfo, bJoiningP2P, true);
 
-		const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = Subsystem->GetPredefinedEventInterface();
+		const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = SubsystemPin->GetPredefinedEventInterface();
 		if (PredefinedEventInterface.IsValid())
 		{
 			FAccelByteModelsMPV2GameSessionJoinedPayload GameSessionJoinedPayload{};
@@ -133,11 +161,13 @@ void FOnlineAsyncTaskAccelByteJoinV2GameSession::Finalize()
 
 void FOnlineAsyncTaskAccelByteJoinV2GameSession::TriggerDelegates()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
 	if (!bJoiningP2P)
 	{
-		const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(Subsystem->GetSessionInterface());
+		const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(SubsystemPin->GetSessionInterface());
 		if (!ensure(SessionInterface.IsValid()))
 		{
 			AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to trigger delegates to joining game session as our session interface is invalid!"));

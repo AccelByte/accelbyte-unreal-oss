@@ -21,6 +21,8 @@ FOnlineAsyncTaskAccelByteDeleteUserFile::FOnlineAsyncTaskAccelByteDeleteUserFile
 
 void FOnlineAsyncTaskAccelByteDeleteUserFile::Initialize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	Super::Initialize();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("UserId: %s; FileName: %s; bShouldCloudDelete: %s; bShouldLocallyDelete: %s"), *UserId->ToDebugString(), *FileName, LOG_BOOL_FORMAT(bShouldCloudDelete), LOG_BOOL_FORMAT(bShouldLocallyDelete));
@@ -28,7 +30,7 @@ void FOnlineAsyncTaskAccelByteDeleteUserFile::Initialize()
 	if (bShouldCloudDelete)
 	{
 		// Check the UserCloud cache for a SlotId that corresponds to the file name
-		const TSharedPtr<FOnlineUserCloudAccelByte, ESPMode::ThreadSafe> UserCloudInterface = StaticCastSharedPtr<FOnlineUserCloudAccelByte>(Subsystem->GetUserCloudInterface());
+		const TSharedPtr<FOnlineUserCloudAccelByte, ESPMode::ThreadSafe> UserCloudInterface = StaticCastSharedPtr<FOnlineUserCloudAccelByte>(SubsystemPin->GetUserCloudInterface());
 		const FString SlotId = UserCloudInterface->GetSlotIdFromCache(UserId.ToSharedRef(), FileName);
 
 		// If we could not find a cached slot ID, then we need to query all of the users slots to find a match
@@ -50,11 +52,13 @@ void FOnlineAsyncTaskAccelByteDeleteUserFile::Initialize()
 
 void FOnlineAsyncTaskAccelByteDeleteUserFile::Finalize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
 	if (bWasSuccessful)
 	{
-		const TSharedPtr<FOnlineUserCloudAccelByte, ESPMode::ThreadSafe> UserCloudInterface = StaticCastSharedPtr<FOnlineUserCloudAccelByte>(Subsystem->GetUserCloudInterface());
+		const TSharedPtr<FOnlineUserCloudAccelByte, ESPMode::ThreadSafe> UserCloudInterface = StaticCastSharedPtr<FOnlineUserCloudAccelByte>(SubsystemPin->GetUserCloudInterface());
 		if (UserCloudInterface.IsValid())
 		{
 			UserCloudInterface->RemoveSlotIdFromCache(UserId.ToSharedRef(), FileName);
@@ -66,9 +70,11 @@ void FOnlineAsyncTaskAccelByteDeleteUserFile::Finalize()
 
 void FOnlineAsyncTaskAccelByteDeleteUserFile::TriggerDelegates()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
-	const IOnlineUserCloudPtr UserCloudInterface = Subsystem->GetUserCloudInterface();
+	const IOnlineUserCloudPtr UserCloudInterface = SubsystemPin->GetUserCloudInterface();
 	if (UserCloudInterface.IsValid())
 	{
 		UserCloudInterface->TriggerOnDeleteUserFileCompleteDelegates(bWasSuccessful, UserId.ToSharedRef().Get(), FileName);

@@ -50,11 +50,13 @@ void FOnlineAsyncTaskAccelByteRestoreAllV2Sessions::Tick()
 
 void FOnlineAsyncTaskAccelByteRestoreAllV2Sessions::Finalize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
 	if (bWasSuccessful)
 	{
-		const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(Subsystem->GetSessionInterface());
+		const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(SubsystemPin->GetSessionInterface());
 		if (!ensure(SessionInterface.IsValid()))
 		{
 			AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to finalize restoring sessions as our session interface is invalid!"));
@@ -86,11 +88,13 @@ bool FOnlineAsyncTaskAccelByteRestoreAllV2Sessions::HasFinishedAsyncWork()
 
 void FOnlineAsyncTaskAccelByteRestoreAllV2Sessions::OnGetMyGameSessionsSuccess(const FAccelByteModelsV2PaginatedGameSessionQueryResult& Result)
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("GameSessionCount: %d"), Result.Data.Num());
 
 	SetLastUpdateTimeToCurrentTime();
 
-	const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(Subsystem->GetSessionInterface());
+	const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(SubsystemPin->GetSessionInterface());
 	AB_ASYNC_TASK_ENSURE(SessionInterface.IsValid(), "Failed to construct restored game sessions as our session interface is invalid!");
 
 	for (const FAccelByteModelsV2GameSession& Session : Result.Data)
@@ -108,7 +112,7 @@ void FOnlineAsyncTaskAccelByteRestoreAllV2Sessions::OnGetMyGameSessionsSuccess(c
 			return Member.ID == UserIdStr;
 		});
 
-		if (FoundMember == nullptr || FoundMember->Status == EAccelByteV2SessionMemberStatus::INVITED)
+		if (FoundMember == nullptr || FoundMember->StatusV2 == EAccelByteV2SessionMemberStatus::INVITED)
 		{
 			continue;
 		}
@@ -139,11 +143,13 @@ void FOnlineAsyncTaskAccelByteRestoreAllV2Sessions::OnGetMyGameSessionsError(int
 
 void FOnlineAsyncTaskAccelByteRestoreAllV2Sessions::OnGetMyPartiesSuccess(const FAccelByteModelsV2PaginatedPartyQueryResult& Result)
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("PartySessionCount: %d"), Result.Data.Num());
 
 	SetLastUpdateTimeToCurrentTime();
 
-	const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(Subsystem->GetSessionInterface());
+	const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(SubsystemPin->GetSessionInterface());
 	AB_ASYNC_TASK_ENSURE(SessionInterface.IsValid(), "Failed to construct restored party sessions as our session interface is invalid!");
 
 	for (const FAccelByteModelsV2PartySession& Session : Result.Data)
@@ -161,7 +167,7 @@ void FOnlineAsyncTaskAccelByteRestoreAllV2Sessions::OnGetMyPartiesSuccess(const 
 			return Member.ID == UserIdStr;
 		});
 
-		if (FoundMember == nullptr || FoundMember->Status == EAccelByteV2SessionMemberStatus::INVITED)
+		if (FoundMember == nullptr || FoundMember->StatusV2 == EAccelByteV2SessionMemberStatus::INVITED)
 		{
 			continue;
 		}

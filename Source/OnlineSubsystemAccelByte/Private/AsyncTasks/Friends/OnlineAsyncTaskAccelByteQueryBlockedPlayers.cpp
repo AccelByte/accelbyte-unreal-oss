@@ -32,11 +32,13 @@ void FOnlineAsyncTaskAccelByteQueryBlockedPlayers::Initialize()
 
 void FOnlineAsyncTaskAccelByteQueryBlockedPlayers::Finalize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
 	if (bWasSuccessful)
 	{
-		const TSharedPtr<FOnlineFriendsAccelByte, ESPMode::ThreadSafe> FriendInterface = StaticCastSharedPtr<FOnlineFriendsAccelByte>(Subsystem->GetFriendsInterface());
+		const TSharedPtr<FOnlineFriendsAccelByte, ESPMode::ThreadSafe> FriendInterface = StaticCastSharedPtr<FOnlineFriendsAccelByte>(SubsystemPin->GetFriendsInterface());
 		FriendInterface->AddBlockedPlayersToList(UserId.ToSharedRef(), FoundBlockedPlayers);
 	}
 
@@ -45,9 +47,11 @@ void FOnlineAsyncTaskAccelByteQueryBlockedPlayers::Finalize()
 
 void FOnlineAsyncTaskAccelByteQueryBlockedPlayers::TriggerDelegates()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
-	const IOnlineFriendsPtr FriendInterface = Subsystem->GetFriendsInterface();
+	const IOnlineFriendsPtr FriendInterface = SubsystemPin->GetFriendsInterface();
 	FriendInterface->TriggerOnQueryBlockedPlayersCompleteDelegates(UserId.ToSharedRef().Get(), bWasSuccessful, ErrorStr);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
@@ -55,6 +59,8 @@ void FOnlineAsyncTaskAccelByteQueryBlockedPlayers::TriggerDelegates()
 
 void FOnlineAsyncTaskAccelByteQueryBlockedPlayers::OnGetListOfBlockedUsersSuccess(const FAccelByteModelsListBlockedUserResponse& Result)
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("UserId: %s; Blocked user amount: %d"), *UserId->ToDebugString(), Result.Data.Num());
 
 	// Get an array of user IDs that we will query for information to display
@@ -72,7 +78,7 @@ void FOnlineAsyncTaskAccelByteQueryBlockedPlayers::OnGetListOfBlockedUsersSucces
 		return;
 	}
 
-	FOnlineUserCacheAccelBytePtr UserStore = Subsystem->GetUserCache();
+	FOnlineUserCacheAccelBytePtr UserStore = SubsystemPin->GetUserCache();
 	if (!UserStore.IsValid())
 	{
 		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Could not query blocked user information as our user store instance is invalid!"));

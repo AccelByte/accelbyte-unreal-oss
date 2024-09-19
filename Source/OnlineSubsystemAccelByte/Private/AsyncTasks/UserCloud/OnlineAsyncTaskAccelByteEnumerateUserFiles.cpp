@@ -32,12 +32,14 @@ void FOnlineAsyncTaskAccelByteEnumerateUserFiles::Initialize()
 
 void FOnlineAsyncTaskAccelByteEnumerateUserFiles::Finalize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s; Header Amount: %d"), LOG_BOOL_FORMAT(bWasSuccessful), FileNameToFileHeaderMap.Num());
 
 	if (bWasSuccessful)
 	{
 		// Pass the new cloud headers that were created to the UserCloud interface
-		TSharedPtr<FOnlineUserCloudAccelByte, ESPMode::ThreadSafe> UserCloudInterface = StaticCastSharedPtr<FOnlineUserCloudAccelByte>(Subsystem->GetUserCloudInterface());
+		TSharedPtr<FOnlineUserCloudAccelByte, ESPMode::ThreadSafe> UserCloudInterface = StaticCastSharedPtr<FOnlineUserCloudAccelByte>(SubsystemPin->GetUserCloudInterface());
 		if (UserCloudInterface.IsValid())
 		{
 			UserCloudInterface->AddCloudHeaders(UserId.ToSharedRef(), FileNameToFileHeaderMap);
@@ -49,9 +51,11 @@ void FOnlineAsyncTaskAccelByteEnumerateUserFiles::Finalize()
 
 void FOnlineAsyncTaskAccelByteEnumerateUserFiles::TriggerDelegates()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
-	TSharedPtr<FOnlineUserCloudAccelByte, ESPMode::ThreadSafe> UserCloudInterface = StaticCastSharedPtr<FOnlineUserCloudAccelByte>(Subsystem->GetUserCloudInterface());
+	TSharedPtr<FOnlineUserCloudAccelByte, ESPMode::ThreadSafe> UserCloudInterface = StaticCastSharedPtr<FOnlineUserCloudAccelByte>(SubsystemPin->GetUserCloudInterface());
 	if (UserCloudInterface.IsValid())
 	{
 		UserCloudInterface->TriggerOnEnumerateUserFilesCompleteDelegates(bWasSuccessful, UserId.ToSharedRef().Get());

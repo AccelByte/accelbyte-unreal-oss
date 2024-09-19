@@ -19,11 +19,13 @@ FOnlineAsyncTaskAccelBytePromoteV2PartyLeader::FOnlineAsyncTaskAccelBytePromoteV
 
 void FOnlineAsyncTaskAccelBytePromoteV2PartyLeader::Initialize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	Super::Initialize();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("UserId: %s; SessionId: %s; TargetMemberId: %s"), *UserId->GetAccelByteId(), *SessionId, *TargetMemberId->GetAccelByteId());
 
-	const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(Subsystem->GetSessionInterface());
+	const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(SubsystemPin->GetSessionInterface());
 	AB_ASYNC_TASK_ENSURE(SessionInterface.IsValid(), "Failed to promote player to leader of party session as our session interface is invalid!");
 
 	FNamedOnlineSession* Session = SessionInterface->GetPartySession();
@@ -39,9 +41,11 @@ void FOnlineAsyncTaskAccelBytePromoteV2PartyLeader::Initialize()
 
 void FOnlineAsyncTaskAccelBytePromoteV2PartyLeader::Finalize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
-	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = Subsystem->GetPredefinedEventInterface();
+	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = SubsystemPin->GetPredefinedEventInterface();
 	if (bWasSuccessful && PredefinedEventInterface.IsValid())
 	{
 		FAccelByteModelsMPV2PartySessionLeaderPromotedPayload PartySessionLeaderPromotedPayload{};

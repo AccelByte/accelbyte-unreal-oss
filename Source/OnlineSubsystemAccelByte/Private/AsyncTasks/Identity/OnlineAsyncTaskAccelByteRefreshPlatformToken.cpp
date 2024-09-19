@@ -128,10 +128,12 @@ void FOnlineAsyncTaskAccelByteRefreshPlatformToken::ApiClientRefreshToBackend(EA
 
 void FOnlineAsyncTaskAccelByteRefreshPlatformToken::TriggerDelegates()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Trigger Delegates"));
 	
 	Super::TriggerDelegates();
-	const auto IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(Subsystem->GetIdentityInterface());
+	const auto IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(SubsystemPin->GetIdentityInterface());
 	if (IdentityInterface.IsValid())
 	{
 		const FOnlineErrorAccelByte OnlineError = bWasSuccessful ? ONLINE_ERROR_ACCELBYTE(TEXT(""), EOnlineErrorResult::Success) :

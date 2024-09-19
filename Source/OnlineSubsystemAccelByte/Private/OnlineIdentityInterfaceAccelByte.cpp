@@ -36,6 +36,18 @@
 #include "AsyncTasks/Identity/OnlineAsyncTaskAccelByteGenerateCodeForPublisherToken.h"
 #include "AsyncTasks/LoginQueue/OnlineAsyncTaskAccelByteLoginQueueCancelTicket.h"
 #include "OnlineSessionInterfaceV2AccelByte.h"
+#include "AsyncTasks/Identity/OnlineAsyncTaskAccelByteDisableMfaAuthenticator.h"
+#include "AsyncTasks/Identity/OnlineAsyncTaskAccelByteDisableMfaBackupCodes.h"
+#include "AsyncTasks/Identity/OnlineAsyncTaskAccelByteDisableMfaEmail.h"
+#include "AsyncTasks/Identity/OnlineAsyncTaskAccelByteEnableMfaAuthenticator.h"
+#include "AsyncTasks/Identity/OnlineAsyncTaskAccelByteEnableMfaBackupCodes.h"
+#include "AsyncTasks/Identity/OnlineAsyncTaskAccelByteEnableMfaEmail.h"
+#include "AsyncTasks/Identity/OnlineAsyncTaskAccelByteGenerateMfaAuthenticatorSecretKey.h"
+#include "AsyncTasks/Identity/OnlineAsyncTaskAccelByteGenerateMfaBackupCodes.h"
+#include "AsyncTasks/Identity/OnlineAsyncTaskAccelByteGetMfaStatus.h"
+#include "AsyncTasks/Identity/OnlineAsyncTaskAccelByteSendMfaCodeToEmail.h"
+#include "AsyncTasks/Identity/OnlineAsyncTaskAccelByteUpdatePassword.h"
+#include "AsyncTasks/Identity/OnlineAsyncTaskAccelByteVerifyLoginMfa.h"
 
 using namespace AccelByte;
 
@@ -1046,5 +1058,578 @@ bool FOnlineIdentityAccelByte::CancelLoginQueue(int32 LocalUserNum)
 	return true;
 }
 
+bool FOnlineIdentityAccelByte::VerifyLoginMfa(int32 LocalUserNum
+	, EAccelByteLoginAuthFactorType FactorType, const FString& Code, const FString& MfaToken, bool bRememberDevice)
+{
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT(""));
+
+	if (IsRunningDedicatedServer())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Can't verify login Mfa for dedicated server."));
+		return false;
+	}
+
+	if (FactorType == EAccelByteLoginAuthFactorType::None)
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Factor type can't be None."));
+		return false;
+	}
+
+	if (Code.IsEmpty())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Can't verify login with empty code."));
+		return false;
+	}
+
+	if (MfaToken.IsEmpty())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Can't verify login with empty Mfa token."));
+		return false;
+	}
+
+	const FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to update password for user as our internal subsystem pointer was invalid."));
+		return false;
+	}
+
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteVerifyLoginMfa>(
+		AccelByteSubsystemPtr.Get(), LocalUserNum, FactorType, Code, MfaToken, bRememberDevice);
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
+	return true;
+}
+
+bool FOnlineIdentityAccelByte::UpdatePassword(int32 LocalUserNum, const FUpdatePasswordRequest& Request
+	, EAccelByteLoginAuthFactorType FactorType, const FString& Code)
+{
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT(""));
+
+	if (IsRunningDedicatedServer())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Can't update password for dedicated server."));
+		return false;
+	}
+
+	const FUniqueNetIdPtr UniquePlayerId = GetUniquePlayerId(LocalUserNum);
+
+	if (!UniquePlayerId.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Can't update password as UniquePlayerId for local user num %d is invalid."), LocalUserNum);
+		return false;
+	}
+
+	UpdatePassword(*UniquePlayerId, Request, FactorType, Code);
+
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
+	return true;
+}
+
+bool FOnlineIdentityAccelByte::UpdatePassword(const FUniqueNetId& UserId, const FUpdatePasswordRequest& Request
+	, EAccelByteLoginAuthFactorType FactorType, const FString& Code)
+{
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT(""));
+
+	if (IsRunningDedicatedServer())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Can't update password for dedicated server."));
+		return false;
+	}
+
+	const FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to update password for user as our internal subsystem pointer was invalid."));
+		return false;
+	}
+	
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteUpdatePassword>(AccelByteSubsystemPtr.Get(), UserId, Request, FactorType, Code);
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
+	return true;
+}
+
+bool FOnlineIdentityAccelByte::GetMfaStatus(int32 LocalUserNum)
+{
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT(""));
+
+	if (IsRunningDedicatedServer())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Can't retrieve MFA status for dedicated server."));
+		return false;
+	}
+
+	const FUniqueNetIdPtr UniquePlayerId = GetUniquePlayerId(LocalUserNum);
+
+	if (!UniquePlayerId.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Can't retrieve MFA status as UniquePlayerId for local user num %d is invalid."), LocalUserNum);
+		return false;
+	}
+
+	GetMfaStatus(*UniquePlayerId);
+
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
+	return true;
+}
+
+bool FOnlineIdentityAccelByte::GetMfaStatus(const FUniqueNetId& UserId)
+{
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT(""));
+
+	if (IsRunningDedicatedServer())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Can't retrieve MFA status for dedicated server."));
+		return false;
+	}
+
+	const FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to get MFA status for user as our internal subsystem pointer was invalid."));
+		return false;
+	}
+	
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGetMfaStatus>(AccelByteSubsystemPtr.Get(), UserId);
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
+	return true;
+}
+
+bool FOnlineIdentityAccelByte::EnableMfaBackupCodes(int32 LocalUserNum)
+{
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT(""));
+
+	if (IsRunningDedicatedServer())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Can't enable MFA Backup Codes for dedicated server."));
+		return false;
+	}
+
+	const FUniqueNetIdPtr UniquePlayerId = GetUniquePlayerId(LocalUserNum);
+
+	if (!UniquePlayerId.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Can't enable MFA Backup Codes as UniquePlayerId for local user num %d is invalid."), LocalUserNum);
+		return false;
+	}
+
+	EnableMfaBackupCodes(*UniquePlayerId);
+
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
+	return true;
+}
+
+bool FOnlineIdentityAccelByte::EnableMfaBackupCodes(const FUniqueNetId& UserId)
+{
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT(""));
+
+	if (IsRunningDedicatedServer())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Can't enable MFA Backup Codes for dedicated server."));
+		return false;
+	}
+
+	const FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to enable MFA Backup Codes for user as our internal subsystem pointer was invalid."));
+		return false;
+	}
+	
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteEnableMfaBackupCodes>(AccelByteSubsystemPtr.Get(), UserId);
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
+	return true;
+}
+
+bool FOnlineIdentityAccelByte::DisableMfaBackupCodes(int32 LocalUserNum, const FString& Code)
+{
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT(""));
+
+	if (IsRunningDedicatedServer())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Can't disable MFA Backup Codes for dedicated server."));
+		return false;
+	}
+
+	const FUniqueNetIdPtr UniquePlayerId = GetUniquePlayerId(LocalUserNum);
+
+	if (!UniquePlayerId.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Can't disable MFA Backup Codes as UniquePlayerId for local user num %d is invalid."), LocalUserNum);
+		return false;
+	}
+
+	DisableMfaBackupCodes(*UniquePlayerId, Code);
+
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
+	return true;
+}
+
+bool FOnlineIdentityAccelByte::DisableMfaBackupCodes(const FUniqueNetId& UserId, const FString& Code)
+{
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT(""));
+
+	if (IsRunningDedicatedServer())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Can't disable MFA Backup Codes for dedicated server."));
+		return false;
+	}
+
+	const FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to disable MFA Backup Codes for user as our internal subsystem pointer was invalid."));
+		return false;
+	}
+	
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteDisableMfaBackupCodes>(AccelByteSubsystemPtr.Get(), UserId, Code);
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
+	return true;
+}
+
+bool FOnlineIdentityAccelByte::GenerateMfaBackupCode(int32 LocalUserNum)
+{
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT(""));
+
+	if (IsRunningDedicatedServer())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Can't generate MFA Backup Codes for dedicated server."));
+		return false;
+	}
+
+	const FUniqueNetIdPtr UniquePlayerId = GetUniquePlayerId(LocalUserNum);
+
+	if (!UniquePlayerId.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Can't generate MFA Backup Codes as UniquePlayerId for local user num %d is invalid."), LocalUserNum);
+		return false;
+	}
+
+	GenerateMfaBackupCode(*UniquePlayerId);
+
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
+	return true;
+}
+
+bool FOnlineIdentityAccelByte::GenerateMfaBackupCode(const FUniqueNetId& UserId)
+{
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT(""));
+
+	if (IsRunningDedicatedServer())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Can't generate MFA Backup Codes for dedicated server."));
+		return false;
+	}
+
+	const FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to generate MFA Backup Codes for user as our internal subsystem pointer was invalid."));
+		return false;
+	}
+	
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGenerateMfaBackupCodes>(AccelByteSubsystemPtr.Get(), UserId);
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
+	return true;
+}
+
+bool FOnlineIdentityAccelByte::EnableMfaAuthenticator(int32 LocalUserNum, const FString& Code)
+{
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT(""));
+
+	if (IsRunningDedicatedServer())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Can't enable MFA Authenticator for dedicated server."));
+		return false;
+	}
+
+	const FUniqueNetIdPtr UniquePlayerId = GetUniquePlayerId(LocalUserNum);
+
+	if (!UniquePlayerId.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Can't enable MFA Authenticator as UniquePlayerId for local user num %d is invalid."), LocalUserNum);
+		return false;
+	}
+
+	EnableMfaAuthenticator(*UniquePlayerId, Code);
+
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
+	return true;
+}
+
+bool FOnlineIdentityAccelByte::EnableMfaAuthenticator(const FUniqueNetId& UserId, const FString& Code)
+{
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT(""));
+
+	if (IsRunningDedicatedServer())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Can't enable MFA Authenticator for dedicated server."));
+		return false;
+	}
+
+	const FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to enable MFA Authenticator for user as our internal subsystem pointer was invalid."));
+		return false;
+	}
+	
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteEnableMfaAuthenticator>(AccelByteSubsystemPtr.Get(), UserId, Code);
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
+	return true;
+}
+
+bool FOnlineIdentityAccelByte::DisableMfaAuthenticator(int32 LocalUserNum, const FString& Code)
+{
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT(""));
+
+	if (IsRunningDedicatedServer())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Can't disable MFA Authenticator for dedicated server."));
+		return false;
+	}
+
+	const FUniqueNetIdPtr UniquePlayerId = GetUniquePlayerId(LocalUserNum);
+
+	if (!UniquePlayerId.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Can't disable MFA Authenticator as UniquePlayerId for local user num %d is invalid."), LocalUserNum);
+		return false;
+	}
+
+	DisableMfaAuthenticator(*UniquePlayerId, Code);
+
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
+	return true;
+}
+
+bool FOnlineIdentityAccelByte::DisableMfaAuthenticator(const FUniqueNetId& UserId, const FString& Code)
+{
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT(""));
+
+	if (IsRunningDedicatedServer())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Can't disable MFA Authenticator for dedicated server."));
+		return false;
+	}
+
+	const FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to disable MFA Authenticator for user as our internal subsystem pointer was invalid."));
+		return false;
+	}
+	
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteDisableMfaAuthenticator>(AccelByteSubsystemPtr.Get(), UserId, Code);
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
+	return true;
+}
+
+bool FOnlineIdentityAccelByte::GenerateMfaAuthenticatorSecretKey(int32 LocalUserNum)
+{
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT(""));
+
+	if (IsRunningDedicatedServer())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Can't generate MFA authenticator secret key for dedicated server."));
+		return false;
+	}
+
+	const FUniqueNetIdPtr UniquePlayerId = GetUniquePlayerId(LocalUserNum);
+
+	if (!UniquePlayerId.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Can't generate MFA authenticator secret key as UniquePlayerId for local user num %d is invalid."), LocalUserNum);
+		return false;
+	}
+
+	GenerateMfaAuthenticatorSecretKey(*UniquePlayerId);
+
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
+	return true;
+}
+
+bool FOnlineIdentityAccelByte::GenerateMfaAuthenticatorSecretKey(const FUniqueNetId& UserId)
+{
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT(""));
+
+	if (IsRunningDedicatedServer())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Can't generate MFA authenticator secret key for dedicated server."));
+		return false;
+	}
+
+	const FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to generate MFA authenticator secret key for user as our internal subsystem pointer was invalid."));
+		return false;
+	}
+	
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGenerateMfaAuthenticatorSecretKey>(AccelByteSubsystemPtr.Get(), UserId);
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
+	return true;
+}
+
+bool FOnlineIdentityAccelByte::EnableMfaEmail(int32 LocalUserNum, const FString& Code)
+{
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT(""));
+
+	if (IsRunningDedicatedServer())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Can't enable mfa email for dedicated server."));
+		return false;
+	}
+
+	if (Code.IsEmpty())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Can't enable mfa email, verification code is empty."));
+		return false;
+	}
+
+	const FUniqueNetIdPtr UniquePlayerId = GetUniquePlayerId(LocalUserNum);
+
+	if (!UniquePlayerId.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Can't enable mfa email as UniquePlayerId for local user num %d is invalid."), LocalUserNum);
+		return false;
+	}
+
+	EnableMfaEmail(*UniquePlayerId, Code);
+
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
+	return true;
+}
+
+bool FOnlineIdentityAccelByte::EnableMfaEmail(const FUniqueNetId& UserId, const FString& Code)
+{
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT(""));
+
+	if (IsRunningDedicatedServer())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Can't enable mfa email for dedicated server."));
+		return false;
+	}
+
+	if (Code.IsEmpty())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Can't enable mfa email, verification code is empty."));
+		return false;
+	}
+
+	const FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to enable mfa email for user as our internal subsystem pointer was invalid."));
+		return false;
+	}
+	
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteEnableMfaEmail>(AccelByteSubsystemPtr.Get(), UserId, Code);
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
+	return true;
+}
+
+bool FOnlineIdentityAccelByte::DisableMfaEmail(int32 LocalUserNum, const FString& Code)
+{
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT(""));
+
+	if (IsRunningDedicatedServer())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Can't disable mfa email for dedicated server."));
+		return false;
+	}
+
+	if (Code.IsEmpty())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Can't disable mfa email, verification code is empty."));
+		return false;
+	}
+
+	const FUniqueNetIdPtr UniquePlayerId = GetUniquePlayerId(LocalUserNum);
+
+	if (!UniquePlayerId.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Can't disable mfa email as UniquePlayerId for local user num %d is invalid."), LocalUserNum);
+		return false;
+	}
+
+	DisableMfaEmail(*UniquePlayerId, Code);
+
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
+	return true;
+}
+
+bool FOnlineIdentityAccelByte::DisableMfaEmail(const FUniqueNetId& UserId, const FString& Code)
+{
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT(""));
+
+	if (IsRunningDedicatedServer())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Can't disable mfa email for dedicated server."));
+		return false;
+	}
+
+	if (Code.IsEmpty())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Can't disable mfa email, verification code is empty."));
+		return false;
+	}
+
+	const FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to disable mfa email for user as our internal subsystem pointer was invalid."));
+		return false;
+	}
+	
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteDisableMfaEmail>(AccelByteSubsystemPtr.Get(), UserId, Code);
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
+	return true;
+}
+
+bool FOnlineIdentityAccelByte::SendMfaCodeToEmail(int32 LocalUserNum, const EAccelByteSendMfaEmailAction Action)
+{
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT(""));
+
+	if (IsRunningDedicatedServer())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Can't send MFA code to email for dedicated server."));
+		return false;
+	}
+
+	const FUniqueNetIdPtr UniquePlayerId = GetUniquePlayerId(LocalUserNum);
+
+	if (!UniquePlayerId.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Can't send MFA code to email as UniquePlayerId for local user num %d is invalid."), LocalUserNum);
+		return false;
+	}
+
+	SendMfaCodeToEmail(*UniquePlayerId, Action);
+
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
+	return true;
+}
+
+bool FOnlineIdentityAccelByte::SendMfaCodeToEmail(const FUniqueNetId& UserId, const EAccelByteSendMfaEmailAction Action)
+{
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT(""));
+
+	if (IsRunningDedicatedServer())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Can't send MFA code to email for dedicated server."));
+		return false;
+	}
+
+	const FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to send MFA code to email for user as our internal subsystem pointer was invalid."));
+		return false;
+	}
+	
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteSendMfaCodeToEmail>(AccelByteSubsystemPtr.Get(), UserId, Action);
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
+	return true;
+}
 
 /** End FOnlineIdentityAccelByte */

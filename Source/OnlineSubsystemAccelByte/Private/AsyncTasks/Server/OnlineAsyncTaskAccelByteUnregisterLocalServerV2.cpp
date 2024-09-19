@@ -15,11 +15,13 @@ FOnlineAsyncTaskAccelByteUnregisterLocalServerV2::FOnlineAsyncTaskAccelByteUnreg
 
 void FOnlineAsyncTaskAccelByteUnregisterLocalServerV2::Initialize()
 {
+	TRY_PIN_SUBSYSTEM()
+
     Super::Initialize();
 
     AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 
-	const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(Subsystem->GetSessionInterface());
+	const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(SubsystemPin->GetSessionInterface());
 	AB_ASYNC_TASK_ENSURE(SessionInterface.IsValid(), "Failed to unregister local server as our session interface is invalid!");
 
 	ServerName = TEXT("");
@@ -34,12 +36,14 @@ void FOnlineAsyncTaskAccelByteUnregisterLocalServerV2::Initialize()
 
 void FOnlineAsyncTaskAccelByteUnregisterLocalServerV2::Finalize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
 	if (bWasSuccessful)
 	{
 		FOnlineSessionV2AccelBytePtr SessionInterface;
-		if (!ensure(FOnlineSessionV2AccelByte::GetFromSubsystem(Subsystem, SessionInterface)))
+		if (!ensure(FOnlineSessionV2AccelByte::GetFromSubsystem(SubsystemPin.Get(), SessionInterface)))
 		{
 			AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to finalize unregistering local server as our session interface is invalid!"));
 			return;
@@ -47,7 +51,7 @@ void FOnlineAsyncTaskAccelByteUnregisterLocalServerV2::Finalize()
 
 		SessionInterface->DisconnectFromDSHub();
 
-		const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = Subsystem->GetPredefinedEventInterface();
+		const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = SubsystemPin->GetPredefinedEventInterface();
 		if (PredefinedEventInterface.IsValid())
 		{
 			FAccelByteModelsDSUnregisteredPayload DSUnregisteredPayload{};

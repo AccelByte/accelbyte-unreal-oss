@@ -18,11 +18,15 @@ FOnlineAsyncTaskAccelByteRegisterPlayersV1::FOnlineAsyncTaskAccelByteRegisterPla
 	, bWasInvited(InBWasInvited)
 	, bIsSpectator(InBIsSpectator)
 {
-	LocalUserNum = Subsystem->GetLocalUserNumCached();
+	TRY_PIN_SUBSYSTEM_CONSTRUCTOR()
+
+	LocalUserNum = SubsystemPin->GetLocalUserNumCached();
 }
 
 void FOnlineAsyncTaskAccelByteRegisterPlayersV1::Initialize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	Super::Initialize();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("SessionName: %s"), *SessionName.ToString());
@@ -34,7 +38,7 @@ void FOnlineAsyncTaskAccelByteRegisterPlayersV1::Initialize()
 		return;
 	}
 
-	const IOnlineSessionPtr SessionInterface = Subsystem->GetSessionInterface();
+	const IOnlineSessionPtr SessionInterface = SubsystemPin->GetSessionInterface();
 	check(SessionInterface != nullptr);
 
 	FNamedOnlineSession* Session = SessionInterface->GetNamedSession(SessionName);
@@ -75,9 +79,11 @@ void FOnlineAsyncTaskAccelByteRegisterPlayersV1::Tick()
 
 void FOnlineAsyncTaskAccelByteRegisterPlayersV1::TriggerDelegates()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 
-	const TSharedPtr<FOnlineSessionV1AccelByte, ESPMode::ThreadSafe> SessionInterface = StaticCastSharedPtr<FOnlineSessionV1AccelByte>(Subsystem->GetSessionInterface());
+	const TSharedPtr<FOnlineSessionV1AccelByte, ESPMode::ThreadSafe> SessionInterface = StaticCastSharedPtr<FOnlineSessionV1AccelByte>(SubsystemPin->GetSessionInterface());
 	if (SessionInterface.IsValid())
 	{
 		SessionInterface->TriggerOnRegisterPlayersCompleteDelegates(SessionName, SuccessfullyRegisteredPlayers, bWasSuccessful);
@@ -88,6 +94,8 @@ void FOnlineAsyncTaskAccelByteRegisterPlayersV1::TriggerDelegates()
 
 void FOnlineAsyncTaskAccelByteRegisterPlayersV1::GetAllUserInformation()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 	SetLastUpdateTimeToCurrentTime();
 
@@ -96,7 +104,7 @@ void FOnlineAsyncTaskAccelByteRegisterPlayersV1::GetAllUserInformation()
 	// meta for in-game purposes. In addition, on a server build this call _will_ crash. Thus only run this on server builds...
 	if (!IsRunningDedicatedServer())
 	{
-		FOnlineUserCacheAccelBytePtr UserStore = Subsystem->GetUserCache();
+		FOnlineUserCacheAccelBytePtr UserStore = SubsystemPin->GetUserCache();
 		if (!UserStore.IsValid())
 		{
 			AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to query user information for players joining as our user store interface is invalid!"));
@@ -120,9 +128,11 @@ void FOnlineAsyncTaskAccelByteRegisterPlayersV1::GetAllUserInformation()
 
 void FOnlineAsyncTaskAccelByteRegisterPlayersV1::RegisterAllPlayers()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	SetLastUpdateTimeToCurrentTime();
 
-	const IOnlineSessionPtr SessionInterface = Subsystem->GetSessionInterface();
+	const IOnlineSessionPtr SessionInterface = SubsystemPin->GetSessionInterface();
 	AB_ASYNC_TASK_ENSURE(SessionInterface.IsValid(), "Failed to register players to session as our session interface is invalid!");
 
 	FNamedOnlineSession* Session = SessionInterface->GetNamedSession(SessionName);

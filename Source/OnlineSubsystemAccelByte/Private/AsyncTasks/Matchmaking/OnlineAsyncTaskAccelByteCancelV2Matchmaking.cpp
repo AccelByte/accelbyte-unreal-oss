@@ -34,13 +34,15 @@ void FOnlineAsyncTaskAccelByteCancelV2Matchmaking::Initialize()
 
 void FOnlineAsyncTaskAccelByteCancelV2Matchmaking::Finalize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	Super::Finalize();
 	
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
 	if (bWasSuccessful)
 	{
-		const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(Subsystem->GetSessionInterface());
+		const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(SubsystemPin->GetSessionInterface());
 		if (!ensure(SessionInterface.IsValid()))
 		{
 			AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to finalize the task of canceling matchmaking as our session interface is invalid!"));
@@ -55,7 +57,7 @@ void FOnlineAsyncTaskAccelByteCancelV2Matchmaking::Finalize()
 		SessionInterface->CurrentMatchmakingSearchHandle.Reset();
 		SessionInterface->CurrentMatchmakingSessionSettings = {};
 
-		const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = Subsystem->GetPredefinedEventInterface();
+		const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = SubsystemPin->GetPredefinedEventInterface();
 		if (PredefinedEventInterface.IsValid())
 		{
 			FAccelByteModelsMPV2MatchmakingCanceledPayload MatchmakingCanceledPayload{};
@@ -70,11 +72,13 @@ void FOnlineAsyncTaskAccelByteCancelV2Matchmaking::Finalize()
 
 void FOnlineAsyncTaskAccelByteCancelV2Matchmaking::TriggerDelegates()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	Super::TriggerDelegates();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 
-	const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(Subsystem->GetSessionInterface());
+	const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(SubsystemPin->GetSessionInterface());
 	if (!ensure(SessionInterface.IsValid()))
 	{
 		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to trigger delegates for canceling matchmaking as our session interface is invalid!"));

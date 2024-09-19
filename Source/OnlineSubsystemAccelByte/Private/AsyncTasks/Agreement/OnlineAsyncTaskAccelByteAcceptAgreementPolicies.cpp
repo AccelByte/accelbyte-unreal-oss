@@ -21,11 +21,13 @@ FOnlineAsyncTaskAccelByteAcceptAgreementPolicies::FOnlineAsyncTaskAccelByteAccep
 
 void FOnlineAsyncTaskAccelByteAcceptAgreementPolicies::Initialize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	Super::Initialize();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Accepting agreement policies, UserId: %s"), *UserId->ToDebugString());
 
-	const FOnlineAgreementAccelBytePtr AgreementInterface = Subsystem->GetAgreementInterface();
+	const FOnlineAgreementAccelBytePtr AgreementInterface = SubsystemPin->GetAgreementInterface();
 	if (AgreementInterface.IsValid())
 	{
 		TArray<TSharedRef<FAccelByteModelsRetrieveUserEligibilitiesResponse>> EligibilitiesRef;
@@ -113,25 +115,29 @@ void FOnlineAsyncTaskAccelByteAcceptAgreementPolicies::Initialize()
 
 void FOnlineAsyncTaskAccelByteAcceptAgreementPolicies::Finalize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	if (bWasSuccessful)
 	{
-		const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = Subsystem->GetPredefinedEventInterface();
+		const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = SubsystemPin->GetPredefinedEventInterface();
 		PredefinedEventInterface->SendEvent(LocalUserNum, MakeShared<FAccelByteModelsUserAgreementAcceptedPayload>(AcceptedAgreementPayload));
 	}
 }
 
 void FOnlineAsyncTaskAccelByteAcceptAgreementPolicies::TriggerDelegates()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
-	const FOnlineAgreementAccelBytePtr AgreementInterface = Subsystem->GetAgreementInterface();
+	const FOnlineAgreementAccelBytePtr AgreementInterface = SubsystemPin->GetAgreementInterface();
 	if (AgreementInterface.IsValid())
 	{
 		if (bWasSuccessful)
 		{
 			if (bIsMandatory)
 			{
-				const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(Subsystem->GetIdentityInterface());
+				const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(SubsystemPin->GetIdentityInterface());
 				API_CLIENT_CHECK_GUARD(ErrorStr);
 				if (IdentityInterface.IsValid())
 				{

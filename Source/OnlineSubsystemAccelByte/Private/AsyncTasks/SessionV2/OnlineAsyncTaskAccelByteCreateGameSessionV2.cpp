@@ -32,6 +32,8 @@ FOnlineAsyncTaskAccelByteCreateGameSessionV2::FOnlineAsyncTaskAccelByteCreateGam
 
 void FOnlineAsyncTaskAccelByteCreateGameSessionV2::Initialize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	Super::Initialize();
 
 	if (!IsRunningDedicatedServer())
@@ -46,7 +48,7 @@ void FOnlineAsyncTaskAccelByteCreateGameSessionV2::Initialize()
 		AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("SessionName: %s"), *SessionName.ToString());
 	}
 
-	const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(Subsystem->GetSessionInterface());
+	const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(SubsystemPin->GetSessionInterface());
 	AB_ASYNC_TASK_ENSURE(SessionInterface.IsValid(), "Failed to create game session as our session interface is invalid!");
 
 	FAccelByteModelsV2GameSessionCreateRequest CreateRequest;
@@ -162,9 +164,11 @@ void FOnlineAsyncTaskAccelByteCreateGameSessionV2::Initialize()
 
 void FOnlineAsyncTaskAccelByteCreateGameSessionV2::Finalize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
-	const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(Subsystem->GetSessionInterface());
+	const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(SubsystemPin->GetSessionInterface());
 	if (!ensure(SessionInterface.IsValid()))
 	{
 		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to finalize game session creation as our session interface is invalid!"));
@@ -178,7 +182,7 @@ void FOnlineAsyncTaskAccelByteCreateGameSessionV2::Finalize()
 		SessionInterface->FinalizeCreateGameSession(SessionName, CreatedGameSession);
 
 
-		const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = Subsystem->GetPredefinedEventInterface();
+		const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = SubsystemPin->GetPredefinedEventInterface();
 		if (PredefinedEventInterface.IsValid())
 		{
 			FAccelByteModelsMPV2GameSessionCreatedPayload GameSessionCreatedPayload{};
@@ -205,11 +209,13 @@ void FOnlineAsyncTaskAccelByteCreateGameSessionV2::Finalize()
 
 void FOnlineAsyncTaskAccelByteCreateGameSessionV2::TriggerDelegates()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	Super::TriggerDelegates();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 
-	const TSharedPtr<FOnlineSessionV2AccelByte, ESPMode::ThreadSafe> SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(Subsystem->GetSessionInterface());
+	const TSharedPtr<FOnlineSessionV2AccelByte, ESPMode::ThreadSafe> SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(SubsystemPin->GetSessionInterface());
 	if (!ensure(SessionInterface.IsValid()))
 	{
 		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to trigger delegates for creating game session as our session interface is invalid!"));

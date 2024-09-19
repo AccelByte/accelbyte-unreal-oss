@@ -42,7 +42,9 @@ void FOnlineAsyncTaskAccelByteConnectChat::Initialize()
 
 void FOnlineAsyncTaskAccelByteConnectChat::Finalize()
 {
-	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = Subsystem->GetPredefinedEventInterface();
+	TRY_PIN_SUBSYSTEM()
+
+	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = SubsystemPin->GetPredefinedEventInterface();
 	if (PredefinedEventInterface.IsValid() && bWasSuccessful)
 	{
 		FAccelByteModelsChatV2ConnectedPayload ConnectedPayload{};
@@ -55,11 +57,13 @@ void FOnlineAsyncTaskAccelByteConnectChat::Finalize()
 
 void FOnlineAsyncTaskAccelByteConnectChat::TriggerDelegates()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	Super::TriggerDelegates();
 	
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
-	const FOnlineChatAccelBytePtr ChatInterface = StaticCastSharedPtr<FOnlineChatAccelByte>(Subsystem->GetChatInterface());
+	const FOnlineChatAccelBytePtr ChatInterface = StaticCastSharedPtr<FOnlineChatAccelByte>(SubsystemPin->GetChatInterface());
 	if (ChatInterface.IsValid())
 	{
 		ChatInterface->TriggerOnConnectChatCompleteDelegates(LocalUserNum, bWasSuccessful, *UserId.Get(), ErrorStr);
@@ -70,17 +74,19 @@ void FOnlineAsyncTaskAccelByteConnectChat::TriggerDelegates()
 
 void FOnlineAsyncTaskAccelByteConnectChat::OnChatConnectSuccess()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 	
 	// set chat delegates to interface events
-	const FOnlineChatAccelBytePtr ChatInterface = StaticCastSharedPtr<FOnlineChatAccelByte>(Subsystem->GetChatInterface());
+	const FOnlineChatAccelBytePtr ChatInterface = StaticCastSharedPtr<FOnlineChatAccelByte>(SubsystemPin->GetChatInterface());
 	if (ChatInterface.IsValid())
 	{
 		ChatInterface->RegisterChatDelegates(UserId.ToSharedRef().Get());
 	}
 
 	// Get identity interface and set connected to chat
-	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(Subsystem->GetIdentityInterface());
+	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(SubsystemPin->GetIdentityInterface());
 	if (IdentityInterface.IsValid())
 	{
 		TSharedPtr<FUserOnlineAccount> UserAccount = IdentityInterface->GetUserAccount(LocalUserNum);
@@ -105,8 +111,10 @@ void FOnlineAsyncTaskAccelByteConnectChat::OnChatConnectError(int32 ErrorCode, c
 
 void FOnlineAsyncTaskAccelByteConnectChat::OnChatDisconnectedNotif(const FAccelByteModelsChatDisconnectNotif& Result)
 {
+	TRY_PIN_SUBSYSTEM()
+
 	// Update identity interface chat flag
-	const TSharedPtr<FOnlineIdentityAccelByte, ESPMode::ThreadSafe> IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(Subsystem->GetIdentityInterface());
+	const TSharedPtr<FOnlineIdentityAccelByte, ESPMode::ThreadSafe> IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(SubsystemPin->GetIdentityInterface());
 	if (IdentityInterface.IsValid())
 	{
 		TSharedPtr<FUserOnlineAccount> UserAccount = IdentityInterface->GetUserAccount(LocalUserNum);

@@ -41,14 +41,16 @@ void FOnlineAsyncTaskAccelByteRedeemCode::Initialize()
 
 void FOnlineAsyncTaskAccelByteRedeemCode::Finalize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 	FOnlineAsyncTaskAccelByte::Finalize();
 	if (bWasSuccessful)
 	{
-		const FOnlinePurchaseAccelBytePtr PurchaseInterface = StaticCastSharedPtr<FOnlinePurchaseAccelByte>(Subsystem->GetPurchaseInterface());
+		const FOnlinePurchaseAccelBytePtr PurchaseInterface = StaticCastSharedPtr<FOnlinePurchaseAccelByte>(SubsystemPin->GetPurchaseInterface());
 		PurchaseInterface->AddReceipt(UserId.ToSharedRef(), Receipt);
 
-		const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = Subsystem->GetPredefinedEventInterface();
+		const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = SubsystemPin->GetPredefinedEventInterface();
 		if (PredefinedEventInterface.IsValid())
 		{
 			FAccelByteModelsCampaignCodeRedeemedPayload CampaignCodeRedeemedPayload{};
@@ -87,9 +89,11 @@ void FOnlineAsyncTaskAccelByteRedeemCode::TriggerDelegates()
 
 void FOnlineAsyncTaskAccelByteRedeemCode::HandleRedeemCodeComplete(const FAccelByteModelsFulfillmentResult& Result)
 {
+	TRY_PIN_SUBSYSTEM()
+
 	for (const auto& Entitlement : Result.EntitlementSummaries)
 	{
-		TSharedPtr<FOnlineStoreOffer> Offer = Subsystem->GetStoreV2Interface()->GetOffer(Entitlement.ItemId);
+		TSharedPtr<FOnlineStoreOffer> Offer = SubsystemPin->GetStoreV2Interface()->GetOffer(Entitlement.ItemId);
 		FPurchaseReceipt::FReceiptOfferEntry ReceiptOfferEntry;
 		ReceiptOfferEntry.Quantity = Entitlement.Stackable ? Entitlement.StackedQuantity : 1;
 		ReceiptOfferEntry.Namespace = Entitlement.Namespace;

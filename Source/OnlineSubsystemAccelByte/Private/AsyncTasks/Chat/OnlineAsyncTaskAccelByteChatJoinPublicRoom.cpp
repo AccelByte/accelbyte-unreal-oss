@@ -37,12 +37,14 @@ void FOnlineAsyncTaskAccelByteChatJoinPublicRoom::Initialize()
 
 void FOnlineAsyncTaskAccelByteChatJoinPublicRoom::TriggerDelegates()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	Super::TriggerDelegates();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 
 	FOnlineChatAccelBytePtr ChatInterface;
-	if (!ensure(FOnlineChatAccelByte::GetFromSubsystem(Subsystem, ChatInterface)))
+	if (!ensure(FOnlineChatAccelByte::GetFromSubsystem(SubsystemPin.Get(),  ChatInterface)))
 	{
 		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to join chat room as our chat interface instance is not valid!"));
 		return;
@@ -62,6 +64,8 @@ void FOnlineAsyncTaskAccelByteChatJoinPublicRoom::TriggerDelegates()
 
 void FOnlineAsyncTaskAccelByteChatJoinPublicRoom::Finalize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	Super::Finalize();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
@@ -69,7 +73,7 @@ void FOnlineAsyncTaskAccelByteChatJoinPublicRoom::Finalize()
 	if (bWasSuccessful)
 	{
 		FOnlineChatAccelBytePtr ChatInterface;
-		if (!ensure(FOnlineChatAccelByte::GetFromSubsystem(Subsystem, ChatInterface)))
+		if (!ensure(FOnlineChatAccelByte::GetFromSubsystem(SubsystemPin.Get(),  ChatInterface)))
 		{
 			AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to add topic to cache as our chat interface instance is not valid!"));
 			return;
@@ -85,7 +89,7 @@ void FOnlineAsyncTaskAccelByteChatJoinPublicRoom::Finalize()
 
 		ChatInterface->AddTopic(JoinedRoomInfoPtr.ToSharedRef());
 
-		const FOnlinePredefinedEventAccelBytePtr PredefinedEvent = Subsystem->GetPredefinedEventInterface();
+		const FOnlinePredefinedEventAccelBytePtr PredefinedEvent = SubsystemPin->GetPredefinedEventInterface();
 		if (PredefinedEvent.IsValid())
 		{
 			FAccelByteModelsChatV2TopicJoinedPayload TopicJoinedPayload{};
@@ -112,10 +116,12 @@ void FOnlineAsyncTaskAccelByteChatJoinPublicRoom::OnJoinPublicRoomSuccess(const 
 	// query topic to get members
 	this->ExecuteCriticalSectionAction(FVoidHandler::CreateLambda([this, TopicId = Response.TopicId]()
 		{
+			TRY_PIN_SUBSYSTEM()
+
 			const FOnChatQueryRoomByIdComplete OnJoinPublicRoomSuccessDelegate =
 				TDelegateUtils<FOnChatQueryRoomByIdComplete>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteChatJoinPublicRoom::OnQueryTopicByIdAfterJoinRoomSuccess);
 			const FErrorHandler OnJoinPublicRoomErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteChatJoinPublicRoom::OnJoinPublicRoomError);
-			Subsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteChatQueryRoomById>(Subsystem, UserId.ToSharedRef().Get(), TopicId, OnJoinPublicRoomSuccessDelegate);
+			SubsystemPin->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteChatQueryRoomById>(SubsystemPin.Get(), UserId.ToSharedRef().Get(), TopicId, OnJoinPublicRoomSuccessDelegate);
 		}));
 	
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

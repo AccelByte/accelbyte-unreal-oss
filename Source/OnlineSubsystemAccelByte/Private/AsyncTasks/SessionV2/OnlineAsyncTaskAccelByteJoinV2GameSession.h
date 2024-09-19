@@ -19,7 +19,8 @@ public:
 
 	FOnlineAsyncTaskAccelByteJoinV2GameSession(FOnlineSubsystemAccelByte* const InABInterface
 		, const FUniqueNetId& InLocalUserId
-		, const FName& InSessionName);
+		, const FName& InSessionName
+		, bool bInHasLocalUserJoined);
 
 	virtual void Initialize() override;
 	virtual void Finalize() override;
@@ -35,6 +36,12 @@ protected:
 private:
 	/** Name of the local session that we are trying to join on the backend */
 	FName SessionName{};
+
+	/**
+	 * Whether the local user attempting to join this session has already joined it from the backend perspective.
+	 * If true, the JoinGameSession API call will be skipped and existing data in the pending session will be used.
+	 */
+	bool bHasLocalUserJoined{false};
 
 	/** Enum used to signal what result occurred with the join session call */
 	EOnJoinSessionCompleteResult::Type JoinSessionResult;

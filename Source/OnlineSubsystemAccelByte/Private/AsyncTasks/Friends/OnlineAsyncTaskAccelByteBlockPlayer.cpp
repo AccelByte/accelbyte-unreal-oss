@@ -22,6 +22,8 @@ FOnlineAsyncTaskAccelByteBlockPlayer::FOnlineAsyncTaskAccelByteBlockPlayer(FOnli
 
 void FOnlineAsyncTaskAccelByteBlockPlayer::Initialize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	Super::Initialize();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("LocalUserNum: %d; PlayerId: %s"), LocalUserNum, *PlayerId->ToDebugString());
@@ -36,7 +38,7 @@ void FOnlineAsyncTaskAccelByteBlockPlayer::Initialize()
 	// First, check if the player we want to block is one of our friends, if this is the case, then we just want to get
 	// a reference to this player in this task so we can not only update their friend status but also add the blocked
 	// player to the list without an extra request to get their display name
-	const IOnlineFriendsPtr FriendsInterface = Subsystem->GetFriendsInterface();
+	const IOnlineFriendsPtr FriendsInterface = SubsystemPin->GetFriendsInterface();
 	if (!FriendsInterface.IsValid())
 	{
 		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to block player as the FriendsInterface was invalid! Id: %s"), *PlayerId->ToDebugString());
@@ -57,6 +59,8 @@ void FOnlineAsyncTaskAccelByteBlockPlayer::Initialize()
 
 void FOnlineAsyncTaskAccelByteBlockPlayer::Finalize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
 	if (!bWasSuccessful)
@@ -66,7 +70,7 @@ void FOnlineAsyncTaskAccelByteBlockPlayer::Finalize()
 	}
 
 	// Remove the blocked player from the users friends list if they were already in their friends list
-	const TSharedPtr<FOnlineFriendsAccelByte, ESPMode::ThreadSafe> FriendsInterface = StaticCastSharedPtr<FOnlineFriendsAccelByte>(Subsystem->GetFriendsInterface());
+	const TSharedPtr<FOnlineFriendsAccelByte, ESPMode::ThreadSafe> FriendsInterface = StaticCastSharedPtr<FOnlineFriendsAccelByte>(SubsystemPin->GetFriendsInterface());
 	if (FoundFriend.IsValid())
 	{
 		FriendsInterface->RemoveFriendFromList(LocalUserNum, PlayerId);
@@ -78,7 +82,7 @@ void FOnlineAsyncTaskAccelByteBlockPlayer::Finalize()
 	// Add the blocked player to the blocked players list
 	FriendsInterface->AddBlockedPlayerToList(LocalUserNum, BlockedPlayer);
 
-	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = Subsystem->GetPredefinedEventInterface();
+	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = SubsystemPin->GetPredefinedEventInterface();
 	if (PredefinedEventInterface.IsValid() && PlayerId->IsValid())
 	{
 		FAccelByteModelsUserBlockedPayload UserBlockedPayload{};
@@ -90,9 +94,11 @@ void FOnlineAsyncTaskAccelByteBlockPlayer::Finalize()
 
 void FOnlineAsyncTaskAccelByteBlockPlayer::TriggerDelegates()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
-	const IOnlineFriendsPtr FriendsInterface = Subsystem->GetFriendsInterface();
+	const IOnlineFriendsPtr FriendsInterface = SubsystemPin->GetFriendsInterface();
 	FriendsInterface->TriggerOnBlockedPlayerCompleteDelegates(LocalUserNum, bWasSuccessful, PlayerId.Get(), EFriendsLists::ToString(EFriendsLists::Default), ErrorStr);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
@@ -100,8 +106,10 @@ void FOnlineAsyncTaskAccelByteBlockPlayer::TriggerDelegates()
 
 void FOnlineAsyncTaskAccelByteBlockPlayer::OnBlockPlayerSuccess()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	// We'll need to get the UserInfo from UserCache
-	FOnlineUserCacheAccelBytePtr UserStore = Subsystem->GetUserCache();
+	FOnlineUserCacheAccelBytePtr UserStore = SubsystemPin->GetUserCache();
 	if (!UserStore.IsValid())
 	{
 		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Could not get information on blocked user '%s'!"), *PlayerId->ToDebugString());
@@ -141,7 +149,9 @@ void FOnlineAsyncTaskAccelByteBlockPlayer::OnQueryBlockedPlayerComplete(bool bIs
 
 void FOnlineAsyncTaskAccelByteBlockPlayer::PerformBlockedPlayerPartyOperation()
 {
-	const TSharedPtr<FOnlineIdentityAccelByte, ESPMode::ThreadSafe> IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(Subsystem->GetIdentityInterface());
+	TRY_PIN_SUBSYSTEM()
+
+	const TSharedPtr<FOnlineIdentityAccelByte, ESPMode::ThreadSafe> IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(SubsystemPin->GetIdentityInterface());
 	if (!IdentityInterface.IsValid())
 	{
 		return;
@@ -153,7 +163,7 @@ void FOnlineAsyncTaskAccelByteBlockPlayer::PerformBlockedPlayerPartyOperation()
 		return;
 	}
 
-	const FOnlinePartySystemAccelBytePtr PartyInterface = StaticCastSharedPtr<FOnlinePartySystemAccelByte>(Subsystem->GetPartyInterface());
+	const FOnlinePartySystemAccelBytePtr PartyInterface = StaticCastSharedPtr<FOnlinePartySystemAccelByte>(SubsystemPin->GetPartyInterface());
 	if (!PartyInterface.IsValid())
 	{
 		return;

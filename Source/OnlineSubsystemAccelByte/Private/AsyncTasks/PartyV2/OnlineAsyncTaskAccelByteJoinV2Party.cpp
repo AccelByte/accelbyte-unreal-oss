@@ -13,20 +13,24 @@ using namespace AccelByte;
 
 FOnlineAsyncTaskAccelByteJoinV2Party::FOnlineAsyncTaskAccelByteJoinV2Party(FOnlineSubsystemAccelByte* const InABInterface
 	, const FUniqueNetId& InLocalUserId
-	, const FName& InSessionName)
+	, const FName& InSessionName
+	, bool bInHasLocalUserJoined)
 	: FOnlineAsyncTaskAccelByte(InABInterface)
 	, SessionName(InSessionName)
+	, bHasLocalUserJoined(bInHasLocalUserJoined)
 {
 	UserId = FUniqueNetIdAccelByteUser::CastChecked(InLocalUserId);
 }
 
 void FOnlineAsyncTaskAccelByteJoinV2Party::Initialize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	Super::Initialize();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("UserId: %s"), *UserId->GetAccelByteId());
 
-	const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(Subsystem->GetSessionInterface());
+	const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(SubsystemPin->GetSessionInterface());
 	AB_ASYNC_TASK_ENSURE(SessionInterface.IsValid(), "Failed to join party as our session interface instance is invalid!");
 
 	FNamedOnlineSession* JoinedSession = SessionInterface->GetNamedSession(SessionName);
@@ -35,8 +39,30 @@ void FOnlineAsyncTaskAccelByteJoinV2Party::Initialize()
 	const FString SessionId = JoinedSession->GetSessionIdStr();
 	AB_ASYNC_TASK_ENSURE(!SessionId.Equals(TEXT("InvalidSession")), "Failed to join party as the session we are trying to join has an invalid ID!");
 
+	if (bHasLocalUserJoined)
+	{
+		// Local player has already joined this session as far as the backend is concerned. With that in mind, grab the
+		// session data from the pending named session created and manually call OnJoinPartySuccess with that data.
+		// That way, we skip the unnecessary JoinParty API call and still go through normal flow of setting up
+		// the local session cache with proper session data. If some how we do not have valid data for the pending named
+		// session, then we will fall back to doing the join party API call to retrieve that data. Session service will
+		// return a no-op success response if we do end up calling while joined.
+		TSharedPtr<FOnlineSessionInfoAccelByteV2> SessionInfo = StaticCastSharedPtr<FOnlineSessionInfoAccelByteV2>(JoinedSession->SessionInfo);
+		if (SessionInfo.IsValid())
+		{
+			TSharedPtr<FAccelByteModelsV2PartySession> PartySessionData = SessionInfo->GetBackendSessionDataAsPartySession();
+			if (PartySessionData.IsValid())
+			{
+				OnJoinPartySuccess(PartySessionData.ToSharedRef().Get());
+				return;
+			}
+		}
+
+		// No early return here as we want to flow into the join API call if the above conditions are not met
+	}
+
 	OnJoinPartySuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsV2PartySession>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteJoinV2Party::OnJoinPartySuccess);
-	OnJoinPartyErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteJoinV2Party::OnJoinPartyError);;
+	OnJoinPartyErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteJoinV2Party::OnJoinPartyError);
 	API_CLIENT_CHECK_GUARD();
 	ApiClient->Session.JoinParty(SessionId, OnJoinPartySuccessDelegate, OnJoinPartyErrorDelegate);
 
@@ -45,9 +71,11 @@ void FOnlineAsyncTaskAccelByteJoinV2Party::Initialize()
 
 void FOnlineAsyncTaskAccelByteJoinV2Party::Finalize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
-	const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(Subsystem->GetSessionInterface());
+	const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(SubsystemPin->GetSessionInterface());
 	if (!ensure(SessionInterface.IsValid()))
 	{
 		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to finalize task to join party as our session interface is invalid!"));
@@ -85,7 +113,7 @@ void FOnlineAsyncTaskAccelByteJoinV2Party::Finalize()
 		// occured between query and join we would catch them
 		SessionInterface->UpdateInternalPartySession(SessionName, PartyInfo);
 
-		const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = Subsystem->GetPredefinedEventInterface();
+		const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = SubsystemPin->GetPredefinedEventInterface();
 		if (PredefinedEventInterface.IsValid())
 		{
 			FAccelByteModelsMPV2PartySessionJoinedPayload PartySessionJoinedPayload{};
@@ -116,9 +144,11 @@ void FOnlineAsyncTaskAccelByteJoinV2Party::Finalize()
 
 void FOnlineAsyncTaskAccelByteJoinV2Party::TriggerDelegates()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
-	const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(Subsystem->GetSessionInterface());
+	const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(SubsystemPin->GetSessionInterface());
 	if (!ensure(SessionInterface.IsValid()))
 	{
 		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to trigger delegates for joining a party as our session interface is invalid!"));

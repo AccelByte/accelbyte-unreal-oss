@@ -11,7 +11,9 @@ FOnlineAsyncTaskAccelByteRefreshV2PartySession::FOnlineAsyncTaskAccelByteRefresh
 	, SessionName(InSessionName)
 	, Delegate(InDelegate)
 {
-	IOnlineSessionPtr SessionInterface = Subsystem->GetSessionInterface();
+	TRY_PIN_SUBSYSTEM_CONSTRUCTOR()
+
+	IOnlineSessionPtr SessionInterface = SubsystemPin->GetSessionInterface();
 	if (ensure(SessionInterface.IsValid()))
 	{
 		FNamedOnlineSession* Session = SessionInterface->GetNamedSession(SessionName);
@@ -24,11 +26,13 @@ FOnlineAsyncTaskAccelByteRefreshV2PartySession::FOnlineAsyncTaskAccelByteRefresh
 
 void FOnlineAsyncTaskAccelByteRefreshV2PartySession::Initialize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	Super::Initialize();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("SessionName: %s"), *SessionName.ToString());
 
-	const TSharedPtr<FOnlineSessionV2AccelByte, ESPMode::ThreadSafe> SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(Subsystem->GetSessionInterface());
+	const TSharedPtr<FOnlineSessionV2AccelByte, ESPMode::ThreadSafe> SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(SubsystemPin->GetSessionInterface());
 	AB_ASYNC_TASK_ENSURE(SessionInterface.IsValid(), "Could not refresh party session named '%s' as our session interface is invalid!", *SessionName.ToString());
 
 	FNamedOnlineSession* Session = SessionInterface->GetNamedSession(SessionName);
@@ -47,14 +51,23 @@ void FOnlineAsyncTaskAccelByteRefreshV2PartySession::Initialize()
 
 void FOnlineAsyncTaskAccelByteRefreshV2PartySession::Finalize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	Super::Finalize();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
-	const TSharedPtr<FOnlineSessionV2AccelByte, ESPMode::ThreadSafe> SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(Subsystem->GetSessionInterface());
+	const TSharedPtr<FOnlineSessionV2AccelByte, ESPMode::ThreadSafe> SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(SubsystemPin->GetSessionInterface());
 	if (SessionInterface.IsValid())
 	{
-		SessionInterface->UpdateInternalPartySession(SessionName, RefreshedPartySession);
+		if (bWasSessionRemoved)
+		{
+			SessionInterface->RemoveNamedSession(SessionName);
+		}
+		else
+		{
+			SessionInterface->UpdateInternalPartySession(SessionName, RefreshedPartySession);
+		}
 	}
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
@@ -62,6 +75,8 @@ void FOnlineAsyncTaskAccelByteRefreshV2PartySession::Finalize()
 
 void FOnlineAsyncTaskAccelByteRefreshV2PartySession::TriggerDelegates()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	Super::TriggerDelegates();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
@@ -69,7 +84,7 @@ void FOnlineAsyncTaskAccelByteRefreshV2PartySession::TriggerDelegates()
 	if (bWasSuccessful)
 	{
 		FOnlineSessionV2AccelBytePtr SessionInterface = nullptr;
-		if (ensureAlways(FOnlineSessionV2AccelByte::GetFromSubsystem(Subsystem, SessionInterface)))
+		if (ensureAlways(FOnlineSessionV2AccelByte::GetFromSubsystem(SubsystemPin.Get(), SessionInterface)))
 		{
 			if (bWasSessionRemoved)
 			{

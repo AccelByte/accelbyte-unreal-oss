@@ -21,11 +21,13 @@ FOnlineAsyncTaskAccelByteLoginQueueCancelTicket::FOnlineAsyncTaskAccelByteLoginQ
 
 void FOnlineAsyncTaskAccelByteLoginQueueCancelTicket::Initialize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("LoginUserNum: %d, ticketId: %s"), LoginUserNum, *TicketId);
 
 	Super::Initialize();
 	
-	if (Subsystem->IsMultipleLocalUsersEnabled())
+	if (SubsystemPin->IsMultipleLocalUsersEnabled())
 	{
 		SetApiClient(FMultiRegistry::GetApiClient(FString::Printf(TEXT("%d"), LoginUserNum)));
 	}
@@ -46,6 +48,8 @@ void FOnlineAsyncTaskAccelByteLoginQueueCancelTicket::Initialize()
 
 void FOnlineAsyncTaskAccelByteLoginQueueCancelTicket::Finalize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("LoginUserNum: %d, ticketId: %s, bWasSuccessful: %s"), LoginUserNum, *TicketId, bWasSuccessful? TEXT("True") : TEXT("False"));
 
 	if(!bWasSuccessful)
@@ -54,7 +58,7 @@ void FOnlineAsyncTaskAccelByteLoginQueueCancelTicket::Finalize()
 		return;
 	}
 
-	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(Subsystem->GetIdentityInterface());
+	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(SubsystemPin->GetIdentityInterface());
 	if(!IdentityInterface.IsValid())
 	{
 		AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Failed to finalize login queue cancel result, as our Identity Interface is invalid!"));
@@ -68,9 +72,11 @@ void FOnlineAsyncTaskAccelByteLoginQueueCancelTicket::Finalize()
 
 void FOnlineAsyncTaskAccelByteLoginQueueCancelTicket::TriggerDelegates()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("LoginUserNum: %d, ticketId: %s, bWasSuccessful: %s"), LoginUserNum, *TicketId, bWasSuccessful? TEXT("True") : TEXT("False"));
 
-	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(Subsystem->GetIdentityInterface());
+	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(SubsystemPin->GetIdentityInterface());
 	if(!IdentityInterface.IsValid())
 	{
 		AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Failed to broadcast login queue cancel result, as our Identity Interface is invalid!"));

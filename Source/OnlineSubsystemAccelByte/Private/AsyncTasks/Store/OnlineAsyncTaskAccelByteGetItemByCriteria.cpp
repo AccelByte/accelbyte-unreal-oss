@@ -56,10 +56,12 @@ void FOnlineAsyncTaskAccelByteGetItemByCriteria::Finalize()
 
 void FOnlineAsyncTaskAccelByteGetItemByCriteria::TriggerDelegates()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Trigger Delegates"));
 	
 	Super::TriggerDelegates();
-	const FOnlineStoreV2AccelBytePtr StoreInterface = StaticCastSharedPtr<FOnlineStoreV2AccelByte>(Subsystem->GetStoreV2Interface());
+	const FOnlineStoreV2AccelBytePtr StoreInterface = StaticCastSharedPtr<FOnlineStoreV2AccelByte>(SubsystemPin->GetStoreV2Interface());
 	if (StoreInterface.IsValid())
 	{
 		const FOnlineErrorAccelByte OnlineError = bWasSuccessful ? ONLINE_ERROR_ACCELBYTE(TEXT(""), EOnlineErrorResult::Success) :

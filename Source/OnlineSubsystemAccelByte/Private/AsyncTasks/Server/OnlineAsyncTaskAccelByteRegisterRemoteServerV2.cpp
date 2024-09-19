@@ -17,11 +17,13 @@ FOnlineAsyncTaskAccelByteRegisterRemoteServerV2::FOnlineAsyncTaskAccelByteRegist
 
 void FOnlineAsyncTaskAccelByteRegisterRemoteServerV2::Initialize()
 {
+    TRY_PIN_SUBSYSTEM()
+
     Super::Initialize();
 
     AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 
-    const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(Subsystem->GetSessionInterface());
+    const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(SubsystemPin->GetSessionInterface());
     AB_ASYNC_TASK_ENSURE(SessionInterface.IsValid(), "Failed to register remote server as our session interface is invalid!");
 
     int32 RegisterPort = 0;
@@ -36,12 +38,14 @@ void FOnlineAsyncTaskAccelByteRegisterRemoteServerV2::Initialize()
 
 void FOnlineAsyncTaskAccelByteRegisterRemoteServerV2::Finalize()
 {
+    TRY_PIN_SUBSYSTEM()
+
     AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
     if (bWasSuccessful)
     {
 		FOnlineSessionV2AccelBytePtr SessionInterface;
-        if (!ensure(FOnlineSessionV2AccelByte::GetFromSubsystem(Subsystem, SessionInterface)))
+        if (!ensure(FOnlineSessionV2AccelByte::GetFromSubsystem(SubsystemPin.Get(), SessionInterface)))
         {
             AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to finalize registering remote server as our session interface is invalid!"));
             return;
@@ -58,7 +62,7 @@ void FOnlineAsyncTaskAccelByteRegisterRemoteServerV2::Finalize()
             SessionInterface->GetServerClaimedSession(SessionName, SessionId);
         }
 
-        const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = Subsystem->GetPredefinedEventInterface();
+        const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = SubsystemPin->GetPredefinedEventInterface();
         if (PredefinedEventInterface.IsValid())
         {
             FAccelByteModelsDSRegisteredPayload DSRegisteredPayload{};

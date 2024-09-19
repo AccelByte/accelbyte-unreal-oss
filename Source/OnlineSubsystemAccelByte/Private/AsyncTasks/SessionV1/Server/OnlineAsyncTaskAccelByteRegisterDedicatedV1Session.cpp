@@ -31,11 +31,13 @@ FOnlineAsyncTaskAccelByteRegisterDedicatedV1Session::FOnlineAsyncTaskAccelByteRe
 
 void FOnlineAsyncTaskAccelByteRegisterDedicatedV1Session::Initialize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	Super::Initialize();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("SessionName: %s"), *SessionName.ToString());
 
-	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(Subsystem->GetIdentityInterface());
+	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(SubsystemPin->GetIdentityInterface());
 	if (!IdentityInterface.IsValid())
 	{
 		AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Failed to register dedicated session with Armada as our identity interface was invalid!"));
@@ -66,11 +68,13 @@ void FOnlineAsyncTaskAccelByteRegisterDedicatedV1Session::Initialize()
 
 void FOnlineAsyncTaskAccelByteRegisterDedicatedV1Session::Finalize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
 	if (bWasSuccessful)
 	{
-		const IOnlineSessionPtr SessionInterface = Subsystem->GetSessionInterface();
+		const IOnlineSessionPtr SessionInterface = SubsystemPin->GetSessionInterface();
 
 		// @sessions Note that by this point, since sessions are managed by the matchmaker, we don't have a session associated with this
 		// server. Thus we just want to add the session without an associated ID, and once we get our first RegisterPlayer call,
@@ -103,7 +107,7 @@ void FOnlineAsyncTaskAccelByteRegisterDedicatedV1Session::Finalize()
 		SessionInfo->GetHostAddr()->SetIp(*RegisteredIpAddress, bIsIpValid);
 		SessionInfo->GetHostAddr()->SetPort(RegisteredPort);
 
-		const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = Subsystem->GetPredefinedEventInterface();
+		const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = SubsystemPin->GetPredefinedEventInterface();
 		if (PredefinedEventInterface.IsValid())
 		{
 			FAccelByteModelsDSRegisteredPayload DSRegisteredPayload{};
@@ -117,9 +121,11 @@ void FOnlineAsyncTaskAccelByteRegisterDedicatedV1Session::Finalize()
 
 void FOnlineAsyncTaskAccelByteRegisterDedicatedV1Session::TriggerDelegates()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 
-	const IOnlineSessionPtr SessionInterface = Subsystem->GetSessionInterface();
+	const IOnlineSessionPtr SessionInterface = SubsystemPin->GetSessionInterface();
 	SessionInterface->TriggerOnCreateSessionCompleteDelegates(SessionName, bWasSuccessful);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
@@ -271,9 +277,11 @@ void FOnlineAsyncTaskAccelByteRegisterDedicatedV1Session::GetRegisterIpAddress(F
 
 void FOnlineAsyncTaskAccelByteRegisterDedicatedV1Session::CreateGameSession()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 
-	const IOnlineSessionPtr SessionInterface = Subsystem->GetSessionInterface();
+	const IOnlineSessionPtr SessionInterface = SubsystemPin->GetSessionInterface();
 			
 	FNamedOnlineSession* Session = SessionInterface->GetNamedSession(SessionName);
 	if (Session == nullptr)

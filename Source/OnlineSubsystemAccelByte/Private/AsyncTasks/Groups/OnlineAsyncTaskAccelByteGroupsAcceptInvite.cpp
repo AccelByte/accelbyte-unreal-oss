@@ -48,6 +48,8 @@ void FOnlineAsyncTaskAccelByteGroupsAcceptInvite::TriggerDelegates()
 
 void FOnlineAsyncTaskAccelByteGroupsAcceptInvite::Finalize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	Super::Finalize();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
@@ -56,7 +58,7 @@ void FOnlineAsyncTaskAccelByteGroupsAcceptInvite::Finalize()
 		return;
 
 	FOnlineGroupsAccelBytePtr GroupsInterface;
-	if (!ensure(FOnlineGroupsAccelByte::GetFromSubsystem(Subsystem, GroupsInterface)))
+	if (!ensure(FOnlineGroupsAccelByte::GetFromSubsystem(SubsystemPin.Get(),  GroupsInterface)))
 	{
 		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to AcceptInvite, groups interface instance is not valid!"));
 		return;
@@ -78,7 +80,7 @@ void FOnlineAsyncTaskAccelByteGroupsAcceptInvite::Finalize()
 	// Add the player to the current group
 	GroupsInterface->AddCachedGroupMember(CurrentGroupData->ABMemberRoleId, AccelByteModelsMemberRequestGroupResponse.UserId);
 
-	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = Subsystem->GetPredefinedEventInterface();
+	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = SubsystemPin->GetPredefinedEventInterface();
 	if (PredefinedEventInterface.IsValid())
 	{
 		FAccelByteModelsGroupInviteAcceptedPayload GroupInviteAcceptedPayload{};

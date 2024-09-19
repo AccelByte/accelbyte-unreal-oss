@@ -16,12 +16,14 @@ FOnlineAsyncTaskAccelByteGenerateNewV2GameCode::FOnlineAsyncTaskAccelByteGenerat
 
 void FOnlineAsyncTaskAccelByteGenerateNewV2GameCode::Initialize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	Super::Initialize();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("UserId: %s; SessionName: %s"), *UserId->ToDebugString(), *SessionName.ToString());
 
 	FOnlineSessionV2AccelBytePtr SessionInterface = nullptr;
-	AB_ASYNC_TASK_ENSURE(FOnlineSessionV2AccelByte::GetFromSubsystem(Subsystem, SessionInterface), "Failed to get session interface for generating game code!");
+	AB_ASYNC_TASK_ENSURE(FOnlineSessionV2AccelByte::GetFromSubsystem(SubsystemPin.Get(),  SessionInterface), "Failed to get session interface for generating game code!");
 
 	FNamedOnlineSession* Session = SessionInterface->GetNamedSession(SessionName);
 	AB_ASYNC_TASK_ENSURE(Session != nullptr, "Failed to get named session for generating game code!");
@@ -47,6 +49,8 @@ void FOnlineAsyncTaskAccelByteGenerateNewV2GameCode::Initialize()
 
 void FOnlineAsyncTaskAccelByteGenerateNewV2GameCode::Finalize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	Super::Finalize();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
@@ -54,7 +58,7 @@ void FOnlineAsyncTaskAccelByteGenerateNewV2GameCode::Finalize()
 	if (bWasSuccessful)
 	{
 		FOnlineSessionV2AccelBytePtr SessionInterface = nullptr;
-		if (!FOnlineSessionV2AccelByte::GetFromSubsystem(Subsystem, SessionInterface))
+		if (!FOnlineSessionV2AccelByte::GetFromSubsystem(SubsystemPin.Get(),  SessionInterface))
 		{
 			return;
 		}

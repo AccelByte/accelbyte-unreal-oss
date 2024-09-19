@@ -23,13 +23,15 @@ FOnlineAsyncTaskAccelByteAcceptFriendInvite::FOnlineAsyncTaskAccelByteAcceptFrie
 
 void FOnlineAsyncTaskAccelByteAcceptFriendInvite::Initialize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	Super::Initialize();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("LocalUserNum: %d; FriendId: %s"), LocalUserNum, *FriendId->ToDebugString());
 
 	// Attempt to get a pointer to the friend in the friends list, that way we can just update the invite status
 	// rather than creating a new friend and removing from the list
-	const IOnlineFriendsPtr FriendsInterface = Subsystem->GetFriendsInterface();
+	const IOnlineFriendsPtr FriendsInterface = SubsystemPin->GetFriendsInterface();
 	InviteeFriend = FriendsInterface->GetFriend(LocalUserNum, FriendId.Get(), ListName);
 
 	// Check if we have the friend in our list currently, as well as whether the friend in our list is an inbound friend,
@@ -66,6 +68,8 @@ void FOnlineAsyncTaskAccelByteAcceptFriendInvite::Initialize()
 
 void FOnlineAsyncTaskAccelByteAcceptFriendInvite::Finalize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
 	if (bWasSuccessful)
@@ -74,7 +78,7 @@ void FOnlineAsyncTaskAccelByteAcceptFriendInvite::Finalize()
 		TSharedPtr<FOnlineFriendAccelByte> AccelByteFriend = StaticCastSharedPtr<FOnlineFriendAccelByte>(InviteeFriend);
 		AccelByteFriend->SetInviteStatus(EInviteStatus::Accepted);
 
-		const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = Subsystem->GetPredefinedEventInterface();
+		const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = SubsystemPin->GetPredefinedEventInterface();
 		if (PredefinedEventInterface.IsValid() && FriendId->IsValid())
 		{
 			FAccelByteModelsFriendRequestAcceptedPayload FriendRequestAcceptedPayload{};
@@ -89,6 +93,8 @@ void FOnlineAsyncTaskAccelByteAcceptFriendInvite::Finalize()
 
 void FOnlineAsyncTaskAccelByteAcceptFriendInvite::TriggerDelegates()
 {
+	TRY_PIN_SUBSYSTEM()
+	
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 	
 	Delegate.ExecuteIfBound(LocalUserNum, bWasSuccessful, FriendId.Get(), ListName, ErrorStr);
@@ -96,7 +102,7 @@ void FOnlineAsyncTaskAccelByteAcceptFriendInvite::TriggerDelegates()
 	// If the friend invite accept was successful, then we want to also notify that we changed the friends list to reflect
 	if (bWasSuccessful)
 	{
-		const IOnlineFriendsPtr FriendsInterface = Subsystem->GetFriendsInterface();
+		const IOnlineFriendsPtr FriendsInterface = SubsystemPin->GetFriendsInterface();
 		FriendsInterface->TriggerOnFriendsChangeDelegates(LocalUserNum);
 	}
 
@@ -105,10 +111,12 @@ void FOnlineAsyncTaskAccelByteAcceptFriendInvite::TriggerDelegates()
 
 void FOnlineAsyncTaskAccelByteAcceptFriendInvite::OnAcceptFriendRequestSuccess()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""))
 	Super::ExecuteCriticalSectionAction(FVoidHandler::CreateLambda([&]()
 		{
-			Subsystem->GetPresenceInterface()->QueryPresence(*FriendId, TDelegateUtils<IOnlinePresence::FOnPresenceTaskCompleteDelegate>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteAcceptFriendInvite::OnGetUserPresenceComplete));
+			SubsystemPin->GetPresenceInterface()->QueryPresence(*FriendId, TDelegateUtils<IOnlinePresence::FOnPresenceTaskCompleteDelegate>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteAcceptFriendInvite::OnGetUserPresenceComplete));
 		}));
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""))
 }
@@ -122,8 +130,10 @@ void FOnlineAsyncTaskAccelByteAcceptFriendInvite::OnAcceptFriendRequestFailed(in
 
 void FOnlineAsyncTaskAccelByteAcceptFriendInvite::OnGetUserPresenceComplete(const FUniqueNetId& TargetUserId, const bool bGetPresenceSuccess)
 {
+	TRY_PIN_SUBSYSTEM()
+
 	TSharedPtr<FOnlineUserPresence> Presence;
-	Subsystem->GetPresenceInterface()->GetCachedPresence(TargetUserId, Presence);
+	SubsystemPin->GetPresenceInterface()->GetCachedPresence(TargetUserId, Presence);
 	if(Presence.IsValid())
 	{
 		TSharedPtr<FOnlineFriendAccelByte> AccelByteFriend = StaticCastSharedPtr<FOnlineFriendAccelByte>(InviteeFriend);

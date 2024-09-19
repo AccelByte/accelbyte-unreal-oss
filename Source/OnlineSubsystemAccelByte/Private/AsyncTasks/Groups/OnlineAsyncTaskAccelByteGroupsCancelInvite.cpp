@@ -50,6 +50,8 @@ void FOnlineAsyncTaskAccelByteGroupsCancelInvite::TriggerDelegates()
 
 void FOnlineAsyncTaskAccelByteGroupsCancelInvite::Finalize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	Super::Finalize();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
@@ -58,7 +60,7 @@ void FOnlineAsyncTaskAccelByteGroupsCancelInvite::Finalize()
 		return;
 
 	FOnlineGroupsAccelBytePtr GroupsInterface;
-	if (!ensure(FOnlineGroupsAccelByte::GetFromSubsystem(Subsystem, GroupsInterface)))
+	if (!ensure(FOnlineGroupsAccelByte::GetFromSubsystem(SubsystemPin.Get(),  GroupsInterface)))
 	{
 		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to CancelInvite, groups interface instance is not valid!"));
 		return;
@@ -73,7 +75,7 @@ void FOnlineAsyncTaskAccelByteGroupsCancelInvite::Finalize()
 	// Remove the invite
 	GroupsInterface->RemoveCachedInvites(AccelByteModelsMemberRequestGroupResponse.UserId);
 
-	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = Subsystem->GetPredefinedEventInterface();
+	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = SubsystemPin->GetPredefinedEventInterface();
 	if (PredefinedEventInterface.IsValid())
 	{
 		FAccelByteModelsGroupInviteCanceledPayload GroupInviteCancelledPayload{};

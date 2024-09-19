@@ -18,12 +18,14 @@ FOnlineAsyncTaskAccelByteSendV2PartyInvite::FOnlineAsyncTaskAccelByteSendV2Party
 
 void FOnlineAsyncTaskAccelByteSendV2PartyInvite::Initialize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	Super::Initialize();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("UserId: %s; Recipient ID: %s"), *UserId->ToString(), *RecipientId->GetAccelByteId());
 
 	// First, check if the player is currently in a party session of given SessionName, if we're not, then we shouldn't do this
-	const TSharedPtr<FOnlineSessionV2AccelByte, ESPMode::ThreadSafe> SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(Subsystem->GetSessionInterface());
+	const TSharedPtr<FOnlineSessionV2AccelByte, ESPMode::ThreadSafe> SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(SubsystemPin->GetSessionInterface());
 	AB_ASYNC_TASK_ENSURE(SessionInterface.IsValid(), "Failed to send invite to party session as our session interface is invalid!");
 	check(SessionInterface.IsValid());
 
@@ -42,7 +44,9 @@ void FOnlineAsyncTaskAccelByteSendV2PartyInvite::Initialize()
 
 void FOnlineAsyncTaskAccelByteSendV2PartyInvite::Finalize()
 {
-	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = Subsystem->GetPredefinedEventInterface();
+	TRY_PIN_SUBSYSTEM()
+
+	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = SubsystemPin->GetPredefinedEventInterface();
 	if (bWasSuccessful && PredefinedEventInterface.IsValid())
 	{
 		FAccelByteModelsMPV2PartySessionInvitedPayload PartySessionInvitedPayload{};
@@ -54,12 +58,14 @@ void FOnlineAsyncTaskAccelByteSendV2PartyInvite::Finalize()
 
 void FOnlineAsyncTaskAccelByteSendV2PartyInvite::TriggerDelegates()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	Super::TriggerDelegates();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
 	FOnlineSessionV2AccelBytePtr SessionInterface = nullptr;
-	if (!ensureAlways(FOnlineSessionV2AccelByte::GetFromSubsystem(Subsystem, SessionInterface)))
+	if (!ensureAlways(FOnlineSessionV2AccelByte::GetFromSubsystem(SubsystemPin.Get(), SessionInterface)))
 	{
 		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to get session interface instance from online subsystem!"));
 		return;

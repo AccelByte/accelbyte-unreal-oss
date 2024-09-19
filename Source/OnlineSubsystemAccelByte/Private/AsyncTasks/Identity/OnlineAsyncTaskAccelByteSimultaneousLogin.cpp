@@ -27,6 +27,8 @@ FOnlineAsyncTaskAccelByteSimultaneousLogin::FOnlineAsyncTaskAccelByteSimultaneou
 
 bool FOnlineAsyncTaskAccelByteSimultaneousLogin::IsInitializeAllowed()
 {
+	TRY_PIN_SUBSYSTEM(false)
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Checking Initialization"));
 
 	if (!AccountCredentials.Type.Contains(FAccelByteUtilities::GetUEnumValueAsString(EAccelByteLoginType::Simultaneous)))
@@ -35,14 +37,14 @@ bool FOnlineAsyncTaskAccelByteSimultaneousLogin::IsInitializeAllowed()
 		return false;
 	}
 
-	FName SecondaryPlatformName = Subsystem->GetSecondaryPlatformSubsystemName();
+	FName SecondaryPlatformName = SubsystemPin->GetSecondaryPlatformSubsystemName();
 	if (SecondaryPlatformName.IsNone())
 	{
 		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to do simultaneous login, no secondary platform specified in the DefaultEngine.ini.\n Please set the value through\n[OnlineSubsystemAccelByte]\n SecondaryPlatformName =...."));
 		return false; 
 	}
 
-	if (!Subsystem->IsNativeSubsystemSupported(SecondaryPlatformName))
+	if (!SubsystemPin->IsNativeSubsystemSupported(SecondaryPlatformName))
 	{
 		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to do simultaneous login, specified secondary platform is not supported (%s)"), *SecondaryPlatformName.ToString());
 		return false;
@@ -65,6 +67,8 @@ bool FOnlineAsyncTaskAccelByteSimultaneousLogin::IsInitializeAllowed()
 
 void FOnlineAsyncTaskAccelByteSimultaneousLogin::Initialize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	Super::Initialize();
 	CurrentAsyncTaskState = ESimultaneousLoginAsyncTaskState::Initialized;
 
@@ -77,7 +81,7 @@ void FOnlineAsyncTaskAccelByteSimultaneousLogin::Initialize()
 		return;
 	}
 
-	if (Subsystem->IsMultipleLocalUsersEnabled())
+	if (SubsystemPin->IsMultipleLocalUsersEnabled())
 	{
 		SetApiClient(FMultiRegistry::GetApiClient(FString::Printf(TEXT("%d"), LoginUserNum)));
 	}
@@ -108,7 +112,9 @@ void FOnlineAsyncTaskAccelByteSimultaneousLogin::Finalize()
 
 void FOnlineAsyncTaskAccelByteSimultaneousLogin::PostProcessTriggerDelegates()
 {
-	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(Subsystem->GetIdentityInterface());
+	TRY_PIN_SUBSYSTEM()
+
+	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(SubsystemPin->GetIdentityInterface());
 	const TSharedRef<const FUniqueNetIdAccelByteUser> ReturnId = (bWasSuccessful) ? UserId.ToSharedRef() : FUniqueNetIdAccelByteUser::Invalid();
 	if (!IdentityInterface.IsValid())
 	{
@@ -183,6 +189,8 @@ void FOnlineAsyncTaskAccelByteSimultaneousLogin::TriggerDelegates()
 // This perform login occurs twice because we triggers LoginWithNativeSubsystem + LoginWithSpecificSubsystem
 void FOnlineAsyncTaskAccelByteSimultaneousLogin::PerformLogin(const FOnlineAccountCredentials& Credentials)
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("First native platform login success: %s"), *Credentials.Type);
 	if (CurrentAsyncTaskState == ESimultaneousLoginAsyncTaskState::Initialized)
 	{
@@ -196,7 +204,7 @@ void FOnlineAsyncTaskAccelByteSimultaneousLogin::PerformLogin(const FOnlineAccou
 		//Set bIsNativePlatformCredentialLogin to false
 		bIsNativePlatformCredentialLogin = false;
 
-		FName SecondaryPlatformName = Subsystem->GetSecondaryPlatformSubsystemName();
+		FName SecondaryPlatformName = SubsystemPin->GetSecondaryPlatformSubsystemName();
 		LoginWithSpecificSubsystem(SecondaryPlatformName);
 	}
 	else if (CurrentAsyncTaskState == ESimultaneousLoginAsyncTaskState::NativePlatformLoginDone)

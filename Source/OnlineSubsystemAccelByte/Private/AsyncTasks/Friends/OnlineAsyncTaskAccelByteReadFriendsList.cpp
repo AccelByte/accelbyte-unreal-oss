@@ -76,6 +76,8 @@ void FOnlineAsyncTaskAccelByteReadFriendsList::Tick()
 
 	if (bHasReceivedResponseForCurrentFriends && bHasReceivedResponseForIncomingFriends && bHasReceivedResponseForOutgoingFriends && (!bHasSentRequestForUserStatus && !bHasReceivedAllUserStatus))
 	{
+		SetLastUpdateTimeToCurrentTime();//Increase this AsyncTask lifespan to do the initial BulkGetUserPresence operation
+
 		if (FriendIdsToQuery.Num() > 0)
 		{
 			API_CLIENT_CHECK_GUARD(ErrorString);
@@ -97,7 +99,11 @@ void FOnlineAsyncTaskAccelByteReadFriendsList::Tick()
 	// If we have received all friend IDs from each list, but we haven't tried to get information on those friends yet, send the request out
 	if (bHasReceivedResponseForCurrentFriends && bHasReceivedResponseForIncomingFriends && bHasReceivedResponseForOutgoingFriends && bHasReceivedAllUserStatus && (!bHasSentRequestForFriendInformation && !bHasRecievedAllFriendInformation))
 	{
-		FOnlineUserCacheAccelBytePtr UserStore = Subsystem->GetUserCache();
+		TRY_PIN_SUBSYSTEM()
+
+		SetLastUpdateTimeToCurrentTime();//Increase this AsyncTask lifespan to do the initial QueryUsersByAccelByteIds operation
+
+		FOnlineUserCacheAccelBytePtr UserStore = SubsystemPin->GetUserCache();
 		if (!UserStore.IsValid())
 		{
 			AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Could not query information about our friends as our user store instance is invalid!"));
@@ -122,11 +128,13 @@ void FOnlineAsyncTaskAccelByteReadFriendsList::Tick()
 
 void FOnlineAsyncTaskAccelByteReadFriendsList::Finalize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
 	if (bWasSuccessful)
 	{
-		const TSharedPtr<FOnlineFriendsAccelByte, ESPMode::ThreadSafe> FriendInterface = StaticCastSharedPtr<FOnlineFriendsAccelByte>(Subsystem->GetFriendsInterface());
+		const TSharedPtr<FOnlineFriendsAccelByte, ESPMode::ThreadSafe> FriendInterface = StaticCastSharedPtr<FOnlineFriendsAccelByte>(SubsystemPin->GetFriendsInterface());
 		FriendInterface->AddFriendsToList(LocalUserNum, FoundFriends);
 	}
 
@@ -192,6 +200,7 @@ void FOnlineAsyncTaskAccelByteReadFriendsList::OnQueryFriendListSuccess(const FA
 	}
 	else
 	{
+		SetLastUpdateTimeToCurrentTime();//Increase this AsyncTask lifespan if still continue to QueryFriendList()
 		QueryFriendListOffset += MaximumQueryLimit;
 		QueryFriendList();
 	}
@@ -241,6 +250,7 @@ void FOnlineAsyncTaskAccelByteReadFriendsList::OnQueryIncomingFriendRequestSucce
 	}
 	else
 	{
+		SetLastUpdateTimeToCurrentTime();//Increase this AsyncTask lifespan if still continue to QueryIncomingFriendRequest()
 		QueryIncomingFriendReqOffset += MaximumQueryLimit;
 		QueryIncomingFriendRequest();
 	}
@@ -290,6 +300,7 @@ void FOnlineAsyncTaskAccelByteReadFriendsList::OnQueryOutgoingFriendRequestSucce
 	}
 	else
 	{
+		SetLastUpdateTimeToCurrentTime();//Increase this AsyncTask lifespan if still continue to QueryOutgoingFriendRequest()
 		QueryOutgoingFriendReqOffset += MaximumQueryLimit;
 		QueryOutgoingFriendRequest();
 	}
@@ -353,7 +364,7 @@ void FOnlineAsyncTaskAccelByteReadFriendsList::OnGetUserPresenceComplete(const F
 
 	if (Statuses.NotProcessed.Num() > 0)
 	{
-		SetLastUpdateTimeToCurrentTime();
+		SetLastUpdateTimeToCurrentTime();//Increase this AsyncTask lifespan if still continue to process next UserStatus
 		API_CLIENT_CHECK_GUARD(ErrorString);
 		ApiClient->Lobby.BulkGetUserPresenceV2(Statuses.NotProcessed,
 			TDelegateUtils<THandler<FAccelByteModelsBulkUserStatusNotif>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteReadFriendsList::OnGetUserPresenceComplete),

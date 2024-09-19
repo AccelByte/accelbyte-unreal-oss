@@ -17,7 +17,7 @@ class FOnlineAsyncTaskAccelByteLeaveV2GameSession
 {
 public:
 
-	FOnlineAsyncTaskAccelByteLeaveV2GameSession(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InLocalUserId, const FString& InSessionId, const FOnLeaveSessionComplete& InDelegate);
+	FOnlineAsyncTaskAccelByteLeaveV2GameSession(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InLocalUserId, const FString& InSessionId, const FOnLeaveSessionComplete& InDelegate, bool bInUserKicked);
 
     virtual void Initialize() override;
 	virtual void Finalize() override;
@@ -51,5 +51,8 @@ private:
 
 	FErrorHandler OnLeaveGameSessionErrorDelegate;
 	void OnLeaveGameSessionError(int32 ErrorCode, const FString& ErrorMessage);
+
+	/** Flag denoting whether the user is kicked, if so skip calling leave game session. */
+	bool bUserKicked{false};
 };
 

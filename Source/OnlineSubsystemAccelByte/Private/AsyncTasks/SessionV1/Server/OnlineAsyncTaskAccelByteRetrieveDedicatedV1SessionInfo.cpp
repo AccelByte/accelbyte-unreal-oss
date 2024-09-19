@@ -19,11 +19,13 @@ FOnlineAsyncTaskAccelByteRetrieveDedicatedV1SessionInfo::FOnlineAsyncTaskAccelBy
 
 void FOnlineAsyncTaskAccelByteRetrieveDedicatedV1SessionInfo::Initialize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	Super::Initialize();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("SessionName: %s"), *SessionName.ToString());
 
-	const IOnlineSessionPtr SessionInterface = Subsystem->GetSessionInterface();
+	const IOnlineSessionPtr SessionInterface = SubsystemPin->GetSessionInterface();
 	if (SessionInterface == nullptr)
 	{
 		CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState);
@@ -55,7 +57,7 @@ void FOnlineAsyncTaskAccelByteRetrieveDedicatedV1SessionInfo::Initialize()
 
 	SessionId = Session->SessionInfo->GetSessionId().ToString();
 
-	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(Subsystem->GetIdentityInterface());
+	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(SubsystemPin->GetIdentityInterface());
 	if (!IdentityInterface.IsValid())
 	{
 		AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Failed to register dedicated session with Armada as our identity interface was invalid!"));
@@ -83,11 +85,13 @@ void FOnlineAsyncTaskAccelByteRetrieveDedicatedV1SessionInfo::Initialize()
 
 void FOnlineAsyncTaskAccelByteRetrieveDedicatedV1SessionInfo::Finalize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s; Channel: %s"), LOG_BOOL_FORMAT(bWasSuccessful), *Channel);
 
 	if (bWasSuccessful)
 	{
-		const IOnlineSessionPtr SessionInterface = Subsystem->GetSessionInterface();
+		const IOnlineSessionPtr SessionInterface = SubsystemPin->GetSessionInterface();
 		check(SessionInterface != nullptr);
 
 		FNamedOnlineSession* Session = SessionInterface->GetNamedSession(SessionName);
@@ -112,12 +116,14 @@ void FOnlineAsyncTaskAccelByteRetrieveDedicatedV1SessionInfo::Finalize()
 
 void FOnlineAsyncTaskAccelByteRetrieveDedicatedV1SessionInfo::TriggerDelegates()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
 	TSharedPtr<FOnlineSessionInfoAccelByteV1> SessionInfo = nullptr;
 	if (bWasSuccessful)
 	{
-		const IOnlineSessionPtr SessionInterface = Subsystem->GetSessionInterface();
+		const IOnlineSessionPtr SessionInterface = SubsystemPin->GetSessionInterface();
 		check(SessionInterface != nullptr);
 
 		FNamedOnlineSession* Session = SessionInterface->GetNamedSession(SessionName);

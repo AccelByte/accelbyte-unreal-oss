@@ -35,6 +35,8 @@ void FOnlineAsyncTaskAccelByteV2GetRecentPlayer::Finalize()
 
 	if (bWasSuccessful)
 	{
+		TRY_PIN_SUBSYSTEM()
+
 		TArray<TSharedRef<FOnlineRecentPlayerAccelByte>> RecentPlayers;
 		for (const FAccelByteUserInfoRef& RecentPlayerInfo : RecentPlayersQueried)
 		{
@@ -44,7 +46,7 @@ void FOnlineAsyncTaskAccelByteV2GetRecentPlayer::Finalize()
 			RecentPlayers.Add(NewRecent.ToSharedRef());
 		}
 
-		const TSharedPtr<FOnlineFriendsAccelByte, ESPMode::ThreadSafe> FriendsInterface = StaticCastSharedPtr<FOnlineFriendsAccelByte>(Subsystem->GetFriendsInterface());
+		const TSharedPtr<FOnlineFriendsAccelByte, ESPMode::ThreadSafe> FriendsInterface = StaticCastSharedPtr<FOnlineFriendsAccelByte>(SubsystemPin->GetFriendsInterface());
 		FriendsInterface->RecentPlayersMap.Emplace(UserId.ToSharedRef(), RecentPlayers);
 	}
 
@@ -53,9 +55,11 @@ void FOnlineAsyncTaskAccelByteV2GetRecentPlayer::Finalize()
 
 void FOnlineAsyncTaskAccelByteV2GetRecentPlayer::TriggerDelegates()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
-	const IOnlineFriendsPtr FriendsInterface = Subsystem->GetFriendsInterface();
+	const IOnlineFriendsPtr FriendsInterface = SubsystemPin->GetFriendsInterface();
 	if(!FriendsInterface.IsValid())
 	{
 		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("failed to trigger delegate after completing get recent player because the friend interface instance is invalid!"));
@@ -68,6 +72,8 @@ void FOnlineAsyncTaskAccelByteV2GetRecentPlayer::TriggerDelegates()
 
 void FOnlineAsyncTaskAccelByteV2GetRecentPlayer::OnGetRecentPlayersSuccess(const FAccelByteModelsV2SessionRecentPlayers& InResult)
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 
 	//store result in user ID map for faster lookup
@@ -84,7 +90,7 @@ void FOnlineAsyncTaskAccelByteV2GetRecentPlayer::OnGetRecentPlayersSuccess(const
 	}
 
 	// Query user information about these recent players
-	FOnlineUserCacheAccelBytePtr UserStore = Subsystem->GetUserCache();
+	FOnlineUserCacheAccelBytePtr UserStore = SubsystemPin->GetUserCache();
 	if (!UserStore.IsValid())
 	{
 		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Could not get information on recent players as our user store instance is invalid!"));

@@ -21,6 +21,8 @@ FOnlineAsyncTaskAccelByteLeaveV1Party::FOnlineAsyncTaskAccelByteLeaveV1Party(FOn
 
 void FOnlineAsyncTaskAccelByteLeaveV1Party::Initialize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	Super::Initialize();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("UserId: %s; PartyId: %s; Synchronize Leave: %s"), *UserId->ToDebugString(), *PartyId->ToString(), LOG_BOOL_FORMAT(bSynchronizeLeave));
@@ -32,7 +34,7 @@ void FOnlineAsyncTaskAccelByteLeaveV1Party::Initialize()
 	// fail. In this case, you should figure out whether you want to manually leave parties and have auto kick off, or
 	// if you want to auto kick players if their lobby websocket disconnects, which may have side effects in the event
 	// of an error with that socket.
-	const TSharedPtr<FOnlinePartySystemAccelByte, ESPMode::ThreadSafe> PartyInterface = StaticCastSharedPtr<FOnlinePartySystemAccelByte>(Subsystem->GetPartyInterface());
+	const TSharedPtr<FOnlinePartySystemAccelByte, ESPMode::ThreadSafe> PartyInterface = StaticCastSharedPtr<FOnlinePartySystemAccelByte>(SubsystemPin->GetPartyInterface());
 	if (!PartyInterface.IsValid())
 	{
 		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Could not leave a party as the party interface instance was invalid!"));
@@ -41,7 +43,7 @@ void FOnlineAsyncTaskAccelByteLeaveV1Party::Initialize()
 		return;
 	}
 
-	const FOnlineSessionV1AccelBytePtr SessionInt = StaticCastSharedPtr<FOnlineSessionV1AccelByte>(Subsystem->GetSessionInterface());
+	const FOnlineSessionV1AccelBytePtr SessionInt = StaticCastSharedPtr<FOnlineSessionV1AccelByte>(SubsystemPin->GetSessionInterface());
 	if (!SessionInt.IsValid())
 	{
 		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Could not leave a party as the session interface instance was invalid!"));
@@ -84,12 +86,14 @@ void FOnlineAsyncTaskAccelByteLeaveV1Party::Initialize()
 
 void FOnlineAsyncTaskAccelByteLeaveV1Party::Finalize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
 	if (bWasSuccessful)
 	{
 		// If we successfully completed this task, all that is left to do is remove the party from the local list
-		const TSharedPtr<FOnlinePartySystemAccelByte, ESPMode::ThreadSafe> PartyInterface = StaticCastSharedPtr<FOnlinePartySystemAccelByte>(Subsystem->GetPartyInterface());
+		const TSharedPtr<FOnlinePartySystemAccelByte, ESPMode::ThreadSafe> PartyInterface = StaticCastSharedPtr<FOnlinePartySystemAccelByte>(SubsystemPin->GetPartyInterface());
 		if (PartyInterface.IsValid())
 		{
 			// Since we have left the party, we not only want to remove the party on our own local cache, but also remove any
@@ -114,11 +118,13 @@ void FOnlineAsyncTaskAccelByteLeaveV1Party::Finalize()
 
 void FOnlineAsyncTaskAccelByteLeaveV1Party::TriggerDelegates()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
 	if (bWasSuccessful) 
 	{
-		const TSharedPtr<FOnlinePartySystemAccelByte, ESPMode::ThreadSafe> PartyInterface = StaticCastSharedPtr<FOnlinePartySystemAccelByte>(Subsystem->GetPartyInterface());
+		const TSharedPtr<FOnlinePartySystemAccelByte, ESPMode::ThreadSafe> PartyInterface = StaticCastSharedPtr<FOnlinePartySystemAccelByte>(SubsystemPin->GetPartyInterface());
 		if (PartyInterface.IsValid()) 
 		{
 			PartyInterface->TriggerOnPartyExitedDelegates(UserId.ToSharedRef().Get(), PartyId.Get());

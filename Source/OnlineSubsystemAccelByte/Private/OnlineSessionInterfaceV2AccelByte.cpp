@@ -76,6 +76,10 @@
 #include "AsyncTasks/SessionV2/OnlineAsyncTaskAccelByteUpdateLeaderSessionV2Storage.h"
 #include "AsyncTasks/SessionV2/OnlineAsyncTaskAccelByteUpdateMemberSessionV2Storage.h"
 #include "AsyncTasks/SessionV2/OnlineTaskAccelByteRevokeV2GameCode.h"
+#include "AsyncTasks/SessionV2/OnlineAsyncTaskAccelByteQueryGameSessionHistories.h"
+#include "AsyncTasks/SessionV2/OnlineAsyncTaskAccelByteKickV2GameSession.h"
+#include "AsyncTasks/Server/OnlineAsyncTaskAccelByteServerKickV2GameSession.h"
+#include "AsyncTasks/SessionV2/OnlineAsyncTaskAccelByteRefreshActiveSessions.h"
 
 using namespace AccelByte;
 
@@ -431,8 +435,8 @@ void FOnlineSessionInfoAccelByteV2::UpdatePlayerLists(bool& bOutJoinedMembersCha
 	for (const FAccelByteModelsV2SessionUser& Member : BackendSessionData->Members)
 	{
 		// Make sure the player has either been invited to this session, or is joined/connected to it. If not, move to next member.
-		const bool bIsInviteStatus = Member.Status == EAccelByteV2SessionMemberStatus::INVITED;
-		const bool bIsJoinedStatus = (Member.Status == EAccelByteV2SessionMemberStatus::JOINED || Member.Status == EAccelByteV2SessionMemberStatus::CONNECTED);
+		const bool bIsInviteStatus = Member.StatusV2 == EAccelByteV2SessionMemberStatus::INVITED;
+		const bool bIsJoinedStatus = (Member.StatusV2 == EAccelByteV2SessionMemberStatus::JOINED || Member.StatusV2 == EAccelByteV2SessionMemberStatus::CONNECTED);
 		if (!bIsInviteStatus && !bIsJoinedStatus)
 		{
 			continue;
@@ -677,11 +681,31 @@ FOnlineSessionV2AccelByte::~FOnlineSessionV2AccelByte()
 {
 	OnSessionServerCheckGetSessionDelegate.Unbind();
 	OnSessionInviteCheckGetSessionDelegate.Unbind();
+
+	DisconnectFromAMS();
+	DisconnectFromDSHub();
+	
 	UnbindLobbyMulticastDelegate();
 }
 
 bool FOnlineSessionV2AccelByte::GetFromSubsystem(const IOnlineSubsystem* Subsystem, FOnlineSessionV2AccelBytePtr& OutInterfaceInstance)
 {
+#if AB_USE_V2_SESSIONS
+	OutInterfaceInstance = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(Subsystem->GetSessionInterface());
+	return OutInterfaceInstance.IsValid();
+#else
+	OutInterfaceInstance = nullptr;
+	return false;
+#endif
+}
+
+bool FOnlineSessionV2AccelByte::GetFromSubsystem(const FOnlineSubsystemAccelByte* Subsystem, TSharedPtr<FOnlineSessionV2AccelByte, ESPMode::ThreadSafe>& OutInterfaceInstance)
+{
+	if (Subsystem == nullptr)
+	{
+		return false;
+	}
+
 #if AB_USE_V2_SESSIONS
 	OutInterfaceInstance = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(Subsystem->GetSessionInterface());
 	return OutInterfaceInstance.IsValid();
@@ -1513,6 +1537,8 @@ void FOnlineSessionV2AccelByte::RegisterSessionNotificationDelegates(const FUniq
 	BIND_LOBBY_NOTIFICATION(GameSessionKicked, KickedFromGameSession);
 	BIND_LOBBY_NOTIFICATION(DSStatusChanged, DsStatusChanged);
 	BIND_LOBBY_NOTIFICATION(GameSessionRejected, GameSessionInviteRejected);
+	BIND_LOBBY_NOTIFICATION(GameSessionJoined, GameSessionJoined);
+
 	const THandler<FAccelByteModelsV2GameSessionInviteCanceledEvent> OnGameSessionInviteCanceled = THandler<FAccelByteModelsV2GameSessionInviteCanceledEvent>::CreateThreadSafeSP(SharedThis(this), &FOnlineSessionV2AccelByte::OnGameSessionInviteCanceledNotification, LocalUserNum);
 	OnGameSessionInviteCanceledHandle = ApiClient->Lobby.AddV2GameSessionInviteCanceledNotifDelegate(OnGameSessionInviteCanceled);
 	//~ End Game Session Notifications
@@ -1980,7 +2006,7 @@ void FOnlineSessionV2AccelByte::FinalizeCreateGameSession(const FName& SessionNa
 		else if(SessionInfo->GetServerType() == EAccelByteV2SessionConfigurationServerType::DS)
 		{
 			// setup session server status polling if notification doesn't arrive in a timely manner
-			UE_LOG(LogTemp, Display, TEXT("Trigger session server check poll from Finalize create game session"));
+			UE_LOG_AB(Log, TEXT("Trigger session server check poll from Finalize create game session"));
 			StartSessionServerCheckPoll(LocalOwnerIdRef, SessionName);
 		}
 	}
@@ -2367,20 +2393,20 @@ bool FOnlineSessionV2AccelByte::RemoveInviteById(const FString& SessionIdStr)
 	return true;
 }
 
-bool FOnlineSessionV2AccelByte::LeaveSession(const FUniqueNetId& LocalUserId, const EAccelByteV2SessionType& SessionType, const FString& SessionId, const FOnLeaveSessionComplete& Delegate)
+bool FOnlineSessionV2AccelByte::LeaveSession(const FUniqueNetId& LocalUserId, const EAccelByteV2SessionType& SessionType, const FString& SessionId, const FOnLeaveSessionComplete& Delegate, bool bUserKicked)
 {
 	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("LocalUserId: %s; SessionId: %s"), *LocalUserId.ToDebugString(), *SessionId);
 
 	if (SessionType == EAccelByteV2SessionType::GameSession)
 	{
-		AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteLeaveV2GameSession>(AccelByteSubsystem, LocalUserId, SessionId, Delegate);
+		AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteLeaveV2GameSession>(AccelByteSubsystem, LocalUserId, SessionId, Delegate, bUserKicked);
 	
 		AB_OSS_INTERFACE_TRACE_END(TEXT("Sending request to leave game session!"));
 		return true;
 	}
 	else if (SessionType == EAccelByteV2SessionType::PartySession)
 	{
-		AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteLeaveV2Party>(AccelByteSubsystem, LocalUserId, SessionId, Delegate);
+		AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteLeaveV2Party>(AccelByteSubsystem, LocalUserId, SessionId, Delegate, bUserKicked);
 		
 		AB_OSS_INTERFACE_TRACE_END(TEXT("Sending request to leave party session!"));
 		return true;
@@ -3128,7 +3154,12 @@ bool FOnlineSessionV2AccelByte::EndSession(FName SessionName)
 	return true;
 }
 
-bool FOnlineSessionV2AccelByte::DestroySession(FName SessionName, const FOnDestroySessionCompleteDelegate& CompletionDelegate /*= FOnDestroySessionCompleteDelegate()*/)
+bool FOnlineSessionV2AccelByte::DestroySession(FName SessionName, const FOnDestroySessionCompleteDelegate& CompletionDelegate)
+{
+	return DestroySession(SessionName, CompletionDelegate, false);
+}
+
+bool FOnlineSessionV2AccelByte::DestroySession(FName SessionName, const FOnDestroySessionCompleteDelegate& CompletionDelegate , bool bUserKicked)
 {
 	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("SessionName: %s"), *SessionName.ToString());
 
@@ -3211,7 +3242,7 @@ bool FOnlineSessionV2AccelByte::DestroySession(FName SessionName, const FOnDestr
 		const FOnLeaveSessionComplete OnLeaveSessionCompleteDelegate = FOnLeaveSessionComplete::CreateLambda([CompletionDelegate, SessionName](bool bWasSuccessful, FString SessionId) {
 			CompletionDelegate.ExecuteIfBound(SessionName, bWasSuccessful);
 		});
-		LeaveSession(SessionOwnerId.Get(), SessionType, Session->GetSessionIdStr(), OnLeaveSessionCompleteDelegate);
+		LeaveSession(SessionOwnerId.Get(), SessionType, Session->GetSessionIdStr(), OnLeaveSessionCompleteDelegate, bUserKicked);
 		
 		AB_OSS_INTERFACE_TRACE_END(TEXT("Sending request for player '%s' to leave session!"), *SessionOwnerId->ToDebugString());
 	}
@@ -3515,6 +3546,24 @@ bool FOnlineSessionV2AccelByte::JoinSession(const FUniqueNetId& LocalUserId, FNa
 	NewSession->SessionState = EOnlineSessionState::Creating;
 	NewSession->LocalOwnerId = LocalUserId.AsShared();
 
+	// Check if the local player attempting to join the session is already marked as joined on the backend. This will
+	// skip the subsequent join session call in the async task if true.
+	bool bIsLocalUserJoined { false };
+	if (NewSession->SessionInfo.IsValid())
+	{
+		TSharedPtr<FOnlineSessionInfoAccelByteV2> SessionInfo = StaticCastSharedPtr<FOnlineSessionInfoAccelByteV2>(NewSession->SessionInfo);
+		if (SessionInfo.IsValid())
+		{
+			FAccelByteModelsV2SessionUser* FoundMember = nullptr;
+			const bool bHasLocalUser = SessionInfo->FindMember(LocalUserId, FoundMember);
+			if (bHasLocalUser)
+			{
+				bIsLocalUserJoined = FoundMember->StatusV2 == EAccelByteV2SessionMemberStatus::JOINED
+					|| FoundMember->StatusV2 == EAccelByteV2SessionMemberStatus::CONNECTED;
+			}
+		}
+	}
+
 	// Check whether or not we are just restoring this session. Will impact the call made to the backend on join.
 	bool bIsRestoreSession = false;
 	for (const FOnlineRestoredSessionAccelByte& Session : RestoredSessions)
@@ -3536,7 +3585,8 @@ bool FOnlineSessionV2AccelByte::JoinSession(const FUniqueNetId& LocalUserId, FNa
 	{
 		AccelByteSubsystem->CreateAndDispatchAsyncTaskSerial<FOnlineAsyncTaskAccelByteJoinV2GameSession>(AccelByteSubsystem
 			, LocalUserId
-			, SessionName);
+			, SessionName
+			, bIsLocalUserJoined);
 		AB_OSS_INTERFACE_TRACE_END(TEXT("Spawning async task to join game session on backend!"));
 		return true;
 	}
@@ -3544,7 +3594,8 @@ bool FOnlineSessionV2AccelByte::JoinSession(const FUniqueNetId& LocalUserId, FNa
 	{
 		AccelByteSubsystem->CreateAndDispatchAsyncTaskSerial<FOnlineAsyncTaskAccelByteJoinV2Party>(AccelByteSubsystem
 			, LocalUserId
-			, SessionName);
+			, SessionName
+			, bIsLocalUserJoined);
 		AB_OSS_INTERFACE_TRACE_END(TEXT("Spawning async task to join party session on backend!"));
 		return true;
 	}
@@ -5073,7 +5124,17 @@ bool FOnlineSessionV2AccelByte::KickPlayer(const FUniqueNetId& LocalUserId, cons
 	EAccelByteV2SessionType SessionType = GetSessionTypeFromSettings(Session->SessionSettings);
 	if (SessionType == EAccelByteV2SessionType::GameSession)
 	{
-		// #TODO Revisit - not sure if game sessions will have kick functionality, but for player owned sessions they *probably* should
+		if (IsRunningDedicatedServer())
+		{
+			AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteServerKickV2GameSession>(AccelByteSubsystem, LocalUserId, SessionName, PlayerIdToKick, Delegate);
+		}
+		else
+		{
+			AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteKickV2GameSession>(AccelByteSubsystem, LocalUserId, SessionName, PlayerIdToKick, Delegate);
+		}
+
+		AB_OSS_INTERFACE_TRACE_END(TEXT("Sent off request to kick player from game session!"));
+		return true;
 	}
 	else if (SessionType == EAccelByteV2SessionType::PartySession)
 	{
@@ -5347,6 +5408,50 @@ bool FOnlineSessionV2AccelByte::SetSessionMaxPlayerCount(FOnlineSession* Session
 	return true;
 }
 
+void FOnlineSessionV2AccelByte::QueryGameSessionHistory(int32 LocalUserNum, EAccelByteGeneralSortBy const& SortBy, FPagedQuery const& Page)
+{
+	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("LocalUserNum: %d"), LocalUserNum);
+
+	if (IsRunningDedicatedServer())
+	{
+		AB_OSS_INTERFACE_TRACE_END(TEXT("Failed to query game session history from dedicated server or admin endpoint since it is not supported yet"));
+
+		AccelByteSubsystem->ExecuteNextTick([SessionInterface = SharedThis(this)]() {
+			SessionInterface->TriggerOnQueryGameSessionHistoryCompleteDelegates({}, ONLINE_ERROR(EOnlineErrorResult::InvalidParams));
+			});
+
+		return;
+	}
+
+	IOnlineIdentityPtr IdentityInterface = AccelByteSubsystem->GetIdentityInterface();
+	if (!ensure(IdentityInterface.IsValid()))
+	{
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to query game session history as AccelByte identity interface is invalid!"));
+
+		AccelByteSubsystem->ExecuteNextTick([SessionInterface = SharedThis(this)]() {
+			SessionInterface->TriggerOnQueryGameSessionHistoryCompleteDelegates({}, ONLINE_ERROR(EOnlineErrorResult::InvalidParams));
+			});
+
+		return;
+	}
+
+	FUniqueNetIdPtr PlayerId = IdentityInterface->GetUniquePlayerId(LocalUserNum);
+	if (!ensure(PlayerId.IsValid()))
+	{
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to query game session history as we could not get a unique ID from player index %d!"), LocalUserNum);
+
+		AccelByteSubsystem->ExecuteNextTick([SessionInterface = SharedThis(this)]() {
+			SessionInterface->TriggerOnQueryGameSessionHistoryCompleteDelegates({}, ONLINE_ERROR(EOnlineErrorResult::InvalidParams));
+			});
+
+		return;
+	}
+
+	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteQueryGameSessionHistories>(AccelByteSubsystem, LocalUserNum, SortBy, Page);
+
+	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+}
+
 bool FOnlineSessionV2AccelByte::RefreshSession(const FName& SessionName, const FOnRefreshSessionComplete& Delegate)
 {
 	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("SessionName: %s"), *SessionName.ToString());
@@ -5384,6 +5489,29 @@ bool FOnlineSessionV2AccelByte::RefreshSession(const FName& SessionName, const F
 		AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteRefreshV2PartySession>(AccelByteSubsystem, SessionName, Delegate);
 		AB_OSS_INTERFACE_TRACE_END(TEXT("Sent off request to refresh local party session with backend data!"));
 	}
+
+	return true;
+}
+
+bool FOnlineSessionV2AccelByte::RefreshActiveSessions(const FOnRefreshActiveSessionsComplete& Delegate)
+{
+	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT(""));
+
+	if (Sessions.Num() < 1)
+	{
+		AccelByteSubsystem->ExecuteNextTick([SessionInterface = SharedThis(this), Delegate]() {
+			Delegate.ExecuteIfBound(false, {});
+		});
+		
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Cannot refresh active session as the session is empty!"))
+		return false;
+	}
+
+	TArray<FName> SessionNames;
+	Sessions.GetKeys(SessionNames);
+
+	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteRefreshActiveSessions>(AccelByteSubsystem, SessionNames, Delegate);
+	AB_OSS_INTERFACE_TRACE_END(TEXT("Sent off request to refresh active sessions with backend data!"));
 
 	return true;
 }
@@ -5793,7 +5921,7 @@ void FOnlineSessionV2AccelByte::OnKickedFromGameSessionNotification(FAccelByteMo
 	// If the game session we're kicked from matches the local session found, destroy the session, which will also
 	// trigger leave if needed
 	TriggerOnKickedFromSessionDelegates(Session->SessionName);
-	DestroySession(Session->SessionName);
+	DestroySession(Session->SessionName, FOnDestroySessionCompleteDelegate(), true);
 
 	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
 }
@@ -5991,7 +6119,7 @@ void FOnlineSessionV2AccelByte::OnKickedFromPartySessionNotification(FAccelByteM
 	// If the party session we're kicked from matches the local session found, destroy the session, which will also
 	// trigger leave if needed
 	TriggerOnKickedFromSessionDelegates(Session->SessionName);
-	DestroySession(Session->SessionName);
+	DestroySession(Session->SessionName, FOnDestroySessionCompleteDelegate(), true);
 
 	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = AccelByteSubsystem->GetPredefinedEventInterface();
 	if (PredefinedEventInterface.IsValid())
@@ -6247,9 +6375,9 @@ void FOnlineSessionV2AccelByte::UpdateSessionMembers(FNamedOnlineSession* Sessio
 
 		// If this user's status hasn't changed, then we want to ensure that we have this player in the RegisteredPlayers
 		// array. If they are already in the array, then skip. Otherwise, register them.
-		if (PreviousMember != nullptr && PreviousMember->Status == NewMember.Status)
+		if (PreviousMember != nullptr && PreviousMember->StatusV2 == NewMember.StatusV2)
 		{
-			const bool bIsJoined = (PreviousMember->Status == EAccelByteV2SessionMemberStatus::JOINED || PreviousMember->Status == EAccelByteV2SessionMemberStatus::CONNECTED);
+			const bool bIsJoined = (PreviousMember->StatusV2 == EAccelByteV2SessionMemberStatus::JOINED || PreviousMember->StatusV2 == EAccelByteV2SessionMemberStatus::CONNECTED);
 			const bool bNeedsRegistration = bIsJoined && !Session->RegisteredPlayers.ContainsByPredicate([PreviousMember](const FUniqueNetIdRef& PlayerId) {
 				FUniqueNetIdAccelByteUserRef AccelBytePlayerId = FUniqueNetIdAccelByteUser::CastChecked(PlayerId);
 				return AccelBytePlayerId->GetAccelByteId() == PreviousMember->ID;
@@ -6263,8 +6391,8 @@ void FOnlineSessionV2AccelByte::UpdateSessionMembers(FNamedOnlineSession* Sessio
 			continue;
 		}
 
-		const bool bIsJoinStatus = NewMember.Status == EAccelByteV2SessionMemberStatus::JOINED || NewMember.Status == EAccelByteV2SessionMemberStatus::CONNECTED;
-		const bool bIsLeaveStatus = NewMember.Status == EAccelByteV2SessionMemberStatus::LEFT || NewMember.Status == EAccelByteV2SessionMemberStatus::KICKED || NewMember.Status == EAccelByteV2SessionMemberStatus::DROPPED;
+		const bool bIsJoinStatus = NewMember.StatusV2 == EAccelByteV2SessionMemberStatus::JOINED || NewMember.StatusV2 == EAccelByteV2SessionMemberStatus::CONNECTED;
+		const bool bIsLeaveStatus = NewMember.StatusV2 == EAccelByteV2SessionMemberStatus::LEFT || NewMember.StatusV2 == EAccelByteV2SessionMemberStatus::KICKED || NewMember.StatusV2 == EAccelByteV2SessionMemberStatus::DROPPED;
 
 		if (bIsJoinStatus)
 		{
@@ -6591,7 +6719,24 @@ void FOnlineSessionV2AccelByte::OnFindMatchmakingGameSessionByIdComplete(int32 L
 	// After triggering this delegate, we will want to reset the current matchmaking search handle so that we're able to re-enter matchmaking at a later time
 	CurrentMatchmakingSearchHandle.Reset();
 
-	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+	// Attempt to handle auto join session. If result is true, then we have successfully joined this game session through auto join.
+	TSharedPtr<FOnlineSessionInfoAccelByteV2> SessionInfo = StaticCastSharedPtr<FOnlineSessionInfoAccelByteV2>(Result.Session.SessionInfo);
+	TSharedPtr<FAccelByteModelsV2GameSession> GameSessionInfo = SessionInfo->GetBackendSessionDataAsGameSession();
+	if (!GameSessionInfo.IsValid())
+	{
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Unable to get game session information to attempt auto join processing!"));
+		return;
+	}
+
+	if (HandleAutoJoinGameSession(GameSessionInfo.ToSharedRef().Get(), LocalUserNum))
+	{
+		AB_OSS_INTERFACE_TRACE_END(TEXT("Auto-joined matchmaking session successfully"));
+	}
+	else
+	{
+		// Not an error to not auto join, so logging a blank success trace
+		AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+	}
 }
 
 void FOnlineSessionV2AccelByte::OnServerReceivedSessionComplete_Internal(FName SessionName)
@@ -7287,8 +7432,6 @@ void FOnlineSessionV2AccelByte::OnAMSDrain()
 	}
 
 	TriggerOnAMSDrainReceivedDelegates();
-	DisconnectFromAMS();
-	DisconnectFromDSHub();
 
 	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
 }
@@ -7303,6 +7446,7 @@ bool FOnlineSessionV2AccelByte::HandleAutoJoinGameSession(const FAccelByteModels
 	if (!GameSession.Configuration.AutoJoin)
 	{
 		AB_OSS_INTERFACE_TRACE_END(TEXT("Game session ID %s is not auto joinable"), *GameSession.ID);
+		TriggerOnAutoJoinGameSessionCompleteDelegates(LocalUserNum, false, GameSession.ID);
 		return false;
 	}
 
@@ -7311,6 +7455,7 @@ bool FOnlineSessionV2AccelByte::HandleAutoJoinGameSession(const FAccelByteModels
 	if (!IdentityInterface.IsValid())
 	{
 		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to handle posible auto joined game session as our identity interface is invalid!"));
+		TriggerOnAutoJoinGameSessionCompleteDelegates(LocalUserNum, false, GameSession.ID);
 		return false;
 	}
 
@@ -7318,6 +7463,7 @@ bool FOnlineSessionV2AccelByte::HandleAutoJoinGameSession(const FAccelByteModels
 	if (!LocalUserId.IsValid())
 	{
 		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to handle posible auto joined game session as local user is invalid!"));
+		TriggerOnAutoJoinGameSessionCompleteDelegates(LocalUserNum, false, GameSession.ID);
 		return false;
 	}
 
@@ -7330,69 +7476,74 @@ bool FOnlineSessionV2AccelByte::HandleAutoJoinGameSession(const FAccelByteModels
 			return Member.ID == UserID && Member.StatusV2 == EAccelByteV2SessionMemberStatus::JOINED;
 		});
 
-	if (FoundMember != nullptr)
+	if (FoundMember == nullptr)
 	{
-		FOnlineSession AutoJoinedSession;
-		ConstructGameSessionFromBackendSessionModel(GameSession, AutoJoinedSession);
-		
-		FName SessionName = NAME_GameSession;
-		const bool bHasSessionNameInStorage = GameSession.Storage.Leader.JsonObject.IsValid() &&
-			GameSession.Storage.Leader.JsonObject->HasField(STORAGE_SESSION_NAME);
-		if(bHasSessionNameInStorage)
-		{
-			SessionName = FName(GameSession.Storage.Leader.JsonObject->GetStringField(STORAGE_SESSION_NAME));
-		}
-		
-		FNamedOnlineSession* NewSession = AddNamedSession(SessionName, AutoJoinedSession);
-		NewSession->SessionState = EOnlineSessionState::Pending;
-		NewSession->LocalOwnerId = UserUniqueNetId;
-
-		const FNamedOnlineSession* JoinedSession = GetNamedSession(SessionName);
-		if (JoinedSession != nullptr)
-		{
-			const TSharedPtr<FOnlineSessionInfoAccelByteV2> SessionInfo = StaticCastSharedPtr<FOnlineSessionInfoAccelByteV2>(JoinedSession->SessionInfo);
-			if (!SessionInfo.IsValid())
-			{
-				AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to handle auto joined game session as failed to cast FOnlineSessionInfo to FOnlineSessionInfoAccelByteV2"));
-				return false;
-			}
-
-			TriggerOnJoinSessionCompleteDelegates(SessionName, EOnJoinSessionCompleteResult::Success);
-
-			if (bHasDsError)
-			{
-				TriggerOnSessionServerErrorDelegates(SessionName, DsErrorString);
-				UE_LOG_AB(Warning, TEXT("Auto joined session had DS error occur! Error message: %s"), *DsErrorString);
-			}
-
-			// session is auto joined, we won't be in invited state
-			StopSessionInviteCheckPoll(UserUniqueNetId, GameSession.ID);
-			
-			if(SessionInfo->HasConnectionInfo())
-			{
-				TriggerOnSessionServerUpdateDelegates(SessionName);
-			}
-			else
-			{
-				// if session doesn't have session ID yet AND this is a game session that has a DS,
-				// then we start our server check poll timer
-				if(GameSession.Configuration.Type == EAccelByteV2SessionConfigurationServerType::DS)
-				{
-					UE_LOG(LogTemp, Display, TEXT("Trigger session server check poll from handle auto join game session"));
-					StartSessionServerCheckPoll(UserUniqueNetId, SessionName);
-				}
-			}
-
-			AB_OSS_INTERFACE_TRACE_END(TEXT("Successfully synced auto join game session from backend"));
-			return true;
-		}
-
-		AB_OSS_INTERFACE_TRACE_END(TEXT("Failed to handle auto joined game session as internal game session not synced properly!"));
+		AB_OSS_INTERFACE_TRACE_END(TEXT("Not marked as joined to the session on the backend, ignoring auto join for now."), *GameSession.ID);
+		TriggerOnAutoJoinGameSessionCompleteDelegates(LocalUserNum, false, GameSession.ID);
 		return false;
 	}
 
-	AB_OSS_INTERFACE_TRACE_END(TEXT("The current user num %d (UserID: %s)  is not a member of the game session!"), LocalUserNum, *UserID);
-	return false;
+	// Check if we have already stored a local session that corresponds with this data
+	FNamedOnlineSession* FoundSession = GetNamedSessionById(GameSession.ID);
+	if (FoundSession != nullptr)
+	{
+		AB_OSS_INTERFACE_TRACE_END(TEXT("Ignoring auto join for session as we already are joined locally. SessionID: %s"), *GameSession.ID);
+		TriggerOnAutoJoinGameSessionCompleteDelegates(LocalUserNum, false, GameSession.ID);
+		return false;
+	}
+
+	FOnlineSession AutoJoinedSession;
+	ConstructGameSessionFromBackendSessionModel(GameSession, AutoJoinedSession);
+		
+	FName SessionName = NAME_GameSession;
+	const bool bHasSessionNameInStorage = GameSession.Storage.Leader.JsonObject.IsValid() &&
+		GameSession.Storage.Leader.JsonObject->HasField(STORAGE_SESSION_NAME);
+	if (bHasSessionNameInStorage)
+	{
+		SessionName = FName(GameSession.Storage.Leader.JsonObject->GetStringField(STORAGE_SESSION_NAME));
+	}
+		
+	FNamedOnlineSession* NewSession = AddNamedSession(SessionName, AutoJoinedSession);
+	NewSession->SessionState = EOnlineSessionState::Pending;
+	NewSession->LocalOwnerId = UserUniqueNetId;
+
+	const TSharedPtr<FOnlineSessionInfoAccelByteV2> SessionInfo = StaticCastSharedPtr<FOnlineSessionInfoAccelByteV2>(NewSession->SessionInfo);
+	if (!SessionInfo.IsValid())
+	{
+		// Remove pending session as this auto join attempt was not valid
+		RemoveNamedSession(SessionName);
+
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to handle auto joined game session as failed to cast FOnlineSessionInfo to FOnlineSessionInfoAccelByteV2"));
+		TriggerOnAutoJoinGameSessionCompleteDelegates(LocalUserNum, false, GameSession.ID);
+		return false;
+	}
+
+	TriggerOnJoinSessionCompleteDelegates(SessionName, EOnJoinSessionCompleteResult::Success);
+
+	if (bHasDsError)
+	{
+		TriggerOnSessionServerErrorDelegates(SessionName, DsErrorString);
+		UE_LOG_AB(Warning, TEXT("Auto joined session had DS error occur! Error message: %s"), *DsErrorString);
+	}
+
+	// session is auto joined, we won't be in invited state
+	StopSessionInviteCheckPoll(UserUniqueNetId, GameSession.ID);
+	
+	if(SessionInfo->HasConnectionInfo())
+	{
+		TriggerOnSessionServerUpdateDelegates(SessionName);
+	}
+	// if session doesn't have session ID yet AND this is a game session that has a DS,
+	// then we start our server check poll timer
+	else if (GameSession.Configuration.Type == EAccelByteV2SessionConfigurationServerType::DS)
+	{
+		UE_LOG_AB(Verbose, TEXT("Trigger session server check poll from handle auto join game session"));
+		StartSessionServerCheckPoll(UserUniqueNetId, SessionName);
+	}
+
+	AB_OSS_INTERFACE_TRACE_END(TEXT("Successfully synced auto join game session from backend"));
+	TriggerOnAutoJoinGameSessionCompleteDelegates(LocalUserNum, true, GameSession.ID);
+	return true;
 }
 
 void FOnlineSessionV2AccelByte::OnGameSessionInviteRejectedNotification(FAccelByteModelsV2GameSessionUserRejectedEvent RejectEvent, int32 LocalUserNum)
@@ -7548,6 +7699,102 @@ void FOnlineSessionV2AccelByte::OnPartySessionInviteCanceledNotification(const F
 	}
 
 	AB_OSS_INTERFACE_TRACE_END(TEXT("Party invite not found in cache"))
+}
+
+void FOnlineSessionV2AccelByte::OnGameSessionJoinedNotification(FAccelByteModelsV2GameSessionUserJoinedEvent JoinedEvent, int32 LocalUserNum)
+{
+	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("SessionId: %s"), *JoinedEvent.SessionID);
+ 
+	// Check if we have already joined this session locally
+	FNamedOnlineSession* ExistingSession = GetNamedSessionById(JoinedEvent.SessionID);
+	if (ExistingSession != nullptr)
+	{
+		AB_OSS_INTERFACE_TRACE_END(TEXT("Already joined to session locally, ignoring. SessionId: %s"), *JoinedEvent.SessionID);
+		return;
+	}
+ 
+	// Retrieve player unique ID from identity interface
+	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystem->GetIdentityInterface());
+	if (!ensure(IdentityInterface.IsValid()))
+	{
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to handle session joined notification as our identity interface is invalid!"));
+		return;
+	}
+ 
+	const FUniqueNetIdPtr PlayerId = IdentityInterface->GetUniquePlayerId(LocalUserNum);
+	if (!ensure(PlayerId.IsValid()))
+	{
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to handle session joined notification as a unique ID could not be found for player at index %d!"), LocalUserNum);
+		return;
+	}
+ 
+	// Create session unique ID from notification string ID
+	const FUniqueNetIdPtr SessionUniqueId = CreateSessionIdFromString(JoinedEvent.SessionID);
+	if (!ensure(SessionUniqueId.IsValid()))
+	{
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to handle session joined notification as a unique ID could not be created from the session's string ID! SessionId: %s"), *JoinedEvent.SessionID);
+		return;
+	}
+ 
+	// We have not joined this session, so attempt to query data for it
+	//
+	// #TODO Maxwell: Unlike other session notifications, the join notification does not return the full session data
+	// in the notification payload. This means that to handle auto join, we will always need to query this data first
+	// check if auto join is enabled, and then perform the local join if it is. If a session join somehow occurred
+	// _outside_ of normal OSS flow without auto join enabled, this would unfortunately slip through our local state.
+	const FOnSingleSessionResultCompleteDelegate OnFindJoinedGameSessionByIdCompleteDelegate =
+		FOnSingleSessionResultCompleteDelegate::CreateThreadSafeSP(SharedThis(this)
+			, &FOnlineSessionV2AccelByte::OnFindJoinedGameSessionByIdComplete
+			, JoinedEvent.SessionID);
+	
+	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteFindV2GameSessionById>(AccelByteSubsystem
+		, PlayerId.ToSharedRef().Get()
+		, SessionUniqueId.ToSharedRef().Get()
+		, OnFindJoinedGameSessionByIdCompleteDelegate);
+ 
+	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+}
+ 
+void FOnlineSessionV2AccelByte::OnFindJoinedGameSessionByIdComplete(int32 LocalUserNum, bool bWasSuccessful, const FOnlineSessionSearchResult& FoundSession, FString SessionId)
+{
+	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("LocalUserNum: %d; bWasSuccessful: %s"), LocalUserNum, LOG_BOOL_FORMAT(bWasSuccessful));
+
+	if (!bWasSuccessful)
+	{
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to find game session information for session joined notification"));
+		TriggerOnAutoJoinGameSessionCompleteDelegates(LocalUserNum, false, SessionId);
+		return;
+	}
+
+	// Check if we still have not joined this session, such as if another notification had come in and triggered auto join
+	FNamedOnlineSession* ExistingSession = GetNamedSessionById(FoundSession.GetSessionIdStr());
+	if (ExistingSession != nullptr)
+	{
+		AB_OSS_INTERFACE_TRACE_END(TEXT("Found auto join enabled session, but we have already joined it locally. Ignoring."));
+		// Not triggering delegate here as it should have already been done by the previous auto join call
+		return;
+	}
+
+	// We have not already joined this session, grab the session data structure and pass to the auto join processing
+	TSharedPtr<FOnlineSessionInfoAccelByteV2> SessionInfo = StaticCastSharedPtr<FOnlineSessionInfoAccelByteV2>(FoundSession.Session.SessionInfo);
+	if (!SessionInfo.IsValid())
+	{
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("SessionInfo instance was invalid"));
+		TriggerOnAutoJoinGameSessionCompleteDelegates(LocalUserNum, false, SessionId);
+		return;
+	}
+
+	TSharedPtr<FAccelByteModelsV2GameSession> GameSessionData = SessionInfo->GetBackendSessionDataAsGameSession();
+	if (!GameSessionData.IsValid())
+	{
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to get game session data from found session"));
+		TriggerOnAutoJoinGameSessionCompleteDelegates(LocalUserNum, false, SessionId);
+		return;
+	}
+
+	HandleAutoJoinGameSession(GameSessionData.ToSharedRef().Get(), LocalUserNum);
+
+	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
 }
 
 #undef ONLINE_ERROR_NAMESPACE

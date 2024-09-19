@@ -46,11 +46,13 @@ void FOnlineAsyncTaskAccelByteSetUserPresence::Initialize()
 
 void FOnlineAsyncTaskAccelByteSetUserPresence::Finalize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
 	if (bWasSuccessful)
 	{
-		FOnlinePresenceAccelBytePtr PresenceInterface = StaticCastSharedPtr<FOnlinePresenceAccelByte>(Subsystem->GetPresenceInterface());
+		FOnlinePresenceAccelBytePtr PresenceInterface = StaticCastSharedPtr<FOnlinePresenceAccelByte>(SubsystemPin->GetPresenceInterface());
 		auto LocalCachedPresence = PresenceInterface->FindOrCreatePresence(UserId.ToSharedRef());
 		FOnlineUserPresenceStatusAccelByte OnlinePresenceStatus;
 
@@ -61,7 +63,7 @@ void FOnlineAsyncTaskAccelByteSetUserPresence::Finalize()
 		LocalCachedPresence->bIsOnline = LocalCachedPresenceStatus->State == EOnlinePresenceState::Online ? true : false;
 		LocalCachedPresence->bIsPlayingThisGame = LocalCachedPresenceStatus->State == EOnlinePresenceState::Online ? true : false;
 
-		const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = Subsystem->GetPredefinedEventInterface();
+		const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = SubsystemPin->GetPredefinedEventInterface();
 		if (PredefinedEventInterface.IsValid())
 		{
 			FAccelByteModelsUserPresenceStatusUpdatedPayload UserPresenceStatusUpdatedPayload{};
@@ -76,9 +78,11 @@ void FOnlineAsyncTaskAccelByteSetUserPresence::Finalize()
 
 void FOnlineAsyncTaskAccelByteSetUserPresence::TriggerDelegates() 
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
-	const IOnlinePresencePtr PresenceInterface = Subsystem->GetPresenceInterface();
+	const IOnlinePresencePtr PresenceInterface = SubsystemPin->GetPresenceInterface();
 	if (PresenceInterface.IsValid()) 
 	{
 		Delegate.ExecuteIfBound(*UserId.Get(), bWasSuccessful);

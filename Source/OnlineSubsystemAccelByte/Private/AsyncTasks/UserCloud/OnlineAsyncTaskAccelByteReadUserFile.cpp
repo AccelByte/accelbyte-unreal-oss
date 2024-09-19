@@ -18,12 +18,14 @@ FOnlineAsyncTaskAccelByteReadUserFile::FOnlineAsyncTaskAccelByteReadUserFile(FOn
 
 void FOnlineAsyncTaskAccelByteReadUserFile::Initialize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	Super::Initialize();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("UserId: %s; FileName: %s"), *UserId->ToDebugString(), *FileName);
 
 	// Check the UserCloud cache for a SlotId that corresponds to the file name
-	const TSharedPtr<FOnlineUserCloudAccelByte, ESPMode::ThreadSafe> UserCloudInterface = StaticCastSharedPtr<FOnlineUserCloudAccelByte>(Subsystem->GetUserCloudInterface());
+	const TSharedPtr<FOnlineUserCloudAccelByte, ESPMode::ThreadSafe> UserCloudInterface = StaticCastSharedPtr<FOnlineUserCloudAccelByte>(SubsystemPin->GetUserCloudInterface());
 	const FString SlotId = UserCloudInterface->GetSlotIdFromCache(UserId.ToSharedRef(), FileName);
 
 	// If we do not have a corresponding cached slot ID, query all of the user's slots to see if a match is found
@@ -45,11 +47,13 @@ void FOnlineAsyncTaskAccelByteReadUserFile::Initialize()
 
 void FOnlineAsyncTaskAccelByteReadUserFile::Finalize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
 	if (bWasSuccessful)
 	{
-		const TSharedPtr<FOnlineUserCloudAccelByte, ESPMode::ThreadSafe> UserCloudInterface = StaticCastSharedPtr<FOnlineUserCloudAccelByte>(Subsystem->GetUserCloudInterface());
+		const TSharedPtr<FOnlineUserCloudAccelByte, ESPMode::ThreadSafe> UserCloudInterface = StaticCastSharedPtr<FOnlineUserCloudAccelByte>(SubsystemPin->GetUserCloudInterface());
 		if (UserCloudInterface.IsValid())
 		{
 			UserCloudInterface->AddSlotIdToCache(UserId.ToSharedRef(), FileName, ResolvedSlotId);
@@ -64,9 +68,11 @@ void FOnlineAsyncTaskAccelByteReadUserFile::Finalize()
 
 void FOnlineAsyncTaskAccelByteReadUserFile::TriggerDelegates()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
-	const IOnlineUserCloudPtr UserCloudInterface = Subsystem->GetUserCloudInterface();
+	const IOnlineUserCloudPtr UserCloudInterface = SubsystemPin->GetUserCloudInterface();
 	if (UserCloudInterface.IsValid())
 	{
 		UserCloudInterface->TriggerOnReadUserFileCompleteDelegates(bWasSuccessful, UserId.ToSharedRef().Get(), FileName);

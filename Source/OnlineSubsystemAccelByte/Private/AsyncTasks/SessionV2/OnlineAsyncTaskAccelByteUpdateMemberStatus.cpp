@@ -19,12 +19,14 @@ FOnlineAsyncTaskAccelByteUpdateMemberStatus::FOnlineAsyncTaskAccelByteUpdateMemb
 
 void FOnlineAsyncTaskAccelByteUpdateMemberStatus::Initialize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	Super::Initialize();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("SessionName: %s; PlayerId: %s; Status: %s"), *SessionName.ToString(), *PlayerId->ToDebugString(), *StaticEnum<EAccelByteV2SessionMemberStatus>()->GetNameStringByValue(static_cast<int64>(Status)));
 
 	FOnlineSessionV2AccelBytePtr SessionInterface = nullptr;
-	AB_ASYNC_TASK_ENSURE(FOnlineSessionV2AccelByte::GetFromSubsystem(Subsystem, SessionInterface), "Could not get session interface instance from subsystem!");
+	AB_ASYNC_TASK_ENSURE(FOnlineSessionV2AccelByte::GetFromSubsystem(SubsystemPin.Get(), SessionInterface), "Could not get session interface instance from subsystem!");
 
 	FNamedOnlineSession* Session = SessionInterface->GetNamedSession(SessionName);
 	AB_ASYNC_TASK_ENSURE(Session != nullptr, "Failed to find session locally with name of '%s'!", *SessionName.ToString());
@@ -42,6 +44,8 @@ void FOnlineAsyncTaskAccelByteUpdateMemberStatus::Initialize()
 
 void FOnlineAsyncTaskAccelByteUpdateMemberStatus::Finalize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	Super::Finalize();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
@@ -50,7 +54,7 @@ void FOnlineAsyncTaskAccelByteUpdateMemberStatus::Finalize()
 	{
 		// Grab our session interface, find the local session instance
 		FOnlineSessionV2AccelBytePtr SessionInterface = nullptr;
-		if (!ensureAlways(FOnlineSessionV2AccelByte::GetFromSubsystem(Subsystem, SessionInterface)))
+		if (!ensureAlways(FOnlineSessionV2AccelByte::GetFromSubsystem(SubsystemPin.Get(), SessionInterface)))
 		{
 			AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to get session interface instance from online subsystem!"));
 			return;
@@ -76,6 +80,7 @@ void FOnlineAsyncTaskAccelByteUpdateMemberStatus::Finalize()
 
 		// Finally, update their status to reflect the backend status set
 		FoundMember->Status = Status;
+		FoundMember->StatusV2 = Status;
 
 		// #NOTE Currently since servers don't get updates from DSHub relating to session updates, we have to manually
 		// increment the version after we update a member's status. This can be replaced once server's get updates from

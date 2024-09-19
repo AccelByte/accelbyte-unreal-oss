@@ -54,6 +54,8 @@ FOnlineAsyncTaskAccelByteGetCurrentUserEntitlementHistory::FOnlineAsyncTaskAccel
 
 void FOnlineAsyncTaskAccelByteGetCurrentUserEntitlementHistory::Initialize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	FOnlineAsyncTaskAccelByte::Initialize();
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 
@@ -67,7 +69,7 @@ void FOnlineAsyncTaskAccelByteGetCurrentUserEntitlementHistory::Initialize()
 		return;
 	}
 
-	const TSharedPtr<FOnlineIdentityAccelByte, ESPMode::ThreadSafe> IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(Subsystem->GetIdentityInterface());
+	const TSharedPtr<FOnlineIdentityAccelByte, ESPMode::ThreadSafe> IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(SubsystemPin->GetIdentityInterface());
 
 	if (!UserId.IsValid())
 	{
@@ -119,7 +121,7 @@ void FOnlineAsyncTaskAccelByteGetCurrentUserEntitlementHistory::Initialize()
 			return;
 		}
 
-		const FOnlineEntitlementsAccelBytePtr EntitlementInterface = StaticCastSharedPtr<FOnlineEntitlementsAccelByte>(Subsystem->GetEntitlementsInterface());
+		const FOnlineEntitlementsAccelBytePtr EntitlementInterface = StaticCastSharedPtr<FOnlineEntitlementsAccelByte>(SubsystemPin->GetEntitlementsInterface());
 
 		if (!EntitlementInterface.IsValid())
 		{
@@ -138,11 +140,13 @@ void FOnlineAsyncTaskAccelByteGetCurrentUserEntitlementHistory::Initialize()
 
 void FOnlineAsyncTaskAccelByteGetCurrentUserEntitlementHistory::TriggerDelegates()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	Super::TriggerDelegates();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 
-	const FOnlineEntitlementsAccelBytePtr EntitlementInterface = StaticCastSharedPtr<FOnlineEntitlementsAccelByte>(Subsystem->GetEntitlementsInterface());
+	const FOnlineEntitlementsAccelBytePtr EntitlementInterface = StaticCastSharedPtr<FOnlineEntitlementsAccelByte>(SubsystemPin->GetEntitlementsInterface());
 
 	if (bWasSuccessful)
 	{

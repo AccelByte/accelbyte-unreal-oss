@@ -38,9 +38,11 @@ void FOnlineAsyncTaskAccelBytePromoteV2GameSessionLeader::Initialize()
 
 void FOnlineAsyncTaskAccelBytePromoteV2GameSessionLeader::Finalize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
-	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = Subsystem->GetPredefinedEventInterface();
+	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = SubsystemPin->GetPredefinedEventInterface();
 	if (bWasSuccessful && PredefinedEventInterface.IsValid())
 	{
 		FAccelByteModelsMPV2GameSessionLeaderPromotedPayload GameSessionLeaderPromotedPayload{};
@@ -54,9 +56,11 @@ void FOnlineAsyncTaskAccelBytePromoteV2GameSessionLeader::Finalize()
 
 void FOnlineAsyncTaskAccelBytePromoteV2GameSessionLeader::TriggerDelegates()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
-	const TSharedPtr<FOnlineSessionV2AccelByte, ESPMode::ThreadSafe> SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(Subsystem->GetSessionInterface());
+	const TSharedPtr<FOnlineSessionV2AccelByte, ESPMode::ThreadSafe> SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(SubsystemPin->GetSessionInterface());
 	if (SessionInterface.IsValid())
 	{
 		SessionInterface->TriggerOnPromoteGameSessionLeaderCompleteDelegates(TargetMemberId.Get(), OnlineError);
@@ -67,9 +71,11 @@ void FOnlineAsyncTaskAccelBytePromoteV2GameSessionLeader::TriggerDelegates()
 
 bool FOnlineAsyncTaskAccelBytePromoteV2GameSessionLeader::PromoteGameSessionLeader()
 {
+	TRY_PIN_SUBSYSTEM(false)
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("LocalUserNum: %d"), LocalUserNum);
 
-	const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(Subsystem->GetSessionInterface());
+	const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(SubsystemPin->GetSessionInterface());
 
 	if (!SessionInterface.IsValid())
 	{

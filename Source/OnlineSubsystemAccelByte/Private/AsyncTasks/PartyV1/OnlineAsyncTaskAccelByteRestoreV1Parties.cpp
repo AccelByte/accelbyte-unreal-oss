@@ -22,12 +22,14 @@ FOnlineAsyncTaskAccelByteRestoreV1Parties::FOnlineAsyncTaskAccelByteRestoreV1Par
 
 void FOnlineAsyncTaskAccelByteRestoreV1Parties::Initialize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	Super::Initialize();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("UserId: %s"), *UserId->ToDebugString());
 
 	// Need to check whether we are already in a party on the interface side before moving on to trying to restore state
-	const FOnlinePartySystemAccelBytePtr PartyInterface = StaticCastSharedPtr<FOnlinePartySystemAccelByte>(Subsystem->GetPartyInterface());
+	const FOnlinePartySystemAccelBytePtr PartyInterface = StaticCastSharedPtr<FOnlinePartySystemAccelByte>(SubsystemPin->GetPartyInterface());
 	if (!PartyInterface.IsValid())
 	{
 		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Could not restore parties as the party interface was invalid!"));
@@ -59,11 +61,13 @@ void FOnlineAsyncTaskAccelByteRestoreV1Parties::Tick()
 
 void FOnlineAsyncTaskAccelByteRestoreV1Parties::Finalize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
 	if (bWasSuccessful && bUserHasPartyToRestore)
 	{
-		const TSharedPtr<FOnlinePartySystemAccelByte, ESPMode::ThreadSafe> PartyInterface = StaticCastSharedPtr<FOnlinePartySystemAccelByte>(Subsystem->GetPartyInterface());
+		const TSharedPtr<FOnlinePartySystemAccelByte, ESPMode::ThreadSafe> PartyInterface = StaticCastSharedPtr<FOnlinePartySystemAccelByte>(SubsystemPin->GetPartyInterface());
 		if (!PartyInterface.IsValid())
 		{
 			AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to restore party as the party interface was invalid!"));
@@ -94,6 +98,8 @@ void FOnlineAsyncTaskAccelByteRestoreV1Parties::Finalize()
 
 void FOnlineAsyncTaskAccelByteRestoreV1Parties::TriggerDelegates()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
 	EOnlineErrorResult Result = ((bWasSuccessful) ? EOnlineErrorResult::Success : EOnlineErrorResult::RequestFailure);
@@ -102,7 +108,7 @@ void FOnlineAsyncTaskAccelByteRestoreV1Parties::TriggerDelegates()
 	// If we've restored a party, then trigger a delegate that we've joined a party
 	if (bUserHasPartyToRestore && PartyId.IsValid())
 	{
-		const TSharedPtr<FOnlinePartySystemAccelByte, ESPMode::ThreadSafe> PartyInterface = StaticCastSharedPtr<FOnlinePartySystemAccelByte>(Subsystem->GetPartyInterface());
+		const TSharedPtr<FOnlinePartySystemAccelByte, ESPMode::ThreadSafe> PartyInterface = StaticCastSharedPtr<FOnlinePartySystemAccelByte>(SubsystemPin->GetPartyInterface());
 		PartyInterface->TriggerOnPartyJoinedDelegates(UserId.ToSharedRef().Get(), PartyId.ToSharedRef().Get());
 	}
 
@@ -158,8 +164,10 @@ void FOnlineAsyncTaskAccelByteRestoreV1Parties::OnGetPartyInfoResponse(const FAc
 
 		Super::ExecuteCriticalSectionAction(FVoidHandler::CreateLambda([&]()
 		{
+			TRY_PIN_SUBSYSTEM()
+
 			FOnQueryPartyInfoComplete OnQueryPartyInfoCompleteDelegate = TDelegateUtils<FOnQueryPartyInfoComplete>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteRestoreV1Parties::OnQueryPartyInfoComplete);
-			Subsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteQueryV1PartyInfo>(Subsystem, UserId.ToSharedRef().Get(), Result.PartyId, Result.Members, OnQueryPartyInfoCompleteDelegate);
+			SubsystemPin->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteQueryV1PartyInfo>(SubsystemPin.Get(), UserId.ToSharedRef().Get(), Result.PartyId, Result.Members, OnQueryPartyInfoCompleteDelegate);
 		}));
 	}
 }

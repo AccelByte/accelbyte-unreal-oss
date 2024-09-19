@@ -22,11 +22,13 @@ FOnlineAsyncTaskAccelByteGetGameRecord::FOnlineAsyncTaskAccelByteGetGameRecord(F
 
 void FOnlineAsyncTaskAccelByteGetGameRecord::Initialize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	Super::Initialize();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Getting game record, LocalUserNum: %d"), LocalUserNum);
 
-	const FOnlineCloudSaveAccelBytePtr CloudSaveInterface = Subsystem->GetCloudSaveInterface();
+	const FOnlineCloudSaveAccelBytePtr CloudSaveInterface = SubsystemPin->GetCloudSaveInterface();
 	if (!CloudSaveInterface.IsValid())
 	{
 		ErrorStr = TEXT("request-failed-get-game-record-error");
@@ -42,7 +44,7 @@ void FOnlineAsyncTaskAccelByteGetGameRecord::Initialize()
 	{
 		if (IsRunningDedicatedServer())
 		{
-			const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(Subsystem->GetIdentityInterface());
+			const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(SubsystemPin->GetIdentityInterface());
 			if (!IdentityInterface.IsValid())
 			{
 				ErrorCode = FString::Printf(TEXT("%d"), ErrorCodes::StatusUnauthorized);
@@ -80,11 +82,13 @@ void FOnlineAsyncTaskAccelByteGetGameRecord::Initialize()
 
 void FOnlineAsyncTaskAccelByteGetGameRecord::Finalize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	Super::Finalize();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Finalize"));
 
-	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = Subsystem->GetPredefinedEventInterface();
+	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = SubsystemPin->GetPredefinedEventInterface();
 	if (bWasSuccessful && PredefinedEventInterface.IsValid())
 	{
 		FAccelByteModelsGameRecordGetRecordByKeyPayload GameRecordGetRecordByKeyPayload{};
@@ -98,9 +102,11 @@ void FOnlineAsyncTaskAccelByteGetGameRecord::Finalize()
 
 void FOnlineAsyncTaskAccelByteGetGameRecord::TriggerDelegates()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
-	const FOnlineCloudSaveAccelBytePtr CloudSaveInterface = Subsystem->GetCloudSaveInterface();
+	const FOnlineCloudSaveAccelBytePtr CloudSaveInterface = SubsystemPin->GetCloudSaveInterface();
 	if (CloudSaveInterface.IsValid())
 	{
 		if (bWasSuccessful)
@@ -117,8 +123,11 @@ void FOnlineAsyncTaskAccelByteGetGameRecord::TriggerDelegates()
 
 void FOnlineAsyncTaskAccelByteGetGameRecord::OnGetGameRecordSuccess(const FAccelByteModelsGameRecord& Result)
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
-	const FOnlineCloudSaveAccelBytePtr CloudSaveInterface = Subsystem->GetCloudSaveInterface();
+
+	const FOnlineCloudSaveAccelBytePtr CloudSaveInterface = SubsystemPin->GetCloudSaveInterface();
 	if (CloudSaveInterface.IsValid())
 	{
 		CloudSaveInterface->AddGameRecordToMap(Key, MakeShared<FAccelByteModelsGameRecord>(Result));

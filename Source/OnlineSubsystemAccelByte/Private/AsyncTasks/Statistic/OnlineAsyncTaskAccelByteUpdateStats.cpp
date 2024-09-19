@@ -90,9 +90,11 @@ void FOnlineAsyncTaskAccelByteUpdateStats::Initialize()
 
 void FOnlineAsyncTaskAccelByteUpdateStats::Finalize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Finalize"));
 	Super::Finalize();
-	const FOnlineStatisticAccelBytePtr StatisticInterface = StaticCastSharedPtr<FOnlineStatisticAccelByte>(Subsystem->GetStatsInterface());
+	const FOnlineStatisticAccelBytePtr StatisticInterface = StaticCastSharedPtr<FOnlineStatisticAccelByte>(SubsystemPin->GetStatsInterface());
 	if (StatisticInterface.IsValid())
 	{
 		for (const auto& UserStatsPair : OnlineUsersStatsPairs)
@@ -101,7 +103,7 @@ void FOnlineAsyncTaskAccelByteUpdateStats::Finalize()
 
 		}
 	}
-	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = Subsystem->GetPredefinedEventInterface();
+	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = SubsystemPin->GetPredefinedEventInterface();
 	if (PredefinedEventInterface.IsValid())
 	{
 		for (const auto& UserStatsPair : OnlineUsersStatsPairs)

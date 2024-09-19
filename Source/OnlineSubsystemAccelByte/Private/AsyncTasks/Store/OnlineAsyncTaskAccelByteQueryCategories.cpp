@@ -31,10 +31,12 @@ void FOnlineAsyncTaskAccelByteQueryCategories::Initialize()
 
 void FOnlineAsyncTaskAccelByteQueryCategories::Finalize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	Super::Finalize();
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 
-	const FOnlineStoreV2AccelBytePtr StoreV2Interface = StaticCastSharedPtr<FOnlineStoreV2AccelByte>(Subsystem->GetStoreV2Interface());
+	const FOnlineStoreV2AccelBytePtr StoreV2Interface = StaticCastSharedPtr<FOnlineStoreV2AccelByte>(SubsystemPin->GetStoreV2Interface());
 	TArray<FOnlineStoreCategory> Categories;
 	CategoryMap.GenerateValueArray(Categories);
 	StoreV2Interface->ReplaceCategories(Categories);

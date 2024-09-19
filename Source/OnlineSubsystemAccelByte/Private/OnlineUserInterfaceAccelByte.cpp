@@ -56,6 +56,17 @@ bool FOnlineUserAccelByte::GetFromSubsystem(const IOnlineSubsystem* Subsystem, F
 	return OutInterfaceInstance.IsValid();
 }
 
+bool FOnlineUserAccelByte::GetFromSubsystem(const FOnlineSubsystemAccelByte* Subsystem, TSharedPtr<FOnlineUserAccelByte, ESPMode::ThreadSafe>& OutInterfaceInstance)
+{
+	if (Subsystem == nullptr)
+	{
+		return false;
+	}
+
+	OutInterfaceInstance = StaticCastSharedPtr<FOnlineUserAccelByte>(Subsystem->GetUserInterface());
+	return OutInterfaceInstance.IsValid();
+}
+
 bool FOnlineUserAccelByte::CreateUserProfile(const FUniqueNetId& UserId)
 {
 	if (!UserId.IsValid())

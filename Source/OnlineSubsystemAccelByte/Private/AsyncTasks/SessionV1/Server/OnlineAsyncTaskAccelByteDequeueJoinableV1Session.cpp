@@ -20,11 +20,13 @@ FOnlineAsyncTaskAccelByteDequeueJoinableV1Session::FOnlineAsyncTaskAccelByteDequ
 
 void FOnlineAsyncTaskAccelByteDequeueJoinableV1Session::Initialize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	Super::Initialize();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("SessionName: %s"), *SessionName.ToString());
 
-	const IOnlineSessionPtr SessionInterface = Subsystem->GetSessionInterface();
+	const IOnlineSessionPtr SessionInterface = SubsystemPin->GetSessionInterface();
 	check(SessionInterface != nullptr);
 
 	FNamedOnlineSession* Session = SessionInterface->GetNamedSession(SessionName);
@@ -54,11 +56,13 @@ void FOnlineAsyncTaskAccelByteDequeueJoinableV1Session::Initialize()
 
 void FOnlineAsyncTaskAccelByteDequeueJoinableV1Session::Finalize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
 	if (bWasSuccessful)
 	{
-		const IOnlineSessionPtr SessionInterface = Subsystem->GetSessionInterface();
+		const IOnlineSessionPtr SessionInterface = SubsystemPin->GetSessionInterface();
 		check(SessionInterface != nullptr);
 
 		FNamedOnlineSession* Session = SessionInterface->GetNamedSession(SessionName);

@@ -23,6 +23,8 @@ FOnlineAsyncTaskAccelByteQueryUserInfo::FOnlineAsyncTaskAccelByteQueryUserInfo
 
 void FOnlineAsyncTaskAccelByteQueryUserInfo::Initialize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	Super::Initialize();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Initiating User Index: %d; Initial UserId Amount: %d"), LocalUserNum, InitialUserIds.Num());
@@ -49,7 +51,7 @@ void FOnlineAsyncTaskAccelByteQueryUserInfo::Initialize()
 	{
 		if (NetId->GetType() != ACCELBYTE_USER_ID_TYPE)
 		{
-			UE_LOG_AB(Warning, TEXT("NetId passed to FOnlineUserAccelByte::QueryUserInfo (%s) was an invalid type (%s). Query the external mapping first to convert to an AccelByte ID. Skipping this ID!"), *(Subsystem->GetInstanceName().ToString()), *(NetId->GetType().ToString()));
+			UE_LOG_AB(Warning, TEXT("NetId passed to FOnlineUserAccelByte::QueryUserInfo (%s) was an invalid type (%s). Query the external mapping first to convert to an AccelByte ID. Skipping this ID!"), *(SubsystemPin->GetInstanceName().ToString()), *(NetId->GetType().ToString()));
 			continue;
 		}
 
@@ -58,7 +60,7 @@ void FOnlineAsyncTaskAccelByteQueryUserInfo::Initialize()
 	}
 
 	// Try and query all of the users and cache them in the user store
-	const FOnlineUserCacheAccelBytePtr UserCache = Subsystem->GetUserCache();
+	const FOnlineUserCacheAccelBytePtr UserCache = SubsystemPin->GetUserCache();
 	if (!UserCache.IsValid())
 	{
 		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Could not query information on users as our user store instance is invalid!"));
@@ -76,6 +78,8 @@ void FOnlineAsyncTaskAccelByteQueryUserInfo::Initialize()
 
 void FOnlineAsyncTaskAccelByteQueryUserInfo::Finalize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 
 	// Iterate through each account that we have received from the backend and add to our user interface
@@ -94,7 +98,7 @@ void FOnlineAsyncTaskAccelByteQueryUserInfo::Finalize()
 		QueriedUserIds.Add(FoundUserId);
 
 		// Add the new user information instance to the user interface's cache so the developer can retrieve it in the delegate handler
-		TSharedPtr<FOnlineUserAccelByte, ESPMode::ThreadSafe> UserInterface = StaticCastSharedPtr<FOnlineUserAccelByte>(Subsystem->GetUserInterface());
+		TSharedPtr<FOnlineUserAccelByte, ESPMode::ThreadSafe> UserInterface = StaticCastSharedPtr<FOnlineUserAccelByte>(SubsystemPin->GetUserInterface());
 		if (UserInterface != nullptr)
 		{
 			UserInterface->AddUserInfo(FoundUserId, User);
@@ -103,7 +107,7 @@ void FOnlineAsyncTaskAccelByteQueryUserInfo::Finalize()
 		// Additionally, get an instance of the identity interface and check if this queried user has an account in it. If so
 		// update their information accordingly.
 		FOnlineIdentityAccelBytePtr IdentityInterface = nullptr;
-		if (!FOnlineIdentityAccelByte::GetFromSubsystem(Subsystem, IdentityInterface))
+		if (!FOnlineIdentityAccelByte::GetFromSubsystem(SubsystemPin.Get(), IdentityInterface))
 		{
 			continue;
 		}

@@ -64,14 +64,16 @@ void FOnlineAsyncTaskAccelByteSendFriendInvite::Initialize()
 
 void FOnlineAsyncTaskAccelByteSendFriendInvite::Finalize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
 	if (bWasSuccessful)
 	{
-		const TSharedPtr<FOnlineFriendsAccelByte, ESPMode::ThreadSafe> FriendInterface = StaticCastSharedPtr<FOnlineFriendsAccelByte>(Subsystem->GetFriendsInterface());
+		const TSharedPtr<FOnlineFriendsAccelByte, ESPMode::ThreadSafe> FriendInterface = StaticCastSharedPtr<FOnlineFriendsAccelByte>(SubsystemPin->GetFriendsInterface());
 		FriendInterface->AddFriendToList(LocalUserNum, InvitedFriend);
 
-		const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = Subsystem->GetPredefinedEventInterface();
+		const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = SubsystemPin->GetPredefinedEventInterface();
 		if (PredefinedEventInterface.IsValid() && FriendId->IsValid())
 		{
 			FAccelByteModelsFriendRequestSentPayload FriendRequestSentPayload{};
@@ -86,12 +88,14 @@ void FOnlineAsyncTaskAccelByteSendFriendInvite::Finalize()
 
 void FOnlineAsyncTaskAccelByteSendFriendInvite::TriggerDelegates()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
 	Delegate.ExecuteIfBound(LocalUserNum, bWasSuccessful, ((bWasSuccessful) ? InvitedFriend->GetUserId().Get() : FriendId.Get()), ListName, ErrorStr);
 	if (bWasSuccessful)
 	{
-		const TSharedPtr<FOnlineFriendsAccelByte, ESPMode::ThreadSafe> FriendInterface = StaticCastSharedPtr<FOnlineFriendsAccelByte>(Subsystem->GetFriendsInterface());
+		const TSharedPtr<FOnlineFriendsAccelByte, ESPMode::ThreadSafe> FriendInterface = StaticCastSharedPtr<FOnlineFriendsAccelByte>(SubsystemPin->GetFriendsInterface());
 		FriendInterface->TriggerOnOutgoingInviteSentDelegates(LocalUserNum);
 	}
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
@@ -99,10 +103,12 @@ void FOnlineAsyncTaskAccelByteSendFriendInvite::TriggerDelegates()
 
 void FOnlineAsyncTaskAccelByteSendFriendInvite::OnGetUserByFriendCodeSuccess(const FAccelByteModelsPublicUserProfileInfo& Result)
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("FriendCode: %s, UserId: %s"), *FriendCode, *Result.UserId);
 
-	const TSharedPtr<FOnlineFriendsAccelByte, ESPMode::ThreadSafe> FriendInterface = StaticCastSharedPtr<FOnlineFriendsAccelByte>(Subsystem->GetFriendsInterface());
-	const TSharedPtr<FOnlineIdentityAccelByte, ESPMode::ThreadSafe> IdentityInt = StaticCastSharedPtr<FOnlineIdentityAccelByte>(Subsystem->GetIdentityInterface());
+	const TSharedPtr<FOnlineFriendsAccelByte, ESPMode::ThreadSafe> FriendInterface = StaticCastSharedPtr<FOnlineFriendsAccelByte>(SubsystemPin->GetFriendsInterface());
+	const TSharedPtr<FOnlineIdentityAccelByte, ESPMode::ThreadSafe> IdentityInt = StaticCastSharedPtr<FOnlineIdentityAccelByte>(SubsystemPin->GetIdentityInterface());
 
 	if (!FriendInterface.IsValid() || !IdentityInt.IsValid())
 	{
@@ -143,7 +149,9 @@ void FOnlineAsyncTaskAccelByteSendFriendInvite::OnGetUserByFriendCodeError(int32
 
 void FOnlineAsyncTaskAccelByteSendFriendInvite::QueryInvitedFriend(const FString& InFriendId)
 {
-	FOnlineUserCacheAccelBytePtr UserStore = Subsystem->GetUserCache();
+	TRY_PIN_SUBSYSTEM()
+
+	FOnlineUserCacheAccelBytePtr UserStore = SubsystemPin->GetUserCache();
 	if (!UserStore.IsValid())
 	{
 		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Could not query invited friend '%s' as our user store instance is invalid!"), *InFriendId);

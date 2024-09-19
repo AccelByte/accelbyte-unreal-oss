@@ -33,12 +33,14 @@ void FOnlineAsyncTaskAccelByteQueryActiveSections::Initialize()
 
 void FOnlineAsyncTaskAccelByteQueryActiveSections::Finalize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 	FOnlineAsyncTaskAccelByte::Finalize();
 
 	if (bWasSuccessful)
 	{
-		const FOnlineStoreV2AccelBytePtr StoreV2Interface = StaticCastSharedPtr<FOnlineStoreV2AccelByte>(Subsystem->GetStoreV2Interface());
+		const FOnlineStoreV2AccelBytePtr StoreV2Interface = StaticCastSharedPtr<FOnlineStoreV2AccelByte>(SubsystemPin->GetStoreV2Interface());
 		StoreV2Interface->EmplaceOffers(OfferMap);
 		StoreV2Interface->EmplaceSections(UserId.ToSharedRef().Get(), Sections);
 		StoreV2Interface->EmplaceOffersBySection(UserId.ToSharedRef().Get(), OffersBySection);

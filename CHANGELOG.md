@@ -2,6 +2,41 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.12.24](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.12.24%0D0.12.23) (2024-09-19)
+
+
+### Features
+
+* **asyncTask:** apply the pinned subsystem to entire async task ([148802f](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/148802f7686a901afec3688a6af61c0859a9faf3))
+* **asyncTask:** introduce a macro to pin the subsystem & check the validity before usage ([3be9950](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/3be9950eba25deae6f0750919b5df3fa11c48b5d))
+* **entitlement:** add SyncPlatformPurchase for googleplay ([920f468](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/920f468e249cfd3b0ed1b6c6de12b8b24fc5ed2e))
+* **identity:** add method for updatepassword, enable MFA and disable MFA ([2371a75](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/2371a75848ed89769ca1540709dc7d438be079bd))
+* implement server auto shutdown after receive AMS drain signal ([4c68981](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/4c689814359e2d7daae2336befa3aca237bd7294))
+* **Login:** add additional optional parameter to allow serviceLabel for authentication ([114b3ce](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/114b3ceaee6349454f51e8830318344726d25abe))
+* **session history:** add a new endpoint to get game session history ([5079669](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/5079669adedfce2a2e3bbf7980a142eb101bc531))
+* **session:** handle auto join session logic in OnMatchFound internal notification handler ([359e025](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/359e025b341da2b71ed55bed61255cd4779cce6a))
+* **session:** implement internal bypass of session join API call if already marked as joined ([6e4ce93](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/6e4ce93c5fc98bef3105321324e8e75db5ee346b))
+* **session:** implement OnGameSessionJoined handler for auto join game sessions ([ee7f009](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/ee7f009d7a05bcb58e4a4d94b6c7542a81db3278))
+* **sessionv2:** add API to kick player from a game session ([46b2b39](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/46b2b39b8089dba414b9b8099b5ad33b071a47e9))
+* **UserAccountCredential:** improve the access token storage from FUserOnlineAccountAccelByte by using a the credentials reference as the source ([b622fbd](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/b622fbd91c0df47332bad3ba0458728d1550ac7a))
+
+
+### Bug Fixes
+
+* **AMS:** Remove disconnect from AMS and DSHub on receive AMS drain signal ([c88c20a](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/c88c20aba11ff1fea68c58bf87f884bcdf629975))
+* change CredentialsRef using FBaseCredentialsWPtr instead ([3840eb4](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/3840eb4e8f5bc66cb716ea30364bc29568157674))
+* check TicketID is the same when receive matchmaking canceled notification ([fbddc53](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/fbddc53f12df86964d6d792463209264353a6b1a))
+* **PartySession:** remove reset handle after leave party complete ([d44d464](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/d44d46403b4e751020acbad9dafe40500ca97588))
+* **ReadFriendList:** prevent async task timeout if it queries multiple page ([c8604a2](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/c8604a2a5e093b09eb74fbd0aa5c75b50b9dc701))
+* ReadLeaderboardsAroundRank properly return item amount when pivot rank is below range ([7d45543](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/7d45543783d508d9b3cc980dd50182420fbe53d4))
+* refresh sessions after reconnected. ([16d607a](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/16d607a146ba027ca8264e7c7f4d281da2e9b760))
+* **session:** change status usage to statusv2 ([1c87f13](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/1c87f13624f8790b585cecbacc819010d84fe8e6))
+
+
+### Reverts
+
+* shutdown DS ticker on AMS drain ([6cacdb7](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/6cacdb7cc2333bc8d2d20c46ab3e91a864d9afff))
+
 ### [0.12.23](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.12.23%0D0.12.22) (2024-08-21)
 
 

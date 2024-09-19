@@ -70,6 +70,39 @@ typedef FAccelByteOnLoginQueueCanceledByUser::FDelegate FAccelByteOnLoginQueueCa
 DECLARE_MULTICAST_DELEGATE_FourParams(FAccelByteOnLoginTicketStatusUpdated, int32 /*LocalUserNum*/, bool /*bWasSuccessful*/, const FAccelByteModelsLoginQueueTicketInfo& /*TicketInfo*/, const FOnlineErrorAccelByte& /*Error*/);
 typedef FAccelByteOnLoginTicketStatusUpdated::FDelegate FAccelByteOnLoginTicketStatusUpdatedDelegate;
 
+DECLARE_MULTICAST_DELEGATE_ThreeParams(FAccelByteOnUpdatePasswordComplete, int32 /*LocalUserNum*/, const FUniqueNetId& /*UserId*/, const FOnlineErrorAccelByte& /*Error*/)
+typedef FAccelByteOnUpdatePasswordComplete::FDelegate FAccelByteOnUpdatePasswordCompleteDelegate;
+
+DECLARE_MULTICAST_DELEGATE_FourParams(FAccelByteOnGetMfaStatusComplete, int32 /*LocalUserNum*/, const FUniqueNetId& /*UserId*/, const FOnlineErrorAccelByte& /*Error*/, const FMfaStatusResponse& /*MfaStatus*/)
+typedef FAccelByteOnGetMfaStatusComplete::FDelegate FAccelByteOnGetMfaStatusCompleteDelegate;
+
+DECLARE_MULTICAST_DELEGATE_ThreeParams(FAccelByteOnEnableMfaBackupCodesComplete, int32 /*LocalUserNum*/, const FUniqueNetId& /*UserId*/, const FOnlineErrorAccelByte& /*Error*/)
+typedef FAccelByteOnEnableMfaBackupCodesComplete::FDelegate FAccelByteOnEnableMfaBackupCodesCompleteDelegate;
+
+DECLARE_MULTICAST_DELEGATE_ThreeParams(FAccelByteOnDisableMfaBackupCodesComplete, int32 /*LocalUserNum*/, const FUniqueNetId& /*UserId*/, const FOnlineErrorAccelByte& /*Error*/)
+typedef FAccelByteOnDisableMfaBackupCodesComplete::FDelegate FAccelByteOnDisableMfaBackupCodesCompleteDelegate;
+
+DECLARE_MULTICAST_DELEGATE_FourParams(FAccelByteOnGenerateMfaBackupCodesComplete, int32 /*LocalUserNum*/, const FUniqueNetId& /*UserId*/, const FOnlineErrorAccelByte& /*Error*/, const FUser2FaBackupCode& /*BackupCodes*/)
+typedef FAccelByteOnGenerateMfaBackupCodesComplete::FDelegate FAccelByteOnGenerateMfaBackupCodesCompleteDelegate;
+
+DECLARE_MULTICAST_DELEGATE_ThreeParams(FAccelByteOnEnableMfaAuthenticatorComplete, int32 /*LocalUserNum*/, const FUniqueNetId& /*UserId*/, const FOnlineErrorAccelByte& /*Error*/)
+typedef FAccelByteOnEnableMfaAuthenticatorComplete::FDelegate FAccelByteOnEnableMfaAuthenticatorCompleteDelegate;
+
+DECLARE_MULTICAST_DELEGATE_ThreeParams(FAccelByteOnDisableMfaAuthenticatorComplete, int32 /*LocalUserNum*/, const FUniqueNetId& /*UserId*/, const FOnlineErrorAccelByte& /*Error*/)
+typedef FAccelByteOnDisableMfaAuthenticatorComplete::FDelegate FAccelByteOnDisableMfaAuthenticatorCompleteDelegate;
+
+DECLARE_MULTICAST_DELEGATE_FourParams(FAccelByteOnGenerateMfaAuthenticatorSecretKeyComplete, int32 /*LocalUserNum*/, const FUniqueNetId& /*UserId*/, const FOnlineErrorAccelByte& /*Error*/, const FUser2FaSecretKey& /*SecretKey*/)
+typedef FAccelByteOnGenerateMfaAuthenticatorSecretKeyComplete::FDelegate FAccelByteOnGenerateMfaAuthenticatorSecretKeyCompleteDelegate;
+
+DECLARE_MULTICAST_DELEGATE_ThreeParams(FAccelByteOnEnableMfaEmailComplete, int32 /*LocalUserNum*/, const FUniqueNetId& /*UserId*/, const FOnlineErrorAccelByte& /*Error*/)
+typedef FAccelByteOnEnableMfaEmailComplete::FDelegate FAccelByteOnEnableMfaEmailCompleteDelegate;
+
+DECLARE_MULTICAST_DELEGATE_ThreeParams(FAccelByteOnDisableMfaEmailComplete, int32 /*LocalUserNum*/, const FUniqueNetId& /*UserId*/, const FOnlineErrorAccelByte& /*Error*/)
+typedef FAccelByteOnDisableMfaEmailComplete::FDelegate FAccelByteOnDisableMfaEmailCompleteDelegate;
+
+DECLARE_MULTICAST_DELEGATE_ThreeParams(FAccelByteOnSendMfaCodeToEmailComplete, int32 /*LocalUserNum*/, const FUniqueNetId& /*UserId*/, const FOnlineErrorAccelByte& /*Error*/)
+typedef FAccelByteOnSendMfaCodeToEmailComplete::FDelegate FAccelByteOnSendMfaCodeToEmailCompleteDelegate;
+
 /**
  * AccelByte service implementation of the online identity interface
  */
@@ -380,6 +413,312 @@ PACKAGE_SCOPE:
 	 * Online delegate to notify poller when a user cancelled login queue
 	 */
 	DEFINE_ONLINE_DELEGATE_ONE_PARAM(AccelByteOnLoginQueueCanceledByUser, int32 /*LoginUserNum*/);
+
+	/**
+	 * @brief Verify user using multifactor authentication.
+	 * Add handler to AccelByteOnLoginCompleteDelegate for the result.
+	 *
+	 * @param LocalUserNum The controller number of the associated user.
+	 * @param FactorType Multifactor authentication type (backup codes, email or authenticator app).
+	 * @param Code The code for multifactor authentication.
+	 * @param MfaToken The mfa token received from AccelByteOnLoginCompleteDelegate.
+	 * @param bRememberDevice Option to remember current device. If set to true the authentication only require once for every account.
+	 *
+	 * @return true if the task dispatched.
+	 */
+	bool VerifyLoginMfa(int32 LocalUserNum, EAccelByteLoginAuthFactorType FactorType, const FString& Code, const FString& MfaToken, bool bRememberDevice = false);
+
+	/**
+	 * Online delegate to notify user when password updated.
+	 */
+	DEFINE_ONLINE_PLAYER_DELEGATE_TWO_PARAM(MAX_LOCAL_PLAYERS, AccelByteOnUpdatePasswordComplete, const FUniqueNetId& /*UserId*/, const FOnlineErrorAccelByte& /*Error*/);
+
+	/**
+	 * @brief Update user password.
+	 * Add handler to AccelByteOnUpdatePasswordComplete for the result.
+	 *
+	 * @param LocalUserNum The controller number of the associated user.
+	 * @param Request The request containing old and new password.
+	 * @param FactorType [optional] Multifactor authentication type (backup codes, email or authenticator app). Only needed if mfa for sensitive action enabled in the environment.
+	 * @param Code [optional] The code for multifactor authentication. Only needed if mfa for sensitive action enabled in the environment.
+
+	 *
+	 * @return true if the task dispatched.
+	 */
+	bool UpdatePassword(int32 LocalUserNum, const FUpdatePasswordRequest& Request, EAccelByteLoginAuthFactorType FactorType = EAccelByteLoginAuthFactorType::None, const FString& Code = TEXT(""));
+
+	/**
+	 * @brief Update user password.
+	 * Add handler to AccelByteOnUpdatePasswordComplete for the result.
+	 *
+	 * @param UserId FUniqueNetId of the user who performed this action.
+	 * @param Request The request containing old and new password.
+	 * @param FactorType [optional] Multifactor authentication type (backup codes, email or authenticator app). Only needed if mfa for sensitive action enabled in the environment.
+	 * @param Code [optional] The code for multifactor authentication. Only needed if mfa for sensitive action enabled in the environment.
+	 *
+	 * @return true if the task dispatched.
+	 */
+	bool UpdatePassword(const FUniqueNetId& UserId, const FUpdatePasswordRequest& Request, EAccelByteLoginAuthFactorType FactorType = EAccelByteLoginAuthFactorType::None, const FString& Code = TEXT(""));
+
+	/**
+	 * Online delegate to notify user when get mfa status completed.
+	 */
+	DEFINE_ONLINE_PLAYER_DELEGATE_THREE_PARAM(MAX_LOCAL_PLAYERS, AccelByteOnGetMfaStatusComplete, const FUniqueNetId& /*UserId*/, const FOnlineErrorAccelByte& /*Error*/, const FMfaStatusResponse& /*MfaStatus*/);
+
+	/**
+	 * @brief Get multifactor authentication status for the user.
+	 * Add handler to AccelByteOnGetMfaStatusComplete for the result.
+	 *
+	 * @param LocalUserNum The controller number of the associated user.
+	 *
+	 * @return true if the task dispatched.
+	 */
+	bool GetMfaStatus(int32 LocalUserNum);
+
+	/**
+	 * @brief Get multifactor authentication status for the user.
+	 * Add handler to AccelByteOnGetMfaStatusComplete for the result.
+	 *
+	 * @param UserId FUniqueNetId of the user who performed this action.
+	 *
+	 * @return true if the task dispatched.
+	 */
+	bool GetMfaStatus(const FUniqueNetId& UserId);
+
+	/**
+	 * Online delegate to notify user when enable mfa backup code completed.
+	 */
+	DEFINE_ONLINE_PLAYER_DELEGATE_TWO_PARAM(MAX_LOCAL_PLAYERS, AccelByteOnEnableMfaBackupCodesComplete, const FUniqueNetId& /*UserId*/, const FOnlineErrorAccelByte& /*Error*/);
+
+	/**
+	 * @brief Enable multifactor authentication using backup codes.
+	 * Add handler to AccelByteOnEnableMfaBackupCodesComplete for the result.
+	 *
+	 * @param LocalUserNum The controller number of the associated user.
+	 *
+	 * @return true if the task dispatched.
+	 */
+	bool EnableMfaBackupCodes(int32 LocalUserNum);
+
+	/**
+	 * @brief Enable multifactor authentication using backup codes.
+	 * Add handler to AccelByteOnEnableMfaBackupCodesComplete for the result.
+	 *
+	 * @param UserId FUniqueNetId of the user who performed this action.
+	 *
+	 * @return true if the task dispatched.
+	 */
+	bool EnableMfaBackupCodes(const FUniqueNetId& UserId);
+
+	/**
+	 * Online delegate to notify user when disable mfa backup code completed.
+	 */
+	DEFINE_ONLINE_PLAYER_DELEGATE_TWO_PARAM(MAX_LOCAL_PLAYERS, AccelByteOnDisableMfaBackupCodesComplete, const FUniqueNetId& /*UserId*/, const FOnlineErrorAccelByte& /*Error*/);
+
+	/**
+	 * @brief Disable multifactor authentication backup codes.
+	 * Add handler to AccelByteOnDisableMfaBackupCodesComplete for the result.
+	 *
+	 * @param LocalUserNum The controller number of the associated user.
+	 * @param Code One of the valid backup codes.
+	 *
+	 * @return true if the task dispatched.
+	 */
+	bool DisableMfaBackupCodes(int32 LocalUserNum, const FString& Code);
+
+	/**
+	 * @brief Disable multifactor authentication backup codes.
+	 * Add handler to AccelByteOnDisableMfaBackupCodesComplete for the result.
+	 *
+	 * @param UserId FUniqueNetId of the user who performed this action.
+	 * @param Code One of the valid backup codes.
+	 *
+	 * @return true if the task dispatched.
+	 */
+	bool DisableMfaBackupCodes(const FUniqueNetId& UserId, const FString& Code);
+
+	/**
+	 * Online delegate to notify user when generate mfa backup code completed.
+	 */
+	DEFINE_ONLINE_PLAYER_DELEGATE_THREE_PARAM(MAX_LOCAL_PLAYERS, AccelByteOnGenerateMfaBackupCodesComplete, const FUniqueNetId& /*UserId*/, const FOnlineErrorAccelByte& /*Error*/, const FUser2FaBackupCode& /*BackupCodes*/);
+
+	/**
+	 * @brief Generate multifactor authentication backup codes.
+	 * Add handler to AccelByteOnGenerateMfaBackupCodesComplete for the result.
+	 *
+	 * @param LocalUserNum The controller number of the associated user.
+	 *
+	 * @return true if the task dispatched.
+	 */
+	bool GenerateMfaBackupCode(int32 LocalUserNum);
+
+	/**
+	 * @brief Generate multifactor authentication backup codes.
+	 * Add handler to AccelByteOnGenerateMfaBackupCodesComplete for the result.
+	 *
+	 * @param UserId FUniqueNetId of the user who performed this action.
+	 *
+	 * @return true if the task dispatched.
+	 */
+	bool GenerateMfaBackupCode(const FUniqueNetId& UserId);
+
+	/**
+	 * Online delegate to notify user when enable mfa authenticator completed.
+	 */
+	DEFINE_ONLINE_PLAYER_DELEGATE_TWO_PARAM(MAX_LOCAL_PLAYERS, AccelByteOnEnableMfaAuthenticatorComplete, const FUniqueNetId& /*UserId*/, const FOnlineErrorAccelByte& /*Error*/);
+
+	/**
+	 * @brief Enable multifactor authentication using authenticator app.
+	 * Add handler to AccelByteOnEnableMfaAuthenticatorComplete for the result.
+	 *
+	 * @param LocalUserNum The controller number of the associated user.
+	 *
+	 * @return true if the task dispatched.
+	 */
+	bool EnableMfaAuthenticator(int32 LocalUserNum, const FString& Code);
+
+	/**
+	 * @brief Enable multifactor authentication using authenticator app.
+	 * Add handler to AccelByteOnEnableMfaAuthenticatorComplete for the result.
+	 *
+	 * @param UserId FUniqueNetId of the user who performed this action.
+	 * @param Code The code generated from authenticator app.
+	 *
+	 * @return true if the task dispatched.
+	 */
+	bool EnableMfaAuthenticator(const FUniqueNetId& UserId, const FString& Code);
+
+	/**
+	 * Online delegate to notify user when disable mfa authenticator completed.
+	 */
+	DEFINE_ONLINE_PLAYER_DELEGATE_TWO_PARAM(MAX_LOCAL_PLAYERS, AccelByteOnDisableMfaAuthenticatorComplete, const FUniqueNetId& /*UserId*/, const FOnlineErrorAccelByte& /*Error*/);
+
+	/**
+	 * @brief Disable multifactor authentication using authenticator app.
+	 * Add handler to AccelByteOnDisableMfaAuthenticatorComplete for the result.
+	 *
+	 * @param LocalUserNum The controller number of the associated user.
+	 * @param Code The code generated from authenticator app.
+	 * @return true if the task dispatched.
+	 */
+	bool DisableMfaAuthenticator(int32 LocalUserNum, const FString& Code);
+
+	/**
+	 * @brief Disable multifactor authentication using authenticator app.
+	 * Add handler to AccelByteOnDisableMfaAuthenticatorComplete for the result.
+	 *
+	 * @param UserId FUniqueNetId of the user who performed this action.
+	 * @param Code The code generated from authenticator app.
+	 *
+	 * @return true if the task dispatched.
+	 */
+	bool DisableMfaAuthenticator(const FUniqueNetId& UserId, const FString& Code);
+
+	/**
+	 * Online delegate to notify user when generate mfa authenticator secret key completed.
+	 */
+	DEFINE_ONLINE_PLAYER_DELEGATE_THREE_PARAM(MAX_LOCAL_PLAYERS, AccelByteOnGenerateMfaAuthenticatorSecretKeyComplete, const FUniqueNetId& /*UserId*/, const FOnlineErrorAccelByte& /*Error*/, const FUser2FaSecretKey& /*SecretKey*/)
+
+	/**
+	 * @brief Generate multifactor authentication secret key for authenticator app.
+	 * Add handler to AccelByteOnGenerateMfaAuthenticatorSecretKeyComplete for the result.
+	 *
+	 * @param LocalUserNum The controller number of the associated user.
+	 *
+	 * @return true if the task dispatched.
+	 */
+	bool GenerateMfaAuthenticatorSecretKey(int32 LocalUserNum);
+
+	/**
+	 * @brief Generate multifactor authentication secret key for authenticator app.
+	 * Add handler to AccelByteOnGenerateMfaAuthenticatorSecretKeyComplete for the result.
+	 *
+	 * @param UserId FUniqueNetId of the user who performed this action.
+	 *
+	 * @return true if the task dispatched.
+	 */
+	bool GenerateMfaAuthenticatorSecretKey(const FUniqueNetId& UserId);
+
+	/**
+	 * Online delegate to notify user when enable mfa email completed.
+	 */
+	DEFINE_ONLINE_PLAYER_DELEGATE_TWO_PARAM(MAX_LOCAL_PLAYERS, AccelByteOnEnableMfaEmailComplete, const FUniqueNetId& /*UserId*/, const FOnlineErrorAccelByte& /*Error*/);
+
+	/**
+	 * @brief Enable multifactor authentication using email.
+	 * Add handler to AccelByteOnEnableMfaEmailComplete for the result.
+	 *
+	 * @param LocalUserNum The controller number of the associated user.
+	 * @param Code The verification code from user email.
+	 *
+	 * @return true if the task dispatched.
+	 */
+	bool EnableMfaEmail(int32 LocalUserNum, const FString& Code);
+
+	/**
+	 * @brief Enable multifactor authentication using email.
+	 * Add handler to AccelByteOnEnableMfaEmailComplete for the result.
+	 *
+	 * @param UserId FUniqueNetId of the user who performed this action.
+	 * @param Code The verification code from user email.
+	 *
+	 * @return true if the task dispatched.
+	 */
+	bool EnableMfaEmail(const FUniqueNetId& UserId, const FString& Code);
+
+	/**
+	 * Online delegate to notify user when disable mfa email completed.
+	 */	
+	DEFINE_ONLINE_PLAYER_DELEGATE_TWO_PARAM(MAX_LOCAL_PLAYERS, AccelByteOnDisableMfaEmailComplete, const FUniqueNetId& /*UserId*/, const FOnlineErrorAccelByte& /*Error*/);
+
+	/**
+	 * @brief Disable multifactor authentication using email.
+	 * Add handler to AccelByteOnDisableMfaEmailComplete for the result.
+	 *
+	 * @param LocalUserNum The controller number of the associated user.
+	 * @param Code The verification code from user email.
+	 *
+	 * @return true if the task dispatched.
+	 */
+	bool DisableMfaEmail(int32 LocalUserNum, const FString& Code);
+
+	/**
+	 * @brief Disable multifactor authentication using email.
+	 * Add handler to AccelByteOnDisableMfaEmailComplete for the result.
+	 *
+	 * @param UserId FUniqueNetId of the user who performed this action.
+	 * @param Code The verification code from user email.
+	 *
+	 * @return true if the task dispatched.
+	 */
+	bool DisableMfaEmail(const FUniqueNetId& UserId, const FString& Code);
+
+	/**
+	 * Online delegate to notify user when send mfa code to email completed.
+	 */
+	DEFINE_ONLINE_PLAYER_DELEGATE_TWO_PARAM(MAX_LOCAL_PLAYERS, AccelByteOnSendMfaCodeToEmailComplete, const FUniqueNetId& /*UserId*/, const FOnlineErrorAccelByte& /*Error*/)
+
+	/**
+	 * @brief Send multifactor authentication code to user email.
+	 * Add handler to AccelByteOnSendMfaCodeToEmailComplete for the result.
+	 *
+	 * @param LocalUserNum The controller number of the associated user.
+	 * @param Action Supported action are update password, disable/enable email mfa (use EAccelByteSendMfaEmailAction::DisableMFAEmail for disable/enable).
+	 *
+	 * @return true if the task dispatched.
+	 */
+	bool SendMfaCodeToEmail(int32 LocalUserNum, const EAccelByteSendMfaEmailAction Action);
+
+	/**
+	 * @brief Send multifactor authentication code to user email.
+	 * Add handler to AccelByteOnSendMfaCodeToEmailComplete for the result.
+	 *
+	 * @param UserId FUniqueNetId of the user who performed this action.
+	 * @param Action Supported action are update password, disable/enable email mfa (use EAccelByteSendMfaEmailAction::DisableMFAEmail for disable/enable).
+	 *
+	 * @return true if the task dispatched.
+	 */
+	bool SendMfaCodeToEmail(const FUniqueNetId& UserId, const EAccelByteSendMfaEmailAction Action);
 
 private:
 	/** Disable the default constructor, as we only want to be able to construct this interface passing in the parent subsystem */

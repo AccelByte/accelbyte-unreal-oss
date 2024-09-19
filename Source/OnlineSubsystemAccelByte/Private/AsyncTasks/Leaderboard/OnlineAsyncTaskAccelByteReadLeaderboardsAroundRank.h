@@ -47,8 +47,8 @@ private:
 	FOnlineLeaderboardReadRef LeaderboardReadRef;
 	FString ErrorMessage;
 	FString ErrorCode;
-	int32 Offset;
-	int32 Limit;
-	bool bUseCycle;
+	int32 Offset {0};
+	int32 Limit {0};
+	bool bUseCycle {false};
 	FString CycleId;
 };

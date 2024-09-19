@@ -20,12 +20,14 @@ FOnlineAsyncTaskAccelBytePromoteV1PartyLeader::FOnlineAsyncTaskAccelBytePromoteV
 
 void FOnlineAsyncTaskAccelBytePromoteV1PartyLeader::Initialize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	Super::Initialize();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("UserId: %s; PartyId: %s; TargetMemberId: %s"), *UserId->ToDebugString(), *PartyId->ToString(), *TargetMemberId->ToDebugString());
 
 	// First, grab our party interface instance to do some checks before attempting to promote a member
-	const TSharedPtr<FOnlinePartySystemAccelByte, ESPMode::ThreadSafe> PartyInterface = StaticCastSharedPtr<FOnlinePartySystemAccelByte>(Subsystem->GetPartyInterface());
+	const TSharedPtr<FOnlinePartySystemAccelByte, ESPMode::ThreadSafe> PartyInterface = StaticCastSharedPtr<FOnlinePartySystemAccelByte>(SubsystemPin->GetPartyInterface());
 	if (!PartyInterface.IsValid())
 	{
 		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to initiate promoting a member '%s' as leader of party '%s' as the party interface instance was not valid!"), *TargetMemberId->ToDebugString(), *PartyId->ToString());
@@ -62,12 +64,14 @@ void FOnlineAsyncTaskAccelBytePromoteV1PartyLeader::Initialize()
 
 void FOnlineAsyncTaskAccelBytePromoteV1PartyLeader::Finalize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
 	if (bWasSuccessful)
 	{
 		// First, grab our party interface instance to grab our party instance
-		const TSharedPtr<FOnlinePartySystemAccelByte, ESPMode::ThreadSafe> PartyInterface = StaticCastSharedPtr<FOnlinePartySystemAccelByte>(Subsystem->GetPartyInterface());
+		const TSharedPtr<FOnlinePartySystemAccelByte, ESPMode::ThreadSafe> PartyInterface = StaticCastSharedPtr<FOnlinePartySystemAccelByte>(SubsystemPin->GetPartyInterface());
 		if (!PartyInterface.IsValid())
 		{
 			AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to finalize promoting party member as the party interface was not valid!"));
@@ -91,13 +95,15 @@ void FOnlineAsyncTaskAccelBytePromoteV1PartyLeader::Finalize()
 
 void FOnlineAsyncTaskAccelBytePromoteV1PartyLeader::TriggerDelegates()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
 	Delegate.ExecuteIfBound(UserId.ToSharedRef().Get(), PartyId.Get(), TargetMemberId.Get(), CompletionResult);
 
 	if (bWasSuccessful)
 	{
-		const TSharedPtr<FOnlinePartySystemAccelByte, ESPMode::ThreadSafe> PartyInterface = StaticCastSharedPtr<FOnlinePartySystemAccelByte>(Subsystem->GetPartyInterface());
+		const TSharedPtr<FOnlinePartySystemAccelByte, ESPMode::ThreadSafe> PartyInterface = StaticCastSharedPtr<FOnlinePartySystemAccelByte>(SubsystemPin->GetPartyInterface());
 		if (PartyInterface.IsValid())
 		{
 			PartyInterface->TriggerOnPartyMemberPromotedDelegates(UserId.ToSharedRef().Get(), PartyId.Get(), TargetMemberId.Get());

@@ -64,13 +64,15 @@ bool FOnlineAsyncTaskAccelByteLogin::ShouldInitiateNativePlatformLogin(FOnlineAc
 	, FName& OutSubsystemName)
 {
 	bool bShouldInitiate = false;
+	TRY_PIN_SUBSYSTEM(bShouldInitiate);
 
 	if (!InAccountCredentials.Type.IsEmpty() && InAccountCredentials.Id.IsEmpty() && InAccountCredentials.Token.IsEmpty())
 	{
-		FString PlatformString = Subsystem->GetAccelBytePlatformStringFromAuthType(InAccountCredentials.Type);
-		FString NativeSubsystemName = Subsystem->GetNativeSubsystemNameFromAccelBytePlatformString(PlatformString);
+		FString PlatformString = SubsystemPin->GetAccelBytePlatformStringFromAuthType(InAccountCredentials.Type);
+
+		FString NativeSubsystemName = SubsystemPin->GetNativeSubsystemNameFromAccelBytePlatformString(PlatformString);
 		OutSubsystemName = FName(NativeSubsystemName);
-		bShouldInitiate = Subsystem->IsNativeSubsystemSupported(OutSubsystemName);
+		bShouldInitiate = SubsystemPin->IsNativeSubsystemSupported(OutSubsystemName);
 	}
 
 	return bShouldInitiate;
@@ -84,7 +86,9 @@ void FOnlineAsyncTaskAccelByteLogin::Initialize()
 	
 	GConfig->GetInt(TEXT("OnlineSubsystemAccelByte"), TEXT("LoginQueuePresentationThreshold"), LoginQueuePresentationThreshold, GEngineIni);
 
-	if (Subsystem->IsMultipleLocalUsersEnabled())
+	TRY_PIN_SUBSYSTEM()
+
+	if (SubsystemPin->IsMultipleLocalUsersEnabled())
 	{
 		SetApiClient(FMultiRegistry::GetApiClient(FString::Printf(TEXT("%d"), LoginUserNum)));
 	}
@@ -151,9 +155,10 @@ void FOnlineAsyncTaskAccelByteLogin::Finalize()
 {
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 	API_CLIENT_CHECK_GUARD();
+	TRY_PIN_SUBSYSTEM()
 
-	Subsystem->SetLocalUserNumCached(LoginUserNum);
-	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = Subsystem->GetPredefinedEventInterface();
+	SubsystemPin->SetLocalUserNumCached(LoginUserNum);
+	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = SubsystemPin->GetPredefinedEventInterface();
 	if (bWasSuccessful)
 	{
 		FAccelByteModelsLoginSuccededPayload LoginSuccededPayload{};
@@ -179,15 +184,16 @@ void FOnlineAsyncTaskAccelByteLogin::TriggerDelegates()
 {
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 	API_CLIENT_CHECK_GUARD();
+	TRY_PIN_SUBSYSTEM()
 
-	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(Subsystem->GetIdentityInterface());
+	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(SubsystemPin->GetIdentityInterface());
 	const TSharedRef<const FUniqueNetIdAccelByteUser> ReturnId = (bWasSuccessful) ? UserId.ToSharedRef() : FUniqueNetIdAccelByteUser::Invalid();
 	if (IdentityInterface.IsValid())
 	{
 		IdentityInterface->SetLoginStatus(LoginUserNum, bWasSuccessful ? ELoginStatus::LoggedIn : ELoginStatus::NotLoggedIn);
 		if (bWasSuccessful && IsApiClientValid() && !ApiClient->CredentialsRef->IsComply())
 		{
-			const FOnlineAgreementAccelBytePtr AgreementInt = Subsystem->GetAgreementInterface();
+			const FOnlineAgreementAccelBytePtr AgreementInt = SubsystemPin->GetAgreementInterface();
 			if (ensure(AgreementInt.IsValid()))
 			{
 				AgreementInt->TriggerOnUserNotCompliedDelegates(LoginUserNum);
@@ -219,8 +225,10 @@ void FOnlineAsyncTaskAccelByteLogin::TriggerDelegates()
 
 void FOnlineAsyncTaskAccelByteLogin::LoginWithNativeSubsystem()
 {
+	TRY_PIN_SUBSYSTEM()
+
 #if WITH_EDITOR
-	const FString NativePlatformName = Subsystem->GetNativePlatformNameString();
+	const FString NativePlatformName = SubsystemPin->GetNativePlatformNameString();
 	
 	//Case: to prevent Steam OSS running in Editor which can lead to crash
 	if (NativePlatformName.Contains("steam"))
@@ -243,7 +251,7 @@ void FOnlineAsyncTaskAccelByteLogin::LoginWithNativeSubsystem()
 	}
 #endif
 
-	LoginWithSpecificSubsystem(Subsystem->GetNativePlatformSubsystem());
+	LoginWithSpecificSubsystem(SubsystemPin->GetNativePlatformSubsystem());
 }
 
 //Used by child asynctask (SimultaneousLogin)
@@ -255,6 +263,7 @@ void FOnlineAsyncTaskAccelByteLogin::LoginWithSpecificSubsystem(FName InSubsyste
 void FOnlineAsyncTaskAccelByteLogin::LoginWithSpecificSubsystem(IOnlineSubsystem* SpecificSubsystem)
 {
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
+	TRY_PIN_SUBSYSTEM()
 
 	if (SpecificSubsystem == nullptr)
 	{
@@ -264,7 +273,7 @@ void FOnlineAsyncTaskAccelByteLogin::LoginWithSpecificSubsystem(IOnlineSubsystem
 	}
 
 	// Check whether we officially support login with this OSS, otherwise subsequent calls will fail
-	if (!Subsystem->IsNativeSubsystemSupported(SpecificSubsystem->GetSubsystemName()))
+	if (!SubsystemPin->IsNativeSubsystemSupported(SpecificSubsystem->GetSubsystemName()))
 	{
 		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Native subsystem is not supported by AccelByte OSS for passthrough authentication! Subsystem name: %s"), *SpecificSubsystem->GetSubsystemName().ToString());
 		CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState);
@@ -353,8 +362,8 @@ void FOnlineAsyncTaskAccelByteLogin::OnSpecificSubysystemLoginUIClosed(FUniqueNe
 		return;
 	}
 
-	const IOnlineIdentityPtr IdentityInterface = SpecificSubsystem->GetIdentityInterface();
-	if (!IdentityInterface.IsValid())
+	const IOnlineIdentityPtr SpecificIdentityInterface = SpecificSubsystem->GetIdentityInterface();
+	if (!SpecificIdentityInterface.IsValid())
 	{
 		ErrorStr = ErrorVerbosityReasonIfPrerequisteNotMet;
 		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("%s"), *ErrorVerbosityReasonIfPrerequisteNotMet);
@@ -365,7 +374,7 @@ void FOnlineAsyncTaskAccelByteLogin::OnSpecificSubysystemLoginUIClosed(FUniqueNe
 	if (!LoginCompletedHandle.IsValid())
 	{
 		FOnLoginCompleteDelegate IdentityLoginComplete = TDelegateUtils<FOnLoginCompleteDelegate>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteLogin::OnSpecificSubysystemLoginComplete, SpecificSubsystem);
-		IdentityInterface->AddOnLoginCompleteDelegate_Handle(ControllerIndex, IdentityLoginComplete);
+		SpecificIdentityInterface->AddOnLoginCompleteDelegate_Handle(ControllerIndex, IdentityLoginComplete);
 	}
 
 	// Add Type credential parameter for EOS.
@@ -375,16 +384,20 @@ void FOnlineAsyncTaskAccelByteLogin::OnSpecificSubysystemLoginUIClosed(FUniqueNe
 		{
 			AccountCredentials.Type = TEXT("AccountPortal");
 		}
-		this->ExecuteCriticalSectionAction(FVoidHandler::CreateLambda([this, IdentityInterface, ControllerIndex]()
+		this->ExecuteCriticalSectionAction(FVoidHandler::CreateLambda([this, SpecificIdentityInterface, ControllerIndex]()
 			{
-				IdentityInterface->Login(ControllerIndex, this->AccountCredentials);
+				SpecificIdentityInterface->Login(ControllerIndex, this->AccountCredentials);
 			}));
+	}
+	else if (SpecificSubsystem->GetSubsystemName().ToString().Equals(TEXT("GOOGLE"), ESearchCase::IgnoreCase))
+	{
+		//do nothing because it already called login inside the ShowLoginUI()
 	}
 	else
 	{
-		this->ExecuteCriticalSectionAction(FVoidHandler::CreateLambda([this, IdentityInterface, ControllerIndex]()
+		this->ExecuteCriticalSectionAction(FVoidHandler::CreateLambda([this, SpecificIdentityInterface, ControllerIndex]()
 			{
-				IdentityInterface->Login(ControllerIndex, FOnlineAccountCredentials());
+				SpecificIdentityInterface->Login(ControllerIndex, FOnlineAccountCredentials());
 			}));
 	}
 
@@ -411,8 +424,8 @@ void FOnlineAsyncTaskAccelByteLogin::OnSpecificSubysystemLoginComplete(int32 Nat
 		return;
 	}
 	
-	const IOnlineIdentityPtr IdentityInterface = SpecificSubsystem->GetIdentityInterface();
-	if (!IdentityInterface.IsValid())
+	const IOnlineIdentityPtr SpecificIdentityInterface = SpecificSubsystem->GetIdentityInterface();
+	if (!SpecificIdentityInterface.IsValid())
 	{
 		ErrorStr = TEXT("login-failed-native-subsystem");
 		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Login with native subsystem failed as the native identity interface instance was nullptr!"));
@@ -421,7 +434,7 @@ void FOnlineAsyncTaskAccelByteLogin::OnSpecificSubysystemLoginComplete(int32 Nat
 	}
 
 	// Clear the delegate for our login as it will be invalid once this task ends
-	IdentityInterface->ClearOnLoginCompleteDelegates(LoginUserNum, this);
+	SpecificIdentityInterface->ClearOnLoginCompleteDelegates(LoginUserNum, this);
 
 	// Set the login type for this request to be the login type corresponding to the native subsystem
 	const UEnum* LoginTypeEnum = StaticEnum<EAccelByteLoginType>();
@@ -434,10 +447,10 @@ void FOnlineAsyncTaskAccelByteLogin::OnSpecificSubysystemLoginComplete(int32 Nat
 		return;
 	}
 
-	FString PlatformToken = IdentityInterface->GetAuthToken(LoginUserNum);
+	FString PlatformToken = SpecificIdentityInterface->GetAuthToken(LoginUserNum);
 	if (LoginType == EAccelByteLoginType::Google)
 	{
-		const FUniqueNetIdPtr UserIdPtr = IdentityInterface->GetUniquePlayerId(LocalUserNum);
+		const FUniqueNetIdPtr UserIdPtr = SpecificIdentityInterface->GetUniquePlayerId(LoginUserNum);
 		if (!UserIdPtr.IsValid())
 		{
 			ErrorStr = TEXT("login-failed-user-invalid-type");
@@ -446,7 +459,7 @@ void FOnlineAsyncTaskAccelByteLogin::OnSpecificSubysystemLoginComplete(int32 Nat
 			return;
 		}
 
-		const TSharedPtr<FUserOnlineAccount> UserAccountPtr = IdentityInterface->GetUserAccount(*UserIdPtr.Get());
+		const TSharedPtr<FUserOnlineAccount> UserAccountPtr = SpecificIdentityInterface->GetUserAccount(*UserIdPtr.Get());
 		if (!UserAccountPtr.IsValid())
 		{
 			ErrorStr = TEXT("login-failed-account-invalid-type");
@@ -646,13 +659,14 @@ void FOnlineAsyncTaskAccelByteLogin::OnLoginSuccess()
 	// Create a new user ID instance for the user that we just logged in as
 	FAccelByteUniqueIdComposite CompositeId;
 	API_CLIENT_CHECK_GUARD();
+	TRY_PIN_SUBSYSTEM()
 
 	CompositeId.Id = ApiClient->CredentialsRef->GetUserId();
 
 	FName NativeSubsystemName;
 	if (ShouldInitiateNativePlatformLogin(AccountCredentials, NativeSubsystemName))
 	{
-		const IOnlineSubsystem* NativeSubsystem = Subsystem->GetNativePlatformSubsystem();
+		const IOnlineSubsystem* NativeSubsystem = SubsystemPin->GetNativePlatformSubsystem();
 		if (NativeSubsystem != nullptr
 			&& LoginType == FOnlineSubsystemAccelByteUtils::GetAccelByteLoginTypeFromNativeSubsystem(NativeSubsystemName))
 		{
@@ -681,7 +695,7 @@ void FOnlineAsyncTaskAccelByteLogin::OnLoginSuccess()
 	Account = MakeShared<FUserOnlineAccountAccelByte>(UserId.ToSharedRef());
 	Account->SetUserCountry(ApiClient->CredentialsRef->GetAccountUserData().Country);
 	Account->SetDisplayName(ApiClient->CredentialsRef->GetUserDisplayName());
-	Account->SetAccessToken(ApiClient->CredentialsRef->GetAccessToken());
+	Account->SetCredentialsRef(ApiClient->CredentialsRef);
 	Account->SetPlatformUserId(ApiClient->CredentialsRef->GetPlatformUserId());
 	Account->SetSimultaneousPlatformID(ApiClient->CredentialsRef->GetSimultaneousPlatformId());
 	Account->SetSimultaneousPlatformUserID(ApiClient->CredentialsRef->GetSimultaneousPlatformUserId());
@@ -719,7 +733,7 @@ void FOnlineAsyncTaskAccelByteLogin::OnLoginSuccess()
 		}
 	}
 
-	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(Subsystem->GetIdentityInterface());
+	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(SubsystemPin->GetIdentityInterface());
 	if (!IdentityInterface.IsValid())
 	{
 		return;
@@ -728,7 +742,7 @@ void FOnlineAsyncTaskAccelByteLogin::OnLoginSuccess()
 	IdentityInterface->AddNewAuthenticatedUser(LoginUserNum, UserId.ToSharedRef(), Account.ToSharedRef());
 	AccelByte::FMultiRegistry::RemoveApiClient(UserId->GetAccelByteId());
 	AccelByte::FMultiRegistry::RegisterApiClient(UserId->GetAccelByteId(), ApiClient);
-	if (Subsystem->IsMultipleLocalUsersEnabled())
+	if (SubsystemPin->IsMultipleLocalUsersEnabled())
 	{
 		AccelByte::FMultiRegistry::RemoveApiClient(FString::Printf(TEXT("%d"), LoginUserNum));
 	}
@@ -741,7 +755,7 @@ void FOnlineAsyncTaskAccelByteLogin::OnLoginSuccess()
 	// their avatar URL. No need to register a delegate to update the account from the query, the query task will check
 	// if an account instance exists for the player in the identity interface, and if so will update it.
 	FOnlineUserAccelBytePtr UserInterface = nullptr;
-	if (!FOnlineUserAccelByte::GetFromSubsystem(Subsystem, UserInterface))
+	if (!FOnlineUserAccelByte::GetFromSubsystem(SubsystemPin.Get(),  UserInterface))
 	{
 		return;
 	}
@@ -753,7 +767,7 @@ void FOnlineAsyncTaskAccelByteLogin::OnLoginSuccess()
 	// If we are using V2 sessions, send a request to update stored platform data in the session service for native sync and crossplay
 #if AB_USE_V2_SESSIONS
 	FOnlineSessionV2AccelBytePtr SessionInterface = nullptr;
-	if (FOnlineSessionV2AccelByte::GetFromSubsystem(Subsystem, SessionInterface))
+	if (FOnlineSessionV2AccelByte::GetFromSubsystem(SubsystemPin.Get(),  SessionInterface))
 	{
 		SessionInterface->InitializePlayerAttributes(UserId.ToSharedRef().Get());	
 	}
@@ -774,7 +788,8 @@ void FOnlineAsyncTaskAccelByteLogin::OnLoginSuccessV4(const FAccelByteModelsLogi
 		return;
 	}
 
-	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(Subsystem->GetIdentityInterface());
+	TRY_PIN_SUBSYSTEM()
+	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(SubsystemPin->GetIdentityInterface());
 	if(!IdentityInterface.IsValid())
 	{
 		CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState);
@@ -795,7 +810,8 @@ void FOnlineAsyncTaskAccelByteLogin::OnLoginSuccessV4(const FAccelByteModelsLogi
 	bLoginInQueue = true;
 	this->ExecuteCriticalSectionAction(FVoidHandler::CreateLambda([this, &TicketInfo]()
 	{
-		Subsystem->CreateAndDispatchAsyncTaskSerial<FOnlineAsyncTaskAccelByteLoginQueue>(Subsystem, LoginUserNum, TicketInfo);
+		TRY_PIN_SUBSYSTEM()
+		SubsystemPin->CreateAndDispatchAsyncTaskSerial<FOnlineAsyncTaskAccelByteLoginQueue>(SubsystemPin.Get(), LoginUserNum, TicketInfo);
 	}));
 	
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

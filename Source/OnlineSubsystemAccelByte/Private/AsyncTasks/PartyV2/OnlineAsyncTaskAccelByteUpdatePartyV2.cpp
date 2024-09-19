@@ -14,7 +14,9 @@ FOnlineAsyncTaskAccelByteUpdatePartyV2::FOnlineAsyncTaskAccelByteUpdatePartyV2(F
 	, SessionName(InSessionName)
 	, NewSessionSettings(InNewSessionSettings)
 {
-	IOnlineSessionPtr SessionInterface = Subsystem->GetSessionInterface();
+	TRY_PIN_SUBSYSTEM_CONSTRUCTOR()
+
+	IOnlineSessionPtr SessionInterface = SubsystemPin->GetSessionInterface();
 	if (ensure(SessionInterface.IsValid()))
 	{
 		FNamedOnlineSession* Session = SessionInterface->GetNamedSession(SessionName);
@@ -27,11 +29,13 @@ FOnlineAsyncTaskAccelByteUpdatePartyV2::FOnlineAsyncTaskAccelByteUpdatePartyV2(F
 
 void FOnlineAsyncTaskAccelByteUpdatePartyV2::Initialize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	Super::Initialize();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("SessionName: %s"), *SessionName.ToString());
 
-	const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(Subsystem->GetSessionInterface());
+	const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(SubsystemPin->GetSessionInterface());
 	AB_ASYNC_TASK_ENSURE(SessionInterface.IsValid(), "Failed to update party session as our session interface is invalid!");
 
 	FNamedOnlineSession* Session = SessionInterface->GetNamedSession(SessionName);
@@ -93,7 +97,9 @@ void FOnlineAsyncTaskAccelByteUpdatePartyV2::Finalize()
 
 	if (bWasSuccessful)
 	{
-		const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(Subsystem->GetSessionInterface());
+		TRY_PIN_SUBSYSTEM()
+
+		const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(SubsystemPin->GetSessionInterface());
 		if (!ensure(SessionInterface.IsValid()))
 		{
 			AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to finalize updating party session as our session interface is invalid!"));
@@ -108,9 +114,11 @@ void FOnlineAsyncTaskAccelByteUpdatePartyV2::Finalize()
 
 void FOnlineAsyncTaskAccelByteUpdatePartyV2::TriggerDelegates()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
-	const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(Subsystem->GetSessionInterface());
+	const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(SubsystemPin->GetSessionInterface());
 	if (!ensure(SessionInterface.IsValid()))
 	{
 		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to trigger delegates for updating party session as our session interface is invalid!"));
@@ -155,9 +163,11 @@ void FOnlineAsyncTaskAccelByteUpdatePartyV2::OnUpdatePartySessionError(int32 Err
 
 void FOnlineAsyncTaskAccelByteUpdatePartyV2::RefreshSession()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 
-	const TSharedPtr<FOnlineSessionV2AccelByte, ESPMode::ThreadSafe> SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(Subsystem->GetSessionInterface());
+	const TSharedPtr<FOnlineSessionV2AccelByte, ESPMode::ThreadSafe> SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(SubsystemPin->GetSessionInterface());
 	AB_ASYNC_TASK_ENSURE(SessionInterface.IsValid(), "Could not refresh party session named '%s' as our session interface is invalid!", *SessionName.ToString());
 
 	FNamedOnlineSession* Session = SessionInterface->GetNamedSession(SessionName);
@@ -176,9 +186,11 @@ void FOnlineAsyncTaskAccelByteUpdatePartyV2::RefreshSession()
 
 void FOnlineAsyncTaskAccelByteUpdatePartyV2::OnRefreshPartySessionSuccess(const FAccelByteModelsV2PartySession& Result)
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 
-	const TSharedPtr<FOnlineSessionV2AccelByte, ESPMode::ThreadSafe> SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(Subsystem->GetSessionInterface());
+	const TSharedPtr<FOnlineSessionV2AccelByte, ESPMode::ThreadSafe> SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(SubsystemPin->GetSessionInterface());
 	if (SessionInterface.IsValid())
 	{
 		SessionInterface->UpdateInternalPartySession(SessionName, Result);

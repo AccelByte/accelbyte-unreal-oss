@@ -34,6 +34,17 @@ bool FOnlineChatAccelByte::GetFromSubsystem(const IOnlineSubsystem* Subsystem, F
 	return OutInterfaceInstance.IsValid();
 }
 
+bool FOnlineChatAccelByte::GetFromSubsystem(FOnlineSubsystemAccelByte* Subsystem, FOnlineChatAccelBytePtr& OutInterfaceInstance)
+{
+	if (Subsystem == nullptr)
+	{
+		return false;
+	}
+
+	OutInterfaceInstance = StaticCastSharedPtr<FOnlineChatAccelByte>(Subsystem->GetChatInterface());
+	return OutInterfaceInstance.IsValid();
+}
+
 bool FOnlineChatAccelByte::GetFromWorld(const UWorld* World, FOnlineChatAccelBytePtr& OutInterfaceInstance)
 {
 	const IOnlineSubsystem* Subsystem = ::Online::GetSubsystem(World);

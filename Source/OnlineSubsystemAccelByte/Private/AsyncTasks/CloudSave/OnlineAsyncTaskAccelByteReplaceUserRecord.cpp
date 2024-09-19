@@ -28,6 +28,8 @@ FOnlineAsyncTaskAccelByteReplaceUserRecord::FOnlineAsyncTaskAccelByteReplaceUser
 
 void FOnlineAsyncTaskAccelByteReplaceUserRecord::Initialize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	Super::Initialize();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("replacing user record, UserId: %s"), UserId.IsValid() ? *UserId->ToDebugString() : *TargetUserId);
@@ -37,7 +39,7 @@ void FOnlineAsyncTaskAccelByteReplaceUserRecord::Initialize()
 	
 	if (IsRunningDedicatedServer())
 	{
-		const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(Subsystem->GetIdentityInterface());
+		const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(SubsystemPin->GetIdentityInterface());
 		if (!IdentityInterface.IsValid())
 		{
 			AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to replace user record, identity interface is invalid!"));
@@ -66,7 +68,9 @@ void FOnlineAsyncTaskAccelByteReplaceUserRecord::Initialize()
 
 void FOnlineAsyncTaskAccelByteReplaceUserRecord::Finalize()
 {
-	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = Subsystem->GetPredefinedEventInterface();
+	TRY_PIN_SUBSYSTEM()
+
+	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = SubsystemPin->GetPredefinedEventInterface();
 	if (bWasSuccessful && PredefinedEventInterface.IsValid())
 	{
 		FAccelByteModelsPlayerRecordUpdatedPayload PlayerRecordUpdatedPayload{};
@@ -82,9 +86,11 @@ void FOnlineAsyncTaskAccelByteReplaceUserRecord::Finalize()
 
 void FOnlineAsyncTaskAccelByteReplaceUserRecord::TriggerDelegates()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
-	const FOnlineCloudSaveAccelBytePtr CloudSaveInterface = Subsystem->GetCloudSaveInterface();
+	const FOnlineCloudSaveAccelBytePtr CloudSaveInterface = SubsystemPin->GetCloudSaveInterface();
 	if (CloudSaveInterface.IsValid())
 	{
 		if (bWasSuccessful)

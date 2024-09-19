@@ -57,12 +57,14 @@ void FOnlineAsyncTaskAccelByteSendReadyToAMS::TriggerDelegates()
 
 void FOnlineAsyncTaskAccelByteSendReadyToAMS::Finalize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 	UnbindDelegates();
 	if (bWasSuccessful)
 	{
 		FOnlineSessionV2AccelBytePtr SessionInterface;
-		if (!ensure(FOnlineSessionV2AccelByte::GetFromSubsystem(Subsystem, SessionInterface)))
+		if (!ensure(FOnlineSessionV2AccelByte::GetFromSubsystem(SubsystemPin.Get(), SessionInterface)))
 		{
 			AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to ConnectToDSHub after Sending Ready to AMS as our session interface is invalid!"));
 			return;
@@ -75,6 +77,8 @@ void FOnlineAsyncTaskAccelByteSendReadyToAMS::Finalize()
 
 void FOnlineAsyncTaskAccelByteSendReadyToAMS::OnAMSConnectSuccess()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 
 #if !AB_USE_V2_SESSIONS
@@ -84,7 +88,7 @@ void FOnlineAsyncTaskAccelByteSendReadyToAMS::OnAMSConnectSuccess()
 	return;
 #endif
 
-	const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(Subsystem->GetSessionInterface());
+	const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(SubsystemPin->GetSessionInterface());
 	if (ensure(SessionInterface.IsValid()))
 	{
 		SessionInterface->SendReadyToAMS();

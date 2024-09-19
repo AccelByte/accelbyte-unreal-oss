@@ -81,10 +81,11 @@ void FOnlineAsyncTaskAccelByteFindV1Sessions::Finalize()
 
 void FOnlineAsyncTaskAccelByteFindV1Sessions::TriggerDelegates()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 
-	check(Subsystem != nullptr);
-	const IOnlineSessionPtr SessionInterface = Subsystem->GetSessionInterface();
+	const IOnlineSessionPtr SessionInterface = SubsystemPin->GetSessionInterface();
 	SessionInterface->TriggerOnFindSessionsCompleteDelegates(bWasSuccessful);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
@@ -92,6 +93,8 @@ void FOnlineAsyncTaskAccelByteFindV1Sessions::TriggerDelegates()
 
 void FOnlineAsyncTaskAccelByteFindV1Sessions::OnSessionBrowserFindSuccess(const FAccelByteModelsSessionBrowserGetResult& Result)
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Session Count: %d"), Result.Sessions.Num());
 
 	if (SearchSettings->SearchState != EOnlineAsyncTaskState::InProgress)
@@ -101,7 +104,7 @@ void FOnlineAsyncTaskAccelByteFindV1Sessions::OnSessionBrowserFindSuccess(const 
 		return;
 	}
 
-	const TSharedPtr<FOnlineSessionV1AccelByte, ESPMode::ThreadSafe> SessionInterface = StaticCastSharedPtr<FOnlineSessionV1AccelByte>(Subsystem->GetSessionInterface());
+	const TSharedPtr<FOnlineSessionV1AccelByte, ESPMode::ThreadSafe> SessionInterface = StaticCastSharedPtr<FOnlineSessionV1AccelByte>(SubsystemPin->GetSessionInterface());
 	if (!ensure(SessionInterface.IsValid()))
 	{
 		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to finalize finding a game session as our session interface is invalid!"));

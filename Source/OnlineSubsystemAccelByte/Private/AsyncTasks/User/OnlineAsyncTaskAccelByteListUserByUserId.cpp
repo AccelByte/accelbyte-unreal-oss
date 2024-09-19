@@ -24,11 +24,13 @@ FOnlineAsyncTaskAccelByteListUserByUserId::FOnlineAsyncTaskAccelByteListUserByUs
 } 
 void FOnlineAsyncTaskAccelByteListUserByUserId::Initialize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 
 	Super::Initialize();
 
-	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(Subsystem->GetIdentityInterface());
+	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(SubsystemPin->GetIdentityInterface());
 	if (!IdentityInterface.IsValid())
 	{
 		FString ErrorCode = FString::Printf(TEXT("%d"), ErrorCodes::InvalidRequest);
@@ -75,11 +77,13 @@ void FOnlineAsyncTaskAccelByteListUserByUserId::Initialize()
 
 void FOnlineAsyncTaskAccelByteListUserByUserId::TriggerDelegates()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
     Super::TriggerDelegates();
  
-	const FOnlineUserAccelBytePtr UserInterface = StaticCastSharedPtr<FOnlineUserAccelByte>(Subsystem->GetUserInterface());  
+	const FOnlineUserAccelBytePtr UserInterface = StaticCastSharedPtr<FOnlineUserAccelByte>(SubsystemPin->GetUserInterface());
 	if (UserInterface.IsValid())
 	{
 		if (bWasSuccessful)

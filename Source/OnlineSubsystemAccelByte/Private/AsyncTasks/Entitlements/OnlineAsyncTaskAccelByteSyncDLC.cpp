@@ -19,6 +19,8 @@ FOnlineAsyncTaskAccelByteSyncDLC::FOnlineAsyncTaskAccelByteSyncDLC(FOnlineSubsys
 
 void FOnlineAsyncTaskAccelByteSyncDLC::Initialize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	Super::Initialize();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
@@ -26,7 +28,7 @@ void FOnlineAsyncTaskAccelByteSyncDLC::Initialize()
 	const FVoidHandler OnSuccessDelegate = TDelegateUtils<FVoidHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteSyncDLC::OnSyncDLCSuccess);
 	const FErrorHandler OnErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteSyncDLC::OnSyncDLCFailed);
 
-	const FName NativeSubsystemName = Subsystem->GetNativePlatformName();
+	const FName NativeSubsystemName = SubsystemPin->GetNativePlatformName();
 
 	API_CLIENT_CHECK_GUARD(Error);
 	// Use the respective API sync depending on the platform user is on
@@ -43,7 +45,7 @@ void FOnlineAsyncTaskAccelByteSyncDLC::Initialize()
 	{
 		FAccelByteModelsXBoxDLCSync XboxDLCSync;
 
-		IOnlineSubsystem* PlatformSubsystem = Subsystem->GetNativePlatformSubsystem();
+		IOnlineSubsystem* PlatformSubsystem = SubsystemPin->GetNativePlatformSubsystem();
 		if (PlatformSubsystem == nullptr)
 		{
 			CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState);
@@ -79,7 +81,7 @@ void FOnlineAsyncTaskAccelByteSyncDLC::Initialize()
 		FAccelByteModelsPlayStationDLCSync PSSyncModel;
 
 		int32 ServiceLabel = 0;
-		const FOnlineStoreV2AccelBytePtr StoreInt = StaticCastSharedPtr<FOnlineStoreV2AccelByte>(Subsystem->GetStoreV2Interface());
+		const FOnlineStoreV2AccelBytePtr StoreInt = StaticCastSharedPtr<FOnlineStoreV2AccelByte>(SubsystemPin->GetStoreV2Interface());
 		if (StoreInt.IsValid())
 		{
 			ServiceLabel = StoreInt->GetServiceLabel();
@@ -104,7 +106,7 @@ void FOnlineAsyncTaskAccelByteSyncDLC::Initialize()
 		FAccelByteModelsPlayStationDLCSync PSSyncModel;
 
 		int32 ServiceLabel = 0;
-		const FOnlineStoreV2AccelBytePtr StoreInt = StaticCastSharedPtr<FOnlineStoreV2AccelByte>(Subsystem->GetStoreV2Interface());
+		const FOnlineStoreV2AccelBytePtr StoreInt = StaticCastSharedPtr<FOnlineStoreV2AccelByte>(SubsystemPin->GetStoreV2Interface());
 		if (StoreInt.IsValid())
 		{
 			ServiceLabel = StoreInt->GetServiceLabel();
@@ -127,7 +129,7 @@ void FOnlineAsyncTaskAccelByteSyncDLC::Initialize()
 	if (NativeSubsystemName == EOS_SUBSYSTEM)
 	{
 		FString EpicGamesJwtToken = TEXT("");
-		IOnlineSubsystem* PlatformSubsystem = Subsystem->GetNativePlatformSubsystem();
+		IOnlineSubsystem* PlatformSubsystem = SubsystemPin->GetNativePlatformSubsystem();
 		if (PlatformSubsystem == nullptr)
 		{
 			CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState);

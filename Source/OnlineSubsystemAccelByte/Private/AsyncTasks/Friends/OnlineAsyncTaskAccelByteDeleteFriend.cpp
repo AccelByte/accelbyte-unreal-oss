@@ -21,13 +21,15 @@ FOnlineAsyncTaskAccelByteDeleteFriend::FOnlineAsyncTaskAccelByteDeleteFriend(FOn
 
 void FOnlineAsyncTaskAccelByteDeleteFriend::Initialize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	Super::Initialize();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("LocalUserNum: %d; FriendId: %s"), LocalUserNum, *FriendId->ToDebugString());
 
 	// Attempt to get a pointer to the friend in the friends list to make sure that we have them in our friends list
 	// otherwise the request to delete them as a friend will fail
-	const IOnlineFriendsPtr FriendsInterface = Subsystem->GetFriendsInterface();
+	const IOnlineFriendsPtr FriendsInterface = SubsystemPin->GetFriendsInterface();
 	const TSharedPtr<FOnlineFriend> InviteeFriend = FriendsInterface->GetFriend(LocalUserNum, FriendId.Get(), ListName);
 
 	// Check if we have the friend in our list currently, as well as whether the friend in our list is currently our friend
@@ -72,15 +74,17 @@ void FOnlineAsyncTaskAccelByteDeleteFriend::Initialize()
 
 void FOnlineAsyncTaskAccelByteDeleteFriend::Finalize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
 	// If the request was successful, then we want to get rid of this user from our friends list
 	if (bWasSuccessful)
 	{
-		const TSharedPtr<FOnlineFriendsAccelByte, ESPMode::ThreadSafe> FriendInterface = StaticCastSharedPtr<FOnlineFriendsAccelByte>(Subsystem->GetFriendsInterface());
+		const TSharedPtr<FOnlineFriendsAccelByte, ESPMode::ThreadSafe> FriendInterface = StaticCastSharedPtr<FOnlineFriendsAccelByte>(SubsystemPin->GetFriendsInterface());
 		FriendInterface->RemoveFriendFromList(LocalUserNum, FriendId);
 
-		const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = Subsystem->GetPredefinedEventInterface();
+		const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = SubsystemPin->GetPredefinedEventInterface();
 		if (PredefinedEventInterface.IsValid() && FriendId->IsValid())
 		{
 			if (InviteStatus == EInviteStatus::Accepted)
@@ -105,9 +109,11 @@ void FOnlineAsyncTaskAccelByteDeleteFriend::Finalize()
 
 void FOnlineAsyncTaskAccelByteDeleteFriend::TriggerDelegates()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
-	const IOnlineFriendsPtr FriendsInterface = Subsystem->GetFriendsInterface();
+	const IOnlineFriendsPtr FriendsInterface = SubsystemPin->GetFriendsInterface();
 	FriendsInterface->TriggerOnDeleteFriendCompleteDelegates(LocalUserNum, bWasSuccessful, FriendId.Get(), ListName, ErrorStr);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

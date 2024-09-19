@@ -19,11 +19,13 @@ FOnlineAsyncTaskAccelByteAddJoinedV1PartyMember::FOnlineAsyncTaskAccelByteAddJoi
 
 void FOnlineAsyncTaskAccelByteAddJoinedV1PartyMember::Initialize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	Super::Initialize();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("UserId: %s; PartyId: %s; JoinedAccelByteId: %s"), *UserId->ToDebugString(), *Party->PartyId->ToString(), *JoinedAccelByteId);
 
-	FOnlineUserCacheAccelBytePtr UserStore = Subsystem->GetUserCache();
+	FOnlineUserCacheAccelBytePtr UserStore = SubsystemPin->GetUserCache();
 	if (!UserStore.IsValid())
 	{
 		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Could not add user '%s' to party member list as our user store instance is invalid!"), *JoinedAccelByteId);
@@ -52,6 +54,8 @@ void FOnlineAsyncTaskAccelByteAddJoinedV1PartyMember::Tick()
 
 void FOnlineAsyncTaskAccelByteAddJoinedV1PartyMember::Finalize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
 	if (bWasSuccessful)
@@ -61,7 +65,7 @@ void FOnlineAsyncTaskAccelByteAddJoinedV1PartyMember::Finalize()
 		Party->AddMember(UserId.ToSharedRef(), NewMember);
 		Party->RemoveInvite(UserId.ToSharedRef(), JoinedPartyMember->Id.ToSharedRef(), EPartyInvitationRemovedReason::Accepted);
 
-		const TSharedPtr<FOnlinePartySystemAccelByte, ESPMode::ThreadSafe> PartyInterface = StaticCastSharedPtr<FOnlinePartySystemAccelByte>(Subsystem->GetPartyInterface());
+		const TSharedPtr<FOnlinePartySystemAccelByte, ESPMode::ThreadSafe> PartyInterface = StaticCastSharedPtr<FOnlinePartySystemAccelByte>(SubsystemPin->GetPartyInterface());
 		PartyInterface->AddPartyToInterface(JoinedPartyMember->Id.ToSharedRef(), Party);
 	}
 

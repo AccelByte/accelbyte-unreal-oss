@@ -37,17 +37,21 @@ void FOnlineAsyncTaskAccelByteUnlinkOtherPlatform::Initialize()
 
 void FOnlineAsyncTaskAccelByteUnlinkOtherPlatform::Finalize()
 {
-	const FOnlineUserCacheAccelBytePtr UserCacheInterface = Subsystem->GetUserCache();
+	TRY_PIN_SUBSYSTEM()
+
+	const FOnlineUserCacheAccelBytePtr UserCacheInterface = SubsystemPin->GetUserCache();
 	auto LinkedUser = UserCacheInterface->GetUser(*UserId.Get());
 	UserCacheInterface->SetUserDataAsStale(LinkedUser->Id->GetAccelByteId());
 }
 
 void FOnlineAsyncTaskAccelByteUnlinkOtherPlatform::TriggerDelegates()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("TriggerDelegates"));
 	FOnlineAsyncTaskAccelByte::TriggerDelegates();
 	
-	const FOnlineUserAccelBytePtr UserInterface = StaticCastSharedPtr<FOnlineUserAccelByte>(Subsystem->GetUserInterface());  
+	const FOnlineUserAccelBytePtr UserInterface = StaticCastSharedPtr<FOnlineUserAccelByte>(SubsystemPin->GetUserInterface());
 	if (UserInterface.IsValid())
 	{
 		UserInterface->TriggerOnUnlinkOtherPlatformCompleteDelegates(bWasSuccessful, OnlineError);

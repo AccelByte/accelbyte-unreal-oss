@@ -54,12 +54,14 @@ void FOnlineAsyncTaskAccelByteGroupsUpdateGroupInfo::TriggerDelegates()
 
 void FOnlineAsyncTaskAccelByteGroupsUpdateGroupInfo::Finalize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	Super::Finalize();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 
 	FOnlineGroupsAccelBytePtr GroupsInterface;
-	if(!ensure(FOnlineGroupsAccelByte::GetFromSubsystem(Subsystem, GroupsInterface)))
+	if(!ensure(FOnlineGroupsAccelByte::GetFromSubsystem(SubsystemPin.Get(),  GroupsInterface)))
 	{
 		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to UpdateGroupInfo, groups interface instance is not valid!"));
 		return;
@@ -77,7 +79,7 @@ void FOnlineAsyncTaskAccelByteGroupsUpdateGroupInfo::Finalize()
 
 	CurrentGroupData->SetCachedABGroupInfo(AccelByteModelsGroupInformation);
 
-	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = Subsystem->GetPredefinedEventInterface();
+	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = SubsystemPin->GetPredefinedEventInterface();
 	if (PredefinedEventInterface.IsValid())
 	{
 		FAccelByteModelsGroupUpdatedPayload GroupUpdatedPayload{};

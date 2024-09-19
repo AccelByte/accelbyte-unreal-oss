@@ -7,10 +7,11 @@
 
 using namespace AccelByte;
 
-FOnlineAsyncTaskAccelByteLeaveV2GameSession::FOnlineAsyncTaskAccelByteLeaveV2GameSession(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InLocalUserId, const FString& InSessionId, const FOnLeaveSessionComplete& InDelegate)
+FOnlineAsyncTaskAccelByteLeaveV2GameSession::FOnlineAsyncTaskAccelByteLeaveV2GameSession(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InLocalUserId, const FString& InSessionId, const FOnLeaveSessionComplete& InDelegate, bool bInUserKicked)
 	: FOnlineAsyncTaskAccelByte(InABInterface)
 	, SessionId(InSessionId)
 	, Delegate(InDelegate)
+	, bUserKicked(bInUserKicked)
 {
 	UserId = FUniqueNetIdAccelByteUser::CastChecked(InLocalUserId);
 }
@@ -20,6 +21,13 @@ void FOnlineAsyncTaskAccelByteLeaveV2GameSession::Initialize()
 	Super::Initialize();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("PlayerId: %s; SessionId: %s"), *UserId->ToDebugString(), *SessionId);
+
+	if (bUserKicked)
+	{
+		CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
+		AB_OSS_ASYNC_TASK_TRACE_END(TEXT("User is kicked, skipping leave game session and mark this task as success."));
+		return;
+	}
 
 	OnLeaveGameSessionSuccessDelegate = TDelegateUtils<FVoidHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteLeaveV2GameSession::OnLeaveGameSessionSuccess);
 	OnLeaveGameSessionErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteLeaveV2GameSession::OnLeaveGameSessionError);
@@ -31,11 +39,13 @@ void FOnlineAsyncTaskAccelByteLeaveV2GameSession::Initialize()
 
 void FOnlineAsyncTaskAccelByteLeaveV2GameSession::Finalize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
 	// Regardless of whether we successfully left or not, we still want to destroy the session or remove the restored
 	// instance. Session worker on backend should remove us after a timeout even if the call fails.
-	const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(Subsystem->GetSessionInterface());
+	const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(SubsystemPin->GetSessionInterface());
 	if (!ensure(SessionInterface.IsValid()))
 	{
 		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to finalize leaving game session as our session interface is invalid!"));
@@ -60,7 +70,7 @@ void FOnlineAsyncTaskAccelByteLeaveV2GameSession::Finalize()
 		SessionInterface->CurrentMatchmakingSearchHandle.Reset();
 	}
 
-	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = Subsystem->GetPredefinedEventInterface();
+	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = SubsystemPin->GetPredefinedEventInterface();
 	if (bWasSuccessful && PredefinedEventInterface.IsValid())
 	{
 		FAccelByteModelsMPV2GameSessionLeftPayload GameSessionLeftPayload{};
@@ -74,9 +84,11 @@ void FOnlineAsyncTaskAccelByteLeaveV2GameSession::Finalize()
 
 void FOnlineAsyncTaskAccelByteLeaveV2GameSession::TriggerDelegates()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
-	const TSharedPtr<FOnlineSessionV2AccelByte, ESPMode::ThreadSafe> SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(Subsystem->GetSessionInterface());
+	const TSharedPtr<FOnlineSessionV2AccelByte, ESPMode::ThreadSafe> SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(SubsystemPin->GetSessionInterface());
 	if (!ensure(SessionInterface.IsValid()))
 	{
 		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to trigger delegates for leaving game session as our session interface is invalid!"));

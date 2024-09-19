@@ -37,10 +37,12 @@ void FOnlineAsyncTaskAccelByteUnlinkOtherPlatformId::Initialize()
 
 void FOnlineAsyncTaskAccelByteUnlinkOtherPlatformId::TriggerDelegates()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("TriggerDelegates"));
 	FOnlineAsyncTaskAccelByte::TriggerDelegates();
 	
-	const FOnlineUserAccelBytePtr UserInterface = StaticCastSharedPtr<FOnlineUserAccelByte>(Subsystem->GetUserInterface());  
+	const FOnlineUserAccelBytePtr UserInterface = StaticCastSharedPtr<FOnlineUserAccelByte>(SubsystemPin->GetUserInterface());
 	if (UserInterface.IsValid())
 	{
 		UserInterface->TriggerOnUnlinkOtherPlatformIdCompleteDelegates(bWasSuccessful, OnlineError);

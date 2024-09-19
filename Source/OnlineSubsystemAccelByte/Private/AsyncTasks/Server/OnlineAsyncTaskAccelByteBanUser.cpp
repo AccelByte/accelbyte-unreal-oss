@@ -18,11 +18,13 @@ FOnlineAsyncTaskAccelByteBanUser::FOnlineAsyncTaskAccelByteBanUser(FOnlineSubsys
 
 void FOnlineAsyncTaskAccelByteBanUser::Initialize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	Super::Initialize();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("UserID: %s"), *UserId);
 
-	const IOnlineSessionPtr SessionInterface = Subsystem->GetSessionInterface();
+	const IOnlineSessionPtr SessionInterface = SubsystemPin->GetSessionInterface();
 	check(SessionInterface != nullptr);
 
 	const FVoidHandler OnSuccessDelegate = TDelegateUtils<FVoidHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteBanUser::OnSuccess);

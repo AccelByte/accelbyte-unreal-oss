@@ -36,11 +36,13 @@ void FOnlineAsyncTaskAccelByteBulkGetPublicUserRecord::Initialize()
 
 void FOnlineAsyncTaskAccelByteBulkGetPublicUserRecord::Finalize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	Super::Finalize();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Finalize"));
 
-	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = Subsystem->GetPredefinedEventInterface();
+	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = SubsystemPin->GetPredefinedEventInterface();
 	if (bWasSuccessful && PredefinedEventInterface.IsValid())
 	{
 		FAccelByteModelsPublicPlayerRecordGetSameRecordsFromUsersPayload PublicPlayerRecordGetSameRecordsFromUsersPayload{};
@@ -54,9 +56,11 @@ void FOnlineAsyncTaskAccelByteBulkGetPublicUserRecord::Finalize()
 
 void FOnlineAsyncTaskAccelByteBulkGetPublicUserRecord::TriggerDelegates()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
-	const FOnlineCloudSaveAccelBytePtr CloudSaveInterface = Subsystem->GetCloudSaveInterface();
+	const FOnlineCloudSaveAccelBytePtr CloudSaveInterface = SubsystemPin->GetCloudSaveInterface();
 	if (CloudSaveInterface.IsValid())
 	{
 		if (bWasSuccessful)

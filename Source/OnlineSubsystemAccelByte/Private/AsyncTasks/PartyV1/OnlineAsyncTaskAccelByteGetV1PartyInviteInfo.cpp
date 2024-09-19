@@ -18,11 +18,13 @@ FOnlineAsyncTaskAccelByteGetV1PartyInviteInfo::FOnlineAsyncTaskAccelByteGetV1Par
 
 void FOnlineAsyncTaskAccelByteGetV1PartyInviteInfo::Initialize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	Super::Initialize();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("UserId: %s; Sender ID: %s"), *UserId->ToDebugString(), *Notification.From);
 
-	FOnlineUserCacheAccelBytePtr UserStore = Subsystem->GetUserCache();
+	FOnlineUserCacheAccelBytePtr UserStore = SubsystemPin->GetUserCache();
 	if (!UserStore.IsValid())
 	{
 		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Could not get party invitation information from sender '%s' as our user store instance is invalid!"), *Notification.From);
@@ -41,11 +43,13 @@ void FOnlineAsyncTaskAccelByteGetV1PartyInviteInfo::Initialize()
 
 void FOnlineAsyncTaskAccelByteGetV1PartyInviteInfo::Finalize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
 	if (bWasSuccessful)
 	{
-		const TSharedPtr<FOnlinePartySystemAccelByte, ESPMode::ThreadSafe> PartyInterface = StaticCastSharedPtr<FOnlinePartySystemAccelByte>(Subsystem->GetPartyInterface());
+		const TSharedPtr<FOnlinePartySystemAccelByte, ESPMode::ThreadSafe> PartyInterface = StaticCastSharedPtr<FOnlinePartySystemAccelByte>(SubsystemPin->GetPartyInterface());
 		if (PartyInterface.IsValid())
 		{
 			// First, create a new shared ref for the party ID

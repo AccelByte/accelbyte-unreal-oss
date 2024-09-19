@@ -21,6 +21,8 @@ FOnlineAsyncTaskAccelByteChatSendPersonalChat::FOnlineAsyncTaskAccelByteChatSend
 
 void FOnlineAsyncTaskAccelByteChatSendPersonalChat::Initialize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	Super::Initialize();
 	
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
@@ -28,7 +30,7 @@ void FOnlineAsyncTaskAccelByteChatSendPersonalChat::Initialize()
 	RoomId = FOnlineChatAccelByte::PersonalChatTopicId(UserId->GetAccelByteId(), RecipientId->GetAccelByteId());
 
 	FOnlineChatAccelBytePtr ChatInterface;
-	if(!ensure(FOnlineChatAccelByte::GetFromSubsystem(Subsystem, ChatInterface)))
+	if(!ensure(FOnlineChatAccelByte::GetFromSubsystem(SubsystemPin.Get(),  ChatInterface)))
 	{
 		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to send personal chat as our chat interface instance is not valid!"));
 		CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState);
@@ -49,12 +51,14 @@ void FOnlineAsyncTaskAccelByteChatSendPersonalChat::Initialize()
 
 void FOnlineAsyncTaskAccelByteChatSendPersonalChat::TriggerDelegates()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	Super::TriggerDelegates();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 
 	FOnlineChatAccelBytePtr ChatInterface;
-	if (!ensure(FOnlineChatAccelByte::GetFromSubsystem(Subsystem, ChatInterface)))
+	if (!ensure(FOnlineChatAccelByte::GetFromSubsystem(SubsystemPin.Get(),  ChatInterface)))
 	{
 		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to send chat message as our chat interface instance is not valid!"));
 		return;
@@ -74,6 +78,8 @@ void FOnlineAsyncTaskAccelByteChatSendPersonalChat::TriggerDelegates()
 
 void FOnlineAsyncTaskAccelByteChatSendPersonalChat::Finalize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	Super::Finalize();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
@@ -81,7 +87,7 @@ void FOnlineAsyncTaskAccelByteChatSendPersonalChat::Finalize()
 	if(bWasSuccessful)
 	{
 		FOnlineChatAccelBytePtr ChatInterface;
-		if (!ensure(FOnlineChatAccelByte::GetFromSubsystem(Subsystem, ChatInterface)))
+		if (!ensure(FOnlineChatAccelByte::GetFromSubsystem(SubsystemPin.Get(),  ChatInterface)))
 		{
 			AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to send chat message as our chat interface instance is not valid!"));
 			return;
@@ -140,10 +146,12 @@ void FOnlineAsyncTaskAccelByteChatSendPersonalChat::OnCreatePersonalTopicError(i
 
 void FOnlineAsyncTaskAccelByteChatSendPersonalChat::OnCreatePersonalTopicSuccess(const FAccelByteModelsChatActionTopicResponse& Response)
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("TopicId: %s"), *Response.TopicId);
 
 	FOnlineChatAccelBytePtr ChatInterface;
-	if (ensure(FOnlineChatAccelByte::GetFromSubsystem(Subsystem, ChatInterface)))
+	if (ensure(FOnlineChatAccelByte::GetFromSubsystem(SubsystemPin.Get(),  ChatInterface)))
 	{
 		// Put into cache if not yet cached
 		if (ChatInterface->GetTopic(RoomId) == nullptr)
@@ -164,7 +172,7 @@ void FOnlineAsyncTaskAccelByteChatSendPersonalChat::OnCreatePersonalTopicSuccess
 	
 	SendPersonalChat();
 
-	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = Subsystem->GetPredefinedEventInterface();
+	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = SubsystemPin->GetPredefinedEventInterface();
 	if (PredefinedEventInterface.IsValid())
 	{
 		FAccelByteModelsChatV2PersonalTopicCreatedPayload TopicCreatedPayload{};

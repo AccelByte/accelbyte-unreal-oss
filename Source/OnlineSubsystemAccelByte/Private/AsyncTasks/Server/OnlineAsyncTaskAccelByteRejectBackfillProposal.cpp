@@ -33,6 +33,8 @@ void FOnlineAsyncTaskAccelByteRejectBackfillProposal::Initialize()
 
 void FOnlineAsyncTaskAccelByteRejectBackfillProposal::Finalize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	Super::Finalize();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
@@ -44,7 +46,7 @@ void FOnlineAsyncTaskAccelByteRejectBackfillProposal::Finalize()
 			// If we successfully rejected the proposal and we are removing this backfill ticket, then update session settings to
 			// remove there.
 			FOnlineSessionV2AccelBytePtr SessionInterface = nullptr;
-			if (!ensureAlways(FOnlineSessionV2AccelByte::GetFromSubsystem(Subsystem, SessionInterface)))
+			if (!ensureAlways(FOnlineSessionV2AccelByte::GetFromSubsystem(SubsystemPin.Get(), SessionInterface)))
 			{
 				AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to get session interface instance from online subsystem!"));
 				return;
@@ -60,7 +62,7 @@ void FOnlineAsyncTaskAccelByteRejectBackfillProposal::Finalize()
 			Session->SessionSettings.Remove(SETTING_MATCHMAKING_BACKFILL_TICKET_ID);
 		}
 
-		const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = Subsystem->GetPredefinedEventInterface();
+		const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = SubsystemPin->GetPredefinedEventInterface();
 		if (PredefinedEventInterface.IsValid())
 		{
 			FAccelByteModelsDSBackfillProposalRejectedPayload DSBackfillProposalRejectedPayload{};

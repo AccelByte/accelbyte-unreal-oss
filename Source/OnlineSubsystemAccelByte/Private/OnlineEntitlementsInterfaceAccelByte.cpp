@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2022 AccelByte Inc. All Rights Reserved.
+﻿// Copyright (c) 2024 AccelByte Inc. All Rights Reserved.
 // This is licensed software from AccelByte Inc, for limitations
 // and restrictions contact your company contract manager.
 
@@ -10,6 +10,8 @@
 #include "AsyncTasks/Entitlements/OnlineAsyncTaskAccelByteSyncDLC.h"
 #include "AsyncTasks/Entitlements/OnlineAsyncTaskAccelByteGetUserEntitlementHistory.h"
 #include "AsyncTasks/Entitlements/OnlineAsyncTaskAccelByteGetCurrentUserEntitlementHistory.h"
+#include "AsyncTasks/Entitlements/OnlineAsyncTaskAccelByteSyncPlatformGooglePlay.h"
+#include "AsyncTasks/Entitlements/OnlineAsyncTaskAccelByteSyncIOSAppStore.h"
 
 #pragma region FOnlineEntitlementAccelByte Methods
 bool FOnlineEntitlementAccelByte::GetAttribute(const FString& AttrName, FString& OutAttrValue) const
@@ -156,19 +158,39 @@ bool FOnlineEntitlementsAccelByte::QueryEntitlements(const FUniqueNetId& UserId,
 	return true;
 }
 
+void FOnlineEntitlementsAccelByte::ConsumeEntitlement(const FUniqueNetId& UserId, const FUniqueEntitlementId& EntitlementId, int32 UseCount, TArray<FString> Options, const FString& RequestId)
+{
+	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteConsumeEntitlement>(AccelByteSubsystem, UserId, EntitlementId, UseCount, Options, RequestId);
+}
+
 void FOnlineEntitlementsAccelByte::SyncPlatformPurchase(int32 LocalUserNum, FAccelByteModelsEntitlementSyncBase EntitlementSyncBase, const FOnRequestCompleted& CompletionDelegate)
 {
 	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteSyncPlatformPurchase>(AccelByteSubsystem, LocalUserNum, EntitlementSyncBase, CompletionDelegate);
 }
 
+void FOnlineEntitlementsAccelByte::SyncPlatformPurchase(int32 LocalUserNum, const TSharedRef<FPurchaseReceipt>& Receipt, const FOnRequestCompleted& CompletionDelegate)
+{
+	if(AccelByteSubsystem->GetNativePlatformNameString().Contains(TEXT("google")))
+	{
+		AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteSyncGooglePlay>(AccelByteSubsystem, LocalUserNum, Receipt, CompletionDelegate);
+		return;
+	}
+	else if (AccelByteSubsystem->GetNativePlatformNameString().Contains(TEXT("apple")))
+	{
+		AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteSyncIOSAppStore>(AccelByteSubsystem, LocalUserNum, Receipt, CompletionDelegate);
+		return;
+	}
+	CompletionDelegate.ExecuteIfBound(false, TEXT("Receipt not supported!"));
+}
+
+void FOnlineEntitlementsAccelByte::SyncPlatformPurchase(int32 LocalUserNum, const FAccelByteModelsPlatformSyncMobileGoogle& Request, const FOnRequestCompleted& CompletionDelegate)
+{
+	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteSyncGooglePlay>(AccelByteSubsystem, LocalUserNum, Request, CompletionDelegate);
+}
+
 void FOnlineEntitlementsAccelByte::SyncDLC(const FUniqueNetId& InLocalUserId, const FOnRequestCompleted& CompletionDelegate)
 {
 	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteSyncDLC>(AccelByteSubsystem, InLocalUserId, CompletionDelegate);
-}
-
-void FOnlineEntitlementsAccelByte::ConsumeEntitlement(const FUniqueNetId& UserId, const FUniqueEntitlementId& EntitlementId, int32 UseCount, TArray<FString> Options, const FString& RequestId)
-{
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteConsumeEntitlement>(AccelByteSubsystem, UserId, EntitlementId, UseCount, Options, RequestId);
 }
 
 void FOnlineEntitlementsAccelByte::GetCurrentUserEntitlementHistory(const FUniqueNetId& UserId, const FUniqueEntitlementId& EntitlementId)
@@ -353,3 +375,5 @@ TMap<FString, TArray<FAccelByteModelsBaseUserEntitlementHistory>> FOnlineEntitle
 
 	return MapEntitlementHistoryResult;
 }
+
+

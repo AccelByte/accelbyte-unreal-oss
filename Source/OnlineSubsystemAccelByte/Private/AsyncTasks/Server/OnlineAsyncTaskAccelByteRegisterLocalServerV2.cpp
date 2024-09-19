@@ -15,11 +15,13 @@ FOnlineAsyncTaskAccelByteRegisterLocalServerV2::FOnlineAsyncTaskAccelByteRegiste
 
 void FOnlineAsyncTaskAccelByteRegisterLocalServerV2::Initialize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	Super::Initialize();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 
-	const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(Subsystem->GetSessionInterface());
+	const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(SubsystemPin->GetSessionInterface());
 	AB_ASYNC_TASK_ENSURE(SessionInterface.IsValid(), "Failed to register local server as our session interface is invalid!");
 
 	FString LocalServerIp = TEXT("");
@@ -40,12 +42,14 @@ void FOnlineAsyncTaskAccelByteRegisterLocalServerV2::Initialize()
 
 void FOnlineAsyncTaskAccelByteRegisterLocalServerV2::Finalize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
 	if (bWasSuccessful)
 	{
 		FOnlineSessionV2AccelBytePtr SessionInterface;
-		if (!ensure(FOnlineSessionV2AccelByte::GetFromSubsystem(Subsystem, SessionInterface)))
+		if (!ensure(FOnlineSessionV2AccelByte::GetFromSubsystem(SubsystemPin.Get(), SessionInterface)))
 		{
 			AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to finalize registering local server as our session interface is invalid!"));
 			return;
@@ -56,7 +60,7 @@ void FOnlineAsyncTaskAccelByteRegisterLocalServerV2::Finalize()
 		// #NOTE Deliberately not checking session ID here as there's no way to have a buffer local server. Local servers
 		// should always be claimed later through the DS hub.
 
-		const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = Subsystem->GetPredefinedEventInterface();
+		const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = SubsystemPin->GetPredefinedEventInterface();
 		if (PredefinedEventInterface.IsValid())
 		{
 			FAccelByteModelsDSRegisteredPayload DSRegisteredPayload{};

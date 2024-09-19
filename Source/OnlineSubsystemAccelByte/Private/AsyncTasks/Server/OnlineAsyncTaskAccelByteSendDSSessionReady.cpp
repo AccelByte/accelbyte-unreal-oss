@@ -12,7 +12,9 @@ FOnlineAsyncTaskAccelByteSendDSSessionReady::FOnlineAsyncTaskAccelByteSendDSSess
 	: FOnlineAsyncTaskAccelByte(InABInterface, INVALID_CONTROLLERID, ASYNC_TASK_FLAG_BIT(EAccelByteAsyncTaskFlags::ServerTask))
 	, bIsServerReady(bInIsServerReady)
 {
-	FOnlineSessionV2AccelByte::GetFromSubsystem(Subsystem, SessionInterface);
+	TRY_PIN_SUBSYSTEM_CONSTRUCTOR()
+
+	FOnlineSessionV2AccelByte::GetFromSubsystem(SubsystemPin.Get(), SessionInterface);
 }
 
 void FOnlineAsyncTaskAccelByteSendDSSessionReady::Initialize()

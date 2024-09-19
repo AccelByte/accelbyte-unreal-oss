@@ -452,6 +452,7 @@ DECLARE_DELEGATE_OneParam(FOnRegisterServerComplete, bool /*bWasSuccessful*/);
 DECLARE_DELEGATE_OneParam(FOnUnregisterServerComplete, bool /*bWasSuccessful*/);
 DECLARE_DELEGATE_TwoParams(FOnLeaveSessionComplete, bool /*bWasSuccessful*/, FString /*SessionId*/);
 DECLARE_DELEGATE_OneParam(FOnRefreshSessionComplete, bool /*bWasSuccessful*/);
+DECLARE_DELEGATE_TwoParams(FOnRefreshActiveSessionsComplete, bool /*bWasSuccessful*/, const TArray<FName>& /*RemovedSessionNames*/);
 DECLARE_DELEGATE_OneParam(FOnRejectSessionInviteComplete, bool /*bWasSuccessful*/);
 DECLARE_DELEGATE_OneParam(FOnAcceptBackfillProposalComplete, bool /*bWasSuccessful*/);
 DECLARE_DELEGATE_OneParam(FOnRejectBackfillProposalComplete, bool /*bWasSuccessful*/);
@@ -543,6 +544,9 @@ typedef FOnServerQueryGameSessionsComplete::FDelegate FOnServerQueryGameSessions
 DECLARE_MULTICAST_DELEGATE_TwoParams(FOnServerQueryPartySessionsComplete, const FAccelByteModelsV2PaginatedPartyQueryResult& /*PartySessionsQueryResult*/, const FOnlineError& /*ErrorInfo*/)
 typedef FOnServerQueryPartySessionsComplete::FDelegate FOnServerQueryPartySessionsCompleteDelegate;
 
+DECLARE_MULTICAST_DELEGATE_TwoParams(FOnQueryGameSessionHistoryComplete, const TArray<FAccelByteModelsGameSessionHistoriesData>& /*SessionHistoriesResult*/, const FOnlineError& /*ErrorInfo*/)
+typedef FOnQueryGameSessionHistoryComplete::FDelegate FOnQueryGameSessionHistoryCompleteDelegate;
+
 DECLARE_MULTICAST_DELEGATE_TwoParams(FOnPromoteGameSessionLeaderComplete, const FUniqueNetId& /*PromotedUserId*/, const FOnlineErrorAccelByte& /*Result*/);
 typedef FOnPromoteGameSessionLeaderComplete::FDelegate FOnPromoteGameSessionLeaderCompleteDelegate;
 
@@ -576,6 +580,14 @@ typedef FOnSessionInviteCanceled::FDelegate FOnSessionInviteCanceledDelegate;
  */
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnSessionRemoved, FName /*SessionName*/);
 typedef FOnSessionRemoved::FDelegate FOnSessionRemovedDelegate;
+
+/**
+ * Delegate broadcast when an attempt by the session interface to automatically join a session has completed. If unsuccessful,
+ * you may call 'FindSessionById' or 'FindSessionByStringId' to retry retrieving session data. If that is successful, a
+ * 'JoinSession' call should be used to populate the session into local state.
+ */
+DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnAutoJoinGameSessionComplete, int32 /*LocalUserNum*/, bool /*bWasSuccessful*/, FString /*SessionId*/);
+typedef FOnAutoJoinGameSessionComplete::FDelegate FOnAutoJoinGameSessionCompleteDelegate;
 //~ End custom delegates
 
 class ONLINESUBSYSTEMACCELBYTE_API FOnlineSessionV2AccelByte : public IOnlineSession, public TSharedFromThis<FOnlineSessionV2AccelByte, ESPMode::ThreadSafe>
@@ -591,6 +603,7 @@ public:
 	 * @returns boolean that is true if we could get an instance of the interface, false otherwise
 	 */
 	static bool GetFromSubsystem(const IOnlineSubsystem* Subsystem, TSharedPtr<FOnlineSessionV2AccelByte, ESPMode::ThreadSafe>& OutInterfaceInstance);
+	static bool GetFromSubsystem(const FOnlineSubsystemAccelByte* Subsystem, TSharedPtr<FOnlineSessionV2AccelByte, ESPMode::ThreadSafe>& OutInterfaceInstance);
 
 	/**
 	 * Convenience method to get an instance of this interface from the subsystem associated with the world passed in.
@@ -833,6 +846,11 @@ public:
 	bool SetSessionMaxPlayerCount(FOnlineSession* Session, int32 NewMaxPlayerCount) const;
 
 	/**
+	 * Method to query a list of session history data from backend for current user.
+	 */
+	void QueryGameSessionHistory(int32 LocalUserNum, EAccelByteGeneralSortBy const& SortBy, FPagedQuery const& Page);
+
+	/**
 	 * Method to manually refresh a session's data from the backend. Use to reconcile state between client and backend if
 	 * notifications are missed or other issues arise.
 	 *
@@ -841,6 +859,13 @@ public:
 	 * @returns true if call was made to refresh session, false otherwise
 	 */
 	bool RefreshSession(const FName& SessionName, const FOnRefreshSessionComplete& Delegate);
+
+	/**
+	 * Refresh all active session locally with backend
+	 * @param Delegate Fired when finish refreshing data for all the session
+	 * @return 
+	 */
+	bool RefreshActiveSessions(const FOnRefreshActiveSessionsComplete& Delegate);
 
 	/**
 	 * Create a backfill ticket for the session provided. This will queue your session to be backfilled with users from
@@ -1289,6 +1314,11 @@ public:
 	DEFINE_ONLINE_DELEGATE_TWO_PARAM(OnServerQueryPartySessionsComplete, const FAccelByteModelsV2PaginatedPartyQueryResult& /*PartySessionsQueryResult*/, const FOnlineError& /*ErrorInfo*/)
 
 	/**
+	 * Delegate fired when query session histories complete
+	 */
+	DEFINE_ONLINE_DELEGATE_TWO_PARAM(OnQueryGameSessionHistoryComplete, const TArray<FAccelByteModelsGameSessionHistoriesData>& /*SessionHistoriesResult*/, const FOnlineError& /*ErrorInfo*/)
+
+	/**
 	 * Delegate fired when get my active match ticket complete,
 	 * SearchHandle will be invalid if no active ticket is found.
 	 */
@@ -1336,6 +1366,8 @@ public:
 	DEFINE_ONLINE_DELEGATE_ONE_PARAM(OnSendDSSessionReadyComplete, const FOnlineError& /*ErrorInfo*/);
 
 	DEFINE_ONLINE_DELEGATE_ONE_PARAM(OnV2SessionEnded, FName /*SessionName*/);
+
+	DEFINE_ONLINE_DELEGATE_THREE_PARAM(OnAutoJoinGameSessionComplete, int32 /*LocalUserNum*/, bool /*bWasSuccessful*/, FString /*SessionId*/);
 
 	DEFINE_ONLINE_DELEGATE_FOUR_PARAM(OnCancelSessionInviteComplete, const FUniqueNetId& /*LocalUserId*/, FName /*SessionName*/, const FUniqueNetId& /*Invitee*/, const FOnlineError& /*ErrorInfo*/)
 
@@ -1564,9 +1596,10 @@ PACKAGE_SCOPE:
 	 * @param LocalUserId ID of the user that is leaving the session provided
 	 * @param SessionId ID of the session that we want to leave
 	 * @param Delegate Delegate fired once the leave session call completes
+	 * @param bUserKicked Flag indicating that leave session is called from OnKickedFromGameSession or OnKickedFromPartySession. This only used internally by FOnlineSessionV2AccelByte. For normal use from game client or DS leave it to false.
 	 * @return bool true if leave session task was spawned, false otherwise
 	 */
-	bool LeaveSession(const FUniqueNetId& LocalUserId, const EAccelByteV2SessionType& SessionType, const FString& SessionId, const FOnLeaveSessionComplete& Delegate=FOnLeaveSessionComplete());
+	bool LeaveSession(const FUniqueNetId& LocalUserId, const EAccelByteV2SessionType& SessionType, const FString& SessionId, const FOnLeaveSessionComplete& Delegate=FOnLeaveSessionComplete(), bool bUserKicked = false);
 
 	/**
 	 * Convert an array of doubles to an array of FJsonValues
@@ -1833,7 +1866,7 @@ PACKAGE_SCOPE:
 
 private:
 	/** Parent subsystem of this interface instance */
-	FOnlineSubsystemAccelByte* AccelByteSubsystem = nullptr;
+	FOnlineSubsystemAccelByte* AccelByteSubsystem {nullptr};
 
 	/** Critical section to lock sessions map while accessing */
 	mutable FCriticalSection SessionLock;
@@ -1876,7 +1909,7 @@ private:
 	FString LocalServerIpOverride{};
 
 	/** Stored override for a local server port to register with. */
-	int32 LocalServerPortOverride{-1};
+	int32 LocalServerPortOverride {-1};
 
 	/** Attributes for a player using this session interface instance, contains crossplay and platform information */
 	TUniqueNetIdMap<FAccelByteModelsV2PlayerAttributes> UserIdToPlayerAttributesMap{};
@@ -1885,10 +1918,10 @@ private:
 	TArray<FString> CanceledTicketIds{};
 
 	/** Time that we last added a ticket ID to the list of canceled IDs */
-	double LastCanceledTicketIdAddedTimeSeconds = 0.0;
+	double LastCanceledTicketIdAddedTimeSeconds {0.0};
 
 	/** Time in seconds that we clear the array of canceled ticket IDs (default to five minutes) */
-	double ClearCanceledTicketIdsTimeInSeconds = 300.0;
+	double ClearCanceledTicketIdsTimeInSeconds {300.0};
 
 	/**
 	* It decides whether the GameServer is automatically register itself or should be done manually. 
@@ -1899,7 +1932,7 @@ private:
 	* Effect FALSE: Automatically handled & there is no need to call SendServerReady() after perform the RegisterServer()
 	* Default behavior: if not specified then FALSE
 	*/
-	bool bManualRegisterServer = false;
+	bool bManualRegisterServer {false};
 
 	/** Trigger warning to notify that the DS is not flag itself as ready after several minutes. */
 	bool OnServerNotSendReadyWhenTimesUp(float DeltaTime, FOnRegisterServerComplete Delegate);
@@ -1910,7 +1943,7 @@ private:
 	/** Prevent a dangling dedicated server that forgot to flag the server ready (Call SendServerReady() function) */
 	FTickerDelegate SendServerReadyWarningReminderDelegate;
 	FDelegateHandleAlias SendServerReadyWarningReminderHandle;
-	const int SendServerReadyWarningInMinutes = 5;
+	const int SendServerReadyWarningInMinutes {5};
 
 	FDelegateHandle GetMatchTicketDetailsCompleteDelegateHandle;
 	FOnSingleSessionResultCompleteDelegate OnMatchTicketCheckGetMatchSessionDetailsDelegate;
@@ -1938,6 +1971,8 @@ private:
 	void OnDsStatusChangedNotification(FAccelByteModelsV2DSStatusChangedNotif DsStatusChangeEvent, int32 LocalUserNum);
 	void OnGameSessionInviteRejectedNotification(FAccelByteModelsV2GameSessionUserRejectedEvent RejectEvent, int32 LocalUserNum);
 	void OnGameSessionInviteCanceledNotification(const FAccelByteModelsV2GameSessionInviteCanceledEvent& CanceledEvent, int32 LocalUserNum);
+	void OnGameSessionJoinedNotification(FAccelByteModelsV2GameSessionUserJoinedEvent JoinedEvent, int32 LocalUserNum);
+	void OnFindJoinedGameSessionByIdComplete(int32 LocalUserNum, bool bWasSuccessful, const FOnlineSessionSearchResult& FoundSession, FString SessionId);
 	//~ End Game Session Notification Handlers
 
 	//~ Begin Party Session Notification Handlers
@@ -2043,6 +2078,7 @@ private:
 	
 	void UpdateSessionInvite(const FOnlineSessionInviteAccelByte& NewInvite);
 	bool RemoveSessionInvite(const FString& ID);
+	bool DestroySession(FName SessionName, const FOnDestroySessionCompleteDelegate& CompletionDelegate, bool bUserKicked);
 };
 
 typedef TSharedPtr<FOnlineSessionV2AccelByte, ESPMode::ThreadSafe> FOnlineSessionV2AccelBytePtr;

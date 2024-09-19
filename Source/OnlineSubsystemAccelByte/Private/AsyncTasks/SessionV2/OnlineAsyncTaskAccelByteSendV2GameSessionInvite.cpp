@@ -25,6 +25,8 @@ FOnlineAsyncTaskAccelByteSendV2GameSessionInvite::FOnlineAsyncTaskAccelByteSendV
 
 void FOnlineAsyncTaskAccelByteSendV2GameSessionInvite::Initialize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	Super::Initialize();
 
 	if (!IsRunningDedicatedServer())
@@ -37,7 +39,7 @@ void FOnlineAsyncTaskAccelByteSendV2GameSessionInvite::Initialize()
 	}
 
 	// First, check if the player is currently in a game session of given SessionName, if we're not, then we shouldn't do this
-	const TSharedPtr<FOnlineSessionV2AccelByte, ESPMode::ThreadSafe> SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(Subsystem->GetSessionInterface());
+	const TSharedPtr<FOnlineSessionV2AccelByte, ESPMode::ThreadSafe> SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(SubsystemPin->GetSessionInterface());
 	AB_ASYNC_TASK_ENSURE(SessionInterface.IsValid(), "Failed to send game session invite as our session interface is invalid!");
 
 	FNamedOnlineSession* Session = SessionInterface->GetNamedSession(SessionName);
@@ -63,7 +65,9 @@ void FOnlineAsyncTaskAccelByteSendV2GameSessionInvite::Initialize()
 
 void FOnlineAsyncTaskAccelByteSendV2GameSessionInvite::Finalize()
 {
-	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = Subsystem->GetPredefinedEventInterface();
+	TRY_PIN_SUBSYSTEM()
+
+	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = SubsystemPin->GetPredefinedEventInterface();
 	if (bWasSuccessful && PredefinedEventInterface.IsValid())
 	{
 		FAccelByteModelsMPV2GameSessionInvitedPayload GameSessionInvitedPayload{};
@@ -82,12 +86,14 @@ void FOnlineAsyncTaskAccelByteSendV2GameSessionInvite::Finalize()
 
 void FOnlineAsyncTaskAccelByteSendV2GameSessionInvite::TriggerDelegates()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	Super::TriggerDelegates();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
 	FOnlineSessionV2AccelBytePtr SessionInterface = nullptr;
-	if (!ensureAlways(FOnlineSessionV2AccelByte::GetFromSubsystem(Subsystem, SessionInterface)))
+	if (!ensureAlways(FOnlineSessionV2AccelByte::GetFromSubsystem(SubsystemPin.Get(), SessionInterface)))
 	{
 		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to get session interface instance from online subsystem!"));
 		return;

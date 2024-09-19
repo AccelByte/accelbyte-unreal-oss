@@ -68,8 +68,10 @@ void FOnlineAsyncTaskAccelByteConnectLobby::Initialize()
 
 void FOnlineAsyncTaskAccelByteConnectLobby::Finalize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	UnbindDelegates();
-	FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = Subsystem->GetPredefinedEventInterface();
+	FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = SubsystemPin->GetPredefinedEventInterface();
 	if (bWasSuccessful && PredefinedEventInterface.IsValid())
 	{
 		FAccelByteModelsLobbyConnectedPayload LobbyConnectedPayload{};
@@ -80,6 +82,8 @@ void FOnlineAsyncTaskAccelByteConnectLobby::Finalize()
 
 void FOnlineAsyncTaskAccelByteConnectLobby::TriggerDelegates()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
 	if (SuppressConnectSuccessIfAlreadyConnected && bWasSuccessful)
@@ -88,7 +92,7 @@ void FOnlineAsyncTaskAccelByteConnectLobby::TriggerDelegates()
 		return;
 	}
 
-	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(Subsystem->GetIdentityInterface());
+	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(SubsystemPin->GetIdentityInterface());
 	if (IdentityInterface.IsValid())
 	{
 		IdentityInterface->TriggerOnConnectLobbyCompleteDelegates(LocalUserNum, bWasSuccessful, *UserId.Get(), ErrorStr);
@@ -100,10 +104,12 @@ void FOnlineAsyncTaskAccelByteConnectLobby::TriggerDelegates()
 
 void FOnlineAsyncTaskAccelByteConnectLobby::OnLobbyConnectSuccess()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 
 	// Update identity interface lobby flag
-	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(Subsystem->GetIdentityInterface());
+	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(SubsystemPin->GetIdentityInterface());
 	if (IdentityInterface.IsValid())
 	{
 		TSharedPtr<FUserOnlineAccount> UserAccount = IdentityInterface->GetUserAccount(LocalUserNum);
@@ -116,14 +122,14 @@ void FOnlineAsyncTaskAccelByteConnectLobby::OnLobbyConnectSuccess()
 	}
 
 	// Register all delegates for the presence interface to get real time notifications for presence actions
-	const TSharedPtr<FOnlinePresenceAccelByte, ESPMode::ThreadSafe> PresenceInterface = StaticCastSharedPtr<FOnlinePresenceAccelByte>(Subsystem->GetPresenceInterface());
+	const TSharedPtr<FOnlinePresenceAccelByte, ESPMode::ThreadSafe> PresenceInterface = StaticCastSharedPtr<FOnlinePresenceAccelByte>(SubsystemPin->GetPresenceInterface());
 	if (PresenceInterface.IsValid())
 	{
 		PresenceInterface->RegisterRealTimeLobbyDelegates(LocalUserNum);
 	}
 
 	// Register all delegates for the friends interface to get real time notifications for friend actions
-	const TSharedPtr<FOnlineFriendsAccelByte, ESPMode::ThreadSafe> FriendsInterface = StaticCastSharedPtr<FOnlineFriendsAccelByte>(Subsystem->GetFriendsInterface());
+	const TSharedPtr<FOnlineFriendsAccelByte, ESPMode::ThreadSafe> FriendsInterface = StaticCastSharedPtr<FOnlineFriendsAccelByte>(SubsystemPin->GetFriendsInterface());
 	if (FriendsInterface.IsValid())
 	{
 		FriendsInterface->RegisterRealTimeLobbyDelegates(LocalUserNum);
@@ -132,18 +138,18 @@ void FOnlineAsyncTaskAccelByteConnectLobby::OnLobbyConnectSuccess()
 	// Grab party interface for lobby delegates and to register realtime notification handlers.
 	// #NOTE Not guarded in V2 as the lobby close and reconnect delegates rely on a valid interface instance. Any
 	// functionality is guarded by an if preprocessor in those delegates anyway.
-	const TSharedPtr<FOnlinePartySystemAccelByte, ESPMode::ThreadSafe> PartyInterface = StaticCastSharedPtr<FOnlinePartySystemAccelByte>(Subsystem->GetPartyInterface());
+	const TSharedPtr<FOnlinePartySystemAccelByte, ESPMode::ThreadSafe> PartyInterface = StaticCastSharedPtr<FOnlinePartySystemAccelByte>(SubsystemPin->GetPartyInterface());
 
 #if AB_USE_V2_SESSIONS
 	// Register delegates for the V2 session interface
-	const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(Subsystem->GetSessionInterface());
+	const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(SubsystemPin->GetSessionInterface());
 	if (ensure(SessionInterface.IsValid()))
 	{
 		SessionInterface->RegisterSessionNotificationDelegates(UserId.ToSharedRef().Get());
 	}
 #else
 	// Also register all delegates for the V1 session interface to get updates for matchmaking
-	const TSharedPtr<FOnlineSessionV1AccelByte, ESPMode::ThreadSafe> SessionInterface = StaticCastSharedPtr<FOnlineSessionV1AccelByte>(Subsystem->GetSessionInterface());
+	const TSharedPtr<FOnlineSessionV1AccelByte, ESPMode::ThreadSafe> SessionInterface = StaticCastSharedPtr<FOnlineSessionV1AccelByte>(SubsystemPin->GetSessionInterface());
 	if (SessionInterface.IsValid())
 	{
 		SessionInterface->RegisterRealTimeLobbyDelegates(LocalUserNum);
@@ -169,8 +175,10 @@ void FOnlineAsyncTaskAccelByteConnectLobby::OnLobbyConnectError(int32 ErrorCode,
 
 void FOnlineAsyncTaskAccelByteConnectLobby::OnLobbyDisconnectedNotif(const FAccelByteModelsDisconnectNotif& Result)
 {
+	TRY_PIN_SUBSYSTEM()
+
 	// Update identity interface lobby flag
-	const TSharedPtr<FOnlineIdentityAccelByte, ESPMode::ThreadSafe> IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(Subsystem->GetIdentityInterface());
+	const TSharedPtr<FOnlineIdentityAccelByte, ESPMode::ThreadSafe> IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(SubsystemPin->GetIdentityInterface());
 	if (IdentityInterface.IsValid())
 	{
 		TSharedPtr<FUserOnlineAccount> UserAccount = IdentityInterface->GetUserAccount(LocalUserNum);

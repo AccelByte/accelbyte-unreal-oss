@@ -17,6 +17,8 @@ FOnlineAsyncTaskAccelByteValidateUserInput::FOnlineAsyncTaskAccelByteValidateUse
 
 void FOnlineAsyncTaskAccelByteValidateUserInput::Initialize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	FOnlineAsyncTaskAccelByte::Initialize();
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Initialize Validate User Input"));
  
@@ -26,7 +28,7 @@ void FOnlineAsyncTaskAccelByteValidateUserInput::Initialize()
 		(this, &FOnlineAsyncTaskAccelByteValidateUserInput::HandleError);
 
 	// Ensure to always get api client since the endpoint is able to call without authorization
-	if (Subsystem->GetApiClient(LocalUserNum) == nullptr)
+	if (SubsystemPin->GetApiClient(LocalUserNum) == nullptr)
 	{
 		SetApiClient(FMultiRegistry::GetApiClient(FString::Printf(TEXT("%d"), LocalUserNum)));
 	}
@@ -39,10 +41,12 @@ void FOnlineAsyncTaskAccelByteValidateUserInput::Initialize()
 
 void FOnlineAsyncTaskAccelByteValidateUserInput::TriggerDelegates()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("TriggerDelegates"));
 	FOnlineAsyncTaskAccelByte::TriggerDelegates();
 	
-	const FOnlineUserAccelBytePtr UserInterface = StaticCastSharedPtr<FOnlineUserAccelByte>(Subsystem->GetUserInterface());  
+	const FOnlineUserAccelBytePtr UserInterface = StaticCastSharedPtr<FOnlineUserAccelByte>(SubsystemPin->GetUserInterface());
 	if (UserInterface.IsValid())
 	{
 		UserInterface->TriggerOnValidateUserInputCompleteDelegates(UserInputValidationResponse, bWasSuccessful, OnlineError);

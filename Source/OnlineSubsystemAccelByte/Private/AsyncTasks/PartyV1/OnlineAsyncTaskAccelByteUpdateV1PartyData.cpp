@@ -70,13 +70,15 @@ void FOnlineAsyncTaskAccelByteUpdateV1PartyData::Initialize()
 
 void FOnlineAsyncTaskAccelByteUpdateV1PartyData::Finalize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 	
 	if (bWasSuccessful)
 	{
 		// If we successfully wrote new data for the party, then we want to update the party data on the party object with
 		// with the updated data that we just sent off to the backend.
-		const TSharedPtr<FOnlinePartySystemAccelByte, ESPMode::ThreadSafe> PartyInterface = StaticCastSharedPtr<FOnlinePartySystemAccelByte>(Subsystem->GetPartyInterface());
+		const TSharedPtr<FOnlinePartySystemAccelByte, ESPMode::ThreadSafe> PartyInterface = StaticCastSharedPtr<FOnlinePartySystemAccelByte>(SubsystemPin->GetPartyInterface());
 		if (PartyInterface.IsValid())
 		{
 			TSharedPtr<FOnlinePartyAccelByte> PartyObject = PartyInterface->GetPartyForUser(UserId.ToSharedRef(), PartyId);

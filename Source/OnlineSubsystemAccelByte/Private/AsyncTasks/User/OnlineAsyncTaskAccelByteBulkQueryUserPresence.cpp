@@ -52,11 +52,13 @@ void FOnlineAsyncTaskAccelByteBulkQueryUserPresence::Initialize()
 
 void FOnlineAsyncTaskAccelByteBulkQueryUserPresence::Finalize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
 	if(bWasSuccessful)
 	{
-		const FOnlinePresenceAccelBytePtr PresenceInterface = StaticCastSharedPtr<FOnlinePresenceAccelByte>(Subsystem->GetPresenceInterface());
+		const FOnlinePresenceAccelBytePtr PresenceInterface = StaticCastSharedPtr<FOnlinePresenceAccelByte>(SubsystemPin->GetPresenceInterface());
 		PresenceInterface->UpdatePresenceCache(PresenceResult);
 	}
 
@@ -65,9 +67,11 @@ void FOnlineAsyncTaskAccelByteBulkQueryUserPresence::Finalize()
 
 void FOnlineAsyncTaskAccelByteBulkQueryUserPresence::TriggerDelegates() 
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
-	const FOnlinePresenceAccelBytePtr PresenceInterface = StaticCastSharedPtr<FOnlinePresenceAccelByte>(Subsystem->GetPresenceInterface());
+	const FOnlinePresenceAccelBytePtr PresenceInterface = StaticCastSharedPtr<FOnlinePresenceAccelByte>(SubsystemPin->GetPresenceInterface());
 	if (PresenceInterface.IsValid()) 
 	{
 		PresenceInterface->TriggerOnBulkQueryPresenceCompleteDelegates(bWasSuccessful, PresenceResult);

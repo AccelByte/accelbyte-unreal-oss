@@ -26,11 +26,13 @@ FOnlineAsyncTaskAccelByteCreateUserProfile::FOnlineAsyncTaskAccelByteCreateUserP
 
 void FOnlineAsyncTaskAccelByteCreateUserProfile::Initialize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	Super::Initialize();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 
-	FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(Subsystem->GetIdentityInterface());
+	FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(SubsystemPin->GetIdentityInterface());
 
 	if (IsRunningDedicatedServer())
 	{
@@ -65,7 +67,7 @@ void FOnlineAsyncTaskAccelByteCreateUserProfile::Initialize()
 	{
 		Account = MakeShared<FUserOnlineAccountAccelByte>(UserId.ToSharedRef());
 		Account->SetDisplayName(ApiClient->CredentialsRef->GetUserDisplayName());
-		Account->SetAccessToken(ApiClient->CredentialsRef->GetAccessToken());
+		Account->SetCredentialsRef(ApiClient->CredentialsRef);
 		Account->SetUniqueDisplayName(ApiClient->CredentialsRef->GetUniqueDisplayName());
 
 		IdentityInterface->AddNewAuthenticatedUser(LocalUserNum, UserId.ToSharedRef(), Account.ToSharedRef());
@@ -78,9 +80,11 @@ void FOnlineAsyncTaskAccelByteCreateUserProfile::Initialize()
 
 void FOnlineAsyncTaskAccelByteCreateUserProfile::Finalize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	if (bWasSuccessful && UserProfileUpdatedFieldsPayload.JsonObject.IsValid())
 	{
-		FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = Subsystem->GetPredefinedEventInterface();
+		FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = SubsystemPin->GetPredefinedEventInterface();
 		TSharedPtr<FAccelByteModelsUserProfileCreatedPayload> UserProfileCreatedPayload = MakeShared<FAccelByteModelsUserProfileCreatedPayload>();
 		
 		UserProfileCreatedPayload->UpdatedFields = UserProfileUpdatedFieldsPayload;
@@ -90,9 +94,11 @@ void FOnlineAsyncTaskAccelByteCreateUserProfile::Finalize()
 
 void FOnlineAsyncTaskAccelByteCreateUserProfile::TriggerDelegates()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("UserId: %s; bWasSuccessful: %s"), *UserId->ToString(), LOG_BOOL_FORMAT(bWasSuccessful));
 
-	TSharedPtr<FOnlineUserAccelByte, ESPMode::ThreadSafe> UserInterface = StaticCastSharedPtr<FOnlineUserAccelByte>(Subsystem->GetUserInterface());
+	TSharedPtr<FOnlineUserAccelByte, ESPMode::ThreadSafe> UserInterface = StaticCastSharedPtr<FOnlineUserAccelByte>(SubsystemPin->GetUserInterface());
 
 	EOnlineErrorResult Result = ((bWasSuccessful) ? EOnlineErrorResult::Success : EOnlineErrorResult::RequestFailure);
 	UserInterface->TriggerOnCreateUserProfileCompleteDelegates(LocalUserNum, bWasSuccessful, ONLINE_ERROR(Result, ErrorString));
@@ -102,10 +108,12 @@ void FOnlineAsyncTaskAccelByteCreateUserProfile::TriggerDelegates()
 
 void FOnlineAsyncTaskAccelByteCreateUserProfile::OnCreateUserProfileSuccess(const FAccelByteModelsUserProfileInfo& Result)
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 
-	TSharedPtr<FOnlineUserAccelByte, ESPMode::ThreadSafe> UserInterface = StaticCastSharedPtr<FOnlineUserAccelByte>(Subsystem->GetUserInterface());
-	TSharedPtr<FOnlineUserCacheAccelByte, ESPMode::ThreadSafe> UserCache = StaticCastSharedPtr<FOnlineUserCacheAccelByte>(Subsystem->GetUserCache());
+	TSharedPtr<FOnlineUserAccelByte, ESPMode::ThreadSafe> UserInterface = StaticCastSharedPtr<FOnlineUserAccelByte>(SubsystemPin->GetUserInterface());
+	TSharedPtr<FOnlineUserCacheAccelByte, ESPMode::ThreadSafe> UserCache = StaticCastSharedPtr<FOnlineUserCacheAccelByte>(SubsystemPin->GetUserCache());
 
 	// Set attributes for the user account based on profile data
 	Account->SetUserAttribute(TEXT("AvatarURL"), Result.AvatarUrl);

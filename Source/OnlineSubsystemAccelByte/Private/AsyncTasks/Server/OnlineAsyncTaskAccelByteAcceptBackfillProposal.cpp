@@ -34,6 +34,8 @@ void FOnlineAsyncTaskAccelByteAcceptBackfillProposal::Initialize()
 
 void FOnlineAsyncTaskAccelByteAcceptBackfillProposal::Finalize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	Super::Finalize();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
@@ -43,7 +45,7 @@ void FOnlineAsyncTaskAccelByteAcceptBackfillProposal::Finalize()
 		// If we successfully accepted the proposal and we are removing this backfill ticket, then update session settings to
 		// remove there.
 		FOnlineSessionV2AccelBytePtr SessionInterface = nullptr;
-		if (!ensureAlways(FOnlineSessionV2AccelByte::GetFromSubsystem(Subsystem, SessionInterface)))
+		if (!ensureAlways(FOnlineSessionV2AccelByte::GetFromSubsystem(SubsystemPin.Get(), SessionInterface)))
 		{
 			AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to get session interface instance from online subsystem!"));
 			return;
@@ -65,7 +67,7 @@ void FOnlineAsyncTaskAccelByteAcceptBackfillProposal::Finalize()
 		bool bIsConnectingToP2P;
 		SessionInterface->UpdateInternalGameSession(SessionName, GameSessionInfo, bIsConnectingToP2P);
 
-		const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = Subsystem->GetPredefinedEventInterface();
+		const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = SubsystemPin->GetPredefinedEventInterface();
 		if (PredefinedEventInterface.IsValid())
 		{
 			FAccelByteModelsDSBackfillProposalAcceptedPayload DSBackfillProposalAcceptedPayload{};

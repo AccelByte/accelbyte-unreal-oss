@@ -34,10 +34,12 @@ void FOnlineAsyncTaskAccelByteChatUpdateSystemMessages::Initialize()
 
 void FOnlineAsyncTaskAccelByteChatUpdateSystemMessages::TriggerDelegates()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s, ErrorMessage: %s"), LOG_BOOL_FORMAT(bWasSuccessful), *OnlineError.ErrorMessage.ToString());
 
 	FOnlineChatAccelBytePtr ChatInterface;
-	if (!ensure(FOnlineChatAccelByte::GetFromSubsystem(Subsystem, ChatInterface)))
+	if (!ensure(FOnlineChatAccelByte::GetFromSubsystem(SubsystemPin.Get(),  ChatInterface)))
 	{
 		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to trigger delegate for update system message complete as our chat interface invalid!"));
 		return;

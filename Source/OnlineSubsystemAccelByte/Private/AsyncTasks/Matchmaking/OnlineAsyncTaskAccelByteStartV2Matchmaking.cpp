@@ -59,11 +59,13 @@ void FOnlineAsyncTaskAccelByteStartV2Matchmaking::Initialize()
 
 void FOnlineAsyncTaskAccelByteStartV2Matchmaking::Finalize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	Super::Finalize();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 
-	const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(Subsystem->GetSessionInterface());
+	const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(SubsystemPin->GetSessionInterface());
 	if (!ensure(SessionInterface.IsValid()))
 	{
 		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to finalize task for starting matchmaking as our session interface is invalid!"));
@@ -75,7 +77,7 @@ void FOnlineAsyncTaskAccelByteStartV2Matchmaking::Finalize()
 		SearchHandle->TicketId = CreateMatchTicketResponse.MatchTicketId;
 		SessionInterface->FinalizeStartMatchmakingComplete();
 
-		const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = Subsystem->GetPredefinedEventInterface();
+		const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = SubsystemPin->GetPredefinedEventInterface();
 		if (PredefinedEventInterface.IsValid())
 		{
 			FAccelByteModelsMPV2MatchmakingRequestedPayload MatchmakingRequestedPayload{};
@@ -104,11 +106,13 @@ void FOnlineAsyncTaskAccelByteStartV2Matchmaking::Finalize()
 
 void FOnlineAsyncTaskAccelByteStartV2Matchmaking::TriggerDelegates()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	Super::TriggerDelegates();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 
-	const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(Subsystem->GetSessionInterface());
+	const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(SubsystemPin->GetSessionInterface());
 	if (!ensure(SessionInterface.IsValid()))
 	{
 		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to trigger delegates for starting matchmaking as our session interface is invalid!"));
@@ -144,10 +148,12 @@ void FOnlineAsyncTaskAccelByteStartV2Matchmaking::OnGetLatenciesError(int32 Erro
 
 void FOnlineAsyncTaskAccelByteStartV2Matchmaking::CreateMatchTicket()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 
 	// First, check if the player is in a party session. If so, we can grab the ID and use it for matchmaking.
-	const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(Subsystem->GetSessionInterface());
+	const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(SubsystemPin->GetSessionInterface());
 	AB_ASYNC_TASK_ENSURE(SessionInterface.IsValid(), "Failed to create match ticket as our session interface is invalid!");
 
 	// Now, create the match ticket on the backend
@@ -207,6 +213,11 @@ void FOnlineAsyncTaskAccelByteStartV2Matchmaking::CreateMatchTicket()
 
 FString FOnlineAsyncTaskAccelByteStartV2Matchmaking::GetTicketSessionId() const
 {
+	auto SubsystemPin = AccelByteSubsystem.Pin();
+	if (!SubsystemPin.IsValid()) {
+		return "";
+	}
+
 	// First check if we have a session ID explicitly set in the matchmaking handle
 	FString MatchmakingHandleSessionId;
 	if (SearchHandle->QuerySettings.Get(SETTING_MATCHMAKING_SESSION_ID, MatchmakingHandleSessionId) && !MatchmakingHandleSessionId.IsEmpty())
@@ -215,7 +226,7 @@ FString FOnlineAsyncTaskAccelByteStartV2Matchmaking::GetTicketSessionId() const
 	}
 	
 	// Otherwise, check if we have a party session that we are apart of, if so, use that ID
-	const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(Subsystem->GetSessionInterface());
+	const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(SubsystemPin->GetSessionInterface());
 	check(SessionInterface.IsValid());
 
 	FNamedOnlineSession* PartySession = SessionInterface->GetPartySession();

@@ -22,11 +22,13 @@ FOnlineAsyncTaskAccelByteQueryEligibilities::FOnlineAsyncTaskAccelByteQueryEligi
 
 void FOnlineAsyncTaskAccelByteQueryEligibilities::Initialize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	Super::Initialize();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("UserId: %s"), *UserId->ToDebugString());
 
-	const FOnlineAgreementAccelBytePtr AgreementInterface = Subsystem->GetAgreementInterface();
+	const FOnlineAgreementAccelBytePtr AgreementInterface = SubsystemPin->GetAgreementInterface();
 	if (AgreementInterface.IsValid())
 	{
 		TArray<TSharedRef<FAccelByteModelsRetrieveUserEligibilitiesResponse>> EligibilitiesRef;
@@ -62,18 +64,22 @@ void FOnlineAsyncTaskAccelByteQueryEligibilities::Initialize()
 
 void FOnlineAsyncTaskAccelByteQueryEligibilities::Finalize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	if (bWasSuccessful)
 	{
-		const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = Subsystem->GetPredefinedEventInterface();
+		const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = SubsystemPin->GetPredefinedEventInterface();
 		PredefinedEventInterface->SendEvent(LocalUserNum, MakeShared<FAccelByteModelsUserAgreementNotAcceptedPayload>(NotAcceptedAgreementPayload));
 	}
 }
 
 void FOnlineAsyncTaskAccelByteQueryEligibilities::TriggerDelegates()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
-	const FOnlineAgreementAccelBytePtr AgreementInterface = Subsystem->GetAgreementInterface();
+	const FOnlineAgreementAccelBytePtr AgreementInterface = SubsystemPin->GetAgreementInterface();
 	if (AgreementInterface.IsValid())
 	{
 		if (bWasSuccessful)
@@ -102,9 +108,11 @@ void FOnlineAsyncTaskAccelByteQueryEligibilities::TriggerDelegates()
 
 void FOnlineAsyncTaskAccelByteQueryEligibilities::OnQueryEligibilitiesSuccess(const TArray<FAccelByteModelsRetrieveUserEligibilitiesResponse>& Result)
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 
-	const FOnlineAgreementAccelBytePtr AgreementInterface = Subsystem->GetAgreementInterface();	
+	const FOnlineAgreementAccelBytePtr AgreementInterface = SubsystemPin->GetAgreementInterface();
 	Eligibilities = Result;
 	
 	if (AgreementInterface.IsValid())

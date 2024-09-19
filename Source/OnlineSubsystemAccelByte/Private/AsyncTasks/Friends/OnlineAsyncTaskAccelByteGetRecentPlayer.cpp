@@ -38,6 +38,8 @@ void FOnlineAsyncTaskAccelByteGetRecentPlayer::Initialize()
 
 void FOnlineAsyncTaskAccelByteGetRecentPlayer::Finalize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
 	if (bWasSuccessful)
@@ -48,7 +50,7 @@ void FOnlineAsyncTaskAccelByteGetRecentPlayer::Finalize()
 			RecentPlayers.Add(MakeShared<FOnlineRecentPlayerAccelByte>(RecentPlayerInfo));
 		}
 
-		const TSharedPtr<FOnlineFriendsAccelByte, ESPMode::ThreadSafe> FriendsInterface = StaticCastSharedPtr<FOnlineFriendsAccelByte>(Subsystem->GetFriendsInterface());
+		const TSharedPtr<FOnlineFriendsAccelByte, ESPMode::ThreadSafe> FriendsInterface = StaticCastSharedPtr<FOnlineFriendsAccelByte>(SubsystemPin->GetFriendsInterface());
 		FriendsInterface->RecentPlayersMap.Emplace(UserId.ToSharedRef(), RecentPlayers);
 	}
 
@@ -57,9 +59,11 @@ void FOnlineAsyncTaskAccelByteGetRecentPlayer::Finalize()
 
 void FOnlineAsyncTaskAccelByteGetRecentPlayer::TriggerDelegates()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
-	const IOnlineFriendsPtr FriendsInterface = Subsystem->GetFriendsInterface();
+	const IOnlineFriendsPtr FriendsInterface = SubsystemPin->GetFriendsInterface();
 	FriendsInterface->TriggerOnQueryRecentPlayersCompleteDelegates(UserId.ToSharedRef().Get(), Namespace, bWasSuccessful, ErrorString);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
@@ -67,6 +71,8 @@ void FOnlineAsyncTaskAccelByteGetRecentPlayer::TriggerDelegates()
 
 void FOnlineAsyncTaskAccelByteGetRecentPlayer::OnGetRecentPlayerSuccess(const FAccelByteModelsSessionBrowserRecentPlayerGetResult& InResult)
 {
+	TRY_PIN_SUBSYSTEM()
+
 	// Construct array of user IDs to query for recent players
 	TArray<FString> UsersToQuery;
 	for (const FAccelByteModelsSessionBrowserRecentPlayerData& Result : InResult.Data)
@@ -75,7 +81,7 @@ void FOnlineAsyncTaskAccelByteGetRecentPlayer::OnGetRecentPlayerSuccess(const FA
 	}
 
 	// Query user information about these recent players
-	FOnlineUserCacheAccelBytePtr UserStore = Subsystem->GetUserCache();
+	FOnlineUserCacheAccelBytePtr UserStore = SubsystemPin->GetUserCache();
 	if (!UserStore.IsValid())
 	{
 		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Could not get information on recent players as our user store instance is invalid!"));

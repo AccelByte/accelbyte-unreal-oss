@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2022 AccelByte Inc. All Rights Reserved.
+// Copyright (c) 2021 - 2024 AccelByte Inc. All Rights Reserved.
 // This is licensed software from AccelByte Inc, for limitations
 // and restrictions contact your company contract manager.
 
@@ -15,6 +15,7 @@
 #include "Models/AccelByteUserModels.h"
 #include "OnlineAsyncTaskManager.h"
 #include "OnlineStats.h"
+#include "Core/AccelByteBaseCredentials.h"
 #include "OnlineSubsystemAccelByteTypes.generated.h"
 
 class FOnlineSubsystemAccelByte;
@@ -981,11 +982,11 @@ public:
 	void SetUserCountry(const FString& InUserCountry);
 
 	/**
-	 * @brief Set user's token to access AccelByte services
+	 * @brief Set Credentials Ref 
 	 *
-	 * @param InAccessToken The user's access token
+	 * @param InCredentialsRef The user's ApiClient::CredentialsRef
 	 */
-	void SetAccessToken(const FString& InAccessToken);
+	void SetCredentialsRef(AccelByte::FBaseCredentialsRef InCredentialsRef);
 
 	/**
 	 * @brief Set user's PublicCode on AccelByte services
@@ -1089,14 +1090,14 @@ private:
 	/** User Id represented as a FUniqueNetId */
 	FUniqueNetIdAccelByteUserRef UserIdRef = FUniqueNetIdAccelByteUser::Invalid();
 	
+	/** The current user's ApiClient::CredentialsRef OR server's ServerApiClient::ServerCredentialsRef to obtain the reference of the AccessToken */
+	AccelByte::FBaseCredentialsWPtr CredentialsRef;
+
 	/** Display name for the AccelByte user associated with this account */
 	FString DisplayName;
 
 	/** Unique display name for the AccelByte user associated with this account */
 	FString UniqueDisplayName;
-
-	/** Access token for the AccelByte user associated with this account */
-	FString AccessToken;
 
 	/** Generated public user identifier code, usually used as a friend code **/
 	FString PublicCode;

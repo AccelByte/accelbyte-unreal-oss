@@ -22,11 +22,13 @@ FOnlineAsyncTaskAccelByteGetWalletTransactions::FOnlineAsyncTaskAccelByteGetWall
 
 void FOnlineAsyncTaskAccelByteGetWalletTransactions::Initialize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	Super::Initialize();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Getting wallet transaction list, UserId: %s"), *UserId->ToDebugString());
 
-	const FOnlineWalletAccelBytePtr WalletInterface = StaticCastSharedPtr<FOnlineWalletAccelByte>(Subsystem->GetWalletInterface());
+	const FOnlineWalletAccelBytePtr WalletInterface = StaticCastSharedPtr<FOnlineWalletAccelByte>(SubsystemPin->GetWalletInterface());
 	if (WalletInterface.IsValid())
 	{
 		// Create delegates for successfully as well as unsuccessfully requesting to get wallet transaction list
@@ -49,9 +51,11 @@ void FOnlineAsyncTaskAccelByteGetWalletTransactions::Initialize()
 
 void FOnlineAsyncTaskAccelByteGetWalletTransactions::TriggerDelegates()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
-	const FOnlineWalletAccelBytePtr WalletInterface = StaticCastSharedPtr<FOnlineWalletAccelByte>(Subsystem->GetWalletInterface());
+	const FOnlineWalletAccelBytePtr WalletInterface = StaticCastSharedPtr<FOnlineWalletAccelByte>(SubsystemPin->GetWalletInterface());
 	if (WalletInterface.IsValid())
 	{
 		WalletInterface->TriggerOnGetWalletTransactionsCompletedDelegates(LocalUserNum, bWasSuccessful, CachedWalletTransactions, ErrorStr);
@@ -62,9 +66,11 @@ void FOnlineAsyncTaskAccelByteGetWalletTransactions::TriggerDelegates()
 
 void FOnlineAsyncTaskAccelByteGetWalletTransactions::OnGetWalletTransactionsSuccess(const FAccelByteModelsWalletTransactionPaging& Result)
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 
-	const FOnlineWalletAccelBytePtr WalletInterface = StaticCastSharedPtr<FOnlineWalletAccelByte>(Subsystem->GetWalletInterface());
+	const FOnlineWalletAccelBytePtr WalletInterface = StaticCastSharedPtr<FOnlineWalletAccelByte>(SubsystemPin->GetWalletInterface());
 	if (WalletInterface.IsValid())
 	{
 		CachedWalletTransactions = Result.Data;

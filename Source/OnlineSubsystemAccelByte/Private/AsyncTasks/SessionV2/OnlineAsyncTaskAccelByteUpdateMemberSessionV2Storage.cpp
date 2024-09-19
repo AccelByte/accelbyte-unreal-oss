@@ -34,9 +34,11 @@ void FOnlineAsyncTaskAccelByteUpdateMemberSessionV2Storage::Initialize()
 
 void FOnlineAsyncTaskAccelByteUpdateMemberSessionV2Storage::TriggerDelegates()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
-	const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(Subsystem->GetSessionInterface());
+	const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(SubsystemPin->GetSessionInterface());
 
 	if (SessionInterface.IsValid())
 	{

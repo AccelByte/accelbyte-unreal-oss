@@ -7,6 +7,7 @@
 #include "OnlineSubsystemAccelByteTypes.h"
 #include "OnlineSubsystemAccelByteUtils.h"
 #include "Interfaces/OnlineEntitlementsInterface.h"
+#include "Interfaces/OnlinePurchaseInterface.h"
 #include "Models/AccelByteEcommerceModels.h"
 #include "OnlineSubsystemAccelBytePackage.h"
 
@@ -109,9 +110,7 @@ public:
 	virtual TSharedPtr<FOnlineEntitlement> GetItemEntitlement(const FUniqueNetId& UserId, const FString& ItemId) override;
 	virtual void GetAllEntitlements(const FUniqueNetId& UserId, const FString& Namespace, TArray<TSharedRef<FOnlineEntitlement>>& OutUserEntitlements) override;
 	virtual bool QueryEntitlements(const FUniqueNetId& UserId, const FString& Namespace, const FPagedQuery& Page = FPagedQuery{}) override;
-	void SyncPlatformPurchase(int32 LocalUserNum, FAccelByteModelsEntitlementSyncBase EntitlementSyncBase, const FOnRequestCompleted& CompletionDelegate = FOnRequestCompleted());
-	void SyncDLC(const FUniqueNetId& InLocalUserId, const FOnRequestCompleted& CompletionDelegate);
-
+	
 	/**
 	* Consume a user entitlement. Trigger FOnConsumeEntitlementComplete on complete
 	*
@@ -123,6 +122,37 @@ public:
 	* When a request id is submitted, it will return original successful response
 	*/
 	void ConsumeEntitlement(const FUniqueNetId& UserId, const FUniqueEntitlementId& EntitlementId, int32 UseCount, TArray<FString> Options = {}, const FString& RequestId = {});
+	
+	/*
+	 * Sync platform purchase, can handle 3rd party platforms like Steam, Epic, Playstation, and Xbox
+	 * @param LocalUserNum LocalUserNum of user that making the call
+	 * @param EntitlementSyncBase The sync request information
+	 * @param CompletionDelegate Will be triggered after the request completed
+	 */
+	void SyncPlatformPurchase(int32 LocalUserNum, FAccelByteModelsEntitlementSyncBase EntitlementSyncBase, const FOnRequestCompleted& CompletionDelegate = FOnRequestCompleted());
+
+	/*
+	 * Sync platform purchase using purchase receipt, only support for GooglePlay & iOS AppStore purchase for now.
+	 * @param LocalUserNum LocalUserNum of user that making the call
+	 * @param Receipt The receipt you get after purchase from the native subsystem
+	 * @param CompletionDelegate Will be triggered after the request completed
+	 */
+	void SyncPlatformPurchase(int32 LocalUserNum, const TSharedRef<FPurchaseReceipt>& Receipt, const FOnRequestCompleted& CompletionDelegate = FOnRequestCompleted());
+
+	/*
+	 * Sync platform purchase for googleplay
+	 * @param LocalUserNum LocalUserNum of user that making the call
+	 * @param Request The sync request information
+	 * @param CompletionDelegate Will be triggered after the request completed
+	 */
+	void SyncPlatformPurchase(int32 LocalUserNum, const FAccelByteModelsPlatformSyncMobileGoogle& Request, const FOnRequestCompleted& CompletionDelegate = FOnRequestCompleted());
+
+	/*
+	 * Sync platform's DLC, can handle 3rd party platforms like Steam, Epic, Playstation, and Xbox
+	 * @param LocalUserNum LocalUserNum of user that making the call
+	 * @param CompletionDelegate Will be triggered after the request completed
+	 */
+	void SyncDLC(const FUniqueNetId& InLocalUserId, const FOnRequestCompleted& CompletionDelegate);
 
 #pragma region Client - User Entitlement History
 

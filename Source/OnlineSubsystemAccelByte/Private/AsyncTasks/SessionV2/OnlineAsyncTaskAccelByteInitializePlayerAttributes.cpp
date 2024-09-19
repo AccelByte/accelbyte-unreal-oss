@@ -16,6 +16,8 @@ FOnlineAsyncTaskAccelByteInitializePlayerAttributes::FOnlineAsyncTaskAccelByteIn
 
 void FOnlineAsyncTaskAccelByteInitializePlayerAttributes::Initialize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	Super::Initialize();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("LocalUserId: %s"), *UserId->ToDebugString());
@@ -23,7 +25,7 @@ void FOnlineAsyncTaskAccelByteInitializePlayerAttributes::Initialize()
 	// First, we need to check if the player is allowed to play crossplay at all on their local platform, so query the
 	// identity interface for that
 	FOnlineIdentityAccelBytePtr IdentityInterface{};
-	AB_ASYNC_TASK_ENSURE(FOnlineIdentityAccelByte::GetFromSubsystem(Subsystem, IdentityInterface), "Failed to get identity interface instance from subsystem")
+	AB_ASYNC_TASK_ENSURE(FOnlineIdentityAccelByte::GetFromSubsystem(SubsystemPin.Get(),  IdentityInterface), "Failed to get identity interface instance from subsystem")
 
 	IOnlineIdentity::FOnGetUserPrivilegeCompleteDelegate OnGetPlayerCrossplayPrivilegeDelegate = TDelegateUtils<IOnlineIdentity::FOnGetUserPrivilegeCompleteDelegate>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteInitializePlayerAttributes::OnGetPlayerCrossplayPrivilege);
 	IdentityInterface->GetUserPrivilege(UserId.ToSharedRef().Get(), EUserPrivileges::CanUserCrossPlay, OnGetPlayerCrossplayPrivilegeDelegate);
@@ -33,6 +35,8 @@ void FOnlineAsyncTaskAccelByteInitializePlayerAttributes::Initialize()
 
 void FOnlineAsyncTaskAccelByteInitializePlayerAttributes::Finalize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	Super::Finalize();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
@@ -40,7 +44,7 @@ void FOnlineAsyncTaskAccelByteInitializePlayerAttributes::Finalize()
 	if (bWasSuccessful)
 	{
 		FOnlineSessionV2AccelBytePtr SessionInterface{};
-		if (!ensureAlwaysMsgf(FOnlineSessionV2AccelByte::GetFromSubsystem(Subsystem, SessionInterface), TEXT("Failed to get session interface instance from subsystem")))
+		if (!ensureAlwaysMsgf(FOnlineSessionV2AccelByte::GetFromSubsystem(SubsystemPin.Get(),  SessionInterface), TEXT("Failed to get session interface instance from subsystem")))
 		{
 			return;
 		}
@@ -53,12 +57,14 @@ void FOnlineAsyncTaskAccelByteInitializePlayerAttributes::Finalize()
 
 void FOnlineAsyncTaskAccelByteInitializePlayerAttributes::TriggerDelegates()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	Super::TriggerDelegates();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
 	FOnlineSessionV2AccelBytePtr SessionInterface{};
-	if (!ensureAlwaysMsgf(FOnlineSessionV2AccelByte::GetFromSubsystem(Subsystem, SessionInterface), TEXT("Failed to get session interface instance from subsystem")))
+	if (!ensureAlwaysMsgf(FOnlineSessionV2AccelByte::GetFromSubsystem(SubsystemPin.Get(),  SessionInterface), TEXT("Failed to get session interface instance from subsystem")))
 	{
 		return;
 	}
@@ -86,6 +92,8 @@ void FOnlineAsyncTaskAccelByteInitializePlayerAttributes::OnGetPlayerCrossplayPr
 
 void FOnlineAsyncTaskAccelByteInitializePlayerAttributes::OnGetPlayerAttributesSuccess(const FAccelByteModelsV2PlayerAttributes& Result)
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 
 	Attributes = Result;
@@ -94,7 +102,7 @@ void FOnlineAsyncTaskAccelByteInitializePlayerAttributes::OnGetPlayerAttributesS
 	// currently stored crossplay preference makes sense (player cannot have crossplay set to true if crossplay is
 	// disallowed on their local platform). If so, then we should just complete the task as there is nothing to update.
 	// Otherwise, construct a request to update the platform information.
-	const FString CurrentPlatformString = Subsystem->GetNativePlatformNameString();
+	const FString CurrentPlatformString = SubsystemPin->GetNativePlatformNameString();
 	const bool bCurrentPlatformMatches = Result.CurrentPlatform.Equals(CurrentPlatformString, ESearchCase::IgnoreCase);
 	const bool bCrossplayStateValid = !(Result.CrossplayEnabled && !bIsCrossplayAllowed);
 	const bool bStoredPlatformInfoMatches = Result.Platforms.ContainsByPredicate([&CurrentPlatformString, UserIdRef = UserId.ToSharedRef()](const FAccelByteModelsV2PlayerAttributesPlatform& Platform) {

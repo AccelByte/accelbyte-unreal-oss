@@ -16,11 +16,13 @@ FOnlineAsyncTaskAccelByteUnregisterRemoteServerV2::FOnlineAsyncTaskAccelByteUnre
 
 void FOnlineAsyncTaskAccelByteUnregisterRemoteServerV2::Initialize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	Super::Initialize();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 
-	const IOnlineSessionPtr SessionInterface = Subsystem->GetSessionInterface();
+	const IOnlineSessionPtr SessionInterface = SubsystemPin->GetSessionInterface();
 	AB_ASYNC_TASK_ENSURE(SessionInterface.IsValid(), "Failed to unregister remote server as our session interface is invalid!");
 
 	// Attempt to get session ID to send along to DSMC when unregistering server. In case this shutdown call is being
@@ -41,12 +43,14 @@ void FOnlineAsyncTaskAccelByteUnregisterRemoteServerV2::Initialize()
 
 void FOnlineAsyncTaskAccelByteUnregisterRemoteServerV2::Finalize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
 	if (bWasSuccessful)
 	{
 		FOnlineSessionV2AccelBytePtr SessionInterface;
-		if (!ensure(FOnlineSessionV2AccelByte::GetFromSubsystem(Subsystem, SessionInterface)))
+		if (!ensure(FOnlineSessionV2AccelByte::GetFromSubsystem(SubsystemPin.Get(), SessionInterface)))
 		{
 			AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to finalize unregistering remote server as our session interface is invalid!"));
 			return;
@@ -54,7 +58,7 @@ void FOnlineAsyncTaskAccelByteUnregisterRemoteServerV2::Finalize()
 
 		SessionInterface->DisconnectFromDSHub();
 
-		const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = Subsystem->GetPredefinedEventInterface();
+		const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = SubsystemPin->GetPredefinedEventInterface();
 		if (PredefinedEventInterface.IsValid())
 		{
 			FAccelByteModelsDSUnregisteredPayload DSUnregisteredPayload{};

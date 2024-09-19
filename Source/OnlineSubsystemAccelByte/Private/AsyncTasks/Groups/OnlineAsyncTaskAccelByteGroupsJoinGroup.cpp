@@ -48,6 +48,8 @@ void FOnlineAsyncTaskAccelByteGroupsJoinGroup::TriggerDelegates()
 
 void FOnlineAsyncTaskAccelByteGroupsJoinGroup::Finalize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	Super::Finalize();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
@@ -57,7 +59,7 @@ void FOnlineAsyncTaskAccelByteGroupsJoinGroup::Finalize()
 
 	// Success
 
-	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = Subsystem->GetPredefinedEventInterface();
+	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = SubsystemPin->GetPredefinedEventInterface();
 	if (PredefinedEventInterface.IsValid())
 	{
 		FAccelByteModelsGroupJoinedPayload GroupJoinedPayload{};

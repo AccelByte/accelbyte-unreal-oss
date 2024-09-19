@@ -25,12 +25,14 @@ FOnlineAsyncTaskAccelByteListUserStatItems::FOnlineAsyncTaskAccelByteListUserSta
 
 void FOnlineAsyncTaskAccelByteListUserStatItems::Initialize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	Super::Initialize();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("List user statistic items, UserId: %s")
 		, *UserId->ToDebugString());
 		
-	const IOnlineIdentityPtr IdentityInterface = Subsystem->GetIdentityInterface();
+	const IOnlineIdentityPtr IdentityInterface = SubsystemPin->GetIdentityInterface();
 	if (!IdentityInterface.IsValid())
 	{
 		ErrorStr = TEXT("list-user-stat-items-failed-identity-invalid");
@@ -48,7 +50,7 @@ void FOnlineAsyncTaskAccelByteListUserStatItems::Initialize()
 		return;
 	}
 
-	const FOnlineStatisticAccelBytePtr StatisticInterface = StaticCastSharedPtr<FOnlineStatisticAccelByte>(Subsystem->GetStatsInterface());
+	const FOnlineStatisticAccelBytePtr StatisticInterface = StaticCastSharedPtr<FOnlineStatisticAccelByte>(SubsystemPin->GetStatsInterface());
 	if (StatisticInterface.IsValid())
 	{
 		TArray<TSharedRef<FAccelByteModelsFetchUser>> UsersRef;
@@ -87,11 +89,13 @@ void FOnlineAsyncTaskAccelByteListUserStatItems::Initialize()
 
 void FOnlineAsyncTaskAccelByteListUserStatItems::Finalize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	Super::Finalize();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Finalize"));
 
-	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = Subsystem->GetPredefinedEventInterface();
+	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = SubsystemPin->GetPredefinedEventInterface();
 	if (bWasSuccessful && PredefinedEventInterface.IsValid())
 	{
 		TSharedPtr<FAccelByteModelsUserStatItemCreatedPayload> UserStatItemCreatedPayload = MakeShared<FAccelByteModelsUserStatItemCreatedPayload>();
@@ -109,10 +113,12 @@ void FOnlineAsyncTaskAccelByteListUserStatItems::Finalize()
 
 void FOnlineAsyncTaskAccelByteListUserStatItems::TriggerDelegates()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s")
 		, LOG_BOOL_FORMAT(bWasSuccessful));
 
-	const FOnlineStatisticAccelBytePtr StatisticInterface = StaticCastSharedPtr<FOnlineStatisticAccelByte>(Subsystem->GetStatsInterface());
+	const FOnlineStatisticAccelBytePtr StatisticInterface = StaticCastSharedPtr<FOnlineStatisticAccelByte>(SubsystemPin->GetStatsInterface());
 	if (StatisticInterface.IsValid())
 	{
 		if (bWasSuccessful)
@@ -142,9 +148,11 @@ void FOnlineAsyncTaskAccelByteListUserStatItems::TriggerDelegates()
 
 void FOnlineAsyncTaskAccelByteListUserStatItems::OnListUserStatItemsSuccess(TArray<FAccelByteModelsFetchUser> const& Result)
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 
-	const FOnlineStatisticAccelBytePtr StatisticInterface = StaticCastSharedPtr<FOnlineStatisticAccelByte>(Subsystem->GetStatsInterface());
+	const FOnlineStatisticAccelBytePtr StatisticInterface = StaticCastSharedPtr<FOnlineStatisticAccelByte>(SubsystemPin->GetStatsInterface());
 	Users = Result;
 	
 	if (StatisticInterface.IsValid())

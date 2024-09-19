@@ -195,6 +195,7 @@ public:
 	 * @returns boolean that is true if we could get an instance of the interface, false otherwise
 	 */
 	static bool GetFromSubsystem(const IOnlineSubsystem* Subsystem, TSharedPtr<FOnlineChatAccelByte, ESPMode::ThreadSafe>& OutInterfaceInstance);
+	static bool GetFromSubsystem(FOnlineSubsystemAccelByte* Subsystem, TSharedPtr<FOnlineChatAccelByte, ESPMode::ThreadSafe>& OutInterfaceInstance);
 
 	/**
 	 * Convenience method to get an instance of this interface from the subsystem associated with the world passed in.

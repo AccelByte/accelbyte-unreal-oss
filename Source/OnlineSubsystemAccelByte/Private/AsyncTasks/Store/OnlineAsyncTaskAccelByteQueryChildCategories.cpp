@@ -19,10 +19,12 @@ FOnlineAsyncTaskAccelByteQueryChildCategories::FOnlineAsyncTaskAccelByteQueryChi
 
 void FOnlineAsyncTaskAccelByteQueryChildCategories::Initialize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	Super::Initialize();
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 	
-	const FOnlineStoreV2AccelBytePtr StoreV2Interface = StaticCastSharedPtr<FOnlineStoreV2AccelByte>(Subsystem->GetStoreV2Interface());
+	const FOnlineStoreV2AccelBytePtr StoreV2Interface = StaticCastSharedPtr<FOnlineStoreV2AccelByte>(SubsystemPin->GetStoreV2Interface());
 	FOnlineStoreCategory RootCategory;
 	StoreV2Interface->GetCategory(CategoryPath, RootCategory);
 	if (RootCategory.SubCategories.Num() > 0)
@@ -42,10 +44,12 @@ void FOnlineAsyncTaskAccelByteQueryChildCategories::Initialize()
 
 void FOnlineAsyncTaskAccelByteQueryChildCategories::Finalize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	Super::Finalize();
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 
-	const FOnlineStoreV2AccelBytePtr StoreV2Interface = StaticCastSharedPtr<FOnlineStoreV2AccelByte>(Subsystem->GetStoreV2Interface());
+	const FOnlineStoreV2AccelBytePtr StoreV2Interface = StaticCastSharedPtr<FOnlineStoreV2AccelByte>(SubsystemPin->GetStoreV2Interface());
 	TArray<FOnlineStoreCategory> Categories;
 	CategoryMap.GenerateValueArray(Categories);
 	StoreV2Interface->EmplaceCategories(Categories);

@@ -22,12 +22,14 @@ FOnlineAsyncTaskAccelByteCreateV1Party::FOnlineAsyncTaskAccelByteCreateV1Party(F
 
 void FOnlineAsyncTaskAccelByteCreateV1Party::Initialize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	Super::Initialize();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("UserId: %s"), *UserId->ToDebugString());
 
 	// First, check if we are in a party locally, if so then we should fail and say to call leave party
-	const FOnlinePartySystemAccelBytePtr PartyInterface = StaticCastSharedPtr<FOnlinePartySystemAccelByte>(Subsystem->GetPartyInterface());
+	const FOnlinePartySystemAccelBytePtr PartyInterface = StaticCastSharedPtr<FOnlinePartySystemAccelByte>(SubsystemPin->GetPartyInterface());
 	if (PartyInterface->IsPlayerInAnyParty(UserId.ToSharedRef().Get()))
 	{
 		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Player '%s' was already in a party when CreateParty was called. Call LeaveParty before attempting to create another party!"), *UserId->ToString());
@@ -49,11 +51,13 @@ void FOnlineAsyncTaskAccelByteCreateV1Party::Initialize()
 
 void FOnlineAsyncTaskAccelByteCreateV1Party::Finalize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
 	if (bWasSuccessful)
 	{
-		const TSharedPtr<FOnlinePartySystemAccelByte, ESPMode::ThreadSafe> PartyInterface = StaticCastSharedPtr<FOnlinePartySystemAccelByte>(Subsystem->GetPartyInterface());
+		const TSharedPtr<FOnlinePartySystemAccelByte, ESPMode::ThreadSafe> PartyInterface = StaticCastSharedPtr<FOnlinePartySystemAccelByte>(SubsystemPin->GetPartyInterface());
 		if (!PartyInterface.IsValid())
 		{
 			UE_LOG_AB(Warning, TEXT("Failed to create party as the party interface was not valid!"));
@@ -67,7 +71,7 @@ void FOnlineAsyncTaskAccelByteCreateV1Party::Finalize()
 		// Since we should be the only member of the party right now, just use our ID and display name to fill out the
 		// member information for us. This may have to change if we ever support creating a party with players already
 		// filled, but for now we only support creating one with just ourselves.
-		const IOnlineIdentityPtr IdentityInterface = Subsystem->GetIdentityInterface();
+		const IOnlineIdentityPtr IdentityInterface = SubsystemPin->GetIdentityInterface();
 		if (IdentityInterface.IsValid())
 		{
 			TSharedRef<FOnlinePartyMemberAccelByte> PartyMember = MakeShared<FOnlinePartyMemberAccelByte>(UserId.ToSharedRef(), IdentityInterface->GetPlayerNickname(UserId.ToSharedRef().Get()));
@@ -83,9 +87,11 @@ void FOnlineAsyncTaskAccelByteCreateV1Party::Finalize()
 
 void FOnlineAsyncTaskAccelByteCreateV1Party::TriggerDelegates()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
-	const TSharedPtr<FOnlinePartySystemAccelByte, ESPMode::ThreadSafe> PartyInterface = StaticCastSharedPtr<FOnlinePartySystemAccelByte>(Subsystem->GetPartyInterface());
+	const TSharedPtr<FOnlinePartySystemAccelByte, ESPMode::ThreadSafe> PartyInterface = StaticCastSharedPtr<FOnlinePartySystemAccelByte>(SubsystemPin->GetPartyInterface());
 	Delegate.ExecuteIfBound(UserId.ToSharedRef().Get(), PartyId, CompletionResult);
 
 	if (PartyId.IsValid())

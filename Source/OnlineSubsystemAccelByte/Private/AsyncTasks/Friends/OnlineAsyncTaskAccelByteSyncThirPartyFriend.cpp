@@ -14,7 +14,13 @@ FOnlineAsyncTaskAccelByteSyncThirPartyFriend::FOnlineAsyncTaskAccelByteSyncThirP
 	, AccelByteFriendListName(InAccelByteFriendListName)
 {
 	LocalUserNum = InLocalUserNum;
-	NativeSubSystem = Subsystem->GetNativePlatformSubsystem();
+
+	auto SubsystemPin = AccelByteSubsystem.Pin();
+	if (!SubsystemPin.IsValid()) {
+		return;
+	}
+
+	NativeSubSystem = SubsystemPin->GetNativePlatformSubsystem();
 	OnlineError = FOnlineError();
 }
 
@@ -38,11 +44,13 @@ void FOnlineAsyncTaskAccelByteSyncThirPartyFriend::Initialize()
 
 void FOnlineAsyncTaskAccelByteSyncThirPartyFriend::Finalize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
 	if (bWasSuccessful)
 	{
-		const TSharedPtr<FOnlineFriendsAccelByte, ESPMode::ThreadSafe> FriendInterface = StaticCastSharedPtr<FOnlineFriendsAccelByte>(Subsystem->GetFriendsInterface());
+		const TSharedPtr<FOnlineFriendsAccelByte, ESPMode::ThreadSafe> FriendInterface = StaticCastSharedPtr<FOnlineFriendsAccelByte>(SubsystemPin->GetFriendsInterface());
 		FriendInterface->AddFriendsToList(LocalUserNum, SyncedFriends);
 	}
 
@@ -51,9 +59,11 @@ void FOnlineAsyncTaskAccelByteSyncThirPartyFriend::Finalize()
 
 void FOnlineAsyncTaskAccelByteSyncThirPartyFriend::TriggerDelegates()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s, ErrorMessage: %s"), LOG_BOOL_FORMAT(bWasSuccessful), *ErrorText.ToString());
 
-	const TSharedPtr<FOnlineFriendsAccelByte, ESPMode::ThreadSafe> FriendInterface = StaticCastSharedPtr<FOnlineFriendsAccelByte>(Subsystem->GetFriendsInterface());
+	const TSharedPtr<FOnlineFriendsAccelByte, ESPMode::ThreadSafe> FriendInterface = StaticCastSharedPtr<FOnlineFriendsAccelByte>(SubsystemPin->GetFriendsInterface());
 
 	FriendInterface->TriggerOnSyncThirdPartyPlatformFriendsCompleteDelegates(LocalUserNum, OnlineError);
 
@@ -165,7 +175,9 @@ void FOnlineAsyncTaskAccelByteSyncThirPartyFriend::OnBulkGetUserByOtherPlatformU
 		UserIds.Add(UserData.UserId);
 	}
 
-	const FOnlineUserCacheAccelBytePtr UserStore = Subsystem->GetUserCache();
+	TRY_PIN_SUBSYSTEM()
+
+	const FOnlineUserCacheAccelBytePtr UserStore = SubsystemPin->GetUserCache();
 	if (!UserStore.IsValid())
 	{
 		CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState);
@@ -189,6 +201,8 @@ void FOnlineAsyncTaskAccelByteSyncThirPartyFriend::OnBulkGetUserByOtherPlatformU
 
 void FOnlineAsyncTaskAccelByteSyncThirPartyFriend::OnQuerySyncedFriendComplete(bool bIsSuccessful,	TArray<FAccelByteUserInfoRef> UsersQueried)
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("LocalUserNum: %d"), LocalUserNum);
 
 	if (bIsSuccessful)
@@ -197,7 +211,7 @@ void FOnlineAsyncTaskAccelByteSyncThirPartyFriend::OnQuerySyncedFriendComplete(b
 
 		for (const auto& User : UsersQueried)
 		{
-			if (Subsystem->GetFriendsInterface()->IsFriend(LocalUserNum, *User->Id, AccelByteFriendListName))
+			if (SubsystemPin->GetFriendsInterface()->IsFriend(LocalUserNum, *User->Id, AccelByteFriendListName))
 			{
 				continue;
 			}

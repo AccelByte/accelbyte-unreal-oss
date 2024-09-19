@@ -36,12 +36,14 @@ void FOnlineAsyncTaskAccelByteChatConfigureRoom::Initialize()
 
 void FOnlineAsyncTaskAccelByteChatConfigureRoom::TriggerDelegates()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	Super::TriggerDelegates();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 
 	FOnlineChatAccelBytePtr ChatInterface;
-	if (!ensure(FOnlineChatAccelByte::GetFromSubsystem(Subsystem, ChatInterface)))
+	if (!ensure(FOnlineChatAccelByte::GetFromSubsystem(SubsystemPin.Get(), ChatInterface)))
 	{
 		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to create chat room as our chat interface instance is not valid!"));
 		return;

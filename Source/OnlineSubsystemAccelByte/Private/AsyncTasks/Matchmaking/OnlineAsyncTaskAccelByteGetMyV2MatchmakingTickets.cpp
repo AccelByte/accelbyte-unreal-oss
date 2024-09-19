@@ -29,6 +29,8 @@ void FOnlineAsyncTaskAccelByteGetMyV2MatchmakingTickets::Initialize()
 
 void FOnlineAsyncTaskAccelByteGetMyV2MatchmakingTickets::Finalize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	Super::Finalize();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
@@ -58,7 +60,7 @@ void FOnlineAsyncTaskAccelByteGetMyV2MatchmakingTickets::Finalize()
 			return;
 		}
 
-		const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(Subsystem->GetSessionInterface());
+		const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(SubsystemPin->GetSessionInterface());
 		if (!ensure(SessionInterface.IsValid()))
 		{
 			AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to finalize task for starting matchmaking as our session interface is invalid!"));
@@ -79,11 +81,13 @@ void FOnlineAsyncTaskAccelByteGetMyV2MatchmakingTickets::Finalize()
 
 void FOnlineAsyncTaskAccelByteGetMyV2MatchmakingTickets::TriggerDelegates()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	Super::TriggerDelegates();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("SessionName: %s, ActiveTicketId: %s"), *SessionName.ToString(), *ActiveTicketId);
 
-	const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(Subsystem->GetSessionInterface());
+	const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(SubsystemPin->GetSessionInterface());
 	if (!ensure(SessionInterface.IsValid()))
 	{
 		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to trigger delegates for starting matchmaking as our session interface is invalid!"));

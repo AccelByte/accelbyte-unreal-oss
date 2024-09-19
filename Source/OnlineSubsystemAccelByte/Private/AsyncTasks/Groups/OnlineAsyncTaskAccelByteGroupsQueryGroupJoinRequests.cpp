@@ -50,12 +50,14 @@ void FOnlineAsyncTaskAccelByteGroupsQueryGroupJoinRequests::TriggerDelegates()
 
 void FOnlineAsyncTaskAccelByteGroupsQueryGroupJoinRequests::Finalize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	Super::Finalize();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
 	FOnlineGroupsAccelBytePtr GroupsInterface;
-	if (!ensure(FOnlineGroupsAccelByte::GetFromSubsystem(Subsystem, GroupsInterface)))
+	if (!ensure(FOnlineGroupsAccelByte::GetFromSubsystem(SubsystemPin.Get(),  GroupsInterface)))
 	{
 		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to QueryGroupJoinRequests, groups interface instance is not valid!"));
 		return;
@@ -66,7 +68,7 @@ void FOnlineAsyncTaskAccelByteGroupsQueryGroupJoinRequests::Finalize()
 
 	GroupsInterface->SetCachedGroupRequests(AccelByteModelsGetMemberRequestsListResponse);
 
-	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = Subsystem->GetPredefinedEventInterface();
+	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = SubsystemPin->GetPredefinedEventInterface();
 	if (PredefinedEventInterface.IsValid())
 	{
 		FAccelByteModelsGroupJoinRequestListPayload GroupJoinRequestListPayload{};

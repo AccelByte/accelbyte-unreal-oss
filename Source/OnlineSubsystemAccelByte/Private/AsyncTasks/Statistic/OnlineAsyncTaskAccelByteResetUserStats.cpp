@@ -46,11 +46,13 @@ FOnlineAsyncTaskAccelByteResetUserStats::FOnlineAsyncTaskAccelByteResetUserStats
 
 void FOnlineAsyncTaskAccelByteResetUserStats::Initialize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	Super::Initialize();
 	
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Initialized"));
 
-	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(Subsystem->GetIdentityInterface());
+	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(SubsystemPin->GetIdentityInterface());
 	if (!IdentityInterface.IsValid())
 	{
 		ErrorMessage = TEXT("request-failed-reset-stats-user-error-identity-invalid");
@@ -136,10 +138,12 @@ void FOnlineAsyncTaskAccelByteResetUserStats::Initialize()
 
 void FOnlineAsyncTaskAccelByteResetUserStats::Finalize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Finalize"));
 	Super::Finalize();
 
-	const FOnlineStatisticAccelBytePtr StatisticInterface = StaticCastSharedPtr<FOnlineStatisticAccelByte>(Subsystem->GetStatsInterface());
+	const FOnlineStatisticAccelBytePtr StatisticInterface = StaticCastSharedPtr<FOnlineStatisticAccelByte>(SubsystemPin->GetStatsInterface());
 	if (StatisticInterface.IsValid())
 	{
 		if (OnlineUserStatsPair.IsValid())
@@ -148,7 +152,7 @@ void FOnlineAsyncTaskAccelByteResetUserStats::Finalize()
 		}
 	}
 
-	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = Subsystem->GetPredefinedEventInterface();
+	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = SubsystemPin->GetPredefinedEventInterface();
 	if (bWasSuccessful && PredefinedEventInterface.IsValid())
 	{
 		TSharedPtr<FAccelByteModelsUserStatItemResetPayload> UserStatItemResetPayload = MakeShared<FAccelByteModelsUserStatItemResetPayload>();
@@ -169,13 +173,15 @@ void FOnlineAsyncTaskAccelByteResetUserStats::Finalize()
 
 void FOnlineAsyncTaskAccelByteResetUserStats::TriggerDelegates()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Trigger Delegates"));
 	Super::TriggerDelegates();
 	EOnlineErrorResult Result = bWasSuccessful ? EOnlineErrorResult::Success : EOnlineErrorResult::RequestFailure;
 
 	Delegate.ExecuteIfBound(ONLINE_ERROR(Result, ErrorCode, FText::FromString(ErrorMessage)));
 
-	const FOnlineStatisticAccelBytePtr StatisticInterface = StaticCastSharedPtr<FOnlineStatisticAccelByte>(Subsystem->GetStatsInterface());
+	const FOnlineStatisticAccelBytePtr StatisticInterface = StaticCastSharedPtr<FOnlineStatisticAccelByte>(SubsystemPin->GetStatsInterface());
 	StatisticInterface->TriggerOnUserStatItemsResetCompletedDelegates(LocalUserNum
 		, bWasSuccessful
 		, UserStatsResetResponse

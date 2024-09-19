@@ -20,11 +20,13 @@ FOnlineAsyncTaskAccelByteAddFriendToList::FOnlineAsyncTaskAccelByteAddFriendToLi
 
 void FOnlineAsyncTaskAccelByteAddFriendToList::Initialize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	Super::Initialize();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("UserId: %s; FriendId: %s"), *FriendOwnerId->ToDebugString(), *FriendId->ToDebugString());
 
-	FOnlineUserCacheAccelBytePtr UserStore = Subsystem->GetUserCache();
+	FOnlineUserCacheAccelBytePtr UserStore = SubsystemPin->GetUserCache();
 	if (!UserStore.IsValid())
 	{
 		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Could not add friend '%s' to friends list as our user store instance is invalid!"), *FriendId->ToDebugString());
@@ -43,11 +45,13 @@ void FOnlineAsyncTaskAccelByteAddFriendToList::Initialize()
 
 void FOnlineAsyncTaskAccelByteAddFriendToList::Finalize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
 	if (bWasSuccessful)
 	{
-		const TSharedPtr<FOnlineFriendsAccelByte, ESPMode::ThreadSafe> FriendsInterface = StaticCastSharedPtr<FOnlineFriendsAccelByte>(Subsystem->GetFriendsInterface());
+		const TSharedPtr<FOnlineFriendsAccelByte, ESPMode::ThreadSafe> FriendsInterface = StaticCastSharedPtr<FOnlineFriendsAccelByte>(SubsystemPin->GetFriendsInterface());
 		if (ensure(FriendsInterface.IsValid()))
 		{
 			FriendsInterface->AddFriendToList(LocalUserNum, FriendObject);
@@ -59,9 +63,11 @@ void FOnlineAsyncTaskAccelByteAddFriendToList::Finalize()
 
 void FOnlineAsyncTaskAccelByteAddFriendToList::TriggerDelegates()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
-	const IOnlineFriendsPtr FriendsInterface = Subsystem->GetFriendsInterface();
+	const IOnlineFriendsPtr FriendsInterface = SubsystemPin->GetFriendsInterface();
 	if (!ensure(FriendsInterface.IsValid()))
 	{
 		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to trigger delegates for adding a friend to local friends list as our friends interface is invalid!"));

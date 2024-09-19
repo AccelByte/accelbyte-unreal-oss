@@ -22,13 +22,15 @@ FOnlineAsyncTaskAccelByteLoginQueue::FOnlineAsyncTaskAccelByteLoginQueue(FOnline
 
 void FOnlineAsyncTaskAccelByteLoginQueue::Initialize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	Super::Initialize();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("LocalUserNum: %d, TicketId: %s"), LoginUserNum, *Ticket.Ticket);
 
 	GConfig->GetInt(TEXT("OnlineSubsystemAccelByte"), TEXT("LoginQueuePresentationThreshold"), PresentationThreshold, GEngineIni);
 
-	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(Subsystem->GetIdentityInterface());
+	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(SubsystemPin->GetIdentityInterface());
 	if(!IdentityInterface.IsValid())
 	{
 		AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Unable to initialize login queue, Identity interface is invalid"));
@@ -47,16 +49,18 @@ void FOnlineAsyncTaskAccelByteLoginQueue::Initialize()
 	OnPollStoppedHandler = TDelegateUtils<THandler<FOnlineErrorAccelByte>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteLoginQueue::OnPollTicketStopped);
 	Poller->SetOnPollStopped(OnPollStoppedHandler);
 	
-	Poller->StartPoll(Subsystem, LoginUserNum, Ticket);
+	Poller->StartPoll(SubsystemPin.Get(), LoginUserNum, Ticket);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 
 void FOnlineAsyncTaskAccelByteLoginQueue::Finalize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), bWasSuccessful ? TEXT("True") : TEXT("False"));
 
-	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(Subsystem->GetIdentityInterface());
+	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(SubsystemPin->GetIdentityInterface());
 	if(!IdentityInterface.IsValid())
 	{
 		AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Failed to finalize login queue process failed, Identity Interface is invalid!"));
@@ -70,6 +74,8 @@ void FOnlineAsyncTaskAccelByteLoginQueue::Finalize()
 
 void FOnlineAsyncTaskAccelByteLoginQueue::TriggerDelegates()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), bWasSuccessful ? TEXT("True") : TEXT("False"));
 	
 	if(bWasSuccessful)
@@ -79,7 +85,7 @@ void FOnlineAsyncTaskAccelByteLoginQueue::TriggerDelegates()
 		return;
 	}
 
-	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(Subsystem->GetIdentityInterface());
+	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(SubsystemPin->GetIdentityInterface());
 	if(!IdentityInterface.IsValid())
 	{
 		AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Failed to broadcast login queue process failed, Identity Interface is invalid!"));
@@ -95,9 +101,11 @@ void FOnlineAsyncTaskAccelByteLoginQueue::TriggerDelegates()
 
 void FOnlineAsyncTaskAccelByteLoginQueue::OnPollTicketRefreshed(const FAccelByteModelsLoginQueueTicketInfo& InTicket)
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("LocalUserNum: %d, TicketId: %s"), LoginUserNum, *InTicket.Ticket);
 
-	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(Subsystem->GetIdentityInterface());
+	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(SubsystemPin->GetIdentityInterface());
 	if(!IdentityInterface.IsValid())
 	{
 		AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Unable to act on login ticket refreshed, Identity interface is invalid"));
@@ -137,9 +145,11 @@ void FOnlineAsyncTaskAccelByteLoginQueue::OnPollTicketStopped(const FOnlineError
 
 void FOnlineAsyncTaskAccelByteLoginQueue::ClaimAccessToken(const FString& InTicketId)
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("LocalUserNum: %d, TicketId: %s"), LoginUserNum, *InTicketId);
 
-	if (Subsystem->IsMultipleLocalUsersEnabled())
+	if (SubsystemPin->IsMultipleLocalUsersEnabled())
 	{
 		SetApiClient(FMultiRegistry::GetApiClient(FString::Printf(TEXT("%d"), LoginUserNum)));
 	}
@@ -200,10 +210,12 @@ void FOnlineAsyncTaskAccelByteLoginQueue::OnClaimAccessTokenError(int32 InErrorC
 
 void FOnlineAsyncTaskAccelByteLoginQueue::CleanupDelegateHandler()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	Poller->UnbindOnPollStopped();
 	Poller->UnbindOnTicketRefreshed();
 
-	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(Subsystem->GetIdentityInterface());
+	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(SubsystemPin->GetIdentityInterface());
 	if(!IdentityInterface.IsValid())
 	{
 		AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Failed to broadcast login queue process failed, Identity Interface is invalid!"));

@@ -21,7 +21,9 @@ FOnlineAsyncTaskAccelByteUpdateGameSessionV2::FOnlineAsyncTaskAccelByteUpdateGam
 {
 	if (!IsRunningDedicatedServer())
 	{
-		IOnlineSessionPtr SessionInterface = Subsystem->GetSessionInterface();
+		TRY_PIN_SUBSYSTEM_CONSTRUCTOR()
+
+		IOnlineSessionPtr SessionInterface = SubsystemPin->GetSessionInterface();
 		if (ensure(SessionInterface.IsValid()))
 		{
 			FNamedOnlineSession* Session = SessionInterface->GetNamedSession(SessionName);
@@ -35,11 +37,13 @@ FOnlineAsyncTaskAccelByteUpdateGameSessionV2::FOnlineAsyncTaskAccelByteUpdateGam
 
 void FOnlineAsyncTaskAccelByteUpdateGameSessionV2::Initialize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	Super::Initialize();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("SessionName: %s"), *SessionName.ToString());
 
-	const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(Subsystem->GetSessionInterface());
+	const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(SubsystemPin->GetSessionInterface());
 	AB_ASYNC_TASK_ENSURE(SessionInterface.IsValid(), "Failed to update game session as our session interface is invalid!");
 
 	FNamedOnlineSession* Session = SessionInterface->GetNamedSession(SessionName);
@@ -184,11 +188,13 @@ void FOnlineAsyncTaskAccelByteUpdateGameSessionV2::Initialize()
 
 void FOnlineAsyncTaskAccelByteUpdateGameSessionV2::Finalize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
 	if (bWasSuccessful)
 	{
-		const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(Subsystem->GetSessionInterface());
+		const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(SubsystemPin->GetSessionInterface());
 		if (!ensure(SessionInterface.IsValid()))
 		{
 			AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to finalize updating game session as our session interface is invalid!"));
@@ -205,9 +211,11 @@ void FOnlineAsyncTaskAccelByteUpdateGameSessionV2::Finalize()
 
 void FOnlineAsyncTaskAccelByteUpdateGameSessionV2::TriggerDelegates()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
-	const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(Subsystem->GetSessionInterface());
+	const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(SubsystemPin->GetSessionInterface());
 	if (!ensure(SessionInterface.IsValid()))
 	{
 		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to trigger delegates for updating game session as our session interface is invalid!"));
@@ -252,9 +260,11 @@ void FOnlineAsyncTaskAccelByteUpdateGameSessionV2::OnUpdateGameSessionError(int3
 
 void FOnlineAsyncTaskAccelByteUpdateGameSessionV2::RefreshSession()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 
-	const TSharedPtr<FOnlineSessionV2AccelByte, ESPMode::ThreadSafe> SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(Subsystem->GetSessionInterface());
+	const TSharedPtr<FOnlineSessionV2AccelByte, ESPMode::ThreadSafe> SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(SubsystemPin->GetSessionInterface());
 	check(SessionInterface.IsValid());
 
 	FNamedOnlineSession* Session = SessionInterface->GetNamedSession(SessionName);
@@ -281,9 +291,11 @@ void FOnlineAsyncTaskAccelByteUpdateGameSessionV2::RefreshSession()
 
 void FOnlineAsyncTaskAccelByteUpdateGameSessionV2::OnRefreshGameSessionSuccess(const FAccelByteModelsV2GameSession& Result)
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 
-	const TSharedPtr<FOnlineSessionV2AccelByte, ESPMode::ThreadSafe> SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(Subsystem->GetSessionInterface());
+	const TSharedPtr<FOnlineSessionV2AccelByte, ESPMode::ThreadSafe> SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(SubsystemPin->GetSessionInterface());
 	if (SessionInterface.IsValid())
 	{
 		// We don't care about this out flag in this case

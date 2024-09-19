@@ -44,9 +44,11 @@ void FOnlineAsyncTaskAccelByteConsumeEntitlement::Initialize()
 
 void FOnlineAsyncTaskAccelByteConsumeEntitlement::Finalize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 	FOnlineAsyncTaskAccelByte::TriggerDelegates();
-	const FOnlineEntitlementsAccelBytePtr EntitlementInterface = StaticCastSharedPtr<FOnlineEntitlementsAccelByte>(Subsystem->GetEntitlementsInterface());
+	const FOnlineEntitlementsAccelBytePtr EntitlementInterface = StaticCastSharedPtr<FOnlineEntitlementsAccelByte>(SubsystemPin->GetEntitlementsInterface());
 	if (EntitlementInterface.IsValid() && bWasSuccessful)
 	{
 		EntitlementInterface->AddEntitlementToMap(UserId.ToSharedRef(), Entitlement.ToSharedRef());
@@ -57,9 +59,11 @@ void FOnlineAsyncTaskAccelByteConsumeEntitlement::Finalize()
 
 void FOnlineAsyncTaskAccelByteConsumeEntitlement::TriggerDelegates()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 	FOnlineAsyncTaskAccelByte::TriggerDelegates();
-	const FOnlineEntitlementsAccelBytePtr EntitlementInterface = StaticCastSharedPtr<FOnlineEntitlementsAccelByte>(Subsystem->GetEntitlementsInterface());
+	const FOnlineEntitlementsAccelBytePtr EntitlementInterface = StaticCastSharedPtr<FOnlineEntitlementsAccelByte>(SubsystemPin->GetEntitlementsInterface());
 	if (EntitlementInterface.IsValid())
 	{
 		EntitlementInterface->TriggerOnConsumeEntitlementCompleteDelegates(bWasSuccessful, *UserId.Get(), Entitlement, ONLINE_ERROR(bWasSuccessful ? EOnlineErrorResult::Success : EOnlineErrorResult::RequestFailure, FString::Printf(TEXT("%d"), ErrorCode), FText::FromString(ErrorMessage)));

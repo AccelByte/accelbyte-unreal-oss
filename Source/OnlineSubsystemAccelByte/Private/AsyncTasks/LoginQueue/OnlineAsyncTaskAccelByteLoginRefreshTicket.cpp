@@ -23,10 +23,12 @@ FOnlineAsyncTaskAccelByteLoginRefreshTicket::FOnlineAsyncTaskAccelByteLoginRefre
 
 void FOnlineAsyncTaskAccelByteLoginRefreshTicket::Initialize()
 {
+	TRY_PIN_SUBSYSTEM()
+
 	Super::Initialize();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("LoginUserNum: %d"), LoginUserNum);
-	if (Subsystem->IsMultipleLocalUsersEnabled())
+	if (SubsystemPin->IsMultipleLocalUsersEnabled())
 	{
 		SetApiClient(FMultiRegistry::GetApiClient(FString::Printf(TEXT("%d"), LoginUserNum)));
 	}
