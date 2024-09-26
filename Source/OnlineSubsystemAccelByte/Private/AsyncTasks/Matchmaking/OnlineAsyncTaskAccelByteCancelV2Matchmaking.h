@@ -33,6 +33,16 @@ private:
 	FName SessionName{};
 
 	FVoidHandler OnDeleteMatchTicketSuccessDelegate;
+	const FString MatchmakingCanceledNotifFeatureFlagName {TEXT("leader_matchmaking_cancelled_notification")};
+	AccelByte::FAccelByteTaskWPtr DeleteTicketTaskWPtr;
+	TMap<FString, FString> FeatureFlags;
+
+	/** flag to notify if the BE operation doesn't find the ticket */
+	bool bTicketNotFound {false};
+
+	/** flag to notify if we are expecting cancel notification after this response */
+	bool bExpectingNotif {false};
+
 	void OnDeleteMatchTicketSuccess();
 
 	FErrorHandler OnDeleteMatchTicketErrorDelegate;

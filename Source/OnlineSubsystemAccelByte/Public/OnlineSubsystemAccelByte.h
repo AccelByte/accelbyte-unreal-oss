@@ -624,11 +624,15 @@ private:
 
 	void SendInitializedEvent();
 
+	void HandleShutdown();
+
 	DECLARE_DELEGATE(FLogOutFromInterfaceDelegate)
 	TMap<int32, FLogOutFromInterfaceDelegate> LogoutDelegates {};
 	FCriticalSection LockObject;
 
 	FOnLocalUserNumCachedDelegate OnLocalUserNumCachedDelegate;
+
+	FDelegateHandle OnPreExitDelegate;
 
 #pragma region PLATFORM_RELATED
 	/**

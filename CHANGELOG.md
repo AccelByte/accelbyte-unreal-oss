@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.12.25](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.12.25%0D0.12.24) (2024-09-26)
+
+
+### Features
+
+* add lock key in AsyncTask ([4bc0547](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/4bc0547290df8712d993a4ff71998a3b2faf98da))
+* implement lock key in lobby notification processing ([f875075](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/f875075e4b72f3b782a615037e31be01072d9eaa))
+* read matchmaking feature flag in cancel to expect notification ([1cea9cc](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/1cea9cc8f73309a0eefdc73cfd0d980de86a1f51))
+* trigger cancel notification from match ticket details polling ([718ee7d](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/718ee7dbcce6e68f340f78b18bbd0d850fcd42a0))
+
+
+### Bug Fixes
+
+* cleanup on pre exit ([66c4787](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/66c4787b4657fc0cbbda9a3925862056ef28de0d))
+* fix error code in check matchmaking ticket details for ticket not found ([ab158ec](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/ab158ecd5d9b29204145b4e2b920f55127d2bdd6))
+* matchmaking ticket keep polling if expecting notification after cancel success. ([43d0ac4](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/43d0ac4b4c76a1dab199ce79b4a7f64f984b285e))
+* stop session invite polling when join session success ([8856a10](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/8856a103c46b8397221f8cd6f9e172fb4436a45f))
+* trigger OnMatchmakingCanceled and OnMatchmakingComplete when receiving matchmaking cancel response and not expecting cancel notification ([5420c11](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/5420c11d40ee1a36231590cd77d48b4fa219e211))
+
 ### [0.12.24](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.12.24%0D0.12.23) (2024-09-19)
 
 

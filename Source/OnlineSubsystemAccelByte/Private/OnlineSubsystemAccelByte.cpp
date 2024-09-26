@@ -125,6 +125,11 @@ bool FOnlineSubsystemAccelByte::Init()
 	FAccelBytePlatformHandler PlatformHandler{};
 	PlatformHandler.AddPlatformPresenceChangedDelegate(AccelByte::FAccelBytePlatformPresenceChangedDelegate::CreateThreadSafeSP(this
 		, &FOnlineSubsystemAccelByte::OnPresenceChanged));
+	
+	if (!OnPreExitDelegate.IsValid())
+	{
+		OnPreExitDelegate = FCoreDelegates::OnPreExit.AddThreadSafeSP(AsShared(), &FOnlineSubsystemAccelByte::HandleShutdown);
+	}
 
 	return true;
 }
@@ -206,6 +211,11 @@ bool FOnlineSubsystemAccelByte::Shutdown()
 	VoiceChatInterface.Reset();
 	PredefinedEventInterface.Reset();
 	GameStandardEventInterface.Reset();
+
+	if (OnPreExitDelegate.IsValid())
+	{
+		FCoreDelegates::OnPreExit.Remove(OnPreExitDelegate);
+	}
 	
 	return true;
 }
@@ -1009,6 +1019,24 @@ void FOnlineSubsystemAccelByte::SendInitializedEvent()
 	}
 
 	PredefinedEventInterface->SendEvent(LocalUserNumCached, MakeShared<FAccelByteModelsSDKInitializedPayload>(SDKInitializedPayload), PluginInitializedTime);
+}
+
+void FOnlineSubsystemAccelByte::HandleShutdown()
+{
+	// Shut down our async task thread if it is a valid handle
+	if (AsyncTaskManagerThread.IsValid())
+	{
+		AsyncTaskManagerThread->Kill(true);
+		AsyncTaskManagerThread.Reset();
+		AsyncTaskManagerThread = nullptr;
+	}
+
+	// Clear our async task manager if it is a valid handle once we've killed its thread
+	if (AsyncTaskManager.IsValid())
+	{
+		AsyncTaskManager.Reset();
+		AsyncTaskManager = nullptr;
+	}
 }
 
 FOnlineSubsystemAccelByte::FOnLocalUserNumCachedDelegate& FOnlineSubsystemAccelByte::OnLocalUserNumCached()

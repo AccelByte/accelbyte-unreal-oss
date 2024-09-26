@@ -18,7 +18,7 @@ class FOnlineAsyncTaskAccelByteFindV2GameSessionById
 {
 public:
 
-	FOnlineAsyncTaskAccelByteFindV2GameSessionById(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InSearchingPlayerId, const FUniqueNetId& InSessionId, const FOnSingleSessionResultCompleteDelegate& InDelegate);
+	FOnlineAsyncTaskAccelByteFindV2GameSessionById(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InSearchingPlayerId, const FUniqueNetId& InSessionId, const FOnSingleSessionResultCompleteDelegate& InDelegate, const TSharedPtr<FAccelByteKey> InLockKey = nullptr);
 
 	virtual void Initialize() override;
 	virtual void Finalize() override;

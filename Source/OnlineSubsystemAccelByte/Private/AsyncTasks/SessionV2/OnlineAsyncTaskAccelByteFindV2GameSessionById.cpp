@@ -7,12 +7,13 @@
 
 using namespace AccelByte;
 
-FOnlineAsyncTaskAccelByteFindV2GameSessionById::FOnlineAsyncTaskAccelByteFindV2GameSessionById(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InSearchingPlayerId, const FUniqueNetId& InSessionId, const FOnSingleSessionResultCompleteDelegate& InDelegate)
+FOnlineAsyncTaskAccelByteFindV2GameSessionById::FOnlineAsyncTaskAccelByteFindV2GameSessionById(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InSearchingPlayerId, const FUniqueNetId& InSessionId, const FOnSingleSessionResultCompleteDelegate& InDelegate, const TSharedPtr<FAccelByteKey> InLockKey /* = nullptr */)
 	// Initialize as a server task if we are running a dedicated server, as this doubles as a server task. Otherwise, use
 	// no flags to indicate that it is a client task.
 	: FOnlineAsyncTaskAccelByte(InABInterface
 		, INVALID_CONTROLLERID
-		, IsRunningDedicatedServer() ? ASYNC_TASK_FLAG_BIT(EAccelByteAsyncTaskFlags::ServerTask) : ASYNC_TASK_FLAG_BIT(EAccelByteAsyncTaskFlags::None))
+		, IsRunningDedicatedServer() ? ASYNC_TASK_FLAG_BIT(EAccelByteAsyncTaskFlags::ServerTask) : ASYNC_TASK_FLAG_BIT(EAccelByteAsyncTaskFlags::None)
+		, InLockKey)
 	, SessionId(FUniqueNetIdAccelByteResource::CastChecked(InSessionId))
 	, Delegate(InDelegate)
 {

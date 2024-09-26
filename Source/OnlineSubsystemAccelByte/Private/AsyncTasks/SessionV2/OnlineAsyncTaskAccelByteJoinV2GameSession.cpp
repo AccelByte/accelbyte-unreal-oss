@@ -133,6 +133,9 @@ void FOnlineAsyncTaskAccelByteJoinV2GameSession::Finalize()
 			return;
 		}
 
+		// we already joined the session, don't need to poll if we got an invitation.
+		SessionInterface->StopSessionInviteCheckPoll(UserId, SessionId);
+
 		// if the session doesn't have DS info yet, we startup the poll to check after some time.
 		if(!SessionInfo->HasConnectionInfo() && SessionInfo->GetServerType() == EAccelByteV2SessionConfigurationServerType::DS)
 		{

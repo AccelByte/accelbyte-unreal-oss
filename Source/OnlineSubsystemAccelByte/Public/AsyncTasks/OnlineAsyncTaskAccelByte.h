@@ -194,7 +194,7 @@ public:
 
 	/**
 	 * Breaking const placement here as parent class has the InSubsystem defined as 'T* const'. Trying to define as 'const T*' gives error C2664.
-	 *
+	 * 
 	 * Child classes that use this constructor will also need to use this convention.
 	 *
 	 * @param InABSubsystem A pointer to AccelByte OnlineSubsystem instance
@@ -204,6 +204,24 @@ public:
 	explicit FOnlineAsyncTaskAccelByte(FOnlineSubsystemAccelByte *const InABSubsystem
 		, int32 InLocalUserNum
 		, uint8 InFlags)
+		: FOnlineAsyncTaskAccelByte(InABSubsystem, InLocalUserNum, InFlags, nullptr)
+	{
+	}
+
+	/**
+	 * Breaking const placement here as parent class has the InSubsystem defined as 'T* const'. Trying to define as 'const T*' gives error C2664.
+	 *
+	 * Child classes that use this constructor will also need to use this convention.
+	 *
+	 * @param InABSubsystem A pointer to AccelByte OnlineSubsystem instance
+	 * @param InLocalUserNum Local User Index
+	 * @param InFlags Flags whether any child of this task will by default use a timeout mechanism on Tick
+	 * @param InLockKey Key lock to hold while this async task is alive
+	 */
+	explicit FOnlineAsyncTaskAccelByte(FOnlineSubsystemAccelByte *const InABSubsystem
+		, int32 InLocalUserNum
+		, uint8 InFlags
+		, TSharedPtr<FAccelByteKey> InLockKey)
 		: FOnlineAsyncTaskBasic(InABSubsystem)
 #if ENGINE_MAJOR_VERSION >= 5
 		, AccelByteSubsystem(InABSubsystem->AsWeak())
@@ -212,6 +230,7 @@ public:
 #endif
 		, LocalUserNum(InLocalUserNum)
 		, Flags(InFlags)
+		, LockKey(InLockKey)
 		, Subsystem(InABSubsystem)
 	{
 		bShouldUseTimeout = HasFlag(EAccelByteAsyncTaskFlags::UseTimeout);
@@ -392,6 +411,9 @@ protected:
 
 	/** Epic for this task */
 	FOnlineAsyncEpicTaskAccelByte* Epic = nullptr;
+
+	/** lock key to keep alive while async task is active */
+	TSharedPtr<FAccelByteKey> LockKey;
 
 	/**
 	 * Basic method to get the current name of the task, used for ToString on tasks as well as trace logs.

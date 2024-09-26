@@ -987,7 +987,7 @@ void FOnlineSessionV2AccelByte::OnMatchTicketCheckGetMatchTicketDetails(
 
 	if(!OnlineError.WasSuccessful())
 	{
-		const FString MMTicketNotFoundErrorCode = FString::Printf(TEXT("FOnlineAsyncTaskAccelByteGetV2MatchmakingTicketDetails::%d"),ErrorCodes::MatchmakingV2MatchTicketNotFound);
+		const FString MMTicketNotFoundErrorCode = TEXT("FOnlineAsyncTaskAccelByteGetV2MatchmakingTicketDetails.matchmakingv2-failed-ticket-not-found");
 		// current ticket not found. most likely the ticket already expired.
 		if(OnlineError.ErrorCode ==  MMTicketNotFoundErrorCode)
 		{
@@ -1014,7 +1014,28 @@ void FOnlineSessionV2AccelByte::OnMatchTicketCheckGetMatchTicketDetails(
 			SetMatchTicketCheckPollToNextPollTime();
 		}
 
-		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Log, TEXT("Failed to spoof ticket expire notification, failed to serialize expired notif"));
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Log, TEXT("Failed to spoof ticket expire notification, ticket info returned with error %s"), *OnlineError.ErrorCode);
+		return;
+	}
+
+	// if the ticket is currently not active and not proposed means ticket is canceled
+	if(!Response.IsActive && Response.ProposedProposal.Status.IsEmpty())
+	{
+		FAccelByteModelsV2MatchmakingCanceledNotif CancelNotif;
+		CancelNotif.Namespace = ApiClient->CredentialsRef->GetNamespace();
+		CancelNotif.Reason = TEXT("ticket info polling responded with not active and no backfill proposed");
+		CancelNotif.TicketID = CurrentMatchmakingSearchHandle->TicketId;
+
+		FString CancelNotifJsonString;
+		if(FJsonObjectConverter::UStructToJsonObjectString(CancelNotif, CancelNotifJsonString))
+		{
+			const FString LobbyMessage = FAccelByteNotificationSenderUtility::ComposeMMv2Notification("OnMatchmakingTicketCanceled", CancelNotifJsonString);
+			ApiClient->NotificationSender.SendLobbyNotification(LobbyMessage);
+		}
+		else
+		{
+			UE_LOG_AB(Log, TEXT("Failed to spoof ticket canceled notification, failed to serialize cancel notif"));
+		}
 		return;
 	}
 
@@ -5689,6 +5710,13 @@ void FOnlineSessionV2AccelByte::OnInvitedToGameSessionNotification(FAccelByteMod
 		return;
 	}
 
+	FApiClientPtr ApiClientPtr = IdentityInterface->GetApiClient(LocalUserNum);
+	TSharedPtr<FAccelByteKey> LobbyLockKey;
+	if (ApiClientPtr.IsValid())
+	{
+		LobbyLockKey = ApiClientPtr->Lobby.LockNotifications();
+	}
+
 	const FUniqueNetIdPtr SessionUniqueId = CreateSessionIdFromString(InviteEvent.SessionID);
 	if (!ensure(SessionUniqueId.IsValid()))
 	{
@@ -5698,7 +5726,7 @@ void FOnlineSessionV2AccelByte::OnInvitedToGameSessionNotification(FAccelByteMod
 
 	SetSessionInvitationGetInfoInProgress(InviteEvent.SessionID);
 	OnFindGameSessionForInviteCompleteDelegate = FOnSingleSessionResultCompleteDelegate::CreateThreadSafeSP(SharedThis(this), &FOnlineSessionV2AccelByte::OnFindGameSessionForInviteComplete, InviteEvent);
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteFindV2GameSessionById>(AccelByteSubsystem, PlayerId.ToSharedRef().Get(), SessionUniqueId.ToSharedRef().Get(), OnFindGameSessionForInviteCompleteDelegate);
+	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteFindV2GameSessionById>(AccelByteSubsystem, PlayerId.ToSharedRef().Get(), SessionUniqueId.ToSharedRef().Get(), OnFindGameSessionForInviteCompleteDelegate, LobbyLockKey);
 
 	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = AccelByteSubsystem->GetPredefinedEventInterface();
 	if (PredefinedEventInterface.IsValid())
@@ -6023,6 +6051,13 @@ void FOnlineSessionV2AccelByte::OnInvitedToPartySessionNotification(FAccelByteMo
 		return;
 	}
 
+	FApiClientPtr ApiClientPtr = IdentityInterface->GetApiClient(LocalUserNum);
+	TSharedPtr<FAccelByteKey> LobbyLockKey;
+	if (ApiClientPtr.IsValid())
+	{
+		LobbyLockKey = ApiClientPtr->Lobby.LockNotifications();
+	}
+
 	const FUniqueNetIdPtr SessionUniqueId = CreateSessionIdFromString(InviteEvent.PartyID);
 	if (!ensure(SessionUniqueId.IsValid()))
 	{
@@ -6031,7 +6066,7 @@ void FOnlineSessionV2AccelByte::OnInvitedToPartySessionNotification(FAccelByteMo
 	}
 
 	const FOnSingleSessionResultCompleteDelegate OnFindPartySessionForInviteCompleteDelegate = FOnSingleSessionResultCompleteDelegate::CreateThreadSafeSP(SharedThis(this), &FOnlineSessionV2AccelByte::OnFindPartySessionForInviteComplete, InviteEvent);
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteFindV2PartyById>(AccelByteSubsystem, PlayerId.ToSharedRef().Get(), SessionUniqueId.ToSharedRef().Get(), OnFindPartySessionForInviteCompleteDelegate);
+	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteFindV2PartyById>(AccelByteSubsystem, PlayerId.ToSharedRef().Get(), SessionUniqueId.ToSharedRef().Get(), OnFindPartySessionForInviteCompleteDelegate, LobbyLockKey);
 
 	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = AccelByteSubsystem->GetPredefinedEventInterface();
 	if (PredefinedEventInterface.IsValid())
@@ -6580,6 +6615,13 @@ void FOnlineSessionV2AccelByte::OnMatchmakingMatchFoundNotification(FAccelByteMo
 		return;
 	}
 
+	FApiClientPtr ApiClientPtr = IdentityInterface->GetApiClient(LocalUserNum);
+	TSharedPtr<FAccelByteKey> LobbyLockKey;
+	if (ApiClientPtr.IsValid())
+	{
+		LobbyLockKey = ApiClientPtr->Lobby.LockNotifications();
+	}
+
 	const FUniqueNetIdPtr SessionUniqueId = CreateSessionIdFromString(MatchFoundEvent.Id);
 	if (!ensure(SessionUniqueId.IsValid()))
 	{
@@ -6609,7 +6651,7 @@ void FOnlineSessionV2AccelByte::OnMatchmakingMatchFoundNotification(FAccelByteMo
 
 	SetFindMatchmakingGameSessionByIdInProgress(true);
 	const FOnSingleSessionResultCompleteDelegate OnFindMatchmakingGameSessionByIdCompleteDelegate = FOnSingleSessionResultCompleteDelegate::CreateThreadSafeSP(SharedThis(this), &FOnlineSessionV2AccelByte::OnFindMatchmakingGameSessionByIdComplete);
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteFindV2GameSessionById>(AccelByteSubsystem, PlayerId.ToSharedRef().Get(), SessionUniqueId.ToSharedRef().Get(), OnFindMatchmakingGameSessionByIdCompleteDelegate);
+	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteFindV2GameSessionById>(AccelByteSubsystem, PlayerId.ToSharedRef().Get(), SessionUniqueId.ToSharedRef().Get(), OnFindMatchmakingGameSessionByIdCompleteDelegate, LobbyLockKey);
 
 	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
 }
@@ -7727,6 +7769,13 @@ void FOnlineSessionV2AccelByte::OnGameSessionJoinedNotification(FAccelByteModels
 		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to handle session joined notification as a unique ID could not be found for player at index %d!"), LocalUserNum);
 		return;
 	}
+
+	FApiClientPtr ApiClientPtr = IdentityInterface->GetApiClient(LocalUserNum);
+	TSharedPtr<FAccelByteKey> LobbyLockKey;
+	if (ApiClientPtr.IsValid())
+	{
+		LobbyLockKey = ApiClientPtr->Lobby.LockNotifications();
+	}
  
 	// Create session unique ID from notification string ID
 	const FUniqueNetIdPtr SessionUniqueId = CreateSessionIdFromString(JoinedEvent.SessionID);
@@ -7750,7 +7799,8 @@ void FOnlineSessionV2AccelByte::OnGameSessionJoinedNotification(FAccelByteModels
 	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteFindV2GameSessionById>(AccelByteSubsystem
 		, PlayerId.ToSharedRef().Get()
 		, SessionUniqueId.ToSharedRef().Get()
-		, OnFindJoinedGameSessionByIdCompleteDelegate);
+		, OnFindJoinedGameSessionByIdCompleteDelegate
+		, LobbyLockKey);
  
 	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
 }

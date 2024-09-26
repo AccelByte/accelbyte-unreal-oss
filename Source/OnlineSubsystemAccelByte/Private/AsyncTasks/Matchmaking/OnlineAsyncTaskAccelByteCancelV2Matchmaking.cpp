@@ -5,6 +5,7 @@
 #include "OnlineAsyncTaskAccelByteCancelV2Matchmaking.h"
 #include "OnlineSessionInterfaceV2AccelByte.h"
 #include "OnlinePredefinedEventInterfaceAccelByte.h"
+#include "AccelByteUe4Sdk/Private/Core/AccelByteHttpRetryTask.h"
 #include "Core/AccelByteError.h"
 
 using namespace AccelByte;
@@ -27,7 +28,7 @@ void FOnlineAsyncTaskAccelByteCancelV2Matchmaking::Initialize()
 	OnDeleteMatchTicketErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteCancelV2Matchmaking::OnDeleteMatchTicketError);
 
 	API_CLIENT_CHECK_GUARD();
-	ApiClient->MatchmakingV2.DeleteMatchTicket(SearchHandle->TicketId, OnDeleteMatchTicketSuccessDelegate, OnDeleteMatchTicketErrorDelegate);
+	DeleteTicketTaskWPtr = ApiClient->MatchmakingV2.DeleteMatchTicket(SearchHandle->TicketId, OnDeleteMatchTicketSuccessDelegate, OnDeleteMatchTicketErrorDelegate);
 	
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
@@ -48,14 +49,29 @@ void FOnlineAsyncTaskAccelByteCancelV2Matchmaking::Finalize()
 			AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to finalize the task of canceling matchmaking as our session interface is invalid!"));
 			return;
 		}
-
-		SessionInterface->StopMatchTicketCheckPoll();
-
+		
 		SearchHandle->SearchState = EOnlineAsyncTaskState::Done; // #TODO Find better state for this potentially?
 
-		SessionInterface->AddCanceledTicketId(SearchHandle->TicketId);
-		SessionInterface->CurrentMatchmakingSearchHandle.Reset();
-		SessionInterface->CurrentMatchmakingSessionSettings = {};
+		if(FeatureFlags.Contains(MatchmakingCanceledNotifFeatureFlagName))
+		{
+			if(FeatureFlags[MatchmakingCanceledNotifFeatureFlagName].Equals(TEXT("true")))
+			{
+				bExpectingNotif = true;
+			}
+		}
+
+		if(!bExpectingNotif || bTicketNotFound)
+		{
+			SessionInterface->StopMatchTicketCheckPoll();
+
+			SessionInterface->AddCanceledTicketId(SearchHandle->TicketId);
+			SessionInterface->CurrentMatchmakingSearchHandle.Reset();
+			SessionInterface->CurrentMatchmakingSessionSettings = {};
+		}
+		else
+		{
+			UE_LOG_AB(VeryVerbose, TEXT("FOnlineAsyncTaskAccelByteCancelV2Matchmaking::Finalize expecting cancel notification, resetting CurrentMatchmakingSearchHandle when cancel notification received"));
+		}
 
 		const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = SubsystemPin->GetPredefinedEventInterface();
 		if (PredefinedEventInterface.IsValid())
@@ -86,6 +102,14 @@ void FOnlineAsyncTaskAccelByteCancelV2Matchmaking::TriggerDelegates()
 	}
 
 	SessionInterface->TriggerOnCancelMatchmakingCompleteDelegates(SessionName, bWasSuccessful);
+
+	if(!bExpectingNotif || bTicketNotFound)
+	{
+		SessionInterface->TriggerOnMatchmakingCanceledDelegates();
+
+		// we are not expecting notification, so matchmaking process stop here
+		SessionInterface->TriggerOnMatchmakingCompleteDelegates(SessionName, false);
+	}
 	
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 	
@@ -94,6 +118,12 @@ void FOnlineAsyncTaskAccelByteCancelV2Matchmaking::TriggerDelegates()
 void FOnlineAsyncTaskAccelByteCancelV2Matchmaking::OnDeleteMatchTicketSuccess()
 {
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
+
+	const FAccelByteHttpRetryTaskPtr DeleteTicketTaskPtr = StaticCastSharedPtr<FHttpRetryTask>(DeleteTicketTaskWPtr.Pin());
+	if(DeleteTicketTaskWPtr.IsValid())
+	{
+		FeatureFlags = DeleteTicketTaskPtr->GetResponseHeader();
+	}
 
 	CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
 	
@@ -108,6 +138,7 @@ void FOnlineAsyncTaskAccelByteCancelV2Matchmaking::OnDeleteMatchTicketError(int3
 		// this cancel as a success. This way, if the client is out of sync enough to think that they are still matchmaking,
 		// they can still cancel and reflect that their ticket has been removed.
 		UE_LOG_AB(Verbose, TEXT("Ticket was not found by matchmaking service when trying to cancel, treating this as a successful cancel!"));
+		bTicketNotFound = true;
 		CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
 		return;
 	}
