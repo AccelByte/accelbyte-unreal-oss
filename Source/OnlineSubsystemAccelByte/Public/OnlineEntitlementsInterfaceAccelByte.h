@@ -32,6 +32,9 @@ typedef FOnConsumeEntitlementComplete::FDelegate FOnConsumeEntitlementCompleteDe
 DECLARE_MULTICAST_DELEGATE_FourParams(FOnGetCurrentUserEntitlementHistoryComplete, int32 /*LocalUserNum*/, bool /*bWasSuccessful*/, const TArray<FAccelByteModelsBaseUserEntitlementHistory>& /*Entitlement History*/, const FOnlineError& /*Error*/);
 typedef FOnGetCurrentUserEntitlementHistoryComplete::FDelegate FOnGetCurrentUserEntitlementHistoryCompleteDelegate;
 
+DECLARE_MULTICAST_DELEGATE_FiveParams(FOnQueryPlatformSubscriptionComplete, int32 /*LocalUserNum*/, bool /*bWasSuccessful*/, const FUniqueNetId& /*UserId*/, const TArray<FAccelByteModelsThirdPartySubscriptionTransactionInfo>& /*User's Subscription*/, const FOnlineError& /*Error*/);
+typedef FOnQueryPlatformSubscriptionComplete::FDelegate FOnQueryPlatformSubscriptionCompleteDelegate;
+
 // Server Delegates
 DECLARE_MULTICAST_DELEGATE_FourParams(FOnGetUserEntitlementHistoryComplete, int32 /*LocalUserNum*/, bool /*bWasSuccessful*/, const TArray<FAccelByteModelsUserEntitlementHistory>& /*Entitlement History*/, const FOnlineError& /*Error*/);
 typedef FOnGetUserEntitlementHistoryComplete::FDelegate FOnGetUserEntitlementHistoryCompleteDelegate;
@@ -68,6 +71,15 @@ PACKAGE_SCOPE:
 	virtual ~FOnlineEntitlementAccelByte() override;
 };
 
+struct ONLINESUBSYSTEMACCELBYTE_API FOnlineQuerySubscriptionRequestAccelByte
+{
+public:
+	FString GroupId{};
+	FString ProductId{};
+	bool ActiveOnly{true};
+	FPagedQuery QueryPaging{ 0, 20 };
+};
+
 class ONLINESUBSYSTEMACCELBYTE_API FOnlineEntitlementsAccelByte : public IOnlineEntitlements
 {
 PACKAGE_SCOPE:
@@ -102,6 +114,7 @@ public:
 	// Client Delegates
 	DEFINE_ONLINE_DELEGATE_FOUR_PARAM(OnConsumeEntitlementComplete, bool, const FUniqueNetId&, const TSharedPtr<FOnlineEntitlement>&, const FOnlineError&);
 	DEFINE_ONLINE_DELEGATE_FOUR_PARAM(OnGetCurrentUserEntitlementHistoryComplete, int32, bool, const TArray<FAccelByteModelsBaseUserEntitlementHistory>&, const FOnlineError&);
+	DEFINE_ONLINE_PLAYER_DELEGATE_FOUR_PARAM(MAX_LOCAL_PLAYERS, OnQueryPlatformSubscriptionComplete, bool, const FUniqueNetId&, const TArray<FAccelByteModelsThirdPartySubscriptionTransactionInfo>&, const FOnlineError&);
 
 	// Server Delegates
 	DEFINE_ONLINE_DELEGATE_FOUR_PARAM(OnGetUserEntitlementHistoryComplete, int32, bool, const TArray<FAccelByteModelsUserEntitlementHistory>&, const FOnlineError&);
@@ -330,6 +343,15 @@ public:
 	virtual bool DeleteCachedUserEntitlementHistory(const FUniqueNetIdAccelByteUserRef& InUserId
 	, const FUniqueEntitlementId& InEntitlementId);
 
+#pragma endregion
+
+#pragma region SUBSCRIPTION
+	/*
+	 * Query the user's subscription information that has been synced using FOnlineEntitlementsAccelByte::SyncPlatformPurchase
+	 */
+	void QueryPlatformSubscription(
+			const int32& InLocalUserNum,
+			const FOnlineQuerySubscriptionRequestAccelByte& QueryRequest);
 #pragma endregion
 
 protected:

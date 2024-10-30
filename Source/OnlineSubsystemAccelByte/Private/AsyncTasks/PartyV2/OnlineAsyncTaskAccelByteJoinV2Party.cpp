@@ -31,13 +31,13 @@ void FOnlineAsyncTaskAccelByteJoinV2Party::Initialize()
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("UserId: %s"), *UserId->GetAccelByteId());
 
 	const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(SubsystemPin->GetSessionInterface());
-	AB_ASYNC_TASK_ENSURE(SessionInterface.IsValid(), "Failed to join party as our session interface instance is invalid!");
+	AB_ASYNC_TASK_VALIDATE(SessionInterface.IsValid(), "Failed to join party as our session interface instance is invalid!");
 
 	FNamedOnlineSession* JoinedSession = SessionInterface->GetNamedSession(SessionName);
-	AB_ASYNC_TASK_ENSURE(JoinedSession != nullptr, "Failed to join party as the session that we are trying to join for is invalid!");
+	AB_ASYNC_TASK_VALIDATE(JoinedSession != nullptr, "Failed to join party as the session that we are trying to join for is invalid!");
 
 	const FString SessionId = JoinedSession->GetSessionIdStr();
-	AB_ASYNC_TASK_ENSURE(!SessionId.Equals(TEXT("InvalidSession")), "Failed to join party as the session we are trying to join has an invalid ID!");
+	AB_ASYNC_TASK_VALIDATE(!SessionId.Equals(TEXT("InvalidSession")), "Failed to join party as the session we are trying to join has an invalid ID!");
 
 	if (bHasLocalUserJoined)
 	{

@@ -54,12 +54,9 @@ void FOnlineAsyncTaskAccelByteSetUserPresence::Finalize()
 	{
 		FOnlinePresenceAccelBytePtr PresenceInterface = StaticCastSharedPtr<FOnlinePresenceAccelByte>(SubsystemPin->GetPresenceInterface());
 		auto LocalCachedPresence = PresenceInterface->FindOrCreatePresence(UserId.ToSharedRef());
-		FOnlineUserPresenceStatusAccelByte OnlinePresenceStatus;
 
-		OnlinePresenceStatus.StatusStr = LocalCachedPresenceStatus->StatusStr;
-		OnlinePresenceStatus.State = LocalCachedPresenceStatus->State;
-
-		LocalCachedPresence->Status = OnlinePresenceStatus;
+		LocalCachedPresence->Status.StatusStr = LocalCachedPresenceStatus->StatusStr;
+		LocalCachedPresence->Status.State = LocalCachedPresenceStatus->State;
 		LocalCachedPresence->bIsOnline = LocalCachedPresenceStatus->State == EOnlinePresenceState::Online ? true : false;
 		LocalCachedPresence->bIsPlayingThisGame = LocalCachedPresenceStatus->State == EOnlinePresenceState::Online ? true : false;
 

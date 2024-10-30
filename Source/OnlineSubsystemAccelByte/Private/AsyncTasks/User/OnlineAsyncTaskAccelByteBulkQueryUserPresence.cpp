@@ -98,10 +98,10 @@ void FOnlineAsyncTaskAccelByteBulkQueryUserPresence::OnQueryUserPresenceSuccess(
 		PresenceStatus.SetPresenceStatus(PresenceData.Availability);
 
 		TSharedPtr<FOnlineUserPresenceAccelByte> Presence = MakeShared<FOnlineUserPresenceAccelByte>();
-
+		
 		Presence->Status = static_cast<FOnlineUserPresenceStatus>(PresenceStatus);
-		Presence->bIsOnline = Result.Online;
-		Presence->bIsPlayingThisGame = Result.Online;
+		Presence->bIsOnline = PresenceData.Availability == EAvailability::Online;
+		Presence->bIsPlayingThisGame = PresenceData.Availability == EAvailability::Online;
 		Presence->Status.Properties.Add(DefaultPlatformKey, PresenceData.Platform);
 		if(!FDateTime::ParseIso8601(*PresenceData.LastSeenAt, Presence->LastOnline))
 		{

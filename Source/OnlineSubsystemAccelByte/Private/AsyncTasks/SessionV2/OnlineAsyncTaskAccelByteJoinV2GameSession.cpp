@@ -29,13 +29,13 @@ void FOnlineAsyncTaskAccelByteJoinV2GameSession::Initialize()
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("UserId: %s; SessionName: %s"), *UserId->ToDebugString(), *SessionName.ToString());
 
 	const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(SubsystemPin->GetSessionInterface());
-	AB_ASYNC_TASK_ENSURE(SessionInterface.IsValid(), "Failed to join game session as our session interface instance is invalid!");
+	AB_ASYNC_TASK_VALIDATE(SessionInterface.IsValid(), "Failed to join game session as our session interface instance is invalid!");
 
 	FNamedOnlineSession* SessionToJoin = SessionInterface->GetNamedSession(SessionName);
-	AB_ASYNC_TASK_ENSURE(SessionToJoin != nullptr, "Failed to join game session as our session instance is invalid!"); // Using ensure here as JoinSession should create a valid session before this is executed
+	AB_ASYNC_TASK_VALIDATE(SessionToJoin != nullptr, "Failed to join game session as our session instance is invalid!"); // Using ensure here as JoinSession should create a valid session before this is executed
 
 	const FString SessionId = SessionToJoin->GetSessionIdStr();
-	AB_ASYNC_TASK_ENSURE(!SessionId.Equals(TEXT("InvalidSession")), "Failed to join game session as the session ID was invalid!");
+	AB_ASYNC_TASK_VALIDATE(!SessionId.Equals(TEXT("InvalidSession")), "Failed to join game session as the session ID was invalid!");
 
 	if (bHasLocalUserJoined)
 	{
@@ -127,7 +127,7 @@ void FOnlineAsyncTaskAccelByteJoinV2GameSession::Finalize()
 		}
 
 		const TSharedPtr<FOnlineSessionInfoAccelByteV2> SessionInfo = StaticCastSharedPtr<FOnlineSessionInfoAccelByteV2>(JoinedSession->SessionInfo);
-		if (!ensure(SessionInfo.IsValid()))
+		if (!SessionInfo.IsValid())
 		{
 			AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to start server session polling timer as our local session information instance is invalid!"));
 			return;
@@ -193,7 +193,7 @@ void FOnlineAsyncTaskAccelByteJoinV2GameSession::TriggerDelegates()
 		}
 
 		TSharedPtr<FOnlineSessionInfoAccelByteV2> SessionInfo = StaticCastSharedPtr<FOnlineSessionInfoAccelByteV2>(JoinedSession->SessionInfo);
-		if (!ensure(SessionInfo.IsValid()))
+		if (!SessionInfo.IsValid())
 		{
 			AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to trigger delegates to joining a game session as our local session information instance is invalid!"));
 			return;

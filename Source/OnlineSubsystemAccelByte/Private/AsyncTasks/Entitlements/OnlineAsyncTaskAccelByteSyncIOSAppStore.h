@@ -34,7 +34,7 @@ private:
     /**
      * Form the Sync request at the begining without a need to withhold the Receipt for too long.
      */
-	FAccelByteModelsPlatformSyncMobileApple ReceiptCopy;
+	FAccelByteModelsPlatformSyncMobileApple SyncRequest;
     
     /**
      * Complete the AsyncTask on Initialize if failed to initalize.

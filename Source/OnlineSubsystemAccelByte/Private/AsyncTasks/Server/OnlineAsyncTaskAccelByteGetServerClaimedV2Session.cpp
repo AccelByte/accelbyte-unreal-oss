@@ -21,7 +21,7 @@ void FOnlineAsyncTaskAccelByteGetServerClaimedV2Session::Initialize()
 
     AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("SessionName: %s; SessionId: %s"), *SessionName.ToString(), *SessionId);
 
-    AB_ASYNC_TASK_ENSURE(!SessionId.IsEmpty(), "Session ID must not be empty!");
+    AB_ASYNC_TASK_VALIDATE(!SessionId.IsEmpty(), "Session ID must not be empty!");
 
     OnGetGameSessionDetailsSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsV2GameSession>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteGetServerClaimedV2Session::OnGetGameSessionDetailsSuccess);
     OnGetGameSessionDetailsErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteGetServerClaimedV2Session::OnGetGameSessionDetailsError);;

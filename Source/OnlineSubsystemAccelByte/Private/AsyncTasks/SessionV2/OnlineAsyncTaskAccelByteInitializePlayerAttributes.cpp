@@ -25,7 +25,7 @@ void FOnlineAsyncTaskAccelByteInitializePlayerAttributes::Initialize()
 	// First, we need to check if the player is allowed to play crossplay at all on their local platform, so query the
 	// identity interface for that
 	FOnlineIdentityAccelBytePtr IdentityInterface{};
-	AB_ASYNC_TASK_ENSURE(FOnlineIdentityAccelByte::GetFromSubsystem(SubsystemPin.Get(),  IdentityInterface), "Failed to get identity interface instance from subsystem")
+	AB_ASYNC_TASK_VALIDATE(FOnlineIdentityAccelByte::GetFromSubsystem(SubsystemPin.Get(),  IdentityInterface), "Failed to get identity interface instance from subsystem")
 
 	IOnlineIdentity::FOnGetUserPrivilegeCompleteDelegate OnGetPlayerCrossplayPrivilegeDelegate = TDelegateUtils<IOnlineIdentity::FOnGetUserPrivilegeCompleteDelegate>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteInitializePlayerAttributes::OnGetPlayerCrossplayPrivilege);
 	IdentityInterface->GetUserPrivilege(UserId.ToSharedRef().Get(), EUserPrivileges::CanUserCrossPlay, OnGetPlayerCrossplayPrivilegeDelegate);

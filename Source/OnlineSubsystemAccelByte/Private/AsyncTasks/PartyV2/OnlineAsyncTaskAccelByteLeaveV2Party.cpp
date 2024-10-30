@@ -46,7 +46,7 @@ void FOnlineAsyncTaskAccelByteLeaveV2Party::Finalize()
 	// Regardless of whether we successfully left or not, we still want to destroy the session or remove the restored
 	// instance. Session worker on backend should remove us after a timeout even if the call fails.
 	const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(SubsystemPin->GetSessionInterface());
-	AB_ASYNC_TASK_ENSURE(SessionInterface.IsValid(), "Failed to leave party session as our session interface is invalid!");
+	AB_ASYNC_TASK_VALIDATE(SessionInterface.IsValid(), "Failed to leave party session as our session interface is invalid!");
 
 	// Try and find a named session instance from the session interface to remove it
 	FNamedOnlineSession* FoundSession = SessionInterface->GetNamedSessionById(SessionId);

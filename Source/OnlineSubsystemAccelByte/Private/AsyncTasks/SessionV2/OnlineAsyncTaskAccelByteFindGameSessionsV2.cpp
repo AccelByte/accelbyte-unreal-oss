@@ -137,7 +137,7 @@ void FOnlineAsyncTaskAccelByteFindGameSessionsV2::OnQueryGameSessionsSuccess(con
 	SetLastUpdateTimeToCurrentTime();
 
 	const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(SubsystemPin->GetSessionInterface());
-	AB_ASYNC_TASK_ENSURE(SessionInterface.IsValid(), "Failed to construct game session search results as our session interface is invalid!");
+	AB_ASYNC_TASK_VALIDATE(SessionInterface.IsValid(), "Failed to construct game session search results as our session interface is invalid!");
 
 	ResultsRemaining -= Result.Data.Num();
 	for (const FAccelByteModelsV2GameSession& Session : Result.Data)

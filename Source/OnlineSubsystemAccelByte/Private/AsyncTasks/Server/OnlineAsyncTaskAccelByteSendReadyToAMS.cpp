@@ -12,6 +12,8 @@
 
 using namespace AccelByte;
 
+#define ONLINE_ERROR_NAMESPACE "FOnlineAsyncTaskAccelByteSendReadyToAMS"
+
 FOnlineAsyncTaskAccelByteSendReadyToAMS::FOnlineAsyncTaskAccelByteSendReadyToAMS(FOnlineSubsystemAccelByte* const InABInterface, const FOnRegisterServerComplete& InDelegate)
 	: FOnlineAsyncTaskAccelByte(InABInterface)
 	, Delegate(InDelegate)
@@ -92,6 +94,7 @@ void FOnlineAsyncTaskAccelByteSendReadyToAMS::OnAMSConnectSuccess()
 	if (ensure(SessionInterface.IsValid()))
 	{
 		SessionInterface->SendReadyToAMS();
+		SessionInterface->TriggerAccelByteOnConnectAMSCompleteDelegates(bWasSuccessful, ONLINE_ERROR_ACCELBYTE(ErrorStr, bWasSuccessful ? EOnlineErrorResult::Success : EOnlineErrorResult::RequestFailure));
 	}
 	
 	CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
@@ -116,3 +119,5 @@ void FOnlineAsyncTaskAccelByteSendReadyToAMS::UnbindDelegates()
 	OnAMSConnectErrorDelegate.Unbind();
 	OnAMSConnectionClosedDelegate.Unbind();
 }
+
+#undef ONLINE_ERROR_NAMESPACE

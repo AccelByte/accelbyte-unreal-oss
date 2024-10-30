@@ -23,7 +23,7 @@ void FOnlineAsyncTaskAccelByteUnregisterRemoteServerV2::Initialize()
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 
 	const IOnlineSessionPtr SessionInterface = SubsystemPin->GetSessionInterface();
-	AB_ASYNC_TASK_ENSURE(SessionInterface.IsValid(), "Failed to unregister remote server as our session interface is invalid!");
+	AB_ASYNC_TASK_VALIDATE(SessionInterface.IsValid(), "Failed to unregister remote server as our session interface is invalid!");
 
 	// Attempt to get session ID to send along to DSMC when unregistering server. In case this shutdown call is being
 	// made before the server is assigned a session, allow for a blank value.

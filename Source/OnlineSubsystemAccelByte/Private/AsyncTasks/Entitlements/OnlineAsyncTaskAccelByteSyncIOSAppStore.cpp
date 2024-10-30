@@ -13,51 +13,28 @@ FOnlineAsyncTaskAccelByteSyncIOSAppStore::FOnlineAsyncTaskAccelByteSyncIOSAppSto
 	: FOnlineAsyncTaskAccelByte(InABInterface)
 	, Delegate(InDelegate)
 {
-	LocalUserNum = InLocalUserNum;
-    
+    LocalUserNum = InLocalUserNum;
+    bIsFailedToInitializeDueToInvalidReceipt = true;
     //Request validity checking
+    if (Receipt->TransactionId.IsEmpty())
     {
-        Error = "";
-        if (Receipt->ReceiptOffers.Num() != 1) //Should not be zero or less & should not be more than one
-        {
-            Error += "ReceiptOffers amount is invalid.";
-        }
-        else if (Receipt->ReceiptOffers[0].OfferId.IsEmpty())
-        {
-            Error += "The receipt OfferId (productIdentifier) is empty.";
-        }
-        else if (Receipt->ReceiptOffers[0].LineItems.Num() != 1) //Should not be zero or less & should not be more than one
-        {
-            Error += "ReceiptOffers[0].LineItems amount is invalid.";
-        }
-        else if (Receipt->ReceiptOffers[0].LineItems[0].ValidationInfo.IsEmpty())
-        {
-            Error += "The item ValidationInfo is empty.";
-        }
-        else if (Receipt->ReceiptOffers[0].LineItems[0].UniqueId.IsEmpty())
-        {
-            Error += "The item UniqueId is empty.";
-        }
-        
-        if (!Error.IsEmpty())
-        {
-            Error += TEXT("\nInvalid IOS App Store Purchase Sync: malformed receipt.");
-            bIsFailedToInitializeDueToInvalidReceipt = true;
-            return;
-        }
+        Error = TEXT("\nInvalid IOS App Store Purchase Sync: require transaction ID.");
+        return;
     }
     
     bIsFailedToInitializeDueToInvalidReceipt = false;
-    
-    ReceiptCopy.ExcludeOldTransactions = false;
-    ReceiptCopy.ReceiptData = Receipt->ReceiptOffers[0].LineItems[0].ValidationInfo;
-    ReceiptCopy.TransactionId = Receipt->ReceiptOffers[0].LineItems[0].UniqueId;
-    ReceiptCopy.ProductId = Receipt->ReceiptOffers[0].OfferId;
+    SyncRequest.TransactionId = Receipt->TransactionId;
 }
 
 void FOnlineAsyncTaskAccelByteSyncIOSAppStore::Initialize()
 {
 	Super::Initialize();
+    if(bIsFailedToInitializeDueToInvalidReceipt)
+    {
+        Error = "InvalidReceipt";
+        CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
+        return;
+    }
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 
@@ -65,7 +42,7 @@ void FOnlineAsyncTaskAccelByteSyncIOSAppStore::Initialize()
 	FErrorHandler OnSyncPlatformPurchaseErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteSyncIOSAppStore::OnSyncPlatformPurchaseError);
 	API_CLIENT_CHECK_GUARD(Error);
 
-	ApiClient->Entitlement.SyncMobilePlatformPurchaseApple(ReceiptCopy, OnSyncPlatformPurchaseSuccessDelegate, OnSyncPlatformPurchaseErrorDelegate);
+	ApiClient->Entitlement.SyncMobilePlatformPurchaseApple(SyncRequest, OnSyncPlatformPurchaseSuccessDelegate, OnSyncPlatformPurchaseErrorDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }

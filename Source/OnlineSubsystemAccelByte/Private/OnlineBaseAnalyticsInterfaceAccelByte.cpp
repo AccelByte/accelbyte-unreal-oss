@@ -36,7 +36,7 @@ void FOnlineBaseAnalyticsAccelByte::OnLocalUserNumCachedSuccess()
 
 	if (OnLoginSuccessDelegateHandle.Find(LocalUserNum) == nullptr)
 	{
-		OnLoginSuccessDelegateHandle.Add(LocalUserNum, IdentityInterface->AddAccelByteOnLoginCompleteDelegate_Handle(LocalUserNum, FAccelByteOnLoginCompleteDelegate::CreateThreadSafeSP(this, &FOnlineBaseAnalyticsAccelByte::OnLoginSuccess)));
+		OnLoginSuccessDelegateHandle.Add(LocalUserNum, IdentityInterface->AddAccelByteOnLoginCompleteDelegate_Handle(LocalUserNum, FAccelByteOnLoginCompleteDelegate::CreateThreadSafeSP(AsShared(), &FOnlineBaseAnalyticsAccelByte::OnLoginSuccess)));
 	}
 
 	if (LoginStatus == ELoginStatus::LoggedIn)
@@ -134,7 +134,7 @@ void FOnlineBaseAnalyticsAccelByte::SetDelegatesAndInterval(int32 LocalUserNum)
 			{
 				if (LocalUserNum != -1)
 				{
-					OnLogoutSuccessDelegateHandle.Add(LocalUserNum, IdentityInterface->AddAccelByteOnLogoutCompleteDelegate_Handle(LocalUserNum, FAccelByteOnLogoutCompleteDelegate::CreateThreadSafeSP(this, &FOnlineBaseAnalyticsAccelByte::OnLogoutSuccess)));
+					OnLogoutSuccessDelegateHandle.Add(LocalUserNum, IdentityInterface->AddAccelByteOnLogoutCompleteDelegate_Handle(LocalUserNum, FAccelByteOnLogoutCompleteDelegate::CreateThreadSafeSP(AsShared(), &FOnlineBaseAnalyticsAccelByte::OnLogoutSuccess)));
 				}
 			}
 		}
@@ -144,14 +144,14 @@ void FOnlineBaseAnalyticsAccelByte::SetDelegatesAndInterval(int32 LocalUserNum)
 			{
 				if (OnLoginSuccessDelegateHandle.Find(LocalUserNum) == nullptr)
 				{
-					OnLoginSuccessDelegateHandle.Add(LocalUserNum, IdentityInterface->AddAccelByteOnLoginCompleteDelegate_Handle(LocalUserNum, FAccelByteOnLoginCompleteDelegate::CreateThreadSafeSP(this, &FOnlineBaseAnalyticsAccelByte::OnLoginSuccess)));
+					OnLoginSuccessDelegateHandle.Add(LocalUserNum, IdentityInterface->AddAccelByteOnLoginCompleteDelegate_Handle(LocalUserNum, FAccelByteOnLoginCompleteDelegate::CreateThreadSafeSP(AsShared(), &FOnlineBaseAnalyticsAccelByte::OnLoginSuccess)));
 				}
 			}
 			else
 			{
 				if (!OnLocalUserNumCachedDelegateHandle.IsValid())
 				{
-					OnLocalUserNumCachedDelegateHandle = OnLoginSuccessDelegateHandle.Add(LocalUserNum, AccelByteSubsystem->OnLocalUserNumCached().AddRaw(this, &FOnlineBaseAnalyticsAccelByte::OnLocalUserNumCachedSuccess));
+					OnLocalUserNumCachedDelegateHandle = OnLoginSuccessDelegateHandle.Add(LocalUserNum, AccelByteSubsystem->OnLocalUserNumCached().AddThreadSafeSP(AsShared(), &FOnlineBaseAnalyticsAccelByte::OnLocalUserNumCachedSuccess));
 				}
 			}
 		}

@@ -26,10 +26,10 @@ void FOnlineAsyncTaskAccelBytePromoteV2PartyLeader::Initialize()
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("UserId: %s; SessionId: %s; TargetMemberId: %s"), *UserId->GetAccelByteId(), *SessionId, *TargetMemberId->GetAccelByteId());
 
 	const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(SubsystemPin->GetSessionInterface());
-	AB_ASYNC_TASK_ENSURE(SessionInterface.IsValid(), "Failed to promote player to leader of party session as our session interface is invalid!");
+	AB_ASYNC_TASK_VALIDATE(SessionInterface.IsValid(), "Failed to promote player to leader of party session as our session interface is invalid!");
 
 	FNamedOnlineSession* Session = SessionInterface->GetPartySession();
-	AB_ASYNC_TASK_ENSURE(Session != nullptr, "Failed to promote player to leader of party session as the local session instance is invalid!");
+	AB_ASYNC_TASK_VALIDATE(Session != nullptr, "Failed to promote player to leader of party session as the local session instance is invalid!");
 	
 	OnPromotePartyLeaderSuccessDelegate = AccelByte::TDelegateUtils<THandler<FAccelByteModelsV2PartySession>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelBytePromoteV2PartyLeader::OnPromotePartyLeaderSuccess);
 	OnPromotePartyLeaderErrorDelegate = AccelByte::TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelBytePromoteV2PartyLeader::OnPromotePartyLeaderError);;

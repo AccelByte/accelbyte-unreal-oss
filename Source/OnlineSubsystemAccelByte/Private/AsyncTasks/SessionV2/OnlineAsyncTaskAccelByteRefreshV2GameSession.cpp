@@ -42,10 +42,10 @@ void FOnlineAsyncTaskAccelByteRefreshV2GameSession::Initialize()
 	check(SessionInterface.IsValid());
 
 	FNamedOnlineSession* Session = SessionInterface->GetNamedSession(SessionName);
-	AB_ASYNC_TASK_ENSURE(Session != nullptr, "Could not refresh game session named '%s' as the session does not exist locally!", *SessionName.ToString());
+	AB_ASYNC_TASK_VALIDATE(Session != nullptr, "Could not refresh game session named '%s' as the session does not exist locally!", *SessionName.ToString());
 
 	const FString SessionId = Session->GetSessionIdStr();
-	AB_ASYNC_TASK_ENSURE(!SessionId.Equals(TEXT("InvalidSession")), "Could not refresh game session named '%s' as there is not a valid session ID associated!", *SessionName.ToString());
+	AB_ASYNC_TASK_VALIDATE(!SessionId.Equals(TEXT("InvalidSession")), "Could not refresh game session named '%s' as there is not a valid session ID associated!", *SessionName.ToString());
 
 	// Send the API call based on whether we are a server or a client
 	OnRefreshGameSessionSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsV2GameSession>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteRefreshV2GameSession::OnRefreshGameSessionSuccess);

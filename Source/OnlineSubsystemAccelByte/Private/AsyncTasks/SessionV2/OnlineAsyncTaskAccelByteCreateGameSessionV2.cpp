@@ -49,12 +49,12 @@ void FOnlineAsyncTaskAccelByteCreateGameSessionV2::Initialize()
 	}
 
 	const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(SubsystemPin->GetSessionInterface());
-	AB_ASYNC_TASK_ENSURE(SessionInterface.IsValid(), "Failed to create game session as our session interface is invalid!");
+	AB_ASYNC_TASK_VALIDATE(SessionInterface.IsValid(), "Failed to create game session as our session interface is invalid!");
 
 	FAccelByteModelsV2GameSessionCreateRequest CreateRequest;
 	
 	// Try and get session template name for creating the session, and error out if not found
-	AB_ASYNC_TASK_ENSURE(NewSessionSettings.Get(SETTING_SESSION_TEMPLATE_NAME, CreateRequest.ConfigurationName), "Failed to create game session as a session template was not provided! A session setting must be present for SETTING_SESSION_TEMPLATE_NAME associated with a valid session template on the backend!");
+	AB_ASYNC_TASK_VALIDATE(NewSessionSettings.Get(SETTING_SESSION_TEMPLATE_NAME, CreateRequest.ConfigurationName), "Failed to create game session as a session template was not provided! A session setting must be present for SETTING_SESSION_TEMPLATE_NAME associated with a valid session template on the backend!");
 
 	FString JoinTypeString;
 	if (NewSessionSettings.Get(SETTING_SESSION_JOIN_TYPE, JoinTypeString) && !JoinTypeString.IsEmpty())

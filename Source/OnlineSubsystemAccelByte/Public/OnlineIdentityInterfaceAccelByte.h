@@ -18,6 +18,7 @@
 #include "Core/AccelByteTask.h"
 #include "Core/AccelByteMultiRegistry.h"
 #include "Core/AccelByteUtilities.h"
+#include "Core/AccelByteWebSocket.h"
 #include "OnlineErrorAccelByte.h"
 #include "InterfaceModels/OnlineIdentityInterfaceAccelByteModels.h"
 #include "OnlinePresenceInterfaceAccelByte.h"
@@ -41,6 +42,8 @@ typedef FAccelByteOnSimultaneousLoginComplete::FDelegate FAccelByteOnSimultaneou
 DECLARE_MULTICAST_DELEGATE_ThreeParams(FAccelByteOnLogoutComplete, int32 /*LocalUserNum*/, bool /*bWasSuccessful*/, const FOnlineErrorAccelByte& /*Error*/);
 typedef FAccelByteOnLogoutComplete::FDelegate FAccelByteOnLogoutCompleteDelegate;
 
+// LOBBY RELATED DELEGATE - START
+
 DECLARE_MULTICAST_DELEGATE_FourParams(FAccelByteOnConnectLobbyComplete, int32 /*LocalUserNum*/, bool /*bWasSuccessful*/, const FUniqueNetId& /*UserId*/, const FOnlineErrorAccelByte& /*Error*/);
 typedef FAccelByteOnConnectLobbyComplete::FDelegate FAccelByteOnConnectLobbyCompleteDelegate;
 
@@ -52,6 +55,14 @@ typedef FAccelByteOnLobbyReconnecting::FDelegate FAccelByteOnLobbyReconnectingDe
 
 DECLARE_MULTICAST_DELEGATE(FAccelByteOnLobbyReconnected);
 typedef FAccelByteOnLobbyReconnected::FDelegate FAccelByteOnLobbyReconnectedDelegate;
+
+DECLARE_MULTICAST_DELEGATE_TwoParams(FAccelByteOnLobbyReconnectAttempted, int32 /*LocalUserNum*/, const AccelByte::FReconnectAttemptInfo& /*Reconnection attempt info*/);
+typedef FAccelByteOnLobbyReconnectAttempted::FDelegate FAccelByteOnLobbyReconnectAttemptedDelegate;
+
+DECLARE_MULTICAST_DELEGATE_TwoParams(FAccelByteOnLobbyMassiveOutageEvent, int32 /*LocalUserNum*/, const AccelByte::FMassiveOutageInfo& /*Reconnect exhaustion info*/);
+typedef FAccelByteOnLobbyMassiveOutageEvent::FDelegate FAccelByteOnLobbyMassiveOutageEventDelegate;
+
+// LOBBY RELATED DELEGATE - END
 
 DECLARE_DELEGATE_TwoParams(FGenerateCodeForPublisherTokenComplete, bool /*bWasSuccessful*/, const FCodeForTokenExchangeResponse& Result /*Result*/);
 
@@ -269,6 +280,16 @@ public:
 	 * Called when lobby connected after try to reconnect
 	 */
 	DEFINE_ONLINE_PLAYER_DELEGATE(MAX_LOCAL_PLAYERS, AccelByteOnLobbyReconnected);
+
+	/**
+	 * Called when the disconnected lobby websocket trying to establish the connection again
+	 */
+	DEFINE_ONLINE_PLAYER_DELEGATE_ONE_PARAM(MAX_LOCAL_PLAYERS, AccelByteOnLobbyReconnectAttempted, const AccelByte::FReconnectAttemptInfo& /*Info*/);	
+
+	/**
+	 * Called when the lobby has been disconnected for longer than usual and can't be reconnected yet
+	 */
+	DEFINE_ONLINE_PLAYER_DELEGATE_ONE_PARAM(MAX_LOCAL_PLAYERS, AccelByteOnLobbyMassiveOutageEvent, const AccelByte::FMassiveOutageInfo& /*Info*/);
 	
 	/**
 	 * Triggered when the platform token refresh is already responded

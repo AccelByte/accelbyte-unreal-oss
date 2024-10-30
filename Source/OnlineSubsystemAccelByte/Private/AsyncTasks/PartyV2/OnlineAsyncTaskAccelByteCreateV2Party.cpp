@@ -34,7 +34,7 @@ void FOnlineAsyncTaskAccelByteCreateV2Party::Initialize()
 
 	// First, check if we are in a party locally, if so then we should fail and say to call leave party
 	const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(SubsystemPin->GetSessionInterface());
-	AB_ASYNC_TASK_ENSURE(SessionInterface.IsValid(), "Failed to create party as our session interface is invalid!");
+	AB_ASYNC_TASK_VALIDATE(SessionInterface.IsValid(), "Failed to create party as our session interface is invalid!");
 
 	JoinType = SessionInterface->GetJoinabiltyFromSessionSettings(NewSessionSettings);
 
@@ -143,7 +143,7 @@ void FOnlineAsyncTaskAccelByteCreateV2Party::OnGetMyPartiesSuccess(const FAccelB
 	}
 
 	const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(SubsystemPin->GetSessionInterface());
-	AB_ASYNC_TASK_ENSURE(SessionInterface.IsValid(), "Failed to create party session as our session interface was invalid!");
+	AB_ASYNC_TASK_VALIDATE(SessionInterface.IsValid(), "Failed to create party session as our session interface was invalid!");
 
 	CreatePartyRequest.Attributes.JsonObject = SessionInterface->ConvertSessionSettingsToJsonObject(NewSessionSettings);
 

@@ -777,6 +777,10 @@ void FOnlineChatAccelByte::RegisterChatDelegates(const FUniqueNetId& PlayerId)
 	typedef AccelByte::Api::Chat::FSystemMessageNotif FSystemMessageNotificationDelegate;
 	const FSystemMessageNotificationDelegate OnSystemMessageDelegate = FSystemMessageNotificationDelegate::CreateThreadSafeSP(SharedThis(this), &FOnlineChatAccelByte::OnSystemMessageNotification, LocalUserNum);
 	ApiClient->Chat.SetSystemMessageNotifDelegate(OnSystemMessageDelegate);
+
+	ApiClient->Chat.OnReconnectAttemptedMulticastDelegate().AddThreadSafeSP(SharedThis(this), &FOnlineChatAccelByte::OnChatReconnectAttempted, LocalUserNum);
+
+	ApiClient->Chat.OnMassiveOutageMulticastDelegate().AddThreadSafeSP(SharedThis(this), &FOnlineChatAccelByte::OnChatMassiveOutageEvent, LocalUserNum);
 	//~ End Chat Notifications
 
 	// Cache topic data
@@ -1060,6 +1064,16 @@ void FOnlineChatAccelByte::OnSystemMessageNotification(const FAccelByteModelsCha
 	}
 
 	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+}
+
+void FOnlineChatAccelByte::OnChatReconnectAttempted(const FReconnectAttemptInfo& Info, int32 InLocalUserNum)
+{
+	TriggerAccelByteOnChatReconnectAttemptedDelegates(InLocalUserNum, Info);
+}
+
+void FOnlineChatAccelByte::OnChatMassiveOutageEvent(const FMassiveOutageInfo& Info, int32 InLocalUserNum)
+{
+	TriggerAccelByteOnChatMassiveOutageEventDelegates(InLocalUserNum, Info);
 }
 
 void FOnlineChatAccelByte::OnQueryChatRoomInfoComplete(bool bWasSuccessful, TArray<FAccelByteChatRoomInfoRef> RoomList, int32 LocalUserNum)

@@ -29,6 +29,12 @@ struct FAccelByteChatRoomConfig {
 DECLARE_MULTICAST_DELEGATE_FourParams(FOnConnectChatComplete, int32 /*LocalUserNum*/, bool /*bWasSuccessful*/, const FUniqueNetId& /*UserId*/, const FString& /*Error*/);
 typedef FOnConnectChatComplete::FDelegate FOnConnectChatCompleteDelegate;
 
+DECLARE_MULTICAST_DELEGATE_TwoParams(FAccelByteOnChatReconnectAttempted, int32 /*LocalUserNum*/, const AccelByte::FReconnectAttemptInfo& /*Reconnection attempt info*/);
+typedef FAccelByteOnChatReconnectAttempted::FDelegate FAccelByteOnChatReconnectAttemptedDelegate;
+
+DECLARE_MULTICAST_DELEGATE_TwoParams(FAccelByteOnChatMassiveOutageEvent, int32 /*LocalUserNum*/, const AccelByte::FMassiveOutageInfo& /*Reconnect exhaustion info*/);
+typedef FAccelByteOnChatMassiveOutageEvent::FDelegate FAccelByteOnChatMassiveOutageEventDelegate;
+
 DECLARE_MULTICAST_DELEGATE_FourParams(FOnChatConnectionClosed, int32 /*LocalUserNum*/, int32 /* StatusCode */, const FString& /* Reason */, bool /* bWasClean */);
 typedef FOnChatConnectionClosed::FDelegate FOnChatConnectionClosedDelegate;
 
@@ -187,6 +193,7 @@ private:
 	FOnlineSubsystemAccelByte* AccelByteSubsystem;
 	
 public:
+	
 	/**
 	 * Convenience method to get an instance of this interface from the subsystem passed in.
 	 *
@@ -209,6 +216,16 @@ public:
 	FOnlineChatAccelByte(FOnlineSubsystemAccelByte* InSubsystem);
 
 	DEFINE_ONLINE_PLAYER_DELEGATE_THREE_PARAM(MAX_LOCAL_PLAYERS, OnConnectChatComplete, bool /*bWasSuccessful*/, const FUniqueNetId& /*UserId*/, const FString& /*Error*/);
+
+	/**
+	 * Called when the disconnected chat websocket trying to establish the connection again
+	 */
+	DEFINE_ONLINE_PLAYER_DELEGATE_ONE_PARAM(MAX_LOCAL_PLAYERS, AccelByteOnChatReconnectAttempted, const AccelByte::FReconnectAttemptInfo& /*Info*/);	
+
+	/**
+	 * Called when the chat has been disconnected for longer than usual and can't be reconnected yet
+	 */
+	DEFINE_ONLINE_PLAYER_DELEGATE_ONE_PARAM(MAX_LOCAL_PLAYERS, AccelByteOnChatMassiveOutageEvent, const AccelByte::FMassiveOutageInfo& /*Info*/);
 
 	bool Connect(int32 LocalUserNum);
 
@@ -616,6 +633,8 @@ private:
 	void OnUserBanNotification(const FAccelByteModelsChatUserBanUnbanNotif& UserBanNotif, int32 LocalUserNum);
 	void OnUserUnbanNotification(const FAccelByteModelsChatUserBanUnbanNotif& UserUnbanNotif, int32 LocalUserNum);
 	void OnSystemMessageNotification(const FAccelByteModelsChatSystemMessageNotif& SystemMessageNotif, int32 LocalUserNum);
+	void OnChatReconnectAttempted(const AccelByte::FReconnectAttemptInfo& Info, int32 InLocalUserNum);
+	void OnChatMassiveOutageEvent(const AccelByte::FMassiveOutageInfo& Info, int32 InLocalUserNum);
 	//~ End Chat Notification Handlers
 
 	//~ Begin Chat Internal Handlers

@@ -22,10 +22,10 @@ void FOnlineAsyncTaskAccelByteUnregisterLocalServerV2::Initialize()
     AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 
 	const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(SubsystemPin->GetSessionInterface());
-	AB_ASYNC_TASK_ENSURE(SessionInterface.IsValid(), "Failed to unregister local server as our session interface is invalid!");
+	AB_ASYNC_TASK_VALIDATE(SessionInterface.IsValid(), "Failed to unregister local server as our session interface is invalid!");
 
 	ServerName = TEXT("");
-	AB_ASYNC_TASK_ENSURE(SessionInterface->GetLocalServerName(ServerName), "Failed to unregister local server as we failed to get the name of the server!");
+	AB_ASYNC_TASK_VALIDATE(SessionInterface->GetLocalServerName(ServerName), "Failed to unregister local server as we failed to get the name of the server!");
 
 	OnUnregisterServerSuccessDelegate = TDelegateUtils<FVoidHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteUnregisterLocalServerV2::OnUnregisterServerSuccess);
 	OnUnregisterServerErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteUnregisterLocalServerV2::OnUnregisterServerError);;

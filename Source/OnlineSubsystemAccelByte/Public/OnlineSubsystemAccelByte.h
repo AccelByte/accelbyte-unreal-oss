@@ -16,9 +16,11 @@
 #include "OnlineGroupsInterfaceAccelByte.h"
 #include "OnlineSubsystemAccelByteTypes.h"
 #include "Core/AccelByteApiClient.h"
+#include "Core/AccelByteWebSocketReconnection.h"
 #include "Models/AccelByteUserModels.h"
 #include "AccelByteTimerObject.h"
 #include "OnlineSubsystemAccelBytePackage.h"
+#include "Core/AccelByteServerApiClient.h"
 
 /** Log category for any AccelByte OSS logs, including traces */
 DECLARE_LOG_CATEGORY_EXTERN(LogAccelByteOSS, Warning, All);
@@ -470,6 +472,11 @@ PACKAGE_SCOPE:
 
 	IOnlineSubsystem* GetSecondaryPlatformSubsystem() const;
 
+	/*
+	 * Try to obtain an optional pointer of the Configuration
+	 */
+	TOptional<AccelByte::IWebsocketConfigurableReconnectStrategy*> TryConfigureWebsocketConnection(int32 LocalUserNum, AccelByte::EConfigurableWebsocketServiceType Type);
+	
 private:
 	/**************************************************
 	 * These are boolean that is configured from the DefaultEngine.ini
@@ -617,6 +624,10 @@ private:
 	void OnLobbyConnectionClosed(int32 StatusCode, const FString& Reason, bool WasClean, int32 InLocalUserNum, bool bIsReconnecting);
 
 	void OnLobbyReconnected(int32 InLocalUserNum);
+
+	void OnLobbyReconnectAttempted(const AccelByte::FReconnectAttemptInfo& Info, int32 InLocalUserNum);
+
+	void OnLobbyMassiveOutageEvent(const AccelByte::FMassiveOutageInfo& Info, int32 InLocalUserNum);	
 
 	void OnEOSRefreshTracked(int32 LocalUserNum);
 

@@ -207,7 +207,11 @@ bool FOnlineSubsystemAccelByte::Shutdown()
 	ChatInterface.Reset();
 	AuthInterface.Reset();
 	AchievementInterface.Reset();
-	VoiceInterface.Reset();
+	if (bVoiceInterfaceInitialized && VoiceInterface.IsValid())
+    {
+		VoiceInterface->Shutdown();
+		VoiceInterface.Reset();
+    }
 	VoiceChatInterface.Reset();
 	PredefinedEventInterface.Reset();
 	GameStandardEventInterface.Reset();
@@ -768,9 +772,16 @@ void FOnlineSubsystemAccelByte::OnLobbyConnectedCallback(int32 LocalUserNum, boo
 			, LocalUserNum
 			, true);
 		ApiClient->Lobby.SetReconnectingDelegate(OnLobbyReconnectingDelegate);
+
+		ApiClient->Lobby.OnReconnectAttemptedMulticastDelegate().AddThreadSafeSP(AsShared()
+			, &FOnlineSubsystemAccelByte::OnLobbyReconnectAttempted
+			, LocalUserNum);
+
+		ApiClient->Lobby.OnMassiveOutageMulticastDelegate().AddThreadSafeSP(AsShared()
+			, &FOnlineSubsystemAccelByte::OnLobbyMassiveOutageEvent
+			, LocalUserNum);
 	}
 }
-
 
 void FOnlineSubsystemAccelByte::OnLobbyConnectionClosed(int32 StatusCode, const FString& Reason, bool WasClean, int32 InLocalUserNum, bool bIsReconnecting)
 {
@@ -885,6 +896,23 @@ void FOnlineSubsystemAccelByte::OnLobbyReconnected(int32 InLocalUserNum)
 #endif
 
 	IdentityInterface->TriggerAccelByteOnLobbyReconnectedDelegates(InLocalUserNum);
+}
+
+
+void FOnlineSubsystemAccelByte::OnLobbyReconnectAttempted(const FReconnectAttemptInfo& Info, int32 InLocalUserNum)
+{
+	if (IdentityInterface.IsValid())
+	{
+		IdentityInterface->TriggerAccelByteOnLobbyReconnectAttemptedDelegates(InLocalUserNum, Info);
+	}
+}
+
+void FOnlineSubsystemAccelByte::OnLobbyMassiveOutageEvent(const FMassiveOutageInfo& Info, int32 InLocalUserNum)
+{
+	if (IdentityInterface.IsValid())
+	{
+		IdentityInterface->TriggerAccelByteOnLobbyMassiveOutageEventDelegates(InLocalUserNum, Info);
+	}
 }
 
 void FOnlineSubsystemAccelByte::OnNativeTokenRefreshed(bool bWasSuccessful, int32 LocalUserNum)
@@ -1294,6 +1322,52 @@ IOnlineSubsystem* FOnlineSubsystemAccelByte::GetSecondaryPlatformSubsystem() con
 	}
 
 	return IOnlineSubsystem::Get(SecondaryPlatformName);
+}
+
+TOptional<IWebsocketConfigurableReconnectStrategy*> FOnlineSubsystemAccelByte::TryConfigureWebsocketConnection(int32 LocalUserNum, EConfigurableWebsocketServiceType Type)
+{
+	TOptional<IWebsocketConfigurableReconnectStrategy*> Output = TOptional<IWebsocketConfigurableReconnectStrategy*>();
+
+	switch (Type)
+	{
+	case AccelByte::EConfigurableWebsocketServiceType::LOBBY_GAMECLIENT:
+		{
+			auto ApiClient = GetApiClient(LocalUserNum);
+			if (ApiClient.IsValid())
+			{
+				Output = &(ApiClient->Lobby);
+			}
+		}
+		break;
+	case AccelByte::EConfigurableWebsocketServiceType::CHAT_GAMECLIENT:
+		{
+			auto ApiClient = GetApiClient(LocalUserNum);
+			if (ApiClient.IsValid())
+			{
+				Output = &(ApiClient->Chat);
+			}
+		}
+		break;
+	case AccelByte::EConfigurableWebsocketServiceType::AMS_GAMESERVER:
+		{
+			Output = &(FRegistry::ServerAMS);
+		}
+		break;
+	case AccelByte::EConfigurableWebsocketServiceType::DS_HUB_GAMESERVER:
+		{
+			Output = &(FRegistry::ServerDSHub);
+		}
+		break;
+	default:
+		break;
+	}
+
+	//Unset the value if the Lobby or Chat are nullptr
+	if (!Output.IsSet())
+	{
+		Output.Reset();
+	}
+	return Output;
 }
 
 #undef LOCTEXT_NAMESPACE

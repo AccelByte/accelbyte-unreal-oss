@@ -36,16 +36,16 @@ void FOnlineAsyncTaskAccelByteUpdatePartyV2::Initialize()
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("SessionName: %s"), *SessionName.ToString());
 
 	const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(SubsystemPin->GetSessionInterface());
-	AB_ASYNC_TASK_ENSURE(SessionInterface.IsValid(), "Failed to update party session as our session interface is invalid!");
+	AB_ASYNC_TASK_VALIDATE(SessionInterface.IsValid(), "Failed to update party session as our session interface is invalid!");
 
 	FNamedOnlineSession* Session = SessionInterface->GetNamedSession(SessionName);
-	AB_ASYNC_TASK_ENSURE(Session != nullptr, "Failed to update party session as our local session instance is invalid!");
+	AB_ASYNC_TASK_VALIDATE(Session != nullptr, "Failed to update party session as our local session instance is invalid!");
 
 	TSharedPtr<FOnlineSessionInfoAccelByteV2> SessionInfo = StaticCastSharedPtr<FOnlineSessionInfoAccelByteV2>(Session->SessionInfo);
-	AB_ASYNC_TASK_ENSURE(SessionInfo.IsValid(), "Failed to update party session as our session info instance is invalid!");
+	AB_ASYNC_TASK_VALIDATE(SessionInfo.IsValid(), "Failed to update party session as our session info instance is invalid!");
 
 	TSharedPtr<FAccelByteModelsV2PartySession> PartySessionBackendData = StaticCastSharedPtr<FAccelByteModelsV2PartySession>(SessionInfo->GetBackendSessionData());
-	AB_ASYNC_TASK_ENSURE(PartySessionBackendData.IsValid(), "Failed to update party session as our backend session information is invalid!");
+	AB_ASYNC_TASK_VALIDATE(PartySessionBackendData.IsValid(), "Failed to update party session as our backend session information is invalid!");
 
 	FAccelByteModelsV2PartyUpdateRequest UpdateRequest;
 
@@ -168,13 +168,13 @@ void FOnlineAsyncTaskAccelByteUpdatePartyV2::RefreshSession()
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 
 	const TSharedPtr<FOnlineSessionV2AccelByte, ESPMode::ThreadSafe> SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(SubsystemPin->GetSessionInterface());
-	AB_ASYNC_TASK_ENSURE(SessionInterface.IsValid(), "Could not refresh party session named '%s' as our session interface is invalid!", *SessionName.ToString());
+	AB_ASYNC_TASK_VALIDATE(SessionInterface.IsValid(), "Could not refresh party session named '%s' as our session interface is invalid!", *SessionName.ToString());
 
 	FNamedOnlineSession* Session = SessionInterface->GetNamedSession(SessionName);
-	AB_ASYNC_TASK_ENSURE(Session != nullptr, "Could not refresh party session named '%s' as the session does not exist locally!", *SessionName.ToString());
+	AB_ASYNC_TASK_VALIDATE(Session != nullptr, "Could not refresh party session named '%s' as the session does not exist locally!", *SessionName.ToString());
 
 	const FString SessionId = Session->GetSessionIdStr();
-	AB_ASYNC_TASK_ENSURE(!SessionId.Equals(TEXT("InvalidSession")), "Could not refresh party session named '%s' as there is not a valid session ID associated!", *SessionName.ToString());
+	AB_ASYNC_TASK_VALIDATE(!SessionId.Equals(TEXT("InvalidSession")), "Could not refresh party session named '%s' as there is not a valid session ID associated!", *SessionName.ToString());
 
 	OnRefreshPartySessionSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsV2PartySession>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteUpdatePartyV2::OnRefreshPartySessionSuccess);
 	OnRefreshPartySessionErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteUpdatePartyV2::OnRefreshPartySessionError);;

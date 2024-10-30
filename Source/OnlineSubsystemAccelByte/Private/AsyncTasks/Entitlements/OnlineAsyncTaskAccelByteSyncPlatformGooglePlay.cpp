@@ -72,11 +72,17 @@ void FOnlineAsyncTaskAccelByteSyncGooglePlay::Initialize()
 		return;
 	}
 
-	THandler<FAccelByteModelsItemInfo> OnGetItemSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsItemInfo>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteSyncGooglePlay::OnGetItemBySkuSuccess);
-	FErrorHandler OnGetItemBySkuErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteSyncGooglePlay::OnRequestError);
-
-	API_CLIENT_CHECK_GUARD(Error);
-	ApiClient->Item.GetItemBySku(Request.ProductId, TEXT(""), TEXT(""), OnGetItemSuccessDelegate, OnGetItemBySkuErrorDelegate);
+	if (!Request.SubscriptionPurchase)
+	{
+		THandler<FAccelByteModelsItemInfo> OnGetItemSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsItemInfo>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteSyncGooglePlay::OnGetItemBySkuSuccess);
+		FErrorHandler OnGetItemBySkuErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteSyncGooglePlay::OnRequestError);
+		API_CLIENT_CHECK_GUARD(Error);
+		ApiClient->Item.GetItemBySku(Request.ProductId, TEXT(""), TEXT(""), OnGetItemSuccessDelegate, OnGetItemBySkuErrorDelegate);
+	}
+	else
+	{
+		SyncPlatformPurchase();
+	}
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
@@ -98,11 +104,7 @@ void FOnlineAsyncTaskAccelByteSyncGooglePlay::OnGetItemBySkuSuccess(const FAccel
 	{
 		Request.AutoAck = true;
 	}
-	THandler<FAccelByteModelsPlatformSyncMobileGoogleResponse> OnSyncPlatformPurchaseSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsPlatformSyncMobileGoogleResponse>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteSyncGooglePlay::OnSyncPlatformPurchaseSuccess);
-	FErrorHandler OnSyncPlatformPurchaseErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteSyncGooglePlay::OnRequestError);
-
-	API_CLIENT_CHECK_GUARD(Error);
-	ApiClient->Entitlement.SyncMobilePlatformPurchaseGooglePlay(Request, OnSyncPlatformPurchaseSuccessDelegate, OnSyncPlatformPurchaseErrorDelegate);
+	SyncPlatformPurchase();
 }
 
 void FOnlineAsyncTaskAccelByteSyncGooglePlay::OnSyncPlatformPurchaseSuccess(const FAccelByteModelsPlatformSyncMobileGoogleResponse& Response)
@@ -116,6 +118,15 @@ void FOnlineAsyncTaskAccelByteSyncGooglePlay::OnRequestError(int32 ErrorCode, co
 	UE_LOG_AB(Warning, TEXT("Failed to sync platform purchase! Error code: %d; Error message: %s"), ErrorCode, *ErrorMessage);
 	Error = FString::Printf(TEXT("%d: %s"), ErrorCode, *ErrorMessage);
 	CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
+}
+
+void FOnlineAsyncTaskAccelByteSyncGooglePlay::SyncPlatformPurchase()
+{
+	THandler<FAccelByteModelsPlatformSyncMobileGoogleResponse> OnSyncPlatformPurchaseSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsPlatformSyncMobileGoogleResponse>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteSyncGooglePlay::OnSyncPlatformPurchaseSuccess);
+	FErrorHandler OnSyncPlatformPurchaseErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteSyncGooglePlay::OnRequestError);
+
+	API_CLIENT_CHECK_GUARD(Error);
+	ApiClient->Entitlement.SyncMobilePlatformPurchaseGooglePlay(Request, OnSyncPlatformPurchaseSuccessDelegate, OnSyncPlatformPurchaseErrorDelegate);
 }
 
 bool FOnlineAsyncTaskAccelByteSyncGooglePlay::ParsePurchaseReceiptToPlatformSyncMobileGoogle(const TSharedRef<FPurchaseReceipt>& Receipt)
@@ -137,6 +148,11 @@ bool FOnlineAsyncTaskAccelByteSyncGooglePlay::ParsePurchaseReceiptToPlatformSync
 						FBase64::Decode(ReceiptData, DecodedReceiptData);
 						if (FAccelByteJsonConverter::JsonObjectStringToUStruct(DecodedReceiptData, &Request))
 						{
+							bool bIsSubscription = false;
+							if (JsonObject->TryGetBoolField(TEXT("isSubscription"), bIsSubscription))
+							{
+								Request.SubscriptionPurchase = bIsSubscription;
+							}
 							return true;
 						}
 					}

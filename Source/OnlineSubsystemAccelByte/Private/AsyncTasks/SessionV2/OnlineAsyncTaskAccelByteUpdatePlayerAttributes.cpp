@@ -31,17 +31,17 @@ void FOnlineAsyncTaskAccelByteUpdatePlayerAttributes::Initialize()
 	// To begin, grab a copy of the current internal attributes model for this player from the session interface. By
 	// this point attributes should be populated as it is done at login.
 	FOnlineSessionV2AccelBytePtr SessionInterface{};
-	AB_ASYNC_TASK_ENSURE(FOnlineSessionV2AccelByte::GetFromSubsystem(SubsystemPin.Get(), SessionInterface), "Failed to get session interface instance from subsystem")
+	AB_ASYNC_TASK_VALIDATE(FOnlineSessionV2AccelByte::GetFromSubsystem(SubsystemPin.Get(), SessionInterface), "Failed to get session interface instance from subsystem")
 
 	FAccelByteModelsV2PlayerAttributes* FoundAttributes = SessionInterface->GetInternalPlayerAttributes(UserId.ToSharedRef().Get());
-	AB_ASYNC_TASK_ENSURE(FoundAttributes != nullptr, "Failed to get internal player attributes from the session interface")
+	AB_ASYNC_TASK_VALIDATE(FoundAttributes != nullptr, "Failed to get internal player attributes from the session interface")
 
 	Attributes = *FoundAttributes;
 
 	// Then, we need to check if the player is allowed to play crossplay at all on their local platform, so query the
 	// identity interface for that
 	FOnlineIdentityAccelBytePtr IdentityInterface{};
-	AB_ASYNC_TASK_ENSURE(FOnlineIdentityAccelByte::GetFromSubsystem(SubsystemPin.Get(), IdentityInterface), "Failed to get identity interface instance from subsystem")
+	AB_ASYNC_TASK_VALIDATE(FOnlineIdentityAccelByte::GetFromSubsystem(SubsystemPin.Get(), IdentityInterface), "Failed to get identity interface instance from subsystem")
 
 	IOnlineIdentity::FOnGetUserPrivilegeCompleteDelegate OnGetPlayerCrossplayPrivilegeDelegate = TDelegateUtils<IOnlineIdentity::FOnGetUserPrivilegeCompleteDelegate>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteUpdatePlayerAttributes::OnGetPlayerCrossplayPrivilege);
 	IdentityInterface->GetUserPrivilege(UserId.ToSharedRef().Get(), EUserPrivileges::CanUserCrossPlay, OnGetPlayerCrossplayPrivilegeDelegate);
@@ -99,7 +99,7 @@ void FOnlineAsyncTaskAccelByteUpdatePlayerAttributes::OnGetPlayerCrossplayPrivil
 	{
 		FString OutDataStr{};
 		TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&OutDataStr);
-		AB_ASYNC_TASK_ENSURE(FJsonSerializer::Serialize(Request.Data.JsonObject.ToSharedRef(), Writer, true), "Failed to serialize update Data JSON object to a string!");
+		AB_ASYNC_TASK_VALIDATE(FJsonSerializer::Serialize(Request.Data.JsonObject.ToSharedRef(), Writer, true), "Failed to serialize update Data JSON object to a string!");
 
 		Request.Data.JsonString = OutDataStr;
 	}

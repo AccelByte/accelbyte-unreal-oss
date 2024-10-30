@@ -23,7 +23,7 @@ void FOnlineAsyncTaskAccelByteAcceptBackfillProposal::Initialize()
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("SessionName: %s; BackfillTicketId: %s; ProposalId: %s"), *SessionName.ToString(), *Proposal.BackfillTicketID, *Proposal.ProposalID);
 
 	AccelByte::FServerApiClientPtr ServerApiClient = AccelByte::FMultiRegistry::GetServerApiClient();
-	AB_ASYNC_TASK_ENSURE(ServerApiClient.IsValid(), "Failed to accept backfill proposal for session as we could not get a server API client!");
+	AB_ASYNC_TASK_VALIDATE(ServerApiClient.IsValid(), "Failed to accept backfill proposal for session as we could not get a server API client!");
 
 	OnAcceptBackfillProposalSuccessDelegate = AccelByte::TDelegateUtils<THandler<FAccelByteModelsV2GameSession>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteAcceptBackfillProposal::OnAcceptBackfillProposalSuccess);
 	OnAcceptBackfillProposalErrorDelegate = AccelByte::TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteAcceptBackfillProposal::OnAcceptBackfillProposalError);;

@@ -133,10 +133,10 @@ void FOnlineAsyncTaskAccelByteRegisterPlayersV1::RegisterAllPlayers()
 	SetLastUpdateTimeToCurrentTime();
 
 	const IOnlineSessionPtr SessionInterface = SubsystemPin->GetSessionInterface();
-	AB_ASYNC_TASK_ENSURE(SessionInterface.IsValid(), "Failed to register players to session as our session interface is invalid!");
+	AB_ASYNC_TASK_VALIDATE(SessionInterface.IsValid(), "Failed to register players to session as our session interface is invalid!");
 
 	FNamedOnlineSession* Session = SessionInterface->GetNamedSession(SessionName);
-	AB_ASYNC_TASK_ENSURE(Session != nullptr, "Failed to register players to session as our local session instance is invalid!");
+	AB_ASYNC_TASK_VALIDATE(Session != nullptr, "Failed to register players to session as our local session instance is invalid!");
 	
 	// For each player that we want to register to the session, we want to check if the player is already in the session,
 	// if not, we want to add them to the local copy of the session, and if we are the session host, we want to take the

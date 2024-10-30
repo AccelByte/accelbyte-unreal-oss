@@ -22,10 +22,10 @@ void FOnlineAsyncTaskAccelByteJoinV2GameSessionByCode::Initialize()
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("UserId: %s; SessionName: %s; PartyCode: %s"), *UserId->ToDebugString(), *SessionName.ToString(), *Code);
 
 	FOnlineSessionV2AccelBytePtr SessionInterface = nullptr;
-	AB_ASYNC_TASK_ENSURE(FOnlineSessionV2AccelByte::GetFromSubsystem(SubsystemPin.Get(),  SessionInterface), "Failed to join party by code as our session interface instance is invalid!");
+	AB_ASYNC_TASK_VALIDATE(FOnlineSessionV2AccelByte::GetFromSubsystem(SubsystemPin.Get(),  SessionInterface), "Failed to join party by code as our session interface instance is invalid!");
 
 	FNamedOnlineSession* JoinedSession = SessionInterface->GetNamedSession(SessionName);
-	AB_ASYNC_TASK_ENSURE(JoinedSession != nullptr, "Failed to join party by code as the session that we are trying to join for is invalid!");
+	AB_ASYNC_TASK_VALIDATE(JoinedSession != nullptr, "Failed to join party by code as the session that we are trying to join for is invalid!");
 
 	OnJoinGameSessionByCodeSuccessDelegate = AccelByte::TDelegateUtils<THandler<FAccelByteModelsV2GameSession>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteJoinV2GameSessionByCode::OnJoinGameSessionByCodeSuccess);
 	OnJoinGameSessionByCodeErrorDelegate = AccelByte::TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteJoinV2GameSessionByCode::OnJoinGameSessionByCodeError);;

@@ -955,16 +955,38 @@ void FOnlineIdentityAccelByte::OnAuthenticateAccelByteServerError(int32 ErrorCod
 
 bool FOnlineIdentityAccelByte::IsLogoutRequired(int32 StatusCode)
 {
+	// LOGOUT! NO RECONNECT (return true)
+	// 1000        : Normal closure according to websocket spec. If client intentionally disconnects
+	// 4001 - 4999 : Abnormal closure from AGS service that the SDK shouldn't reconnect for. Example, their access token got revoked.
+	
+	// RECONNECT (return false)
+	// despite in those non-retryable range, it has ban notification.
+	// 4001 - 4399 (+ BanNotification ): To be specific, this is the range of Lobby-only special case
+
+	// RECONNECT (return false)
+	// 1001 - 1015 : Abnormal closures reserved by websocket spec
+	// 1016 - 3099 : reserved, unused
+	// 3100 - 3999 : Abnormal closure from AGS service, that we allow the client to reconnect.
+	// 4000        : Abnormal closure, server pod shutdown
+
 	//Explanation of deprecation & new assigned numbers can be read in each enums between these numbers
-	int LowestDeprecatedNumber = static_cast<int32>(AccelByte::EWebsocketErrorTypes::DisconnectSenderError);
-	int HighestDeprecatedNumber = static_cast<int32>(AccelByte::EWebsocketErrorTypes::DisconnectReaderError);
+	int LowestDeprecatedNumber = static_cast<int32>(AccelByte::EWebsocketErrorTypes::DisconnectSenderError); //4004
+	int HighestDeprecatedNumber = static_cast<int32>(AccelByte::EWebsocketErrorTypes::DisconnectReaderError); //4007
 	if (StatusCode >= LowestDeprecatedNumber && StatusCode <= HighestDeprecatedNumber)
 	{
 		return false;
 	}
 
-	int32 LowestNumber = static_cast<int32>(AccelByte::EWebsocketErrorTypes::DisconnectServerShutdown);
-	int32 HighestNumber = static_cast<int32>(AccelByte::EWebsocketErrorTypes::OutsideBoundaryOfDisconnection);
+	// It means the retry reconnect attempt has been exhausted.
+	// No need to logout, only need to trigger delegate
+	if (StatusCode == static_cast<int32>(AccelByte::EWebsocketErrorTypes::DisconnectFromExternalReconnect)) //4401
+	{
+		return false;
+	}
+
+	int32 LowestNumber = static_cast<int32>(AccelByte::EWebsocketErrorTypes::DisconnectServerShutdown); //4000
+	int32 HighestNumber = static_cast<int32>(AccelByte::EWebsocketErrorTypes::OutsideBoundaryOfDisconnection); //4400
+	// Whether the StatusCode is between those lowest & highest number
 	return (StatusCode > LowestNumber && StatusCode < HighestNumber);
 }
 

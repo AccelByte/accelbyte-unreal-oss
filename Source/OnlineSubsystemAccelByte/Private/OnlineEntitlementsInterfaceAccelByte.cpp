@@ -5,6 +5,7 @@
 #include "OnlineEntitlementsInterfaceAccelByte.h"
 #include "OnlineSubsystemUtils.h"
 #include "AsyncTasks/Entitlements/OnlineAsyncTaskAccelByteQueryEntitlements.h"
+#include "AsyncTasks/Entitlements/OnlineAsyncTaskAccelByteQueryPlatformSubscription.h"
 #include "AsyncTasks/Entitlements/OnlineAsyncTaskAccelByteConsumeEntitlement.h"
 #include "AsyncTasks/Entitlements/OnlineAsyncTaskAccelByteSyncPlatformPurchase.h"
 #include "AsyncTasks/Entitlements/OnlineAsyncTaskAccelByteSyncDLC.h"
@@ -376,4 +377,12 @@ TMap<FString, TArray<FAccelByteModelsBaseUserEntitlementHistory>> FOnlineEntitle
 	return MapEntitlementHistoryResult;
 }
 
-
+void FOnlineEntitlementsAccelByte::QueryPlatformSubscription(
+	const int32& InLocalUserNum,
+	const FOnlineQuerySubscriptionRequestAccelByte& QueryRequest)
+{
+	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteQueryPlatformSubscription>(
+		AccelByteSubsystem,
+		InLocalUserNum,
+		QueryRequest);
+}

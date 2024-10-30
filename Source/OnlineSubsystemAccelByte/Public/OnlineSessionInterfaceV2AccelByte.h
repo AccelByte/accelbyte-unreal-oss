@@ -574,6 +574,24 @@ typedef FOnCancelSessionInviteComplete::FDelegate FOnCancelSessionInviteComplete
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnSessionInviteCanceled, const FString& /*SessionID*/)
 typedef FOnSessionInviteCanceled::FDelegate FOnSessionInviteCanceledDelegate;
 
+DECLARE_MULTICAST_DELEGATE_TwoParams(FAccelByteOnConnectAMSComplete, bool /*bWasSuccessful*/, const FOnlineErrorAccelByte& /*Error*/);
+typedef FAccelByteOnConnectAMSComplete::FDelegate FAccelByteOnConnectAMSCompleteDelegate;
+
+DECLARE_MULTICAST_DELEGATE_OneParam(FAccelByteOnAMSReconnectAttempted, const AccelByte::FReconnectAttemptInfo& /*Reconnection attempt info*/);
+typedef FAccelByteOnAMSReconnectAttempted::FDelegate FAccelByteOnAMSReconnectAttemptedDelegate;
+
+DECLARE_MULTICAST_DELEGATE_OneParam(FAccelByteOnAMSMassiveOutageEvent, const AccelByte::FMassiveOutageInfo& /*Reconnect exhaustion info*/);
+typedef FAccelByteOnAMSMassiveOutageEvent::FDelegate FAccelByteOnAMSMassiveOutageEventDelegate;
+
+DECLARE_MULTICAST_DELEGATE_OneParam(FAccelByteOnDSHubReconnectAttempted, const AccelByte::FReconnectAttemptInfo& /*Reconnection attempt info*/);
+typedef FAccelByteOnDSHubReconnectAttempted::FDelegate FAccelByteOnDSHubReconnectAttemptedDelegate;
+
+DECLARE_MULTICAST_DELEGATE_OneParam(FAccelByteOnDSHubMassiveOutageEvent, const AccelByte::FMassiveOutageInfo& /*Reconnect exhaustion info*/);
+typedef FAccelByteOnDSHubMassiveOutageEvent::FDelegate FAccelByteOnDSHubMassiveOutageEventDelegate;
+
+DECLARE_MULTICAST_DELEGATE_TwoParams(FOnPartySessionCreated, const FUniqueNetId& /*LocalUserId*/, const FOnlineSession& /*Session*/);
+typedef FOnPartySessionCreated::FDelegate FOnPartySessionCreatedDelegate;
+
 /**
  * Delegate broadcast when a session that the player is in locally has been removed on the backend. Gives the game an
  * opportunity to clean up state.
@@ -1373,6 +1391,35 @@ public:
 
 	DEFINE_ONLINE_DELEGATE_ONE_PARAM(OnSessionInviteCanceled, const FString& /*SessionID*/)
 
+	/**
+	 * Called when the server connected to ams
+	 *
+	 * @param LocalUserNum the controller number of the associated user
+	 * @param bWasSuccessful true if server was contacted and a valid result received
+	 * @param Error Information about the error condition
+	 */
+	DEFINE_ONLINE_DELEGATE_TWO_PARAM(AccelByteOnConnectAMSComplete, bool /*bWasSuccessful*/, const FOnlineErrorAccelByte& /*Error*/);
+
+	/**
+	 * Called when the disconnected ams websocket trying to establish the connection again
+	 */
+	DEFINE_ONLINE_DELEGATE_ONE_PARAM(AccelByteOnAMSReconnectAttempted, const AccelByte::FReconnectAttemptInfo& /*Info*/);	
+
+	/**
+	 * Called when the ams websocket has been disconnected for longer than usual and can't be reconnected yet
+	 */
+	DEFINE_ONLINE_DELEGATE_ONE_PARAM(AccelByteOnAMSMassiveOutageEvent, const AccelByte::FMassiveOutageInfo& /*Info*/);
+
+	/**
+	 * Called when the disconnected DSHub websocket trying to establish the connection again
+	 */
+	DEFINE_ONLINE_DELEGATE_ONE_PARAM(AccelByteOnDSHubReconnectAttempted, const AccelByte::FReconnectAttemptInfo& /*Info*/);	
+
+	/**
+	 * Called when the DSHub websocket has been disconnected for longer than usual and can't be reconnected yet
+	 */
+	DEFINE_ONLINE_DELEGATE_ONE_PARAM(AccelByteOnDSHubMassiveOutageEvent, const AccelByte::FMassiveOutageInfo& /*Info*/);
+
 #if (ENGINE_MAJOR_VERSION == 4 && ENGINE_MINOR_VERSION <= 25)
 	/**
 	 * Delegate fired when the members in a session have changed. From the UE 4.26+ base session interface delegates.
@@ -1384,6 +1431,8 @@ public:
 	 */
 	DEFINE_ONLINE_DELEGATE_THREE_PARAM(OnSessionParticipantsChange, FName, const FUniqueNetId&, bool);
 #endif
+
+	DEFINE_ONLINE_DELEGATE_TWO_PARAM(OnPartySessionCreated, const FUniqueNetId&, const FOnlineSession&);
 
 PACKAGE_SCOPE:
 	/** Restored sessions stored in this interface */
@@ -1663,7 +1712,11 @@ PACKAGE_SCOPE:
 	/**
 	 * Update game session data from a backend model. Used for update notifications and refreshing a game session manually.
 	 */
-	void UpdateInternalGameSession(const FName& SessionName, const FAccelByteModelsV2GameSession& UpdatedGameSession, bool& bIsConnectingToP2P, bool bIsFirstJoin=false);
+	void UpdateInternalGameSession(const FName& SessionName
+		, const FAccelByteModelsV2GameSession& UpdatedGameSession
+		, bool& bIsConnectingToP2P
+		, const bool bIsFirstJoin = false
+		, const bool bUpdateSessionStorage = true );
 
 	/**
 	 * Update party session data from a backend model. Used for update notifications and refreshing a game session manually.
@@ -1984,6 +2037,7 @@ private:
 	void OnPartySessionUpdatedNotification(FAccelByteModelsV2PartySession UpdatedPartySession, int32 LocalUserNum);
 	void OnPartySessionInviteRejectedNotification(FAccelByteModelsV2PartyUserRejectedEvent RejectEvent, int32 LocalUserNum);
 	void OnPartySessionInviteCanceledNotification(const FAccelByteModelsV2PartyInviteCanceledEvent& CanceledEvent, int32 LocalUserNum);
+	void OnPartySessionCreatedNotification(const FAccelByteModelsV2PartyCreatedEvent& CreatedEvent, int32 LocalUserNum);
 	//~ End Party Session Notification Handlers
 
 	//~ Begin Matchmaking Notification Handlers
@@ -2002,6 +2056,11 @@ private:
 	void OnV2DsSessionEndedNotification(const FAccelByteModelsSessionEndedNotification& Notification);
 	void OnDSHubConnectSuccessNotification();
 	void OnDSHubConnectionClosedNotification(int32 StatusCode, const FString& Reason, bool bWasClean);
+	void OnDSHubReconnectAttempted(const AccelByte::FReconnectAttemptInfo& Info);
+	void OnDSHubMassiveOutageEvent(const AccelByte::FMassiveOutageInfo& Info);
+	void OnAMSConnectedCallback(bool bWasSuccessful, const FOnlineErrorAccelByte& ErrorMessage);
+	void OnAMSReconnectAttempted(const AccelByte::FReconnectAttemptInfo& Info);
+	void OnAMSMassiveOutageEvent(const AccelByte::FMassiveOutageInfo& Info);
 	//~ End Server Notification Handlers
 
 	//~ Begin Session Storage Notification Handler
@@ -2012,6 +2071,7 @@ private:
 	void UnbindLobbyMulticastDelegate();
 	FDelegateHandle OnGameSessionInviteCanceledHandle;
 	FDelegateHandle OnPartyInviteCanceledHandle;
+	FDelegateHandle OnPartyCreatedHandle;
 	//~ End Lobby Multicast Notification Handler
 
 	void UpdateSessionMembers(FNamedOnlineSession* Session, const TArray<FAccelByteModelsV2SessionUser>& PreviousMembers, const bool bHasInvitedPlayersChanged);

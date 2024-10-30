@@ -51,13 +51,13 @@
 	const FErrorHandler On##Verb##ErrorDelegate = FErrorHandler::CreateRaw(this, &AsyncTaskClass::On##Verb##Error);
 
 /**
- * Convenience macro for async tasks to ensure that a expression evaluates to true, otherwise throwing an InvalidState error in the task.
+ * Convenience macro for async tasks to validate the expression evaluates to true, otherwise throwing an InvalidState error in the task.
  * This will also stop execution of the task by returning out.
  * 
  * @param Expression Expression that you want to evaluate to true, or fail the task
  * @param Message Message to log in a trace if the expression is false. This will automatically be wrapped in TEXT macro, so no need to do that manually.
  */
-#define AB_ASYNC_TASK_ENSURE(Expression, Message, ...) if (!ensure(Expression))   \
+#define AB_ASYNC_TASK_VALIDATE(Expression, Message, ...) if (!(Expression))   \
 {                                                                                 \
 	AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT(Message), ##__VA_ARGS__); \
 	CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState);                 \

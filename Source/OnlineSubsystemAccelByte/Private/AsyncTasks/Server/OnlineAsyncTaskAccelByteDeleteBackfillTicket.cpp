@@ -21,16 +21,16 @@ void FOnlineAsyncTaskAccelByteDeleteBackfillTicket::Initialize()
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("SessionName: %s"), *SessionName.ToString());
 
 	FOnlineSessionV2AccelBytePtr SessionInterface = nullptr;
-	AB_ASYNC_TASK_ENSURE(FOnlineSessionV2AccelByte::GetFromSubsystem(SubsystemPin.Get(), SessionInterface), "Failed to delete backfill ticket as we do not have a valid session interface!");
+	AB_ASYNC_TASK_VALIDATE(FOnlineSessionV2AccelByte::GetFromSubsystem(SubsystemPin.Get(), SessionInterface), "Failed to delete backfill ticket as we do not have a valid session interface!");
 
 	FNamedOnlineSession* Session = SessionInterface->GetNamedSession(SessionName);
-	AB_ASYNC_TASK_ENSURE(Session != nullptr, "Failed to delete backfill ticket for session as we do not have a local session stored with the provided name!");
+	AB_ASYNC_TASK_VALIDATE(Session != nullptr, "Failed to delete backfill ticket for session as we do not have a local session stored with the provided name!");
 
 	FString BackfillTicketId{};
-	AB_ASYNC_TASK_ENSURE(Session->SessionSettings.Get(SETTING_MATCHMAKING_BACKFILL_TICKET_ID, BackfillTicketId), "Failed to delete backfill ticket as we do not have a valid backfill ticket ID stored!");
+	AB_ASYNC_TASK_VALIDATE(Session->SessionSettings.Get(SETTING_MATCHMAKING_BACKFILL_TICKET_ID, BackfillTicketId), "Failed to delete backfill ticket as we do not have a valid backfill ticket ID stored!");
 
 	AccelByte::FServerApiClientPtr ServerApiClient = AccelByte::FMultiRegistry::GetServerApiClient();
-	AB_ASYNC_TASK_ENSURE(ServerApiClient.IsValid(), "Failed to delete backfill ticket for session as we could not get a server API client!");
+	AB_ASYNC_TASK_VALIDATE(ServerApiClient.IsValid(), "Failed to delete backfill ticket for session as we could not get a server API client!");
 
 	OnDeleteBackfillTicketSuccessDelegate = AccelByte::TDelegateUtils<FVoidHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteDeleteBackfillTicket::OnDeleteBackfillTicketSuccess);
 	OnDeleteBackfillTicketErrorDelegate = AccelByte::TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteDeleteBackfillTicket::OnDeleteBackfillTicketError);;

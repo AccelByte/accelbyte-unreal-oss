@@ -33,7 +33,7 @@ void FOnlineAsyncTaskAccelByteQueryGameSessionHistories::Initialize()
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("UserId: %s"), *UserId->ToDebugString());
 
 	const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(SubsystemPin->GetSessionInterface());
-	AB_ASYNC_TASK_ENSURE(SessionInterface.IsValid(), "Failed to join game session as our session interface instance is invalid!");
+	AB_ASYNC_TASK_VALIDATE(SessionInterface.IsValid(), "Failed to join game session as our session interface instance is invalid!");
 
 	/* Validate if the the user wants all (-1) or any specific number that greater than or equal to 100 */
 	if (PagedQuery.Count == -1 || PagedQuery.Count >= MaximumQueryLimit)

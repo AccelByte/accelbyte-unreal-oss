@@ -63,6 +63,8 @@ private:
 	 */
 	void OnRequestError(int32 ErrorCode, const FString& ErrorMessage);
 
+	void SyncPlatformPurchase();
+
 	bool ParsePurchaseReceiptToPlatformSyncMobileGoogle(const TSharedRef<FPurchaseReceipt>& Receipt);
 
 	FString Error;

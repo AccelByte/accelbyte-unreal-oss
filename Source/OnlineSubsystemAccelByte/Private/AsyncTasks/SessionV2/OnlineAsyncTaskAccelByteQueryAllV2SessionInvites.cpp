@@ -89,7 +89,7 @@ void FOnlineAsyncTaskAccelByteQueryAllV2SessionInvites::OnGetGameSessionInvitesS
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("GameSessionInviteCount: %d"), Result.Data.Num());
 
 	const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(SubsystemPin->GetSessionInterface());
-	AB_ASYNC_TASK_ENSURE(SessionInterface.IsValid(), "Failed to construct game session invite instances as our session interface is invalid!");
+	AB_ASYNC_TASK_VALIDATE(SessionInterface.IsValid(), "Failed to construct game session invite instances as our session interface is invalid!");
 
 	for (const FAccelByteModelsV2GameSession& Session : Result.Data)
 	{
@@ -125,7 +125,7 @@ void FOnlineAsyncTaskAccelByteQueryAllV2SessionInvites::OnGetPartySessionInvites
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("PartySessionInviteCount: %d"), Result.Data.Num());
 
 	const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(SubsystemPin->GetSessionInterface());
-	AB_ASYNC_TASK_ENSURE(SessionInterface.IsValid(), "Failed to construct party session invite instances as our session interface is invalid!");
+	AB_ASYNC_TASK_VALIDATE(SessionInterface.IsValid(), "Failed to construct party session invite instances as our session interface is invalid!");
 
 	for (const FAccelByteModelsV2PartySession& Session : Result.Data)
 	{

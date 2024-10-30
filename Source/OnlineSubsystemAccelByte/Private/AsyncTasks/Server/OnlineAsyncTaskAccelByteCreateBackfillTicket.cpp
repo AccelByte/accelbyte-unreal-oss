@@ -23,19 +23,19 @@ void FOnlineAsyncTaskAccelByteCreateBackfillTicket::Initialize()
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("SessionName: %s"), *SessionName.ToString());
 
 	FOnlineSessionV2AccelBytePtr SessionInterface = nullptr;
-	AB_ASYNC_TASK_ENSURE(FOnlineSessionV2AccelByte::GetFromSubsystem(SubsystemPin.Get(), SessionInterface), "Failed to create new backfill ticket as we do not have a valid session interface!");
+	AB_ASYNC_TASK_VALIDATE(FOnlineSessionV2AccelByte::GetFromSubsystem(SubsystemPin.Get(), SessionInterface), "Failed to create new backfill ticket as we do not have a valid session interface!");
 
 	FNamedOnlineSession* Session = SessionInterface->GetNamedSession(SessionName);
-	AB_ASYNC_TASK_ENSURE(Session != nullptr, "Failed to create backfill ticket for session as we do not have a local session stored with the provided name!");
+	AB_ASYNC_TASK_VALIDATE(Session != nullptr, "Failed to create backfill ticket for session as we do not have a local session stored with the provided name!");
 
 	// Check if we already have a pool passed into this task. If not, then we want to try and grab it from the session itself.
 	if (MatchPool.IsEmpty())
 	{
-		AB_ASYNC_TASK_ENSURE(Session->SessionSettings.Get(SETTING_SESSION_MATCHPOOL, MatchPool), "Failed to create backfill ticket for session as there is not a match pool associated with it.");
+		AB_ASYNC_TASK_VALIDATE(Session->SessionSettings.Get(SETTING_SESSION_MATCHPOOL, MatchPool), "Failed to create backfill ticket for session as there is not a match pool associated with it.");
 	}
 
 	AccelByte::FServerApiClientPtr ServerApiClient = AccelByte::FMultiRegistry::GetServerApiClient();
-	AB_ASYNC_TASK_ENSURE(ServerApiClient.IsValid(), "Failed to create backfill ticket for session as we could not get a server API client!");
+	AB_ASYNC_TASK_VALIDATE(ServerApiClient.IsValid(), "Failed to create backfill ticket for session as we could not get a server API client!");
 
 	OnCreateBackfillTicketSuccessDelegate = AccelByte::TDelegateUtils<THandler<FAccelByteModelsV2MatchmakingCreateBackfillTicketResponse>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteCreateBackfillTicket::OnCreateBackfillTicketSuccess);
 	OnCreateBackfillTicketErrorDelegate = AccelByte::TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteCreateBackfillTicket::OnCreateBackfillTicketError);;

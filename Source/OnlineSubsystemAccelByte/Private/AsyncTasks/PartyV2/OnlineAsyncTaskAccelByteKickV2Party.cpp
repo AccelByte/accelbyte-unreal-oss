@@ -27,10 +27,10 @@ void FOnlineAsyncTaskAccelByteKickV2Party::Initialize()
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("LocalUserId: %s; SessionName: %s; PlayerIdToKick: %s"), *UserId->ToDebugString(), *SessionName.ToString(), *PlayerIdToKick->ToDebugString());
 
 	const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(SubsystemPin->GetSessionInterface());
-	AB_ASYNC_TASK_ENSURE(SessionInterface.IsValid(), "Failed to kick player from party as our session interface is invalid!");
+	AB_ASYNC_TASK_VALIDATE(SessionInterface.IsValid(), "Failed to kick player from party as our session interface is invalid!");
 
 	FNamedOnlineSession* Session = SessionInterface->GetPartySession();
-	AB_ASYNC_TASK_ENSURE(Session != nullptr, "Failed to kick player from party as we do not have a party session stored locally!");
+	AB_ASYNC_TASK_VALIDATE(Session != nullptr, "Failed to kick player from party as we do not have a party session stored locally!");
 
 	OnKickUserFromPartySuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsV2PartySession>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteKickV2Party::OnKickUserFromPartySuccess);
 	OnKickUserFromPartyErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteKickV2Party::OnKickUserFromPartyError);

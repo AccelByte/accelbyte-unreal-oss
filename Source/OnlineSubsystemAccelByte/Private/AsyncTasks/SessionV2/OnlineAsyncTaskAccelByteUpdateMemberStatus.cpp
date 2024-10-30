@@ -26,14 +26,14 @@ void FOnlineAsyncTaskAccelByteUpdateMemberStatus::Initialize()
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("SessionName: %s; PlayerId: %s; Status: %s"), *SessionName.ToString(), *PlayerId->ToDebugString(), *StaticEnum<EAccelByteV2SessionMemberStatus>()->GetNameStringByValue(static_cast<int64>(Status)));
 
 	FOnlineSessionV2AccelBytePtr SessionInterface = nullptr;
-	AB_ASYNC_TASK_ENSURE(FOnlineSessionV2AccelByte::GetFromSubsystem(SubsystemPin.Get(), SessionInterface), "Could not get session interface instance from subsystem!");
+	AB_ASYNC_TASK_VALIDATE(FOnlineSessionV2AccelByte::GetFromSubsystem(SubsystemPin.Get(), SessionInterface), "Could not get session interface instance from subsystem!");
 
 	FNamedOnlineSession* Session = SessionInterface->GetNamedSession(SessionName);
-	AB_ASYNC_TASK_ENSURE(Session != nullptr, "Failed to find session locally with name of '%s'!", *SessionName.ToString());
+	AB_ASYNC_TASK_VALIDATE(Session != nullptr, "Failed to find session locally with name of '%s'!", *SessionName.ToString());
 
 	TSharedPtr<FOnlineSessionInfoAccelByteV2> SessionInfo = StaticCastSharedPtr<FOnlineSessionInfoAccelByteV2>(Session->SessionInfo);
-	AB_ASYNC_TASK_ENSURE(SessionInfo.IsValid(), "Failed to get session info from local session named '%s'!", *SessionName.ToString());
-	AB_ASYNC_TASK_ENSURE(SessionInfo->ContainsMember(PlayerId.ToSharedRef().Get()), "Failed to find member with ID '%s' in session '%s'!", *PlayerId->ToDebugString(), *SessionName.ToString());
+	AB_ASYNC_TASK_VALIDATE(SessionInfo.IsValid(), "Failed to get session info from local session named '%s'!", *SessionName.ToString());
+	AB_ASYNC_TASK_VALIDATE(SessionInfo->ContainsMember(PlayerId.ToSharedRef().Get()), "Failed to find member with ID '%s' in session '%s'!", *PlayerId->ToDebugString(), *SessionName.ToString());
 
 	OnUpdateMemberStatusSuccessDelegate = TDelegateUtils<FVoidHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteUpdateMemberStatus::OnUpdateMemberStatusSuccess);
 	OnUpdateMemberStatusErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteUpdateMemberStatus::OnUpdateMemberStatusError);;

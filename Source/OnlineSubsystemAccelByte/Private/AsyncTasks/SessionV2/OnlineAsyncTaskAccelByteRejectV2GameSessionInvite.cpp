@@ -22,7 +22,7 @@ void FOnlineAsyncTaskAccelByteRejectV2GameSessionInvite::Initialize()
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("UserId: %s; GameSessionId: %s"), *UserId->GetAccelByteId(), *InvitedSession.GetSessionIdStr());
 
 	const FString SessionId = InvitedSession.GetSessionIdStr();
-	AB_ASYNC_TASK_ENSURE(!SessionId.Equals(TEXT("InvalidSession")), "Failed to reject game session invite as the session ID provided is not valid!");
+	AB_ASYNC_TASK_VALIDATE(!SessionId.Equals(TEXT("InvalidSession")), "Failed to reject game session invite as the session ID provided is not valid!");
 
 	OnRejectGameSessionInviteSuccessDelegate = AccelByte::TDelegateUtils<FVoidHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteRejectV2GameSessionInvite::OnRejectGameSessionInviteSuccess);
 	OnRejectGameSessionInviteErrorDelegate = AccelByte::TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteRejectV2GameSessionInvite::OnRejectGameSessionInviteError);;

@@ -40,10 +40,10 @@ void FOnlineAsyncTaskAccelByteSendV2GameSessionInvite::Initialize()
 
 	// First, check if the player is currently in a game session of given SessionName, if we're not, then we shouldn't do this
 	const TSharedPtr<FOnlineSessionV2AccelByte, ESPMode::ThreadSafe> SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(SubsystemPin->GetSessionInterface());
-	AB_ASYNC_TASK_ENSURE(SessionInterface.IsValid(), "Failed to send game session invite as our session interface is invalid!");
+	AB_ASYNC_TASK_VALIDATE(SessionInterface.IsValid(), "Failed to send game session invite as our session interface is invalid!");
 
 	FNamedOnlineSession* Session = SessionInterface->GetNamedSession(SessionName);
-	AB_ASYNC_TASK_ENSURE(Session != nullptr, "Failed to send game session invite as our local session instance is invalid!");
+	AB_ASYNC_TASK_VALIDATE(Session != nullptr, "Failed to send game session invite as our local session instance is invalid!");
 
 	// Now, once we know we are in this game session, we want to send a request to invite the player to the session
 	OnSendGameSessionInviteSuccessDelegate = TDelegateUtils<FVoidHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteSendV2GameSessionInvite::OnSendGameSessionInviteSuccess);

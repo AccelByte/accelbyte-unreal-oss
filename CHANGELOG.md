@@ -2,6 +2,29 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.12.26](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.12.26%0D0.12.25) (2024-10-30)
+
+
+### Features
+
+* **IAP sync:** improve the SyncPlatformPurchase to sync mobile subscription & add function to query mobile subcription ([1d81a68](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/1d81a68cb665c202e23734968d5652db621875fc))
+* **iapsync:** modify to able to accept subscription sync ([58ba62f](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/58ba62fa1331f7c38b14234ae89dc986e5a2ca96))
+* **qos:** add flag to not send metric automatically ([741f3db](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/741f3db03b25c7483dcaf9e00d7aff66937f54bc))
+* **sessionv2:** add OnPartySessionCreated online delegate ([76411df](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/76411df9642151f716f9e1ad83d4fa2816fb4bfd))
+* **websocket:** add ability to configure the reconnection for Lobby, Chat, AMS, and DSHub service ([2893026](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/2893026ec67da59fa577729c7f8b9fc4fb9f2ff9))
+
+
+### Bug Fixes
+
+* **Analytics:** change AddRaw to AddThreadSafeSP, pass SharedPtr instead of raw object pointer ([154e8da](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/154e8da275317788078115d59312142edd0de08d))
+* fix incorrect bIsOnline presence ([2d3a1b5](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/2d3a1b58b318fc3acb9b5ca5851ea8638abe69b0))
+* fix localusernum not cached when using simultaneous login ([acb27f4](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/acb27f4be2b2aa15601142cce72c5038f1359197))
+* fix user platform overwritten from presence status ([7eea7fe](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/7eea7fe7ddf963acb02713ed67b85fd7a64748a5))
+* **querysubscription:** add online player delegate for query subscription ([3e2df7f](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/3e2df7fb0ba7a92fec3fa571037dae8504e6e28f))
+* remove ensure checker on places that don't need it ([62b86bd](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/62b86bd0dd6c0891578355675284f57e4c934100))
+* reset and shutdown voice interface if initialized ([eb3467c](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/eb3467c7bfc34942c756f85be463ed9664062056))
+* update local session storage only when receiving OnStorageChanged notification and not other notifications ([15f5ce8](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/15f5ce8bc24bec861d7c098977a7585d15fc74bb))
+
 ### [0.12.25](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.12.25%0D0.12.24) (2024-09-26)
 
 

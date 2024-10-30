@@ -107,7 +107,7 @@ void FOnlineAsyncTaskAccelByteSimultaneousLogin::Finalize()
 		return;
 	}
 
-	Super::Finalize();
+	FOnlineAsyncTaskAccelByteLogin::Finalize();
 }
 
 void FOnlineAsyncTaskAccelByteSimultaneousLogin::PostProcessTriggerDelegates()

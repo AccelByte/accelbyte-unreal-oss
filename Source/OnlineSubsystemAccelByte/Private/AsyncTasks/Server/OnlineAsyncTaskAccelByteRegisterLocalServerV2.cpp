@@ -22,16 +22,16 @@ void FOnlineAsyncTaskAccelByteRegisterLocalServerV2::Initialize()
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 
 	const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(SubsystemPin->GetSessionInterface());
-	AB_ASYNC_TASK_ENSURE(SessionInterface.IsValid(), "Failed to register local server as our session interface is invalid!");
+	AB_ASYNC_TASK_VALIDATE(SessionInterface.IsValid(), "Failed to register local server as our session interface is invalid!");
 
 	FString LocalServerIp = TEXT("");
-	AB_ASYNC_TASK_ENSURE(SessionInterface->GetServerLocalIp(LocalServerIp), "Failed to register local server to Armada as we failed to get the server's local address!");
+	AB_ASYNC_TASK_VALIDATE(SessionInterface->GetServerLocalIp(LocalServerIp), "Failed to register local server to Armada as we failed to get the server's local address!");
 
 	int32 RegisterPort = 0;
-	AB_ASYNC_TASK_ENSURE(SessionInterface->GetServerPort(RegisterPort, true), "Failed to register local server to Armada as we failed to get the server's port!");
+	AB_ASYNC_TASK_VALIDATE(SessionInterface->GetServerPort(RegisterPort, true), "Failed to register local server to Armada as we failed to get the server's port!");
 
 	ServerName = TEXT("");
-	AB_ASYNC_TASK_ENSURE(SessionInterface->GetLocalServerName(ServerName), "Failed to register local server to Armada as we failed to get the server's name!");
+	AB_ASYNC_TASK_VALIDATE(SessionInterface->GetLocalServerName(ServerName), "Failed to register local server to Armada as we failed to get the server's name!");
 
 	OnRegisterServerSuccessDelegate = TDelegateUtils<FVoidHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteRegisterLocalServerV2::OnRegisterServerSuccess);
 	OnRegisterServerErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteRegisterLocalServerV2::OnRegisterServerError);;

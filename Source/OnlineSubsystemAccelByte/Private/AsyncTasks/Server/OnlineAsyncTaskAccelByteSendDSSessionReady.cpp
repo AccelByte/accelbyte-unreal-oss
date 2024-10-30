@@ -53,7 +53,7 @@ void FOnlineAsyncTaskAccelByteSendDSSessionReady::Initialize()
 		return;
 	}
 	const TSharedPtr<FOnlineSessionInfoAccelByteV2> SessionInfo = StaticCastSharedPtr<FOnlineSessionInfoAccelByteV2>(GameSession->SessionInfo);
-	const FString GameSessionId = SessionInfo->GetSessionId().ToString();
+	const FString GameSessionId = SessionInfo.IsValid() ? SessionInfo->GetSessionId().ToString() : TEXT("");
 
 	OnSendDSReadySuccessDelegate = TDelegateUtils<FVoidHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteSendDSSessionReady::OnSendDSReadySuccess);
 	OnSendDSReadyErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteSendDSSessionReady::OnSendDSReadyError);

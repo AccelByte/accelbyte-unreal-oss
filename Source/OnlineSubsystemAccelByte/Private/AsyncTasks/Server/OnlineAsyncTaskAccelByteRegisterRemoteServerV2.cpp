@@ -24,10 +24,10 @@ void FOnlineAsyncTaskAccelByteRegisterRemoteServerV2::Initialize()
     AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 
     const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(SubsystemPin->GetSessionInterface());
-    AB_ASYNC_TASK_ENSURE(SessionInterface.IsValid(), "Failed to register remote server as our session interface is invalid!");
+    AB_ASYNC_TASK_VALIDATE(SessionInterface.IsValid(), "Failed to register remote server as our session interface is invalid!");
 
     int32 RegisterPort = 0;
-    AB_ASYNC_TASK_ENSURE(SessionInterface->GetServerPort(RegisterPort), "Failed to register server to Armada as we failed to get the server's port!");
+    AB_ASYNC_TASK_VALIDATE(SessionInterface->GetServerPort(RegisterPort), "Failed to register server to Armada as we failed to get the server's port!");
 
 	OnRegisterServerSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsServerInfo>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteRegisterRemoteServerV2::OnRegisterServerSuccess);
     OnRegisterServerErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteRegisterRemoteServerV2::OnRegisterServerError);;
