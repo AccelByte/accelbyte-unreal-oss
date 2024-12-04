@@ -43,8 +43,9 @@ private:
 	TSharedPtr<const FUniqueNetIdAccelByteUser> RecipientId;
 	const FString ChatMessage;
 	FString RoomId;
-	FDateTime CreatedAt{};
 
 	FString ErrorString{};
+
+	FAccelByteModelsChatSendChatResponse SendChatResponse{};
 };
 #pragma once

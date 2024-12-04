@@ -77,6 +77,10 @@ void FOnlineAsyncTaskAccelByteJoinV2GameSessionByCode::Finalize()
 	JoinResult.Session = ConstructedSession;
 	SessionInterface->JoinSession(UserId.ToSharedRef().Get(), SessionName, JoinResult);
 
+	// Set the party attribute with past sesssion info from the current user
+	SessionInterface->PartySessionStorageLocalUserManager.PastSessionManager.InsertPastSessionID(UserId, JoinedGameSession.ID);
+	SessionInterface->UpdatePartySessionStorageWithPastSessionInfo(UserId);
+
 	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = SubsystemPin->GetPredefinedEventInterface();
 	if (PredefinedEventInterface.IsValid())
 	{

@@ -17,6 +17,7 @@
 #include "OnlinePredefinedEventInterfaceAccelByte.h"
 #include "OnlineSubsystemAccelByteUtils.h"
 #include "LoginQueue/OnlineAsyncTaskAccelByteLoginQueue.h"
+#include "Core/Platform/AccelBytePlatformHandler.h"
 
 using namespace AccelByte;
 
@@ -100,6 +101,20 @@ void FOnlineAsyncTaskAccelByteLogin::Initialize()
 	API_CLIENT_CHECK_GUARD();
 	//Valid because just recently SetApiClient()
 	ApiClient->CredentialsRef->SetClientCredentials(FRegistry::Settings.ClientId, FRegistry::Settings.ClientSecret);
+
+	if (AccountCredentials.LoginType == EAccelByteLoginType::Oculus)
+	{
+		const bool bFetchTokenDispatched = FetchOculusPlatformToken();
+		if(!bFetchTokenDispatched)
+		{
+			CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
+			AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Failed fetching oculus platform token, completing async task."));
+		}
+
+		LoginType = EAccelByteLoginType::Oculus;
+
+		return;
+	}
 
 	// If all members of the AccountCredentials struct are blank, then this should be treated as a pass through login to
 	// the native subsystem, if one is set. Intended for headless auth with consoles.
@@ -637,6 +652,10 @@ void FOnlineAsyncTaskAccelByteLogin::PerformLogin(const FOnlineAccountCredential
 			ApiClient->User.LoginWithOtherPlatformIdV4(Credentials.Id, Credentials.Token, OnLoginSuccessDelegate, OnLoginErrorOAuthDelegate, bCreateHeadlessAccount);
 			AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sending async task to login with OIDC for Id %s."), *Credentials.Id);
 			break;
+		case EAccelByteLoginType::Oculus:
+			ApiClient->User.LoginWithOtherPlatformV4(EAccelBytePlatformType::Oculus, Credentials.Token, OnLoginSuccessDelegate, OnLoginErrorOAuthDelegate, bCreateHeadlessAccount);
+			AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sending async task to login with Oculus for Id %s."), *Credentials.Id);
+			break;
 		default:
 		case EAccelByteLoginType::None:
 			ErrorStr = TEXT("login-failed-invalid-type");
@@ -805,6 +824,9 @@ void FOnlineAsyncTaskAccelByteLogin::OnLoginSuccessV4(const FAccelByteModelsLogi
 
 	OnLoginQueueCancelledDelegate = TDelegateUtils<FAccelByteOnLoginQueueCanceledByUserDelegate>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteLogin::OnLoginQueueCancelled);
 	OnLoginQueueCancelledDelegateHandle = IdentityInterface->AddAccelByteOnLoginQueueCanceledByUserDelegate_Handle(OnLoginQueueCancelledDelegate);
+
+	OnLoginQueueClaimTicketCompleteDelegate = TDelegateUtils<FAccelByteOnLoginQueueClaimTicketCompleteDelegate>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteLogin::OnLoginQueueTicketClaimed);
+	OnLoginQueueClaimTicketCompleteDelegateHandle = IdentityInterface->AddAccelByteOnLoginQueueClaimTicketCompleteDelegate_Handle(LoginUserNum, OnLoginQueueClaimTicketCompleteDelegate);
 	
 	bShouldUseTimeout = false;
 	bLoginInQueue = true;
@@ -835,6 +857,34 @@ void FOnlineAsyncTaskAccelByteLogin::OnLoginQueueCancelled(int32 InLoginUserNum)
 	ErrorOAuthObject.ErrorMessage = ErrorStr;
 	
 	CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
+
+	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
+}
+
+
+void FOnlineAsyncTaskAccelByteLogin::OnLoginQueueTicketClaimed(int32 InLoginUserNum, bool bWasClaimSuccessful, const FErrorOAuthInfo& ErrorObject)
+{
+	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Login queue ticket is claimed for user %d, bWasClaimSuccessful: %s"), InLoginUserNum, bWasClaimSuccessful ? TEXT("True") : TEXT("False"));
+
+	bWasSuccessful = bWasClaimSuccessful;
+
+	if (LoginUserNum != InLoginUserNum)
+	{
+		return;
+	}
+
+	bLoginInQueue = false;
+
+	if (!bWasSuccessful)
+	{
+		ErrorOAuthObject = ErrorObject;
+
+		CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
+	}
+	else
+	{
+		OnLoginSuccess();
+	}
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
@@ -871,7 +921,6 @@ void FOnlineAsyncTaskAccelByteLogin::OnLoginErrorOAuth(int32 InErrorCode, const 
 	CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
 }
 
-
 void FOnlineAsyncTaskAccelByteLogin::OnTaskTimedOut()
 {
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("LocalUserNum: %d"), LoginUserNum);
@@ -881,6 +930,33 @@ void FOnlineAsyncTaskAccelByteLogin::OnTaskTimedOut()
 	ErrorStr = TEXT("Login task timeout while waiting for response from backend.");
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
+}
+
+bool FOnlineAsyncTaskAccelByteLogin::FetchOculusPlatformToken()
+{
+	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("LocalUserNum: %d"), LocalUserNum);
+
+	FAccelBytePlatformHandler PlatformHandler;
+	const AccelBytePlatformWrapperWPtr PlatformWrapperWPtr = PlatformHandler.GetPlatformWrapper(EAccelBytePlatformType::Oculus);
+	const AccelBytePlatformWrapperPtr PlatformWrapper = PlatformWrapperWPtr.Pin();
+		
+	if (!PlatformWrapper.IsValid())
+	{
+		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Error, TEXT("Can't fetch oculus platform token as platform wrapper is invalid."));
+		return false;
+	}
+
+	const auto OnFetchPlatformTokenDelegate = TDelegateUtils<THandler<const FString&>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteLogin::OnFetchOculusPlatformTokenFinished);
+	PlatformWrapper->FetchPlatformToken(OnFetchPlatformTokenDelegate);
+
+	AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Fetching oculus platform token"));
+	return true;
+}
+
+void FOnlineAsyncTaskAccelByteLogin::OnFetchOculusPlatformTokenFinished(const FString& Token)
+{
+	const FOnlineAccountCredentialsAccelByte Credentials(EAccelByteLoginType::Oculus, TEXT(""), Token);
+	PerformLogin(Credentials);
 }
 
 #undef ONLINE_ERROR_NAMESPACE

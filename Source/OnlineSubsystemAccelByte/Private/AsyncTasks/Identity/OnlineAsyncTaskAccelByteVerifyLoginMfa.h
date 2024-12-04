@@ -50,6 +50,11 @@ private:
 	FDelegateHandle OnLoginQueueCancelledDelegateHandle;
 	FAccelByteOnLoginQueueCanceledByUserDelegate OnLoginQueueCancelledDelegate;
 	void OnLoginQueueCancelled(int32 InLoginUserNum);
+
+	/** Handler on login queue ticket claimed. */
+	FDelegateHandle OnLoginQueueClaimTicketCompleteDelegateHandle;
+	FAccelByteOnLoginQueueClaimTicketCompleteDelegate OnLoginQueueClaimTicketCompleteDelegate;
+	void OnLoginQueueTicketClaimed(int32 InLoginUserNum, bool bWasClaimSuccessful, const FErrorOAuthInfo& ErrorObject);
 	
 	/** Set from DefaultEngine.ini, will only notify in queue if estimated time is above presentation threshold */
 	int32 LoginQueuePresentationThreshold{0};

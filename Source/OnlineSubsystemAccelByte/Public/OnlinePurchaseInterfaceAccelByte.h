@@ -60,6 +60,15 @@ public:
 	virtual void Checkout(const FUniqueNetId& UserId, const FPurchaseCheckoutRequest& CheckoutRequest, const FOnPurchaseReceiptlessCheckoutComplete& Delegate) override;
 #endif
 
+#pragma region PlatformIAP
+	void PlatformCheckout(const FUniqueNetId& UserId, const FPurchaseCheckoutRequest& CheckoutRequest, const FOnPurchaseCheckoutComplete& Delegate);
+	void QueryPlatformReceipts(const FUniqueNetId& UserId, bool bRestoreReceipts, const FOnQueryReceiptsComplete& Delegate);
+	void GetPlatformReceipts(const FUniqueNetId& UserId, TArray<FPurchaseReceipt>& OutReceipts) const;
+PACKAGE_SCOPE:
+	void AddPlatformReceipt(const TSharedRef<const FUniqueNetIdAccelByteUser>& UserId, FPurchaseReceipt Receipt);
+#pragma endregion
+
+public:
 	/**
 	 * Delegate called when a controller-user query user orders.
 	 */
@@ -103,4 +112,8 @@ protected:
 	FUserIDToReceiptMap PurchaseReceipts;
 	/** Critical sections for thread safe operation of ReceiptMap */
 	mutable FCriticalSection ReceiptMapLock;
+
+	FUserIDToReceiptMap PlatformReceipts;
+	/** Critical sections for thread safe operation of ReceiptMap */
+	mutable FCriticalSection PlatformReceiptMapLock;
 };

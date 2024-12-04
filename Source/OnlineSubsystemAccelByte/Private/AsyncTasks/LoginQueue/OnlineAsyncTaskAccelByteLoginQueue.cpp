@@ -3,6 +3,7 @@
 // and restrictions contact your company contract manager.
 
 #include "OnlineAsyncTaskAccelByteLoginQueue.h"
+#include "OnlineAsyncTaskAccelByteLoginQueueClaimTicket.h"
 
 using namespace AccelByte;
 
@@ -29,6 +30,7 @@ void FOnlineAsyncTaskAccelByteLoginQueue::Initialize()
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("LocalUserNum: %d, TicketId: %s"), LoginUserNum, *Ticket.Ticket);
 
 	GConfig->GetInt(TEXT("OnlineSubsystemAccelByte"), TEXT("LoginQueuePresentationThreshold"), PresentationThreshold, GEngineIni);
+	GConfig->GetBool(TEXT("OnlineSubsystemAccelByte"), TEXT("bEnableManualClaimLoginQueue"), bManualClaimLoginQueueTicket, GEngineIni);
 
 	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(SubsystemPin->GetIdentityInterface());
 	if(!IdentityInterface.IsValid())
@@ -67,8 +69,6 @@ void FOnlineAsyncTaskAccelByteLoginQueue::Finalize()
 		return;
 	}
 
-	IdentityInterface->FinalizeLoginQueue(LoginUserNum);
-	
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 
@@ -77,7 +77,7 @@ void FOnlineAsyncTaskAccelByteLoginQueue::TriggerDelegates()
 	TRY_PIN_SUBSYSTEM()
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), bWasSuccessful ? TEXT("True") : TEXT("False"));
-	
+
 	if(bWasSuccessful)
 	{
 		// all is well, nothing to do here
@@ -119,14 +119,22 @@ void FOnlineAsyncTaskAccelByteLoginQueue::OnPollTicketRefreshed(const FAccelByte
 		IdentityInterface->TriggerAccelByteOnLoginTicketStatusUpdatedDelegates(LoginUserNum, true, InTicket,
 			ONLINE_ERROR_ACCELBYTE(ErrorCode, EOnlineErrorResult::Success));
 	}
-	
+
 	if(InTicket.Position == 0)
 	{
+		if (bManualClaimLoginQueueTicket)
+		{
+			IdentityInterface->TriggerAccelByteOnLoginTicketReadyDelegates(LoginUserNum, true);
+		}
+		else
+		{
+			Super::ExecuteCriticalSectionAction(FVoidHandler::CreateLambda([this, &InTicket]()
+				{
+					TRY_PIN_SUBSYSTEM();
+					SubsystemPin->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteLoginQueueClaimTicket>(SubsystemPin.Get(), LoginUserNum, InTicket.Ticket);
+				}));
+		}
 		CleanupDelegateHandler();
-		ClaimAccessToken(InTicket.Ticket);
-		
-		AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Login ticket refreshed, position is 0, claiming access token"));
-		return;
 	}
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
@@ -135,41 +143,10 @@ void FOnlineAsyncTaskAccelByteLoginQueue::OnPollTicketRefreshed(const FAccelByte
 void FOnlineAsyncTaskAccelByteLoginQueue::OnPollTicketStopped(const FOnlineErrorAccelByte& Error)
 {
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("poll ticket %s stopped with error %s, %s"), *Ticket.Ticket, *Error.GetErrorCode(), *Error.GetErrorMessage().ToString());
-	
+
 	CleanupDelegateHandler();
 	
 	CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
-	
-	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
-}
-
-void FOnlineAsyncTaskAccelByteLoginQueue::ClaimAccessToken(const FString& InTicketId)
-{
-	TRY_PIN_SUBSYSTEM()
-
-	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("LocalUserNum: %d, TicketId: %s"), LoginUserNum, *InTicketId);
-
-	if (SubsystemPin->IsMultipleLocalUsersEnabled())
-	{
-		SetApiClient(FMultiRegistry::GetApiClient(FString::Printf(TEXT("%d"), LoginUserNum)));
-	}
-	else
-	{
-		SetApiClient(FMultiRegistry::GetApiClient());
-	}
-	
-	if(!IsApiClientValid())
-	{
-		AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Unable to claim access token, ApiClient is invalid"));
-		CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState);
-		return;
-	}
-	
-	OnClaimAccessTokenSuccessHandler = TDelegateUtils<FVoidHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteLoginQueue::OnClaimAccessTokenSuccess);
-	OnClaimAccessTokenErrorHandler = TDelegateUtils<FOAuthErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteLoginQueue::OnClaimAccessTokenError);
-	
-	API_CLIENT_CHECK_GUARD();
-	ApiClient->User.ClaimAccessToken(InTicketId, OnClaimAccessTokenSuccessHandler, OnClaimAccessTokenErrorHandler);
 	
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
@@ -181,30 +158,11 @@ void FOnlineAsyncTaskAccelByteLoginQueue::OnLoginQueueCancelled(int32 InLoginUse
 	if(InLoginUserNum == LoginUserNum)
 	{
 		CleanupDelegateHandler();
-		
+
 		Poller->StopPoll();
 		CompleteTask(EAccelByteAsyncTaskCompleteState::Incomplete);
 	}
 
-	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
-}
-
-void FOnlineAsyncTaskAccelByteLoginQueue::OnClaimAccessTokenSuccess()
-{
-	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("TicketId: %s"), *Ticket.Ticket);
-
-	CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
-	
-	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
-}
-
-void FOnlineAsyncTaskAccelByteLoginQueue::OnClaimAccessTokenError(int32 InErrorCode, const FString& InErrorMessage,
-	const FErrorOAuthInfo& InErrorObject)
-{
-	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Claim access token failed for ticket %s with error %d, %s"), *Ticket.Ticket, InErrorCode, *InErrorMessage);
-
-	CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
-	
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 
@@ -214,6 +172,8 @@ void FOnlineAsyncTaskAccelByteLoginQueue::CleanupDelegateHandler()
 
 	Poller->UnbindOnPollStopped();
 	Poller->UnbindOnTicketRefreshed();
+	Poller->StopPoll();
+	CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
 
 	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(SubsystemPin->GetIdentityInterface());
 	if(!IdentityInterface.IsValid())

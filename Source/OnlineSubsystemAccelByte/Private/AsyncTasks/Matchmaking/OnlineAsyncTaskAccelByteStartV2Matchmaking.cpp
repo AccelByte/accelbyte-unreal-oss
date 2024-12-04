@@ -160,8 +160,6 @@ void FOnlineAsyncTaskAccelByteStartV2Matchmaking::CreateMatchTicket()
 	OnStartMatchmakingSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsV2MatchmakingCreateTicketResponse>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteStartV2Matchmaking::OnStartMatchmakingSuccess);
 	OnStartMatchmakingErrorDelegate = TDelegateUtils<FCreateMatchmakingTicketErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteStartV2Matchmaking::OnStartMatchmakingError);
 
-	FAccelByteModelsV2MatchTicketOptionalParams Optionals;
-
 	// Check if the caller has specified specific regions to matchmake to. If there are specifically requested regions,
 	// then filter the cached latencies, removing regions that do not match. Otherwise, just attach all latencies to the
 	// request.
@@ -206,10 +204,87 @@ void FOnlineAsyncTaskAccelByteStartV2Matchmaking::CreateMatchTicket()
 	StorageJsonObject->SetStringField(STORAGE_SESSION_NAME, SessionName.ToString());
 	Optionals.Storage.JsonObject = StorageJsonObject;
 
-	ApiClient->MatchmakingV2.CreateMatchTicket(MatchPool, OnStartMatchmakingSuccessDelegate, OnStartMatchmakingErrorDelegate, Optionals);
+	switch (SearchHandle.Get().GameSessionExclusion.CurrentType)
+	{
+		case FAccelBtyeModelsGameSessionExcludedSession::ExclusionType::ALL_MEMBER_CACHED_SESSION:
+		case FAccelBtyeModelsGameSessionExcludedSession::ExclusionType::N_PAST_SESSION:
+			ObtainPartyStorageExcludedSessionInfoThenCreateMatchTicket();
+			break;
+		case FAccelBtyeModelsGameSessionExcludedSession::ExclusionType::EXPLICIT_LIST:
+			Optionals.ExcludedGameSessionIDs = SearchHandle.Get().GameSessionExclusion.GetExcludedGameSessionIDs();
+			ApiClient->MatchmakingV2.CreateMatchTicket(MatchPool, OnStartMatchmakingSuccessDelegate, OnStartMatchmakingErrorDelegate, Optionals);
+			break;
+		case FAccelBtyeModelsGameSessionExcludedSession::ExclusionType::NONE:
+			ApiClient->MatchmakingV2.CreateMatchTicket(MatchPool, OnStartMatchmakingSuccessDelegate, OnStartMatchmakingErrorDelegate, Optionals);
+			break;
+	}
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
+
+#pragma region PARTY_STORAGE_RELATED
+void FOnlineAsyncTaskAccelByteStartV2Matchmaking::ObtainPartyStorageExcludedSessionInfoThenCreateMatchTicket()
+{
+	TRY_PIN_SUBSYSTEM();
+	const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(SubsystemPin->GetSessionInterface());
+	AB_ASYNC_TASK_VALIDATE(SessionInterface.IsValid(), "Failed to create match ticket as our session interface is invalid!");
+	API_CLIENT_CHECK_GUARD(OnlineError);
+
+	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
+
+	// If doesn't have party, only use the local cached past session ID, no need to use the cached entire party info from backend
+	auto PartyNameSession = SessionInterface->GetPartySession();
+	if (PartyNameSession == nullptr)
+	{
+		auto PastSessionIDs = SessionInterface->PartySessionStorageLocalUserManager.PastSessionManager.GetPastSessionIDs(UserId);
+		if (SearchHandle.Get().GameSessionExclusion.CurrentType == FAccelBtyeModelsGameSessionExcludedSession::ExclusionType::ALL_MEMBER_CACHED_SESSION)
+		{
+			Optionals.ExcludedGameSessionIDs = PastSessionIDs;
+		}
+		else if (SearchHandle.Get().GameSessionExclusion.CurrentType == FAccelBtyeModelsGameSessionExcludedSession::ExclusionType::N_PAST_SESSION)
+		{
+			auto ExcessToRemove = PastSessionIDs.Num() - SearchHandle.Get().GameSessionExclusion.ExcludedPastSessionCount;
+			if (ExcessToRemove > 0)
+			{
+				PastSessionIDs.RemoveAt(0, ExcessToRemove, true);
+			}
+			Optionals.ExcludedGameSessionIDs = PastSessionIDs;
+		}
+		
+		ApiClient->MatchmakingV2.CreateMatchTicket(MatchPool, OnStartMatchmakingSuccessDelegate, OnStartMatchmakingErrorDelegate, Optionals);
+		AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
+		return;
+	}
+
+	// ELSE if current user has an empty partyID
+	FString PartyID = PartyNameSession->GetSessionIdStr();
+	if (PartyID.Len() == 0)
+	{
+		ApiClient->MatchmakingV2.CreateMatchTicket(MatchPool, OnStartMatchmakingSuccessDelegate, OnStartMatchmakingErrorDelegate, Optionals);
+		return;
+	}
+
+	OnGetPartySessionStorageSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsV2PartySessionStorage>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteStartV2Matchmaking::OnGetPartySessionStorageSuccessCreateMatchTicket);
+	OnGetPartySessionStorageErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteStartV2Matchmaking::OnGetPartySessionStorageError);
+	ApiClient->Session.GetPartySessionStorage(PartyID, OnGetPartySessionStorageSuccessDelegate, OnGetPartySessionStorageErrorDelegate);
+	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
+}
+
+void FOnlineAsyncTaskAccelByteStartV2Matchmaking::OnGetPartySessionStorageSuccessCreateMatchTicket(const FAccelByteModelsV2PartySessionStorage& Result)
+{
+	API_CLIENT_CHECK_GUARD(OnlineError);
+	TArray<FString> UniqueSessionIDs = FOnlineSessionV2AccelByte::ExtractExcludedSessionFromPartySessionStorage(SearchHandle.Get(), Result);
+	Optionals.ExcludedGameSessionIDs = UniqueSessionIDs;
+	ApiClient->MatchmakingV2.CreateMatchTicket(MatchPool, OnStartMatchmakingSuccessDelegate, OnStartMatchmakingErrorDelegate, Optionals);
+}
+
+void FOnlineAsyncTaskAccelByteStartV2Matchmaking::OnGetPartySessionStorageError(int32 ErrorCode, const FString& ErrorMessage)
+{
+	//Regardless what happen to the session storage, still proceed to matchmaking
+	API_CLIENT_CHECK_GUARD(OnlineError);
+	ApiClient->MatchmakingV2.CreateMatchTicket(MatchPool, OnStartMatchmakingSuccessDelegate, OnStartMatchmakingErrorDelegate, Optionals);
+}
+#pragma endregion
 
 FString FOnlineAsyncTaskAccelByteStartV2Matchmaking::GetTicketSessionId() const
 {

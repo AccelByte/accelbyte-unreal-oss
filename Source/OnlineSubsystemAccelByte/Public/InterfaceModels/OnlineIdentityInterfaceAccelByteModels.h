@@ -39,6 +39,12 @@ public:
 		, bCreateHeadlessAccount(bInCreateHeadlessAccount)
 		, OptionalParams(InOptionalParams)
 	{}
+
+	FOnlineAccountCredentialsAccelByte(const EAccelByteLoginType InType
+	    , const bool bInCreateHeadlessAccount = true)
+		: LoginType{ InType }
+		, bCreateHeadlessAccount(bInCreateHeadlessAccount)
+	{}
 };
 
 /**

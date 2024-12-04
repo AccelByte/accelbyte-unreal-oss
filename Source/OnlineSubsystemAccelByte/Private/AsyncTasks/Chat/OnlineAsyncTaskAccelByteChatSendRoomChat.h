@@ -39,8 +39,8 @@ private:
 	const FString RoomId;
 	const FString ChatMessage;
 
-	FDateTime CreatedAt{};
-
 	FString ErrorString{};
+
+	FAccelByteModelsChatSendChatResponse SendChatResponse;
 };
 #pragma once

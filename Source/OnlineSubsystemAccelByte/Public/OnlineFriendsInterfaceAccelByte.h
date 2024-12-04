@@ -353,6 +353,8 @@ public:
 	 */
 	virtual bool SyncThirdPartyPlatformFriend(int32 LocalUserNum, const FString& NativeFriendListName, const FString& AccelByteFriendListName = TEXT(""));
 
+	virtual bool SyncPlatformFriends(int32 LocalUserNum, const EAccelBytePlatformType NativePlatform);
+
 	/**
 	 * Sync third party platform friend to AccelByte service, this will make an S2S call to platform of choice to sync friends.
 	 *

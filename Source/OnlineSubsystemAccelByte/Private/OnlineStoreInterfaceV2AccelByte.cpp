@@ -13,6 +13,7 @@
 #include "AsyncTasks/Store/OnlineAsyncTaskAccelByteGetItemByCriteria.h" 
 #include "AsyncTasks/Store/OnlineAsyncTaskAccelByteQueryActiveSections.h"
 #include "AsyncTasks/Store/OnlineAsyncTaskAccelByteQueryStorefront.h"
+#include "AsyncTasks/Store/MetaQuest/OnlineAsyncTaskAccelByteGetMetaQuestProductsBySku.h"
 #include "OnlineSubsystemUtils.h"
 
 FOnlineStoreV2AccelByte::FOnlineStoreV2AccelByte(FOnlineSubsystemAccelByte* InSubsystem) 
@@ -362,4 +363,36 @@ void FOnlineStoreV2AccelByte::QueryActiveSections(const FUniqueNetId& UserId, co
 void FOnlineStoreV2AccelByte::QueryStorefront(const FUniqueNetId& UserId, const FString& StoreId, const FString& ViewId, const FString& Region, const EAccelBytePlatformMapping& Platform, const FOnQueryStorefrontComplete& Delegate)
 {
 	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteQueryStorefront>(AccelByteSubsystem, UserId, StoreId, ViewId, Region, Platform, Delegate);
+}
+
+void FOnlineStoreV2AccelByte::QueryPlatformOfferBySku(const FUniqueNetId& UserId, const TArray<FString>& Skus, const FOnQueryOnlineStoreOffersComplete& Delegate)
+{
+	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("UserId: %s"), *UserId.ToDebugString());
+	if (AccelByteSubsystem->GetSecondaryPlatformSubsystemName().ToString().Contains(TEXT("Oculus"))
+		|| AccelByteSubsystem->GetSecondaryPlatformSubsystemName().ToString().Contains(TEXT("Meta")))
+	{
+		AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGetMetaQuestProductsBySku>(AccelByteSubsystem, UserId, Skus, Delegate);
+	}
+	AB_OSS_INTERFACE_TRACE_END(TEXT(""))
+}
+
+void FOnlineStoreV2AccelByte::GetPlatformOffers(TArray<FOnlineStoreOfferRef>& OutOffers)
+{
+	FScopeLock ScopeLock(&PlatformOffersLock);
+	PlatformOffers.GenerateValueArray(OutOffers);
+}
+
+void FOnlineStoreV2AccelByte::ReplacePlatformOffers(TMap<FUniqueOfferId, FOnlineStoreOfferRef> InOffer)
+{
+	FScopeLock ScopeLock(&PlatformOffersLock);
+	PlatformOffers = InOffer;
+}
+
+void FOnlineStoreV2AccelByte::EmplacePlatformOffers(const TMap<FUniqueOfferId, FOnlineStoreOfferRef>&InOffer)
+{
+	FScopeLock ScopeLock(&PlatformOffersLock);
+	for (const auto& Offer : InOffer)
+	{
+		PlatformOffers.Emplace(Offer.Key, Offer.Value);
+	}
 }

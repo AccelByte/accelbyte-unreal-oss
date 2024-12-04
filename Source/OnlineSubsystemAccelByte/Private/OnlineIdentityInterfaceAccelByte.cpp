@@ -48,6 +48,7 @@
 #include "AsyncTasks/Identity/OnlineAsyncTaskAccelByteSendMfaCodeToEmail.h"
 #include "AsyncTasks/Identity/OnlineAsyncTaskAccelByteUpdatePassword.h"
 #include "AsyncTasks/Identity/OnlineAsyncTaskAccelByteVerifyLoginMfa.h"
+#include "AsyncTasks/LoginQueue/OnlineAsyncTaskAccelByteLoginQueueClaimTicket.h"
 
 using namespace AccelByte;
 
@@ -1077,6 +1078,31 @@ bool FOnlineIdentityAccelByte::CancelLoginQueue(int32 LocalUserNum)
 			, LocalUserNumToLoginQueueTicketMap[LocalUserNum]);
 	
 	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Dispatching async task to cancel login queue!"));
+	return true;
+}
+
+bool FOnlineIdentityAccelByte::ClaimLoginQueueTicket(int32 LocalUserNum)
+{
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("LocalUserNum: %d"), LocalUserNum);
+
+	if (!LocalUserNumToLoginQueueTicketMap.Contains(LocalUserNum))
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("local user queue ticket not found"));
+		return false;
+	}
+
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("AccelByte online subsystem is null"));
+		return false;
+	}
+
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteLoginQueueClaimTicket>(AccelByteSubsystemPtr.Get()
+		, LocalUserNum
+		, LocalUserNumToLoginQueueTicketMap[LocalUserNum]);
+
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Dispatching async task to claim login queue ticket!"));
 	return true;
 }
 

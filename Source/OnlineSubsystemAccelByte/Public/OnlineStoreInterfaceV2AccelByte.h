@@ -10,6 +10,7 @@
 #include "Models/AccelByteEcommerceModels.h"
 #include "OnlineError.h"
 #include "OnlineSubsystemAccelBytePackage.h"
+#include "Core/Platform/AccelBytePlatformHandleModels.h"
 
 /** Typedef for a map of Offers to Item's Dynamic Data Map */
 using FOfferToDynamicDataMap = TMap<FUniqueOfferId, TSharedRef<FAccelByteModelsItemDynamicData>>;
@@ -242,6 +243,16 @@ public:
 	virtual TSharedPtr<FOnlineStoreOfferAccelByte> GetOfferBySkuAccelByte(const FString& Sku) const;
 	virtual TSharedPtr<FAccelByteModelsItemDynamicData> GetOfferDynamicData(const FUniqueNetId& UserId, const FUniqueOfferId& OfferId) const;
 
+#pragma region PlatformIAP
+	void QueryPlatformOfferBySku(const FUniqueNetId& UserId, const TArray<FString>& Skus, const FOnQueryOnlineStoreOffersComplete& Delegate);
+	void GetPlatformOffers(TArray<FOnlineStoreOfferRef>& OutOffers);
+PACKAGE_SCOPE:
+	mutable FCriticalSection PlatformOffersLock;
+	void ReplacePlatformOffers(TMap<FUniqueOfferId, FOnlineStoreOfferRef> InOffer);
+	void EmplacePlatformOffers(const TMap<FUniqueOfferId, FOnlineStoreOfferRef>& InOffer);
+#pragma endregion
+
+public:
 	/**
 	 * Delegate called when a controller-user get a estimated price.
 	 */
@@ -334,11 +345,13 @@ public:
 	 */
 	virtual void QueryStorefront(const FUniqueNetId& UserId, const FString& StoreId, const FString& ViewId, const FString& Region, const EAccelBytePlatformMapping& Platform, const FOnQueryStorefrontComplete& Delegate);
 
+
 protected:
 	/** Instance of the subsystem that created this interface */
 	FOnlineSubsystemAccelByte* AccelByteSubsystem = nullptr;
 	TMap<FUniqueCategoryId, FOnlineStoreCategory> StoreCategories; 
 	TMap<FUniqueOfferId, FOnlineStoreOfferAccelByteRef> StoreOffers;
+	TMap<FUniqueOfferId, FOnlineStoreOfferRef> PlatformOffers;
 	FUserIDToDynamicDataMap OffersDynamicData;
 
 	struct FPlayerStorefrontData

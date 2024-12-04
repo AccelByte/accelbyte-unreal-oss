@@ -35,6 +35,9 @@ typedef FOnGetCurrentUserEntitlementHistoryComplete::FDelegate FOnGetCurrentUser
 DECLARE_MULTICAST_DELEGATE_FiveParams(FOnQueryPlatformSubscriptionComplete, int32 /*LocalUserNum*/, bool /*bWasSuccessful*/, const FUniqueNetId& /*UserId*/, const TArray<FAccelByteModelsThirdPartySubscriptionTransactionInfo>& /*User's Subscription*/, const FOnlineError& /*Error*/);
 typedef FOnQueryPlatformSubscriptionComplete::FDelegate FOnQueryPlatformSubscriptionCompleteDelegate;
 
+DECLARE_MULTICAST_DELEGATE_FourParams(FOnSyncMetaQuestIAPComplete, int32 LocalUserNum /*LocalUserNum*/, const FUniqueNetId& /*UserId*/, const TArray<TSharedRef<FPurchaseReceipt>>& /*EntitlementInfos*/, const FOnlineError& /*Error*/);
+typedef FOnSyncMetaQuestIAPComplete::FDelegate FOnSyncMetaQuestIAPCompleteDelegate;
+
 // Server Delegates
 DECLARE_MULTICAST_DELEGATE_FourParams(FOnGetUserEntitlementHistoryComplete, int32 /*LocalUserNum*/, bool /*bWasSuccessful*/, const TArray<FAccelByteModelsUserEntitlementHistory>& /*Entitlement History*/, const FOnlineError& /*Error*/);
 typedef FOnGetUserEntitlementHistoryComplete::FDelegate FOnGetUserEntitlementHistoryCompleteDelegate;
@@ -115,6 +118,7 @@ public:
 	DEFINE_ONLINE_DELEGATE_FOUR_PARAM(OnConsumeEntitlementComplete, bool, const FUniqueNetId&, const TSharedPtr<FOnlineEntitlement>&, const FOnlineError&);
 	DEFINE_ONLINE_DELEGATE_FOUR_PARAM(OnGetCurrentUserEntitlementHistoryComplete, int32, bool, const TArray<FAccelByteModelsBaseUserEntitlementHistory>&, const FOnlineError&);
 	DEFINE_ONLINE_PLAYER_DELEGATE_FOUR_PARAM(MAX_LOCAL_PLAYERS, OnQueryPlatformSubscriptionComplete, bool, const FUniqueNetId&, const TArray<FAccelByteModelsThirdPartySubscriptionTransactionInfo>&, const FOnlineError&);
+	DEFINE_ONLINE_PLAYER_DELEGATE_THREE_PARAM(MAX_LOCAL_PLAYERS, OnSyncMetaQuestIAPComplete, const FUniqueNetId&, const TArray<TSharedRef<FPurchaseReceipt>>&, const FOnlineError&);
 
 	// Server Delegates
 	DEFINE_ONLINE_DELEGATE_FOUR_PARAM(OnGetUserEntitlementHistoryComplete, int32, bool, const TArray<FAccelByteModelsUserEntitlementHistory>&, const FOnlineError&);
@@ -152,6 +156,14 @@ public:
 	 */
 	void SyncPlatformPurchase(int32 LocalUserNum, const TSharedRef<FPurchaseReceipt>& Receipt, const FOnRequestCompleted& CompletionDelegate = FOnRequestCompleted());
 
+	/**
+	 * @brief Synchronize MetaQuest Consumable Entitlement/IAP.
+	 * 
+	 * @param InLocalUserId User ID of the entitlement owner.
+	 * @param CompletionDelegate Delegate will be triggered after the request completed
+	 */
+	void SyncPlatformPurchase(const FUniqueNetId& InLocalUserId, const FOnRequestCompleted& CompletionDelegate);
+
 	/*
 	 * Sync platform purchase for googleplay
 	 * @param LocalUserNum LocalUserNum of user that making the call
@@ -166,6 +178,7 @@ public:
 	 * @param CompletionDelegate Will be triggered after the request completed
 	 */
 	void SyncDLC(const FUniqueNetId& InLocalUserId, const FOnRequestCompleted& CompletionDelegate);
+
 
 #pragma region Client - User Entitlement History
 

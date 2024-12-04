@@ -181,6 +181,9 @@ void FOnlineAsyncTaskAccelByteCreateGameSessionV2::Finalize()
 		// in session interface
 		SessionInterface->FinalizeCreateGameSession(SessionName, CreatedGameSession);
 
+		// Set the party attribute with past sesssion info from the current user
+		SessionInterface->PartySessionStorageLocalUserManager.PastSessionManager.InsertPastSessionID(UserId, CreatedGameSession.ID);
+		SessionInterface->UpdatePartySessionStorageWithPastSessionInfo(UserId);
 
 		const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = SubsystemPin->GetPredefinedEventInterface();
 		if (PredefinedEventInterface.IsValid())

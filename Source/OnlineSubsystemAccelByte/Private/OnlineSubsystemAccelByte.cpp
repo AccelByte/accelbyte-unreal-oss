@@ -154,6 +154,11 @@ bool FOnlineSubsystemAccelByte::Shutdown()
 	ActiveExecTests.Empty();
 #endif
 
+	if(SessionInterface.IsValid())
+	{
+		SessionInterface->UnbindLobbyMulticastDelegate();
+	}
+
 	for (int32 UserNum = 0; UserNum < MAX_LOCAL_PLAYERS; UserNum++)
 	{
 		// #NOTE (Maxwell): Seems that in PIE shutdown will be called twice for the OSS, rendering the IdentityInterface
@@ -192,7 +197,6 @@ bool FOnlineSubsystemAccelByte::Shutdown()
 	UserCloudInterface.Reset();
 	UserInterface.Reset();
 	ExternalUIInterface.Reset();
-	IdentityInterface.Reset();
 	SessionInterface.Reset();
 	UserCache.Reset();
 	AgreementInterface.Reset();
@@ -215,6 +219,7 @@ bool FOnlineSubsystemAccelByte::Shutdown()
 	VoiceChatInterface.Reset();
 	PredefinedEventInterface.Reset();
 	GameStandardEventInterface.Reset();
+	IdentityInterface.Reset();
 
 	if (OnPreExitDelegate.IsValid())
 	{

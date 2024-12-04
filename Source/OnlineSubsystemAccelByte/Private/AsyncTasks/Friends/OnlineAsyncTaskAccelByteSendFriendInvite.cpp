@@ -210,6 +210,9 @@ void FOnlineAsyncTaskAccelByteSendFriendInvite::OnSendFriendRequestError(int32 E
 	case static_cast<int32>(ErrorCodes::FriendRequesterMaxFriendsLimitReached):
 		ErrorStr = TEXT("friend-request-failed-requester-max-friend-limit-reached");
 		break;
+	case static_cast<int32>(ErrorCodes::FriendRequesterIsBlockedByRequestee):
+		ErrorStr = TEXT("friend-request-failed-requester-is-blocked-by-requestee");
+		break;
 	default:
 		ErrorStr = TEXT("friend-request-failed");
 	}

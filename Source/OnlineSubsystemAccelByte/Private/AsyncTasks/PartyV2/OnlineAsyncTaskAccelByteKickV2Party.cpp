@@ -84,11 +84,6 @@ void FOnlineAsyncTaskAccelByteKickV2Party::TriggerDelegates()
 			AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to trigger delegates for kicking a player from party session as our session interface is invalid!"));
 			return;
 		}
-
-		SessionInterface->TriggerOnSessionParticipantsChangeDelegates(SessionName, PlayerIdToKick.Get(), false);
-#if ENGINE_MAJOR_VERSION >= 5 || (ENGINE_MAJOR_VERSION == 4 && ENGINE_MINOR_VERSION >= 27)
-		SessionInterface->TriggerOnSessionParticipantRemovedDelegates(SessionName, PlayerIdToKick.Get());
-#endif
 	}
 
 	Delegate.ExecuteIfBound(bWasSuccessful, PlayerIdToKick.Get());

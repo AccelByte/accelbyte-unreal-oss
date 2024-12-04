@@ -18,7 +18,7 @@ class FOnlineAsyncTaskAccelByteAcceptBackfillProposal
 {
 public:
 
-	FOnlineAsyncTaskAccelByteAcceptBackfillProposal(FOnlineSubsystemAccelByte* const InABInterface, const FName& InSessionName, const FAccelByteModelsV2MatchmakingBackfillProposalNotif& InProposal, bool bInStopBackfilling, const FOnAcceptBackfillProposalComplete& InDelegate);
+	FOnlineAsyncTaskAccelByteAcceptBackfillProposal(FOnlineSubsystemAccelByte* const InABInterface, const FName& InSessionName, const FAccelByteModelsV2MatchmakingBackfillProposalNotif& InProposal, const FAccelByteModelsV2MatchmakingBackfillAcceptanceOptionalParam& OptionalParameter, bool bInStopBackfilling, const FOnAcceptBackfillProposalComplete& InDelegate);
 
 	virtual void Initialize() override;
 	virtual void Finalize() override;
@@ -41,6 +41,11 @@ private:
 	 * Proposal that we received from matchmaking
 	 */
 	FAccelByteModelsV2MatchmakingBackfillProposalNotif Proposal{};
+
+	/*
+	 * Specify this optional param to modify the acceptance behavior.
+	 */
+	FAccelByteModelsV2MatchmakingBackfillAcceptanceOptionalParam OptionalParameter{};
 
 	/**
 	 * Whether or not we also want matchmaking to stop trying to backfill for our session

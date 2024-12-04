@@ -42,12 +42,18 @@ void FOnlineAsyncTaskAccelByteReplaceUserRecord::Initialize()
 		const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(SubsystemPin->GetIdentityInterface());
 		if (!IdentityInterface.IsValid())
 		{
+			ErrorCode = FString::Printf(TEXT("%d"), ErrorCodes::StatusUnauthorized);
+			ErrorStr = TEXT("request-failed-replace-user-record-error");
+			CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
 			AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to replace user record, identity interface is invalid!"));
 			return;
 		}
 
 		if (IdentityInterface->GetLoginStatus(LocalUserNum) != ELoginStatus::LoggedIn)
 		{
+			ErrorCode = FString::Printf(TEXT("%d"), ErrorCodes::StatusUnauthorized);
+			ErrorStr = TEXT("request-failed-replace-user-record-error");
+			CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
 			AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to replace user record, not logged in!"));
 			return;
 		}

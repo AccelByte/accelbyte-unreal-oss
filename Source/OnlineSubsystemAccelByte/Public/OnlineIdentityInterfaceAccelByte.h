@@ -81,7 +81,13 @@ typedef FAccelByteOnLoginQueueCanceledByUser::FDelegate FAccelByteOnLoginQueueCa
 DECLARE_MULTICAST_DELEGATE_FourParams(FAccelByteOnLoginTicketStatusUpdated, int32 /*LocalUserNum*/, bool /*bWasSuccessful*/, const FAccelByteModelsLoginQueueTicketInfo& /*TicketInfo*/, const FOnlineErrorAccelByte& /*Error*/);
 typedef FAccelByteOnLoginTicketStatusUpdated::FDelegate FAccelByteOnLoginTicketStatusUpdatedDelegate;
 
-DECLARE_MULTICAST_DELEGATE_ThreeParams(FAccelByteOnUpdatePasswordComplete, int32 /*LocalUserNum*/, const FUniqueNetId& /*UserId*/, const FOnlineErrorAccelByte& /*Error*/)
+DECLARE_MULTICAST_DELEGATE_TwoParams(FAccelByteOnLoginTicketReady, int32 /*LocalUserNum*/, bool /*bWasSuccessful*/)
+typedef FAccelByteOnLoginTicketReady::FDelegate FAccelByteOnLoginTicketReadyDelegate;
+
+DECLARE_MULTICAST_DELEGATE_ThreeParams(FAccelByteOnLoginQueueClaimTicketComplete, int32 /*LocalUserNum*/, bool /*bWasSuccessful*/, const FErrorOAuthInfo& /*Error*/);
+typedef FAccelByteOnLoginQueueClaimTicketComplete::FDelegate FAccelByteOnLoginQueueClaimTicketCompleteDelegate;
+
+DECLARE_MULTICAST_DELEGATE_ThreeParams(FAccelByteOnUpdatePasswordComplete, int32 /*LocalUserNum*/, const FUniqueNetId& /*UserId*/, const FOnlineErrorAccelByte& /*Error*/);
 typedef FAccelByteOnUpdatePasswordComplete::FDelegate FAccelByteOnUpdatePasswordCompleteDelegate;
 
 DECLARE_MULTICAST_DELEGATE_FourParams(FAccelByteOnGetMfaStatusComplete, int32 /*LocalUserNum*/, const FUniqueNetId& /*UserId*/, const FOnlineErrorAccelByte& /*Error*/, const FMfaStatusResponse& /*MfaStatus*/)
@@ -329,6 +335,26 @@ public:
 	 */
 	DEFINE_ONLINE_PLAYER_DELEGATE_THREE_PARAM(MAX_LOCAL_PLAYERS, AccelByteOnLoginTicketStatusUpdated, bool /*bWasSuccessful*/, const FAccelByteModelsLoginQueueTicketInfo& /*TicketInfo*/, const FOnlineErrorAccelByte& /*Error*/)
 	
+	/**
+	 * Triggered when the login process is queued
+	 *
+	 * @param LocalUserNum the controller number of the associated user
+	 * @param bWasSuccessful true if server was contacted and a valid result received
+	 * @param TicketInfo Information about the queue ticket
+	 * @param Error Information about the error condition
+	 */
+	DEFINE_ONLINE_PLAYER_DELEGATE_ONE_PARAM(MAX_LOCAL_PLAYERS, AccelByteOnLoginTicketReady, bool /*bWasSuccessful*/)
+	
+	/**
+	 * Triggered when the login process is queued
+	 *
+	 * @param LocalUserNum the controller number of the associated user
+	 * @param bWasSuccessful true if server was contacted and a valid result received
+	 * @param TicketInfo Information about the queue ticket
+	 * @param Error Information about the error condition
+	 */
+	DEFINE_ONLINE_PLAYER_DELEGATE_TWO_PARAM(MAX_LOCAL_PLAYERS, AccelByteOnLoginQueueClaimTicketComplete, bool /*bWasSuccessful*/, const FErrorOAuthInfo& /*Error*/);
+
 	bool ConnectAccelByteLobby(int32 LocalUserNum);
 
 	/**
@@ -369,6 +395,8 @@ public:
 	bool RefreshPlatformToken(int32 LocalUserNum, FName SubsystemName);
 
 	bool CancelLoginQueue(int32 LocalUserNum);
+
+	bool ClaimLoginQueueTicket(int32 LocalUserNum);
 
 PACKAGE_SCOPE:
 	/**

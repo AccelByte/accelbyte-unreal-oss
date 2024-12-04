@@ -24,6 +24,7 @@
 #include "AsyncTasks/Friends/OnlineAsyncTaskAccelByteSyncThirdPartyFriendV2.h"
 #include "AsyncTasks/SessionV2/OnlineAsyncTaskAccelByteV2GetRecentPlayer.h"
 #include "AsyncTasks/SessionV2/OnlineAsyncTaskAccelByteV2GetRecentTeamPlayer.h"
+#include "AsyncTasks/Friends/OnlineAsyncTaskAccelByteSyncPlatformFriend.h"
 
 #define ONLINE_ERROR_NAMESPACE "FOnlineFriendAccelByte"
 
@@ -815,6 +816,33 @@ bool FOnlineFriendsAccelByte::SyncThirdPartyPlatformFriend(int32 LocalUserNum, c
 	TaskInfo.bCreateEpicForThis = true;
 	TaskInfo.Type = ETypeOfOnlineAsyncTask::Parallel;
 	AccelByteSubsystem->CreateAndDispatchAsyncTask<FOnlineAsyncTaskAccelByteSyncThirPartyFriend>(TaskInfo, AccelByteSubsystem, LocalUserNum, NativeFriendListName, AccelByteFriendListName);
+	return true;
+}
+
+bool FOnlineFriendsAccelByte::SyncPlatformFriends(int32 LocalUserNum, const EAccelBytePlatformType NativePlatform)
+{
+	AB_OSS_INTERFACE_TRACE_BEGIN("")
+
+	const IOnlineIdentityPtr IdentityInterface = AccelByteSubsystem->GetIdentityInterface();
+	if (!IdentityInterface.IsValid())
+	{
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to sync platform friend for local user num %d as the identity interface was invalid!"), LocalUserNum);
+		return false;
+	}
+
+	const FUniqueNetIdPtr LocalUserId = IdentityInterface->GetUniquePlayerId(LocalUserNum);
+	if (!LocalUserId.IsValid())
+	{
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to sync platform friend for local user num %d as we could not get their unique user ID!"), LocalUserNum);
+		return false;
+	}
+
+	FOnlineAsyncTaskInfo TaskInfo;
+	TaskInfo.bCreateEpicForThis = true;
+	TaskInfo.Type = ETypeOfOnlineAsyncTask::Parallel;
+	AccelByteSubsystem->CreateAndDispatchAsyncTask<FOnlineAsyncTaskAccelByteSyncPlatformFriend>(TaskInfo, AccelByteSubsystem, *LocalUserId, NativePlatform);
+
+	AB_OSS_INTERFACE_TRACE_END("")
 	return true;
 }
 

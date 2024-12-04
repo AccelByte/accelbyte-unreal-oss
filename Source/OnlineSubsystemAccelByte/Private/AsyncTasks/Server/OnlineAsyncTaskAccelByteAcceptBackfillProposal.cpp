@@ -6,10 +6,11 @@
 #include "OnlineSubsystemAccelByteSessionSettings.h"
 #include "OnlinePredefinedEventInterfaceAccelByte.h"
 
-FOnlineAsyncTaskAccelByteAcceptBackfillProposal::FOnlineAsyncTaskAccelByteAcceptBackfillProposal(FOnlineSubsystemAccelByte* const InABInterface, const FName& InSessionName, const FAccelByteModelsV2MatchmakingBackfillProposalNotif& InProposal, bool bInStopBackfilling, const FOnAcceptBackfillProposalComplete& InDelegate)
+FOnlineAsyncTaskAccelByteAcceptBackfillProposal::FOnlineAsyncTaskAccelByteAcceptBackfillProposal(FOnlineSubsystemAccelByte* const InABInterface, const FName& InSessionName, const FAccelByteModelsV2MatchmakingBackfillProposalNotif& InProposal, FAccelByteModelsV2MatchmakingBackfillAcceptanceOptionalParam const& InOptionalParameter, bool bInStopBackfilling, const FOnAcceptBackfillProposalComplete& InDelegate)
 	: FOnlineAsyncTaskAccelByte(InABInterface, INVALID_CONTROLLERID, ASYNC_TASK_FLAG_BIT(EAccelByteAsyncTaskFlags::ServerTask))
 	, SessionName(InSessionName)
 	, Proposal(InProposal)
+	, OptionalParameter(InOptionalParameter)
 	, bStopBackfilling(bInStopBackfilling)
 	, Delegate(InDelegate)
 	, GameSessionInfo()
@@ -27,7 +28,7 @@ void FOnlineAsyncTaskAccelByteAcceptBackfillProposal::Initialize()
 
 	OnAcceptBackfillProposalSuccessDelegate = AccelByte::TDelegateUtils<THandler<FAccelByteModelsV2GameSession>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteAcceptBackfillProposal::OnAcceptBackfillProposalSuccess);
 	OnAcceptBackfillProposalErrorDelegate = AccelByte::TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteAcceptBackfillProposal::OnAcceptBackfillProposalError);;
-	ServerApiClient->ServerMatchmakingV2.AcceptBackfillProposal(Proposal.BackfillTicketID, Proposal.ProposalID, bStopBackfilling, OnAcceptBackfillProposalSuccessDelegate, OnAcceptBackfillProposalErrorDelegate);
+	ServerApiClient->ServerMatchmakingV2.AcceptBackfillProposal(Proposal.BackfillTicketID, Proposal.ProposalID, bStopBackfilling, OnAcceptBackfillProposalSuccessDelegate, OnAcceptBackfillProposalErrorDelegate, OptionalParameter);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }

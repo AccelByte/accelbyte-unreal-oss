@@ -1,4 +1,4 @@
-// Copyright (c) 2022 AccelByte Inc. All Rights Reserved.
+// Copyright (c) 2022 - 2024 AccelByte Inc. All Rights Reserved.
 // This is licensed software from AccelByte Inc, for limitations
 // and restrictions contact your company contract manager.
 
@@ -27,6 +27,8 @@
 #include "AsyncTasks/PartyV2/OnlineAsyncTaskAccelByteJoinV2Party.h"
 #include "AsyncTasks/PartyV2/OnlineAsyncTaskAccelByteSendV2PartyInvite.h"
 #include "AsyncTasks/PartyV2/OnlineAsyncTaskAccelByteUpdatePartyV2.h"
+#include "AsyncTasks/PartyV2/OnlineAsyncTaskAccelByteUpdateReservedPartyStorage.h"
+#include "AsyncTasks/PartyV2/OnlineAsyncTaskAccelByteGetPartySessionStorage.h"
 #include "AsyncTasks/PartyV2/OnlineAsyncTaskAccelByteKickV2Party.h"
 #include "AsyncTasks/PartyV2/OnlineAsyncTaskAccelBytePromoteV2PartyLeader.h"
 #include "AsyncTasks/PartyV2/OnlineAsyncTaskAccelByteRejectV2PartyInvite.h"
@@ -684,8 +686,6 @@ FOnlineSessionV2AccelByte::~FOnlineSessionV2AccelByte()
 
 	DisconnectFromAMS();
 	DisconnectFromDSHub();
-	
-	UnbindLobbyMulticastDelegate();
 }
 
 bool FOnlineSessionV2AccelByte::GetFromSubsystem(const IOnlineSubsystem* Subsystem, FOnlineSessionV2AccelBytePtr& OutInterfaceInstance)
@@ -1528,21 +1528,21 @@ void FOnlineSessionV2AccelByte::RegisterSessionNotificationDelegates(const FUniq
 {
 	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("PlayerId: %s"), *PlayerId.ToDebugString());
 
-	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystem->GetIdentityInterface());
-	if (!ensure(IdentityInterface.IsValid()))
+	InstanceIdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystem->GetIdentityInterface());
+	if (!ensure(InstanceIdentityInterface.IsValid()))
 	{
 		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to register notifications for session updates as our identity interface is invalid!"));
 		return;
 	}
 
 	int32 LocalUserNum = 0;
-	if (!ensure(IdentityInterface->GetLocalUserNum(PlayerId, LocalUserNum)))
+	if (!ensure(InstanceIdentityInterface->GetLocalUserNum(PlayerId, LocalUserNum)))
 	{
 		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to register notifications for session updates as we could not get a local user index for player with ID '%s'!"), *PlayerId.ToDebugString());
 		return;
 	}
 
-	AccelByte::FApiClientPtr ApiClient = IdentityInterface->GetApiClient(PlayerId);
+	AccelByte::FApiClientPtr ApiClient = InstanceIdentityInterface->GetApiClient(PlayerId);
 	if (!ensure(ApiClient.IsValid()))
 	{
 		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to register notifications for session updates as player '%s' has an invalid API client!"), *PlayerId.ToDebugString());
@@ -5596,7 +5596,7 @@ bool FOnlineSessionV2AccelByte::DeleteBackfillTicket(const FName& SessionName, c
 	return true;
 }
 
-bool FOnlineSessionV2AccelByte::AcceptBackfillProposal(const FName& SessionName, const FAccelByteModelsV2MatchmakingBackfillProposalNotif& Proposal, bool bStopBackfilling, const FOnAcceptBackfillProposalComplete& Delegate)
+bool FOnlineSessionV2AccelByte::AcceptBackfillProposal(const FName& SessionName, const FAccelByteModelsV2MatchmakingBackfillProposalNotif& Proposal, bool bStopBackfilling, const FOnAcceptBackfillProposalComplete& Delegate, FAccelByteModelsV2MatchmakingBackfillAcceptanceOptionalParam const& OptionalParameter)
 {
 	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("SessionName: %s"), *SessionName.ToString());
 
@@ -5610,7 +5610,7 @@ bool FOnlineSessionV2AccelByte::AcceptBackfillProposal(const FName& SessionName,
 		return false;
 	}
 
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteAcceptBackfillProposal>(AccelByteSubsystem, SessionName, Proposal, bStopBackfilling, Delegate);
+	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteAcceptBackfillProposal>(AccelByteSubsystem, SessionName, Proposal, OptionalParameter, bStopBackfilling, Delegate);
 
 	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
 	return true;
@@ -5635,6 +5635,118 @@ bool FOnlineSessionV2AccelByte::RejectBackfillProposal(const FName& SessionName,
 	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
 	return true;
 }
+
+#pragma region PAST_SESSION_SYNC_TO_PARTY
+bool FOnlineSessionV2AccelByte::IsCurrentUserEligiblePartyStorageAction(FUniqueNetIdAccelByteUserPtr UserUniqueNetId)
+{
+	FNamedOnlineSession* Session = GetPartySession();
+	if (Session == nullptr)
+	{
+		return false;
+	}
+
+	EAccelByteV2SessionType SessionType = GetSessionTypeFromSettings(Session->SessionSettings);
+	if (SessionType != EAccelByteV2SessionType::PartySession)
+	{
+		return false;
+	}
+
+	if (!UserUniqueNetId.IsValid() || !Session->LocalOwnerId.IsValid())
+	{
+		return false;
+	}
+
+	if (!Session->LocalOwnerId->ToString().Equals(UserUniqueNetId->UniqueNetIdStr))
+	{
+		return false;
+	}
+
+	return true;
+}
+
+bool FOnlineSessionV2AccelByte::GetPartySessionStorage(FUniqueNetIdAccelByteUserPtr UserUniqueNetId, const FOnGetPartySessionStorageComplete& Delegate)
+{
+	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("SessionName: party only"));
+
+	if (!IsCurrentUserEligiblePartyStorageAction(UserUniqueNetId))
+	{
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Current user is not eligible to do GET action toward party session storage."));
+		return false;
+	}
+
+	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGetPartySessionStorage>(AccelByteSubsystem, UserUniqueNetId, Delegate);
+
+	AB_OSS_INTERFACE_TRACE_END(TEXT("Created async task to update party attribute with past session info on backend!"));
+	return true;
+}
+
+bool FOnlineSessionV2AccelByte::UpdatePartySessionStorageWithPastSessionInfo(FUniqueNetIdAccelByteUserPtr UserUniqueNetId)
+{
+	if (!bIsEnablePartyMemberPastSessionRecordSync)
+	{
+		return false;
+	}
+
+	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("SessionName: party only"));
+	
+	FNamedOnlineSession* Session = GetPartySession();
+
+	if (!IsCurrentUserEligiblePartyStorageAction(UserUniqueNetId) || Session == nullptr)
+	{
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Current user is not eligible to do PATCH action toward party session storage."));
+		return false;
+	}
+
+	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteUpdateReservedPartyStorage>(AccelByteSubsystem, UserUniqueNetId, this->PartySessionStorageLocalUserManager.ExtractCacheToWriteToPartyStorage(Session->LocalOwnerId));
+
+	AB_OSS_INTERFACE_TRACE_END(TEXT("Created async task to update party attribute with past session info on backend!"));
+	return true;
+}
+
+void FOnlineSessionV2AccelByte::SetEnablePartyMemberPastSessionRecordSync(bool bEnable, uint32 AmountOfPastSessionRecorded)
+{
+	bIsEnablePartyMemberPastSessionRecordSync = bEnable;
+	this->PartySessionStorageLocalUserManager.PastSessionManager.SetMaxStoredSessionIdCount(AmountOfPastSessionRecorded);
+}
+
+bool FOnlineSessionV2AccelByte::GetEnablePartyMemberPastSessionRecordSync() { return bIsEnablePartyMemberPastSessionRecordSync; }
+
+TArray<FString> FOnlineSessionV2AccelByte::ExtractExcludedSessionFromPartySessionStorage(FOnlineSessionSearchAccelByte& SearchHandle, const FAccelByteModelsV2PartySessionStorage& Storage)
+{
+	// Defensive checking earlier
+	if (SearchHandle.GameSessionExclusion.CurrentType == FAccelBtyeModelsGameSessionExcludedSession::ExclusionType::NONE)
+	{
+		return TArray<FString>();
+	}
+	if (SearchHandle.GameSessionExclusion.CurrentType == FAccelBtyeModelsGameSessionExcludedSession::ExclusionType::EXPLICIT_LIST)
+	{
+		return SearchHandle.GameSessionExclusion.GetExcludedGameSessionIDs();
+	}
+
+	TSet<FString> UniqueSessionIDs{};
+	TArray<FAccelByteModelsV2PartySessionStorageReservedData> ReservedDataFromEachUser{};
+	Storage.Reserved.GenerateValueArray(ReservedDataFromEachUser);
+	for (int i = 0; i < ReservedDataFromEachUser.Num(); i++)
+	{
+		auto SessionIDs = ReservedDataFromEachUser[i].PastSessionIDs;
+
+		// Resize to N-Past Session count
+		if (SearchHandle.GameSessionExclusion.CurrentType == FAccelBtyeModelsGameSessionExcludedSession::ExclusionType::N_PAST_SESSION)
+		{
+			int32 ExcessToRemove = SessionIDs.Num() - SearchHandle.GameSessionExclusion.ExcludedPastSessionCount;
+			if (ExcessToRemove > 0)
+			{
+				SessionIDs.RemoveAt(0, ExcessToRemove, true);
+			}
+		}
+		UniqueSessionIDs.Append(SessionIDs);
+	}
+
+	return UniqueSessionIDs.Array();
+}
+
+
+#pragma endregion
 
 bool FOnlineSessionV2AccelByte::UpdateMemberStatus(FName SessionName, const FUniqueNetId& PlayerId, const EAccelByteV2SessionMemberStatus& Status, const FOnSessionMemberStatusUpdateComplete& Delegate)
 {
@@ -6372,7 +6484,7 @@ void FOnlineSessionV2AccelByte::UnbindLobbyMulticastDelegate()
 	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystem->GetIdentityInterface());
 	if (!IdentityInterface.IsValid())
 	{
-		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to unbind multicast delegate for session updates as our identity interface is invalid!"));
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Log, TEXT("Failed to unbind multicast delegate for session updates as our identity interface is invalid!"));
 		return;
 	}
 	// It seems currently this interface only support single local user, not ideal to hardcode this but this is the simplest way for now.
@@ -6380,7 +6492,7 @@ void FOnlineSessionV2AccelByte::UnbindLobbyMulticastDelegate()
 	const FApiClientPtr ApiClient = IdentityInterface->GetApiClient(LocalPlayerNum);
 	if (!ApiClient.IsValid())
 	{
-		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to unbind multicast delegate for session updates as local player '%d' has an invalid API client!"), LocalPlayerNum);
+		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Log, TEXT("Failed to unbind multicast delegate for session updates as local player '%d' has an invalid API client!"), LocalPlayerNum);
 		return;
 	}
 
@@ -7606,6 +7718,8 @@ bool FOnlineSessionV2AccelByte::HandleAutoJoinGameSession(const FAccelByteModels
 		TriggerOnAutoJoinGameSessionCompleteDelegates(LocalUserNum, false, GameSession.ID);
 		return false;
 	}
+
+	this->PartySessionStorageLocalUserManager.PastSessionManager.InsertPastSessionID(LocalUserId, GameSession.ID);
 
 	TriggerOnJoinSessionCompleteDelegates(SessionName, EOnJoinSessionCompleteResult::Success);
 

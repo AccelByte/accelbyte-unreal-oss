@@ -94,7 +94,8 @@ enum class EAccelByteLoginType : uint8
 	PublisherCode, //Credentials.Token is optional/automatically available if the game is launched from launcher 
 	RefreshToken,
 	CachedToken,
-	Simultaneous
+	Simultaneous,
+	Oculus
 };
 
 static EAccelBytePlatformType ConvertOSSTypeToAccelBytePlatformType(EAccelByteLoginType OSSType)

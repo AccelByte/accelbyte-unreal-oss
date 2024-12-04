@@ -20,6 +20,7 @@
 #include "Models/AccelByteSessionModels.h"
 #include "Models/AccelByteMatchmakingModels.h"
 #include "Models/AccelByteDSHubModels.h"
+#include "Utilities/AccelBytePartySessionStorageLocalUserManager.h"
 #include "AccelByteNetworkingStatus.h"
 #include "Core/StatsD/IAccelByteStatsDMetricCollector.h"
 #include "GameServerApi/AccelByteServerMetricExporterApi.h"
@@ -336,6 +337,8 @@ public:
 	void SetIsP2PMatchmaking(const bool IsP2PMatchmaking);
 	void SetSearchStorage(TSharedPtr<FJsonObject> const& JsonObject);
 
+	FAccelBtyeModelsGameSessionExcludedSession GameSessionExclusion = FAccelBtyeModelsGameSessionExcludedSession::CreateNoExclusion();
+
 PACKAGE_SCOPE:
 	/**
 	 * ID of the player that is currently searching for a match with this handle.
@@ -465,6 +468,7 @@ DECLARE_DELEGATE_TwoParams(FOnKickPlayerComplete, bool /*bWasSuccessful*/, const
 DECLARE_DELEGATE_OneParam(FOnCreateBackfillTicketComplete, bool /*bWasSuccessful*/);
 DECLARE_DELEGATE_OneParam(FOnDeleteBackfillTicketComplete, bool /*bWasSuccessful*/);
 DECLARE_DELEGATE_TwoParams(FOnUpdatePlayerAttributesComplete, const FUniqueNetId& /*LocalPlayerId*/, bool /*bWasSuccessful*/);
+DECLARE_DELEGATE_TwoParams(FOnGetPartySessionStorageComplete, const FAccelByteModelsV2PartySessionStorage& /*Data*/, bool /*bWasSuccessful*/);
 
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnServerReceivedSession, FName /*SessionName*/);
 typedef FOnServerReceivedSession::FDelegate FOnServerReceivedSessionDelegate;
@@ -561,6 +565,9 @@ typedef FOnUpdateSessionLeaderStorageComplete::FDelegate FOnUpdateSessionLeaderS
 
 DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnUpdateSessionMemberStorageComplete, FName /*SessionName*/, const FUniqueNetId& /*UpdatedUserId*/, const FOnlineError& /*ErrorInfo*/);
 typedef FOnUpdateSessionMemberStorageComplete::FDelegate FOnUpdateSessionMemberStorageCompleteDelegate;
+
+DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnUpdatePlayerReservedPartySessionStorageComplete, const FAccelByteModelsV2PartySessionStorageReservedData& /*Data*/, bool /*bWasSuccessful*/, const FOnlineError& /*ErrorInfo*/);
+typedef FOnUpdatePlayerReservedPartySessionStorageComplete::FDelegate FOnUpdatePlayerReservedPartySessionStorageCompleteDelegate;
 
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnSendDSSessionReadyComplete, const FOnlineError& /*ErrorInfo*/)
 typedef FOnSendDSSessionReadyComplete::FDelegate FOnSendDSSessionReadyCompleteDelegate;
@@ -906,13 +913,60 @@ public:
 	/**
 	 * Accept a backfill proposal from matchmaking. Which will then invite the players backfilled to your session.
 	 */
-	bool AcceptBackfillProposal(const FName& SessionName, const FAccelByteModelsV2MatchmakingBackfillProposalNotif& Proposal, bool bStopBackfilling, const FOnAcceptBackfillProposalComplete& Delegate);
+	bool AcceptBackfillProposal(const FName& SessionName, const FAccelByteModelsV2MatchmakingBackfillProposalNotif& Proposal, bool bStopBackfilling, const FOnAcceptBackfillProposalComplete& Delegate, FAccelByteModelsV2MatchmakingBackfillAcceptanceOptionalParam const& OptionalParameter = {});
 
 	/**
 	 * Reject a backfill proposal from received from matchmaker. Players included in the proposal will not be added to the session.
 	 */
 	bool RejectBackfillProposal(const FName& SessionName, const FAccelByteModelsV2MatchmakingBackfillProposalNotif& Proposal, bool bStopBackfilling, const FOnRejectBackfillProposalComplete& Delegate);
 
+#pragma region PARTY_SESSION_STORAGE
+	DEFINE_ONLINE_DELEGATE_THREE_PARAM(OnUpdatePlayerReservedPartySessionStorageComplete, const FAccelByteModelsV2PartySessionStorageReservedData& /*Data*/, bool /*bWasSuccessful*/, const FOnlineError& /*ErrorInfo*/);
+
+	/*
+	 * Get party session storage.
+	 * 
+	 * @return Eligible or not to do this action.
+	 */
+	bool GetPartySessionStorage(FUniqueNetIdAccelByteUserPtr UserUniqueNetId, const FOnGetPartySessionStorageComplete& Delegate);
+
+	/*
+	 * Prerequisite check to ensure the current user is valid to do action (PUT or GET) toward party storage.
+	 */
+	bool IsCurrentUserEligiblePartyStorageAction(FUniqueNetIdAccelByteUserPtr UserUniqueNetId);
+
+	/**
+	 * Update current user's party attribute using past session info cached in the memory.
+	 * Need to be called automatically after join a party or create a party
+	 * WARNING: this is meant to be called internally if the game enable past session exclusion feature on game client.
+	 * 
+	 * @return Eligible or not to do this action.
+	 */
+	bool UpdatePartySessionStorageWithPastSessionInfo(FUniqueNetIdAccelByteUserPtr UserUniqueNetId);
+
+	/**
+	 * Enable/disable a feature to automatically sync the game client user's past session record to the party attribute from the memory.
+	 * It allow another party member read the current user's past session ID.
+	 * The purpose is to allow the party leader to start matchmaking with a filter to exclude those past sessions.
+	 * 
+	 * @param AmountOfPastSessionRecorded The amount of session count that will be recorded & synchronized across the party member.
+	 */
+	void SetEnablePartyMemberPastSessionRecordSync(bool bEnable, uint32 AmountOfPastSessionRecorded = 5);
+
+	/*
+	 * Check whether this game client need to sync the player's past session record to its' party attribute.
+	 * WARNING: mostly used for internal call. Consumed by async task & session interface.
+	 */
+	bool GetEnablePartyMemberPastSessionRecordSync();
+
+	/** 
+	 * Try to obtain party member's past session IDs from the reserved field in the Party Session Storage.
+	 * Static function to make it testable.
+	 */
+	static TArray<FString> ExtractExcludedSessionFromPartySessionStorage(FOnlineSessionSearchAccelByte& SearchHandle, const FAccelByteModelsV2PartySessionStorage& Storage);
+
+#pragma endregion
+	
 	/**
 	 * Update the status of a member in a session. Intended to be used by the server to mark a player as connected or left.
 	 *
@@ -1435,6 +1489,8 @@ public:
 	DEFINE_ONLINE_DELEGATE_TWO_PARAM(OnPartySessionCreated, const FUniqueNetId&, const FOnlineSession&);
 
 PACKAGE_SCOPE:
+	void UnbindLobbyMulticastDelegate();
+
 	/** Restored sessions stored in this interface */
 	TArray<FOnlineRestoredSessionAccelByte> RestoredSessions;
 
@@ -1917,6 +1973,9 @@ PACKAGE_SCOPE:
 	 */
 	void HandleUserLogoutCleanUp(const FUniqueNetId& LocalUserId);
 
+	/** Collect & accumulate local users' storage and as the one source of truth before PUT/overwrite to it's reserved PartySessionStorage. */
+	FAccelBytePartySessionStorageLocalUserManager PartySessionStorageLocalUserManager{};
+
 private:
 	/** Parent subsystem of this interface instance */
 	FOnlineSubsystemAccelByte* AccelByteSubsystem {nullptr};
@@ -1986,6 +2045,9 @@ private:
 	* Default behavior: if not specified then FALSE
 	*/
 	bool bManualRegisterServer {false};
+
+	/** Hold instance to identity interface so we destroy session interface first before identity interface */
+	FOnlineIdentityAccelBytePtr InstanceIdentityInterface;
 
 	/** Trigger warning to notify that the DS is not flag itself as ready after several minutes. */
 	bool OnServerNotSendReadyWhenTimesUp(float DeltaTime, FOnRegisterServerComplete Delegate);
@@ -2068,7 +2130,6 @@ private:
 	//~ End Session Storage Notification Handler
 
 	//~ Begin Lobby Multicast Notification Handler
-	void UnbindLobbyMulticastDelegate();
 	FDelegateHandle OnGameSessionInviteCanceledHandle;
 	FDelegateHandle OnPartyInviteCanceledHandle;
 	FDelegateHandle OnPartyCreatedHandle;
@@ -2131,6 +2192,11 @@ private:
 	FCriticalSection SessionInvitationGetInfoInProgressLock{};
 	TArray<FString> SessionInvitationGetInfoInProgress{};
 	
+	/*
+	 * Toggle behavior that can be enabled & disabled. It has public getter & setter.
+	 */
+	bool bIsEnablePartyMemberPastSessionRecordSync = false;
+
 	void SetFindMatchmakingGameSessionByIdInProgress(bool State);
 	void SetSessionInvitationGetInfoInProgress(const FString& SessionId);
 	void RemoveSessionInvitationGetInfoInProgress(const FString& SessionId);

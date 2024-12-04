@@ -95,6 +95,8 @@ typedef FOnGetUserChatConfigurationComplete::FDelegate FOnGetUserChatConfigurati
 DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnSetUserChatConfigurationComplete, const int32 /*LocalUserNum*/, const FAccelByteSetUserChatConfigurationResponse& /*SetUserChatConfigurationResponse*/, const FOnlineError& /*ErrorInfo*/)
 typedef FOnSetUserChatConfigurationComplete::FDelegate FOnSetUserChatConfigurationCompleteDelegate;
 
+DECLARE_DELEGATE_FourParams(FOnReportChatMessageComplete, const FUniqueNetId& /*UserId*/, bool /*bWasSuccessful*/, const FChatMessage& /*ReportedMessage*/, FAccelByteModelsReportingSubmitResponse /*ReportResponse*/);
+
 //~ End custom delegates
 
 class FAccelByteChatMessage;
@@ -114,11 +116,18 @@ class ONLINESUBSYSTEMACCELBYTE_API FAccelByteChatMessage : public FChatMessage
 public:
 
 	/** Constructor */
-	explicit FAccelByteChatMessage(const FUniqueNetIdRef& InSenderUserId, FString InSenderNickname, FString InMessageBody, FDateTime InTimestamp)
+	explicit FAccelByteChatMessage(const FUniqueNetIdRef& InSenderUserId
+		, FString InSenderNickname
+		, FString InMessageBody
+		, FDateTime InTimestamp
+		, FString InChatId
+		, FString InTopicId)
 		: SenderUserId(InSenderUserId)
 		, MessageBody(InMessageBody)
 		, SenderNickname(InSenderNickname)
 		, Timestamp(InTimestamp)
+		, ChatId(InChatId)
+		, TopicId(InTopicId)
 	{
 	}
 
@@ -129,11 +138,16 @@ public:
 	virtual const FDateTime& GetTimestamp() const override;
 	//~ End FChatMessage overrides
 
+	const FString& GetChatId() const;
+	const FString& GetTopicId() const;
+
 PACKAGE_SCOPE:
 	FUniqueNetIdRef SenderUserId;
 	FString MessageBody{};
 	FString SenderNickname{};
 	FDateTime Timestamp{};
+	FString ChatId{};
+	FString TopicId{};
 };
 
 class ONLINESUBSYSTEMACCELBYTE_API FAccelByteChatRoomMember : public FChatRoomMember
@@ -425,6 +439,22 @@ public:
 	 * @return if successfully started the async operation
 	 */
 	bool SetUserConfiguration(const FUniqueNetId& UserId, const FAccelByteModelsSetUserChatConfigurationRequest& Configuration);
+
+	/**
+	 * Report a chat message for abuse.
+	 *
+	 * @param UserId ID of the user that is reporting the given chat message
+	 * @param Message Shared reference to the chat message to report
+	 * @param Reason String describing the reason for reporting the chat message
+	 * @param Comment String giving more detail on the report
+	 * @param CompletionDelegate Delegate run on completion of report task to inform success state
+	 * @return boolean that is true if async operation started, false otherwise
+	 */
+	bool ReportChatMessage(const FUniqueNetId& UserId
+		, const TSharedRef<FChatMessage>& Message
+		, const FString& Reason
+		, const FString& Comment
+		, FOnReportChatMessageComplete CompletionDelegate);
 
 	virtual bool IsChatAllowed(const FUniqueNetId& UserId, const FUniqueNetId& RecipientId) const override;
 	virtual void GetJoinedRooms(const FUniqueNetId& UserId, TArray<FChatRoomId>& OutRooms) override;

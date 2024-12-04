@@ -25,6 +25,7 @@
 #include "AsyncTasks/Chat/OnlineAsyncTaskAccelByteChatUpdateSystemMessages.h"
 #include "AsyncTasks/Chat/OnlineAsyncTaskAccelByteGetUserChatConfiguration.h"
 #include "AsyncTasks/Chat/OnlineAsyncTaskAccelByteSetUserChatConfiguration.h"
+#include "AsyncTasks/Chat/OnlineAsyncTaskAccelByteChatReportMessage.h"
 
 using namespace AccelByte;
 
@@ -947,7 +948,12 @@ void FOnlineChatAccelByte::OnReceivedChatNotification(const FAccelByteModelsChat
 	const EAccelByteChatRoomType RoomType = GetChatRoomType(ChatNotif.TopicId);
 
 	FAccelByteChatRoomMemberRef Member = GetAccelByteChatRoomMember(ChatNotif.From);
-	TSharedRef<FAccelByteChatMessage> OutChatMessage = MakeShared<FAccelByteChatMessage>(SenderUserId.ToSharedRef(), Member->GetNickname(), ChatNotif.Message, ChatNotif.CreatedAt);
+	TSharedRef<FAccelByteChatMessage> OutChatMessage = MakeShared<FAccelByteChatMessage>(SenderUserId.ToSharedRef()
+		, Member->GetNickname()
+		, ChatNotif.Message
+		, ChatNotif.CreatedAt
+		, ChatNotif.ChatId
+		, ChatNotif.TopicId);
 
 	const FUniqueNetIdAccelByteUserRef AccelByteUserId = FUniqueNetIdAccelByteUser::CastChecked(LocalUserId.ToSharedRef());
 	AddChatMessage(AccelByteUserId, OutChatRoomId, OutChatMessage);
@@ -1131,6 +1137,16 @@ const FString& FAccelByteChatMessage::GetBody() const
 const FDateTime& FAccelByteChatMessage::GetTimestamp() const
 {
 	return Timestamp;
+}
+
+const FString& FAccelByteChatMessage::GetChatId() const
+{
+	return ChatId;
+}
+
+const FString& FAccelByteChatMessage::GetTopicId() const
+{
+	return TopicId;
 }
 
 FAccelByteChatRoomMember::FAccelByteChatRoomMember(const FUniqueNetIdAccelByteUserRef& InUserId, const FString& InNickname)
@@ -1329,4 +1345,29 @@ void FOnlineChatAccelByte::SendDisconnectPredefinedEvent(int32 StatusCode, int32
 			PredefinedEventInterface->SendEvent(LocalUserNum, MakeShared<FAccelByteModelsChatV2DisconnectedPayload>(DisconnectedPayload));
 		}
 	}
+}
+
+bool FOnlineChatAccelByte::ReportChatMessage(const FUniqueNetId& UserId
+	, const TSharedRef<FChatMessage>& Message
+	, const FString& Reason
+	, const FString& Comment
+	, FOnReportChatMessageComplete CompletionDelegate)
+{
+	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("UserId: %s; Reason: %s; Comment: %s"), *UserId.ToDebugString(), *Reason, *Comment);
+
+	TSharedRef<FAccelByteChatMessage> AbChatMessage = StaticCastSharedRef<FAccelByteChatMessage>(Message);
+
+	FOnlineAsyncTaskInfo TaskInfo{};
+	TaskInfo.Type = ETypeOfOnlineAsyncTask::Parallel;
+	TaskInfo.bCreateEpicForThis = true;
+	AccelByteSubsystem->CreateAndDispatchAsyncTask<FOnlineAsyncTaskAccelByteChatReportMessage>(TaskInfo
+		, AccelByteSubsystem
+		, UserId
+		, AbChatMessage
+		, Reason
+		, Comment
+		, CompletionDelegate);
+
+	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+	return true;
 }

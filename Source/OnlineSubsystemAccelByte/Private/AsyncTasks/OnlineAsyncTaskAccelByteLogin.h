@@ -221,6 +221,11 @@ protected:
 
 	void OnLoginQueueCancelled(int32 LoginUserNum);
 
+	FDelegateHandle OnLoginQueueClaimTicketCompleteDelegateHandle;
+	FAccelByteOnLoginQueueClaimTicketCompleteDelegate OnLoginQueueClaimTicketCompleteDelegate;
+
+	void OnLoginQueueTicketClaimed(int32 InLoginUserNum, bool bWasClaimSuccessful, const FErrorOAuthInfo& ErrorObject);
+
 	bool ShouldInitiateNativePlatformLogin(FOnlineAccountCredentials const& InAccountCredentials, FName& OutSubsystemName);
 
 #if defined(STEAM_SDK_VER) && !UE_SERVER
@@ -229,4 +234,8 @@ protected:
 	*/
 	void OnGetAuthSessionTicketResponse(GetAuthSessionTicketResponse_t* CallBackParam);
 #endif
+
+	bool FetchOculusPlatformToken();
+
+	void OnFetchOculusPlatformTokenFinished(const FString& Token);
 };

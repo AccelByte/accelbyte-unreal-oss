@@ -47,6 +47,9 @@ private:
 	/** Container for create match ticket response */
 	FAccelByteModelsV2MatchmakingCreateTicketResponse CreateMatchTicketResponse;
 
+	/** Optional param that will be passed to the SDK. */
+	FAccelByteModelsV2MatchTicketOptionalParams Optionals{};
+
 	TSharedPtr<FJsonObject> AttributesJsonObject;
 
 	TSharedPtr<FJsonObject> StorageJsonObject;
@@ -62,6 +65,17 @@ private:
 
 	/** Determine what session ID we should attach to the new match ticket, if any at all */
 	FString GetTicketSessionId() const;
+
+#pragma region PARTY_STORAGE_RELATED
+	/** Try to obtain past session to make a list of excluded past session then create match ticket */
+	void ObtainPartyStorageExcludedSessionInfoThenCreateMatchTicket();
+	
+	THandler<FAccelByteModelsV2PartySessionStorage> OnGetPartySessionStorageSuccessDelegate;
+	void OnGetPartySessionStorageSuccessCreateMatchTicket(const FAccelByteModelsV2PartySessionStorage& Result);
+
+	FErrorHandler OnGetPartySessionStorageErrorDelegate;
+	void OnGetPartySessionStorageError(int32 ErrorCode, const FString& ErrorMessage);
+#pragma endregion
 
 	THandler<FAccelByteModelsV2MatchmakingCreateTicketResponse> OnStartMatchmakingSuccessDelegate;
 	void OnStartMatchmakingSuccess(const FAccelByteModelsV2MatchmakingCreateTicketResponse& Result);

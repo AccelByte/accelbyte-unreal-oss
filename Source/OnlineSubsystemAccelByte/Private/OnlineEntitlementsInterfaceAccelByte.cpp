@@ -13,6 +13,8 @@
 #include "AsyncTasks/Entitlements/OnlineAsyncTaskAccelByteGetCurrentUserEntitlementHistory.h"
 #include "AsyncTasks/Entitlements/OnlineAsyncTaskAccelByteSyncPlatformGooglePlay.h"
 #include "AsyncTasks/Entitlements/OnlineAsyncTaskAccelByteSyncIOSAppStore.h"
+#include "AsyncTasks/Entitlements/OnlineAsyncTaskAccelByteSyncMetaQuestDLC.h"
+#include "AsyncTasks/Entitlements/OnlineAsyncTaskAccelByteSyncMetaQuestIAP.h"
 
 #pragma region FOnlineEntitlementAccelByte Methods
 bool FOnlineEntitlementAccelByte::GetAttribute(const FString& AttrName, FString& OutAttrValue) const
@@ -169,6 +171,22 @@ void FOnlineEntitlementsAccelByte::SyncPlatformPurchase(int32 LocalUserNum, FAcc
 	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteSyncPlatformPurchase>(AccelByteSubsystem, LocalUserNum, EntitlementSyncBase, CompletionDelegate);
 }
 
+void FOnlineEntitlementsAccelByte::SyncPlatformPurchase(const FUniqueNetId& InLocalUserId, const FOnRequestCompleted& CompletionDelegate)
+{
+	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT(""))
+	if (AccelByteSubsystem->GetSecondaryPlatformSubsystemName().ToString().Contains(TEXT("Oculus"))
+		|| AccelByteSubsystem->GetSecondaryPlatformSubsystemName().ToString().Contains(TEXT("Meta")))
+	{
+		AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteSyncMetaQuestIAP>(AccelByteSubsystem, InLocalUserId, CompletionDelegate);
+		AB_OSS_INTERFACE_TRACE_END(TEXT("Sync MetaQuest IAP task dispatched."))
+	}
+	else
+	{
+		CompletionDelegate.ExecuteIfBound(false, TEXT("Function not supported for the used platform!"));
+		AB_OSS_INTERFACE_TRACE_END(TEXT(""))
+	}
+}
+
 void FOnlineEntitlementsAccelByte::SyncPlatformPurchase(int32 LocalUserNum, const TSharedRef<FPurchaseReceipt>& Receipt, const FOnRequestCompleted& CompletionDelegate)
 {
 	if(AccelByteSubsystem->GetNativePlatformNameString().Contains(TEXT("google")))
@@ -181,6 +199,21 @@ void FOnlineEntitlementsAccelByte::SyncPlatformPurchase(int32 LocalUserNum, cons
 		AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteSyncIOSAppStore>(AccelByteSubsystem, LocalUserNum, Receipt, CompletionDelegate);
 		return;
 	}
+	else if (AccelByteSubsystem->GetSecondaryPlatformSubsystemName().ToString().Contains(TEXT("Oculus"))
+		|| AccelByteSubsystem->GetSecondaryPlatformSubsystemName().ToString().Contains(TEXT("Meta")))
+	{
+		const auto IdentityInterfacePtr = AccelByteSubsystem->GetIdentityInterface();
+		if (IdentityInterfacePtr.IsValid())
+		{
+			const auto UserId = IdentityInterfacePtr->GetUniquePlayerId(LocalUserNum);
+			if (UserId != nullptr && UserId.IsValid())
+			{
+				SyncPlatformPurchase(*UserId.Get(), CompletionDelegate);
+				return;
+			}
+		}
+	}
+
 	CompletionDelegate.ExecuteIfBound(false, TEXT("Receipt not supported!"));
 }
 
@@ -191,7 +224,19 @@ void FOnlineEntitlementsAccelByte::SyncPlatformPurchase(int32 LocalUserNum, cons
 
 void FOnlineEntitlementsAccelByte::SyncDLC(const FUniqueNetId& InLocalUserId, const FOnRequestCompleted& CompletionDelegate)
 {
+	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT(""))
+
+	if (AccelByteSubsystem->GetSecondaryPlatformSubsystemName().ToString().Contains(TEXT("Oculus"))
+		|| AccelByteSubsystem->GetSecondaryPlatformSubsystemName().ToString().Contains(TEXT("Meta")))
+	{
+		AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteSyncMetaQuestDLC>(AccelByteSubsystem, InLocalUserId, CompletionDelegate);
+		AB_OSS_INTERFACE_TRACE_END(TEXT("Sync oculus DLC task dispatched."))
+		return;
+	}
+
 	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteSyncDLC>(AccelByteSubsystem, InLocalUserId, CompletionDelegate);
+
+	AB_OSS_INTERFACE_TRACE_END(TEXT(""))
 }
 
 void FOnlineEntitlementsAccelByte::GetCurrentUserEntitlementHistory(const FUniqueNetId& UserId, const FUniqueEntitlementId& EntitlementId)

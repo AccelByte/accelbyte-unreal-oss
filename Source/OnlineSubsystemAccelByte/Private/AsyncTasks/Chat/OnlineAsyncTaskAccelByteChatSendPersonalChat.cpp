@@ -93,7 +93,12 @@ void FOnlineAsyncTaskAccelByteChatSendPersonalChat::Finalize()
 			return;
 		}
 		FAccelByteChatRoomMemberRef Member = ChatInterface->GetAccelByteChatRoomMember(UserId->GetAccelByteId());
-		TSharedRef<FAccelByteChatMessage> OutChatMessage = MakeShared<FAccelByteChatMessage>(UserId.ToSharedRef(), Member->GetNickname(), ChatMessage, CreatedAt);
+		TSharedRef<FAccelByteChatMessage> OutChatMessage = MakeShared<FAccelByteChatMessage>(UserId.ToSharedRef()
+			, Member->GetNickname()
+			, ChatMessage
+			, SendChatResponse.Processed
+			, SendChatResponse.ChatId
+			, SendChatResponse.TopicId);
 		ChatInterface->AddChatMessage(UserId.ToSharedRef(), RoomId, OutChatMessage);
 	}
 
@@ -131,7 +136,7 @@ void FOnlineAsyncTaskAccelByteChatSendPersonalChat::OnSendRoomChatSuccess(const 
 {
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("TopicId: %s, ChatId: %s"), *Response.TopicId, *Response.ChatId);
 
-	CreatedAt = Response.Processed;
+	SendChatResponse = Response;
 	CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

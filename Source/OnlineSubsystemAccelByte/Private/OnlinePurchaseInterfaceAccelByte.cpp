@@ -7,8 +7,10 @@
 #include "AsyncTasks/Purchase/OnlineAsyncTaskAccelByteRedeemCode.h"
 #include "AsyncTasks/Purchase/OnlineAsyncTaskAccelByteQueryUserOrders.h"
 #include "AsyncTasks/Purchase/OnlineAsyncTaskAccelByteCreateNewOrder.h"
-#include "OnlineSubsystemUtils.h"
 #include "AsyncTasks/Purchase/OnlineAsyncTaskAccelBytePreviewOrder.h"
+#include "AsyncTasks/Purchase/MetaQuest/OnlineAsyncTaskAccelByteCheckoutMetaQuestProduct.h"
+#include "AsyncTasks/Purchase/MetaQuest/OnlineAsyncTaskAccelByteGetMetaQuestPurchasedProducts.h"
+#include "OnlineSubsystemUtils.h"
 
 FOnlinePurchaseAccelByte::FOnlinePurchaseAccelByte(FOnlineSubsystemAccelByte* InSubsystem) : AccelByteSubsystem(InSubsystem)
 {
@@ -85,6 +87,46 @@ void FOnlinePurchaseAccelByte::Checkout(const FUniqueNetId& UserId, const FPurch
 	UE_LOG_AB(Warning, TEXT("FOnlinePurchaseAccelByte::Checkout without receipt is not currently supported."));
 }
 #endif
+
+void FOnlinePurchaseAccelByte::PlatformCheckout(const FUniqueNetId& UserId, const FPurchaseCheckoutRequest& CheckoutRequest, const FOnPurchaseCheckoutComplete& Delegate)
+{
+	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("UserId: %s"), UserId.IsValid() ? *UserId.ToDebugString() : TEXT(""));
+	if (AccelByteSubsystem->GetSecondaryPlatformSubsystemName().ToString().Contains(TEXT("Oculus"))
+		|| AccelByteSubsystem->GetSecondaryPlatformSubsystemName().ToString().Contains(TEXT("Meta")))
+	{
+		AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteCheckoutMetaQuestProduct>(AccelByteSubsystem, UserId, CheckoutRequest, Delegate);
+	}
+	AB_OSS_INTERFACE_TRACE_END(TEXT(""))
+}
+
+void FOnlinePurchaseAccelByte::QueryPlatformReceipts(const FUniqueNetId& UserId, bool bRestoreReceipts, const FOnQueryReceiptsComplete& Delegate)
+{
+	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("UserId: %s"), UserId.IsValid() ? *UserId.ToDebugString() : TEXT(""));
+	if (AccelByteSubsystem->GetSecondaryPlatformSubsystemName().ToString().Contains(TEXT("Oculus"))
+		|| AccelByteSubsystem->GetSecondaryPlatformSubsystemName().ToString().Contains(TEXT("Meta")))
+	{
+		AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGetMetaQuestPurchasedProducts>(AccelByteSubsystem, UserId, Delegate);
+	}
+	AB_OSS_INTERFACE_TRACE_END(TEXT(""))
+}
+
+void FOnlinePurchaseAccelByte::GetPlatformReceipts(const FUniqueNetId& UserId, TArray<FPurchaseReceipt>& OutReceipts) const
+{
+	const TSharedRef<const FUniqueNetIdAccelByteUser> SharedUserId = FUniqueNetIdAccelByteUser::CastChecked(UserId);
+	FScopeLock ScopeLock(&PlatformReceiptMapLock);
+	const FReceiptMap* ReceiptMap = PlatformReceipts.Find(SharedUserId);
+	if (ReceiptMap)
+	{
+		ReceiptMap->GenerateValueArray(OutReceipts);
+	}
+}
+
+void FOnlinePurchaseAccelByte::AddPlatformReceipt(const TSharedRef<const FUniqueNetIdAccelByteUser>& UserId, FPurchaseReceipt Receipt)
+{
+	FScopeLock ScopeLock(&PlatformReceiptMapLock);
+	FReceiptMap& ReceiptMap = PlatformReceipts.FindOrAdd(UserId);
+	ReceiptMap.Emplace(Receipt.TransactionId, Receipt);
+}
 
 void FOnlinePurchaseAccelByte::QueryUserOrders(const FUniqueNetId& UserId, const FAccelByteModelsUserOrdersRequest& UserOrderRequest)
 {

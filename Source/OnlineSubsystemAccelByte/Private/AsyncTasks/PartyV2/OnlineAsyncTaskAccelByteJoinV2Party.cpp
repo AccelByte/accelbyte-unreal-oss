@@ -113,6 +113,9 @@ void FOnlineAsyncTaskAccelByteJoinV2Party::Finalize()
 		// occured between query and join we would catch them
 		SessionInterface->UpdateInternalPartySession(SessionName, PartyInfo);
 
+		// Set the party attribute with past sesssion info from the current user
+		SessionInterface->UpdatePartySessionStorageWithPastSessionInfo(UserId);
+
 		const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = SubsystemPin->GetPredefinedEventInterface();
 		if (PredefinedEventInterface.IsValid())
 		{

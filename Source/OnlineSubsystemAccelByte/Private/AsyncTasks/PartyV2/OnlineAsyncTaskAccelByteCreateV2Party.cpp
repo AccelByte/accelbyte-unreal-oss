@@ -65,6 +65,10 @@ void FOnlineAsyncTaskAccelByteCreateV2Party::Finalize()
 	if (bWasSuccessful)
 	{
 		SessionInterface->FinalizeCreatePartySession(SessionName, PartyInfo);
+
+		// Set the party attribute with past sesssion info from the current user
+		SessionInterface->UpdatePartySessionStorageWithPastSessionInfo(UserId);
+
 		const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = SubsystemPin->GetPredefinedEventInterface();
 		if (PredefinedEventInterface.IsValid())
 		{

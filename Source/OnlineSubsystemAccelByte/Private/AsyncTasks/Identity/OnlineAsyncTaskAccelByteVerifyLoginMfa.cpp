@@ -160,6 +160,9 @@ void FOnlineAsyncTaskAccelByteVerifyLoginMfa::OnVerifyLoginSuccess(const FAccelB
 	OnLoginQueueCancelledDelegate = TDelegateUtils<FAccelByteOnLoginQueueCanceledByUserDelegate>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteVerifyLoginMfa::OnLoginQueueCancelled);
 	OnLoginQueueCancelledDelegateHandle = IdentityInterface->AddAccelByteOnLoginQueueCanceledByUserDelegate_Handle(OnLoginQueueCancelledDelegate);
 	
+	OnLoginQueueClaimTicketCompleteDelegate = TDelegateUtils<FAccelByteOnLoginQueueClaimTicketCompleteDelegate>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteVerifyLoginMfa::OnLoginQueueTicketClaimed);
+	OnLoginQueueClaimTicketCompleteDelegateHandle = IdentityInterface->AddAccelByteOnLoginQueueClaimTicketCompleteDelegate_Handle(LoginUserNum, OnLoginQueueClaimTicketCompleteDelegate);
+
 	bShouldUseTimeout = false;
 	bLoginInQueue = true;
 	this->ExecuteCriticalSectionAction(FVoidHandler::CreateLambda([this, &Response]()
@@ -211,6 +214,33 @@ void FOnlineAsyncTaskAccelByteVerifyLoginMfa::OnLoginQueueCancelled(int32 InLogi
 		, FString::FromInt(static_cast<int32>(ErrorCodes::LoginQueueCanceled))
 		, FText::FromString(TEXT("login process in queue is cancelled")));
 	CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
+
+	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
+}
+
+void FOnlineAsyncTaskAccelByteVerifyLoginMfa::OnLoginQueueTicketClaimed(int32 InLoginUserNum, bool bWasClaimSuccessful, const FErrorOAuthInfo& ErrorObject)
+{
+	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Login queue ticket is claimed for user %d, bWasClaimSuccessful: %s"), InLoginUserNum, bWasClaimSuccessful ? TEXT("True") : TEXT("False"));
+
+	bWasSuccessful = bWasClaimSuccessful;
+
+	if (LoginUserNum != InLoginUserNum)
+	{
+		return;
+	}
+
+	bLoginInQueue = false;
+
+	if (!bWasSuccessful)
+	{
+		ErrorOAuthObject = ErrorObject;
+
+		CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
+	}
+	else
+	{
+		OnLoginSuccess();
+	}
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }

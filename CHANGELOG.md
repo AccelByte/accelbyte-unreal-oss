@@ -2,6 +2,38 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.12.28](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.12.28%0D0.12.27) (2024-12-04)
+
+
+### Features
+
+* add api to sync platform user friends using platform handler ([fb6b11d](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/fb6b11de49b0bb30ddc3ce661230bf01c971d31a))
+* **chat:** Expose chat and topic ids to FAccelByteChatMessage. Add ReportChatMessage method to FOnlineChatAccelByte interface. ([da5c3a0](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/da5c3a0b43b3ecdf5183a9bb1a813520f959a9dd))
+* **CloudSave:** add adminGameRecord endpoints ([de06c32](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/de06c3222cd767a12db5bdfac2c79108cbe66dd8))
+* **cloudsave:** add bulk get and replace user record for server ([bb31d14](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/bb31d1414cfa277f25ddad1dd7a0975d8bda2e2d))
+* **EntitlementInterface:** add support for metaQuest IAP ([66cdd8a](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/66cdd8a048d73c0099ca0c08809bfef7580f50d3))
+* **friends:** handle error case when requester is blocked by requestee ([04266be](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/04266be37cc640243fb711659102f59ff76beb16))
+* **identity:** add oculus login support using platform handler ([190f127](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/190f12778d077f3fd0e80ef8606a2698e8cf7871))
+* implement delete record ttl config on cloud save interface ([b69b1b4](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/b69b1b4864971f63a15dd1b4ea982bbebd824d25))
+* implement delete record ttl config on cloud save interface ([8a92cd8](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/8a92cd8eeb1552fe483f4a5f90f5bcd3c24f3f3e))
+* **login queue:** add manual claim login queue ([a55db29](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/a55db292990cc3f721f2b324267f1d76e13e39f3))
+* server partial backfill acceptance adjustment ([c074cf8](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/c074cf8123f31a8b662e81aa2e0b78fc4fa01b65))
+* **server:** allow server to accept backfill proposal partially ([326fe42](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/326fe4239efe5d0eda485986224de0b078e60c05))
+* **session:** sync and exclude player's past session from matchmaking backfill ([ca9c606](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/ca9c6066227d157fd4f93dd9f95744cd152bf4ef))
+
+
+### Bug Fixes
+
+* compile error 4.27 ([a81ed86](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/a81ed86e0eb55b99389d2b28ec4d490703fcf1e1))
+* reset IdentityInterface last on subsystem shutdown ([37d461b](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/37d461be18c65a7c7dae640a2e163903a502db67))
+* SessionInterface holds ptr to IdentityInterface so session will be destroyed first ([25df245](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/25df245ccf808e8101a4ff19e47ae671e8a031e7))
+* **session:** remove duplicate trigger delegate in kick member v2 for leader ([a34b839](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/a34b839dc215466ea0ad154231191de7a21f6039))
+* unbind lobby delegate in OnlineSubsystemAccelByte ([c69be28](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/c69be28dd31932154f35f369fcb3bc52d22b36b2))
+* **User:** PostLoginBulkGetUserProfileCompleted clear wrong delegate ([8c6fb19](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/8c6fb19db659afa5180d89c2b00111b4a030564d))
+* **user:** update user info without override previous cache. ([640b08d](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/640b08dd55fd5f9ff227de4c039667fb72c68c8f))
+
+### [0.12.27](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.12.27%0D0.12.26) (2024-11-07)
+
 ### [0.12.26](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.12.26%0D0.12.25) (2024-10-30)
 
 

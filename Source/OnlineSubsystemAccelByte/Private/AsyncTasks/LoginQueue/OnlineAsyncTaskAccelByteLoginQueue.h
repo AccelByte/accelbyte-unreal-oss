@@ -47,24 +47,19 @@ private:
 
 	/** Set from DefaultEngine.ini, will only notify in queue if estimated time is above presentation threshold */
 	int32 PresentationThreshold;
+
+	/** Flag from DefaultEngine.ini that allows users to manually claim the ticket. Default value is false. */
+	bool bManualClaimLoginQueueTicket = false;
 	
 	THandler<FAccelByteModelsLoginQueueTicketInfo> OnPollTicketRefreshedHandler;
 	THandler<FOnlineErrorAccelByte> OnPollStoppedHandler;
 
-	void ClaimAccessToken(const FString& InTicketId);
-	
 	void OnPollTicketRefreshed(const FAccelByteModelsLoginQueueTicketInfo& InTicket);
 	void OnPollTicketStopped(const FOnlineErrorAccelByte& Error);
 
 	FDelegateHandle OnLoginQueueCancelledDelegateHandle;
 	FAccelByteOnLoginQueueCanceledByUserDelegate OnLoginQueueCancelledDelegate;
 	void OnLoginQueueCancelled(int32 InLoginUserNum);
-	
-	FVoidHandler OnClaimAccessTokenSuccessHandler;
-	void OnClaimAccessTokenSuccess();
-
-	FOAuthErrorHandler OnClaimAccessTokenErrorHandler;
-	void OnClaimAccessTokenError(int32 InErrorCode, const FString& InErrorMessage, const FErrorOAuthInfo& InErrorObject);
 
 	void CleanupDelegateHandler();
 };

@@ -310,7 +310,7 @@ void FOnlineUserAccelByte::PostLoginBulkGetUserProfileCompleted(int32 LocalUserN
 		CreateUserProfile(*UserId.Get());
 	}
 
-	ClearOnQueryUserInfoCompleteDelegates(LocalUserNum, this);
+	ClearOnQueryUserProfileCompleteDelegates(LocalUserNum, this);
 }
 
 #if WITH_DEV_AUTOMATION_TESTS
