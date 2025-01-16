@@ -55,7 +55,8 @@ void FOnlineAsyncTaskAccelByteBulkReplaceUserRecord::Initialize()
 	}
 
 	const auto ReplaceRequest = ConstructBulkReplaceRequestModel();
-	const FServerApiClientPtr ServerApiClient = FMultiRegistry::GetServerApiClient();
+
+	SERVER_API_CLIENT_CHECK_GUARD(ErrorStr);
 
 	TArray<FAccelByteModelsBulkReplaceUserRecordRequestDetail> ProcessedIds{};
 

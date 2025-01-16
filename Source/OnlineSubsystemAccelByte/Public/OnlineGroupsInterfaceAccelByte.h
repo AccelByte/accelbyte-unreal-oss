@@ -14,6 +14,7 @@
 #include "Interfaces/OnlineGroupsInterface.h"
 #include "OnlineSubsystemAccelBytePackage.h"
 
+// class FOnlineSubsystemAccelByte;
 class FAccelByteGroupsInfo;
 
 typedef TSharedRef<FAccelByteGroupsInfo> FAccelByteGroupsInfoRef;
@@ -114,9 +115,7 @@ class ONLINESUBSYSTEMACCELBYTE_API FOnlineGroupsAccelByte : public IOnlineGroups
 {
 PACKAGE_SCOPE:
 	/** Constructor that is invoked by the Subsystem instance to create a user cloud instance */
-	FOnlineGroupsAccelByte(FOnlineSubsystemAccelByte* InSubsystem)
-		: AccelByteSubsystem(InSubsystem)
-	{}
+	FOnlineGroupsAccelByte(FOnlineSubsystemAccelByte* InSubsystem);
 
 public:
 
@@ -618,7 +617,7 @@ protected:
 	{}
 
 	/** Instance of the subsystem that created this interface */
-	FOnlineSubsystemAccelByte* AccelByteSubsystem = nullptr;
+	FOnlineSubsystemAccelByteWPtr AccelByteSubsystem;
 
 private:
 

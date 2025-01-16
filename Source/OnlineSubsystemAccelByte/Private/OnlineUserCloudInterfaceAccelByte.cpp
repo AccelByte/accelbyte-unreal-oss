@@ -12,7 +12,11 @@
 using namespace AccelByte;
 
 FOnlineUserCloudAccelByte::FOnlineUserCloudAccelByte(FOnlineSubsystemAccelByte* InSubsystem)
-	: AccelByteSubsystem(InSubsystem)
+#if ENGINE_MAJOR_VERSION >= 5
+	: AccelByteSubsystem(InSubsystem->AsWeak())
+#else
+	: AccelByteSubsystem(InSubsystem->AsShared())
+#endif
 {
 }
 
@@ -38,12 +42,18 @@ void FOnlineUserCloudAccelByte::EnumerateUserFiles(const FUniqueNetId& UserId)
 {
 	FReport::LogDeprecated(FString(__FUNCTION__), TEXT("Cloud Storage is deprecated - please use Binary Cloudsave for the replacement"));
 
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("UserId: %s"), *UserId.ToDebugString());
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("UserId: %s"), *UserId.ToDebugString());
 
-	check(AccelByteSubsystem != nullptr);
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteEnumerateUserFiles>(AccelByteSubsystem, UserId);
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return;
+	}
+	
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteEnumerateUserFiles>(AccelByteSubsystemPtr.Get(), UserId);
 
-	AB_OSS_INTERFACE_TRACE_END(TEXT("Dispatched async task to enumerate user files for user '%s'!"), *UserId.ToDebugString());
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Dispatched async task to enumerate user files for user '%s'!"), *UserId.ToDebugString());
 }
 
 void FOnlineUserCloudAccelByte::AddCloudHeaders(const TSharedRef<const FUniqueNetIdAccelByteUser>& UserId, const TMap<FString, FCloudFileHeader>& InFileNamesToCloudHeaders)
@@ -139,12 +149,18 @@ bool FOnlineUserCloudAccelByte::ReadUserFile(const FUniqueNetId& UserId, const F
 {
 	FReport::LogDeprecated(FString(__FUNCTION__), TEXT("Cloud Storage is deprecated - please use Binary Cloudsave for the replacement"));
 
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("UserId: %s; FileName: %s"), *UserId.ToDebugString(), *FileName);
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("UserId: %s; FileName: %s"), *UserId.ToDebugString(), *FileName);
 
-	check(AccelByteSubsystem != nullptr);
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteReadUserFile>(AccelByteSubsystem, UserId, FileName);
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return false;
+	}
+	
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteReadUserFile>(AccelByteSubsystemPtr.Get(), UserId, FileName);
 
-	AB_OSS_INTERFACE_TRACE_END(TEXT("Dispatched async task to read file '%s' for user '%s'!"), *FileName, *UserId.ToDebugString());
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Dispatched async task to read file '%s' for user '%s'!"), *FileName, *UserId.ToDebugString());
 	return true;
 }
 
@@ -152,26 +168,26 @@ bool FOnlineUserCloudAccelByte::GetFileContents(const FUniqueNetId& UserId, cons
 {
 	FReport::LogDeprecated(FString(__FUNCTION__), TEXT("Cloud Storage is deprecated - please use Binary Cloudsave for the replacement"));
 
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("UserId: %s; FileName: %s"), *UserId.ToDebugString(), *FileName);
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("UserId: %s; FileName: %s"), *UserId.ToDebugString(), *FileName);
 
 	// Check if we have a cache of files read for this user
 	FFileNameToFileContentsMap* FoundReadCache = UserIdToFileNameFileContentsMap.Find(FUniqueNetIdAccelByteUser::CastChecked(UserId));
 	if (FoundReadCache == nullptr)
 	{
-		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Could not get file (%s) contents as user (%s) has no read cache!"), *FileName, *UserId.ToDebugString());
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Could not get file (%s) contents as user (%s) has no read cache!"), *FileName, *UserId.ToDebugString());
 		return false;
 	}
 
 	// Check if there is a byte array of file contents corresponding with the file name in the read cache
 	if (!FoundReadCache->Contains(FileName))
 	{
-		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Could not get file (%s) contents as the file was not found in user's (%s) read cache!"), *FileName, *UserId.ToDebugString());
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Could not get file (%s) contents as the file was not found in user's (%s) read cache!"), *FileName, *UserId.ToDebugString());
 		return false;
 	}
 
 	// Once we know we have a file in the read cache for the user, copy it to the FileContents array and remove the cached contents
 	FileContents = FoundReadCache->FindAndRemoveChecked(FileName);
-	AB_OSS_INTERFACE_TRACE_END(TEXT("Found file (%s) contents in user's (%s) read cache! Contents size: %d"), *FileName, *UserId.ToDebugString(), FileContents.Num());
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Found file (%s) contents in user's (%s) read cache! Contents size: %d"), *FileName, *UserId.ToDebugString(), FileContents.Num());
 	return true;
 }
 
@@ -275,12 +291,18 @@ bool FOnlineUserCloudAccelByte::WriteUserFile(const FUniqueNetId& UserId, const 
 {
 	FReport::LogDeprecated(FString(__FUNCTION__), TEXT("Cloud Storage is deprecated - please use Binary Cloudsave for the replacement"));
 
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("UserId: %s; FileName: %s; FileContents Size: %d; bCompressBeforeUpload: %s"), *UserId.ToDebugString(), *FileName, FileContents.Num(), LOG_BOOL_FORMAT(bCompressBeforeUpload));
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("UserId: %s; FileName: %s; FileContents Size: %d; bCompressBeforeUpload: %s"), *UserId.ToDebugString(), *FileName, FileContents.Num(), LOG_BOOL_FORMAT(bCompressBeforeUpload));
 
-	check(AccelByteSubsystem != nullptr);
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteWriteUserFile>(AccelByteSubsystem, UserId, FileName, FileContents, bCompressBeforeUpload);
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return false;
+	}
+	
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteWriteUserFile>(AccelByteSubsystemPtr.Get(), UserId, FileName, FileContents, bCompressBeforeUpload);
 
-	AB_OSS_INTERFACE_TRACE_END(TEXT("Dispatched async task to write user file to CloudStorage."));
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Dispatched async task to write user file to CloudStorage."));
 	return true;
 }
 
@@ -288,9 +310,16 @@ void FOnlineUserCloudAccelByte::CancelWriteUserFile(const FUniqueNetId& UserId, 
 {
 	FReport::LogDeprecated(FString(__FUNCTION__), TEXT("Cloud Storage is deprecated - please use Binary Cloudsave for the replacement"));
 
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return;
+	}
+
 	// I don't believe that canceling requests is supported by the SDK currently?
 	UE_LOG_AB(Warning, TEXT("AccelByte OSS UserCloud implementation currently does not support CancelWriteUserFile."));
-	AccelByteSubsystem->ExecuteNextTick([UserCloudInterface = AsShared(), NetId = UserId.AsShared(), FileName]() {
+	AccelByteSubsystemPtr->ExecuteNextTick([UserCloudInterface = AsShared(), NetId = UserId.AsShared(), FileName]() {
 		UserCloudInterface->TriggerOnWriteUserFileCanceledDelegates(false, NetId.Get(), FileName);
 	});
 }
@@ -299,23 +328,36 @@ bool FOnlineUserCloudAccelByte::DeleteUserFile(const FUniqueNetId& UserId, const
 {
 	FReport::LogDeprecated(FString(__FUNCTION__), TEXT("Cloud Storage is deprecated - please use Binary Cloudsave for the replacement"));
 
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("UserId: %s; FileName: %s; bShouldCloudDelete: %s; bShouldLocallyDelete: %s"), *UserId.ToDebugString(), *FileName, LOG_BOOL_FORMAT(bShouldCloudDelete), LOG_BOOL_FORMAT(bShouldLocallyDelete));
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("UserId: %s; FileName: %s; bShouldCloudDelete: %s; bShouldLocallyDelete: %s"), *UserId.ToDebugString(), *FileName, LOG_BOOL_FORMAT(bShouldCloudDelete), LOG_BOOL_FORMAT(bShouldLocallyDelete));
 
-	check(AccelByteSubsystem != nullptr);
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteDeleteUserFile>(AccelByteSubsystem, UserId, FileName, bShouldCloudDelete, bShouldLocallyDelete);
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return false;
+	}
+	
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteDeleteUserFile>(AccelByteSubsystemPtr.Get(), UserId, FileName, bShouldCloudDelete, bShouldLocallyDelete);
 
-	AB_OSS_INTERFACE_TRACE_END(TEXT("Dispatched async task to delete user file from CloudStorage."));
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Dispatched async task to delete user file from CloudStorage."));
 	return true;
 }
 
 bool FOnlineUserCloudAccelByte::RequestUsageInfo(const FUniqueNetId& UserId)
 {
 	FReport::LogDeprecated(FString(__FUNCTION__), TEXT("Cloud Storage is deprecated - please use Binary Cloudsave for the replacement"));
+	
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return false;
+	}
 
 	// SDK nor backend I don't think has a way to see how many slots/how much space a user is using relative to the
 	// configured limits? I think technically I could run GetAllSlots and get the file size for each slot as the
 	// "total used", however I don't think I'll be able to get the quota value?
-	AccelByteSubsystem->ExecuteNextTick([UserCloudInterface = AsShared(), NetId = UserId.AsShared()]() {
+	AccelByteSubsystemPtr->ExecuteNextTick([UserCloudInterface = AsShared(), NetId = UserId.AsShared()]() {
 		UserCloudInterface->TriggerOnRequestUsageInfoCompleteDelegates(false, NetId.Get(), 0, 0);
 	});
 	return false;

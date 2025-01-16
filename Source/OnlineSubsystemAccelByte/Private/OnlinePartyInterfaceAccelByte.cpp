@@ -693,7 +693,11 @@ bool FOnlinePartyJoinInfoAccelByte::CanRequestAnInvite() const
 #define ONLINE_ERROR_NAMESPACE "FOnlinePartySystemAccelByte"
 
 FOnlinePartySystemAccelByte::FOnlinePartySystemAccelByte(FOnlineSubsystemAccelByte* InSubsystem)
-	: AccelByteSubsystem(InSubsystem)
+#if ENGINE_MAJOR_VERSION >= 5
+	: AccelByteSubsystem(InSubsystem->AsWeak())
+#else
+	: AccelByteSubsystem(InSubsystem->AsShared())
+#endif
 {
 	Init();
 }
@@ -748,21 +752,28 @@ TSharedPtr<const FOnlinePartyId> FOnlinePartySystemAccelByte::GetFirstPartyIdFor
 
 void FOnlinePartySystemAccelByte::OnReceivedPartyInviteNotification(const FAccelByteModelsPartyGetInvitedNotice& Notification, TSharedRef<const FUniqueNetIdAccelByteUser> UserId)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("UserId: %s; PartyId: %s; Inviter: %s"), *UserId->ToDebugString(), *Notification.PartyId, *Notification.From);
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("UserId: %s; PartyId: %s; Inviter: %s"), *UserId->ToDebugString(), *Notification.PartyId, *Notification.From);
 
 	FOnlineAsyncTaskInfo TaskInfo;
 	TaskInfo.bCreateEpicForThis = true;
 	TaskInfo.Type = ETypeOfOnlineAsyncTask::Parallel;
-	AccelByteSubsystem->CreateAndDispatchAsyncTask<FOnlineAsyncTaskAccelByteGetV1PartyInviteInfo>(TaskInfo, AccelByteSubsystem, UserId, Notification);
+
+	const FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if(!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Failed to handle on party invite notification, AccelByteSubsystem ptr is invalid"));
+		return;
+	}
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTask<FOnlineAsyncTaskAccelByteGetV1PartyInviteInfo>(TaskInfo, AccelByteSubsystemPtr.Get(), UserId, Notification);
 
 	UE_LOG(LogAccelByteOSSParty, Verbose, TEXT("Invite to party '%s' recieved from user '%s'!"), *Notification.PartyId, *Notification.From)
 
-	AB_OSS_INTERFACE_TRACE_END(TEXT("Fired off async task to get recieved invite information."));
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Fired off async task to get recieved invite information."));
 }
 
 void FOnlinePartySystemAccelByte::OnPartyInviteSentNotification(const FAccelByteModelsInvitationNotice& Notification, TSharedRef<const FUniqueNetIdAccelByteUser> UserId)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("UserId: %s; InviterId: %s; InviteeId: %s"), *UserId->ToDebugString(), *Notification.InviterID, *Notification.InviteeID);
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("UserId: %s; InviterId: %s; InviteeId: %s"), *UserId->ToDebugString(), *Notification.InviterID, *Notification.InviteeID);
 
 	UE_LOG(LogAccelByteOSSParty, Verbose, TEXT("Invite to party sent by user '%s' to user '%s'!"), *Notification.InviterID, *Notification.InviteeID);
 
@@ -783,12 +794,19 @@ void FOnlinePartySystemAccelByte::OnPartyInviteSentNotification(const FAccelByte
 			, FUniqueNetIdAccelByteUser::Create(InviteeCompositeId));
 	}
 
-	AB_OSS_INTERFACE_TRACE_END(TEXT("Added invited user to invited players."));
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Added invited user to invited players."));
 }
 
 void FOnlinePartySystemAccelByte::OnPartyJoinNotification(const FAccelByteModelsPartyJoinNotice& Notification, TSharedRef<const FUniqueNetIdAccelByteUser> UserId)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("UserId: %s; JoinedUser: %s"), *UserId->ToDebugString(), *Notification.UserId);
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("UserId: %s; JoinedUser: %s"), *UserId->ToDebugString(), *Notification.UserId);
+
+	const FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if(!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Failed to handle on party join notification, AccelByteSubsystem ptr is invalid"));
+		return;
+	}
 
 	UE_LOG(LogAccelByteOSSParty, Verbose, TEXT("User '%s' has joined the party!"), *Notification.UserId);
 
@@ -801,14 +819,14 @@ void FOnlinePartySystemAccelByte::OnPartyJoinNotification(const FAccelByteModels
 		FOnlineAsyncTaskInfo TaskInfo;
 		TaskInfo.bCreateEpicForThis = true;
 		TaskInfo.Type = ETypeOfOnlineAsyncTask::Parallel;
-		AccelByteSubsystem->CreateAndDispatchAsyncTask<FOnlineAsyncTaskAccelByteAddJoinedV1PartyMember>(TaskInfo, AccelByteSubsystem, UserId, Party.ToSharedRef(), Notification.UserId);
+		AccelByteSubsystemPtr->CreateAndDispatchAsyncTask<FOnlineAsyncTaskAccelByteAddJoinedV1PartyMember>(TaskInfo, AccelByteSubsystemPtr.Get(), UserId, Party.ToSharedRef(), Notification.UserId);
 	}
 	else
 	{
 		// Local user is still joining party, will add party member after party join complete
 		FString JoinedUserId = Notification.UserId;
 		UE_LOG(LogAccelByteOSSParty, Verbose, TEXT("Party is not ready, party member %s will join after local user join party complete"), *JoinedUserId);
-		RunOnPartyJoinedComplete(FOnPartyJoinedDelegate::CreateLambda([this, JoinedUserId, UserId](const FUniqueNetId& /*LocalUserId*/, const FOnlinePartyId& /*PartyId*/)
+		RunOnPartyJoinedComplete(FOnPartyJoinedDelegate::CreateLambda([this, JoinedUserId, UserId, AccelByteSubsystemPtr](const FUniqueNetId& /*LocalUserId*/, const FOnlinePartyId& /*PartyId*/)
 		{
 			UE_LOG(LogAccelByteOSSParty, Verbose, TEXT("Party member %s joining party"), *JoinedUserId);
 			TSharedPtr<FOnlinePartyAccelByte> Party = GetFirstPartyForUser(UserId);
@@ -817,7 +835,7 @@ void FOnlinePartySystemAccelByte::OnPartyJoinNotification(const FAccelByteModels
 				FOnlineAsyncTaskInfo TaskInfo;
 				TaskInfo.bCreateEpicForThis = true;
 				TaskInfo.Type = ETypeOfOnlineAsyncTask::Parallel;
-				AccelByteSubsystem->CreateAndDispatchAsyncTask<FOnlineAsyncTaskAccelByteAddJoinedV1PartyMember>(TaskInfo, AccelByteSubsystem, UserId, Party.ToSharedRef(), JoinedUserId);
+				AccelByteSubsystemPtr->CreateAndDispatchAsyncTask<FOnlineAsyncTaskAccelByteAddJoinedV1PartyMember>(TaskInfo, AccelByteSubsystemPtr.Get(), UserId, Party.ToSharedRef(), JoinedUserId);
 			}
 			else
 			{
@@ -834,20 +852,27 @@ void FOnlinePartySystemAccelByte::OnPartyJoinNotification(const FAccelByteModels
 	});
 	TriggerOnPartyInvitesChangedDelegates(UserId.Get());
 
-	AB_OSS_INTERFACE_TRACE_END(TEXT("Dispatched async task to add new joined party member to local party."));
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Dispatched async task to add new joined party member to local party."));
 }
 
 void FOnlinePartySystemAccelByte::OnPartyMemberLeaveNotification(const FAccelByteModelsLeavePartyNotice& Notification, TSharedRef<const FUniqueNetIdAccelByteUser> UserId)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("UserId: %s; LeavingUser: %s"), *UserId->ToDebugString(), *Notification.UserID);
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("UserId: %s; LeavingUser: %s"), *UserId->ToDebugString(), *Notification.UserID);
+	
+	const FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if(!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Failed to handle on party member leave notification, AccelByteSubsystem ptr is invalid"));
+		return;
+	}
 
 	UE_LOG(LogAccelByteOSSParty, Verbose, TEXT("User '%s' has left the party!"), *Notification.UserID);
 
-	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystem->GetIdentityInterface());
+	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystemPtr->GetIdentityInterface());
 
 	if (IdentityInterface.IsValid())
 	{
-		FUniqueNetIdPtr LocalPlayerUserId = IdentityInterface->GetUniquePlayerId(AccelByteSubsystem->GetLocalUserNumCached());
+		FUniqueNetIdPtr LocalPlayerUserId = IdentityInterface->GetUniquePlayerId(AccelByteSubsystemPtr->GetLocalUserNumCached());
 		if (LocalPlayerUserId.IsValid())
 		{
 			TSharedRef<const FUniqueNetIdAccelByteUser> LocalAccelByteUserId = FUniqueNetIdAccelByteUser::CastChecked(LocalPlayerUserId.ToSharedRef());
@@ -872,12 +897,12 @@ void FOnlinePartySystemAccelByte::OnPartyMemberLeaveNotification(const FAccelByt
 		}
 	}
 
-	AB_OSS_INTERFACE_TRACE_END(TEXT("Removed user from party as they left."));
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Removed user from party as they left."));
 }
 
 void FOnlinePartySystemAccelByte::OnPartyKickNotification(const FAccelByteModelsGotKickedFromPartyNotice& Notification, TSharedRef<const FUniqueNetIdAccelByteUser> UserId)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("UserId: %s; PartyId: %s; KickedUser: %s"), *UserId->ToDebugString(), *Notification.PartyId, *Notification.UserId);
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("UserId: %s; PartyId: %s; KickedUser: %s"), *UserId->ToDebugString(), *Notification.PartyId, *Notification.UserId);
 
 	UE_LOG(LogAccelByteOSSParty, Verbose, TEXT("User '%s' has been kicked from party '%s'!"), *Notification.UserId, *Notification.PartyId);
 
@@ -891,7 +916,7 @@ void FOnlinePartySystemAccelByte::OnPartyKickNotification(const FAccelByteModels
 			TriggerOnPartyExitedDelegates(UserId.Get(), MakeShared<const FOnlinePartyIdAccelByte>(Notification.PartyId).Get());
 		}
 
-		AB_OSS_INTERFACE_TRACE_END(TEXT("Removing local user from party as they have been kicked."));
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Removing local user from party as they have been kicked."));
 	}
 	else
 	{
@@ -903,7 +928,7 @@ void FOnlinePartySystemAccelByte::OnPartyKickNotification(const FAccelByteModels
 			Party->RemoveMember(UserId, FUniqueNetIdAccelByteUser::Create(KickedUserCompositeId), EMemberExitedReason::Kicked);
 		}
 
-		AB_OSS_INTERFACE_TRACE_END(TEXT("Removing remote user from party as they have been kicked."));
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Removing remote user from party as they have been kicked."));
 	}
 }
 
@@ -947,7 +972,7 @@ void FOnlinePartySystemAccelByte::OnPartyMemberDisconnectNotification(const FAcc
 
 void FOnlinePartySystemAccelByte::OnPartyDataChangeNotification(const FAccelByteModelsPartyDataNotif& Notification, TSharedRef<const FUniqueNetIdAccelByteUser> UserId)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("UserId: %s; PartyId: %s"), *UserId->ToDebugString(), *Notification.PartyId);
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("UserId: %s; PartyId: %s"), *UserId->ToDebugString(), *Notification.PartyId);
 
 	FString NotificationString;
 	FJsonObjectConverter::UStructToJsonObjectString(Notification, NotificationString);
@@ -958,7 +983,7 @@ void FOnlinePartySystemAccelByte::OnPartyDataChangeNotification(const FAccelByte
 	TSharedPtr<FOnlinePartyAccelByte> Party = GetPartyForUser(UserId, MakeShared<const FOnlinePartyIdAccelByte>(Notification.PartyId));
 	if (!Party.IsValid())
 	{
-		AB_OSS_INTERFACE_TRACE_END(TEXT("Failed to update party data as we could not find a party with the ID specified. Probably need to call RestoreParties first."));
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Failed to update party data as we could not find a party with the ID specified. Probably need to call RestoreParties first."));
 		return;
 	} 
 	
@@ -999,13 +1024,19 @@ void FOnlinePartySystemAccelByte::OnPartyDataChangeNotification(const FAccelByte
 				}
 
 				// If the Leader Change, then the leader should request for PartyCode
-				const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystem->GetIdentityInterface());
+				const FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+				if(!AccelByteSubsystemPtr.IsValid())
+				{
+					AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Failed to request party code on leader change, AccelByteSubsystem ptr is invalid"));
+					return;
+				}
+				const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystemPtr->GetIdentityInterface());
 				if (IdentityInterface.IsValid())
 				{
 					if (Member->GetUserId() == LeaderMember->GetUserId() && IdentityInterface->GetApiClient(LeaderMemberId.Get()).IsValid())
 					{
 						FOnPartyCodeGenerated Delegate = FOnPartyCodeGenerated::CreateRaw(this, &FOnlinePartySystemAccelByte::OnPromotedLeaderGetPartyCode);
-						AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGetV1PartyCode>(AccelByteSubsystem, LeaderMemberId, Notification.PartyId, Delegate);
+						AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGetV1PartyCode>(AccelByteSubsystemPtr.Get(), LeaderMemberId, Notification.PartyId, Delegate);
 					}
 				}
 			}
@@ -1058,7 +1089,7 @@ void FOnlinePartySystemAccelByte::OnPartyDataChangeNotification(const FAccelByte
 	TriggerOnPartyDataReceivedDelegates(UserId.Get(), *Party->PartyId, *PartyData);
 #endif
 
-	AB_OSS_INTERFACE_TRACE_END(TEXT("Finished updating data on party."));
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Finished updating data on party."));
 }
 
 void FOnlinePartySystemAccelByte::RunOnPartyJoinedComplete(const FOnPartyJoinedDelegate& Delegate)
@@ -1077,11 +1108,18 @@ void FOnlinePartySystemAccelByte::OnPartyJoinedComplete(const FUniqueNetId& Loca
 
 void FOnlinePartySystemAccelByte::OnPartyJoinedCompleteMemberLeaveParty(const FUniqueNetId& LocalUserId, const FOnlinePartyId& PartyId, const FAccelByteModelsLeavePartyNotice Notification, TSharedRef<const FUniqueNetIdAccelByteUser> UserId, TSharedRef<const FUniqueNetIdAccelByteUser> LocalAccelByteUserId)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("UserId: %s; LeavingUser: %s"), *UserId->ToDebugString(), *Notification.UserID);
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("UserId: %s; LeavingUser: %s"), *UserId->ToDebugString(), *Notification.UserID);
+
+	const FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if(!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Failed to handle member leave party on party join, AccelByteSubsystem ptr is invalid"));
+		return;
+	}
 
 	UE_LOG(LogAccelByteOSSParty, Verbose, TEXT("User '%s' has left the party!"), *Notification.UserID);
 
-	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystem->GetIdentityInterface());
+	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystemPtr->GetIdentityInterface());
 
 	if (IdentityInterface.IsValid())
 	{
@@ -1097,12 +1135,12 @@ void FOnlinePartySystemAccelByte::OnPartyJoinedCompleteMemberLeaveParty(const FU
 		}
 	}
 
-	AB_OSS_INTERFACE_TRACE_END(TEXT("Removed user from party as they left."));
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Removed user from party as they left."));
 }
 
 void FOnlinePartySystemAccelByte::OnPromotedLeaderGetPartyCode(bool bWasSuccessful, const FString& PartyCode, const TSharedRef<const FUniqueNetIdAccelByteUser>& UserId, const FString& PartyId)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("UserId: %s; PartyId: %s; PartyCode: %s"), *UserId->ToDebugString(), *PartyId, *PartyCode);
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("UserId: %s; PartyId: %s; PartyCode: %s"), *UserId->ToDebugString(), *PartyId, *PartyCode);
 	UE_LOG(LogAccelByteOSSParty, Verbose, TEXT("User '%s' request for PartyCode was responded!"), *UserId->ToDebugString());
 
 	if (bWasSuccessful == false)
@@ -1121,12 +1159,19 @@ void FOnlinePartySystemAccelByte::OnPromotedLeaderGetPartyCode(bool bWasSuccessf
 	}
 	FoundParty->Get().SetPartyCode(PartyCode);
 
-	AB_OSS_INTERFACE_TRACE_END(TEXT("Successfully obtaining PartyCode."));
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Successfully obtaining PartyCode."));
 }
 
 void FOnlinePartySystemAccelByte::RegisterRealTimeLobbyDelegates(const TSharedRef<const FUniqueNetIdAccelByteUser>& UserId)
 {
-	const TSharedPtr<FOnlineIdentityAccelByte, ESPMode::ThreadSafe> IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystem->GetIdentityInterface());
+	const FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if(!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Failed to register lobby delegates, AccelByteSubsystem ptr is invalid"));
+		return;
+	}
+	
+	const TSharedPtr<FOnlineIdentityAccelByte, ESPMode::ThreadSafe> IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystemPtr->GetIdentityInterface());
 	if (!IdentityInterface.IsValid())
 	{
 		return;
@@ -1440,7 +1485,13 @@ void FOnlinePartySystemAccelByte::RestoreParties(const FUniqueNetId& LocalUserId
 		return;
 	}
 
-
+	const FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if(!AccelByteSubsystemPtr.IsValid())
+	{
+		UE_LOG_AB(Warning, TEXT("Failed to Restore parties, AccelByteSubsystem ptr is invalid"));
+		return;
+	}
+	
 	FOnlineAsyncTaskInfo TaskInfo;
 	TaskInfo.bCreateEpicForThis = true;
 	TaskInfo.Type = ETypeOfOnlineAsyncTask::Parallel;
@@ -1448,7 +1499,7 @@ void FOnlinePartySystemAccelByte::RestoreParties(const FUniqueNetId& LocalUserId
 	// Rather, if you have not toggled "Auto Kick on Disconnect" on in the Lobby configuration in the admin portal, you will
 	// still be in a party by this point, meaning that we can just send off a task to get party information when this is
 	// called in an attempt to "restore" our party.
-	AccelByteSubsystem->CreateAndDispatchAsyncTask<FOnlineAsyncTaskAccelByteRestoreV1Parties>(TaskInfo, AccelByteSubsystem, LocalUserId, CompletionDelegate);
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTask<FOnlineAsyncTaskAccelByteRestoreV1Parties>(TaskInfo, AccelByteSubsystemPtr.Get(), LocalUserId, CompletionDelegate);
 }
 
 void FOnlinePartySystemAccelByte::RestoreInvites(const FUniqueNetId& LocalUserId, const FOnRestoreInvitesComplete& CompletionDelegate)
@@ -1458,8 +1509,15 @@ void FOnlinePartySystemAccelByte::RestoreInvites(const FUniqueNetId& LocalUserId
 		return;
 	}
 
+	const FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if(!AccelByteSubsystemPtr.IsValid())
+	{
+		UE_LOG_AB(Warning, TEXT("Failed to restore invite, AccelByteSubsystem ptr is invalid"));
+		return;
+	}
+
 	UE_LOG_AB(Warning, TEXT("FOnlinePartySystemAccelByte::RestoreInvites is not currently supported."));
-	AccelByteSubsystem->ExecuteNextTick([UserId = LocalUserId.AsShared(), CompletionDelegate]() {
+	AccelByteSubsystemPtr->ExecuteNextTick([UserId = LocalUserId.AsShared(), CompletionDelegate]() {
 		CompletionDelegate.ExecuteIfBound(UserId.Get(), ONLINE_ERROR(EOnlineErrorResult::NotImplemented));
 	});
 }
@@ -1471,11 +1529,18 @@ void FOnlinePartySystemAccelByte::CleanupParties(const FUniqueNetId& LocalUserId
 		return;
 	}
 
+	const FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if(!AccelByteSubsystemPtr.IsValid())
+	{
+		UE_LOG_AB(Warning, TEXT("Failed to cleanup parties, AccelByteSubsystem ptr is invalid"));
+		return;
+	}
+
 	// I don't think we really need to implement a separate method for cleaning up party data, as we really only support
 	// one party at a time. With this in mind, if you just want to clean a party, you should be able to just leave that
 	// party, which will also clear all cached state.
 	UE_LOG_AB(Warning, TEXT("FOnlinePartySystemAccelByte::CleanupParties is not currently supported."));
-	AccelByteSubsystem->ExecuteNextTick([UserId = LocalUserId.AsShared(), CompletionDelegate]() {
+	AccelByteSubsystemPtr->ExecuteNextTick([UserId = LocalUserId.AsShared(), CompletionDelegate]() {
 		CompletionDelegate.ExecuteIfBound(UserId.Get(), ONLINE_ERROR(EOnlineErrorResult::NotImplemented));
 	});
 }
@@ -1487,6 +1552,13 @@ bool FOnlinePartySystemAccelByte::CreateParty(const FUniqueNetId& LocalUserId, c
 		return false;
 	}
 
+	const FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if(!AccelByteSubsystemPtr.IsValid())
+	{
+		UE_LOG_AB(Warning, TEXT("Failed to create party, AccelByteSubsystem ptr is invalid"));
+		return false;
+	}
+
 	if (bIsAcceptingCustomGameInvitation)
 	{
 		FOnCreatePartyComplete OnCreatePartyComplete = FOnCreatePartyComplete::CreateLambda([this, Delegate](const FUniqueNetId& LocalUserId, const TSharedPtr<const FOnlinePartyId>& PartyId, const ECreatePartyCompletionResult Result)
@@ -1495,11 +1567,11 @@ bool FOnlinePartySystemAccelByte::CreateParty(const FUniqueNetId& LocalUserId, c
 			Delegate.ExecuteIfBound(LocalUserId, PartyId, Result);
 			bIsAcceptingCustomGameInvitation = false;
 		});
-		AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteCreateV1Party>(AccelByteSubsystem, LocalUserId, PartyTypeId, PartyConfig, OnCreatePartyComplete);
+		AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteCreateV1Party>(AccelByteSubsystemPtr.Get(), LocalUserId, PartyTypeId, PartyConfig, OnCreatePartyComplete);
 	}
 	else
 	{
-		AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteCreateV1Party>(AccelByteSubsystem, LocalUserId, PartyTypeId, PartyConfig, Delegate);
+		AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteCreateV1Party>(AccelByteSubsystemPtr.Get(), LocalUserId, PartyTypeId, PartyConfig, Delegate);
 	}
 	return true;
 }
@@ -1510,6 +1582,12 @@ bool FOnlinePartySystemAccelByte::UpdateParty(const FUniqueNetId& LocalUserId, c
 	{
 		return false;
 	}
+	const FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if(!AccelByteSubsystemPtr.IsValid())
+	{
+		UE_LOG_AB(Warning, TEXT("Failed to update party, AccelByteSubsystem ptr is invalid"));
+		return false;
+	}
 
 	// Most if not all config about parties must be updated on the admin portal, at least for now. With that in mind, we do not support updating the config.
 	UE_LOG_AB(Warning, TEXT("FOnlinePartySystemAccelByte::UpdateParty is not supported!"));
@@ -1517,7 +1595,7 @@ bool FOnlinePartySystemAccelByte::UpdateParty(const FUniqueNetId& LocalUserId, c
 	// Convert IDs to our internal ID types so that we can pass them as lambda captures
 	const TSharedRef<const FUniqueNetIdAccelByteUser> NetId = FUniqueNetIdAccelByteUser::CastChecked(LocalUserId);
 	const TSharedRef<const FOnlinePartyIdAccelByte> ABPartyId = StaticCastSharedRef<const FOnlinePartyIdAccelByte>(PartyId.AsShared());
-	AccelByteSubsystem->ExecuteNextTick([NetId, ABPartyId, Delegate]() {
+	AccelByteSubsystemPtr->ExecuteNextTick([NetId, ABPartyId, Delegate]() {
 		Delegate.ExecuteIfBound(NetId.Get(), ABPartyId.Get(), EUpdateConfigCompletionResult::UnknownClientFailure);
 	});
 	return false;
@@ -1530,10 +1608,17 @@ bool FOnlinePartySystemAccelByte::JoinParty(const FUniqueNetId& LocalUserId, con
 		return false;
 	}
 
+	const FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if(!AccelByteSubsystemPtr.IsValid())
+	{
+		UE_LOG_AB(Warning, TEXT("Failed to join party, AccelByteSubsystem ptr is invalid"));
+		return false;
+	}
+
 	FOnlineAsyncTaskInfo TaskInfo;
 	TaskInfo.bCreateEpicForThis = true;
 	TaskInfo.Type = ETypeOfOnlineAsyncTask::Parallel;
-	AccelByteSubsystem->CreateAndDispatchAsyncTask<FOnlineAsyncTaskAccelByteJoinV1Party>(TaskInfo, AccelByteSubsystem, LocalUserId, OnlinePartyJoinInfo, Delegate);
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTask<FOnlineAsyncTaskAccelByteJoinV1Party>(TaskInfo, AccelByteSubsystemPtr.Get(), LocalUserId, OnlinePartyJoinInfo, Delegate);
 	return true;
 }
 
@@ -1544,10 +1629,17 @@ bool FOnlinePartySystemAccelByte::JoinParty(const FUniqueNetId& LocalUserId, con
 		return false;
 	}
 
+	const FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if(!AccelByteSubsystemPtr.IsValid())
+	{
+		UE_LOG_AB(Warning, TEXT("Failed to join party, AccelByteSubsystem ptr is invalid"));
+		return false;
+	}
+
 	FOnlineAsyncTaskInfo TaskInfo;
 	TaskInfo.bCreateEpicForThis = true;
 	TaskInfo.Type = ETypeOfOnlineAsyncTask::Parallel;
-	AccelByteSubsystem->CreateAndDispatchAsyncTask<FOnlineAsyncTaskAccelByteJoinV1Party>(TaskInfo, AccelByteSubsystem, LocalUserId, InPartyCode, Delegate);
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTask<FOnlineAsyncTaskAccelByteJoinV1Party>(TaskInfo, AccelByteSubsystemPtr.Get(), LocalUserId, InPartyCode, Delegate);
 	return true;
 }
 
@@ -1596,6 +1688,13 @@ bool FOnlinePartySystemAccelByte::RejoinParty(const FUniqueNetId& LocalUserId, c
 	{
 		return false;
 	}
+	
+	const FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if(!AccelByteSubsystemPtr.IsValid())
+	{
+		UE_LOG_AB(Warning, TEXT("Failed to rejoin party, AccelByteSubsystem ptr is invalid"));
+		return false;
+	}
 
 	// Since parties require an invite to join them, you cannot just rejoin a party with the ID unless you have an invite, by which point you'd just join via JoinParty.
 	UE_LOG_AB(Warning, TEXT("FOnlinePartySystemAccelByte::RejoinParty is not supported!"));
@@ -1603,7 +1702,8 @@ bool FOnlinePartySystemAccelByte::RejoinParty(const FUniqueNetId& LocalUserId, c
 	// Convert IDs to our internal ID types so that we can pass them as lambda captures
 	const TSharedRef<const FUniqueNetIdAccelByteUser> NetId = FUniqueNetIdAccelByteUser::CastChecked(LocalUserId);
 	const TSharedRef<const FOnlinePartyIdAccelByte> ABPartyId = StaticCastSharedRef<const FOnlinePartyIdAccelByte>(PartyId.AsShared());
-	AccelByteSubsystem->ExecuteNextTick([NetId, ABPartyId, Delegate]() {
+	AccelByteSubsystemPtr->ExecuteNextTick([NetId, ABPartyId, Delegate]() {
+		PRAGMA_DISABLE_DEPRECATION_WARNINGS
 		Delegate.ExecuteIfBound(NetId.Get(), ABPartyId.Get(), EJoinPartyCompletionResult::UnableToRejoin, UNSUPPORTED_METHOD_REASON);
 	});
 
@@ -1628,7 +1728,14 @@ bool FOnlinePartySystemAccelByte::LeaveParty(const FUniqueNetId& LocalUserId, co
 		return false;
 	}
 
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteLeaveV1Party>(AccelByteSubsystem, LocalUserId, PartyId, bSynchronizeLeave, Delegate);
+	const FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if(!AccelByteSubsystemPtr.IsValid())
+	{
+		UE_LOG_AB(Warning, TEXT("Failed to leave party, AccelByteSubsystem ptr is invalid"));
+		return false;
+	}
+
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteLeaveV1Party>(AccelByteSubsystemPtr.Get(), LocalUserId, PartyId, bSynchronizeLeave, Delegate);
 	return true;
 }
 
@@ -1664,8 +1771,15 @@ void FOnlinePartySystemAccelByte::QueryPartyJoinability(const FUniqueNetId& Loca
 		return;
 	}
 
+	const FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if(!AccelByteSubsystemPtr.IsValid())
+	{
+		UE_LOG_AB(Warning, TEXT("Failed to query party joinability, AccelByteSubsystem ptr is invalid"));
+		return;
+	}
+
 	UE_LOG_AB(Warning, TEXT("FOnlinePartySystemAccelByte::QueryPartyJoinabilty is not supported as the only way to join a party is through an invite!"));
-	AccelByteSubsystem->ExecuteNextTick([UserId = LocalUserId.AsShared(), Delegate]() {
+	AccelByteSubsystemPtr->ExecuteNextTick([UserId = LocalUserId.AsShared(), Delegate]() {
 		Delegate.ExecuteIfBound(UserId.Get(), MakeShared<FOnlinePartyIdAccelByte>().Get(), EJoinPartyCompletionResult::IncompatiblePlatform, 0);
 	});
 }
@@ -1690,8 +1804,15 @@ void FOnlinePartySystemAccelByte::QueryPartyJoinability(const FUniqueNetId& Loca
 		return;
 	}
 
+	const FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if(!AccelByteSubsystemPtr.IsValid())
+	{
+		UE_LOG_AB(Warning, TEXT("Failed to query party joinability, AccelByteSubsystem ptr is invalid"));
+		return;
+	}
+
 	UE_LOG_AB(Warning, TEXT("FOnlinePartySystemAccelByte::QueryPartyJoinabilty is not supported as the only way to join a party is through an invite!"));
-	AccelByteSubsystem->ExecuteNextTick([UserId = LocalUserId.AsShared(), Delegate]() {
+	AccelByteSubsystemPtr->ExecuteNextTick([UserId = LocalUserId.AsShared(), Delegate]() {
 		FQueryPartyJoinabilityResult Result;
 		Result.EnumResult = EJoinPartyCompletionResult::IncompatiblePlatform;
 		Result.SubCode = 0;
@@ -1753,7 +1874,14 @@ bool FOnlinePartySystemAccelByte::SendInvitation(const FUniqueNetId& LocalUserId
 		return false;
 	}
 
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteSendV1PartyInvite>(AccelByteSubsystem, LocalUserId, PartyId, Recipient, Delegate);
+	const FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if(!AccelByteSubsystemPtr.IsValid())
+	{
+		UE_LOG_AB(Warning, TEXT("Failed to send invitation, AccelByteSubsystem ptr is invalid"));
+		return false;
+	}
+
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteSendV1PartyInvite>(AccelByteSubsystemPtr.Get(), LocalUserId, PartyId, Recipient, Delegate);
 	return true;
 }
 
@@ -1764,10 +1892,17 @@ bool FOnlinePartySystemAccelByte::RejectInvitation(const FUniqueNetId& LocalUser
 		return false;
 	}
 
+	const FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if(!AccelByteSubsystemPtr.IsValid())
+	{
+		UE_LOG_AB(Warning, TEXT("Failed to reject invite, AccelByteSubsystem ptr is invalid"));
+		return false;
+	}
+
 	TSharedRef<const FUniqueNetIdAccelByteUser> LocalUserIdAccelByte = FUniqueNetIdAccelByteUser::CastChecked(LocalUserId);
 	TSharedRef<const FUniqueNetIdAccelByteUser> SenderIdAccelByte = FUniqueNetIdAccelByteUser::CastChecked(SenderId);
 	
-	const TSharedPtr<FOnlineIdentityAccelByte, ESPMode::ThreadSafe> IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystem->GetIdentityInterface());
+	const TSharedPtr<FOnlineIdentityAccelByte, ESPMode::ThreadSafe> IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystemPtr->GetIdentityInterface());
 	if (!IdentityInterface.IsValid())
 	{
 		return false;
@@ -1811,7 +1946,14 @@ bool FOnlinePartySystemAccelByte::KickMember(const FUniqueNetId& LocalUserId, co
 		return false;
 	}
 
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteKickV1PartyMember>(AccelByteSubsystem, LocalUserId, PartyId, TargetMemberId, Delegate);
+	const FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if(!AccelByteSubsystemPtr.IsValid())
+	{
+		UE_LOG_AB(Warning, TEXT("Failed to kick member, AccelByteSubsystem ptr is invalid"));
+		return false;
+	}
+
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteKickV1PartyMember>(AccelByteSubsystemPtr.Get(), LocalUserId, PartyId, TargetMemberId, Delegate);
 	return true;
 }
 
@@ -1822,7 +1964,14 @@ bool FOnlinePartySystemAccelByte::PromoteMember(const FUniqueNetId& LocalUserId,
 		return false;
 	}
 
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelBytePromoteV1PartyLeader>(AccelByteSubsystem, LocalUserId, PartyId, TargetMemberId, Delegate);
+	const FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if(!AccelByteSubsystemPtr.IsValid())
+	{
+		UE_LOG_AB(Warning, TEXT("Failed to promote member, AccelByteSubsystem ptr is invalid"));
+		return false;
+	}
+
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelBytePromoteV1PartyLeader>(AccelByteSubsystemPtr.Get(), LocalUserId, PartyId, TargetMemberId, Delegate);
 	return true;
 }
 
@@ -1837,10 +1986,17 @@ bool FOnlinePartySystemAccelByte::UpdatePartyData(const FUniqueNetId& LocalUserI
 		return false;
 	}
 
+	const FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if(!AccelByteSubsystemPtr.IsValid())
+	{
+		UE_LOG_AB(Warning, TEXT("Failed to update party data, AccelByteSubsystem ptr is invalid"));
+		return false;
+	}
+
 #if (ENGINE_MAJOR_VERSION == 4 && ENGINE_MINOR_VERSION <= 25)
 	FName Namespace{};
 #endif
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteUpdateV1PartyData>(AccelByteSubsystem, LocalUserId, PartyId, Namespace, PartyData);
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteUpdateV1PartyData>(AccelByteSubsystemPtr.Get(), LocalUserId, PartyId, Namespace, PartyData);
 	return true;
 }
 

@@ -23,8 +23,7 @@ void FOnlineAsyncTaskAccelByteAcceptBackfillProposal::Initialize()
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("SessionName: %s; BackfillTicketId: %s; ProposalId: %s"), *SessionName.ToString(), *Proposal.BackfillTicketID, *Proposal.ProposalID);
 
-	AccelByte::FServerApiClientPtr ServerApiClient = AccelByte::FMultiRegistry::GetServerApiClient();
-	AB_ASYNC_TASK_VALIDATE(ServerApiClient.IsValid(), "Failed to accept backfill proposal for session as we could not get a server API client!");
+	SERVER_API_CLIENT_CHECK_GUARD();
 
 	OnAcceptBackfillProposalSuccessDelegate = AccelByte::TDelegateUtils<THandler<FAccelByteModelsV2GameSession>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteAcceptBackfillProposal::OnAcceptBackfillProposalSuccess);
 	OnAcceptBackfillProposalErrorDelegate = AccelByte::TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteAcceptBackfillProposal::OnAcceptBackfillProposalError);;
@@ -36,6 +35,8 @@ void FOnlineAsyncTaskAccelByteAcceptBackfillProposal::Initialize()
 void FOnlineAsyncTaskAccelByteAcceptBackfillProposal::Finalize()
 {
 	TRY_PIN_SUBSYSTEM()
+
+	SERVER_API_CLIENT_CHECK_GUARD();
 
 	Super::Finalize();
 
@@ -72,7 +73,7 @@ void FOnlineAsyncTaskAccelByteAcceptBackfillProposal::Finalize()
 		if (PredefinedEventInterface.IsValid())
 		{
 			FAccelByteModelsDSBackfillProposalAcceptedPayload DSBackfillProposalAcceptedPayload{};
-			DSBackfillProposalAcceptedPayload.PodName = AccelByte::FRegistry::ServerDSM.GetServerName();
+			DSBackfillProposalAcceptedPayload.PodName = ServerApiClient->ServerDSM.GetServerName();
 			DSBackfillProposalAcceptedPayload.BackfillTicketId = GameSessionInfo.BackfillTicketID;
 			DSBackfillProposalAcceptedPayload.ProposalId = Proposal.ProposalID;
 			DSBackfillProposalAcceptedPayload.MatchPool = GameSessionInfo.MatchPool;

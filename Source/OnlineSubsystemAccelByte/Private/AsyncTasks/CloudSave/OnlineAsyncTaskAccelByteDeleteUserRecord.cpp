@@ -56,7 +56,8 @@ void FOnlineAsyncTaskAccelByteDeleteUserRecord::Initialize()
 			return;
 		}
 
-		const FServerApiClientPtr ServerApiClient = FMultiRegistry::GetServerApiClient();
+		SERVER_API_CLIENT_CHECK_GUARD(ErrorStr);
+		
 		ServerApiClient->ServerCloudSave.DeleteUserRecord(Key, *TargetUserId, false, OnDeleteUserRecordSuccessDelegate, OnDeleteUserRecordErrorDelegate);
 	}
 	else

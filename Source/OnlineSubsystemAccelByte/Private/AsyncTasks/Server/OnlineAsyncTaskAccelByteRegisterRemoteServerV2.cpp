@@ -23,6 +23,8 @@ void FOnlineAsyncTaskAccelByteRegisterRemoteServerV2::Initialize()
 
     AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 
+    SERVER_API_CLIENT_CHECK_GUARD();
+
     const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(SubsystemPin->GetSessionInterface());
     AB_ASYNC_TASK_VALIDATE(SessionInterface.IsValid(), "Failed to register remote server as our session interface is invalid!");
 
@@ -31,7 +33,7 @@ void FOnlineAsyncTaskAccelByteRegisterRemoteServerV2::Initialize()
 
 	OnRegisterServerSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsServerInfo>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteRegisterRemoteServerV2::OnRegisterServerSuccess);
     OnRegisterServerErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteRegisterRemoteServerV2::OnRegisterServerError);;
-	FRegistry::ServerDSM.RegisterServerToDSM(RegisterPort, OnRegisterServerSuccessDelegate, OnRegisterServerErrorDelegate);
+	ServerApiClient->ServerDSM.RegisterServerToDSM(RegisterPort, OnRegisterServerSuccessDelegate, OnRegisterServerErrorDelegate);
 
     AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
@@ -65,8 +67,9 @@ void FOnlineAsyncTaskAccelByteRegisterRemoteServerV2::Finalize()
         const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = SubsystemPin->GetPredefinedEventInterface();
         if (PredefinedEventInterface.IsValid())
         {
+            SERVER_API_CLIENT_CHECK_GUARD();
             FAccelByteModelsDSRegisteredPayload DSRegisteredPayload{};
-            DSRegisteredPayload.PodName = FRegistry::ServerDSM.GetServerName();
+            DSRegisteredPayload.PodName = ServerApiClient->ServerDSM.GetServerName();
             PredefinedEventInterface->SendEvent(-1, MakeShared<FAccelByteModelsDSRegisteredPayload>(DSRegisteredPayload));
         }
     }

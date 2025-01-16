@@ -6,6 +6,7 @@
 #include "AsyncTasks/OnlineAsyncTaskAccelByte.h"
 #include "AsyncTasks/OnlineAsyncTaskAccelByteUtils.h"
 #include "Models/AccelByteEcommerceModels.h"
+#include "OnlineStoreInterfaceV2AccelByte.h"
 
 class FOnlineAsyncTaskAccelByteQueryOfferDynamicData
 	: public FOnlineAsyncTaskAccelByte

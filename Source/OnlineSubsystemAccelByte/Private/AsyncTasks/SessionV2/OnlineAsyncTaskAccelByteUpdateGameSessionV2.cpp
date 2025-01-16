@@ -175,7 +175,8 @@ void FOnlineAsyncTaskAccelByteUpdateGameSessionV2::Initialize()
 	OnUpdateGameSessionErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteUpdateGameSessionV2::OnUpdateGameSessionError);
 	if (IsRunningDedicatedServer())
 	{
-		FRegistry::ServerSession.UpdateGameSession(SessionInfo->GetSessionId().ToString(), UpdateRequest, OnUpdateGameSessionSuccessDelegate, OnUpdateGameSessionErrorDelegate);
+		SERVER_API_CLIENT_CHECK_GUARD();
+		ServerApiClient->ServerSession.UpdateGameSession(SessionInfo->GetSessionId().ToString(), UpdateRequest, OnUpdateGameSessionSuccessDelegate, OnUpdateGameSessionErrorDelegate);
 	}
 	else
 	{
@@ -278,7 +279,8 @@ void FOnlineAsyncTaskAccelByteUpdateGameSessionV2::RefreshSession()
 	OnRefreshGameSessionErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteUpdateGameSessionV2::OnRefreshGameSessionError);;
 	if (IsRunningDedicatedServer())
 	{
-		FMultiRegistry::GetServerApiClient()->ServerSession.GetGameSessionDetails(SessionId, OnRefreshGameSessionSuccessDelegate, OnRefreshGameSessionErrorDelegate);
+		SERVER_API_CLIENT_CHECK_GUARD();
+		ServerApiClient->ServerSession.GetGameSessionDetails(SessionId, OnRefreshGameSessionSuccessDelegate, OnRefreshGameSessionErrorDelegate);
 	}
 	else
 	{

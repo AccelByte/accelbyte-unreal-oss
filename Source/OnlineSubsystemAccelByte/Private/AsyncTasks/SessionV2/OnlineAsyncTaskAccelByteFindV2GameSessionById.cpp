@@ -37,7 +37,8 @@ void FOnlineAsyncTaskAccelByteFindV2GameSessionById::Initialize()
 	
 	if (IsRunningDedicatedServer())
 	{
-		FRegistry::ServerSession.GetGameSessionDetails(SessionId->ToString(), OnGetGameSessionDetailsSuccessDelegate, OnGetGameSessionDetailsErrorDelegate);
+		SERVER_API_CLIENT_CHECK_GUARD();
+		ServerApiClient->ServerSession.GetGameSessionDetails(SessionId->ToString(), OnGetGameSessionDetailsSuccessDelegate, OnGetGameSessionDetailsErrorDelegate);
 	}
 	else
 	{

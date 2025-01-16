@@ -22,9 +22,11 @@ void FOnlineAsyncTaskAccelByteLoginServer::Initialize()
 
     AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 
+    SERVER_API_CLIENT_CHECK_GUARD();
+
 	OnServerLoginSuccessDelegate = TDelegateUtils<FVoidHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteLoginServer::OnLoginServerSuccess);
 	OnServerLoginErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteLoginServer::OnLoginServerError);
-	FRegistry::ServerOauth2.LoginWithClientCredentials(OnServerLoginSuccessDelegate, OnServerLoginErrorDelegate);
+	ServerApiClient->ServerOauth2.LoginWithClientCredentials(OnServerLoginSuccessDelegate, OnServerLoginErrorDelegate);
 
     AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
@@ -77,9 +79,11 @@ void FOnlineAsyncTaskAccelByteLoginServer::OnLoginServerSuccess()
 
     AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 
+    SERVER_API_CLIENT_CHECK_GUARD();
+
     // After logging in, create the user ID instance.
     FAccelByteUniqueIdComposite CompositeId;
-    CompositeId.Id = FRegistry::ServerCredentials.GetUserId();
+    CompositeId.Id = ServerApiClient->ServerCredentialsRef->GetUserId();
     UserId = FUniqueNetIdAccelByteUser::Create(CompositeId);
 
     // If the user ID is valid,  we want to provide an Access Token on the Identity Interface.
@@ -88,7 +92,7 @@ void FOnlineAsyncTaskAccelByteLoginServer::OnLoginServerSuccess()
         // Also create an account instance for them, this will be fed back to the identity interface after login
         TSharedPtr<FUserOnlineAccountAccelByte> Account;
         Account = MakeShared<FUserOnlineAccountAccelByte>(UserId.ToSharedRef()); 
-        Account->SetCredentialsRef(FRegistry::ServerCredentialsRef);
+        Account->SetCredentialsRef(ServerApiClient->ServerCredentialsRef);
 
         const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(SubsystemPin->GetIdentityInterface());
         if (IdentityInterface.IsValid())

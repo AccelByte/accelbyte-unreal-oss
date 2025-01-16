@@ -5,6 +5,7 @@
 #pragma once
 #include "AsyncTasks/OnlineAsyncTaskAccelByte.h"
 #include "AsyncTasks/OnlineAsyncTaskAccelByteUtils.h"
+#include "InterfaceModels/OnlineAchievementInterfaceAccelByteModels.h"
 #include "Interfaces/OnlineAchievementsInterface.h"
 #include "InterfaceModels/OnlineUserInterfaceAccelByteModels.h"
 
@@ -41,7 +42,6 @@ private:
 
 	TArray<FAccelByteModelsUserAchievement> UserAchievements{};
 	FOnQueryAchievementsCompleteDelegate Delegate;
-	bool bWasSuccessful;
 
 	FAccelByteQueryAchievementsParameters RequestParameters = {};
 };

@@ -4,6 +4,8 @@
 
 #include "OnlineAsyncTaskAccelByteGetEstimatedPrice.h"
 
+#include "OnlineStoreInterfaceV2AccelByte.h"
+
 #define ONLINE_ERROR_NAMESPACE "FOnlineStoreV2SystemAccelByte"
 
 using namespace AccelByte;

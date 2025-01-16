@@ -12,6 +12,7 @@
 #endif
 #include "OnlineSubsystemTypes.h"
 #include "OnlineSubsystem.h"
+#include "OnlineSubsystemAccelByte.h"
 #include "OnlineSubsystemAccelByteTypes.h"
 #include "Interfaces/OnlinePresenceInterface.h"
 #include "Models/AccelByteLobbyModels.h"
@@ -131,7 +132,7 @@ PACKAGE_SCOPE:
 protected: 
 
 	/** Instance of the subsystem that created this interface */
-	FOnlineSubsystemAccelByte* AccelByteSubsystem = nullptr;
+	FOnlineSubsystemAccelByteWPtr AccelByteSubsystem = nullptr;
 
 	/** Hidden default constructor, the constructor that takes in a subsystem instance should be used instead. */
 	FOnlinePresenceAccelByte()

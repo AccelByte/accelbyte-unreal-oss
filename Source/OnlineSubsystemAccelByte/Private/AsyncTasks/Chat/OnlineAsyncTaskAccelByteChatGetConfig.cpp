@@ -3,8 +3,9 @@
 // and restrictions contact your company contract manager.
 
 #include "OnlineAsyncTaskAccelByteChatGetConfig.h"
-#include "OnlinePredefinedEventInterfaceAccelByte.h"
 
+#include "OnlineChatInterfaceAccelByte.h"
+#include "OnlinePredefinedEventInterfaceAccelByte.h"
 #include "AsyncTasks/OnlineAsyncTaskAccelByteUtils.h"
 
 using namespace AccelByte;

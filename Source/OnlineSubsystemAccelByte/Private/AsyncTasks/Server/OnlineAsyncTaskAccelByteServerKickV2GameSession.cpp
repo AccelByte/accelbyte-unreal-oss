@@ -40,7 +40,7 @@ void FOnlineAsyncTaskAccelByteServerKickV2GameSession::Initialize()
 	const auto OnSuccessDelegate = TDelegateUtils<FVoidHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteServerKickV2GameSession::OnKickUserSuccess);
 	const auto OnErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteServerKickV2GameSession::OnKickUserError);
 
-	const FServerApiClientPtr ServerApiClient = FMultiRegistry::GetServerApiClient();
+	SERVER_API_CLIENT_CHECK_GUARD()
 	ServerApiClient->ServerSession.KickUserFromGameSession(GameSessionID, PlayerIdToKick->GetAccelByteId(), OnSuccessDelegate, OnErrorDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
@@ -84,10 +84,20 @@ void FOnlineAsyncTaskAccelByteServerKickV2GameSession::TriggerDelegates()
 			return;
 		}
 
+		// OnSessionParticipantLeft added in Unreal 5.2 to replace OnSessionParticipantRemoved
+#if ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION >= 2
+		SessionInterface->TriggerOnSessionParticipantLeftDelegates(SessionName, PlayerIdToKick.Get(), EOnSessionParticipantLeftReason::Kicked);
+#endif
+
+		// Both OnSessionParticipantsChange and OnSessionParticipantRemoved are deprecated in 5.2 and removed in 5.5
+#if !(ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION >= 5)
 		SessionInterface->TriggerOnSessionParticipantsChangeDelegates(SessionName, PlayerIdToKick.Get(), false);
+
 #if ENGINE_MAJOR_VERSION >= 5 || (ENGINE_MAJOR_VERSION == 4 && ENGINE_MINOR_VERSION >= 27)
 		SessionInterface->TriggerOnSessionParticipantRemovedDelegates(SessionName, PlayerIdToKick.Get());
 #endif
+#endif // !(ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION >= 5)
+
 	}
 
 	Delegate.ExecuteIfBound(bWasSuccessful, PlayerIdToKick.Get());

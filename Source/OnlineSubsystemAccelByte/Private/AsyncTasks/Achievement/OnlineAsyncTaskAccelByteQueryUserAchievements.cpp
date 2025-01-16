@@ -3,6 +3,8 @@
 // and restrictions contact your company contract manager.
 
 #include "OnlineAsyncTaskAccelByteQueryUserAchievements.h"
+
+#include "OnlineAchievementsInterfaceAccelByte.h"
 #include "Interfaces/OnlineAchievementsInterface.h"
 #include "OnlinePredefinedEventInterfaceAccelByte.h"
 
@@ -12,7 +14,7 @@ FOnlineAsyncTaskAccelByteQueryUserAchievements::FOnlineAsyncTaskAccelByteQueryUs
 	FOnlineSubsystemAccelByte* const InABSubsystem,
 	FUniqueNetId const& InPlayerId,
 	FOnQueryAchievementsCompleteDelegate const& InDelegate)
-	: FOnlineAsyncTaskAccelByte(InABSubsystem), 
+	: FOnlineAsyncTaskAccelByte(InABSubsystem),
 	Delegate(InDelegate)
 {
 	UserId = FUniqueNetIdAccelByteUser::CastChecked(InPlayerId);
@@ -50,7 +52,7 @@ void FOnlineAsyncTaskAccelByteQueryUserAchievements::Initialize()
 
 void FOnlineAsyncTaskAccelByteQueryUserAchievements::TriggerDelegates()
 {
-	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
+	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("UserId: %s, bWasSuccessful: %s"), *UserId->ToDebugString() ,LOG_BOOL_FORMAT(bWasSuccessful));
 
 	FOnlineAsyncTaskAccelByte::TriggerDelegates();
 	Delegate.ExecuteIfBound(*UserId,bWasSuccessful);

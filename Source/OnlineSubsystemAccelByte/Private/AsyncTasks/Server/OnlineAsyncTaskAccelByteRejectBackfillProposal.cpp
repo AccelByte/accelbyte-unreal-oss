@@ -21,8 +21,7 @@ void FOnlineAsyncTaskAccelByteRejectBackfillProposal::Initialize()
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("SessionName: %s; BackfillTicketId: %s; ProposalId: %s"), *SessionName.ToString(), *Proposal.BackfillTicketID, *Proposal.ProposalID);
 
-	AccelByte::FServerApiClientPtr ServerApiClient = AccelByte::FMultiRegistry::GetServerApiClient();
-	AB_ASYNC_TASK_VALIDATE(ServerApiClient.IsValid(), "Failed to reject backfill proposal for session as we could not get a server API client!");
+	SERVER_API_CLIENT_CHECK_GUARD();
 
 	OnRejectBackfillProposalSuccessDelegate = AccelByte::TDelegateUtils<FVoidHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteRejectBackfillProposal::OnRejectBackfillProposalSuccess);
 	OnRejectBackfillProposalErrorDelegate = AccelByte::TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteRejectBackfillProposal::OnRejectBackfillProposalError);;
@@ -65,8 +64,9 @@ void FOnlineAsyncTaskAccelByteRejectBackfillProposal::Finalize()
 		const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = SubsystemPin->GetPredefinedEventInterface();
 		if (PredefinedEventInterface.IsValid())
 		{
+			SERVER_API_CLIENT_CHECK_GUARD()
 			FAccelByteModelsDSBackfillProposalRejectedPayload DSBackfillProposalRejectedPayload{};
-			DSBackfillProposalRejectedPayload.PodName = AccelByte::FRegistry::ServerDSM.GetServerName();
+			DSBackfillProposalRejectedPayload.PodName = ServerApiClient->ServerDSM.GetServerName();
 			DSBackfillProposalRejectedPayload.BackfillTicketId = Proposal.BackfillTicketID;
 			DSBackfillProposalRejectedPayload.ProposalId = Proposal.ProposalID;
 			DSBackfillProposalRejectedPayload.MatchPool = Proposal.MatchPool;

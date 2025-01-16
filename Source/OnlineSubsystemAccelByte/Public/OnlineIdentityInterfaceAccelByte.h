@@ -168,17 +168,28 @@ public:
 	virtual FString GetPlayerNickname(const FUniqueNetId& UserId) const override;
 	virtual FString GetAuthToken(int32 LocalUserNum) const override;
 	virtual void RevokeAuthToken(const FUniqueNetId& UserId, const FOnRevokeAuthTokenCompleteDelegate& Delegate) override;
+
+	// #NOTE: Deprecated by Epic and removed in 5.5, prefer using method with TokenType
+#if !(ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION >= 5)
 	virtual void GetLinkedAccountAuthToken(int32 LocalUserNum, const FOnGetLinkedAccountAuthTokenCompleteDelegate& Delegate) const override;
+#endif // !(ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION >= 5)
+
+#if ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION >= 2
+	virtual void GetLinkedAccountAuthToken(int32 LocalUserNum, const FString& TokenType, const FOnGetLinkedAccountAuthTokenCompleteDelegate& Delegate) const override;
+#endif // ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION >= 2
+
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 4
 	virtual void GetUserPrivilege(const FUniqueNetId& UserId, EUserPrivileges::Type Privilege, const FOnGetUserPrivilegeCompleteDelegate& Delegate, EShowPrivilegeResolveUI ShowResolveUI = EShowPrivilegeResolveUI::Default) override;
 #else
 	virtual void GetUserPrivilege(const FUniqueNetId& UserId, EUserPrivileges::Type Privilege, const FOnGetUserPrivilegeCompleteDelegate& Delegate) override;
-#endif
+#endif // ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 4
+
 	virtual FPlatformUserId GetPlatformUserIdFromUniqueNetId(const FUniqueNetId& UniqueNetId) const override;
 	virtual FString GetAuthType() const override;
+
 #if ENGINE_MAJOR_VERSION > 4
 	virtual int32 GetLocalUserNumFromPlatformUserId(FPlatformUserId PlatformUserId) const override;
-#endif
+#endif // ENGINE_MAJOR_VERSION > 4
 	//~ End IOnlineIdentity Interface
 
 	/** Extra method to try and get a LocalUserNum from a FUniqueNetId instance */
@@ -202,7 +213,7 @@ public:
 	AccelByte::FApiClientPtr GetApiClient(int32 LocalUserNum);
 
 	/**
-	 * Authenticate a server on the backend using the FRegistry global API client
+	 * Authenticate a server on the backend
 	 * 
 	 * #TODO (Maxwell): This really should be supported by AutoLogin as a separate authentication path, as there's a ton
 	 * of hacky code we need to write to make sure that any server call is working when authenticated. If we use AutoLogin
@@ -774,7 +785,7 @@ private:
 	FOnlineIdentityAccelByte() = delete;
 
 	/** Parent subsystem that spawned this instance */
-	TWeakPtr<FOnlineSubsystemAccelByte, ESPMode::ThreadSafe> AccelByteSubsystem;
+	FOnlineSubsystemAccelByteWPtr AccelByteSubsystem;
 
 	/** Simple mapping for LocalUserNum to FUniqueNetIdAccelByte for users. Filled when users log in. */
 	TMap<int32, FUniqueNetIdRef> LocalUserNumToNetIdMap;

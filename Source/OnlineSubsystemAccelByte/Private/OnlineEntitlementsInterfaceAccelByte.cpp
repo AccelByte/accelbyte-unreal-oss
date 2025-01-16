@@ -52,7 +52,11 @@ FOnlineEntitlementAccelByte::~FOnlineEntitlementAccelByte()
 #pragma endregion 
 
 FOnlineEntitlementsAccelByte::FOnlineEntitlementsAccelByte(FOnlineSubsystemAccelByte* InSubsystem)
-	: AccelByteSubsystem(InSubsystem)
+#if ENGINE_MAJOR_VERSION >= 5
+		: AccelByteSubsystem(InSubsystem->AsWeak())
+#else
+		: AccelByteSubsystem(InSubsystem->AsShared())
+#endif
 {
 }
 
@@ -157,52 +161,85 @@ void FOnlineEntitlementsAccelByte::GetAllEntitlements(const FUniqueNetId& UserId
 
 bool FOnlineEntitlementsAccelByte::QueryEntitlements(const FUniqueNetId& UserId, const FString& Namespace, const FPagedQuery& Page)
 {
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteQueryEntitlements>(AccelByteSubsystem, UserId, Namespace, Page);
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return false;
+	}
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteQueryEntitlements>(AccelByteSubsystemPtr.Get(), UserId, Namespace, Page);
 	return true;
 }
 
 void FOnlineEntitlementsAccelByte::ConsumeEntitlement(const FUniqueNetId& UserId, const FUniqueEntitlementId& EntitlementId, int32 UseCount, TArray<FString> Options, const FString& RequestId)
 {
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteConsumeEntitlement>(AccelByteSubsystem, UserId, EntitlementId, UseCount, Options, RequestId);
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return;
+	}
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteConsumeEntitlement>(AccelByteSubsystemPtr.Get(), UserId, EntitlementId, UseCount, Options, RequestId);
 }
 
 void FOnlineEntitlementsAccelByte::SyncPlatformPurchase(int32 LocalUserNum, FAccelByteModelsEntitlementSyncBase EntitlementSyncBase, const FOnRequestCompleted& CompletionDelegate)
 {
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteSyncPlatformPurchase>(AccelByteSubsystem, LocalUserNum, EntitlementSyncBase, CompletionDelegate);
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return;
+	}
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteSyncPlatformPurchase>(AccelByteSubsystemPtr.Get(), LocalUserNum, EntitlementSyncBase, CompletionDelegate);
 }
 
 void FOnlineEntitlementsAccelByte::SyncPlatformPurchase(const FUniqueNetId& InLocalUserId, const FOnRequestCompleted& CompletionDelegate)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT(""))
-	if (AccelByteSubsystem->GetSecondaryPlatformSubsystemName().ToString().Contains(TEXT("Oculus"))
-		|| AccelByteSubsystem->GetSecondaryPlatformSubsystemName().ToString().Contains(TEXT("Meta")))
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT(""))
+
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
 	{
-		AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteSyncMetaQuestIAP>(AccelByteSubsystem, InLocalUserId, CompletionDelegate);
-		AB_OSS_INTERFACE_TRACE_END(TEXT("Sync MetaQuest IAP task dispatched."))
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return;
+	}
+	
+	if (AccelByteSubsystemPtr->GetSecondaryPlatformSubsystemName().ToString().Contains(TEXT("Oculus"))
+		|| AccelByteSubsystemPtr->GetSecondaryPlatformSubsystemName().ToString().Contains(TEXT("Meta")))
+	{
+		AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteSyncMetaQuestIAP>(AccelByteSubsystemPtr.Get(), InLocalUserId, CompletionDelegate);
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Sync MetaQuest IAP task dispatched."))
 	}
 	else
 	{
 		CompletionDelegate.ExecuteIfBound(false, TEXT("Function not supported for the used platform!"));
-		AB_OSS_INTERFACE_TRACE_END(TEXT(""))
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""))
 	}
 }
 
 void FOnlineEntitlementsAccelByte::SyncPlatformPurchase(int32 LocalUserNum, const TSharedRef<FPurchaseReceipt>& Receipt, const FOnRequestCompleted& CompletionDelegate)
 {
-	if(AccelByteSubsystem->GetNativePlatformNameString().Contains(TEXT("google")))
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
 	{
-		AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteSyncGooglePlay>(AccelByteSubsystem, LocalUserNum, Receipt, CompletionDelegate);
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
 		return;
 	}
-	else if (AccelByteSubsystem->GetNativePlatformNameString().Contains(TEXT("apple")))
+	
+	if(AccelByteSubsystemPtr->GetNativePlatformNameString().Contains(TEXT("google")))
 	{
-		AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteSyncIOSAppStore>(AccelByteSubsystem, LocalUserNum, Receipt, CompletionDelegate);
+		AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteSyncGooglePlay>(AccelByteSubsystemPtr.Get(), LocalUserNum, Receipt, CompletionDelegate);
 		return;
 	}
-	else if (AccelByteSubsystem->GetSecondaryPlatformSubsystemName().ToString().Contains(TEXT("Oculus"))
-		|| AccelByteSubsystem->GetSecondaryPlatformSubsystemName().ToString().Contains(TEXT("Meta")))
+	else if (AccelByteSubsystemPtr->GetNativePlatformNameString().Contains(TEXT("apple")))
 	{
-		const auto IdentityInterfacePtr = AccelByteSubsystem->GetIdentityInterface();
+		AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteSyncIOSAppStore>(AccelByteSubsystemPtr.Get(), LocalUserNum, Receipt, CompletionDelegate);
+		return;
+	}
+	else if (AccelByteSubsystemPtr->GetSecondaryPlatformSubsystemName().ToString().Contains(TEXT("Oculus"))
+		|| AccelByteSubsystemPtr->GetSecondaryPlatformSubsystemName().ToString().Contains(TEXT("Meta")))
+	{
+		const auto IdentityInterfacePtr = AccelByteSubsystemPtr->GetIdentityInterface();
 		if (IdentityInterfacePtr.IsValid())
 		{
 			const auto UserId = IdentityInterfacePtr->GetUniquePlayerId(LocalUserNum);
@@ -219,24 +256,38 @@ void FOnlineEntitlementsAccelByte::SyncPlatformPurchase(int32 LocalUserNum, cons
 
 void FOnlineEntitlementsAccelByte::SyncPlatformPurchase(int32 LocalUserNum, const FAccelByteModelsPlatformSyncMobileGoogle& Request, const FOnRequestCompleted& CompletionDelegate)
 {
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteSyncGooglePlay>(AccelByteSubsystem, LocalUserNum, Request, CompletionDelegate);
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return;
+	}
+	
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteSyncGooglePlay>(AccelByteSubsystemPtr.Get(), LocalUserNum, Request, CompletionDelegate);
 }
 
 void FOnlineEntitlementsAccelByte::SyncDLC(const FUniqueNetId& InLocalUserId, const FOnRequestCompleted& CompletionDelegate)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT(""))
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT(""))
 
-	if (AccelByteSubsystem->GetSecondaryPlatformSubsystemName().ToString().Contains(TEXT("Oculus"))
-		|| AccelByteSubsystem->GetSecondaryPlatformSubsystemName().ToString().Contains(TEXT("Meta")))
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
 	{
-		AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteSyncMetaQuestDLC>(AccelByteSubsystem, InLocalUserId, CompletionDelegate);
-		AB_OSS_INTERFACE_TRACE_END(TEXT("Sync oculus DLC task dispatched."))
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
 		return;
 	}
 
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteSyncDLC>(AccelByteSubsystem, InLocalUserId, CompletionDelegate);
+	if (AccelByteSubsystemPtr->GetSecondaryPlatformSubsystemName().ToString().Contains(TEXT("Oculus"))
+		|| AccelByteSubsystemPtr->GetSecondaryPlatformSubsystemName().ToString().Contains(TEXT("Meta")))
+	{
+		AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteSyncMetaQuestDLC>(AccelByteSubsystemPtr.Get(), InLocalUserId, CompletionDelegate);
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Sync oculus DLC task dispatched."))
+		return;
+	}
+	
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteSyncDLC>(AccelByteSubsystemPtr.Get(), InLocalUserId, CompletionDelegate);
 
-	AB_OSS_INTERFACE_TRACE_END(TEXT(""))
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""))
 }
 
 void FOnlineEntitlementsAccelByte::GetCurrentUserEntitlementHistory(const FUniqueNetId& UserId, const FUniqueEntitlementId& EntitlementId)
@@ -251,7 +302,14 @@ void FOnlineEntitlementsAccelByte::GetCurrentUserEntitlementHistory(const FUniqu
 
 void FOnlineEntitlementsAccelByte::GetCurrentUserEntitlementHistory(const FUniqueNetId& UserId, bool bForceUpdate, const FUniqueEntitlementId& EntitlementId, const EAccelByteEntitlementClass& EntitlementClass, FDateTime StartDate, FDateTime EndDate, const FPagedQuery& Page)
 {
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGetCurrentUserEntitlementHistory>(AccelByteSubsystem, UserId, bForceUpdate, EntitlementId, EntitlementClass, StartDate, EndDate, Page);
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return;
+	}
+	
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGetCurrentUserEntitlementHistory>(AccelByteSubsystemPtr.Get(), UserId, bForceUpdate, EntitlementId, EntitlementClass, StartDate, EndDate, Page);
 }
 
 void FOnlineEntitlementsAccelByte::GetCurrentUserEntitlementHistory(int32 LocalUserNum, const FUniqueEntitlementId& EntitlementId)
@@ -266,17 +324,38 @@ void FOnlineEntitlementsAccelByte::GetCurrentUserEntitlementHistory(int32 LocalU
 
 void FOnlineEntitlementsAccelByte::GetCurrentUserEntitlementHistory(int32 LocalUserNum, bool bForceUpdate, const FUniqueEntitlementId& EntitlementId, const EAccelByteEntitlementClass& EntitlementClass, FDateTime StartDate, FDateTime EndDate, const FPagedQuery& Page)
 {
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGetCurrentUserEntitlementHistory>(AccelByteSubsystem, LocalUserNum, bForceUpdate, EntitlementId, EntitlementClass, StartDate, EndDate, Page);
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return;
+	}
+	
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGetCurrentUserEntitlementHistory>(AccelByteSubsystemPtr.Get(), LocalUserNum, bForceUpdate, EntitlementId, EntitlementClass, StartDate, EndDate, Page);
 }
 
 void FOnlineEntitlementsAccelByte::GetUserEntitlementHistory(int32 LocalUserNum, const FUniqueEntitlementId& EntitlementId, bool bForceUpdate)
 {
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGetUserEntitlementHistory>(AccelByteSubsystem, LocalUserNum, EntitlementId, bForceUpdate);
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return;
+	}
+	
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGetUserEntitlementHistory>(AccelByteSubsystemPtr.Get(), LocalUserNum, EntitlementId, bForceUpdate);
 }
 
 void FOnlineEntitlementsAccelByte::GetUserEntitlementHistory(const FUniqueNetId& UserId, const FUniqueEntitlementId& EntitlementId, bool bForceUpdate)
 {
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGetUserEntitlementHistory>(AccelByteSubsystem, UserId, EntitlementId, bForceUpdate);
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return;
+	}
+	
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGetUserEntitlementHistory>(AccelByteSubsystemPtr.Get(), UserId, EntitlementId, bForceUpdate);
 }
 
 bool FOnlineEntitlementsAccelByte::GetCachedCurrentUserEntitlementHistory(const FUniqueNetIdAccelByteUserRef& InUserId, const FUniqueEntitlementId& InEntitlementId, TArray<FAccelByteModelsBaseUserEntitlementHistory>& OutEntitlementHistory)
@@ -426,8 +505,15 @@ void FOnlineEntitlementsAccelByte::QueryPlatformSubscription(
 	const int32& InLocalUserNum,
 	const FOnlineQuerySubscriptionRequestAccelByte& QueryRequest)
 {
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteQueryPlatformSubscription>(
-		AccelByteSubsystem,
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return;
+	}
+	
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteQueryPlatformSubscription>(
+		AccelByteSubsystemPtr.Get(),
 		InLocalUserNum,
 		QueryRequest);
 }

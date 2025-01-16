@@ -7,6 +7,7 @@
 #include "AsyncTasks/OnlineAsyncTaskAccelByteUtils.h"
 #include "OnlineSubsystemAccelByteTypes.h"
 #include "Models/AccelByteSessionModels.h"
+#include "OnlineUserCacheAccelByte.h"
 
 /**
  * Queries all invites for a player, includes both game session and party session invites. Developer then can filter those invites locally.

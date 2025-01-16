@@ -52,7 +52,7 @@ public:
 	bool IsVoiceEnabled();
 
 protected:
-	FOnlineSubsystemAccelByte* AccelByteSubsystem = nullptr;
+	FOnlineSubsystemAccelByteWPtr AccelByteSubsystem = nullptr;
 
 private:
 	FOnlineVoiceAccelByte() = delete;

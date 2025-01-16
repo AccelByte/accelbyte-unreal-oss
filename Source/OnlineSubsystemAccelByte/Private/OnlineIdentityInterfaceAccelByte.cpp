@@ -250,7 +250,23 @@ bool FOnlineIdentityAccelByte::Logout(int32 LocalUserNum, FString Reason)
 	}
 	else
 	{
-		AccelByte::FServerApiClientPtr ApiClient = FMultiRegistry::GetServerApiClient();
+		FOnlineSubsystemAccelBytePtr Subsytem = AccelByteSubsystem.Pin();
+		if(!Subsytem.IsValid())
+		{
+			UE_LOG_AB(Warning, TEXT("Failed to log out user %d as the Subsystem is invalid!"), LocalUserNum);
+			OnLogout(LocalUserNum, false);
+			return false;
+		}
+
+		FAccelByteInstancePtr AccelByteInstance = Subsytem->GetAccelByteInstance().Pin();
+		if(!AccelByteInstance.IsValid())
+		{
+			UE_LOG_AB(Warning, TEXT("Failed to log out user %d as the AccelByteInstance in the subsystem is invalid!"), LocalUserNum);
+			OnLogout(LocalUserNum, false);
+			return false;
+		}
+		
+		AccelByte::FServerApiClientPtr ApiClient = AccelByteInstance->GetServerApiClient();
 		if (!ApiClient.IsValid())
 		{
 			UE_LOG_AB(Warning, TEXT("Failed to log out user %d as an API client could not be found for them!"), LocalUserNum);
@@ -260,7 +276,8 @@ bool FOnlineIdentityAccelByte::Logout(int32 LocalUserNum, FString Reason)
 
 		ApiClient->ServerCredentialsRef->Shutdown();
 		ApiClient->ServerCredentialsRef->ForgetAll();
-		FMultiRegistry::RemoveApiClient();
+		
+		AccelByteInstance->RemoveApiClient();
 		OnLogout(LocalUserNum, true);
 	}
 
@@ -572,6 +589,7 @@ void FOnlineIdentityAccelByte::RevokeAuthToken(const FUniqueNetId& UserId, const
 	});
 }
 
+#if !(ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5)
 void FOnlineIdentityAccelByte::GetLinkedAccountAuthToken(int32 LocalUserNum, const FOnGetLinkedAccountAuthTokenCompleteDelegate& Delegate) const
 {
 	FString AccessToken = GetAuthToken(LocalUserNum);
@@ -580,12 +598,24 @@ void FOnlineIdentityAccelByte::GetLinkedAccountAuthToken(int32 LocalUserNum, con
 	AuthToken.TokenString = AccessToken;
 	Delegate.ExecuteIfBound(LocalUserNum, bWasSuccessful, AuthToken);
 }
+#endif // !(ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5)
+
+#if ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION >= 2
+void FOnlineIdentityAccelByte::GetLinkedAccountAuthToken(int32 LocalUserNum, const FString&, const FOnGetLinkedAccountAuthTokenCompleteDelegate& Delegate) const
+{
+	FString AccessToken = GetAuthToken(LocalUserNum);
+	const bool bWasSuccessful = !AccessToken.IsEmpty();
+	FExternalAuthToken AuthToken;
+	AuthToken.TokenString = AccessToken;
+	Delegate.ExecuteIfBound(LocalUserNum, bWasSuccessful, AuthToken);
+}
+#endif // ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION >= 2
 
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 4
 void FOnlineIdentityAccelByte::GetUserPrivilege(const FUniqueNetId& UserId, EUserPrivileges::Type Privilege, const FOnGetUserPrivilegeCompleteDelegate& Delegate, EShowPrivilegeResolveUI ShowResolveUI)
 #else
 void FOnlineIdentityAccelByte::GetUserPrivilege(const FUniqueNetId& UserId, EUserPrivileges::Type Privilege, const FOnGetUserPrivilegeCompleteDelegate& Delegate)
-#endif
+#endif // ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 4
 {
 	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("UserId: %s"), *UserId.ToDebugString());
 
@@ -730,10 +760,11 @@ AccelByte::FApiClientPtr FOnlineIdentityAccelByte::GetApiClient(int32 LocalUserN
 
 bool FOnlineIdentityAccelByte::AuthenticateAccelByteServer(const FOnAuthenticateServerComplete& Delegate, int32 LocalUserNum)
 {
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+
 #if AB_USE_V2_SESSIONS
 	UE_LOG_AB(Warning, TEXT("FOnlineIdentityAccelByte::AuthenticateAccelByteServer is deprecated with V2 sessions. Servers should be authenticated through AutoLogin!"));
 	
-	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
 	if (AccelByteSubsystemPtr.IsValid())
 	{
 		AccelByteSubsystemPtr->ExecuteNextTick([Delegate]()
@@ -753,7 +784,37 @@ bool FOnlineIdentityAccelByte::AuthenticateAccelByteServer(const FOnAuthenticate
 		const TSharedRef<FOnlineIdentityAccelByte, ESPMode::ThreadSafe> IdentityInterface = SharedThis(this);
 		const FVoidHandler OnLoginSuccess = FVoidHandler::CreateThreadSafeSP(IdentityInterface, &FOnlineIdentityAccelByte::OnAuthenticateAccelByteServerSuccess, LocalUserNum);
 		const FErrorHandler OnLoginError = FErrorHandler::CreateThreadSafeSP(IdentityInterface, &FOnlineIdentityAccelByte::OnAuthenticateAccelByteServerError);
-		FRegistry::ServerOauth2.LoginWithClientCredentials(OnLoginSuccess, OnLoginError);
+
+		if(!AccelByteSubsystemPtr.IsValid())
+		{
+			AccelByteSubsystemPtr->ExecuteNextTick([Delegate]()
+			{
+				UE_LOG_AB(Warning, TEXT("Server AccelByteSubsystem is invalid, skipping call!"));
+				Delegate.ExecuteIfBound(false);
+			});
+		}
+
+		FAccelByteInstancePtr AccelByteInstancePtr = AccelByteSubsystemPtr->GetAccelByteInstance().Pin();
+		if(!AccelByteInstancePtr.IsValid())
+		{
+			AccelByteSubsystemPtr->ExecuteNextTick([Delegate]()
+			{
+				UE_LOG_AB(Warning, TEXT("Server AccelByteInstance is invalid, skipping call!"));
+				Delegate.ExecuteIfBound(false);
+			});
+		}
+
+		FServerApiClientPtr ServerApiClientPtr = AccelByteInstancePtr->GetServerApiClient();
+		if(!ServerApiClientPtr.IsValid())
+		{
+			AccelByteSubsystemPtr->ExecuteNextTick([Delegate]()
+			{
+				UE_LOG_AB(Warning, TEXT("Server ServerApiClient is invalid, skipping call!"));
+				Delegate.ExecuteIfBound(false);
+			});
+		}
+		
+		ServerApiClientPtr->ServerOauth2.LoginWithClientCredentials(OnLoginSuccess, OnLoginError);
 	}
 	else
 	{
@@ -893,7 +954,6 @@ void FOnlineIdentityAccelByte::RemoveUserFromMappings(const int32 LocalUserNum)
 	{
 		// Remove the account map first, and then remove the unique ID by local user num
 		const TSharedRef<const FUniqueNetIdAccelByteUser> AccelByteUser = FUniqueNetIdAccelByteUser::CastChecked(*UniqueId);
-		AccelByte::FMultiRegistry::RemoveApiClient(AccelByteUser->GetAccelByteId());
 		NetIdToLocalUserNumMap.Remove(*UniqueId);
 		NetIdToOnlineAccountMap.Remove(*UniqueId);
 
@@ -901,6 +961,12 @@ void FOnlineIdentityAccelByte::RemoveUserFromMappings(const int32 LocalUserNum)
 		if (AccelByteSubsystemPtr.IsValid() && AccelByteSubsystemPtr->GetLocalUserNumCached() == LocalUserNum)
 		{
 			AccelByteSubsystemPtr->ResetLocalUserNumCached();
+
+			FAccelByteInstancePtr AccelByteInstance = AccelByteSubsystemPtr->GetAccelByteInstance().Pin();
+			if(AccelByteInstance.IsValid())
+			{
+				AccelByteInstance->RemoveApiClient(AccelByteUser->GetAccelByteId());
+			}
 		}
 
 		LocalUserNumToNetIdMap.Remove(LocalUserNum);

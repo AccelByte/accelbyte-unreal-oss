@@ -8,6 +8,7 @@
 #include "AsyncTasks/OnlineAsyncTaskAccelByteUtils.h"
 #include "OnlineSubsystemAccelByteTypes.h"
 #include "OnlineStoreInterfaceV2AccelByte.h"
+#include "OnlinePurchaseInterfaceAccelByte.h"
 
 using namespace AccelByte;
 

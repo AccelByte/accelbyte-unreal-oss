@@ -5,21 +5,16 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "OnlineAchievementsInterfaceAccelByte.h"
 #include "OnlineSubsystemImpl.h"
 #include "OnlineSubsystemAccelByteDefines.h"
-#include "OnlineAsyncTaskManagerAccelByte.h"
-#include "OnlineEntitlementsInterfaceAccelByte.h"
-#include "OnlinePurchaseInterfaceAccelByte.h"
-#include "OnlineStoreInterfaceV2AccelByte.h"
-#include "OnlineChatInterfaceAccelByte.h"
-#include "OnlineGroupsInterfaceAccelByte.h"
 #include "OnlineSubsystemAccelByteTypes.h"
 #include "Core/AccelByteApiClient.h"
 #include "Core/AccelByteWebSocketReconnection.h"
 #include "Models/AccelByteUserModels.h"
 #include "AccelByteTimerObject.h"
+#include "OnlineAsyncTaskManagerAccelByte.h"
 #include "OnlineSubsystemAccelBytePackage.h"
+#include "Core/AccelByteInstance.h"
 #include "Core/AccelByteServerApiClient.h"
 
 /** Log category for any AccelByte OSS logs, including traces */
@@ -69,6 +64,7 @@ class FAccelByteVoiceChat;
 
 class FOnlineAsyncEpicTaskAccelByte;
 class FOnlineAsyncTaskAccelByte;
+class FOnlineAsyncTaskManagerAccelByte;
 
 struct FAccelByteModelsNotificationMessage;
 
@@ -172,6 +168,7 @@ class ONLINESUBSYSTEMACCELBYTE_API FOnlineSubsystemAccelByte final
 public:
 	virtual ~FOnlineSubsystemAccelByte() override = default;
 
+	void OnPostEngineInit();
 	//~ Begin IOnlineSubsystem Interface
 	virtual bool Init() override;
 	virtual bool Shutdown() override;
@@ -476,6 +473,8 @@ PACKAGE_SCOPE:
 	 * Try to obtain an optional pointer of the Configuration
 	 */
 	TOptional<AccelByte::IWebsocketConfigurableReconnectStrategy*> TryConfigureWebsocketConnection(int32 LocalUserNum, AccelByte::EConfigurableWebsocketServiceType Type);
+
+	FAccelByteInstanceWPtr GetAccelByteInstance();
 	
 private:
 	/**************************************************
@@ -612,6 +611,10 @@ private:
 
 	const TArray<FString> AccelBytePluginList;
 
+	/** AccelByte instance */
+	FAccelByteInstancePtr AccelByteInstance;
+	FDelegateHandle OnPostEngineInitDelegate;
+
 	/**
 	 * @p2p Delegate handler fired when we get a successful login from the OSS on the first user. Used to initialize our network manager.
 	 */
@@ -627,7 +630,7 @@ private:
 
 	void OnLobbyReconnectAttempted(const AccelByte::FReconnectAttemptInfo& Info, int32 InLocalUserNum);
 
-	void OnLobbyMassiveOutageEvent(const AccelByte::FMassiveOutageInfo& Info, int32 InLocalUserNum);	
+	void OnLobbyMassiveOutageEvent(const AccelByte::FMassiveOutageInfo& Info, int32 InLocalUserNum);
 
 	void OnEOSRefreshTracked(int32 LocalUserNum);
 
@@ -636,6 +639,8 @@ private:
 	void SendInitializedEvent();
 
 	void HandleShutdown();
+	
+	FAccelByteInstancePtr CreateAccelByteInstance() const;
 
 	DECLARE_DELEGATE(FLogOutFromInterfaceDelegate)
 	TMap<int32, FLogOutFromInterfaceDelegate> LogoutDelegates {};
@@ -677,3 +682,4 @@ private:
 
 /** Shared pointer to the AccelByte implementation of the OnlineSubsystem */
 typedef TSharedPtr<FOnlineSubsystemAccelByte, ESPMode::ThreadSafe> FOnlineSubsystemAccelBytePtr;
+typedef TWeakPtr<FOnlineSubsystemAccelByte, ESPMode::ThreadSafe> FOnlineSubsystemAccelByteWPtr;

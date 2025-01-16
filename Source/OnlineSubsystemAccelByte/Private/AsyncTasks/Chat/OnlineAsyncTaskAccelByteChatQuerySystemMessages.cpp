@@ -4,6 +4,8 @@
 
 #include "OnlineAsyncTaskAccelByteChatQuerySystemMessages.h"
 
+#include "OnlineChatInterfaceAccelByte.h"
+
 #define ONLINE_ERROR_NAMESPACE "FOnlineAsyncTaskAccelByteChatQuerySystemMessages"
 
 FOnlineAsyncTaskAccelByteChatQuerySystemMessages::FOnlineAsyncTaskAccelByteChatQuerySystemMessages(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InLocalUserId, const FQuerySystemMessageOptions& InQueryParams)

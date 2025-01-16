@@ -89,7 +89,21 @@ bool FOnlineAsyncTaskAccelBytePromoteV2GameSessionLeader::PromoteGameSessionLead
 
 	if (IsRunningDedicatedServer())
 	{
-		FMultiRegistry::GetServerApiClient()->ServerSession.PromoteGameSessionLeader(SessionId, TargetMemberId->GetAccelByteId(), OnPromoteGameSessionLeaderSuccessDelegate, OnPromoteGameSessionLeaderErrorDelegate);
+		FAccelByteInstancePtr AccelByteInstance = GetAccelByteInstance().Pin();
+		if(!AccelByteInstance.IsValid())
+		{
+			AB_OSS_ASYNC_TASK_TRACE_END(TEXT("AccelByteInstance is invalid"));
+			return false;
+		}
+
+		FServerApiClientPtr ServerApiClient = AccelByteInstance->GetServerApiClient();
+		if(!ServerApiClient.IsValid())
+		{
+			AB_OSS_ASYNC_TASK_TRACE_END(TEXT("AccelByteInstance is invalid"));
+			return false;
+		}
+		
+		ServerApiClient->ServerSession.PromoteGameSessionLeader(SessionId, TargetMemberId->GetAccelByteId(), OnPromoteGameSessionLeaderSuccessDelegate, OnPromoteGameSessionLeaderErrorDelegate);
 	}
 	else
 	{

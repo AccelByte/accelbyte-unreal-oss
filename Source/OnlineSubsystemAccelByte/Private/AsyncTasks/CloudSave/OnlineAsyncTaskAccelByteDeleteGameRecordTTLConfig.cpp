@@ -29,7 +29,15 @@ void FOnlineAsyncTaskAccelByteDeleteGameRecordTTLConfig::Initialize()
 	OnDeleteGameRecordTTLConfigSuccessDelegate = TDelegateUtils<FVoidHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteDeleteGameRecordTTLConfig::OnDeleteGameRecordTTLConfigSuccess);
 	OnDeleteGameRecordTTLConfigErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteDeleteGameRecordTTLConfig::OnDeleteGameRecordTTLConfigError);
 
-	const FServerApiClientPtr ServerApiClient = FMultiRegistry::GetServerApiClient();
+	FAccelByteInstancePtr AccelByteInstance = SubsystemPin->GetAccelByteInstance().Pin();
+	if(!AccelByteInstance.IsValid())
+	{
+		CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState);
+		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("AccelByteInstance is invalid"));
+		return;
+	}
+	
+	const FServerApiClientPtr ServerApiClient = AccelByteInstance->GetServerApiClient();
 	ServerApiClient->ServerCloudSave.DeleteGameRecordTTLConfig(Key, OnDeleteGameRecordTTLConfigSuccessDelegate, OnDeleteGameRecordTTLConfigErrorDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

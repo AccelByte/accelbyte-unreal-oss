@@ -6,6 +6,7 @@
 #include "AsyncTasks/OnlineAsyncTaskAccelByte.h"
 #include "AsyncTasks/OnlineAsyncTaskAccelByteUtils.h"
 #include "OnlineSubsystemAccelByteTypes.h"
+#include "OnlineUserCacheAccelByte.h"
 #include "Models/AccelByteSessionModels.h"
 
 /**

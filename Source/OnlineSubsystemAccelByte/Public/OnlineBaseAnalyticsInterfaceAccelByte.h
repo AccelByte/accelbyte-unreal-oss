@@ -21,9 +21,7 @@ class ONLINESUBSYSTEMACCELBYTE_API FOnlineBaseAnalyticsAccelByte : public TShare
 protected:
 
 	/** Constructor that is invoked by the Subsystem instance to create an analytics instance */
-	FOnlineBaseAnalyticsAccelByte(FOnlineSubsystemAccelByte* InSubsystem)
-		: AccelByteSubsystem(InSubsystem)
-	{}
+	FOnlineBaseAnalyticsAccelByte(FOnlineSubsystemAccelByte* InSubsystem);
 
 	virtual ~FOnlineBaseAnalyticsAccelByte() {};
 
@@ -59,7 +57,7 @@ protected:
 	{}
 
 	/** Instance of the subsystem that created this interface */
-	FOnlineSubsystemAccelByte* AccelByteSubsystem = nullptr;
+	FOnlineSubsystemAccelByteWPtr AccelByteSubsystem = nullptr;
 	
 	bool bIsHaveSettingInterval;
 	int32 SettingInterval;
@@ -80,6 +78,8 @@ protected:
 
 	virtual bool SetEventSendInterval(int32 InLocalUserNum) = 0;
 	virtual void SendCachedEvent(int32 InLocalUserNum, const TSharedPtr<FAccelByteModelsTelemetryBody> & CachedEvent) = 0;
+
+	FAccelByteInstanceWPtr GetAccelByteInstance() const;
 
 private:
 	mutable FCriticalSection CachedEventsLock;

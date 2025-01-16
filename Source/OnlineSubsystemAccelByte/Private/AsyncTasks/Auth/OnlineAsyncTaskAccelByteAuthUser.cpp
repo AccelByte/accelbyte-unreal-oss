@@ -21,7 +21,8 @@ void FOnlineAsyncTaskAccelByteAuthUser::Initialize()
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("UserID: %s"), *UserId);
 
 	AB_ASYNC_TASK_DEFINE_SDK_DELEGATES(FOnlineAsyncTaskAccelByteAuthUser, Auth, THandler<FGetUserBansResponse>);
-	FRegistry::ServerUser.GetUserBanInfo(UserId, OnAuthSuccessDelegate, OnAuthErrorDelegate);
+	SERVER_API_CLIENT_CHECK_GUARD();
+	ServerApiClient->ServerUser.GetUserBanInfo(UserId, OnAuthSuccessDelegate, OnAuthErrorDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }

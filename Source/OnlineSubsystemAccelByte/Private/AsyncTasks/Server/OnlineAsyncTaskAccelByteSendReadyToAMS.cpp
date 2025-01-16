@@ -26,8 +26,10 @@ void FOnlineAsyncTaskAccelByteSendReadyToAMS::Initialize()
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 	
+	SERVER_API_CLIENT_CHECK_GUARD();
+	
 	// If already connected then directly send ready message
-	if (FRegistry::ServerAMS.IsConnected())
+	if (ServerApiClient->ServerAMS.IsConnected())
 	{
 		OnAMSConnectSuccess();
 		AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
@@ -39,11 +41,11 @@ void FOnlineAsyncTaskAccelByteSendReadyToAMS::Initialize()
 	OnAMSConnectErrorDelegate = TDelegateUtils<AccelByte::GameServerApi::ServerAMS::FConnectError>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteSendReadyToAMS::OnAMSConnectError);
 
 	OnAMSConnectionClosedDelegate = TDelegateUtils<AccelByte::GameServerApi::ServerAMS::FConnectionClosed>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteSendReadyToAMS::OnAMSConnectionClosed);
-	FRegistry::ServerAMS.SetOnConnectionClosed(OnAMSConnectionClosedDelegate);
+	ServerApiClient->ServerAMS.SetOnConnectionClosed(OnAMSConnectionClosedDelegate);
 
 	// Send off a request to connect to the lobby websocket, as well as connect our delegates for doing so
-	FRegistry::ServerAMS.SetOnConnectSuccess(OnAMSConnectSuccessDelegate);
-	FRegistry::ServerAMS.SetOnConnectError(OnAMSConnectErrorDelegate);
+	ServerApiClient->ServerAMS.SetOnConnectSuccess(OnAMSConnectSuccessDelegate);
+	ServerApiClient->ServerAMS.SetOnConnectError(OnAMSConnectErrorDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
@@ -62,6 +64,9 @@ void FOnlineAsyncTaskAccelByteSendReadyToAMS::Finalize()
 	TRY_PIN_SUBSYSTEM()
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
+
+	SERVER_API_CLIENT_CHECK_GUARD();
+	
 	UnbindDelegates();
 	if (bWasSuccessful)
 	{
@@ -72,7 +77,14 @@ void FOnlineAsyncTaskAccelByteSendReadyToAMS::Finalize()
 			return;
 		}
 
-		SessionInterface->ConnectToDSHub(FRegistry::ServerSettings.DSId);
+		ServerSettingsPtr ServerSettings = ServerApiClient->ServerSettings;
+		if(!ServerSettings.IsValid())
+		{
+			AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to ConnectToDSHub after Sending Ready to AMS as our server settings is invalid!"));
+			return;
+		}
+
+		SessionInterface->ConnectToDSHub(ServerSettings->DSId);
 	}
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }

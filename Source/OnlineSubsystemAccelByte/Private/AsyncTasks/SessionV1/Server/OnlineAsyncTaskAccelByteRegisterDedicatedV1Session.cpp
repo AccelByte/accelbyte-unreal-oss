@@ -151,6 +151,8 @@ void FOnlineAsyncTaskAccelByteRegisterDedicatedV1Session::RegisterAccelByteDedic
 {
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 
+	SERVER_API_CLIENT_CHECK_GUARD();
+
 	// First, set our registered IP and port based on server type
 	GetRegisterIpAddress(RegisteredIpAddress, RegisteredPort);
 	
@@ -180,7 +182,7 @@ void FOnlineAsyncTaskAccelByteRegisterDedicatedV1Session::RegisterAccelByteDedic
 			CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
 		});
 
-		FRegistry::ServerDSM.RegisterServerToDSM(RegisteredPort, OnServerRegisterSuccess, OnServerRegisterError);
+		ServerApiClient->ServerDSM.RegisterServerToDSM(RegisteredPort, OnServerRegisterSuccess, OnServerRegisterError);
 		AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sent off async task to register managed server to dedicated server manager for session '%s'!"), *SessionName.ToString());
 	}
 	else
@@ -212,7 +214,7 @@ void FOnlineAsyncTaskAccelByteRegisterDedicatedV1Session::RegisterAccelByteDedic
 			CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
 		});
 
-		FRegistry::ServerDSM.RegisterLocalServerToDSM(RegisteredIpAddress, RegisteredPort, ServerName, OnLocalServerRegisterSuccess, OnLocalServerRegisterError);
+		ServerApiClient->ServerDSM.RegisterLocalServerToDSM(RegisteredIpAddress, RegisteredPort, ServerName, OnLocalServerRegisterSuccess, OnLocalServerRegisterError);
 		AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sent off async task to register local server to dedicated server manager for session '%s'!"), *SessionName.ToString());
 	}
 }
@@ -347,7 +349,9 @@ void FOnlineAsyncTaskAccelByteRegisterDedicatedV1Session::CreateGameSession()
 				return;
 			});
 
-	AccelByte::FRegistry::ServerSessionBrowser.CreateGameSession(
+	SERVER_API_CLIENT_CHECK_GUARD();
+
+	ServerApiClient->ServerSessionBrowser.CreateGameSession(
 		EAccelByteSessionType::dedicated,
 		GameMode,
 		GameMapName,
@@ -389,7 +393,9 @@ void FOnlineAsyncTaskAccelByteRegisterDedicatedV1Session::RegisterCreatedGameSes
 				CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
 				return;
 			});
+			
+	SERVER_API_CLIENT_CHECK_GUARD();
 	
-	AccelByte::FRegistry::ServerDSM.RegisterServerGameSession(SessionId, GameMode, OnSessionRegisterSuccess, OnSessionRegisterFailed);
+	ServerApiClient->ServerDSM.RegisterServerGameSession(SessionId, GameMode, OnSessionRegisterSuccess, OnSessionRegisterFailed);
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sent off async task to register created dedicated game session"));
 }

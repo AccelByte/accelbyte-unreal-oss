@@ -4,6 +4,8 @@
 
 #include "OnlineAsyncTaskAccelByteChatSendRoomChat.h"
 
+#define ONLINE_ERROR_NAMESPACE "FOnlineAsyncTaskAccelByteChatSendRoomChat"
+
 using namespace AccelByte;
 
 FOnlineAsyncTaskAccelByteChatSendRoomChat::FOnlineAsyncTaskAccelByteChatSendRoomChat(
@@ -69,6 +71,11 @@ void FOnlineAsyncTaskAccelByteChatSendRoomChat::TriggerDelegates()
 	}
 
 	ChatInterface->TriggerOnSendChatCompleteDelegates(UserId.ToSharedRef().Get().GetAccelByteId(), ChatMessage, RoomId, bWasSuccessful);
+	ChatInterface->TriggerOnSendChatCompleteWithErrorDelegates(UserId.ToSharedRef().Get().GetAccelByteId()
+		, ChatMessage
+		, RoomId
+		, bWasSuccessful
+		, ONLINE_ERROR(bWasSuccessful ? EOnlineErrorResult::Success : EOnlineErrorResult::RequestFailure, FString::FromInt(ErrorCode), FText::FromString(ErrorString)));
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
@@ -87,9 +94,11 @@ void FOnlineAsyncTaskAccelByteChatSendRoomChat::Finalize()
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 
-void FOnlineAsyncTaskAccelByteChatSendRoomChat::OnSendRoomChatError(int32 ErrorCode, const FString& ErrorMessage)
+void FOnlineAsyncTaskAccelByteChatSendRoomChat::OnSendRoomChatError(int32 InErrorCode, const FString& ErrorMessage)
 {
 	UE_LOG_AB(Warning, TEXT("Failed to send chat to topic with ID '%s' as the request to send failed on the backend! Error code: %d; Error message: %s"), *RoomId, ErrorCode, *ErrorMessage);
+	
+	ErrorCode = InErrorCode;
 	ErrorString = ErrorMessage;
 	CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
 }
@@ -103,3 +112,5 @@ void FOnlineAsyncTaskAccelByteChatSendRoomChat::OnSendRoomChatSuccess(const FAcc
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
+
+#undef ONLINE_ERROR_NAMESPACE

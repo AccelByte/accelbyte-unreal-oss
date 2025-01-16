@@ -34,8 +34,7 @@ void FOnlineAsyncTaskAccelByteCreateBackfillTicket::Initialize()
 		AB_ASYNC_TASK_VALIDATE(Session->SessionSettings.Get(SETTING_SESSION_MATCHPOOL, MatchPool), "Failed to create backfill ticket for session as there is not a match pool associated with it.");
 	}
 
-	AccelByte::FServerApiClientPtr ServerApiClient = AccelByte::FMultiRegistry::GetServerApiClient();
-	AB_ASYNC_TASK_VALIDATE(ServerApiClient.IsValid(), "Failed to create backfill ticket for session as we could not get a server API client!");
+	SERVER_API_CLIENT_CHECK_GUARD();
 
 	OnCreateBackfillTicketSuccessDelegate = AccelByte::TDelegateUtils<THandler<FAccelByteModelsV2MatchmakingCreateBackfillTicketResponse>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteCreateBackfillTicket::OnCreateBackfillTicketSuccess);
 	OnCreateBackfillTicketErrorDelegate = AccelByte::TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteCreateBackfillTicket::OnCreateBackfillTicketError);;

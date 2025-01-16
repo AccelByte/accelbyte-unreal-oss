@@ -15,13 +15,28 @@
 #include "AsyncTasks/Statistic/OnlineAsyncTaskAccelByteDeleteStatsUsers.h"
 #include "OnlineSubsystemUtils.h"
 
+FOnlineStatisticAccelByte::FOnlineStatisticAccelByte(FOnlineSubsystemAccelByte* InSubsystem)
+#if ENGINE_MAJOR_VERSION >= 5
+		: AccelByteSubsystem(InSubsystem->AsWeak())
+#else
+		: AccelByteSubsystem(InSubsystem->AsShared())
+#endif
+{}
+
 bool FOnlineStatisticAccelByte::ListUserStatItems(int32 LocalUserNum
 	, const TArray<FString>& StatCodes
 	, const TArray<FString>& Tags
 	, const FString& AdditionalKey
 	, bool bAlwaysRequestToService)
 {
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteListUserStatItems>(AccelByteSubsystem
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return false;
+	}
+	
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteListUserStatItems>(AccelByteSubsystemPtr.Get()
 		, LocalUserNum
 		, StatCodes
 		, Tags
@@ -33,7 +48,14 @@ bool FOnlineStatisticAccelByte::ListUserStatItems(int32 LocalUserNum
 bool FOnlineStatisticAccelByte::GetListUserStatItems(int32 LocalUserNum
 	, TArray<TSharedRef<FAccelByteModelsFetchUser>>& OutUsers)
 {
-	const IOnlineIdentityPtr IdentityInterface = AccelByteSubsystem->GetIdentityInterface();
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return false;
+	}
+	
+	const IOnlineIdentityPtr IdentityInterface = AccelByteSubsystemPtr->GetIdentityInterface();
 	if (!IdentityInterface.IsValid())
 	{
 		return false;
@@ -63,7 +85,14 @@ void FOnlineStatisticAccelByte::CreateStats(const int32 LocalUserNum
 	, const FOnlineStatsCreateStatsComplete& Delegate)
 {
 	UE_LOG_ONLINE_STATS(Display, TEXT("FOnlineStatisticAccelByte::CreateStats"));
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteCreateStatsUser>(AccelByteSubsystem
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return;
+	}
+	
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteCreateStatsUser>(AccelByteSubsystemPtr.Get()
 		, LocalUserNum
 		, StatsUser
 		, StatNames
@@ -117,17 +146,17 @@ void FOnlineStatisticAccelByte::RemoveStats(const FUniqueNetIdRef StatsUserId
 
 	if (UserStatIndex == INDEX_NONE)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("User Id is not found %s"), *StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(StatsUserId)->GetAccelByteId());
+		UE_LOG(LogAccelByteOSS, Warning, TEXT("User Id is not found %s"), *StaticCastSharedRef<const FUniqueNetIdAccelByteUser>(StatsUserId)->GetAccelByteId());
 		return;
 	}
 
 	if (NewStat.Remove(StatsCode) > 0)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Removed value with key %s"), *StatsCode);
+		UE_LOG(LogAccelByteOSS, Warning, TEXT("Removed value with key %s"), *StatsCode);
 	}
 	else
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Key %s not found in map"), *StatsCode);
+		UE_LOG(LogAccelByteOSS, Warning, TEXT("Key %s not found in map"), *StatsCode);
 		return;
 	}
 
@@ -140,10 +169,17 @@ void FOnlineStatisticAccelByte::ResetStats(const int32 LocalUserNum
 {
 #if !UE_BUILD_SHIPPING
 	UE_LOG_ONLINE_STATS(Display, TEXT("FOnlineStatisticAccelByte::ResetStats"));
-
+	
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return;
+	}
+	
 	TSharedPtr<const FOnlineStatsUserStats> Value = GetStats(StatsUserId);
 
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteResetUserStats>(AccelByteSubsystem
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteResetUserStats>(AccelByteSubsystemPtr.Get()
 		, LocalUserNum
 		, StatsUserId
 		, Value);
@@ -158,7 +194,14 @@ void FOnlineStatisticAccelByte::UpdateStats(const int32 LocalUserNum
 
 	if (IsRunningDedicatedServer())
 	{
-		AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteUpdateStatsUsers>(AccelByteSubsystem
+		FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+		if (!AccelByteSubsystemPtr.IsValid())
+		{
+			AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+			return;
+		}
+		
+		AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteUpdateStatsUsers>(AccelByteSubsystemPtr.Get()
 			, LocalUserNum
 			, BulkUpdateMultipleUserStatItems
 			, Delegate);
@@ -173,8 +216,15 @@ void FOnlineStatisticAccelByte::UpdateStats(const FUniqueNetIdRef LocalUserId
 
 	if (!IsRunningDedicatedServer())
 	{
-		AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteUpdateStats>
-			(AccelByteSubsystem, LocalUserId, UpdatedUserStats, Delegate);
+		FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+		if (!AccelByteSubsystemPtr.IsValid())
+		{
+			AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+			return;
+		}
+		
+		AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteUpdateStats>
+			(AccelByteSubsystemPtr.Get(), LocalUserId, UpdatedUserStats, Delegate);
 	}
 }
 
@@ -187,7 +237,14 @@ void FOnlineStatisticAccelByte::DeleteStats(const int32 LocalUserNum
 
 	if (IsRunningDedicatedServer())
 	{
-		AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteDeleteStatsUsers>(AccelByteSubsystem
+		FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+		if (!AccelByteSubsystemPtr.IsValid())
+		{
+			AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+			return;
+		}
+		
+		AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteDeleteStatsUsers>(AccelByteSubsystemPtr.Get()
 			, LocalUserNum
 			, StatsUser
 			, StatNames
@@ -270,8 +327,15 @@ void FOnlineStatisticAccelByte::QueryStats(const FUniqueNetIdRef LocalUserId
 	, const FOnlineStatsQueryUsersStatsComplete& Delegate)
 {
 	UE_LOG_ONLINE_STATS(Display, TEXT("FOnlineStatisticAccelByte::QueryStats"));
+
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return;
+	}
 	
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteQueryStatsUsers>(AccelByteSubsystem
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteQueryStatsUsers>(AccelByteSubsystemPtr.Get()
 		, LocalUserId
 		, StatsUsers
 		, StatsNames
@@ -284,8 +348,15 @@ void FOnlineStatisticAccelByte::QueryStats(int32 LocalUserNum
 	, const FOnlineStatsQueryUsersStatsComplete& Delegate)
 {
 	UE_LOG_ONLINE_STATS(Display, TEXT("FOnlineStatisticAccelByte::QueryStats"));
+
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return;
+	}
 	
-	const IOnlineIdentityPtr IdentityInterface = AccelByteSubsystem->GetIdentityInterface();
+	const IOnlineIdentityPtr IdentityInterface = AccelByteSubsystemPtr->GetIdentityInterface();
 	if (IdentityInterface.IsValid())
 	{
 		FUniqueNetIdPtr LocalUserId = IdentityInterface->GetUniquePlayerId(LocalUserNum);
@@ -295,7 +366,7 @@ void FOnlineStatisticAccelByte::QueryStats(int32 LocalUserNum
 		}
 		else
 		{
-			AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteQueryStatsUsers>(AccelByteSubsystem
+			AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteQueryStatsUsers>(AccelByteSubsystemPtr.Get()
 				, LocalUserNum
 				, StatsUsers
 				, StatsNames
@@ -333,13 +404,20 @@ void FOnlineStatisticAccelByte::UpdateStats(const FUniqueNetIdRef LocalUserId, c
 
 	if (!IsRunningDedicatedServer())
 	{
+		FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+		if (!AccelByteSubsystemPtr.IsValid())
+		{
+			AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+			return;
+		}
+		
 		auto OnComplete = FOnlineStatsUpdateStatsComplete::CreateLambda([&](const FOnlineError& Error)
 			{
 				Delegate.ExecuteIfBound(Error);
 			});
 		TArray<FString> StatCodes{};
-		AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteUpdateStats>
-			(AccelByteSubsystem, LocalUserId, UpdatedUserStats, OnComplete);
+		AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteUpdateStats>
+			(AccelByteSubsystemPtr.Get(), LocalUserId, UpdatedUserStats, OnComplete);
 	}
 }
 
@@ -358,7 +436,14 @@ TSharedPtr<const FOnlineStatsUserStats> FOnlineStatisticAccelByte::GetAllListUse
 #if !UE_BUILD_SHIPPING
 void FOnlineStatisticAccelByte::ResetStats(const FUniqueNetIdRef StatsUserId)
 {
-	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystem->GetIdentityInterface());
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return;
+	}
+	
+	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystemPtr->GetIdentityInterface());
 
 	if (IsRunningDedicatedServer())
 	{

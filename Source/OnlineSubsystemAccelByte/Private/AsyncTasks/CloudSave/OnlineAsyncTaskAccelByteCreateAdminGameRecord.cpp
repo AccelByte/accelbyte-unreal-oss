@@ -63,7 +63,8 @@ void FOnlineAsyncTaskAccelByteCreateAdminGameRecord::Initialize()
 		return;
 	}
 
-	FServerApiClientPtr ServerApiClient = FMultiRegistry::GetServerApiClient();
+	SERVER_API_CLIENT_CHECK_GUARD(ErrorStr);
+	
 	ServerApiClient->ServerCloudSave.CreateAdminGameRecord(Key, GameRecordObj, OnCreateAdminGameRecordSuccessDelegate, OnCreateAdminGameRecordErrorDelegate, Tags, TTLConfig);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

@@ -36,7 +36,8 @@ void FOnlineAsyncTaskAccelByteGenerateNewV2GameCode::Initialize()
 
 	if(IsRunningDedicatedServer())
 	{
-		FMultiRegistry::GetServerApiClient()->ServerSession.GenerateNewGameSessionCode(SessionId, OnGenerateNewCodeSuccessDelegate, OnGenerateNewCodeErrorDelegate);
+		SERVER_API_CLIENT_CHECK_GUARD();
+		ServerApiClient->ServerSession.GenerateNewGameSessionCode(SessionId, OnGenerateNewCodeSuccessDelegate, OnGenerateNewCodeErrorDelegate);
 	}
 	else
 	{

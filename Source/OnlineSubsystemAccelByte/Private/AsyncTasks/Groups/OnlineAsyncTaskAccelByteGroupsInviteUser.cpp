@@ -17,6 +17,7 @@ FOnlineAsyncTaskAccelByteGroupsInviteUser::FOnlineAsyncTaskAccelByteGroupsInvite
 	, InvitedUserId(FUniqueNetIdAccelByteUser::CastChecked(InInvitedUserId))
 	, GroupId(InGroupId)
 	, Delegate(InDelegate)
+	, httpStatus(0)
 {
 	UserId = FUniqueNetIdAccelByteUser::CastChecked(InInviterUserId);
 }

@@ -7,6 +7,7 @@
 #include "OnlineSubsystemAccelByte.h"
 #include "AsyncTasks/OnlineAsyncTaskAccelByte.h"
 #include "AsyncTasks/OnlineAsyncTaskAccelByteUtils.h"
+#include "OnlineGroupsInterfaceAccelByte.h"
 
 class FOnlineAsyncTaskAccelByteGroupsGetGroupMembersByGroupId : public FOnlineAsyncTaskAccelByte, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteGroupsGetGroupMembersByGroupId, ESPMode::ThreadSafe>
 {

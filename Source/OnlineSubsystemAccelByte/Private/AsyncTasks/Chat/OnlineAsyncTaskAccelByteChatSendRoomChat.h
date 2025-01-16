@@ -7,6 +7,7 @@
 #include "OnlineSubsystemAccelByte.h"
 #include "AsyncTasks/OnlineAsyncTaskAccelByte.h"
 #include "AsyncTasks/OnlineAsyncTaskAccelByteUtils.h"
+#include "OnlineChatInterfaceAccelByte.h"
 
 struct FAccelByteChatRoomConfig;
 struct FAccelByteModelsChatActionTopicResponse;
@@ -33,12 +34,13 @@ protected:
 	}
 
 private:
-	void OnSendRoomChatError(int32 ErrorCode, const FString& ErrorMessage);
+	void OnSendRoomChatError(int32 InErrorCode, const FString& ErrorMessage);
 	void OnSendRoomChatSuccess(const FAccelByteModelsChatSendChatResponse& Response);
 
 	const FString RoomId;
 	const FString ChatMessage;
 
+	int32 ErrorCode{ 0 };
 	FString ErrorString{};
 
 	FAccelByteModelsChatSendChatResponse SendChatResponse;

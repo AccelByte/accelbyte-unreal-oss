@@ -15,6 +15,7 @@ FOnlineAsyncTaskAccelByteGroupsCancelJoinRequest::FOnlineAsyncTaskAccelByteGroup
 	: FOnlineAsyncTaskAccelByte(InABInterface)
 	, GroupId(InGroupId)
 	, Delegate(InDelegate)
+	, httpStatus(0)
 {
 	UserId = FUniqueNetIdAccelByteUser::CastChecked(UserIdCancelingRequest);
 }

@@ -5,11 +5,11 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "OnlineSubsystemAccelByte.h"
 #include "OnlineSubsystemAccelByteTypes.h"
 #include "Interfaces/OnlineUserCloudInterface.h"
 #include "OnlineSubsystemAccelBytePackage.h"
 
-class FOnlineSubsystemAccelByte;
 class IOnlineSubsystem;
 
 using FFileNameToFileContentsMap = TMap<FString, TArray<uint8>>;
@@ -29,7 +29,7 @@ class ONLINESUBSYSTEMACCELBYTE_API FOnlineUserCloudAccelByte : public IOnlineUse
 private:
 
 	/** Instance of the subsystem that created this interface */
-	FOnlineSubsystemAccelByte* AccelByteSubsystem = nullptr;
+	FOnlineSubsystemAccelByteWPtr AccelByteSubsystem = nullptr;
 
 	/** Hidden default constructor, the constructor that takes in a subsystem instance should be used instead. */
 	FOnlineUserCloudAccelByte()

@@ -34,9 +34,11 @@ void FOnlineAsyncTaskAccelByteUnregisterRemoteServerV2::Initialize()
 		SessionId = Session->GetSessionIdStr();
 	}
 
+	SERVER_API_CLIENT_CHECK_GUARD()
+
 	OnUnregisterServerSuccessDelegate = TDelegateUtils<FVoidHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteUnregisterRemoteServerV2::OnUnregisterServerSuccess);
 	OnUnregisterServerErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteUnregisterRemoteServerV2::OnUnregisterServerError);;
-	FRegistry::ServerDSM.SendShutdownToDSM(false, SessionId, OnUnregisterServerSuccessDelegate, OnUnregisterServerErrorDelegate);
+	ServerApiClient->ServerDSM.SendShutdownToDSM(false, SessionId, OnUnregisterServerSuccessDelegate, OnUnregisterServerErrorDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
@@ -61,8 +63,10 @@ void FOnlineAsyncTaskAccelByteUnregisterRemoteServerV2::Finalize()
 		const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = SubsystemPin->GetPredefinedEventInterface();
 		if (PredefinedEventInterface.IsValid())
 		{
+			SERVER_API_CLIENT_CHECK_GUARD();
+			
 			FAccelByteModelsDSUnregisteredPayload DSUnregisteredPayload{};
-			DSUnregisteredPayload.PodName = FRegistry::ServerDSM.GetServerName();
+			DSUnregisteredPayload.PodName = ServerApiClient->ServerDSM.GetServerName();
 			PredefinedEventInterface->SendEvent(-1, MakeShared<FAccelByteModelsDSUnregisteredPayload>(DSUnregisteredPayload));
 		}
 	}

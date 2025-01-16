@@ -5,6 +5,7 @@
 #pragma once
 #include "OnlineErrorAccelByte.h"
 #include "OnlineSubsystemAccelByte.h"
+#include "OnlineSubsystemAccelByte.h"
 #include "Interfaces/OnlinePurchaseInterface.h"
 #include "OnlineSubsystemAccelByteTypes.h"
 #include "OnlineSubsystemAccelBytePackage.h"
@@ -107,7 +108,7 @@ public:
 
 protected:
 	/** Instance of the subsystem that created this interface */
-	FOnlineSubsystemAccelByte* AccelByteSubsystem = nullptr;
+	FOnlineSubsystemAccelByteWPtr AccelByteSubsystem = nullptr;
 
 	FUserIDToReceiptMap PurchaseReceipts;
 	/** Critical sections for thread safe operation of ReceiptMap */

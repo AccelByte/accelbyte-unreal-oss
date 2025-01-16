@@ -35,15 +35,16 @@ protected:
 private:
 	void CreatePersonalTopic();
 	void SendPersonalChat();
-	void OnSendRoomChatError(int32 ErrorCode, const FString& ErrorMessage);
+	void OnSendRoomChatError(int32 InErrorCode, const FString& ErrorMessage);
 	void OnSendRoomChatSuccess(const FAccelByteModelsChatSendChatResponse& Response);
-	void OnCreatePersonalTopicError(int32 ErrorCode, const FString& ErrorMessage);
+	void OnCreatePersonalTopicError(int32 InErrorCode, const FString& ErrorMessage);
 	void OnCreatePersonalTopicSuccess(const FAccelByteModelsChatActionTopicResponse& Response);
 
 	TSharedPtr<const FUniqueNetIdAccelByteUser> RecipientId;
 	const FString ChatMessage;
 	FString RoomId;
 
+	int32 ErrorCode{ 0 };
 	FString ErrorString{};
 
 	FAccelByteModelsChatSendChatResponse SendChatResponse{};

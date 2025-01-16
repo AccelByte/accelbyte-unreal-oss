@@ -69,7 +69,7 @@ void FOnlineAsyncTaskAccelByteDeleteStatsUsers::Initialize()
 		, &FOnlineAsyncTaskAccelByteDeleteStatsUsers::OnDeleteUserStatsFailed);
 	
 	FString AccelByteUserId = StatsUser->GetAccelByteId();
-	FServerApiClientPtr ServerApiClient = FMultiRegistry::GetServerApiClient();
+	SERVER_API_CLIENT_CHECK_GUARD();
 	ServerApiClient->ServerStatistic.DeleteUserStatItems(AccelByteUserId
 		, StatCode
 		, AdditionalKey

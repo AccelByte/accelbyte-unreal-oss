@@ -8,6 +8,14 @@
 #include "AsyncTasks/Leaderboard/OnlineAsyncTaskAccelByteReadLeaderboards.h"
 #include "AsyncTasks/Leaderboard/OnlineAsyncTaskAccelByteReadLeaderboardsAroundRank.h"
 
+FOnlineLeaderboardAccelByte::FOnlineLeaderboardAccelByte(FOnlineSubsystemAccelByte* InSubsystem)
+#if ENGINE_MAJOR_VERSION >= 5
+		: AccelByteSubsystem(InSubsystem->AsWeak())
+#else
+		: AccelByteSubsystem(InSubsystem->AsShared())
+#endif
+	{}
+
 bool FOnlineLeaderboardAccelByte::GetFromSubsystem(
 	const IOnlineSubsystem* Subsystem,
 	TSharedPtr<FOnlineLeaderboardAccelByte, ESPMode::ThreadSafe>& OutInterfaceInstance)
@@ -47,7 +55,14 @@ bool FOnlineLeaderboardAccelByte::ReadLeaderboardsCycle(
 	{
 		if (!IsRunningDedicatedServer())
 		{
-			AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteReadLeaderboards>(AccelByteSubsystem, AccelByteSubsystem->GetLocalUserNumCached(), Players, ReadObject, true, CycleId);
+			FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+			if (!AccelByteSubsystemPtr.IsValid())
+			{
+				UE_LOG_ONLINE_LEADERBOARD(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+				return false;
+			}
+			
+			AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteReadLeaderboards>(AccelByteSubsystemPtr.Get(), AccelByteSubsystemPtr->GetLocalUserNumCached(), Players, ReadObject, true, CycleId);
 
 			return true;
 		}
@@ -83,11 +98,18 @@ bool FOnlineLeaderboardAccelByte::ReadLeaderboardsForFriendsCycle(
 		return false;
 	}
 
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		UE_LOG_ONLINE_LEADERBOARD(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return false;
+	}
+
 	bool bReadFriendLeaderboard = false;
 
-	IOnlineIdentityPtr IdentityInterface = AccelByteSubsystem->GetIdentityInterface();
-	IOnlineFriendsPtr FriendsInterface = AccelByteSubsystem->GetFriendsInterface();
-	IOnlineLeaderboardsPtr LeaderboardInterface = AccelByteSubsystem->GetLeaderboardsInterface();
+	IOnlineIdentityPtr IdentityInterface = AccelByteSubsystemPtr->GetIdentityInterface();
+	IOnlineFriendsPtr FriendsInterface = AccelByteSubsystemPtr->GetFriendsInterface();
+	IOnlineLeaderboardsPtr LeaderboardInterface = AccelByteSubsystemPtr->GetLeaderboardsInterface();
 
 	if (!IdentityInterface.IsValid())
 	{
@@ -149,7 +171,14 @@ bool FOnlineLeaderboardAccelByte::ReadLeaderboards(
 	{
 		if (!IsRunningDedicatedServer())
 		{
-			AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteReadLeaderboards>(AccelByteSubsystem, AccelByteSubsystem->GetLocalUserNumCached(), Players, ReadObject);
+			FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+			if (!AccelByteSubsystemPtr.IsValid())
+			{
+				UE_LOG_ONLINE_LEADERBOARD(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+				return false;
+			}
+			
+			AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteReadLeaderboards>(AccelByteSubsystemPtr.Get(), AccelByteSubsystemPtr->GetLocalUserNumCached(), Players, ReadObject);
 
 			return true;
 		}
@@ -178,11 +207,18 @@ bool FOnlineLeaderboardAccelByte::ReadLeaderboardsForFriends(
 		return false;
 	}
 
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		UE_LOG_ONLINE_LEADERBOARD(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return false;
+	}
+
 	bool bReadFriendLeaderboard = false;
 
-	IOnlineIdentityPtr IdentityInterface = AccelByteSubsystem->GetIdentityInterface();
-	IOnlineFriendsPtr FriendsInterface = AccelByteSubsystem->GetFriendsInterface();
-	IOnlineLeaderboardsPtr LeaderboardInterface = AccelByteSubsystem->GetLeaderboardsInterface();
+	IOnlineIdentityPtr IdentityInterface = AccelByteSubsystemPtr->GetIdentityInterface();
+	IOnlineFriendsPtr FriendsInterface = AccelByteSubsystemPtr->GetFriendsInterface();
+	IOnlineLeaderboardsPtr LeaderboardInterface = AccelByteSubsystemPtr->GetLeaderboardsInterface();
 
 	if (!IdentityInterface.IsValid())
 	{
@@ -241,9 +277,16 @@ bool FOnlineLeaderboardAccelByte::ReadLeaderboardsAroundRank(
 		return false;
 	}
 
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteReadLeaderboardsAroundRank>(
-		AccelByteSubsystem,
-		AccelByteSubsystem->GetLocalUserNumCached(),
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		UE_LOG_ONLINE_LEADERBOARD(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return false;
+	}
+
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteReadLeaderboardsAroundRank>(
+		AccelByteSubsystemPtr.Get(),
+		AccelByteSubsystemPtr->GetLocalUserNumCached(),
 		ReadObject,
 		Rank,
 		Range,
@@ -273,9 +316,16 @@ bool FOnlineLeaderboardAccelByte::ReadLeaderboardCycleAroundRank(
 		return false;
 	}
 
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteReadLeaderboardsAroundRank>(
-		AccelByteSubsystem,
-		AccelByteSubsystem->GetLocalUserNumCached(),
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		UE_LOG_ONLINE_LEADERBOARD(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return false;
+	}
+
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteReadLeaderboardsAroundRank>(
+		AccelByteSubsystemPtr.Get(),
+		AccelByteSubsystemPtr->GetLocalUserNumCached(),
 		ReadObject,
 		Rank,
 		Range,
@@ -299,9 +349,16 @@ bool FOnlineLeaderboardAccelByte::ReadLeaderboardCycleAroundUser(
 		return false;
 	}
 
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteReadLeaderboardAroundUser>(
-		AccelByteSubsystem,
-		AccelByteSubsystem->GetLocalUserNumCached(),
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		UE_LOG_ONLINE_LEADERBOARD(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return false;
+	}
+
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteReadLeaderboardAroundUser>(
+		AccelByteSubsystemPtr.Get(),
+		AccelByteSubsystemPtr->GetLocalUserNumCached(),
 		Player,
 		ReadObject,
 		Range,
@@ -324,9 +381,16 @@ bool FOnlineLeaderboardAccelByte::ReadLeaderboardsAroundUser(
 		return false;
 	}
 
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteReadLeaderboardAroundUser>(
-		AccelByteSubsystem,
-		AccelByteSubsystem->GetLocalUserNumCached(),
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		UE_LOG_ONLINE_LEADERBOARD(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return false;
+	}
+
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteReadLeaderboardAroundUser>(
+		AccelByteSubsystemPtr.Get(),
+		AccelByteSubsystemPtr->GetLocalUserNumCached(),
 		Player,
 		ReadObject,
 		Range,

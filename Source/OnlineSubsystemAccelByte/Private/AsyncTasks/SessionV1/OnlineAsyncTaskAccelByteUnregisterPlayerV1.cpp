@@ -86,7 +86,8 @@ void FOnlineAsyncTaskAccelByteUnregisterPlayersV1::Initialize()
 		if(bIsCustomMatch)
 		{
 #if UE_SERVER
-			FRegistry::ServerSessionBrowser.UnregisterPlayer(SessionId, Player->GetAccelByteId(), OnUnregisterPlayerFromSessionSuccessDelegate, OnUnregisterPlayerFromSessionErrorDelegate);
+			SERVER_API_CLIENT_CHECK_GUARD();
+			ServerApiClient->ServerSessionBrowser.UnregisterPlayer(SessionId, Player->GetAccelByteId(), OnUnregisterPlayerFromSessionSuccessDelegate, OnUnregisterPlayerFromSessionErrorDelegate);
 #else
 			API_CLIENT_CHECK_GUARD();
 			ApiClient->SessionBrowser.UnregisterPlayer(SessionId, Player->GetAccelByteId(), OnUnregisterPlayerFromSessionSuccessDelegate, OnUnregisterPlayerFromSessionErrorDelegate);

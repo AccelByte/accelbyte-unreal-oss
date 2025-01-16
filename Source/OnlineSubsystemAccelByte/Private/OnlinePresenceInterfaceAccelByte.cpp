@@ -13,7 +13,11 @@
 #include "AsyncTasks/User/OnlineAsyncTaskAccelByteBulkQueryUserPresence.h"
 
 FOnlinePresenceAccelByte::FOnlinePresenceAccelByte(FOnlineSubsystemAccelByte* InSubsystem) 
-	: AccelByteSubsystem(InSubsystem)
+#if ENGINE_MAJOR_VERSION >= 5
+	: AccelByteSubsystem(InSubsystem->AsWeak())
+#else
+	: AccelByteSubsystem(InSubsystem->AsShared())
+#endif
 {
 }
 
@@ -37,14 +41,28 @@ bool FOnlinePresenceAccelByte::GetFromWorld(const UWorld* World, FOnlinePresence
 
 IOnlinePresencePtr FOnlinePresenceAccelByte::GetPlatformOnlinePresenceInterface() const 
 {
-	IOnlineSubsystem* NativeSubsystem = AccelByteSubsystem->GetNativePlatformSubsystem();
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return nullptr;
+	}
+	
+	IOnlineSubsystem* NativeSubsystem = AccelByteSubsystemPtr->GetNativePlatformSubsystem();
 	return (NativeSubsystem != nullptr) ? NativeSubsystem->GetPresenceInterface() : nullptr;
 }
 
 void FOnlinePresenceAccelByte::OnFriendStatusChangedNotificationReceived(const FAccelByteModelsUsersPresenceNotice& Notification, int32 LocalUserNum)
 {
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return;
+	}
+	
 	// First, we want to get our own net ID, as delegates will require it
-	const IOnlineIdentityPtr IdentityInterface = AccelByteSubsystem->GetIdentityInterface();
+	const IOnlineIdentityPtr IdentityInterface = AccelByteSubsystemPtr->GetIdentityInterface();
 	if (!IdentityInterface.IsValid())
 	{
 		UE_LOG_AB(Warning, TEXT("Received a notification for a friend status changed, but cannot act on it as the identity interface is not valid!"));
@@ -87,7 +105,14 @@ TMap<FString, TSharedRef<FOnlineUserPresenceAccelByte>> FOnlinePresenceAccelByte
 
 void FOnlinePresenceAccelByte::SetPresence(const FUniqueNetId& User, const FOnlineUserPresenceStatus& Status, const FOnPresenceTaskCompleteDelegate& Delegate) 
 {
-	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystem->GetIdentityInterface());
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return;
+	}
+	
+	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystemPtr->GetIdentityInterface());
 	if (IdentityInterface.IsValid())
 	{
 		TSharedPtr<FUserOnlineAccount> UserAccount = IdentityInterface->GetUserAccount(User);
@@ -98,7 +123,7 @@ void FOnlinePresenceAccelByte::SetPresence(const FUniqueNetId& User, const FOnli
 			if(UserAccountAccelByte->IsConnectedToLobby())
 			{
 				// Async task to set presence from AccelByte backend
-				AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteSetUserPresence>(AccelByteSubsystem, User, Status, Delegate);
+				AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteSetUserPresence>(AccelByteSubsystemPtr.Get(), User, Status, Delegate);
 				return;
 			}
 		}
@@ -122,15 +147,29 @@ void FOnlinePresenceAccelByte::UpdatePresenceCache(const FString& UserID, const 
 
 void FOnlinePresenceAccelByte::QueryPresence(const FUniqueNetId& User, const FOnPresenceTaskCompleteDelegate& Delegate) 
 {
-	int32 LocalUserNum = AccelByteSubsystem->GetLocalUserNumCached();
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return;
+	}
+	
+	int32 LocalUserNum = AccelByteSubsystemPtr->GetLocalUserNumCached();
 
 	// Async task to query presence from AccelByte backend
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteQueryUserPresence>(AccelByteSubsystem, User, Delegate, LocalUserNum);
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteQueryUserPresence>(AccelByteSubsystemPtr.Get(), User, Delegate, LocalUserNum);
 }
 
 void FOnlinePresenceAccelByte::BulkQueryPresence(const FUniqueNetId& LocalUserId, const TArray<FUniqueNetIdRef>& UserIds)
 {
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteBulkQueryUserPresence>(AccelByteSubsystem, LocalUserId, UserIds);
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return;
+	}
+	
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteBulkQueryUserPresence>(AccelByteSubsystemPtr.Get(), LocalUserId, UserIds);
 }
 
 EOnlineCachedResult::Type FOnlinePresenceAccelByte::GetCachedPresence(const FUniqueNetId& User, TSharedPtr<FOnlineUserPresence>& OutPresence) 
@@ -149,7 +188,15 @@ EOnlineCachedResult::Type FOnlinePresenceAccelByte::GetCachedPresence(const FUni
 EOnlineCachedResult::Type FOnlinePresenceAccelByte::GetCachedPresenceForApp(const FUniqueNetId& LocalUserId, const FUniqueNetId& User, const FString& AppId, TSharedPtr<FOnlineUserPresence>& OutPresence) 
 {
 	EOnlineCachedResult::Type Result = EOnlineCachedResult::NotFound;
-	if (AccelByteSubsystem->GetAppId() == AppId)
+
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return Result;
+	}
+	
+	if (AccelByteSubsystemPtr->GetAppId() == AppId)
 	{
 		Result = GetCachedPresence(User, OutPresence);
 	}
@@ -183,8 +230,15 @@ EOnlineCachedResult::Type FOnlinePresenceAccelByte::GetPlatformCachedPresence(co
 
 void FOnlinePresenceAccelByte::RegisterRealTimeLobbyDelegates(int32 LocalUserNum)
 {
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return;
+	}
+	
 	// Get our identity interface to retrieve the API client for this user
-	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystem->GetIdentityInterface());
+	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystemPtr->GetIdentityInterface());
 	if (!IdentityInterface.IsValid())
 	{
 		UE_LOG_AB(Warning, TEXT("Failed to register real-time lobby as an identity interface instance could not be retrieved!"));

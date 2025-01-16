@@ -15,6 +15,7 @@ FOnlineAsyncTaskAccelByteGroupsDeclineInvite::FOnlineAsyncTaskAccelByteGroupsDec
 	: FOnlineAsyncTaskAccelByte(InABInterface)
 	, GroupId(InGroupId)
 	, Delegate(InDelegate)
+	, httpStatus(0)
 {
 	UserId = FUniqueNetIdAccelByteUser::CastChecked(UserIdRejectingInvite);
 }

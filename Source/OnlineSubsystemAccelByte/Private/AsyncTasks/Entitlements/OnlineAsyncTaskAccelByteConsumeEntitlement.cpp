@@ -35,7 +35,8 @@ void FOnlineAsyncTaskAccelByteConsumeEntitlement::Initialize()
 	}
 	else
 	{
-		FServerApiClientPtr ServerApiClient = FMultiRegistry::GetServerApiClient();
+		
+		SERVER_API_CLIENT_CHECK_GUARD(ErrorMessage);
 		ServerApiClient->ServerEcommerce.ConsumeUserEntitlement(UserId->GetAccelByteId(), EntitlementId, UseCount, OnConsumeEntitlementSuccess, OnError, Options, RequestId);
 	}
 

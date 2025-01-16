@@ -577,7 +577,7 @@ protected:
 		: AccelByteSubsystem(nullptr) {}
 
 	/** Instance of the subsystem that created this interface */
-	FOnlineSubsystemAccelByte* AccelByteSubsystem = nullptr;
+	FOnlineSubsystemAccelByteWPtr AccelByteSubsystem = nullptr;
 
 	/** Map of user IDs to a map of party IDs and their associated party objects */
 	FUserIDToPartiesMap UserIdToPartiesMap;

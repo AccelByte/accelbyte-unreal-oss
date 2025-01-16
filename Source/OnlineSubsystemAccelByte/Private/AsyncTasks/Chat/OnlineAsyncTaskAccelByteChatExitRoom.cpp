@@ -3,6 +3,8 @@
 // and restrictions contact your company contract manager.
 
 #include "OnlineAsyncTaskAccelByteChatExitRoom.h"
+
+#include "OnlineChatInterfaceAccelByte.h"
 #include "OnlinePredefinedEventInterfaceAccelByte.h"
 
 using namespace AccelByte;

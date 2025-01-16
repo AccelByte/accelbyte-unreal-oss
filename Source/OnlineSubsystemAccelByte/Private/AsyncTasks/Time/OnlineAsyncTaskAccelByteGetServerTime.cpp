@@ -21,10 +21,30 @@ void FOnlineAsyncTaskAccelByteGetServerTime::Initialize()
 	Super::Initialize();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(" "));
+	
+	FAccelByteInstancePtr AccelByteInstancePtr = GetAccelByteInstance().Pin();
+	if(!AccelByteInstancePtr.IsValid())
+	{
+		AB_OSS_ASYNC_TASK_TRACE_END(TEXT("AccelByteInstance is invalid"));
+		ErrorMessage = TEXT("AccelByteInstance is invalid");
+		CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState);
+		return;
+	}
+	
+	FAccelByteTimeManagerPtr TimeManagerPtr = AccelByteInstancePtr->GetTimeManager().Pin();
+	if(!AccelByteInstancePtr.IsValid())
+	{
+		AB_OSS_ASYNC_TASK_TRACE_END(TEXT("TimeManager is invalid"));
+		ErrorMessage = TEXT("TimeManager is invalid");
+		CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState);
+		return;
+	}
+
 	THandler<FTime> OnGetServerTimeSuccess =
 		TDelegateUtils<THandler<FTime>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteGetServerTime::HandleGetServerTimeSuccess);
 	FErrorHandler OnError = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteGetServerTime::HandleGetServerTimeError);
-	FRegistry::TimeManager.GetServerTime(OnGetServerTimeSuccess, OnError, true);
+
+	TimeManagerPtr->GetServerTime(OnGetServerTimeSuccess, OnError, true);
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 

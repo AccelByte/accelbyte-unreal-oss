@@ -74,7 +74,7 @@ void FOnlineAsyncTaskAccelByteCreateStatsUser::Initialize()
 		, &FOnlineAsyncTaskAccelByteCreateStatsUser::HandleAsyncTaskError);
 	
 	FString AccelByteUserId = StatsUser->GetAccelByteId();
-	FServerApiClientPtr ServerApiClient = FMultiRegistry::GetServerApiClient();
+	SERVER_API_CLIENT_CHECK_GUARD();
 	ServerApiClient->ServerStatistic.CreateUserStatItems(AccelByteUserId
 		, StatCodes
 		, OnBulkCreateStatItemsSuccess

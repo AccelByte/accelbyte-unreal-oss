@@ -95,7 +95,14 @@ void FOnlineAsyncTaskAccelByteReadLeaderboards::Initialize()
 		if (!IsRunningDedicatedServer())
 		{
 			API_CLIENT_CHECK_GUARD(ErrorMessage);
+
+#if ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION >= 5
+			// LeaderboardName is an FString type in 5.5 and above
+			ApiClient->Leaderboard.GetBulkUserRankingV3(FriendsUserIds, LeaderboardObject->LeaderboardName, OnReadLeaderboardsSuccessHandler, OnReadLeaderboardsFailedHandler);
+#else
 			ApiClient->Leaderboard.GetBulkUserRankingV3(FriendsUserIds, LeaderboardObject->LeaderboardName.ToString(), OnReadLeaderboardsSuccessHandler, OnReadLeaderboardsFailedHandler);
+#endif // ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION >= 5
+
 			CountRequests++;
 		}
 		else
@@ -126,7 +133,14 @@ void FOnlineAsyncTaskAccelByteReadLeaderboards::Finalize()
 		if (PredefinedEventInterface.IsValid())
 		{
 			FAccelByteModelsLeaderboardGetUsersRankingsPayload LeaderboardGetUsersRankingsPayload{};
+
+#if ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION >= 5
+			// LeaderboardName is an FString type in 5.5 and above
+			LeaderboardGetUsersRankingsPayload.LeaderboardCode = LeaderboardObject->LeaderboardName;
+#else
 			LeaderboardGetUsersRankingsPayload.LeaderboardCode = LeaderboardObject->LeaderboardName.ToString();
+#endif // ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION >= 5
+
 			LeaderboardGetUsersRankingsPayload.UserId = UserId->GetAccelByteId();
 			LeaderboardGetUsersRankingsPayload.TargetUserIds = FriendsUserIds;
 
@@ -229,7 +243,13 @@ void FOnlineAsyncTaskAccelByteReadLeaderboards::OnReadLeaderboardsSuccess(FAccel
 			{
 				// Leaderboard cycle
 				LeaderboardRow->Rank = BulkLeaderboardResult.Cycles[CycleIndex].Rank;
-				LeaderboardRow->Columns.Add(FName("Cycle_Point"), BulkLeaderboardResult.Cycles[CycleIndex].Point);
+
+#if ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION >= 5
+				// Column key uses FString in 5.5 and above
+				LeaderboardRow->Columns.Add(TEXT("Cycle_Point"), BulkLeaderboardResult.Cycles[CycleIndex].Point);
+#else
+				LeaderboardRow->Columns.Add(FName(TEXT("Cycle_Point")), BulkLeaderboardResult.Cycles[CycleIndex].Point);
+#endif // ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION >= 5
 			}
 			else
 			{
@@ -240,7 +260,13 @@ void FOnlineAsyncTaskAccelByteReadLeaderboards::OnReadLeaderboardsSuccess(FAccel
 		{
 			// Leaderboard all time
 			LeaderboardRow->Rank = BulkLeaderboardResult.AllTime.Rank;
-			LeaderboardRow->Columns.Add(FName("AllTime_Point"), BulkLeaderboardResult.AllTime.Point);
+
+#if ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION >= 5
+			// Column key uses FString in 5.5 and above
+			LeaderboardRow->Columns.Add(TEXT("AllTime_Point"), BulkLeaderboardResult.AllTime.Point);
+#else
+			LeaderboardRow->Columns.Add(FName(TEXT("AllTime_Point")), BulkLeaderboardResult.AllTime.Point);
+#endif // ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION >= 5
 		}
 
 		// Put the leaderboard value into read leaderboard object reference (column meta data)
@@ -259,7 +285,12 @@ void FOnlineAsyncTaskAccelByteReadLeaderboards::OnReadLeaderboardsSuccess(FAccel
 
 				default:
 				{
+#if ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION >= 5
+					// ColumnName is an FString type in 5.5 and above
+					UE_LOG_ONLINE(Warning, TEXT("Unsupported key value pair during data retrieval %s"), *ColumnMeta.ColumnName);
+#else
 					UE_LOG_ONLINE(Warning, TEXT("Unsupported key value pair during data retrieval %s"), *ColumnMeta.ColumnName.ToString());
+#endif
 					break;
 				}
 			}

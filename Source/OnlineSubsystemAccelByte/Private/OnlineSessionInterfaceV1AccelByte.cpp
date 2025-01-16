@@ -71,7 +71,7 @@ bool GetConnectionStringFromSessionInfo(TSharedPtr<FOnlineSessionInfoAccelByteV1
 }
 
 FOnlineSessionV1AccelByte::FOnlineSessionV1AccelByte(FOnlineSubsystemAccelByte* InSubsystem)
-	: AccelByteSubsystem(InSubsystem)
+	: AccelByteSubsystem(InSubsystem->AsShared())
 	, SessionSearchHandle(nullptr)
 {
 }
@@ -107,7 +107,7 @@ bool FOnlineSessionV1AccelByte::GetFromWorld(const UWorld* World, FOnlineSession
 void FOnlineSessionV1AccelByte::OnMatchmakingNotificationReceived(const FAccelByteModelsMatchmakingNotice& Notification)
 {
 	const UEnum* StatusEnum = StaticEnum<EAccelByteMatchmakingStatus>();
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("Matchmaking Status: %s"), *StatusEnum->GetNameStringByValue(static_cast<int64>(Notification.Status)));
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("Matchmaking Status: %s"), *StatusEnum->GetNameStringByValue(static_cast<int64>(Notification.Status)));
 
 	ensureMsgf(IsInGameThread(), TEXT("OnMatchmakingNotificationReceived is not in game thread!"));
 
@@ -126,13 +126,13 @@ void FOnlineSessionV1AccelByte::OnMatchmakingNotificationReceived(const FAccelBy
 		}
 		
 		TriggerOnMatchmakingStartedDelegates();	
-		AB_OSS_INTERFACE_TRACE_END(TEXT("Received a notification that we have started matchmaking!"));
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Received a notification that we have started matchmaking!"));
 	}
 	else if (Notification.Status == EAccelByteMatchmakingStatus::Cancel)
 	{
 		CancelMatchmakingNotification();
 		
-		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Received a notification that matchmaking has been cancelled!"));
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Received a notification that matchmaking has been cancelled!"));
 	}
 	else if (Notification.Status == EAccelByteMatchmakingStatus::Done && !Notification.MatchId.IsEmpty())
 	{
@@ -176,7 +176,7 @@ void FOnlineSessionV1AccelByte::OnMatchmakingNotificationReceived(const FAccelBy
 			SendReady(0, Notification.MatchId);
 		}
 
-		AB_OSS_INTERFACE_TRACE_END(TEXT("Received a notification that we have found a match with ID '%s'! Waiting for ready consent..."), *Notification.MatchId);
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Received a notification that we have found a match with ID '%s'! Waiting for ready consent..."), *Notification.MatchId);
 	}
 	else if (Notification.Status == EAccelByteMatchmakingStatus::Timeout)
 	{
@@ -185,7 +185,7 @@ void FOnlineSessionV1AccelByte::OnMatchmakingNotificationReceived(const FAccelBy
 		Error.ErrorMessage = TEXT("matchmaking-timeout");
 		TriggerOnMatchmakingFailedDelegates(Error);
 		
-		AB_OSS_INTERFACE_TRACE_END(TEXT("Received a notification that matchmaking with matchId '%s' has reached a timeout state, aborting!"), *Notification.MatchId);
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Received a notification that matchmaking with matchId '%s' has reached a timeout state, aborting!"), *Notification.MatchId);
 	}
 	else
 	{
@@ -194,7 +194,7 @@ void FOnlineSessionV1AccelByte::OnMatchmakingNotificationReceived(const FAccelBy
 		Error.ErrorMessage = TEXT("game-server-failed-to-start");
 		TriggerOnMatchmakingFailedDelegates(Error);
 
-		AB_OSS_INTERFACE_TRACE_END(TEXT("Received a notification that matchmaking with matchId '%s' has reached a failure state, aborting!"), *Notification.MatchId);
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Received a notification that matchmaking with matchId '%s' has reached a failure state, aborting!"), *Notification.MatchId);
 	}
 }
 
@@ -228,12 +228,12 @@ void FOnlineSessionV1AccelByte::CreatePendingMatchFromDSNotif(const FAccelByteMo
 
 void FOnlineSessionV1AccelByte::ContinueCreatePendingMatchFromDSNotif(const FString& MatchId)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("SessionId: %s"), *MatchId);
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("SessionId: %s"), *MatchId);
 
 	FAccelBytePendingMatchInfo* FoundMatchInfo = PendingMatchesUnderConstruction.Find(MatchId);
 	if (FoundMatchInfo == nullptr)
 	{
-		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to continue creating a pending match from a DS notification as there is no pending match with ID '%s'!"), *MatchId);
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to continue creating a pending match from a DS notification as there is no pending match with ID '%s'!"), *MatchId);
 		return;
 	}
 
@@ -245,12 +245,12 @@ void FOnlineSessionV1AccelByte::ContinueCreatePendingMatchFromDSNotif(const FStr
 	// Finally, remove this particular match from the matches under construction list so that we don't have any false duplicates
 	PendingMatchesUnderConstruction.Remove(MatchId);
 
-	AB_OSS_INTERFACE_TRACE_END(TEXT("Pushing data for match '%s' to array for filtering!"), *MatchId);
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Pushing data for match '%s' to array for filtering!"), *MatchId);
 }
 
 void FOnlineSessionV1AccelByte::OnDedicatedServerNotificationReceived(const FAccelByteModelsDsNotice& Notification)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("Dedicated Server Status: %s"), *Notification.Status);
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("Dedicated Server Status: %s"), *Notification.Status);
 
 	// A status of READY or BUSY means we have a server that we can join, so fill out the session host addr with the data
 	// from the dedicated server notification in these cases
@@ -261,13 +261,13 @@ void FOnlineSessionV1AccelByte::OnDedicatedServerNotificationReceived(const FAcc
 			OnDedicatedServerNotificationDelegate.Broadcast(Notification.Ip, Notification.Port);
 			bSkipSessionWorkOnDSNotif = false;
 
-			AB_OSS_INTERFACE_TRACE_END(TEXT("Got dedicated server back after request for custom game, notifiying async task!"));
+			AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Got dedicated server back after request for custom game, notifiying async task!"));
 		}
 		else
 		{
 			CreatePendingMatchFromDSNotif(Notification);
 
-			AB_OSS_INTERFACE_TRACE_END(TEXT("Found suitable server from matchmaker, getting information about session!"));
+			AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Found suitable server from matchmaker, getting information about session!"));
 		}
 	}
 	else if(Notification.IsOK.Equals(TEXT("false"), ESearchCase::IgnoreCase))
@@ -284,17 +284,24 @@ void FOnlineSessionV1AccelByte::OnDedicatedServerNotificationReceived(const FAcc
 
 void FOnlineSessionV1AccelByte::GetSessionInformation(const FString& SessionId)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("SessionId: %s"), *SessionId);
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("SessionId: %s"), *SessionId);
 
-	const int32 LocalUserNum = AccelByteSubsystem->GetLocalUserNumCached();
-	const AccelByte::FApiClientPtr ApiClient = AccelByteSubsystem->GetApiClient(LocalUserNum);
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if(!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to get session information as we could not get an AccelByteSubsystem instance!"));
+		return;
+	}
+
+	const int32 LocalUserNum = AccelByteSubsystemPtr->GetLocalUserNumCached();
+	const AccelByte::FApiClientPtr ApiClient = AccelByteSubsystemPtr->GetApiClient(LocalUserNum);
 	if (!ApiClient.IsValid())
 	{
-		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to get session information as we could not get an API client instance!"));
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to get session information as we could not get an API client instance!"));
 		return;
 	}
 	
-	AB_OSS_INTERFACE_TRACE_END(TEXT("Sent request to get session information for '%s'"), *SessionId);
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Sent request to get session information for '%s'"), *SessionId);
 
 	if(PendingMatchesUnderConstruction.Num() > 0)
 	{
@@ -304,17 +311,24 @@ void FOnlineSessionV1AccelByte::GetSessionInformation(const FString& SessionId)
 
 FOnlineSessionSearchResult FOnlineSessionV1AccelByte::ConstructSessionResultForMatch(const FAccelBytePendingMatchInfo& PendingMatch)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT(""));
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT(""));
+
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if(!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to construct session search result for matchmaking as we could not get an AccelByteSubsystem instance!"));
+		return FOnlineSessionSearchResult();
+	}
 
 	if (!SessionSearchHandle.IsValid())
 	{
-		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to construct session search result for matchmaking as the search handle was invalid!"));
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to construct session search result for matchmaking as the search handle was invalid!"));
 		return FOnlineSessionSearchResult();
 	}
 
 	if (!PendingMatch.IsValid())
 	{
-		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to construct session search result for matchmaking as we did not have valid match data!"));
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to construct session search result for matchmaking as we did not have valid match data!"));
 		return FOnlineSessionSearchResult();
 	}
 
@@ -339,10 +353,10 @@ FOnlineSessionSearchResult FOnlineSessionV1AccelByte::ConstructSessionResultForM
 	Session.NumOpenPublicConnections = SessionSettings.NumPublicConnections;
 
 	// Grab the identity interface from the parent subsystem and use the nickname from that as the owning user name
-	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystem->GetIdentityInterface());
+	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystemPtr->GetIdentityInterface());
 	if (IdentityInterface.IsValid())
 	{
-		int32 LocalUserNum = AccelByteSubsystem->GetLocalUserNumCached();
+		int32 LocalUserNum = AccelByteSubsystemPtr->GetLocalUserNumCached();
 
 		Session.OwningUserName = IdentityInterface->GetPlayerNickname(LocalUserNum);
 		Session.OwningUserId = IdentityInterface->GetUniquePlayerId(LocalUserNum);
@@ -364,7 +378,7 @@ FOnlineSessionSearchResult FOnlineSessionV1AccelByte::ConstructSessionResultForM
 
 	if (!bIsIpValid)
 	{
-		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to create session from matchmaking result as the IP address from the session was invalid! IP: %s"), *PendingMatch.Ip);
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to create session from matchmaking result as the IP address from the session was invalid! IP: %s"), *PendingMatch.Ip);
 		return FOnlineSessionSearchResult();
 	}
 
@@ -412,7 +426,7 @@ FNamedOnlineSession* FOnlineSessionV1AccelByte::GetNamedSession(FName SessionNam
 
 void FOnlineSessionV1AccelByte::RemoveNamedSession(FName SessionName)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("SessionName: %s"), *SessionName.ToString());
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("SessionName: %s"), *SessionName.ToString());
 
 	bool bHasRemovedSession = false;
 	FScopeLock ScopeLock(&SessionLock);
@@ -428,11 +442,11 @@ void FOnlineSessionV1AccelByte::RemoveNamedSession(FName SessionName)
 
 	if (bHasRemovedSession)
 	{
-		AB_OSS_INTERFACE_TRACE_END(TEXT("Successfully removed session '%s'!"), *SessionName.ToString());
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Successfully removed session '%s'!"), *SessionName.ToString());
 	}
 	else
 	{
-		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Unable to remove session '%s' as there was no session that matched that name!"), *SessionName.ToString());
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Unable to remove session '%s' as there was no session that matched that name!"), *SessionName.ToString());
 	}
 }
 
@@ -471,12 +485,19 @@ bool FOnlineSessionV1AccelByte::CreateSession(const FUniqueNetId& HostingPlayerI
 
 bool FOnlineSessionV1AccelByte::CreateSession(int32 HostingPlayerNum, FName SessionName, const FOnlineSessionSettings& NewSessionSettings)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("HostingPlayerNum: %d; SessionName: %s"), HostingPlayerNum, *SessionName.ToString());
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("HostingPlayerNum: %d; SessionName: %s"), HostingPlayerNum, *SessionName.ToString());
+
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if(!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to create session as we could not get an AccelByteSubsystem instance!"));
+		return false;
+	}
 
 	FNamedOnlineSession* Session = GetNamedSession(SessionName);
 	if (Session != nullptr)
 	{
-		AB_OSS_INTERFACE_TRACE_END(TEXT("Could not create session as a session with the name '%s' already exists!"), *SessionName.ToString());
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Could not create session as a session with the name '%s' already exists!"), *SessionName.ToString());
 		TriggerOnCreateSessionCompleteDelegates(SessionName, false);
 		return false;
 	}
@@ -494,7 +515,7 @@ bool FOnlineSessionV1AccelByte::CreateSession(int32 HostingPlayerNum, FName Sess
 	// authentication would be handled.
 	if (!IsRunningDedicatedServer())
 	{
-		IOnlineIdentityPtr IdentityInterface = AccelByteSubsystem->GetIdentityInterface();
+		IOnlineIdentityPtr IdentityInterface = AccelByteSubsystemPtr->GetIdentityInterface();
 		if (IdentityInterface.IsValid())
 		{
 			Session->OwningUserId = IdentityInterface->GetUniquePlayerId(HostingPlayerNum);
@@ -504,7 +525,7 @@ bool FOnlineSessionV1AccelByte::CreateSession(int32 HostingPlayerNum, FName Sess
 		// If the ID of the user that owns this session is not valid, then we cannot continue
 		if (!Session->OwningUserId.IsValid())
 		{
-			AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Error, TEXT("Could not create session as the ID of host player '%d' was not valid! SessionName: %s"), HostingPlayerNum, *SessionName.ToString());
+			AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Error, TEXT("Could not create session as the ID of host player '%d' was not valid! SessionName: %s"), HostingPlayerNum, *SessionName.ToString());
 			TriggerOnCreateSessionCompleteDelegates(SessionName, false);
 			return false;
 		}
@@ -523,9 +544,9 @@ bool FOnlineSessionV1AccelByte::CreateSession(int32 HostingPlayerNum, FName Sess
 	{
 		// Register the Socket Subsystem AccelByte when the session is P2P Relay (ICE connection)
 		FAccelByteNetworkUtilitiesModule::Get().RegisterDefaultSocketSubsystem();		
-		SessionInfo->SetupP2PRelaySessionInfo(*AccelByteSubsystem);
+		SessionInfo->SetupP2PRelaySessionInfo(*AccelByteSubsystemPtr);
 		// Setup the network manager for using the logged player api client
-		FOnlineIdentityAccelBytePtr IdentityInterface =  StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystem->GetIdentityInterface());
+		FOnlineIdentityAccelBytePtr IdentityInterface =  StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystemPtr->GetIdentityInterface());
 		const AccelByte::FApiClientPtr ApiClient = IdentityInterface->GetApiClient(HostingPlayerNum); 
 		FAccelByteNetworkUtilitiesModule::Get().Setup(ApiClient);
 		FAccelByteNetworkUtilitiesModule::Get().EnableHosting();
@@ -557,38 +578,45 @@ bool FOnlineSessionV1AccelByte::CreateSession(int32 HostingPlayerNum, FName Sess
 		bool bRegisterDSSession = false;
 		Session->SessionSettings.Get(SETTING_SERVER_DEDICATED_REGISTER_SESSION, bRegisterDSSession);
 		
-		AB_OSS_INTERFACE_TRACE_END(TEXT("Spawning async task to register server to DSM."));
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Spawning async task to register server to DSM."));
 		
-		AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteRegisterDedicatedV1Session>(
-			AccelByteSubsystem, HostingPlayerNum, SessionName, NewSessionSettings, bRegisterDSSession);
+		AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteRegisterDedicatedV1Session>(
+			AccelByteSubsystemPtr.Get(), HostingPlayerNum, SessionName, NewSessionSettings, bRegisterDSSession);
 		
 		return true;
 	}
 	else
 	{
-		AB_OSS_INTERFACE_TRACE_END(TEXT("Creating relay session browser instance on backend."));
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Creating relay session browser instance on backend."));
 		CreateP2PSession(Session);
 		return true;
 	}
 
-	AB_OSS_INTERFACE_TRACE_END(TEXT("No task spawned to create session."));
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("No task spawned to create session."));
 	return false;
 }
 
 void FOnlineSessionV1AccelByte::CreateP2PSession(FNamedOnlineSession* Session)
 {
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if(!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to create session browser as we could not get an AccelByteSubsystem instance!"));
+		return;
+	}
+	
 	// Retrieve the API client for the user hosting this session
-	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystem->GetIdentityInterface());
+	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystemPtr->GetIdentityInterface());
 	if (!IdentityInterface.IsValid())
 	{
-		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to create session browser as an identity interface instance could not be retrieved!"));
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to create session browser as an identity interface instance could not be retrieved!"));
 		return;
 	}
 
 	AccelByte::FApiClientPtr ApiClient = IdentityInterface->GetApiClient(Session->HostingPlayerNum);
 	if (!ApiClient.IsValid())
 	{
-		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to create session browser as an API client could not be retrieved for user num %d!"), Session->HostingPlayerNum);
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to create session browser as an API client could not be retrieved for user num %d!"), Session->HostingPlayerNum);
 		return;
 	}
 
@@ -648,13 +676,20 @@ void FOnlineSessionV1AccelByte::OnSessionCreateSuccess(const FAccelByteModelsSes
 
 bool FOnlineSessionV1AccelByte::StartSession(FName SessionName)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("SessionName: %s"), *SessionName.ToString());
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("SessionName: %s"), *SessionName.ToString());
+
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if(!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to start session '%s' as we could not get an AccelByteSubsystem instance!"), *SessionName.ToString());
+		return false;
+	}
 
 	FNamedOnlineSession* Session = GetNamedSession(SessionName);
 	if (Session == nullptr)
 	{
-		AB_OSS_INTERFACE_TRACE_END(TEXT("Failed to start session '%s' as it does not exist!"), *SessionName.ToString());
-		AccelByteSubsystem->ExecuteNextTick([SessionInterface = AsShared(), SessionName]() {
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Failed to start session '%s' as it does not exist!"), *SessionName.ToString());
+		AccelByteSubsystemPtr->ExecuteNextTick([SessionInterface = AsShared(), SessionName]() {
 			SessionInterface->TriggerOnStartSessionCompleteDelegates(SessionName, false);
 		});
 		return false;
@@ -665,15 +700,15 @@ bool FOnlineSessionV1AccelByte::StartSession(FName SessionName)
 		// Mark the session as in progress and save the time that we kicked this session off
 		Session->SessionState = EOnlineSessionState::InProgress;
 		Session->SessionSettings.Set(SETTING_SESSION_START_TIME, FDateTime::Now().ToIso8601());
-		AccelByteSubsystem->ExecuteNextTick([SessionInterface = AsShared(), SessionName]() {
+		AccelByteSubsystemPtr->ExecuteNextTick([SessionInterface = AsShared(), SessionName]() {
 			SessionInterface->TriggerOnStartSessionCompleteDelegates(SessionName, true);
 		});
 		return true;
 	}
 	else
 	{
-		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Cannot start session '%s' in while in state '%s'!"), *SessionName.ToString(), EOnlineSessionState::ToString(Session->SessionState));
-		AccelByteSubsystem->ExecuteNextTick([SessionInterface = AsShared(), SessionName]() {
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Cannot start session '%s' in while in state '%s'!"), *SessionName.ToString(), EOnlineSessionState::ToString(Session->SessionState));
+		AccelByteSubsystemPtr->ExecuteNextTick([SessionInterface = AsShared(), SessionName]() {
 			SessionInterface->TriggerOnStartSessionCompleteDelegates(SessionName, false);
 		});
 		return false;
@@ -682,13 +717,20 @@ bool FOnlineSessionV1AccelByte::StartSession(FName SessionName)
 
 bool FOnlineSessionV1AccelByte::UpdateSession(FName SessionName, FOnlineSessionSettings& UpdatedSessionSettings, bool bShouldRefreshOnlineData)
 {
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if(!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to update session '%s' as we could not get an AccelByteSubsystem instance!"), *SessionName.ToString());
+		return false;
+	}
+	
 	// Currently we do support updating a session through the backend, only for current player, max player and session settings
 	UE_LOG_AB(Warning, TEXT("FOnlineSessionAccelByte::UpdateSession is currently only support changing current player, max player and session settings!"));
 
 	FNamedOnlineSession* Session = GetNamedSession(SessionName);
 	if (Session == nullptr)
 	{
-		AB_OSS_INTERFACE_TRACE_END(TEXT("Could not update session as a session with the name '%s' does not exists!"), *SessionName.ToString());
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Could not update session as a session with the name '%s' does not exists!"), *SessionName.ToString());
 		TriggerOnUpdateSessionCompleteDelegates(SessionName, false);
 		return false;
 	}
@@ -696,20 +738,27 @@ bool FOnlineSessionV1AccelByte::UpdateSession(FName SessionName, FOnlineSessionS
 	auto CurrentPlayer = SessionBrowserData.Game_session_setting.Current_player > Session->RegisteredPlayers.Num() ?
 		SessionBrowserData.Game_session_setting.Current_player > Session->RegisteredPlayers.Num() : Session->RegisteredPlayers.Num();
 
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteUpdateV1GameSession>(AccelByteSubsystem, SessionName, UpdatedSessionSettings, CurrentPlayer, bShouldRefreshOnlineData);
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteUpdateV1GameSettings>(AccelByteSubsystem, SessionName, UpdatedSessionSettings, bShouldRefreshOnlineData);
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteUpdateV1GameSession>(AccelByteSubsystemPtr.Get(), SessionName, UpdatedSessionSettings, CurrentPlayer, bShouldRefreshOnlineData);
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteUpdateV1GameSettings>(AccelByteSubsystemPtr.Get(), SessionName, UpdatedSessionSettings, bShouldRefreshOnlineData);
 	return true;
 }
 
 bool FOnlineSessionV1AccelByte::EndSession(FName SessionName)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("SessionName: %s"), *SessionName.ToString());
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("SessionName: %s"), *SessionName.ToString());
+
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if(!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to end session '%s' as we could not get an AccelByteSubsystem instance!"), *SessionName.ToString());
+		return false;
+	}
 
 	FNamedOnlineSession* Session = GetNamedSession(SessionName);
 	if (Session == nullptr)
 	{
-		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Error, TEXT("Failed to end session '%s' as the session does not exist!"), *SessionName.ToString());
-		AccelByteSubsystem->ExecuteNextTick([SessionInterface = AsShared(), SessionName]() {
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Error, TEXT("Failed to end session '%s' as the session does not exist!"), *SessionName.ToString());
+		AccelByteSubsystemPtr->ExecuteNextTick([SessionInterface = AsShared(), SessionName]() {
 			SessionInterface->TriggerOnEndSessionCompleteDelegates(SessionName, false);
 		});
 		return false;
@@ -718,18 +767,18 @@ bool FOnlineSessionV1AccelByte::EndSession(FName SessionName)
 
 	if (Session->SessionState != EOnlineSessionState::InProgress)
 	{
-		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Error, TEXT("Cannot end session '%s' as the session is not in progress! Session state: %s"), *SessionName.ToString(), EOnlineSessionState::ToString(Session->SessionState));
-		AccelByteSubsystem->ExecuteNextTick([SessionInterface = AsShared(), SessionName]() {
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Error, TEXT("Cannot end session '%s' as the session is not in progress! Session state: %s"), *SessionName.ToString(), EOnlineSessionState::ToString(Session->SessionState));
+		AccelByteSubsystemPtr->ExecuteNextTick([SessionInterface = AsShared(), SessionName]() {
 			SessionInterface->TriggerOnEndSessionCompleteDelegates(SessionName, false);
 		});
 		return false;
 	}
 
 	// Retrieve the API client for the user hosting this session
-	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystem->GetIdentityInterface());
+	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystemPtr->GetIdentityInterface());
 	if (!IdentityInterface.IsValid())
 	{
-		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to end session as an identity interface instance could not be retrieved!"));
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to end session as an identity interface instance could not be retrieved!"));
 		return false;
 	}
 
@@ -740,7 +789,7 @@ bool FOnlineSessionV1AccelByte::EndSession(FName SessionName)
 	{
 		// For dedicated, just set to ended and move on, deregistration of the server from Armada should be separate.
 		Session->SessionState = EOnlineSessionState::Ended;
-		AB_OSS_INTERFACE_TRACE_END(TEXT("Ended dedicated session! SessionName: %s"), *SessionName.ToString());
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Ended dedicated session! SessionName: %s"), *SessionName.ToString());
 		TriggerOnEndSessionCompleteDelegates(SessionName, true);
 		return true;
 	}
@@ -762,7 +811,7 @@ bool FOnlineSessionV1AccelByte::EndSession(FName SessionName)
 			AccelByte::FApiClientPtr ApiClient = IdentityInterface->GetApiClient(Session->HostingPlayerNum);
 			if (!ApiClient.IsValid())
 			{
-				AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to end session as an API client could not be retrieved for user num %d!"), Session->HostingPlayerNum);
+				AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to end session as an API client could not be retrieved for user num %d!"), Session->HostingPlayerNum);
 				return false;
 			}
 
@@ -777,7 +826,7 @@ bool FOnlineSessionV1AccelByte::EndSession(FName SessionName)
 				SessionInterface->TriggerOnEndSessionCompleteDelegates(SessionName, false);
 			});
 			
-			AB_OSS_INTERFACE_TRACE_END(TEXT("Spawning task to remove game session from session browser! SessionName: %s"), *SessionName.ToString());
+			AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Spawning task to remove game session from session browser! SessionName: %s"), *SessionName.ToString());
 			ApiClient->SessionBrowser.RemoveGameSession(SessionBrowserData.Session_id, OnRemoveSessionSuccess, OnRemoveSessionError);
 			return true;
 		}
@@ -787,19 +836,26 @@ bool FOnlineSessionV1AccelByte::EndSession(FName SessionName)
 		return true;
 	}
 
-	AB_OSS_INTERFACE_TRACE_END(TEXT("Failed to spawn a task to end a session on the backend! SessionName: %s"), *SessionName.ToString());
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Failed to spawn a task to end a session on the backend! SessionName: %s"), *SessionName.ToString());
 	return false;
 }
 
 bool FOnlineSessionV1AccelByte::DestroySession(FName SessionName, const FOnDestroySessionCompleteDelegate& CompletionDelegate) 
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("SessionName: %s"), *SessionName.ToString());
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("SessionName: %s"), *SessionName.ToString());
+	
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if(!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to destroy session '%s' as we could not get an AccelByteSubsystem instance!"), *SessionName.ToString());
+		return false;
+	}
 
 	FNamedOnlineSession* Session = GetNamedSession(SessionName);
 	if (Session == nullptr)
 	{
-		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Error, TEXT("Could not destroy session '%s' as it does not exist!"), *SessionName.ToString());
-		AccelByteSubsystem->ExecuteNextTick([SessionInterface = AsShared(), CompletionDelegate, SessionName]() {
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Error, TEXT("Could not destroy session '%s' as it does not exist!"), *SessionName.ToString());
+		AccelByteSubsystemPtr->ExecuteNextTick([SessionInterface = AsShared(), CompletionDelegate, SessionName]() {
 			CompletionDelegate.ExecuteIfBound(SessionName, false);
 			SessionInterface->TriggerOnDestroySessionCompleteDelegates(SessionName, false);
 		});
@@ -810,7 +866,7 @@ bool FOnlineSessionV1AccelByte::DestroySession(FName SessionName, const FOnDestr
 	CompletionDelegate.ExecuteIfBound(SessionName, true);
 	TriggerOnDestroySessionCompleteDelegates(SessionName, true);
 
-	FOnlineVoiceAccelBytePtr VoiceInterface = StaticCastSharedPtr<FOnlineVoiceAccelByte>(AccelByteSubsystem->GetVoiceInterface());
+	FOnlineVoiceAccelBytePtr VoiceInterface = StaticCastSharedPtr<FOnlineVoiceAccelByte>(AccelByteSubsystemPtr->GetVoiceInterface());
 	if (VoiceInterface.IsValid())
 	{
 		VoiceInterface->RemoveAllTalkers();
@@ -826,7 +882,14 @@ bool FOnlineSessionV1AccelByte::IsPlayerInSession(FName SessionName, const FUniq
 
 bool FOnlineSessionV1AccelByte::StartMatchmaking(const TArray<TSharedRef<const FUniqueNetId>>& LocalPlayers, FName SessionName, const FOnlineSessionSettings& NewSessionSettings, TSharedRef<FOnlineSessionSearch>& SearchSettings)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("SessionName: %s"), *SessionName.ToString());
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("SessionName: %s"), *SessionName.ToString());
+
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if(!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to start matchmaking '%s' as we could not get an AccelByteSubsystem instance!"), *SessionName.ToString());
+		return false;
+	}
 
 	// Set our explicit session settings as well as our search handle to those passed in
 	SessionSearchHandle = SearchSettings;
@@ -839,37 +902,50 @@ bool FOnlineSessionV1AccelByte::StartMatchmaking(const TArray<TSharedRef<const F
 	//CurrentPendingMatchData = FAccelBytePendingMatchInfo();
 	//SearchSettings->QuerySettings.Get(SETTING_GAMEMODE, CurrentPendingMatchData.GameMode);
 
-	check(AccelByteSubsystem != nullptr);
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteStartV1Matchmaking>(AccelByteSubsystem, LocalPlayers, SessionName, NewSessionSettings, SearchSettings);
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteStartV1Matchmaking>(AccelByteSubsystemPtr.Get(), LocalPlayers, SessionName, NewSessionSettings, SearchSettings);
 	
 	return true;
 }
 
 bool FOnlineSessionV1AccelByte::CancelMatchmaking(int32 SearchingPlayerNum, FName SessionName)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("SearchingPlayerNum: %d; SessionName: %s"), SearchingPlayerNum, *SessionName.ToString());
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("SearchingPlayerNum: %d; SessionName: %s"), SearchingPlayerNum, *SessionName.ToString());
 
-	const IOnlineIdentityPtr IdentityInterface = AccelByteSubsystem->GetIdentityInterface();
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if(!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to cancel matchmaking '%s' as we could not get an AccelByteSubsystem instance!"), *SessionName.ToString());
+		return false;
+	}
+
+	const IOnlineIdentityPtr IdentityInterface = AccelByteSubsystemPtr->GetIdentityInterface();
 	FUniqueNetIdPtr PlayerId = IdentityInterface->GetUniquePlayerId(SearchingPlayerNum);
 
 	if (!PlayerId.IsValid())
 	{
-		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Error, TEXT("Failed to find player at index %d!"), SearchingPlayerNum);
-		AccelByteSubsystem->ExecuteNextTick([SessionInterface = AsShared(), SessionName] {
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Error, TEXT("Failed to find player at index %d!"), SearchingPlayerNum);
+		AccelByteSubsystemPtr->ExecuteNextTick([SessionInterface = AsShared(), SessionName] {
 			SessionInterface->TriggerOnCancelMatchmakingCompleteDelegates(SessionName, false);
 		});
 		return false;
 	}
 
-	AB_OSS_INTERFACE_TRACE_END(TEXT("Passing to cancel matchmaking with player '%s'!"), *PlayerId->ToDebugString());
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Passing to cancel matchmaking with player '%s'!"), *PlayerId->ToDebugString());
 	return CancelMatchmaking(PlayerId.ToSharedRef().Get(), SessionName);
 }
 
 bool FOnlineSessionV1AccelByte::CancelMatchmaking(const FUniqueNetId& SearchingPlayerId, FName SessionName)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("SearchingPlayerId: %s; SessionName: %s"), *SearchingPlayerId.ToDebugString(), *SessionName.ToString());
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("SearchingPlayerId: %s; SessionName: %s"), *SearchingPlayerId.ToDebugString(), *SessionName.ToString());
 
-	const TSharedPtr<FOnlineIdentityAccelByte, ESPMode::ThreadSafe> IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystem->GetIdentityInterface());
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if(!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to cacncel matchmaking '%s' as we could not get an AccelByteSubsystem instance!"), *SessionName.ToString());
+		return false;
+	}
+
+	const TSharedPtr<FOnlineIdentityAccelByte, ESPMode::ThreadSafe> IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystemPtr->GetIdentityInterface());
 	if (!IdentityInterface.IsValid())
 	{
 		return false;
@@ -879,13 +955,13 @@ bool FOnlineSessionV1AccelByte::CancelMatchmaking(const FUniqueNetId& SearchingP
 	AccelByte::FApiClientPtr ApiClient = IdentityInterface->GetApiClient(SearchingPlayerId);
 	if (!ApiClient.IsValid())
 	{
-		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to cancel matchmaking as an API client could not be retrieved for user '%s'!"), *(SearchingPlayerId.ToDebugString()));
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to cancel matchmaking as an API client could not be retrieved for user '%s'!"), *(SearchingPlayerId.ToDebugString()));
 		return false;
 	}
 
 	if (!SessionSearchHandle.IsValid())
 	{
-		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to cancel matchmaking as we are not currently matchmaking!"));
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to cancel matchmaking as we are not currently matchmaking!"));
 		return false;
 	}
 
@@ -922,51 +998,79 @@ bool FOnlineSessionV1AccelByte::CancelMatchmaking(const FUniqueNetId& SearchingP
 
 	ApiClient->Lobby.SendCancelMatchmaking(GameModeToCancel);
 
-	AB_OSS_INTERFACE_TRACE_END(TEXT("Sent off request to cancel matchmaking for game mode '%s'!"), *GameModeToCancel);
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Sent off request to cancel matchmaking for game mode '%s'!"), *GameModeToCancel);
 	return true;
 }
 
 bool FOnlineSessionV1AccelByte::FindSessions(int32 SearchingPlayerNum, const TSharedRef<FOnlineSessionSearch>& SearchSettings)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("SearchingPlayerNum: %d"), SearchingPlayerNum);
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("SearchingPlayerNum: %d"), SearchingPlayerNum);
 
-	const IOnlineIdentityPtr IdentityInterface = AccelByteSubsystem->GetIdentityInterface();
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if(!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to find session as we could not get an AccelByteSubsystem instance!"));
+		return false;
+	}
+
+	const IOnlineIdentityPtr IdentityInterface = AccelByteSubsystemPtr->GetIdentityInterface();
 	FUniqueNetIdPtr PlayerId = IdentityInterface->GetUniquePlayerId(SearchingPlayerNum);
 
 	if (!PlayerId.IsValid())
 	{
-		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Error, TEXT("Failed to find player at index %d!"), SearchingPlayerNum);
-		AccelByteSubsystem->ExecuteNextTick([SessionInterface = AsShared()]{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Error, TEXT("Failed to find player at index %d!"), SearchingPlayerNum);
+		AccelByteSubsystemPtr->ExecuteNextTick([SessionInterface = AsShared()]{
 			SessionInterface->TriggerOnFindSessionsCompleteDelegates(false);
 		});
 		return false;
 	}
 
-	AB_OSS_INTERFACE_TRACE_END(TEXT("Passing to FindSessions with player '%s'!"), *PlayerId->ToDebugString());
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Passing to FindSessions with player '%s'!"), *PlayerId->ToDebugString());
 	return FindSessions(PlayerId.ToSharedRef().Get(), SearchSettings);
 }
 
 bool FOnlineSessionV1AccelByte::FindSessions(const FUniqueNetId& SearchingPlayerId, const TSharedRef<FOnlineSessionSearch>& SearchSettings)
 {
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteFindV1Sessions>(AccelByteSubsystem, SearchingPlayerId, SearchSettings);
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if(!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to find session as we could not get an AccelByteSubsystem instance!"));
+		return false;
+	}
+	
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteFindV1Sessions>(AccelByteSubsystemPtr.Get(), SearchingPlayerId, SearchSettings);
 	return true;
 }
 
 bool FOnlineSessionV1AccelByte::FindSessionById(const FUniqueNetId& SearchingUserId, const FUniqueNetId& SessionId, const FUniqueNetId& FriendId, const FOnSingleSessionResultCompleteDelegate& CompletionDelegate)
 {
 	// @todo not supported by SDK yet, in subsequent version that we will upgrade to as soon as released
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("SearchingPlayerId: %s; SessionId: %s"), *SearchingUserId.ToDebugString(), *SessionId.ToDebugString());
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("SearchingPlayerId: %s; SessionId: %s"), *SearchingUserId.ToDebugString(), *SessionId.ToDebugString());
 
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteFindV1GameSessionById>(AccelByteSubsystem, SearchingUserId, SessionId, CompletionDelegate);
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if(!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to end session as we could not get an AccelByteSubsystem instance!"));
+		return false;
+	}
 
-	AB_OSS_INTERFACE_TRACE_END(TEXT("Sent off async task to find session with ID '%s'!"), *SessionId.ToDebugString());
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteFindV1GameSessionById>(AccelByteSubsystemPtr.Get(), SearchingUserId, SessionId, CompletionDelegate);
+
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Sent off async task to find session with ID '%s'!"), *SessionId.ToDebugString());
 	return false;
 }
 
 bool FOnlineSessionV1AccelByte::CancelFindSessions()
 {
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if(!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to cancel find session as we could not get an AccelByteSubsystem instance!"));
+		return false;
+	}
+	
 	// Currently unsupported
-	AccelByteSubsystem->ExecuteNextTick([SessionInterface = AsShared()]() {
+	AccelByteSubsystemPtr->ExecuteNextTick([SessionInterface = AsShared()]() {
 		SessionInterface->TriggerOnCancelFindSessionsCompleteDelegates(true);
 	});
 	return false;
@@ -980,50 +1084,64 @@ bool FOnlineSessionV1AccelByte::PingSearchResults(const FOnlineSessionSearchResu
 
 bool FOnlineSessionV1AccelByte::JoinSession(const FUniqueNetId& PlayerId, FName SessionName, const FOnlineSessionSearchResult& DesiredSession)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("PlayerId: %s; SessionName: %s"), *PlayerId.ToDebugString(), *SessionName.ToString());
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("PlayerId: %s; SessionName: %s"), *PlayerId.ToDebugString(), *SessionName.ToString());
 
-	const TSharedPtr<FOnlineIdentityAccelByte, ESPMode::ThreadSafe> IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystem->GetIdentityInterface());
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if(!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to cancel join session as we could not get an AccelByteSubsystem instance!"));
+		return false;
+	}
+
+	const TSharedPtr<FOnlineIdentityAccelByte, ESPMode::ThreadSafe> IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystemPtr->GetIdentityInterface());
 	if (!IdentityInterface.IsValid())
 	{
-		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to join session as we could not get our identity interface instance!"));
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to join session as we could not get our identity interface instance!"));
 		return false;
 	}
 
 	int32 LocalUserNum;
 	if (!IdentityInterface->GetLocalUserNum(PlayerId, LocalUserNum))
 	{
-		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to join session as we could not get a user index for the player ID specified!"));
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to join session as we could not get a user index for the player ID specified!"));
 		return false;
 	}
 
-	AB_OSS_INTERFACE_TRACE_END(TEXT("Moving to JoinSession call with LocalUserNum %d!"), LocalUserNum);
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Moving to JoinSession call with LocalUserNum %d!"), LocalUserNum);
 	return JoinSession(LocalUserNum, SessionName, DesiredSession);
 }
 
 bool FOnlineSessionV1AccelByte::JoinSession(int32 PlayerNum, FName SessionName, const FOnlineSessionSearchResult& DesiredSession)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("PlayerNum: %d; SessionName: %s"), PlayerNum, *SessionName.ToString());
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("PlayerNum: %d; SessionName: %s"), PlayerNum, *SessionName.ToString());
+
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if(!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to join session %s as we could not get an AccelByteSubsystem instance!"), *SessionName.ToString());
+		return false;
+	}
 
 	FNamedOnlineSession* Session = GetNamedSession(SessionName);
 	if (Session != nullptr)
 	{
-		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to join session as we are already in a session named %s!"), *SessionName.ToString());
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to join session as we are already in a session named %s!"), *SessionName.ToString());
 		TriggerOnJoinSessionCompleteDelegates(SessionName, EOnJoinSessionCompleteResult::AlreadyInSession);
 		return false;
 	}
 
 	// Retrieve the API client for this user
-	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystem->GetIdentityInterface());
+	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystemPtr->GetIdentityInterface());
 	if (!IdentityInterface.IsValid())
 	{
-		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to join session as an identity interface instance could not be retrieved!"));
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to join session as an identity interface instance could not be retrieved!"));
 		return false;
 	}
 
 	AccelByte::FApiClientPtr ApiClient = IdentityInterface->GetApiClient(PlayerNum);
 	if (!ApiClient.IsValid())
 	{
-		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to join session as an API client could not be retrieved for user num %d!"), PlayerNum);
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to join session as an API client could not be retrieved for user num %d!"), PlayerNum);
 		return false;
 	}
 
@@ -1052,7 +1170,7 @@ bool FOnlineSessionV1AccelByte::JoinSession(int32 PlayerNum, FName SessionName, 
 		const TSharedPtr<FOnlineSessionInfoAccelByteV1> SessionInfo = StaticCastSharedPtr<FOnlineSessionInfoAccelByteV1>(DesiredSession.Session.SessionInfo);
 		if (!SessionInfo.IsValid())
 		{
-			AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to join P2P relay session as the session info for %s is not a valid instance!"), *SessionName.ToString());
+			AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to join P2P relay session as the session info for %s is not a valid instance!"), *SessionName.ToString());
 			TriggerOnJoinSessionCompleteDelegates(SessionName, EOnJoinSessionCompleteResult::CouldNotRetrieveAddress);
 			return false;
 		}
@@ -1081,7 +1199,7 @@ bool FOnlineSessionV1AccelByte::JoinSession(int32 PlayerNum, FName SessionName, 
 		}
 		else
 		{
-			AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to join P2P relay session as the AccelByte Lobby websocket is not connected!"));
+			AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to join P2P relay session as the AccelByte Lobby websocket is not connected!"));
 			TriggerOnJoinSessionCompleteDelegates(SessionName, EOnJoinSessionCompleteResult::CouldNotRetrieveAddress);
 			return false;
 		}
@@ -1244,12 +1362,19 @@ bool FOnlineSessionV1AccelByte::RegisterPlayer(FName SessionName, const FUniqueN
 
 bool FOnlineSessionV1AccelByte::RegisterPlayers(FName SessionName, const TArray<TSharedRef<const FUniqueNetId>>& Players, bool bWasInvited)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("SessionName: %s; Players Count: %d; bWasInvited: %s"), *SessionName.ToString(), Players.Num(), LOG_BOOL_FORMAT(bWasInvited));
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("SessionName: %s; Players Count: %d; bWasInvited: %s"), *SessionName.ToString(), Players.Num(), LOG_BOOL_FORMAT(bWasInvited));
+
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if(!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to register player to a session as we could not get an AccelByteSubsystem instance!"));
+		return false;
+	}
 
 	FNamedOnlineSession* Session = GetNamedSession(SessionName);
 	if (Session == nullptr)
 	{
-		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Error, TEXT("Could not register player as we failed to get session with name '%s'!"), *SessionName.ToString());
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Error, TEXT("Could not register player as we failed to get session with name '%s'!"), *SessionName.ToString());
 		TriggerOnRegisterPlayersCompleteDelegates(SessionName, Players, false);
 		return false;
 	}
@@ -1258,7 +1383,7 @@ bool FOnlineSessionV1AccelByte::RegisterPlayers(FName SessionName, const TArray<
 	// We add both the session ID query and the register player task as serial so that we get the ID first, and then register a player
 	if (Session->bHosting && Session->SessionSettings.bIsDedicated && !Session->SessionInfo->GetSessionId().IsValid())
 	{
-		AccelByteSubsystem->CreateAndDispatchAsyncTaskSerial<FOnlineAsyncTaskAccelByteGetDedicatedV1SessionId>(AccelByteSubsystem, SessionName);
+		AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskSerial<FOnlineAsyncTaskAccelByteGetDedicatedV1SessionId>(AccelByteSubsystemPtr.Get(), SessionName);
 	}
 
 	// TODO(damar): Delete check bHosting after there is fix in the BE
@@ -1278,16 +1403,16 @@ bool FOnlineSessionV1AccelByte::RegisterPlayers(FName SessionName, const TArray<
 
 		if (NewPlayers.Num() > 0)
 		{
-			AccelByteSubsystem->CreateAndDispatchAsyncTaskSerial<FOnlineAsyncTaskAccelByteRegisterPlayersV1>(AccelByteSubsystem, SessionName, NewPlayers, bWasInvited, false);
+			AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskSerial<FOnlineAsyncTaskAccelByteRegisterPlayersV1>(AccelByteSubsystemPtr.Get(), SessionName, NewPlayers, bWasInvited, false);
 		}
 		else
 		{
-			AB_OSS_INTERFACE_TRACE_END(TEXT("There is no new player, skip!"));
+			AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("There is no new player, skip!"));
 			return true;
 		}
 	}
 
-	FOnlineVoiceAccelBytePtr VoiceInterface = StaticCastSharedPtr<FOnlineVoiceAccelByte>(AccelByteSubsystem->GetVoiceInterface());
+	FOnlineVoiceAccelBytePtr VoiceInterface = StaticCastSharedPtr<FOnlineVoiceAccelByte>(AccelByteSubsystemPtr->GetVoiceInterface());
 	if (VoiceInterface.IsValid())
 	{
 		VoiceInterface->RegisterTalkers(Players);
@@ -1296,9 +1421,9 @@ bool FOnlineSessionV1AccelByte::RegisterPlayers(FName SessionName, const TArray<
 	if (Session->bHosting && Session->SessionSettings.bIsDedicated) 
 	{
 		// Get information about the session after the player has joined, used to get the latest session status for sending to the server
-		AccelByteSubsystem->CreateAndDispatchAsyncTaskSerial<FOnlineAsyncTaskAccelByteRetrieveDedicatedV1SessionInfo>(AccelByteSubsystem, SessionName);
+		AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskSerial<FOnlineAsyncTaskAccelByteRetrieveDedicatedV1SessionInfo>(AccelByteSubsystemPtr.Get(), SessionName);
 	}
-	AB_OSS_INTERFACE_TRACE_END(TEXT("Spawned async tasks for registering %d players to '%s' session!"), Players.Num(), *SessionName.ToString());
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Spawned async tasks for registering %d players to '%s' session!"), Players.Num(), *SessionName.ToString());
 	return true;
 }
 
@@ -1311,12 +1436,19 @@ bool FOnlineSessionV1AccelByte::UnregisterPlayer(FName SessionName, const FUniqu
 
 bool FOnlineSessionV1AccelByte::UnregisterPlayers(FName SessionName, const TArray<TSharedRef<const FUniqueNetId>>& Players)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("SessionName: %s; Players Count: %d"), *SessionName.ToString(), Players.Num());
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("SessionName: %s; Players Count: %d"), *SessionName.ToString(), Players.Num());
+
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if(!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to unregister player from a session as we could not get an AccelByteSubsystem instance!"));
+		return false;
+	}
 
 	FNamedOnlineSession* Session = GetNamedSession(SessionName);
 	if (Session == nullptr)
 	{
-		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Error, TEXT("Could not unregister players as we failed to get session with name '%s'!"), *SessionName.ToString());
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Error, TEXT("Could not unregister players as we failed to get session with name '%s'!"), *SessionName.ToString());
 		TriggerOnUnregisterPlayersCompleteDelegates(SessionName, Players, false);
 		return false;
 	}
@@ -1325,7 +1457,7 @@ bool FOnlineSessionV1AccelByte::UnregisterPlayers(FName SessionName, const TArra
 	// We add both the session ID query and the unregister player task as serial so that we get the ID first, and then unregister a player
 	if (Session->bHosting && Session->SessionSettings.bIsDedicated && !Session->SessionInfo->GetSessionId().IsValid())
 	{
-		AccelByteSubsystem->CreateAndDispatchAsyncTaskSerial<FOnlineAsyncTaskAccelByteGetDedicatedV1SessionId>(AccelByteSubsystem, SessionName);
+		AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskSerial<FOnlineAsyncTaskAccelByteGetDedicatedV1SessionId>(AccelByteSubsystemPtr.Get(), SessionName);
 	}
 
 	// TODO(damar): Delete check bHosting after there is fix in the BE
@@ -1344,20 +1476,20 @@ bool FOnlineSessionV1AccelByte::UnregisterPlayers(FName SessionName, const TArra
 		}
 		if(QuitPlayers.Num() > 0)
 		{
-			AccelByteSubsystem->CreateAndDispatchAsyncTaskSerial<FOnlineAsyncTaskAccelByteUnregisterPlayersV1>(AccelByteSubsystem, SessionName, QuitPlayers);
+			AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskSerial<FOnlineAsyncTaskAccelByteUnregisterPlayersV1>(AccelByteSubsystemPtr.Get(), SessionName, QuitPlayers);
 		}
 		else
 		{
-			AB_OSS_INTERFACE_TRACE_END(TEXT("Player not in the current session, skip!"));
+			AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Player not in the current session, skip!"));
 		}
 	}
 	if (Session->bHosting && Session->SessionSettings.bIsDedicated)
 	{
 		// Queue task to get updated session information after we removed a player from the queue
-		AccelByteSubsystem->CreateAndDispatchAsyncTaskSerial<FOnlineAsyncTaskAccelByteRetrieveDedicatedV1SessionInfo>(AccelByteSubsystem, SessionName);
+		AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskSerial<FOnlineAsyncTaskAccelByteRetrieveDedicatedV1SessionInfo>(AccelByteSubsystemPtr.Get(), SessionName);
 	}
 
-	AB_OSS_INTERFACE_TRACE_END(TEXT("Spawned async tasks for unregistering %d players from '%s' session!"), Players.Num(), *SessionName.ToString());
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Spawned async tasks for unregistering %d players from '%s' session!"), Players.Num(), *SessionName.ToString());
 	return true;
 }
 
@@ -1389,18 +1521,25 @@ void FOnlineSessionV1AccelByte::DumpSessionState()
 
 void FOnlineSessionV1AccelByte::RegisterRealTimeLobbyDelegates(int32 LocalUserNum)
 {
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if(!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to register real-time lobby as we could not get an AccelByteSubsystem instance!"));
+		return;
+	}
+	
 	// Retrieve the API client for this user
-	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystem->GetIdentityInterface());
+	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystemPtr->GetIdentityInterface());
 	if (!IdentityInterface.IsValid())
 	{
-		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to register real-time lobby as an identity interface instance could not be retrieved!"));
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to register real-time lobby as an identity interface instance could not be retrieved!"));
 		return;
 	}
 
 	AccelByte::FApiClientPtr ApiClient = IdentityInterface->GetApiClient(LocalUserNum);
 	if (!ApiClient.IsValid())
 	{
-		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to register real-time lobby as an API client could not be retrieved for user num %d!"), LocalUserNum);
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to register real-time lobby as an API client could not be retrieved for user num %d!"), LocalUserNum);
 		return;
 	}
 
@@ -1418,7 +1557,7 @@ void FOnlineSessionV1AccelByte::OnSessionResultCreateSuccess(const FOnlineSessio
 	SessionSearchHandle->SearchResults.Add(Result);
 	SessionSearchHandle->SearchState = EOnlineAsyncTaskState::Done;
 	
-	AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Log, TEXT("Session Successfully created! SessionID = %s!"), *Result.Session.SessionInfo->GetSessionId().ToString());
+	AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Log, TEXT("Session Successfully created! SessionID = %s!"), *Result.Session.SessionInfo->GetSessionId().ToString());
 
 	TriggerOnMatchmakingCompleteDelegates(NAME_GameSession, true);
 }
@@ -1542,11 +1681,18 @@ uint32 FOnlineSessionV1AccelByte::FinalizeLANSearch()
 
 void FOnlineSessionV1AccelByte::AppendSessionToPacket(FNboSerializeToBufferAccelByte& Packet, FOnlineSession* Session)
 {
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if(!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to append session to packet as we could not get an AccelByteSubsystem instance!"));
+		return;
+	}
+	
 	Packet << *FUniqueNetIdAccelByteUser::CastChecked(Session->OwningUserId.ToSharedRef());
 	((FNboSerializeToBuffer&)Packet) << Session->OwningUserName;
 	((FNboSerializeToBuffer&)Packet) << Session->NumOpenPrivateConnections;
 	((FNboSerializeToBuffer&)Packet) << Session->NumOpenPublicConnections;
-	SetPortFromNetDriver(*AccelByteSubsystem, Session->SessionInfo);
+	SetPortFromNetDriver(*AccelByteSubsystemPtr.Get(), Session->SessionInfo);
 	Packet << *StaticCastSharedPtr<FOnlineSessionInfoAccelByteV1>(Session->SessionInfo);
 	AppendSessionSettingsToPacket(Packet, &Session->SessionSettings);
 }
@@ -1715,12 +1861,19 @@ void FOnlineSessionV1AccelByte::OnLANSearchTimeout()
 
 bool FOnlineSessionV1AccelByte::IsHost(const FNamedOnlineSession& Session) const
 {
-	if (AccelByteSubsystem->IsDedicated())
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if(!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to check host as we could not get an AccelByteSubsystem instance!"));
+		return false;
+	}
+	
+	if (AccelByteSubsystemPtr->IsDedicated())
 	{
 		return true;
 	}
 
-	IOnlineIdentityPtr IdentityInterface = AccelByteSubsystem->GetIdentityInterface(); 
+	IOnlineIdentityPtr IdentityInterface = AccelByteSubsystemPtr->GetIdentityInterface(); 
 	if (!IdentityInterface.IsValid())
 	{
 		return false;
@@ -1758,12 +1911,12 @@ void FOnlineSessionV1AccelByte::CancelMatchmakingNotification()
 
 void FOnlineSessionV1AccelByte::DeregisterSession(FName SessionName, const FOnDeregisterSessionComplete& Delegate)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("SessionName: %s"), *SessionName.ToString());
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("SessionName: %s"), *SessionName.ToString());
 
 	FNamedOnlineSession* Session = GetNamedSession(SessionName);
 	if (Session == nullptr)
 	{
-		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to deregister session from backend as the session '%s' does not exist!"), *SessionName.ToString());
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to deregister session from backend as the session '%s' does not exist!"), *SessionName.ToString());
 		Delegate.ExecuteIfBound(false);
 		return;
 	}
@@ -1782,6 +1935,37 @@ void FOnlineSessionV1AccelByte::DeregisterSession(FName SessionName, const FOnDe
 	// Check if we are in a local server, as the calls are slightly different for deregistration
 	bool bIsLocalSession = false;
 	FAccelByteModelsDSUnregisteredPayload DSUnregisteredPayload{};
+
+	TSharedPtr<FOnlineSubsystemAccelByte, ESPMode::ThreadSafe> AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if(!AccelByteSubsystemPtr.IsValid())
+	{
+		AccelByteSubsystemPtr->ExecuteNextTick([Delegate]()
+		{
+			UE_LOG_AB(Warning, TEXT("Server AccelByteSubsystem is invalid, skipping call!"));
+			Delegate.ExecuteIfBound(false);
+		});
+	}
+
+	FAccelByteInstancePtr AccelByteInstancePtr = AccelByteSubsystemPtr->GetAccelByteInstance().Pin();
+	if(!AccelByteInstancePtr.IsValid())
+	{
+		AccelByteSubsystemPtr->ExecuteNextTick([Delegate]()
+		{
+			UE_LOG_AB(Warning, TEXT("Server AccelByteInstance is invalid, skipping call!"));
+			Delegate.ExecuteIfBound(false);
+		});
+	}
+
+	FServerApiClientPtr ServerApiClientPtr = AccelByteInstancePtr->GetServerApiClient();
+	if(!ServerApiClientPtr.IsValid())
+	{
+		AccelByteSubsystemPtr->ExecuteNextTick([Delegate]()
+		{
+			UE_LOG_AB(Warning, TEXT("Server ServerApiClient is invalid, skipping call!"));
+			Delegate.ExecuteIfBound(false);
+		});
+	}
+	
 	if (Session->SessionSettings.Get(SETTING_SESSION_LOCAL, bIsLocalSession) && bIsLocalSession)
 	{
 		// First get the name of the server we wish to unregister
@@ -1789,41 +1973,46 @@ void FOnlineSessionV1AccelByte::DeregisterSession(FName SessionName, const FOnDe
 		Session->SessionSettings.Get(SETTING_SESSION_SERVER_NAME, ServerName);
 
 		// Then send the request to unregister the local server
-		// #NOTE (Maxwell): Keeping this call using FRegistry instead of the multi-registry as this is a server specific call
-		FRegistry::ServerDSM.DeregisterLocalServerFromDSM(ServerName, OnShutdownSentSuccessful, OnShutdownSentError);
+		ServerApiClientPtr->ServerDSM.DeregisterLocalServerFromDSM(ServerName, OnShutdownSentSuccessful, OnShutdownSentError);
 		DSUnregisteredPayload.PodName = ServerName;
 	}
 	else
 	{
 		// Next, we want to send a shutdown request to Armada to deregister the server if we are not spawned from the DS launcher
-		// #NOTE (Maxwell): Keeping this call using FRegistry instead of the multi-registry as this is a server specific call
-		FRegistry::ServerDSM.SendShutdownToDSM(false, Session->GetSessionIdStr(), OnShutdownSentSuccessful, OnShutdownSentError);
+		ServerApiClientPtr->ServerDSM.SendShutdownToDSM(false, Session->GetSessionIdStr(), OnShutdownSentSuccessful, OnShutdownSentError);
 		DSUnregisteredPayload.PodName = FPlatformMisc::GetEnvironmentVariable(TEXT("POD_NAME"));
 	}
 
-	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = AccelByteSubsystem->GetPredefinedEventInterface();
+	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = AccelByteSubsystemPtr->GetPredefinedEventInterface();
 	if (PredefinedEventInterface.IsValid())
 	{
 		PredefinedEventInterface->SendEvent(-1, MakeShared<FAccelByteModelsDSUnregisteredPayload>(DSUnregisteredPayload));
 	}
 
-	AB_OSS_INTERFACE_TRACE_END(TEXT("Sent request to deregister session '%s' from Armada."), *SessionName.ToString());
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Sent request to deregister session '%s' from Armada."), *SessionName.ToString());
 }
 
 void FOnlineSessionV1AccelByte::SendReady(int32 LocalUserNum, const FString& MatchId, const FOnSendReadyConsentComplete& Delegate)
 {
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if(!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to send ready as we could not get an AccelByteSubsystem instance!"));
+		return;
+	}
+	
 	// Retrieve the API client for this user
-	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystem->GetIdentityInterface());
+	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystemPtr->GetIdentityInterface());
 	if (!IdentityInterface.IsValid())
 	{
-		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to send ready consent as an identity interface instance could not be retrieved!"));
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to send ready consent as an identity interface instance could not be retrieved!"));
 		return;
 	}
 
 	AccelByte::FApiClientPtr ApiClient = IdentityInterface->GetApiClient(LocalUserNum);
 	if (!ApiClient.IsValid())
 	{
-		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to send ready consent as an API client could not be retrieved for user num %d!"), LocalUserNum);
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to send ready consent as an API client could not be retrieved for user num %d!"), LocalUserNum);
 		return;
 	}
 
@@ -1847,87 +2036,122 @@ TSharedPtr<FOnlineSessionSearch> FOnlineSessionV1AccelByte::GetSessionSearch()
 
 void FOnlineSessionV1AccelByte::EnqueueJoinableSession(FName SessionName, const FOnEnqueueJoinableSessionComplete& Delegate)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("SessionName: %s"), *SessionName.ToString());
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("SessionName: %s"), *SessionName.ToString());
+
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if(!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to enqueue joinable session as we could not get an AccelByteSubsystem instance!"));
+		return;
+	}
 
 	FNamedOnlineSession* Session = GetNamedSession(SessionName);
 	if (Session == nullptr)
 	{
-		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to enqueue joinable session on backend as the session '%s' does not exist!"), *SessionName.ToString());
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to enqueue joinable session on backend as the session '%s' does not exist!"), *SessionName.ToString());
 		return;
 	}
 
 	if (!Session->bHosting)
 	{
-		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to enqueue joinable session '%s' as we are not the host of the session!"), *SessionName.ToString());
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to enqueue joinable session '%s' as we are not the host of the session!"), *SessionName.ToString());
 		return;
 	}
 
 	// If we do not have the ID of this session yet, then we want to queue a task serially to get the ID of the session before any other calls.
 	if (!Session->SessionInfo->GetSessionId().IsValid())
 	{
-		AccelByteSubsystem->CreateAndDispatchAsyncTaskSerial<FOnlineAsyncTaskAccelByteGetDedicatedV1SessionId>(AccelByteSubsystem, SessionName);
+		AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskSerial<FOnlineAsyncTaskAccelByteGetDedicatedV1SessionId>(AccelByteSubsystemPtr.Get(), SessionName);
 	}
 
 	// Queue two tasks to first get the information about the session from the backend, and then to enqueue the session as joinable
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskSerial<FOnlineAsyncTaskAccelByteRetrieveDedicatedV1SessionInfo>(AccelByteSubsystem, SessionName);
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskSerial<FOnlineAsyncTaskAccelByteEnqueueJoinableV1Session>(AccelByteSubsystem, SessionName, Delegate);
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskSerial<FOnlineAsyncTaskAccelByteRetrieveDedicatedV1SessionInfo>(AccelByteSubsystemPtr.Get(), SessionName);
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskSerial<FOnlineAsyncTaskAccelByteEnqueueJoinableV1Session>(AccelByteSubsystemPtr.Get(), SessionName, Delegate);
 
-	AB_OSS_INTERFACE_TRACE_END(TEXT("Sent off tasks to enqueue joinable session on backend!"));
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Sent off tasks to enqueue joinable session on backend!"));
 }
 
 void FOnlineSessionV1AccelByte::DequeueJoinableSession(FName SessionName, const FOnDequeueJoinableSessionComplete& Delegate)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("SessionName: %s"), *SessionName.ToString());
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("SessionName: %s"), *SessionName.ToString());
+
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if(!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to dequeue joinable session as we could not get an AccelByteSubsystem instance!"));
+		return;
+	}
 
 	FNamedOnlineSession* Session = GetNamedSession(SessionName);
 	if (Session == nullptr)
 	{
-		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to dequeue joinable session on backend as the session '%s' does not exist!"), *SessionName.ToString());
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to dequeue joinable session on backend as the session '%s' does not exist!"), *SessionName.ToString());
 		return;
 	}
 
 	if (!Session->bHosting)
 	{
-		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to dequeue joinable session '%s' as we are not the host of the session!"), *SessionName.ToString());
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to dequeue joinable session '%s' as we are not the host of the session!"), *SessionName.ToString());
 		return;
 	}
 
 	// If we do not have the ID of this session yet, then we want to queue a task serially to get the ID of the session.
 	if (!Session->SessionInfo->GetSessionId().IsValid())
 	{
-		AccelByteSubsystem->CreateAndDispatchAsyncTaskSerial<FOnlineAsyncTaskAccelByteGetDedicatedV1SessionId>(AccelByteSubsystem, SessionName);
+		AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskSerial<FOnlineAsyncTaskAccelByteGetDedicatedV1SessionId>(AccelByteSubsystemPtr.Get(), SessionName);
 	}
 
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskSerial<FOnlineAsyncTaskAccelByteDequeueJoinableV1Session>(AccelByteSubsystem, SessionName, Delegate);
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskSerial<FOnlineAsyncTaskAccelByteDequeueJoinableV1Session>(AccelByteSubsystemPtr.Get(), SessionName, Delegate);
 
-	AB_OSS_INTERFACE_TRACE_END(TEXT("Sent off tasks to dequeue joinable session from backend!"));
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Sent off tasks to dequeue joinable session from backend!"));
 }
 
 bool FOnlineSessionV1AccelByte::QueryDedicatedSessionInfo(FName SessionName, const FOnQueryDedicatedSessionInfoComplete& Delegate/*=FOnQueryDedicatedSessionInfoComplete()*/)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("SessionName: %s"), *SessionName.ToString());
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("SessionName: %s"), *SessionName.ToString());
 
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteRetrieveDedicatedV1SessionInfo>(AccelByteSubsystem, SessionName, Delegate);
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if(!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to query dedicated session info as we could not get an AccelByteSubsystem instance!"));
+		return false;
+	}
 
-	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteRetrieveDedicatedV1SessionInfo>(AccelByteSubsystemPtr.Get(), SessionName, Delegate);
+
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
 	return true;
 }
 
 bool FOnlineSessionV1AccelByte::RemoveUserFromSession(const FUniqueNetId& LocalUserId, const FString& ChannelName, const FString& MatchId, const FOnRemoveUserFromSessionComplete& Delegate)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("ChannelName: %s"), *ChannelName);
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("ChannelName: %s"), *ChannelName);
 
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteRemoveUserFromV1Session>(AccelByteSubsystem, LocalUserId, ChannelName, MatchId, Delegate);
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if(!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to remove user from session as we could not get an AccelByteSubsystem instance!"));
+		return false;
+	}
 
-	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteRemoveUserFromV1Session>(AccelByteSubsystemPtr.Get(), LocalUserId, ChannelName, MatchId, Delegate);
+
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
 	return true;
 
 }
 
 void FOnlineSessionV1AccelByte::SendBanUser(FName SessionName, const FUniqueNetId& PlayerId, int32 InActionID, const FString& InMessage)
 {
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if(!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to send ready as we could not get an AccelByteSubsystem instance!"));
+		return;
+	}
+	
 	TSharedRef<const FUniqueNetIdAccelByteUser> PlayerIdComposite = FUniqueNetIdAccelByteUser::CastChecked(PlayerId);
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteBanUser>(AccelByteSubsystem, PlayerIdComposite->GetAccelByteId(), InActionID, InMessage);
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteBanUser>(AccelByteSubsystemPtr.Get(), PlayerIdComposite->GetAccelByteId(), InActionID, InMessage);
 }
 
 void FOnlineSessionV1AccelByte::TriggerOnDedicatedServerNotificationReceived(const FAccelByteModelsDsNotice& Notification)

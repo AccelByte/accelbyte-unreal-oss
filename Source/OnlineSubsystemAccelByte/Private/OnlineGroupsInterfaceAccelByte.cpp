@@ -129,6 +129,17 @@ void FAccelByteGroupsInfo::SetCachedABMemberRoleId(const FString& MemberRoleId)
 /**
 * Begin FOnlineGroupsAccelByte
 */
+
+
+
+FOnlineGroupsAccelByte::FOnlineGroupsAccelByte(FOnlineSubsystemAccelByte* InSubsystem)
+#if ENGINE_MAJOR_VERSION >= 5
+	: AccelByteSubsystem(InSubsystem->AsWeak())
+#else
+	: AccelByteSubsystem(InSubsystem->AsShared())
+#endif
+{}
+
 bool FOnlineGroupsAccelByte::GetFromSubsystem(const IOnlineSubsystem* Subsystem, FOnlineGroupsAccelBytePtr& OutInterfaceInstance)
 {
 	OutInterfaceInstance = StaticCastSharedPtr<FOnlineGroupsAccelByte>(Subsystem->GetGroupsInterface());
@@ -147,35 +158,49 @@ bool FOnlineGroupsAccelByte::GetFromSubsystem(const FOnlineSubsystemAccelByte* S
 
 void FOnlineGroupsAccelByte::CreateGroup(const FUniqueNetId& UserIdCreatingGroup, const FAccelByteGroupsInfo& InGroupInfo, const FOnGroupsRequestCompleted& OnCompleted)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("UserIdCreatingGroup: %s"), *UserIdCreatingGroup.ToDebugString());
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("UserIdCreatingGroup: %s"), *UserIdCreatingGroup.ToDebugString());
 
 	if (!VerifyGroupInfo(InGroupInfo))
 		return;
 
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGroupsCreateGroup>(AccelByteSubsystem, UserIdCreatingGroup, InGroupInfo, OnCompleted);
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return;
+	}
 
-	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGroupsCreateGroup>(AccelByteSubsystemPtr.Get(), UserIdCreatingGroup, InGroupInfo, OnCompleted);
+
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
 }
 
 void FOnlineGroupsAccelByte::CreateGroup(const FUniqueNetId& ContextUserId, const FGroupDisplayInfo& InGroupInfo, const FOnGroupsRequestCompleted& OnCompleted)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT(""));
-	AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Cannot configure group using FGroupDisplayInfo as its fields are not supported! Please supply an instance of FAccelByteGroupsInfo instead!"));
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT(""));
+	AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Cannot configure group using FGroupDisplayInfo as its fields are not supported! Please supply an instance of FAccelByteGroupsInfo instead!"));
 }
 
 void FOnlineGroupsAccelByte::FindGroups(const FUniqueNetId& SearchingUserId, const FAccelByteModelsGetGroupListRequest& RequestedContent, const FOnGroupsRequestCompleted& OnCompleted)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("SearchingUserId: %s"), *SearchingUserId.ToDebugString());
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("SearchingUserId: %s"), *SearchingUserId.ToDebugString());
 
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGroupsFindGroups>(AccelByteSubsystem, SearchingUserId, RequestedContent, OnCompleted);
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return;
+	}
 
-	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGroupsFindGroups>(AccelByteSubsystemPtr.Get(), SearchingUserId, RequestedContent, OnCompleted);
+
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
 }
 
 void FOnlineGroupsAccelByte::FindGroups(const FUniqueNetId& ContextUserId, const FGroupSearchOptions& SearchOptions, const FOnFindGroupsCompleted& OnCompleted)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT(""));
-	AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Cannot configure group using FGroupSearchOptions as its fields are not supported! Please supply an instance of FAccelByteModelsGetGroupListRequest instead!"));
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT(""));
+	AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Cannot configure group using FGroupSearchOptions as its fields are not supported! Please supply an instance of FAccelByteModelsGetGroupListRequest instead!"));
 }
 
 FAccelByteModelsGetGroupListResponse FOnlineGroupsAccelByte::GetCachedFindGroupsRoster()
@@ -190,202 +215,258 @@ FAccelByteModelsGetGroupListResponse FOnlineGroupsAccelByte::FOnlineGroupsAccelB
 
 void FOnlineGroupsAccelByte::FindGroupsByGroupIds(const FUniqueNetId& SearchingUserId, const TArray<FString> GroupIds, const FOnGroupsRequestCompleted& OnCompleted)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("SearchingUserId: %s"), *SearchingUserId.ToDebugString());
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("SearchingUserId: %s"), *SearchingUserId.ToDebugString());
 
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGroupsFindGroupsByGroupIds>(AccelByteSubsystem, SearchingUserId, GroupIds, OnCompleted);
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return;
+	}
 
-	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGroupsFindGroupsByGroupIds>(AccelByteSubsystemPtr.Get(), SearchingUserId, GroupIds, OnCompleted);
+
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
 }
 
 void FOnlineGroupsAccelByte::QueryGroupInfo(const FUniqueNetId& CurrentUserId, const FAccelByteGroupsInfo& InGroupInfo, const FOnGroupsRequestCompleted& OnCompleted)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("CurrentUserId: %s"), *CurrentUserId.ToDebugString());
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("CurrentUserId: %s"), *CurrentUserId.ToDebugString());
 
 	if (!VerifyGroupInfo(InGroupInfo))
 		return;
 
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGroupsQueryGroupInfo>(AccelByteSubsystem, CurrentUserId, InGroupInfo.ABGroupInfo.GroupId, OnCompleted);
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return;
+	}
 
-	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGroupsQueryGroupInfo>(AccelByteSubsystemPtr.Get(), CurrentUserId, InGroupInfo.ABGroupInfo.GroupId, OnCompleted);
+
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
 }
 
 void FOnlineGroupsAccelByte::QueryGroupInfo(const FUniqueNetId& ContextUserId, const FUniqueNetId& GroupId, const FOnGroupsRequestCompleted& OnCompleted)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT(""));
-	AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Cannot configure group using FGroupSearchOptions as its fields are not supported! Please supply an instance of FAccelByteModelsGetGroupListRequest instead!"));
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT(""));
+	AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Cannot configure group using FGroupSearchOptions as its fields are not supported! Please supply an instance of FAccelByteModelsGetGroupListRequest instead!"));
 }
 
 void FOnlineGroupsAccelByte::QueryGroupNameExist(const FUniqueNetId& ContextUserId, const FString& GroupName, const FOnGroupsRequestCompleted& OnCompleted)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT(""));
-	AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Deprecated! Please use FindGroups()!"));
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT(""));
+	AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Deprecated! Please use FindGroups()!"));
 }
 
 FAccelByteGroupsInfoPtr FOnlineGroupsAccelByte::GetCachedGroupInfo()
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT(""));
-	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT(""));
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
 	return CachedCurrentGroup;
 }
 
 TSharedPtr<const IGroupInfo> FOnlineGroupsAccelByte::GetCachedGroupInfo(const FUniqueNetId& ContextUserId, const FUniqueNetId& GroupId)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT(""));
-	AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Deprecated! Please use GetCachedGroupInfo()!"));
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT(""));
+	AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Deprecated! Please use GetCachedGroupInfo()!"));
 	return nullptr;
 }
 
 void FOnlineGroupsAccelByte::SetCachedGroupInfo(const FAccelByteGroupsInfoRef& InGroupInfo)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT(""));
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT(""));
 
 	FScopeLock ScopeLock(&CachedCurrentGroupDataLock);
 	CachedCurrentGroup = InGroupInfo;
 
-	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
 }
 
 void FOnlineGroupsAccelByte::DeleteCachedGroupInfo()
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT(""));
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT(""));
 
 	if (CachedCurrentGroup.IsValid())
 		CachedCurrentGroup.Reset();
 
-	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
 }
 
 void FOnlineGroupsAccelByte::JoinGroup(const FUniqueNetId& UserIdJoiningGroup, const FAccelByteGroupsInfo& InGroupInfo, const FOnGroupsRequestCompleted& OnCompleted)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("UserIdJoiningGroup: %s"), *UserIdJoiningGroup.ToDebugString());
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("UserIdJoiningGroup: %s"), *UserIdJoiningGroup.ToDebugString());
 
 	if (!VerifyGroupInfo(InGroupInfo))
 		return;
 
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGroupsJoinGroup>(AccelByteSubsystem, UserIdJoiningGroup, InGroupInfo.ABGroupInfo.GroupId, OnCompleted);
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return;
+	}
 
-	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGroupsJoinGroup>(AccelByteSubsystemPtr.Get(), UserIdJoiningGroup, InGroupInfo.ABGroupInfo.GroupId, OnCompleted);
+
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
 }
 
 void FOnlineGroupsAccelByte::JoinGroup(const FUniqueNetId& ContextUserId, const FUniqueNetId& GroupId, const FOnGroupsRequestCompleted& OnCompleted)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT(""));
-	AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Cannot configure group using GroupId as its fields are not supported! Please supply an instance of FAccelByteGroupsInfo instead!"));
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT(""));
+	AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Cannot configure group using GroupId as its fields are not supported! Please supply an instance of FAccelByteGroupsInfo instead!"));
 }
 
 void FOnlineGroupsAccelByte::LeaveGroup(const FUniqueNetId& UserIdLeavingGroup, const FAccelByteGroupsInfo& InGroupInfo, const FOnGroupsRequestCompleted& OnCompleted)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("UserIdLeavingGroup: %s"), *UserIdLeavingGroup.ToDebugString());
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("UserIdLeavingGroup: %s"), *UserIdLeavingGroup.ToDebugString());
 
 	if (!VerifyGroupInfo(InGroupInfo))
 		return;
 
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGroupsLeaveGroup>(AccelByteSubsystem, UserIdLeavingGroup, InGroupInfo.ABGroupInfo.GroupId, OnCompleted);
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return;
+	}
 
-	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGroupsLeaveGroup>(AccelByteSubsystemPtr.Get(), UserIdLeavingGroup, InGroupInfo.ABGroupInfo.GroupId, OnCompleted);
+
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
 }
 
 void FOnlineGroupsAccelByte::LeaveGroup(const FUniqueNetId& ContextUserId, const FUniqueNetId& GroupId, const FOnGroupsRequestCompleted& OnCompleted)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT(""));
-	AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Cannot configure group using GroupId as its fields are not supported! Please supply an instance of FAccelByteGroupsInfo instead!"));
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT(""));
+	AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Cannot configure group using GroupId as its fields are not supported! Please supply an instance of FAccelByteGroupsInfo instead!"));
 }
 
 void FOnlineGroupsAccelByte::CancelRequest(const FUniqueNetId& UserIdCancelingRequest, const FAccelByteGroupsInfo& InGroupInfo, const FOnGroupsRequestCompleted& OnCompleted)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("UserIdCancelingRequest: %s"), *UserIdCancelingRequest.ToDebugString());
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("UserIdCancelingRequest: %s"), *UserIdCancelingRequest.ToDebugString());
 
 	if (!VerifyGroupInfo(InGroupInfo))
 		return;
 
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGroupsCancelJoinRequest>(AccelByteSubsystem, UserIdCancelingRequest, InGroupInfo.ABGroupInfo.GroupId, OnCompleted);
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return;
+	}
 
-	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGroupsCancelJoinRequest>(AccelByteSubsystemPtr.Get(), UserIdCancelingRequest, InGroupInfo.ABGroupInfo.GroupId, OnCompleted);
+
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
 }
 
 void FOnlineGroupsAccelByte::CancelRequest(const FUniqueNetId& ContextUserId, const FUniqueNetId& GroupId, const FOnGroupsRequestCompleted& OnCompleted)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT(""));
-	AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Cannot configure group using GroupId as its fields are not supported! Please supply an instance of FAccelByteGroupsInfo instead!"))
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT(""));
+	AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Cannot configure group using GroupId as its fields are not supported! Please supply an instance of FAccelByteGroupsInfo instead!"))
 }
 
 void FOnlineGroupsAccelByte::AcceptInvite(const FUniqueNetId& UserIdAcceptedIntoGroup, const FAccelByteGroupsInfo& InGroupInfo, const FOnGroupsRequestCompleted& OnCompleted)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("UserIdAcceptedIntoGroup: %s"), *UserIdAcceptedIntoGroup.ToDebugString());
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("UserIdAcceptedIntoGroup: %s"), *UserIdAcceptedIntoGroup.ToDebugString());
 
 	if (!VerifyGroupInfo(InGroupInfo))
 		return;
+	
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return;
+	}
 
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGroupsAcceptInvite>(AccelByteSubsystem, UserIdAcceptedIntoGroup, InGroupInfo.ABGroupInfo.GroupId, OnCompleted);
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGroupsAcceptInvite>(AccelByteSubsystemPtr.Get(), UserIdAcceptedIntoGroup, InGroupInfo.ABGroupInfo.GroupId, OnCompleted);
 
-	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
 }
 
 void FOnlineGroupsAccelByte::AcceptInvite(const FUniqueNetId& ContextUserId, const FUniqueNetId& GroupId, const FOnGroupsRequestCompleted& OnCompleted)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT(""));
-	AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Cannot configure group using GroupId as its fields are not supported! Please supply an instance of FAccelByteGroupsInfo instead!"));
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT(""));
+	AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Cannot configure group using GroupId as its fields are not supported! Please supply an instance of FAccelByteGroupsInfo instead!"));
 }
 
 void FOnlineGroupsAccelByte::DeclineInvite(const FUniqueNetId& UserIdToDecline, const FAccelByteGroupsInfo& InGroupInfo, const FOnGroupsRequestCompleted& OnCompleted)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("UserIdToDecline: %s"), *UserIdToDecline.ToDebugString());
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("UserIdToDecline: %s"), *UserIdToDecline.ToDebugString());
 
 	if (!VerifyGroupInfo(InGroupInfo))
 		return;
 
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGroupsDeclineInvite>(AccelByteSubsystem, UserIdToDecline, InGroupInfo.ABGroupInfo.GroupId, OnCompleted);
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return;
+	}
 
-	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGroupsDeclineInvite>(AccelByteSubsystemPtr.Get(), UserIdToDecline, InGroupInfo.ABGroupInfo.GroupId, OnCompleted);
+
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
 }
 
 void FOnlineGroupsAccelByte::DeclineInvite(const FUniqueNetId& ContextUserId, const FUniqueNetId& GroupId, const FOnGroupsRequestCompleted& OnCompleted)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT(""));
-	AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Cannot configure group using GroupId as its fields are not supported! Please supply an instance of FAccelByteGroupsInfo instead!"));
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT(""));
+	AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Cannot configure group using GroupId as its fields are not supported! Please supply an instance of FAccelByteGroupsInfo instead!"));
 }
 
 void FOnlineGroupsAccelByte::QueryGroupRoster(const FUniqueNetId& RequestingUserId, const FAccelByteGroupsInfo& InGroupInfo, const FAccelByteModelsGetGroupMembersListByGroupIdRequest& RequestedContent, const FOnGroupsRequestCompleted& OnCompleted)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("RequestingUserId: %s"), *RequestingUserId.ToDebugString());
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("RequestingUserId: %s"), *RequestingUserId.ToDebugString());
 
 	if (!VerifyGroupInfo(InGroupInfo))
 		return;
 
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGroupsGetGroupMembersByGroupId>(AccelByteSubsystem, RequestingUserId, InGroupInfo.ABGroupInfo.GroupId, RequestedContent, OnCompleted);
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return;
+	}
 
-	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGroupsGetGroupMembersByGroupId>(AccelByteSubsystemPtr.Get(), RequestingUserId, InGroupInfo.ABGroupInfo.GroupId, RequestedContent, OnCompleted);
+
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
 }
 
 void FOnlineGroupsAccelByte::QueryGroupRoster(const FUniqueNetId& ContextUserId, const FUniqueNetId& GroupId, const FOnGroupsRequestCompleted& OnCompleted)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT(""));
-	AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Cannot configure group using GroupId as its fields are not supported! Please supply an instance of FAccelByteGroupsInfo instead!"));
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT(""));
+	AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Cannot configure group using GroupId as its fields are not supported! Please supply an instance of FAccelByteGroupsInfo instead!"));
 }
 
 FAccelByteModelsGetGroupMemberListResponse FOnlineGroupsAccelByte::GetCachedGroupRoster()
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT(""));
-	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT(""));
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
 	return CachedMembersByGroupIdResults;
 }
 
 TSharedPtr<const IGroupRoster> FOnlineGroupsAccelByte::GetCachedGroupRoster(const FUniqueNetId& ContextUserId, const FUniqueNetId& GroupId)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT(""));
-	AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Deprecated! Please use GetCachedGroupRoster()!"));
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT(""));
+	AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Deprecated! Please use GetCachedGroupRoster()!"));
 	return nullptr;
 }
 
 void FOnlineGroupsAccelByte::QueryUserMembership(const FUniqueNetId& ContextUserId, const FUniqueNetId& UserId, const FOnGroupsRequestCompleted& OnCompleted)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT(""));
-	AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Deprecated! Please use QueryConfigMembership(TArray<FAccelByteModelsGroupMember>& GroupMembers)!"));
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT(""));
+	AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Deprecated! Please use QueryConfigMembership(TArray<FAccelByteModelsGroupMember>& GroupMembers)!"));
 }
 
 void FOnlineGroupsAccelByte::GetCachedUserMembership(TArray<FAccelByteModelsGroupMember>& GroupRoster)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT(""));
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT(""));
 
 	if (IsGroupValid() == false)
 		return;
@@ -393,353 +474,458 @@ void FOnlineGroupsAccelByte::GetCachedUserMembership(TArray<FAccelByteModelsGrou
 	FScopeLock ScopeLock(&CachedCurrentGroupDataLock);
 	GroupRoster = CachedCurrentGroup->ABGroupInfo.GroupMembers;
 
-	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
 }
 
 TSharedPtr<const IUserMembership> FOnlineGroupsAccelByte::GetCachedUserMembership(const FUniqueNetId& ContextUserId, const FUniqueNetId& UserId) 
 { 
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT(""));
-	AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Deprecated! Please use GetCachedUserMembership()!"));
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT(""));
+	AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Deprecated! Please use GetCachedUserMembership()!"));
 	return nullptr;
 }
 
 void FOnlineGroupsAccelByte::QueryOutgoingApplications(const FUniqueNetId& ContextUserId, const FUniqueNetId& UserId, const FOnGroupsRequestCompleted& OnCompleted)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT(""));
-	AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("QueryOutgoingApplications is not supported by AccelByte!"));
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT(""));
+	AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("QueryOutgoingApplications is not supported by AccelByte!"));
 };
 
 TSharedPtr<const IApplications> FOnlineGroupsAccelByte::GetCachedApplications(const FUniqueNetId& ContextUserId, const FUniqueNetId& UserId) 
 { 
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT(""));
-	AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Deprecated! Please use GetCachedGroupRequests()!"));
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT(""));
+	AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Deprecated! Please use GetCachedGroupRequests()!"));
 	return nullptr;
 }
 
 void FOnlineGroupsAccelByte::QueryOutgoingInvitations(const FUniqueNetId& ContextUserId, const FUniqueNetId& UserId, const FOnGroupsRequestCompleted& OnCompleted) 
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT(""));
-	AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Deprecated! Please use QueryGroupInvites()!"));
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT(""));
+	AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Deprecated! Please use QueryGroupInvites()!"));
 }
 
 void FOnlineGroupsAccelByte::QueryIncomingInvitations(const FUniqueNetId& ContextUserId, const FUniqueNetId& UserId, const FOnGroupsRequestCompleted& OnCompleted)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT(""));
-	AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("QueryIncomingInvitations is not supported by AccelByte!"));
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT(""));
+	AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("QueryIncomingInvitations is not supported by AccelByte!"));
 }
 
 FAccelByteModelsGetMemberRequestsListResponse FOnlineGroupsAccelByte::GetCachedInvitations()
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT(""));
-	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT(""));
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
 	return CachedGroupInviteResults;
 }
 
 TSharedPtr<const IInvitations> FOnlineGroupsAccelByte::GetCachedInvitations(const FUniqueNetId& ContextUserId, const FUniqueNetId& UserId) 
 { 
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT(""));
-	AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Deprecated! Please use GetCachedInvitations()!"));
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT(""));
+	AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Deprecated! Please use GetCachedInvitations()!"));
 	return nullptr;
 }
 
 void FOnlineGroupsAccelByte::CancelInvite(const FUniqueNetId& AdminUserId, const FString& UserIdToCancel, const FAccelByteGroupsInfo& InGroupInfo, const FOnGroupsRequestCompleted& OnCompleted)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("AdminUserId: %s"), *AdminUserId.ToDebugString());
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("AdminUserId: %s"), *AdminUserId.ToDebugString());
 
 	if (!VerifyGroupInfo(InGroupInfo))
 		return;
 
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGroupsCancelInvite>(AccelByteSubsystem, AdminUserId, UserIdToCancel, InGroupInfo.ABGroupInfo.GroupId, OnCompleted);
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return;
+	}
 
-	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGroupsCancelInvite>(AccelByteSubsystemPtr.Get(), AdminUserId, UserIdToCancel, InGroupInfo.ABGroupInfo.GroupId, OnCompleted);
+
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
 }
 
 void FOnlineGroupsAccelByte::CancelInvite(const FUniqueNetId& ContextUserId, const FUniqueNetId& GroupId, const FUniqueNetId& UserId, const FOnGroupsRequestCompleted& OnCompleted)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT(""));
-	AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Cannot configure group using GroupId as its fields are not supported! Please supply an instance of FAccelByteGroupsInfo instead!"));
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT(""));
+	AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Cannot configure group using GroupId as its fields are not supported! Please supply an instance of FAccelByteGroupsInfo instead!"));
 }
 
 void FOnlineGroupsAccelByte::UpdateGroupInfo(const int32& AdminLocalUserNum, const FUniqueNetId& AdminUserId, const FAccelByteGroupsInfo& InGroupInfo, const FAccelByteModelsGroupUpdatable& RequestContent, const bool CompletelyReplace, const FOnGroupsRequestCompleted& OnCompleted)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("AdminLocalUserNum: %d, AdminUserId: %s"), AdminLocalUserNum, *AdminUserId.ToDebugString());
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("AdminLocalUserNum: %d, AdminUserId: %s"), AdminLocalUserNum, *AdminUserId.ToDebugString());
 
 	if (!VerifyGroupInfo(InGroupInfo))
 		return;
 
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGroupsUpdateGroupInfo>(AccelByteSubsystem, AdminLocalUserNum, AdminUserId, InGroupInfo.ABGroupInfo.GroupId, CompletelyReplace, RequestContent, OnCompleted);
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return;
+	}
 
-	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGroupsUpdateGroupInfo>(AccelByteSubsystemPtr.Get(), AdminLocalUserNum, AdminUserId, InGroupInfo.ABGroupInfo.GroupId, CompletelyReplace, RequestContent, OnCompleted);
+
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
 }
 
 void FOnlineGroupsAccelByte::UpdateGroupInfo(const FUniqueNetId& ContextUserId, const FUniqueNetId& GroupId, const FGroupDisplayInfo& GroupInfo, const FOnGroupsRequestCompleted& OnCompleted)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT(""));
-	AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Cannot configure group using GroupId as its fields are not supported! Please supply an instance of FAccelByteGroupsInfo instead!"));
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT(""));
+	AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Cannot configure group using GroupId as its fields are not supported! Please supply an instance of FAccelByteGroupsInfo instead!"));
 }
 
 void FOnlineGroupsAccelByte::AcceptUser(const int32 AdminLocalUserNum, const FUniqueNetId& UserIdToAccept, const FAccelByteGroupsInfo& InGroupInfo, const FOnGroupsRequestCompleted& OnCompleted)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("AdminLocalUserNum: %d, UserIdToAccept: %s"), AdminLocalUserNum, *UserIdToAccept.ToDebugString());
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("AdminLocalUserNum: %d, UserIdToAccept: %s"), AdminLocalUserNum, *UserIdToAccept.ToDebugString());
 
 	if (!VerifyGroupInfo(InGroupInfo))
 		return;
 
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGroupsAcceptUser>(AccelByteSubsystem, AdminLocalUserNum, UserIdToAccept, InGroupInfo.ABGroupInfo.GroupId, OnCompleted);
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return;
+	}
 
-	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGroupsAcceptUser>(AccelByteSubsystemPtr.Get(), AdminLocalUserNum, UserIdToAccept, InGroupInfo.ABGroupInfo.GroupId, OnCompleted);
+
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
 }
 
 void FOnlineGroupsAccelByte::AcceptUser(const FUniqueNetId& ContextUserId, const FUniqueNetId& GroupId, const FUniqueNetId& UserId, const FOnGroupsRequestCompleted& OnCompleted)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT(""));
-	AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Cannot configure group using GroupId as its fields are not supported! Please supply an instance of FAccelByteGroupsInfo instead!"));
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT(""));
+	AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Cannot configure group using GroupId as its fields are not supported! Please supply an instance of FAccelByteGroupsInfo instead!"));
 }
 
 void FOnlineGroupsAccelByte::DeclineUser(const int32 AdminLocalUserNum, const FUniqueNetId& UserIdToDecline, const FAccelByteGroupsInfo& InGroupInfo, const FOnGroupsRequestCompleted& OnCompleted)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("AdminLocalUserNum: %d, UserIdToDecline: %s"), AdminLocalUserNum, *UserIdToDecline.ToDebugString());
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("AdminLocalUserNum: %d, UserIdToDecline: %s"), AdminLocalUserNum, *UserIdToDecline.ToDebugString());
 
 	if (!VerifyGroupInfo(InGroupInfo))
 		return;
 
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGroupsDeclineUser>(AccelByteSubsystem, AdminLocalUserNum, UserIdToDecline, InGroupInfo.ABGroupInfo.GroupId, OnCompleted);
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return;
+	}
 
-	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGroupsDeclineUser>(AccelByteSubsystemPtr.Get(), AdminLocalUserNum, UserIdToDecline, InGroupInfo.ABGroupInfo.GroupId, OnCompleted);
+
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
 }
 
 void FOnlineGroupsAccelByte::DeclineUser(const FUniqueNetId& ContextUserId, const FUniqueNetId& GroupId, const FUniqueNetId& UserId, const FOnGroupsRequestCompleted& OnCompleted)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT(""));
-	AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Cannot configure group using GroupId as its fields are not supported! Please supply an instance of FAccelByteGroupsInfo instead!"));
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT(""));
+	AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Cannot configure group using GroupId as its fields are not supported! Please supply an instance of FAccelByteGroupsInfo instead!"));
 }
 
 void FOnlineGroupsAccelByte::InviteUser(const FUniqueNetId& InviterUserId, const FUniqueNetId& InvitedUserId, const FAccelByteGroupsInfo& InGroupInfo, const FOnGroupsRequestCompleted& OnCompleted)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("InviterUserId: %d, InvitedUserId: %s"), *InviterUserId.ToDebugString(), *InvitedUserId.ToDebugString());
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("InviterUserId: %d, InvitedUserId: %s"), *InviterUserId.ToDebugString(), *InvitedUserId.ToDebugString());
 
 	if (!VerifyGroupInfo(InGroupInfo))
 		return;
 
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGroupsInviteUser>(AccelByteSubsystem, InviterUserId, InvitedUserId, InGroupInfo.ABGroupInfo.GroupId, OnCompleted);
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return;
+	}
 
-	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGroupsInviteUser>(AccelByteSubsystemPtr.Get(), InviterUserId, InvitedUserId, InGroupInfo.ABGroupInfo.GroupId, OnCompleted);
+
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
 }
 
 void FOnlineGroupsAccelByte::InviteUser(const FUniqueNetId& ContextUserId, const FUniqueNetId& GroupId, const FUniqueNetId& UserId, bool bAllowBlocked, const FOnGroupsRequestCompleted& OnCompleted)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT(""));
-	AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Cannot configure group using GroupId as its fields are not supported! Please supply an instance of FAccelByteGroupsInfo instead!"));
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT(""));
+	AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Cannot configure group using GroupId as its fields are not supported! Please supply an instance of FAccelByteGroupsInfo instead!"));
 }
 
 void FOnlineGroupsAccelByte::RemoveUser(const int32 AdminLocalUserNum, const FUniqueNetId& MemberUserIdToKick, const FAccelByteGroupsInfo& InGroupInfo, const FOnGroupsRequestCompleted& OnCompleted)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("AdminLocalUserNum: %d, MemberUserIdToKick: %s"), AdminLocalUserNum, *MemberUserIdToKick.ToDebugString());
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("AdminLocalUserNum: %d, MemberUserIdToKick: %s"), AdminLocalUserNum, *MemberUserIdToKick.ToDebugString());
 
 	if (!VerifyGroupInfo(InGroupInfo))
 		return;
 
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGroupsRemoveMember>(AccelByteSubsystem, AdminLocalUserNum, MemberUserIdToKick, InGroupInfo.ABGroupInfo.GroupId, OnCompleted);
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return;
+	}
 
-	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGroupsRemoveMember>(AccelByteSubsystemPtr.Get(), AdminLocalUserNum, MemberUserIdToKick, InGroupInfo.ABGroupInfo.GroupId, OnCompleted);
+
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
 }
 
 void FOnlineGroupsAccelByte::RemoveUser(const FUniqueNetId& ContextUserId, const FUniqueNetId& GroupId, const FUniqueNetId& UserId, const FOnGroupsRequestCompleted& OnCompleted)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT(""));
-	AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Cannot configure group using GroupId as its fields are not supported! Please supply an instance of FAccelByteGroupsInfo instead!"));
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT(""));
+	AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Cannot configure group using GroupId as its fields are not supported! Please supply an instance of FAccelByteGroupsInfo instead!"));
 }
 
 void FOnlineGroupsAccelByte::PromoteUser(const int32 AdminLocalUserNum, const FUniqueNetId& MemberUserIdToPromote, const FAccelByteGroupsInfo& InGroupInfo, const FString& MemberRoleId, const FOnGroupsRequestCompleted& OnCompleted)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("AdminLocalUserNum: %d, MemberUserIdToPromote: %s"), AdminLocalUserNum, *MemberUserIdToPromote.ToDebugString());
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("AdminLocalUserNum: %d, MemberUserIdToPromote: %s"), AdminLocalUserNum, *MemberUserIdToPromote.ToDebugString());
 
 	if (!VerifyGroupInfo(InGroupInfo))
 		return;
 
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGroupsPromoteMember>(AccelByteSubsystem, AdminLocalUserNum, MemberUserIdToPromote, InGroupInfo.ABGroupInfo.GroupId, MemberRoleId, OnCompleted);
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return;
+	}
 
-	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGroupsPromoteMember>(AccelByteSubsystemPtr.Get(), AdminLocalUserNum, MemberUserIdToPromote, InGroupInfo.ABGroupInfo.GroupId, MemberRoleId, OnCompleted);
+
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
 }
 
 void FOnlineGroupsAccelByte::PromoteUser(const FUniqueNetId& ContextUserId, const FUniqueNetId& GroupId, const FUniqueNetId& UserId, const FOnGroupsRequestCompleted& OnCompleted)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT(""));
-	AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Cannot configure group using GroupId as its fields are not supported! Please supply an instance of FAccelByteGroupsInfo instead!"));
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT(""));
+	AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Cannot configure group using GroupId as its fields are not supported! Please supply an instance of FAccelByteGroupsInfo instead!"));
 }
 
 void FOnlineGroupsAccelByte::DemoteUser(const int32 AdminLocalUserNum, const FUniqueNetId& MemberUserIdToDemote, const FAccelByteGroupsInfo& InGroupInfo, const FString& MemberRoleId, const FOnGroupsRequestCompleted& OnCompleted)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("AdminLocalUserNum: %d, MemberUserIdToDemote: %s"), AdminLocalUserNum, *MemberUserIdToDemote.ToDebugString());
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("AdminLocalUserNum: %d, MemberUserIdToDemote: %s"), AdminLocalUserNum, *MemberUserIdToDemote.ToDebugString());
 
 	if (!VerifyGroupInfo(InGroupInfo))
 		return;
 
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGroupsDemoteMember>(AccelByteSubsystem, AdminLocalUserNum, MemberUserIdToDemote, InGroupInfo.ABGroupInfo.GroupId, MemberRoleId, OnCompleted);
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return;
+	}
 
-	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGroupsDemoteMember>(AccelByteSubsystemPtr.Get(), AdminLocalUserNum, MemberUserIdToDemote, InGroupInfo.ABGroupInfo.GroupId, MemberRoleId, OnCompleted);
+
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
 }
 
 void FOnlineGroupsAccelByte::DemoteUser(const FUniqueNetId& ContextUserId, const FUniqueNetId& GroupId, const FUniqueNetId& UserId, const FOnGroupsRequestCompleted& OnCompleted)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT(""));
-	AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Cannot configure group using GroupId as its fields are not supported! Please supply an instance of FAccelByteGroupsInfo instead!"));
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT(""));
+	AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Cannot configure group using GroupId as its fields are not supported! Please supply an instance of FAccelByteGroupsInfo instead!"));
 }
 
 void FOnlineGroupsAccelByte::QueryGroupInvites(const FUniqueNetId& ContextUserId, const FAccelByteModelsLimitOffsetRequest& AccelByteModelsLimitOffsetRequest, const FOnGroupsRequestCompleted& OnCompleted)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("ContextUserId: %s"), *ContextUserId.ToDebugString());
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("ContextUserId: %s"), *ContextUserId.ToDebugString());
 
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGroupsQueryGroupInvites>(AccelByteSubsystem, ContextUserId, AccelByteModelsLimitOffsetRequest, OnCompleted);
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return;
+	}
+	
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGroupsQueryGroupInvites>(AccelByteSubsystemPtr.Get(), ContextUserId, AccelByteModelsLimitOffsetRequest, OnCompleted);
 
-	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
 }
 
 void FOnlineGroupsAccelByte::QueryGroupInvites(const FUniqueNetId& ContextUserId, const FUniqueNetId& GroupId, const FOnGroupsRequestCompleted& OnCompleted)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT(""));
-	AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Cannot configure group using GroupId as its fields are not supported! Please supply an instance of FAccelByteGroupsInfo instead!"));
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT(""));
+	AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Cannot configure group using GroupId as its fields are not supported! Please supply an instance of FAccelByteGroupsInfo instead!"));
 }
 
 FAccelByteModelsGetMemberRequestsListResponse FOnlineGroupsAccelByte::GetCachedGroupInvites()
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT(""));
-	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT(""));
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
 	return CachedGroupInviteResults;
 }
 
 TSharedPtr<const IGroupInvites> FOnlineGroupsAccelByte::GetCachedGroupInvites(const FUniqueNetId& ContextUserId, const FUniqueNetId& GroupId)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT(""));
-	AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Deprecated! Please use GetCachedGroupInvites()!"));
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT(""));
+	AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Deprecated! Please use GetCachedGroupInvites()!"));
 	return nullptr;
 }
 
 void FOnlineGroupsAccelByte::QueryGroupRequests(const FUniqueNetId& ContextUserId, const FAccelByteModelsLimitOffsetRequest& AccelByteModelsLimitOffsetRequest, const FAccelByteGroupsInfo& InGroupInfo, const FOnGroupsRequestCompleted& OnCompleted)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("ContextUserId: %s"), *ContextUserId.ToDebugString());
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("ContextUserId: %s"), *ContextUserId.ToDebugString());
 
 	if (!VerifyGroupInfo(InGroupInfo))
 		return;
 
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGroupsQueryGroupJoinRequests>(AccelByteSubsystem, ContextUserId, AccelByteModelsLimitOffsetRequest, InGroupInfo.ABGroupInfo.GroupId, OnCompleted);
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return;
+	}
 
-	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGroupsQueryGroupJoinRequests>(AccelByteSubsystemPtr.Get(), ContextUserId, AccelByteModelsLimitOffsetRequest, InGroupInfo.ABGroupInfo.GroupId, OnCompleted);
+
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
 }
 
 void FOnlineGroupsAccelByte::QueryGroupRequests(const FUniqueNetId& ContextUserId, const FUniqueNetId& GroupId, const FOnGroupsRequestCompleted& OnCompleted)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT(""));
-	AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Cannot configure group using GroupId as its fields are not supported! Please supply an instance of FAccelByteGroupsInfo instead!"));
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT(""));
+	AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Cannot configure group using GroupId as its fields are not supported! Please supply an instance of FAccelByteGroupsInfo instead!"));
 }
 
 FAccelByteModelsGetMemberRequestsListResponse FOnlineGroupsAccelByte::GetCachedGroupRequests()
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT(""));
-	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT(""));
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
 	return CachedGroupRequests;
 }
 
 TSharedPtr<const IGroupRequests> FOnlineGroupsAccelByte::GetCachedGroupRequests(const FUniqueNetId& ContextUserId, const FUniqueNetId& GroupId)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT(""));
-	AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Deprecated! Please use GetCachedGroupRequests()!"));
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT(""));
+	AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Deprecated! Please use GetCachedGroupRequests()!"));
 	return nullptr;
 }
 
 void FOnlineGroupsAccelByte::QueryIncomingApplications(const FUniqueNetId& ContextUserId, const FUniqueNetId& UserId, const FOnGroupsRequestCompleted& OnCompleted)
 { 
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT(""));
-	AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Deprecated! Please use QueryGroupRequests()!"));
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT(""));
+	AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Deprecated! Please use QueryGroupRequests()!"));
 }
 
 int FOnlineGroupsAccelByte::QueryConfigHeadcount()
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT(""));
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT(""));
 
 	if (IsGroupValid() == false)
 		return 0;
 
-	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
 	return CachedCurrentGroup->ABGroupInfo.GroupMaxMember;
 }
 
 void FOnlineGroupsAccelByte::QueryConfigHeadcount(const FUniqueNetId& ContextUserId, const FOnGroupsRequestCompleted& OnCompleted)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT(""));
-	AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Deprecated! Please use QueryConfigHeadcount()!"));
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT(""));
+	AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Deprecated! Please use QueryConfigHeadcount()!"));
 }
 
 void FOnlineGroupsAccelByte::QueryConfigMembership(const FUniqueNetId& ContextUserId, const FOnGroupsRequestCompleted& OnCompleted)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT(""));
-	AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("QueryConfigMembership is not supported by AccelByte!"));
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT(""));
+	AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("QueryConfigMembership is not supported by AccelByte!"));
 }
 
 void FOnlineGroupsAccelByte::DeleteGroup(const int32 AdminLocalUserNum, const FAccelByteGroupsInfo& InGroupInfo, const FOnGroupsRequestCompleted& OnCompleted)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("AdminLocalUserNum: %d"), AdminLocalUserNum);
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("AdminLocalUserNum: %d"), AdminLocalUserNum);
 
 	if (!VerifyGroupInfo(InGroupInfo))
 		return;
 
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGroupsDeleteGroup>(AccelByteSubsystem, AdminLocalUserNum, InGroupInfo.ABGroupInfo.GroupId, OnCompleted);
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return;
+	}
 
-	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGroupsDeleteGroup>(AccelByteSubsystemPtr.Get(), AdminLocalUserNum, InGroupInfo.ABGroupInfo.GroupId, OnCompleted);
+
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
 }
 
 void FOnlineGroupsAccelByte::DeleteGroup(const FUniqueNetId& ContextUserId, const FUniqueNetId& GroupId, const FOnGroupsRequestCompleted& OnCompleted)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT(""));
-	AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Cannot configure group using GroupId as its fields are not supported! Please supply an instance of FAccelByteGroupsInfo instead!"));
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT(""));
+	AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Cannot configure group using GroupId as its fields are not supported! Please supply an instance of FAccelByteGroupsInfo instead!"));
 }
 
 void FOnlineGroupsAccelByte::UpdateGroupCustomAttributes(const int32& AdminLocalUserNum, const FUniqueNetId& AdminUserId, const FAccelByteGroupsInfo& InGroupInfo, const FAccelByteModelsUpdateGroupCustomAttributesRequest& RequestContent, const FOnGroupsRequestCompleted& OnCompleted)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("AdminLocalUserNum: %d, AdminUserId: %s"), AdminLocalUserNum, *AdminUserId.ToDebugString());
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("AdminLocalUserNum: %d, AdminUserId: %s"), AdminLocalUserNum, *AdminUserId.ToDebugString());
 
 	if (!VerifyGroupInfo(InGroupInfo))
 		return;
 
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGroupsUpdateGroupCustomAttributes>(AccelByteSubsystem, AdminLocalUserNum, AdminUserId, InGroupInfo.ABGroupInfo.GroupId, RequestContent, OnCompleted);
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return;
+	}
 
-	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGroupsUpdateGroupCustomAttributes>(AccelByteSubsystemPtr.Get(), AdminLocalUserNum, AdminUserId, InGroupInfo.ABGroupInfo.GroupId, RequestContent, OnCompleted);
+
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
 }
 
 void FOnlineGroupsAccelByte::UpdateGroupCustomRule(const int32& AdminLocalUserNum, const FUniqueNetId& AdminUserId, const FAccelByteGroupsInfo& InGroupInfo, const FAccelByteModelsUpdateCustomRulesRequest& RequestContent, const FOnGroupsRequestCompleted& OnCompleted)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("AdminLocalUserNum: %d, AdminUserId: %s"), AdminLocalUserNum, *AdminUserId.ToDebugString());
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("AdminLocalUserNum: %d, AdminUserId: %s"), AdminLocalUserNum, *AdminUserId.ToDebugString());
 
 	if (!VerifyGroupInfo(InGroupInfo))
 		return;
 
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGroupsUpdateGroupCustomRule>(AccelByteSubsystem, AdminLocalUserNum, AdminUserId, InGroupInfo.ABGroupInfo.GroupId, RequestContent, OnCompleted);
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return;
+	}
 
-	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGroupsUpdateGroupCustomRule>(AccelByteSubsystemPtr.Get(), AdminLocalUserNum, AdminUserId, InGroupInfo.ABGroupInfo.GroupId, RequestContent, OnCompleted);
+
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
 }
 
 void FOnlineGroupsAccelByte::UpdatePredefinedRule(const int32& AdminLocalUserNum, const FUniqueNetId& AdminUserId, const FAccelByteGroupsInfo& InGroupInfo, const EAccelByteAllowedAction& InAllowedAction, const FAccelByteModelsUpdateGroupPredefinedRuleRequest& RequestContent, const FOnGroupsRequestCompleted& OnCompleted)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("AdminLocalUserNum: %d, AdminUserId: %s"), AdminLocalUserNum, *AdminUserId.ToDebugString());
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("AdminLocalUserNum: %d, AdminUserId: %s"), AdminLocalUserNum, *AdminUserId.ToDebugString());
 
 	if (!VerifyGroupInfo(InGroupInfo))
 		return;
 
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGroupsUpdatePredefinedRule>(AccelByteSubsystem, AdminLocalUserNum, AdminUserId, InGroupInfo.ABGroupInfo.GroupId, InAllowedAction, RequestContent, OnCompleted);
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return;
+	}
 
-	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGroupsUpdatePredefinedRule>(AccelByteSubsystemPtr.Get(), AdminLocalUserNum, AdminUserId, InGroupInfo.ABGroupInfo.GroupId, InAllowedAction, RequestContent, OnCompleted);
+
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
 }
 
 void FOnlineGroupsAccelByte::DeletePredefinedRule(const int32& AdminLocalUserNum, const FAccelByteGroupsInfo& InGroupInfo, const EAccelByteAllowedAction& AllowedAction, const FOnGroupsRequestCompleted& OnCompleted)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("AdminLocalUserNum: %d"), AdminLocalUserNum);
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("AdminLocalUserNum: %d"), AdminLocalUserNum);
 
 	if (!VerifyGroupInfo(InGroupInfo))
 		return;
 
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGroupsDeletePredefinedRule>(AccelByteSubsystem, AdminLocalUserNum, InGroupInfo.ABGroupInfo.GroupId, AllowedAction, OnCompleted);
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return;
+	}
 
-	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGroupsDeletePredefinedRule>(AccelByteSubsystemPtr.Get(), AdminLocalUserNum, InGroupInfo.ABGroupInfo.GroupId, AllowedAction, OnCompleted);
+
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
 }
 
 bool FOnlineGroupsAccelByte::IsGroupValid() const
@@ -752,7 +938,7 @@ bool FOnlineGroupsAccelByte::IsGroupValid() const
 
 bool FOnlineGroupsAccelByte::VerifyGroupInfo(const FAccelByteGroupsInfo& InGroupInfo)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT(""));
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT(""));
 
 	FAccelByteModelsGroupInformation GroupInfo = InGroupInfo.ABGroupInfo;
 	if (GroupInfo.ConfigurationCode.IsEmpty() ||
@@ -760,68 +946,68 @@ bool FOnlineGroupsAccelByte::VerifyGroupInfo(const FAccelByteGroupsInfo& InGroup
 		GroupInfo.GroupRegion.IsEmpty() ||
 		GroupInfo.GroupType == EAccelByteGroupType::NONE)
 	{
-		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Missing mandatory group details. ConfigurationCode, GroupName, GroupRegion, & GroupType must be filled."));
-		AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Missing mandatory group details. ConfigurationCode, GroupName, GroupRegion, & GroupType must be filled."));
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
 		return false;
 	}
 
-	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
 	return true;
 }
 
 void FOnlineGroupsAccelByte::SetCachedGroupResults(FAccelByteModelsGetGroupListResponse& AccelByteModelsGetGroupListResponse)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT(""));
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT(""));
 
 	FScopeLock ScopeLock(&CachedGroupResultsDataLock);
 	CachedGroupResults = AccelByteModelsGetGroupListResponse;
 
-	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
 }
 
 void FOnlineGroupsAccelByte::SetCachedGroupListByGroupIdsResults(FAccelByteModelsGetGroupListResponse& AccelByteModelsGetGroupListResponse)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT(""));
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT(""));
 
 	FScopeLock ScopeLock(&CachedGroupListByGroupIdsResultsDataLock);
 	CachedGroupListByGroupIdsResults = AccelByteModelsGetGroupListResponse;
 
-	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
 }
 
 void FOnlineGroupsAccelByte::SetCachedMembersByGroupIdResults(FAccelByteModelsGetGroupMemberListResponse& AccelByteModelsGetGroupMemberListResponse)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT(""));
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT(""));
 
 	FScopeLock ScopeLock(&CachedMembersByGroupIdResultsDataLock);
 	CachedMembersByGroupIdResults = AccelByteModelsGetGroupMemberListResponse;
 
-	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
 }
 
 void FOnlineGroupsAccelByte::SetCachedGroupInviteResults(FAccelByteModelsGetMemberRequestsListResponse& AccelByteModelsGetMemberRequestsListResponse)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT(""));
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT(""));
 
 	FScopeLock ScopeLock(&CachedGroupInviteResultsDataLock);
 	CachedGroupInviteResults = AccelByteModelsGetMemberRequestsListResponse;
 
-	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
 }
 
 void FOnlineGroupsAccelByte::SetCachedGroupRequests(FAccelByteModelsGetMemberRequestsListResponse& AccelByteModelsGetMemberRequestsListResponse)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT(""));
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT(""));
 
 	FScopeLock ScopeLock(&CachedGroupRequestsDataLock);
 	CachedGroupRequests = AccelByteModelsGetMemberRequestsListResponse;
 
-	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
 }
 
 void FOnlineGroupsAccelByte::AddCachedGroupMember(const FString& RoleId, const FString& UserId)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT(""));
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT(""));
 
 	if (CachedCurrentGroup.IsValid() == false)
 		return;
@@ -837,12 +1023,12 @@ void FOnlineGroupsAccelByte::AddCachedGroupMember(const FString& RoleId, const F
 	GroupInfo.GroupMembers.Add(AccelByteModelsGroupMember);
 	CachedCurrentGroup->SetCachedABGroupInfo(GroupInfo);
 
-	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
 }
 
 void FOnlineGroupsAccelByte::RemoveCachedMember(FString& UserId)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT(""));
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT(""));
 
 	if (CachedCurrentGroup.IsValid() == false)
 		return;
@@ -853,12 +1039,12 @@ void FOnlineGroupsAccelByte::RemoveCachedMember(FString& UserId)
 		return Member.UserId == UserId;
 	});
 
-	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
 }
 
 void FOnlineGroupsAccelByte::PromoteCachedMember(FString& UserId, TArray<FString>& NewMemberRoleIds)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT(""));
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT(""));
 
 	if (CachedCurrentGroup.IsValid() == false)
 		return;
@@ -880,12 +1066,12 @@ void FOnlineGroupsAccelByte::PromoteCachedMember(FString& UserId, TArray<FString
 		}
 	}
 
-	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
 }
 
 void FOnlineGroupsAccelByte::RemoveCachedInvites(FString& UserIdToRemove)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT(""));
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT(""));
 
 	FScopeLock ScopeLock(&CachedGroupInviteResultsDataLock);
 	int32 RemoveResult = CachedGroupInviteResults.Data.RemoveAll([UserIdToRemove](const FAccelByteModelsMemberRequestResponse& MemberRequest)
@@ -893,12 +1079,12 @@ void FOnlineGroupsAccelByte::RemoveCachedInvites(FString& UserIdToRemove)
 		return MemberRequest.UserId == UserIdToRemove;
 	});
 
-	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
 }
 
 void FOnlineGroupsAccelByte::RemoveCachedRequests(FString& UserIdToRemove)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT(""));
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT(""));
 
 	FScopeLock ScopeLock(&CachedGroupRequestsDataLock);
 	int32 RemoveResult = CachedGroupRequests.Data.RemoveAll([UserIdToRemove](const FAccelByteModelsMemberRequestResponse& MemberRequest)
@@ -906,12 +1092,12 @@ void FOnlineGroupsAccelByte::RemoveCachedRequests(FString& UserIdToRemove)
 		return MemberRequest.UserId == UserIdToRemove;
 	});
 
-	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
 }
 
 void FOnlineGroupsAccelByte::RemoveCachedPredefinedRule(EAccelByteAllowedAction& AllowedAction)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT(""));
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT(""));
 
 	if (CachedCurrentGroup.IsValid() == false)
 		return;
@@ -923,7 +1109,7 @@ void FOnlineGroupsAccelByte::RemoveCachedPredefinedRule(EAccelByteAllowedAction&
 		return Rule.AllowedAction == AllowedAction;
 	});
 
-	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
 }
 /**
 * End FOnlineGroupsAccelByte

@@ -41,6 +41,12 @@
 #include "Models/AccelByteLobbyModels.h"
 #include "AccelByteUe4SdkModule.h"
 //~ End AccelByte Peer to Peer Includes
+#include "OnlineAchievementsInterfaceAccelByte.h"
+#include "OnlineAsyncTaskManagerAccelByte.h"
+#include "OnlineEntitlementsInterfaceAccelByte.h"
+#include "OnlinePurchaseInterfaceAccelByte.h"
+#include "OnlineStoreInterfaceV2AccelByte.h"
+#include "OnlineSubsystemAccelByteUtils.h"
 #include "Core/AccelByteEntitlementTokenGenerator.h"
 #include "Interfaces/IPluginManager.h"
 
@@ -52,6 +58,16 @@ using namespace AccelByte;
 
 #define LOCTEXT_NAMESPACE "FOnlineSubsystemAccelByte"
 #define PARTY_SESSION_TYPE "party"
+
+void FOnlineSubsystemAccelByte::OnPostEngineInit()
+{
+	if(!AccelByteInstance.IsValid())
+	{
+		AccelByteInstance = CreateAccelByteInstance();
+	}
+
+	FCoreDelegates::OnPostEngineInit.Remove(OnPostEngineInitDelegate);
+}
 
 bool FOnlineSubsystemAccelByte::Init()
 {
@@ -131,6 +147,19 @@ bool FOnlineSubsystemAccelByte::Init()
 		OnPreExitDelegate = FCoreDelegates::OnPreExit.AddThreadSafeSP(AsShared(), &FOnlineSubsystemAccelByte::HandleShutdown);
 	}
 
+	if(!UObjectInitialized())
+	{
+		// todo: create a new ticker to check UObjectInitialized then initialize AccelbyteInstance
+		if(!OnPostEngineInitDelegate.IsValid())
+		{
+			OnPostEngineInitDelegate = FCoreDelegates::OnPostEngineInit.AddThreadSafeSP(AsShared(), &FOnlineSubsystemAccelByte::OnPostEngineInit);
+		}	
+	}
+	else
+	{
+		AccelByteInstance = CreateAccelByteInstance();
+	}
+	
 	return true;
 }
 
@@ -185,7 +214,7 @@ bool FOnlineSubsystemAccelByte::Shutdown()
 		}
 
 		TSharedRef<const FUniqueNetIdAccelByteUser> AccelByteCompositeId = FUniqueNetIdAccelByteUser::CastChecked(PlayerId.ToSharedRef());
-		AccelByte::FMultiRegistry::RemoveApiClient(AccelByteCompositeId->GetAccelByteId());
+		AccelByteInstance->RemoveApiClient(AccelByteCompositeId->GetAccelByteId());
 	}
 
 	LogoutDelegates.Empty();
@@ -232,7 +261,7 @@ bool FOnlineSubsystemAccelByte::Shutdown()
 FString FOnlineSubsystemAccelByte::GetAppId() const
 {
 	// AccelByte uses a namespace to identify an application on the platform, thus we can return the game namespace as an "app ID"
-	return FRegistry::Settings.Namespace;
+	return AccelByteInstance->GetSettings()->Namespace;
 }
 
 FText FOnlineSubsystemAccelByte::GetOnlineServiceName() const
@@ -451,6 +480,11 @@ bool FOnlineSubsystemAccelByte::Tick(float DeltaTime)
 	if (!FOnlineSubsystemImpl::Tick(DeltaTime))
 	{
 		return false;
+	}
+
+	if(!AccelByteInstance.IsValid() && OnPostEngineInitDelegate.IsValid() && UObjectInitialized())
+	{
+		OnPostEngineInit();
 	}
 	
 	if (AsyncTaskManager)
@@ -873,6 +907,19 @@ void FOnlineSubsystemAccelByte::OnLobbyReconnected(int32 InLocalUserNum)
 {
 	UE_LOG_AB(Log, TEXT("Lobby successfully reconnected."));
 
+	if(IdentityInterface.IsValid())
+	{
+		const FUniqueNetIdPtr LocalUserId = IdentityInterface->GetUniquePlayerId(InLocalUserNum);
+		if (LocalUserId.IsValid())
+		{
+			if (const TSharedPtr<FUserOnlineAccount> UserAccount = IdentityInterface->GetUserAccount(LocalUserId))
+			{
+				const TSharedPtr<FUserOnlineAccountAccelByte> UserAccountAccelByte = StaticCastSharedPtr<FUserOnlineAccountAccelByte>(UserAccount);
+				UserAccountAccelByte->SetConnectedToLobby(true);
+			}
+		}
+	}
+
 #if !AB_USE_V2_SESSIONS
 	if (IdentityInterface.IsValid() && PartyInterface.IsValid())
 	{
@@ -993,10 +1040,17 @@ AccelByte::FApiClientPtr FOnlineSubsystemAccelByte::GetApiClient(const FUniqueNe
 
 	// Grab the AccelByte composite user ID passed in to make sure that we're getting the right client
 	TSharedRef<const FUniqueNetIdAccelByteUser> AccelByteCompositeId = FUniqueNetIdAccelByteUser::CastChecked(NetId);
-	AccelByte::FApiClientPtr ApiClient = AccelByte::FMultiRegistry::GetApiClient(AccelByteCompositeId->GetAccelByteId(), false);
+	const FAccelByteInstancePtr ActiveInstance = GetAccelByteInstance().Pin();
+	if(!ActiveInstance.IsValid())
+	{
+		UE_LOG_AB(Warning, TEXT("Failed to retrieve an API client for user '%s', AccelByteInstance is invalid!"), *AccelByteCompositeId->ToDebugString());
+		return nullptr;
+	}
+
+	FApiClientPtr ApiClient = ActiveInstance->GetApiClient(AccelByteCompositeId->GetAccelByteId(), false);
 	if (!ApiClient.IsValid())
 	{
-		UE_LOG_AB(Warning, TEXT("Failed to retrieve an API client for user '%s'!"), *AccelByteCompositeId->ToDebugString());
+		UE_LOG_AB(Warning, TEXT("Failed to retrieve an API client for user '%s', ApiClient is invalid!"), *AccelByteCompositeId->ToDebugString());
 		return nullptr;
 	}
 
@@ -1355,12 +1409,14 @@ TOptional<IWebsocketConfigurableReconnectStrategy*> FOnlineSubsystemAccelByte::T
 		break;
 	case AccelByte::EConfigurableWebsocketServiceType::AMS_GAMESERVER:
 		{
-			Output = &(FRegistry::ServerAMS);
+			FServerApiClientPtr ServerApiClient = AccelByteInstance->GetServerApiClient();
+			Output = &(ServerApiClient->ServerAMS);
 		}
 		break;
 	case AccelByte::EConfigurableWebsocketServiceType::DS_HUB_GAMESERVER:
 		{
-			Output = &(FRegistry::ServerDSHub);
+			FServerApiClientPtr ServerApiClient = AccelByteInstance->GetServerApiClient();
+			Output = &(ServerApiClient->ServerDSHub);
 		}
 		break;
 	default:
@@ -1373,6 +1429,38 @@ TOptional<IWebsocketConfigurableReconnectStrategy*> FOnlineSubsystemAccelByte::T
 		Output.Reset();
 	}
 	return Output;
+}
+
+FAccelByteInstanceWPtr FOnlineSubsystemAccelByte::GetAccelByteInstance()
+{
+	// if it's valid just return the AccelByteInstance
+	if(AccelByteInstance.IsValid())
+	{
+		return AccelByteInstance;
+	}
+
+	return nullptr;
+}
+
+FAccelByteInstancePtr FOnlineSubsystemAccelByte::CreateAccelByteInstance() const
+{
+	// if this is default instance, then try to check MultiRegistry first if we already have an AccelByteInstance there
+	// so AccelByte OSS and MultiRegistry is using the same AccelByteInstance. this should only apply to default Subsystem instance
+	// 1st PIE instance SubsystemName should be Context_1, standalone game should be DefaultInstance
+	if(InstanceName.ToString().Equals(TEXT("DefaultInstance")) || InstanceName.ToString().Equals(TEXT("Context_1")))
+	{
+		FAccelByteInstancePtr NewInstance = FMultiRegistry::GetAccelByteInstance().Pin();
+		if(!AccelByteInstance.IsValid())
+		{
+			NewInstance = IAccelByteUe4SdkModuleInterface::Get().CreateAccelByteInstance();
+			FMultiRegistry::SetAccelByteInstance(NewInstance.ToSharedRef());
+		}
+
+		return NewInstance.ToSharedRef();
+	}
+
+	// if not default PIE instance, then just create a new AccelByteInstance
+	return IAccelByteUe4SdkModuleInterface::Get().CreateAccelByteInstance();
 }
 
 #undef LOCTEXT_NAMESPACE

@@ -3,6 +3,8 @@
 // and restrictions contact your company contract manager.
 
 #include "OnlineAsyncTaskAccelByteGroupsPromoteMember.h"
+
+#include "OnlineGroupsInterfaceAccelByte.h"
 #include "OnlinePredefinedEventInterfaceAccelByte.h"
 
 using namespace AccelByte;
@@ -19,6 +21,7 @@ FOnlineAsyncTaskAccelByteGroupsPromoteMember::FOnlineAsyncTaskAccelByteGroupsPro
 	, GroupId(InGroupId)
 	, RoleId(MemberRoleId)
 	, Delegate(InDelegate)
+	, httpStatus(0)
 {
 	LocalUserNum = GroupAdmin;
 }

@@ -3,6 +3,7 @@
 // and restrictions contact your company contract manager.
 
 #pragma once
+#include "OnlineStoreInterfaceV2AccelByte.h"
 #include "AsyncTasks/OnlineAsyncTaskAccelByte.h"
 #include "AsyncTasks/OnlineAsyncTaskAccelByteUtils.h"
 

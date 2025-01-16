@@ -28,13 +28,22 @@ void FOnlineAsyncTaskAccelByteLoginRefreshTicket::Initialize()
 	Super::Initialize();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("LoginUserNum: %d"), LoginUserNum);
+
+	FAccelByteInstancePtr AccelByteInstance = GetAccelByteInstance().Pin();
+	if(!AccelByteInstance.IsValid())
+	{
+		AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Unable to refresh login queue ticket, AccelByteInstance is invalid"));
+		CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState);
+		return;
+	}
+	
 	if (SubsystemPin->IsMultipleLocalUsersEnabled())
 	{
-		SetApiClient(FMultiRegistry::GetApiClient(FString::Printf(TEXT("%d"), LoginUserNum)));
+		SetApiClient(AccelByteInstance->GetApiClient(FString::Printf(TEXT("%d"), LoginUserNum)));
 	}
 	else
 	{
-		SetApiClient(FMultiRegistry::GetApiClient());
+		SetApiClient(AccelByteInstance->GetApiClient());
 	}
 	
 	OnRefreshTicketSuccessHandler = TDelegateUtils<THandler<FAccelByteModelsLoginQueueTicketInfo>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteLoginRefreshTicket::OnRefreshTicketSuccess);

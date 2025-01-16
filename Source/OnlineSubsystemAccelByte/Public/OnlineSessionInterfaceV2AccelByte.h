@@ -277,6 +277,9 @@ struct ONLINESUBSYSTEMACCELBYTE_API FOnlineRestoredSessionAccelByte
  */
 struct ONLINESUBSYSTEMACCELBYTE_API FOnlineSessionInviteAccelByte
 {
+	FOnlineSessionInviteAccelByte();
+	FOnlineSessionInviteAccelByte(FAccelByteTimeManagerWPtr InTimeManager);
+	
 	/** Type of session that this invite is for */
 	EAccelByteV2SessionType SessionType{EAccelByteV2SessionType::Unknown};
 
@@ -294,6 +297,9 @@ struct ONLINESUBSYSTEMACCELBYTE_API FOnlineSessionInviteAccelByte
 
 	/** Check whether the invitation is already expired or not */
 	bool IsExpired();
+	
+private:
+	FAccelByteTimeManagerWPtr TimeManager;
 };
 
 struct ONLINESUBSYSTEMACCELBYTE_API FSessionServerCheckPollItem
@@ -337,7 +343,7 @@ public:
 	void SetIsP2PMatchmaking(const bool IsP2PMatchmaking);
 	void SetSearchStorage(TSharedPtr<FJsonObject> const& JsonObject);
 
-	FAccelBtyeModelsGameSessionExcludedSession GameSessionExclusion = FAccelBtyeModelsGameSessionExcludedSession::CreateNoExclusion();
+	FAccelByteModelsGameSessionExcludedSession GameSessionExclusion = FAccelByteModelsGameSessionExcludedSession::CreateNoExclusion();
 
 PACKAGE_SCOPE:
 	/**
@@ -1978,7 +1984,7 @@ PACKAGE_SCOPE:
 
 private:
 	/** Parent subsystem of this interface instance */
-	FOnlineSubsystemAccelByte* AccelByteSubsystem {nullptr};
+	FOnlineSubsystemAccelByteWPtr AccelByteSubsystem {nullptr};
 
 	/** Critical section to lock sessions map while accessing */
 	mutable FCriticalSection SessionLock;
@@ -2205,6 +2211,7 @@ private:
 	void UpdateSessionInvite(const FOnlineSessionInviteAccelByte& NewInvite);
 	bool RemoveSessionInvite(const FString& ID);
 	bool DestroySession(FName SessionName, const FOnDestroySessionCompleteDelegate& CompletionDelegate, bool bUserKicked);
+	AccelByte::FServerApiClientPtr GetServerApiClient() const;
 };
 
 typedef TSharedPtr<FOnlineSessionV2AccelByte, ESPMode::ThreadSafe> FOnlineSessionV2AccelBytePtr;

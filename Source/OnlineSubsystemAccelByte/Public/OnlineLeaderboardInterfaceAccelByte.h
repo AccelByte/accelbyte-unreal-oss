@@ -19,9 +19,6 @@
 #include "Interfaces/OnlineLeaderboardInterface.h"
 #include "OnlineSubsystemAccelBytePackage.h"
 
-class IOnlineSubsystem;
-class FOnlineSubsystemAccelByte;
-
 /**
  * Index of the maximum player id that can be processed 
  */
@@ -33,9 +30,7 @@ class ONLINESUBSYSTEMACCELBYTE_API FOnlineLeaderboardAccelByte
 {
 PACKAGE_SCOPE:
 	/** Constructor that is invoked by the Subsystem instance to create a user cloud instance */
-	FOnlineLeaderboardAccelByte(FOnlineSubsystemAccelByte* InSubsystem)
-		: AccelByteSubsystem(InSubsystem)
-	{}
+	FOnlineLeaderboardAccelByte(FOnlineSubsystemAccelByte* InSubsystem);
 
 public:
 	virtual ~FOnlineLeaderboardAccelByte() override = default;
@@ -226,7 +221,7 @@ protected:
 	{}
 
 	/** Instance of the subsystem that created this interface */
-	FOnlineSubsystemAccelByte* AccelByteSubsystem = nullptr;
+	FOnlineSubsystemAccelByteWPtr AccelByteSubsystem = nullptr;
 
 private:
 	/** Critical section for thread safe operation of the leaderboard metadata */

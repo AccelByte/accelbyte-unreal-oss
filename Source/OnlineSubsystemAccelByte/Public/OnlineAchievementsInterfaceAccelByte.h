@@ -3,6 +3,7 @@
 // and restrictions contact your company contract manager.
 
 #pragma once
+#include "OnlineSubsystemAccelByte.h"
 #include "OnlineSubsystemAccelByteTypes.h"
 #include "Core/AccelByteApiClient.h"
 #include "Interfaces/OnlineAchievementsInterface.h"
@@ -121,7 +122,7 @@ public:
 		, const FOnSendPSNEventsCompleteDelegate& CompletionDelegate);
 
 protected:
-	FOnlineSubsystemAccelByte* AccelByteSubsystem = nullptr;
+	FOnlineSubsystemAccelByteWPtr AccelByteSubsystem;
 
 private:
 	FOnlineAchievementsAccelByte() = delete;

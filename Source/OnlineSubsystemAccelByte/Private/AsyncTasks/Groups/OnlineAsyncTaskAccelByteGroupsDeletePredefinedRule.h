@@ -7,6 +7,7 @@
 #include "OnlineSubsystemAccelByte.h"
 #include "AsyncTasks/OnlineAsyncTaskAccelByte.h"
 #include "AsyncTasks/OnlineAsyncTaskAccelByteUtils.h"
+#include "OnlineGroupsInterfaceAccelByte.h"
 
 class FOnlineAsyncTaskAccelByteGroupsDeletePredefinedRule : public FOnlineAsyncTaskAccelByte, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteGroupsDeletePredefinedRule, ESPMode::ThreadSafe>
 {

@@ -172,7 +172,8 @@ void FOnlineAsyncTaskAccelByteRegisterPlayersV1::RegisterAllPlayers()
 		if(bIsCustomMatch)
 		{
 #if UE_SERVER
-			FRegistry::ServerSessionBrowser.RegisterPlayer(SessionId, Player->GetAccelByteId(), bIsSpectator, OnRegisterPlayerSuccessDelegate, OnRegisterPlayerErrorDelegate);
+			SERVER_API_CLIENT_CHECK_GUARD();
+			ServerApiClient->ServerSessionBrowser.RegisterPlayer(SessionId, Player->GetAccelByteId(), bIsSpectator, OnRegisterPlayerSuccessDelegate, OnRegisterPlayerErrorDelegate);
 #else
 			API_CLIENT_CHECK_GUARD();
 			ApiClient->SessionBrowser.RegisterPlayer(SessionId, Player->GetAccelByteId(), bIsSpectator, OnRegisterPlayerSuccessDelegate, OnRegisterPlayerErrorDelegate);

@@ -17,7 +17,11 @@
 #include "OnlineSubsystemUtils.h"
 
 FOnlineStoreV2AccelByte::FOnlineStoreV2AccelByte(FOnlineSubsystemAccelByte* InSubsystem) 
-	: AccelByteSubsystem(InSubsystem)
+#if ENGINE_MAJOR_VERSION >= 5
+		: AccelByteSubsystem(InSubsystem->AsWeak())
+#else
+		: AccelByteSubsystem(InSubsystem->AsShared())
+#endif
 	, ServiceLabel(1)
 {}
 
@@ -127,12 +131,26 @@ void FOnlineStoreV2AccelByte::SetServiceLabel(int32 InServiceLabel)
 
 void FOnlineStoreV2AccelByte::QueryCategories(const FUniqueNetId& UserId, const FOnQueryOnlineStoreCategoriesComplete& Delegate)
 {
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteQueryCategories>(AccelByteSubsystem, UserId, Delegate);
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return;
+	}
+	
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteQueryCategories>(AccelByteSubsystemPtr.Get(), UserId, Delegate);
 }
 
 void FOnlineStoreV2AccelByte::QueryChildCategories(const FUniqueNetId& UserId, const FString& CategoryPath, const FOnQueryOnlineStoreCategoriesComplete& Delegate)
 {
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteQueryChildCategories>(AccelByteSubsystem, UserId, CategoryPath, Delegate);
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return;
+	}
+	
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteQueryChildCategories>(AccelByteSubsystemPtr.Get(), UserId, CategoryPath, Delegate);
 }
 
 void FOnlineStoreV2AccelByte::GetCategories(TArray<FOnlineStoreCategory>& OutCategories) const
@@ -149,33 +167,75 @@ void FOnlineStoreV2AccelByte::GetCategory(const FString& CategoryPath, FOnlineSt
 
 void FOnlineStoreV2AccelByte::QueryOffersByFilter(const FUniqueNetId& UserId, const FOnlineStoreFilter& Filter, const FOnQueryOnlineStoreOffersComplete& Delegate)
 {
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteQueryOfferByFilter>(AccelByteSubsystem, UserId, Filter, Delegate, false);
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return;
+	}
+	
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteQueryOfferByFilter>(AccelByteSubsystemPtr.Get(), UserId, Filter, Delegate, false);
 }
 
 void FOnlineStoreV2AccelByte::QueryOffersById(const FUniqueNetId& UserId, const TArray<FUniqueOfferId>& OfferIds,
 	const FOnQueryOnlineStoreOffersComplete& Delegate)
 {
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteQueryOfferById>(AccelByteSubsystem, UserId, OfferIds, Delegate, FString(), false);
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return;
+	}
+	
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteQueryOfferById>(AccelByteSubsystemPtr.Get(), UserId, OfferIds, Delegate, FString(), false);
 }
 
 void FOnlineStoreV2AccelByte::QueryOffersByFilter(const FUniqueNetId& UserId, const FOnlineStoreFilter& Filter, bool AutoCalcEstimatedPrice, const FOnQueryOnlineStoreOffersComplete& Delegate)
 {
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteQueryOfferByFilter>(AccelByteSubsystem, UserId, Filter, Delegate, AutoCalcEstimatedPrice);
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return;
+	}
+	
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteQueryOfferByFilter>(AccelByteSubsystemPtr.Get(), UserId, Filter, Delegate, AutoCalcEstimatedPrice);
 }
 
 void FOnlineStoreV2AccelByte::QueryOffersById(const FUniqueNetId& UserId, const TArray<FUniqueOfferId>& OfferIds, const FString& StoreId, bool AutoCalcEstimatedPrice, const FOnQueryOnlineStoreOffersComplete& Delegate)
 {
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteQueryOfferById>(AccelByteSubsystem, UserId, OfferIds, Delegate, StoreId, AutoCalcEstimatedPrice);
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return;
+	}
+	
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteQueryOfferById>(AccelByteSubsystemPtr.Get(), UserId, OfferIds, Delegate, StoreId, AutoCalcEstimatedPrice);
 }
 
 void FOnlineStoreV2AccelByte::QueryOfferBySku(const FUniqueNetId& UserId, const FString& Sku, const FOnQueryOnlineStoreOffersComplete& Delegate, bool AutoCalcEstimatedPrice)
 {
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteQueryOfferBySku>(AccelByteSubsystem, UserId, Sku, Delegate, AutoCalcEstimatedPrice);
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return;
+	}
+	
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteQueryOfferBySku>(AccelByteSubsystemPtr.Get(), UserId, Sku, Delegate, AutoCalcEstimatedPrice);
 }
 
 void FOnlineStoreV2AccelByte::QueryOfferDynamicData(const FUniqueNetId& UserId, const FUniqueOfferId& OfferId, const FOnQueryOnlineStoreOffersComplete& Delegate)
 {
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteQueryOfferDynamicData>(AccelByteSubsystem, UserId, OfferId, Delegate);
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return;
+	}
+	
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteQueryOfferDynamicData>(AccelByteSubsystemPtr.Get(), UserId, OfferId, Delegate);
 }
 
 void FOnlineStoreV2AccelByte::GetOffers(TArray<FOnlineStoreOfferAccelByteRef>& OutOffers) const
@@ -264,7 +324,14 @@ TSharedPtr<FAccelByteModelsItemDynamicData> FOnlineStoreV2AccelByte::GetOfferDyn
 
 void FOnlineStoreV2AccelByte::GetEstimatedPrice(const FUniqueNetId& UserId, const TArray<FString>& ItemIds, const FString& Region)
 {
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGetEstimatedPrice>(AccelByteSubsystem, UserId, ItemIds, Region);
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return;
+	}
+	
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGetEstimatedPrice>(AccelByteSubsystemPtr.Get(), UserId, ItemIds, Region);
 }
 
 void FOnlineStoreV2AccelByte::GetItemsByCriteria(const FUniqueNetId& UserId,
@@ -275,7 +342,14 @@ void FOnlineStoreV2AccelByte::GetItemsByCriteria(const FUniqueNetId& UserId,
 	FString const& StoreId,
 	bool AutoCalcEstimatedPrice)
 {
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGetItemByCriteria>(AccelByteSubsystem, UserId, ItemCriteria, Offset, Limit, SortBy, StoreId, AutoCalcEstimatedPrice);
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return;
+	}
+	
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGetItemByCriteria>(AccelByteSubsystemPtr.Get(), UserId, ItemCriteria, Offset, Limit, SortBy, StoreId, AutoCalcEstimatedPrice);
 }
 
 void FOnlineStoreV2AccelByte::EmplaceSections(const FUniqueNetId& UserId, const TMap<FString, TSharedRef<FAccelByteModelsSectionInfo, ESPMode::ThreadSafe>>& InSections)
@@ -357,23 +431,46 @@ void FOnlineStoreV2AccelByte::GetItemMappings(TArray<TSharedRef<FAccelByteModels
 
 void FOnlineStoreV2AccelByte::QueryActiveSections(const FUniqueNetId& UserId, const FString& StoreId, const FString& ViewId, const FString& Region, const FOnQueryActiveSectionsComplete& Delegate)
 {
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteQueryActiveSections>(AccelByteSubsystem, UserId, StoreId, ViewId, Region, Delegate);
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return;
+	}
+	
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteQueryActiveSections>(AccelByteSubsystemPtr.Get(), UserId, StoreId, ViewId, Region, Delegate);
 }
 
 void FOnlineStoreV2AccelByte::QueryStorefront(const FUniqueNetId& UserId, const FString& StoreId, const FString& ViewId, const FString& Region, const EAccelBytePlatformMapping& Platform, const FOnQueryStorefrontComplete& Delegate)
 {
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteQueryStorefront>(AccelByteSubsystem, UserId, StoreId, ViewId, Region, Platform, Delegate);
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return;
+	}
+	
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteQueryStorefront>(AccelByteSubsystemPtr.Get(), UserId, StoreId, ViewId, Region, Platform, Delegate);
 }
 
 void FOnlineStoreV2AccelByte::QueryPlatformOfferBySku(const FUniqueNetId& UserId, const TArray<FString>& Skus, const FOnQueryOnlineStoreOffersComplete& Delegate)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("UserId: %s"), *UserId.ToDebugString());
-	if (AccelByteSubsystem->GetSecondaryPlatformSubsystemName().ToString().Contains(TEXT("Oculus"))
-		|| AccelByteSubsystem->GetSecondaryPlatformSubsystemName().ToString().Contains(TEXT("Meta")))
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("UserId: %s"), *UserId.ToDebugString());
+
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
 	{
-		AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGetMetaQuestProductsBySku>(AccelByteSubsystem, UserId, Skus, Delegate);
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return;
 	}
-	AB_OSS_INTERFACE_TRACE_END(TEXT(""))
+	
+	if (AccelByteSubsystemPtr->GetSecondaryPlatformSubsystemName().ToString().Contains(TEXT("Oculus"))
+		|| AccelByteSubsystemPtr->GetSecondaryPlatformSubsystemName().ToString().Contains(TEXT("Meta")))
+	{
+		AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGetMetaQuestProductsBySku>(AccelByteSubsystemPtr.Get(), UserId, Skus, Delegate);
+	}
+	
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""))
 }
 
 void FOnlineStoreV2AccelByte::GetPlatformOffers(TArray<FOnlineStoreOfferRef>& OutOffers)

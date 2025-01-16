@@ -322,14 +322,25 @@ FOnlineRecentPlayerAccelByte::FOnlineRecentPlayerAccelByte(const FAccelByteUserI
 }
 
 FOnlineFriendsAccelByte::FOnlineFriendsAccelByte(FOnlineSubsystemAccelByte* InSubsystem)
-	: AccelByteSubsystem(InSubsystem)
+#if ENGINE_MAJOR_VERSION >= 5
+		: AccelByteSubsystem(InSubsystem->AsWeak())
+#else
+		: AccelByteSubsystem(InSubsystem->AsShared())
+#endif
 {
 }
 
 void FOnlineFriendsAccelByte::OnFriendRequestAcceptedNotificationReceived(const FAccelByteModelsAcceptFriendsNotif& Notification, int32 LocalUserNum)
 {
 	// First, we want to get our own net ID, as delegates will require it
-	const IOnlineIdentityPtr IdentityInterface = AccelByteSubsystem->GetIdentityInterface();
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return;
+	}
+	
+	const IOnlineIdentityPtr IdentityInterface = AccelByteSubsystemPtr->GetIdentityInterface();
 	if (!IdentityInterface.IsValid())
 	{
 		UE_LOG_AB(Warning, TEXT("Recieved a notification for a friend request that has been accepted, but cannot act on it as the identity interface is not valid!"));
@@ -377,7 +388,7 @@ void FOnlineFriendsAccelByte::OnFriendRequestAcceptedNotificationReceived(const 
 			FOnlineAsyncTaskInfo TaskInfo;
 			TaskInfo.bCreateEpicForThis = true;
 			TaskInfo.Type = ETypeOfOnlineAsyncTask::Parallel;
-			AccelByteSubsystem->CreateAndDispatchAsyncTask<FOnlineAsyncTaskAccelByteAddFriendToList>(TaskInfo, AccelByteSubsystem, LocalUserNum, *LocalUserId, *FriendId, EInviteStatus::Accepted);
+			AccelByteSubsystemPtr->CreateAndDispatchAsyncTask<FOnlineAsyncTaskAccelByteAddFriendToList>(TaskInfo, AccelByteSubsystemPtr.Get(), LocalUserNum, *LocalUserId, *FriendId, EInviteStatus::Accepted);
 		}
 	}
 	else
@@ -385,14 +396,21 @@ void FOnlineFriendsAccelByte::OnFriendRequestAcceptedNotificationReceived(const 
 		FOnlineAsyncTaskInfo TaskInfo;
 		TaskInfo.bCreateEpicForThis = true;
 		TaskInfo.Type = ETypeOfOnlineAsyncTask::Parallel;
-		AccelByteSubsystem->CreateAndDispatchAsyncTask<FOnlineAsyncTaskAccelByteAddFriendToList>(TaskInfo, AccelByteSubsystem, LocalUserNum, *LocalUserId, *FriendId, EInviteStatus::Accepted);
+		AccelByteSubsystemPtr->CreateAndDispatchAsyncTask<FOnlineAsyncTaskAccelByteAddFriendToList>(TaskInfo, AccelByteSubsystemPtr.Get(), LocalUserNum, *LocalUserId, *FriendId, EInviteStatus::Accepted);
 	}
 }
 
 void FOnlineFriendsAccelByte::OnFriendRequestReceivedNotificationReceived(const FAccelByteModelsRequestFriendsNotif& Notification, int32 LocalUserNum)
 {
 	// First, we want to get our own net ID, as delegates will require it
-	const IOnlineIdentityPtr IdentityInterface = AccelByteSubsystem->GetIdentityInterface();
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return;
+	}
+	
+	const IOnlineIdentityPtr IdentityInterface = AccelByteSubsystemPtr->GetIdentityInterface();
 	if (!IdentityInterface.IsValid())
 	{
 		UE_LOG_AB(Warning, TEXT("Recieved a notification for a friend request that has been accepted, but cannot act on it as the identity interface is not valid!"));
@@ -415,11 +433,18 @@ void FOnlineFriendsAccelByte::OnFriendRequestReceivedNotificationReceived(const 
 	FOnlineAsyncTaskInfo TaskInfo;
 	TaskInfo.bCreateEpicForThis = true;
 	TaskInfo.Type = ETypeOfOnlineAsyncTask::Parallel;
-	AccelByteSubsystem->CreateAndDispatchAsyncTask<FOnlineAsyncTaskAccelByteAddFriendToList>(TaskInfo, AccelByteSubsystem, LocalUserNum, *LocalUserId, *FriendId, EInviteStatus::PendingInbound);
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTask<FOnlineAsyncTaskAccelByteAddFriendToList>(TaskInfo, AccelByteSubsystemPtr.Get(), LocalUserNum, *LocalUserId, *FriendId, EInviteStatus::PendingInbound);
 }
 
 void FOnlineFriendsAccelByte::OnUnfriendNotificationReceived(const FAccelByteModelsUnfriendNotif& Notification, int32 LocalUserNum)
 {
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return;
+	}
+	
 	FAccelByteUniqueIdComposite FriendCompositeId;
 	FriendCompositeId.Id = Notification.friendId;
 	const FUniqueNetIdAccelByteUserRef FriendId = FUniqueNetIdAccelByteUser::Create(FriendCompositeId);
@@ -428,7 +453,7 @@ void FOnlineFriendsAccelByte::OnUnfriendNotificationReceived(const FAccelByteMod
 	RemoveFriendFromList(LocalUserNum, FriendId);
 
 	// Once we have removed the friend from the list, fire off the delegate to signal that we have been removed as a friend
-	const IOnlineIdentityPtr IdentityInterface = AccelByteSubsystem->GetIdentityInterface();
+	const IOnlineIdentityPtr IdentityInterface = AccelByteSubsystemPtr->GetIdentityInterface();
 	if (IdentityInterface.IsValid())
 	{
 		FUniqueNetIdPtr LocalUserId = IdentityInterface->GetUniquePlayerId(LocalUserNum);
@@ -441,6 +466,13 @@ void FOnlineFriendsAccelByte::OnUnfriendNotificationReceived(const FAccelByteMod
 
 void FOnlineFriendsAccelByte::OnRejectFriendRequestNotificationReceived(const FAccelByteModelsRejectFriendsNotif& Notification, int32 LocalUserNum)
 {
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return;
+	}
+	
 	FAccelByteUniqueIdComposite InviteCompositeId;
 	InviteCompositeId.Id = Notification.userId;
 	const FUniqueNetIdAccelByteUserRef InviteeId = FUniqueNetIdAccelByteUser::Create(InviteCompositeId);
@@ -449,7 +481,7 @@ void FOnlineFriendsAccelByte::OnRejectFriendRequestNotificationReceived(const FA
 	RemoveFriendFromList(LocalUserNum, InviteeId);
 
 	// Once we have removed the invitee from the list, fire off the delegate to signal that our invite has been rejected
-	const IOnlineIdentityPtr IdentityInterface = AccelByteSubsystem->GetIdentityInterface();
+	const IOnlineIdentityPtr IdentityInterface = AccelByteSubsystemPtr->GetIdentityInterface();
 	if (IdentityInterface.IsValid())
 	{
 		FUniqueNetIdPtr LocalUserId = IdentityInterface->GetUniquePlayerId(LocalUserNum);
@@ -462,6 +494,13 @@ void FOnlineFriendsAccelByte::OnRejectFriendRequestNotificationReceived(const FA
 
 void FOnlineFriendsAccelByte::OnCancelFriendRequestNotificationReceived(const FAccelByteModelsCancelFriendsNotif& Notification, int32 LocalUserNum)
 {
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return;
+	}
+	
 	FAccelByteUniqueIdComposite InviteCompositeId;
 	InviteCompositeId.Id = Notification.userId;
 	const FUniqueNetIdAccelByteUserRef InviterId = FUniqueNetIdAccelByteUser::Create(InviteCompositeId);
@@ -470,7 +509,7 @@ void FOnlineFriendsAccelByte::OnCancelFriendRequestNotificationReceived(const FA
 	RemoveFriendFromList(LocalUserNum, InviterId);
 
 	// Once we have removed the invite we received from the list, fire off the delegate to signal that the invite has been canceled
-	const IOnlineIdentityPtr IdentityInterface = AccelByteSubsystem->GetIdentityInterface();
+	const IOnlineIdentityPtr IdentityInterface = AccelByteSubsystemPtr->GetIdentityInterface();
 	if (IdentityInterface.IsValid())
 	{
 		FUniqueNetIdPtr LocalUserId = IdentityInterface->GetUniquePlayerId(LocalUserNum);
@@ -494,7 +533,14 @@ void FOnlineFriendsAccelByte::OnPresenceReceived(const FUniqueNetId& UserId, con
 void FOnlineFriendsAccelByte::RegisterRealTimeLobbyDelegates(int32 LocalUserNum)
 {
 	// Get our identity interface to retrieve the API client for this user
-	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystem->GetIdentityInterface());
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return;
+	}
+	
+	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystemPtr->GetIdentityInterface());
 	if (!IdentityInterface.IsValid())
 	{
 		UE_LOG_AB(Warning, TEXT("Failed to register real-time lobby as an identity interface instance could not be retrieved!"));
@@ -525,7 +571,7 @@ void FOnlineFriendsAccelByte::RegisterRealTimeLobbyDelegates(int32 LocalUserNum)
 	ApiClient->Lobby.SetOnCancelFriendsNotifDelegate(OnCancelFriendRequestNotificationReceivedDelegate);
 
 	// Update the friend presence
-	const FOnlinePresenceAccelBytePtr PresenceInterface = StaticCastSharedPtr<FOnlinePresenceAccelByte>(AccelByteSubsystem->GetPresenceInterface());
+	const FOnlinePresenceAccelBytePtr PresenceInterface = StaticCastSharedPtr<FOnlinePresenceAccelByte>(AccelByteSubsystemPtr->GetPresenceInterface());
 	if (!PresenceInterface.IsValid())
 	{
 		UE_LOG_AB(Warning, TEXT("Failed to register real-time lobby for a friend presence as an presence interface instance could not be retrieved"));
@@ -601,7 +647,14 @@ void FOnlineFriendsAccelByte::RemoveFriendFromList(int32 LocalUserNum, const FUn
 void FOnlineFriendsAccelByte::AddBlockedPlayersToList(const FUniqueNetIdAccelByteUserRef& UserId, const TArray<TSharedPtr<FOnlineBlockedPlayer>>& NewBlockedPlayers)
 {
 	// Try and get a local user index for the player first, as it is needed for the changed delegate
-	const TSharedPtr<FOnlineIdentityAccelByte, ESPMode::ThreadSafe> IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystem->GetIdentityInterface());
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return;
+	}
+	
+	const TSharedPtr<FOnlineIdentityAccelByte, ESPMode::ThreadSafe> IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystemPtr->GetIdentityInterface());
 	int32 LocalUserNum;
 	if (!IdentityInterface->GetLocalUserNum(UserId.Get(), LocalUserNum))
 	{
@@ -635,7 +688,14 @@ void FOnlineFriendsAccelByte::AddBlockedPlayersToList(const FUniqueNetIdAccelByt
 void FOnlineFriendsAccelByte::AddBlockedPlayerToList(int32 LocalUserNum, const TSharedPtr<FOnlineBlockedPlayer>& NewBlockedPlayer)
 {
 	// First, we want to get the user's ID from the identity interface using the local user num
-	const IOnlineIdentityPtr IdentityInterface = AccelByteSubsystem->GetIdentityInterface();
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return;
+	}
+	
+	const IOnlineIdentityPtr IdentityInterface = AccelByteSubsystemPtr->GetIdentityInterface();
 	if (!IdentityInterface.IsValid())
 	{
 		UE_LOG_AB(Warning, TEXT("Failed to add blocked player to player %d's list as the identity interface was invalid!"), LocalUserNum);
@@ -681,7 +741,14 @@ void FOnlineFriendsAccelByte::AddBlockedPlayerToList(int32 LocalUserNum, const T
 void FOnlineFriendsAccelByte::RemoveBlockedPlayerFromList(int32 LocalUserNum, const FUniqueNetIdAccelByteUserRef& PlayerId)
 {
 	// First, we want to get the user's ID from the identity interface using the local user num
-	const IOnlineIdentityPtr IdentityInterface = AccelByteSubsystem->GetIdentityInterface();
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return;
+	}
+	
+	const IOnlineIdentityPtr IdentityInterface = AccelByteSubsystemPtr->GetIdentityInterface();
 	if (!IdentityInterface.IsValid())
 	{
 		UE_LOG_AB(Warning, TEXT("Failed to add blocked player to player %d's list as the identity interface was invalid!"), LocalUserNum);
@@ -734,6 +801,14 @@ bool FOnlineFriendsAccelByte::GetFromWorld(const UWorld* World, FOnlineFriendsAc
 
 bool FOnlineFriendsAccelByte::ReadFriendsList(int32 LocalUserNum, const EInviteStatus::Type& InviteStatus, int32 Offset, int32 Limit, const FOnReadFriendsListComplete& Delegate)
 {
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		Delegate.ExecuteIfBound(LocalUserNum, false, FString(""), TEXT("query-friends-accelbytesubsystem-invalid"));
+		return false;
+	}
+	
 	if (InviteStatus != EInviteStatus::Accepted
 		&& InviteStatus != EInviteStatus::PendingInbound
 		&& InviteStatus != EInviteStatus::PendingOutbound
@@ -753,7 +828,7 @@ bool FOnlineFriendsAccelByte::ReadFriendsList(int32 LocalUserNum, const EInviteS
 	FOnlineAsyncTaskInfo TaskInfo;
 	TaskInfo.bCreateEpicForThis = true;
 	TaskInfo.Type = ETypeOfOnlineAsyncTask::Parallel;
-	AccelByteSubsystem->CreateAndDispatchAsyncTask<FOnlineAsyncTaskAccelByteReadFriendsList>(TaskInfo, AccelByteSubsystem, LocalUserNum, TEXT(""), InviteStatus, Offset, Limit, Delegate);
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTask<FOnlineAsyncTaskAccelByteReadFriendsList>(TaskInfo, AccelByteSubsystemPtr.Get(), LocalUserNum, TEXT(""), InviteStatus, Offset, Limit, Delegate);
 	return true;
 }
 
@@ -768,7 +843,14 @@ bool FOnlineFriendsAccelByte::DeleteFriendsList(int32 LocalUserNum, const FStrin
 	// However, I'm not too sure what the use case of this would be? Should this delete any friends that the user has, as
 	// well as any friend requests they have sent? It doesn't seem like any other OSS implements this, so I'm going to
 	// leave it unimplemented. Though, if needed, the functionality as described above could be implemented...
-	AccelByteSubsystem->ExecuteNextTick([LocalUserNum, ListName, Delegate]() {
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return false;
+	}
+	
+	AccelByteSubsystemPtr->ExecuteNextTick([LocalUserNum, ListName, Delegate]() {
 		Delegate.ExecuteIfBound(LocalUserNum, false, ListName, TEXT("DeleteFriendsList is not implemented in the AccelByte online subsystem."));
 	});
 	return false;
@@ -776,19 +858,33 @@ bool FOnlineFriendsAccelByte::DeleteFriendsList(int32 LocalUserNum, const FStrin
 
 bool FOnlineFriendsAccelByte::SendInvite(int32 LocalUserNum, const FUniqueNetId& FriendId, const FString& ListName, const FOnSendInviteComplete& Delegate)
 {
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return false;
+	}
+	
 	FOnlineAsyncTaskInfo TaskInfo;
 	TaskInfo.bCreateEpicForThis = true;
 	TaskInfo.Type = ETypeOfOnlineAsyncTask::Parallel;
-	AccelByteSubsystem->CreateAndDispatchAsyncTask<FOnlineAsyncTaskAccelByteSendFriendInvite>(TaskInfo, AccelByteSubsystem, LocalUserNum, FriendId, ListName, Delegate);
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTask<FOnlineAsyncTaskAccelByteSendFriendInvite>(TaskInfo, AccelByteSubsystemPtr.Get(), LocalUserNum, FriendId, ListName, Delegate);
 	return true;
 }
 
 bool FOnlineFriendsAccelByte::SendInvite(int32 LocalUserNum, const FString& InFriendCode, const FString& ListName, const FOnSendInviteComplete& Delegate)
 {
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return false;
+	}
+	
 	FOnlineAsyncTaskInfo TaskInfo;
 	TaskInfo.bCreateEpicForThis = true;
 	TaskInfo.Type = ETypeOfOnlineAsyncTask::Parallel;
-	AccelByteSubsystem->CreateAndDispatchAsyncTask<FOnlineAsyncTaskAccelByteSendFriendInvite>(TaskInfo, AccelByteSubsystem, LocalUserNum, InFriendCode, ListName, Delegate);
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTask<FOnlineAsyncTaskAccelByteSendFriendInvite>(TaskInfo, AccelByteSubsystemPtr.Get(), LocalUserNum, InFriendCode, ListName, Delegate);
 	return true;
 }
 
@@ -812,99 +908,169 @@ bool FOnlineFriendsAccelByte::IsPlayerBlocked(const FUniqueNetId& InUserId, cons
 
 bool FOnlineFriendsAccelByte::SyncThirdPartyPlatformFriend(int32 LocalUserNum, const FString& NativeFriendListName, const FString& AccelByteFriendListName)
 {
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return false;
+	}
+	
 	FOnlineAsyncTaskInfo TaskInfo;
 	TaskInfo.bCreateEpicForThis = true;
 	TaskInfo.Type = ETypeOfOnlineAsyncTask::Parallel;
-	AccelByteSubsystem->CreateAndDispatchAsyncTask<FOnlineAsyncTaskAccelByteSyncThirPartyFriend>(TaskInfo, AccelByteSubsystem, LocalUserNum, NativeFriendListName, AccelByteFriendListName);
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTask<FOnlineAsyncTaskAccelByteSyncThirPartyFriend>(TaskInfo, AccelByteSubsystemPtr.Get(), LocalUserNum, NativeFriendListName, AccelByteFriendListName);
 	return true;
 }
 
 bool FOnlineFriendsAccelByte::SyncPlatformFriends(int32 LocalUserNum, const EAccelBytePlatformType NativePlatform)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN("")
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN("")
 
-	const IOnlineIdentityPtr IdentityInterface = AccelByteSubsystem->GetIdentityInterface();
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return false;
+	}
+
+	const IOnlineIdentityPtr IdentityInterface = AccelByteSubsystemPtr->GetIdentityInterface();
 	if (!IdentityInterface.IsValid())
 	{
-		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to sync platform friend for local user num %d as the identity interface was invalid!"), LocalUserNum);
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to sync platform friend for local user num %d as the identity interface was invalid!"), LocalUserNum);
 		return false;
 	}
 
 	const FUniqueNetIdPtr LocalUserId = IdentityInterface->GetUniquePlayerId(LocalUserNum);
 	if (!LocalUserId.IsValid())
 	{
-		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to sync platform friend for local user num %d as we could not get their unique user ID!"), LocalUserNum);
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to sync platform friend for local user num %d as we could not get their unique user ID!"), LocalUserNum);
 		return false;
 	}
 
 	FOnlineAsyncTaskInfo TaskInfo;
 	TaskInfo.bCreateEpicForThis = true;
 	TaskInfo.Type = ETypeOfOnlineAsyncTask::Parallel;
-	AccelByteSubsystem->CreateAndDispatchAsyncTask<FOnlineAsyncTaskAccelByteSyncPlatformFriend>(TaskInfo, AccelByteSubsystem, *LocalUserId, NativePlatform);
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTask<FOnlineAsyncTaskAccelByteSyncPlatformFriend>(TaskInfo, AccelByteSubsystemPtr.Get(), *LocalUserId, NativePlatform);
 
-	AB_OSS_INTERFACE_TRACE_END("")
+	AB_OSS_PTR_INTERFACE_TRACE_END("")
 	return true;
 }
 
 bool FOnlineFriendsAccelByte::SyncThirdPartyPlatformFriendV2(int32 LocalUserNum,
 	const FAccelByteModelsSyncThirdPartyFriendsRequest& Request)
 {
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteSyncThirdPartyFriendV2>(AccelByteSubsystem, LocalUserNum, Request);
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return false;
+	}
+	
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteSyncThirdPartyFriendV2>(AccelByteSubsystemPtr.Get(), LocalUserNum, Request);
 	return true;
 }
 
 bool FOnlineFriendsAccelByte::SyncThirdPartyPlatformBlockList(int32 LocalUserNum,
 	const FAccelByteModelsSyncThirdPartyBlockListRequest& Request)
 {
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteSyncThirdPartyBlockList>(AccelByteSubsystem, LocalUserNum, Request);
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return false;
+	}
+	
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteSyncThirdPartyBlockList>(AccelByteSubsystemPtr.Get(), LocalUserNum, Request);
 	return true;
 }
 
 bool FOnlineFriendsAccelByte::AcceptInvite(int32 LocalUserNum, const FUniqueNetId& FriendId, const FString& ListName, const FOnAcceptInviteComplete& Delegate)
 {
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return false;
+	}
+	
 	FOnlineAsyncTaskInfo TaskInfo;
 	TaskInfo.bCreateEpicForThis = true;
 	TaskInfo.Type = ETypeOfOnlineAsyncTask::Parallel;
 
-	AccelByteSubsystem->CreateAndDispatchAsyncTask<FOnlineAsyncTaskAccelByteAcceptFriendInvite>(TaskInfo, AccelByteSubsystem, LocalUserNum, FriendId, ListName, Delegate);
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTask<FOnlineAsyncTaskAccelByteAcceptFriendInvite>(TaskInfo, AccelByteSubsystemPtr.Get(), LocalUserNum, FriendId, ListName, Delegate);
 	return true;
 }
 
 bool FOnlineFriendsAccelByte::RejectInvite(int32 LocalUserNum, const FUniqueNetId& FriendId, const FString& ListName)
 {
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteRejectFriendInvite>(AccelByteSubsystem, LocalUserNum, FriendId, ListName);
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return false;
+	}
+	
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteRejectFriendInvite>(AccelByteSubsystemPtr.Get(), LocalUserNum, FriendId, ListName);
 	return true;
 }
 
 bool FOnlineFriendsAccelByte::DeleteFriend(int32 LocalUserNum, const FUniqueNetId& FriendId, const FString& ListName)
 {
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteDeleteFriend>(AccelByteSubsystem, LocalUserNum, FriendId, ListName);
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return false;
+	}
+	
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteDeleteFriend>(AccelByteSubsystemPtr.Get(), LocalUserNum, FriendId, ListName);
 	return true;
 }
 
 void FOnlineFriendsAccelByte::SetFriendAlias(int32 LocalUserNum, const FUniqueNetId& FriendId, const FString& ListName, const FString& Alias, const FOnSetFriendAliasComplete& Delegate)
 {
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return;
+	}
+	
 	UE_LOG_AB(Warning, TEXT("FOnlineFriendsAccelByte::SetFriendAlias is not implemented"));
 	const FUniqueNetIdAccelByteUserRef NetId = FUniqueNetIdAccelByteUser::CastChecked(FriendId);
-	AccelByteSubsystem->ExecuteNextTick([LocalUserNum, NetId, ListName, Delegate]() {
+	AccelByteSubsystemPtr->ExecuteNextTick([LocalUserNum, NetId, ListName, Delegate]() {
 		Delegate.ExecuteIfBound(LocalUserNum, NetId.Get(), ListName, ONLINE_ERROR(EOnlineErrorResult::NotImplemented));
 	});
 }
 
 void FOnlineFriendsAccelByte::DeleteFriendAlias(int32 LocalUserNum, const FUniqueNetId& FriendId, const FString& ListName, const FOnDeleteFriendAliasComplete& Delegate)
 {
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return;
+	}
+	
 	UE_LOG_AB(Warning, TEXT("FOnlineFriendsAccelByte::DeleteFriendAlias is not implemented"));
 	const FUniqueNetIdAccelByteUserRef NetId = FUniqueNetIdAccelByteUser::CastChecked(FriendId);
-	AccelByteSubsystem->ExecuteNextTick([LocalUserNum, NetId, ListName, Delegate]() {
+	AccelByteSubsystemPtr->ExecuteNextTick([LocalUserNum, NetId, ListName, Delegate]() {
 		Delegate.ExecuteIfBound(LocalUserNum, NetId.Get(), ListName, ONLINE_ERROR(EOnlineErrorResult::NotImplemented));
 	});
 }
 
 void FOnlineFriendsAccelByte::AddRecentPlayers(const FUniqueNetId& UserId, const TArray<FReportPlayedWithUser>& InRecentPlayers, const FString& ListName, const FOnAddRecentPlayersComplete& InCompletionDelegate)
 {
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return;
+	}
+	
 	UE_LOG_AB(Warning, TEXT("FOnlineFriendsAccelByte::AddRecentPlayers is not implemented"));
 	const FUniqueNetIdAccelByteUserRef NetId = FUniqueNetIdAccelByteUser::CastChecked(UserId);
-	AccelByteSubsystem->ExecuteNextTick([NetId, InCompletionDelegate]() {
+	AccelByteSubsystemPtr->ExecuteNextTick([NetId, InCompletionDelegate]() {
 		InCompletionDelegate.ExecuteIfBound(NetId.Get(), ONLINE_ERROR(EOnlineErrorResult::NotImplemented));
 	});
 }
@@ -915,23 +1081,37 @@ bool FOnlineFriendsAccelByte::QueryRecentPlayers(const FUniqueNetId& UserId, con
 	{
 		return false;
 	}
+
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return false;
+	}
 	
 	FOnlineAsyncTaskInfo TaskInfo;
 	TaskInfo.bCreateEpicForThis = true;
 	TaskInfo.Type = ETypeOfOnlineAsyncTask::Parallel;
 #if AB_USE_V2_SESSIONS
-	AccelByteSubsystem->CreateAndDispatchAsyncTask<FOnlineAsyncTaskAccelByteV2GetRecentPlayer>(TaskInfo, AccelByteSubsystem, UserId, Namespace);
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTask<FOnlineAsyncTaskAccelByteV2GetRecentPlayer>(TaskInfo, AccelByteSubsystemPtr.Get(), UserId, Namespace);
 #else
-	AccelByteSubsystem->CreateAndDispatchAsyncTask<FOnlineAsyncTaskAccelByteGetRecentPlayer>(TaskInfo, AccelByteSubsystem, UserId, Namespace);
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTask<FOnlineAsyncTaskAccelByteGetRecentPlayer>(TaskInfo, AccelByteSubsystemPtr.Get(), UserId, Namespace);
 #endif
 	return true;
 }
 
 bool FOnlineFriendsAccelByte::QueryRecentTeamPlayers(int32 LocalUserNum, const FUniqueNetId& UserId, const FString& Namespace)
 {
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return false;
+	}
+	
 	if (IsRunningDedicatedServer())
 	{
-		AccelByteSubsystem->ExecuteNextTick([this, &Namespace, &LocalUserNum]() {
+		AccelByteSubsystemPtr->ExecuteNextTick([this, &Namespace, &LocalUserNum]() {
 			TriggerOnQueryRecentTeamPlayersCompleteDelegates(LocalUserNum, Namespace, false, TEXT("recent-team-players-invalid-request"));
 		});
 		return false;
@@ -941,9 +1121,9 @@ bool FOnlineFriendsAccelByte::QueryRecentTeamPlayers(int32 LocalUserNum, const F
 	FOnlineAsyncTaskInfo TaskInfo;
 	TaskInfo.bCreateEpicForThis = true;
 	TaskInfo.Type = ETypeOfOnlineAsyncTask::Parallel;
-	AccelByteSubsystem->CreateAndDispatchAsyncTask<FOnlineAsyncTaskAccelByteV2GetRecentTeamPlayer>(TaskInfo, AccelByteSubsystem, LocalUserNum, UserId, Namespace);
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTask<FOnlineAsyncTaskAccelByteV2GetRecentTeamPlayer>(TaskInfo, AccelByteSubsystemPtr.Get(), LocalUserNum, UserId, Namespace);
 #else
-	AccelByteSubsystem->ExecuteNextTick([this, &Namespace, &LocalUserNum]() {
+	AccelByteSubsystemPtr->ExecuteNextTick([this, &Namespace, &LocalUserNum]() {
 		TriggerOnQueryRecentTeamPlayersCompleteDelegates(LocalUserNum, Namespace, false, TEXT("recent-team-players-invalid-request"));
 	});
 	return false;
@@ -953,25 +1133,46 @@ bool FOnlineFriendsAccelByte::QueryRecentTeamPlayers(int32 LocalUserNum, const F
 
 bool FOnlineFriendsAccelByte::BlockPlayer(int32 LocalUserNum, const FUniqueNetId& PlayerId)
 {
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return false;
+	}
+	
 	FOnlineAsyncTaskInfo TaskInfo;
 	TaskInfo.bCreateEpicForThis = true;
 	TaskInfo.Type = ETypeOfOnlineAsyncTask::Parallel;
-	AccelByteSubsystem->CreateAndDispatchAsyncTask<FOnlineAsyncTaskAccelByteBlockPlayer>(TaskInfo, AccelByteSubsystem, LocalUserNum, PlayerId);
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTask<FOnlineAsyncTaskAccelByteBlockPlayer>(TaskInfo, AccelByteSubsystemPtr.Get(), LocalUserNum, PlayerId);
 	return true;
 }
 
 bool FOnlineFriendsAccelByte::UnblockPlayer(int32 LocalUserNum, const FUniqueNetId& PlayerId)
 {
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteUnblockPlayer>(AccelByteSubsystem, LocalUserNum, PlayerId);
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return false;
+	}
+	
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteUnblockPlayer>(AccelByteSubsystemPtr.Get(), LocalUserNum, PlayerId);
 	return true;
 }
 
 bool FOnlineFriendsAccelByte::QueryBlockedPlayers(const FUniqueNetId& UserId)
 {
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return false;
+	}
+	
 	FOnlineAsyncTaskInfo TaskInfo;
 	TaskInfo.bCreateEpicForThis = true;
 	TaskInfo.Type = ETypeOfOnlineAsyncTask::Parallel;
-	AccelByteSubsystem->CreateAndDispatchAsyncTask<FOnlineAsyncTaskAccelByteQueryBlockedPlayers>(TaskInfo, AccelByteSubsystem, UserId);
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTask<FOnlineAsyncTaskAccelByteQueryBlockedPlayers>(TaskInfo, AccelByteSubsystemPtr.Get(), UserId);
 	return true;
 }
 

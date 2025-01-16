@@ -3,6 +3,8 @@
 // and restrictions contact your company contract manager.
 
 #include "OnlineAsyncTaskAccelByteLinkOtherPlatform.h"
+
+#include "OnlineUserCacheAccelByte.h"
 #include "OnlineUserInterfaceAccelByte.h"
 
 using namespace AccelByte;

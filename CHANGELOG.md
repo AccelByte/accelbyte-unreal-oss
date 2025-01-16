@@ -2,6 +2,28 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.12.29](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.12.29%0D0.12.28) (2025-01-16)
+
+
+### Features
+
+* **Chat:** add new delegate for OnSendChatComplete with additional Error object ([9b15711](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/9b15711a25fd75b9a5efb198a1dee16dbc9aca84))
+* **session:** sync and exclude player's past session from matchmaking backfill ([42c4fce](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/42c4fceaf0cce27b208db7eb603d37f53d65c465))
+* support Unreal 5.5 ([be303fa](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/be303fa210b3be7f3eda62293e8055571ea84418))
+
+
+### Bug Fixes
+
+* **matchmaking:** fix ticket canceled notification in fallback polling when match is found ([b9f6bea](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/b9f6bea23abdd07736ba356326364205c3a38ecc))
+* replace deprecated TArray::RemoveAt call for UE 5.5 and above ([ae283a2](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/ae283a2f3df7b7032a1577d32f3a41b8fca5c09a))
+* **SearchHandle:** correct the FAccelBtyeModelsGameSessionExcludedSession mistype and guarded by typedef from the SDK plugin ([93c39e8](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/93c39e83928013e1d4b291ac7fe3604c4de609fc))
+* SetConnectTolobby in UserAccount to true when lobby reconnected ([dfecb75](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/dfecb75ac153338dbc98407f217a0da2dcfa2b83))
+
+
+### Refactors
+
+* changed MultiRegistry usage with AccelByteInstance ([ee2e8f2](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/ee2e8f2cb51956dd03b7ed863b9af33d046ee9f2))
+
 ### [0.12.28](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.12.28%0D0.12.27) (2024-12-04)
 
 

@@ -60,7 +60,8 @@ void FOnlineAsyncTaskAccelByteGetAdminGameRecord::Initialize()
 			return;
 		}
 
-		FServerApiClientPtr ServerApiClient = FMultiRegistry::GetServerApiClient();
+		SERVER_API_CLIENT_CHECK_GUARD(ErrorStr);
+		
 		ServerApiClient->ServerCloudSave.QueryAdminGameRecordsByKey(Key, OnGetAdminGameRecordSuccessDelegate, OnGetAdminGameRecordErrorDelegate);
 	}
 	else

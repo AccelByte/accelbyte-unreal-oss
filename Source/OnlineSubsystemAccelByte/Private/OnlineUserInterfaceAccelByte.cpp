@@ -32,11 +32,12 @@
 #define ONLINE_ERROR_NAMESPACE "FOnlineUserAccelByte"
 
 FOnlineUserAccelByte::FOnlineUserAccelByte(FOnlineSubsystemAccelByte* InSubsystem)
-	: AccelByteSubsystem(InSubsystem)
-{
-	// this should never trigger, as the subsystem itself has to instantiate this, but just in case...
-	check(AccelByteSubsystem != nullptr);
-}
+#if ENGINE_MAJOR_VERSION >= 5
+	: AccelByteSubsystem(InSubsystem->AsWeak())
+#else
+	: AccelByteSubsystem(InSubsystem->AsShared())
+#endif
+{}
 
 bool FOnlineUserAccelByte::GetFromWorld(const UWorld* World, FOnlineUserAccelBytePtr& OutInterfaceInstance)
 {
@@ -73,64 +74,85 @@ bool FOnlineUserAccelByte::CreateUserProfile(const FUniqueNetId& UserId)
 	{
 		return false;
 	}
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("UserId: %s"), *UserId.ToDebugString());
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("UserId: %s"), *UserId.ToDebugString());
 
-	check(AccelByteSubsystem != nullptr);
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteCreateUserProfile>(AccelByteSubsystem, UserId);
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return false;
+	}
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteCreateUserProfile>(AccelByteSubsystemPtr.Get(), UserId);
 
-	AB_OSS_INTERFACE_TRACE_END(TEXT("Created and dispatched async task to get or create user profile!"));
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Created and dispatched async task to get or create user profile!"));
 	return true;
 }
 
 bool FOnlineUserAccelByte::QueryUserProfile(int32 LocalUserNum, const TArray<TSharedRef<const FUniqueNetId>>& UserIds)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("LocalUserNum: %d; UserId Amount: %d"), LocalUserNum, UserIds.Num());
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("LocalUserNum: %d; UserId Amount: %d"), LocalUserNum, UserIds.Num());
 
-	check(AccelByteSubsystem != nullptr);
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return false;
+	}
+	
 	if (LocalUserNum < 0 || LocalUserNum >= MAX_LOCAL_PLAYERS)
 	{
-		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("LocalUserNum passed was out of range!"));
-		AccelByteSubsystem->ExecuteNextTick([UserInterface = SharedThis(this), LocalUserNum, UserIds]()
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("LocalUserNum passed was out of range!"));
+		AccelByteSubsystemPtr->ExecuteNextTick([UserInterface = SharedThis(this), LocalUserNum, UserIds]()
 			{
 				UserInterface->TriggerOnQueryUserProfileCompleteDelegates(LocalUserNum, false, UserIds, ONLINE_ERROR(EOnlineErrorResult::InvalidUser, TEXT("query-user-profile-local-user-index-out-of-range")));
 			});
 		return false;
 	}
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteQueryUserProfile>(AccelByteSubsystem, LocalUserNum, UserIds, OnQueryUserProfileCompleteDelegates[LocalUserNum]);
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteQueryUserProfile>(AccelByteSubsystemPtr.Get(), LocalUserNum, UserIds, OnQueryUserProfileCompleteDelegates[LocalUserNum]);
 
-	AB_OSS_INTERFACE_TRACE_END(TEXT("Created and dispatched async task to query user information for %d IDs!"), UserIds.Num());
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Created and dispatched async task to query user information for %d IDs!"), UserIds.Num());
 	return true;
 }
 
 bool FOnlineUserAccelByte::GetUserPlatformLinks(int32 LocalUserNum)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("LocalUserNum: %d"), LocalUserNum);
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("LocalUserNum: %d"), LocalUserNum);
 
-	check(AccelByteSubsystem != nullptr);
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+if (!AccelByteSubsystemPtr.IsValid())
+{
+    AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+    return false;
+}
 	if (LocalUserNum < 0 || LocalUserNum >= MAX_LOCAL_PLAYERS)
 	{
-		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("LocalUserNum passed was out of range!"));
-		AccelByteSubsystem->ExecuteNextTick([UserInterface = SharedThis(this), LocalUserNum]()
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("LocalUserNum passed was out of range!"));
+		AccelByteSubsystemPtr->ExecuteNextTick([UserInterface = SharedThis(this), LocalUserNum]()
 			{
 				UserInterface->TriggerOnGetUserPlatformLinksCompleteDelegates(LocalUserNum, false, TArray<FPlatformLink>{}, ONLINE_ERROR(EOnlineErrorResult::InvalidUser, TEXT("get-user-3rd-party-platform-information-index-out-of-range")));
 			});
 		return false;
 	}
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGetUserPlatformLinks>(AccelByteSubsystem, LocalUserNum);
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGetUserPlatformLinks>(AccelByteSubsystemPtr.Get(), LocalUserNum);
 
-	AB_OSS_INTERFACE_TRACE_END(TEXT("Get user 3rd party platform information for LocalUserNum: %d"), LocalUserNum);
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Get user 3rd party platform information for LocalUserNum: %d"), LocalUserNum);
 	return true;
 }
 
 bool FOnlineUserAccelByte::QueryUserInfo(int32 LocalUserNum, const TArray<TSharedRef<const FUniqueNetId>>& UserIds)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("LocalUserNum: %d; UserId Amount: %d"), LocalUserNum, UserIds.Num());
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("LocalUserNum: %d; UserId Amount: %d"), LocalUserNum, UserIds.Num());
 
-	check(AccelByteSubsystem != nullptr);
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+if (!AccelByteSubsystemPtr.IsValid())
+{
+    AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+    return false;
+}
 	if (LocalUserNum < 0 || LocalUserNum >= MAX_LOCAL_PLAYERS)
 	{
-		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("LocalUserNum passed was out of range!"));
-		AccelByteSubsystem->ExecuteNextTick([UserInterface = SharedThis(this), LocalUserNum, UserIds]() {
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("LocalUserNum passed was out of range!"));
+		AccelByteSubsystemPtr->ExecuteNextTick([UserInterface = SharedThis(this), LocalUserNum, UserIds]() {
 			UserInterface->TriggerOnQueryUserInfoCompleteDelegates(LocalUserNum, false, UserIds, TEXT("query-user-local-user-index-out-of-range"));
 		});
 		return false;
@@ -139,15 +161,15 @@ bool FOnlineUserAccelByte::QueryUserInfo(int32 LocalUserNum, const TArray<TShare
 	FOnlineAsyncTaskInfo TaskInfo;
 	TaskInfo.Type = ETypeOfOnlineAsyncTask::Parallel;
 	TaskInfo.bCreateEpicForThis = true;
-	AccelByteSubsystem->CreateAndDispatchAsyncTask<FOnlineAsyncTaskAccelByteQueryUserInfo>(TaskInfo, AccelByteSubsystem, LocalUserNum, UserIds, OnQueryUserInfoCompleteDelegates[LocalUserNum]);
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTask<FOnlineAsyncTaskAccelByteQueryUserInfo>(TaskInfo, AccelByteSubsystemPtr.Get(), LocalUserNum, UserIds, OnQueryUserInfoCompleteDelegates[LocalUserNum]);
 
-	AB_OSS_INTERFACE_TRACE_END(TEXT("Created and dispatched async task to query user information for %d IDs!"), UserIds.Num());
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Created and dispatched async task to query user information for %d IDs!"), UserIds.Num());
 	return true;
 }
 
 bool FOnlineUserAccelByte::GetAllUserInfo(int32 LocalUserNum, TArray<TSharedRef<FOnlineUser>>& OutUsers)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("LocalUserNum: %d"), LocalUserNum);
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("LocalUserNum: %d"), LocalUserNum);
 
 	OutUsers.Empty(IDToUserInfoMap.Num());
 	for (const TPair<TSharedRef<const FUniqueNetId>, TSharedRef<FUserOnlineAccountAccelByte>>& KeyValue : IDToUserInfoMap)
@@ -156,19 +178,19 @@ bool FOnlineUserAccelByte::GetAllUserInfo(int32 LocalUserNum, TArray<TSharedRef<
 	}
 
 	// supposed to return true if user data was found
-	AB_OSS_INTERFACE_TRACE_END(TEXT("Returning array with %d users"), OutUsers.Num());
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Returning array with %d users"), OutUsers.Num());
 	return OutUsers.Num() > 0;
 }
 
 TSharedPtr<FOnlineUser> FOnlineUserAccelByte::GetUserInfo(int32 LocalUserNum, const FUniqueNetId& UserId)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("LocalUserNum: %d; UserId: %s"), LocalUserNum, *UserId.ToDebugString());
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("LocalUserNum: %d; UserId: %s"), LocalUserNum, *UserId.ToDebugString());
 
 	const TSharedRef<const FUniqueNetIdAccelByteUser> AccelByteID = FUniqueNetIdAccelByteUser::CastChecked(UserId);
 	const TSharedRef<FUserOnlineAccountAccelByte>* UserInfo = IDToUserInfoMap.Find(AccelByteID);
 	if (UserInfo != nullptr)
 	{
-		AB_OSS_INTERFACE_TRACE_END(TEXT("Found user info for user with ID of '%s'"), *UserId.ToDebugString());
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Found user info for user with ID of '%s'"), *UserId.ToDebugString());
 		return (*UserInfo);
 	}
 
@@ -178,53 +200,73 @@ TSharedPtr<FOnlineUser> FOnlineUserAccelByte::GetUserInfo(int32 LocalUserNum, co
 		const TSharedRef<const FUniqueNetIdAccelByteUser> UserAccelByteID = FUniqueNetIdAccelByteUser::CastChecked(KeyValue.Key);
 		if (UserAccelByteID->GetAccelByteId() == AccelByteID->GetAccelByteId())
 		{
-			AB_OSS_INTERFACE_TRACE_END(TEXT("Found user info by comparing AccelByteId for user with ID of '%s'"), *UserId.ToDebugString());
+			AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Found user info by comparing AccelByteId for user with ID of '%s'"), *UserId.ToDebugString());
 			return KeyValue.Value;
 		}
 	}
 
-	AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to find user info for user with ID of '%s'"), *UserId.ToDebugString());
+	AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to find user info for user with ID of '%s'"), *UserId.ToDebugString());
 	return nullptr;
 }
 
 bool FOnlineUserAccelByte::QueryUserIdMapping(const FUniqueNetId& UserId, const FString& DisplayNameOrEmail, const FOnQueryUserMappingComplete& Delegate)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("UserId: %s; Display Name or Email to Query: %s"), *UserId.ToDebugString(), *DisplayNameOrEmail);
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("UserId: %s; Display Name or Email to Query: %s"), *UserId.ToDebugString(), *DisplayNameOrEmail);
 
-	check(AccelByteSubsystem != nullptr);
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteQueryUserIdMapping>(AccelByteSubsystem, UserId, DisplayNameOrEmail, Delegate);
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+if (!AccelByteSubsystemPtr.IsValid())
+{
+    AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+    return false;
+}
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteQueryUserIdMapping>(AccelByteSubsystemPtr.Get(), UserId, DisplayNameOrEmail, Delegate);
 
-	AB_OSS_INTERFACE_TRACE_END(TEXT("Created and dispatched async task to query user ID for display name or email '%s'!"), *DisplayNameOrEmail);
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Created and dispatched async task to query user ID for display name or email '%s'!"), *DisplayNameOrEmail);
 	return true;
 }
 
 bool FOnlineUserAccelByte::QueryUserIdMappingWithPlatform(const FUniqueNetId& UserId, const FString& DisplayNameOrEmail, EAccelBytePlatformType PlatformType, const FOnQueryUserMappingComplete& Delegate)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("UserId: %s; Display Name or Email to Query: %s"), *UserId.ToDebugString(), *DisplayNameOrEmail);
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("UserId: %s; Display Name or Email to Query: %s"), *UserId.ToDebugString(), *DisplayNameOrEmail);
 
-	check(AccelByteSubsystem != nullptr);
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteQueryUserIdMappingWithPlatform>(AccelByteSubsystem, UserId, DisplayNameOrEmail, PlatformType, Delegate);
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+if (!AccelByteSubsystemPtr.IsValid())
+{
+    AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+    return false;
+}
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteQueryUserIdMappingWithPlatform>(AccelByteSubsystemPtr.Get(), UserId, DisplayNameOrEmail, PlatformType, Delegate);
 
-	AB_OSS_INTERFACE_TRACE_END(TEXT("Created and dispatched async task to query user ID for display name or email '%s'!"), *DisplayNameOrEmail);
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Created and dispatched async task to query user ID for display name or email '%s'!"), *DisplayNameOrEmail);
 	return true;
 }
 
 bool FOnlineUserAccelByte::QueryUserIdMappingWithPlatformId(const FUniqueNetId& UserId, const FString& DisplayNameOrEmail, const FString& PlatformId, const FOnQueryUserMappingComplete& Delegate)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("UserId: %s; Display Name or Email to Query: %s"), *UserId.ToDebugString(), *DisplayNameOrEmail);
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("UserId: %s; Display Name or Email to Query: %s"), *UserId.ToDebugString(), *DisplayNameOrEmail);
 
-	check(AccelByteSubsystem != nullptr);
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteQueryUserIdMappingWithPlatformId>(AccelByteSubsystem, UserId, DisplayNameOrEmail, PlatformId, Delegate);
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+if (!AccelByteSubsystemPtr.IsValid())
+{
+    AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+    return false;
+}
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteQueryUserIdMappingWithPlatformId>(AccelByteSubsystemPtr.Get(), UserId, DisplayNameOrEmail, PlatformId, Delegate);
 
-	AB_OSS_INTERFACE_TRACE_END(TEXT("Created and dispatched async task to query user ID for display name or email '%s'!"), *DisplayNameOrEmail);
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Created and dispatched async task to query user ID for display name or email '%s'!"), *DisplayNameOrEmail);
 	return true;
 }
 
 bool FOnlineUserAccelByte::QueryExternalIdMappings(const FUniqueNetId& UserId, const FExternalIdQueryOptions& QueryOptions, const TArray<FString>& ExternalIds, const FOnQueryExternalIdMappingsComplete& Delegate)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("UserId: %s; Platform Type: %s, External Ids Amount: %d"), *UserId.ToDebugString(), *QueryOptions.AuthType, ExternalIds.Num());
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("UserId: %s; Platform Type: %s, External Ids Amount: %d"), *UserId.ToDebugString(), *QueryOptions.AuthType, ExternalIds.Num());
 
-	check(AccelByteSubsystem != nullptr);
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+if (!AccelByteSubsystemPtr.IsValid())
+{
+    AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+    return false;
+}
 
 	// Don't see a use case where we would need this, return that it isn't supported
 	if (QueryOptions.bLookupByDisplayName)
@@ -232,28 +274,28 @@ bool FOnlineUserAccelByte::QueryExternalIdMappings(const FUniqueNetId& UserId, c
 		const FString ErrorStr = TEXT("AccelByte OSS does not support calling this method with FExternalIdQueryOptions::bLookupByDisplayName set to true. Contact your account manager if you have a use case for this.");
 
 		// Need to cast UserId to be an AccelByte ID for the delegate to copy it
-		AccelByteSubsystem->ExecuteNextTick([Delegate, AccelByteId = FUniqueNetIdAccelByteUser::CastChecked(UserId), QueryOptions, ErrorStr]() {
+		AccelByteSubsystemPtr->ExecuteNextTick([Delegate, AccelByteId = FUniqueNetIdAccelByteUser::CastChecked(UserId), QueryOptions, ErrorStr]() {
 			Delegate.ExecuteIfBound(false, AccelByteId.Get(), QueryOptions, TArray<FString>(), ErrorStr);
 		});
 
-		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Error, TEXT("%s"), *ErrorStr);
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Error, TEXT("%s"), *ErrorStr);
 		return false;
 	}
 
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteQueryExternalIdMappings>(AccelByteSubsystem, UserId, QueryOptions, ExternalIds, Delegate);
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteQueryExternalIdMappings>(AccelByteSubsystemPtr.Get(), UserId, QueryOptions, ExternalIds, Delegate);
 
-	AB_OSS_INTERFACE_TRACE_END(TEXT("Created and dispatched async task to get %d external ID mappings!"), ExternalIds.Num());
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Created and dispatched async task to get %d external ID mappings!"), ExternalIds.Num());
 	return true;
 }
 
 void FOnlineUserAccelByte::GetExternalIdMappings(const FExternalIdQueryOptions& QueryOptions, const TArray<FString>& ExternalIds, TArray<FUniqueNetIdPtr>& OutIds)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("External ID Count: %d"), ExternalIds.Num());
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("External ID Count: %d"), ExternalIds.Num());
 
 	// Don't see a use case where we would need this, return that it isn't supported
 	if (QueryOptions.bLookupByDisplayName)
 	{
-		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Error, TEXT("AccelByte OSS does not support calling this method with FExternalIdQueryOptions::bLookupByDisplayName set to true. Contact your account manager if you have a use case for this."));
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Error, TEXT("AccelByte OSS does not support calling this method with FExternalIdQueryOptions::bLookupByDisplayName set to true. Contact your account manager if you have a use case for this."));
 		return;
 	}
 
@@ -275,36 +317,41 @@ void FOnlineUserAccelByte::GetExternalIdMappings(const FExternalIdQueryOptions& 
 		}
 	}
 
-	AB_OSS_INTERFACE_TRACE_END(TEXT("Received %d valid external ID mappings!"), ValidResults);
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Received %d valid external ID mappings!"), ValidResults);
 }
 
 FUniqueNetIdPtr FOnlineUserAccelByte::GetExternalIdMapping(const FExternalIdQueryOptions& QueryOptions, const FString& ExternalId)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("External ID: %s"), *ExternalId);
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("External ID: %s"), *ExternalId);
 
 	// Don't see a use case where we would need this, return that it isn't supported
 	if (QueryOptions.bLookupByDisplayName)
 	{
-		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Error, TEXT("AccelByte OSS does not support calling this method with FExternalIdQueryOptions::bLookupByDisplayName set to true. Contact your account manager if you have a use case for this."));
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Error, TEXT("AccelByte OSS does not support calling this method with FExternalIdQueryOptions::bLookupByDisplayName set to true. Contact your account manager if you have a use case for this."));
 		return nullptr;
 	}
 
 	const TSharedRef<const FUniqueNetId>* Result = ExternalIDToAccelByteIDMap.Find(ExternalId);
 	if (Result != nullptr)
 	{
-		AB_OSS_INTERFACE_TRACE_END(TEXT("Found AccelByte ID '%s' for external ID '%s' in cache!"), *(*Result)->ToDebugString(), *ExternalId);
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Found AccelByte ID '%s' for external ID '%s' in cache!"), *(*Result)->ToDebugString(), *ExternalId);
 		return *Result;
 	}
 
-	AB_OSS_INTERFACE_TRACE_END(TEXT("AccelByte ID not found in cache for external ID of '%s'"), *ExternalId);
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("AccelByte ID not found in cache for external ID of '%s'"), *ExternalId);
 	return nullptr;
 }
 
 void FOnlineUserAccelByte::PostLoginBulkGetUserProfileCompleted(int32 LocalUserNum, bool bWasSuccessful, const TArray<FUniqueNetIdRef>& UserIds, const FOnlineError& ErrorStr)
 {
-	check(AccelByteSubsystem != nullptr);
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+	    AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+	    return;
+	}
 
-	const auto UserId = AccelByteSubsystem->GetIdentityInterface()->GetUniquePlayerId(LocalUserNum);
+	const auto UserId = AccelByteSubsystemPtr->GetIdentityInterface()->GetUniquePlayerId(LocalUserNum);
 	if (UserIds.Num() == 0 && UserId.IsValid())
 	{
 		CreateUserProfile(*UserId.Get());
@@ -317,6 +364,13 @@ void FOnlineUserAccelByte::PostLoginBulkGetUserProfileCompleted(int32 LocalUserN
 bool FOnlineUserAccelByte::TestExec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar)
 {
 	bool bWasHandled = false;
+
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return false;
+	}
 
 	if (FParse::Command(&Cmd, TEXT("EXTERNAL")))
 	{
@@ -335,7 +389,7 @@ bool FOnlineUserAccelByte::TestExec(UWorld* InWorld, const TCHAR* Cmd, FOutputDe
 		TSharedPtr<FExecTestQueryExternalIds> ExternalIdTest = MakeShared<FExecTestQueryExternalIds>(InWorld, ACCELBYTE_SUBSYSTEM, AuthType, ExternalIds);
 		ExternalIdTest->Run();
 
-		AccelByteSubsystem->AddExecTest(ExternalIdTest);
+		AccelByteSubsystemPtr->AddExecTest(ExternalIdTest);
 		bWasHandled = true;
 	}
 	else if (FParse::Command(&Cmd, TEXT("MAP")))
@@ -346,7 +400,7 @@ bool FOnlineUserAccelByte::TestExec(UWorld* InWorld, const TCHAR* Cmd, FOutputDe
 		TSharedPtr<FExecTestQueryUserIdMapping> QueryUserIdMappingTest = MakeShared<FExecTestQueryUserIdMapping>(InWorld, ACCELBYTE_SUBSYSTEM, DisplayNameOrEmail);
 		QueryUserIdMappingTest->Run();
 
-		AccelByteSubsystem->AddExecTest(QueryUserIdMappingTest);
+		AccelByteSubsystemPtr->AddExecTest(QueryUserIdMappingTest);
 		bWasHandled = true;
 	}
 
@@ -357,44 +411,92 @@ bool FOnlineUserAccelByte::TestExec(UWorld* InWorld, const TCHAR* Cmd, FOutputDe
 void FOnlineUserAccelByte::ListUserByUserId(const int32 LocalUserNum, const TArray<FString>& UserIds)
 {
 	UE_LOG_AB(Display, TEXT("FOnlineUserAccelByte::ListUserByUserId"));
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteListUserByUserId>
-		(AccelByteSubsystem, LocalUserNum, UserIds);
+
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return;
+	}
+	
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteListUserByUserId>
+		(AccelByteSubsystemPtr.Get(), LocalUserNum, UserIds);
 }
 
 
 void FOnlineUserAccelByte::LinkOtherPlatform(const FUniqueNetId& UserId, EAccelBytePlatformType PlatformType, const FString& Ticket)
 {
 	UE_LOG_AB(Display, TEXT("FOnlineIdentityAccelByte::LinkOtherPlatform"));
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteLinkOtherPlatform>
-		(AccelByteSubsystem, UserId, PlatformType, Ticket);
+
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return;
+	}
+	
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteLinkOtherPlatform>
+		(AccelByteSubsystemPtr.Get(), UserId, PlatformType, Ticket);
 }
 
 void FOnlineUserAccelByte::UnlinkOtherPlatform(const FUniqueNetId& UserId, EAccelBytePlatformType PlatformType)
 {
 	UE_LOG_AB(Display, TEXT("FOnlineIdentityAccelByte::UnlinkOtherPlatform"));
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteUnlinkOtherPlatform>
-		(AccelByteSubsystem, UserId, PlatformType);
+
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return;
+		
+	}
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteUnlinkOtherPlatform>
+		(AccelByteSubsystemPtr.Get(), UserId, PlatformType);
 }
 
 void FOnlineUserAccelByte::LinkOtherPlatformId(const FUniqueNetId& UserId, const FString& PlatformId, const FString& Ticket)
 {
 	UE_LOG_AB(Display, TEXT("FOnlineIdentityAccelByte::LinkOtherPlatformId"));
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteLinkOtherPlatformId>
-		(AccelByteSubsystem, UserId, PlatformId, Ticket);
+
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return;
+	}
+	
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteLinkOtherPlatformId>
+		(AccelByteSubsystemPtr.Get(), UserId, PlatformId, Ticket);
 }
 
 void FOnlineUserAccelByte::UnlinkOtherPlatformId(const FUniqueNetId& UserId, const FString& PlatformId)
 {
 	UE_LOG_AB(Display, TEXT("FOnlineIdentityAccelByte::UnlinkOtherPlatformId"));
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteUnlinkOtherPlatformId>
-		(AccelByteSubsystem, UserId, PlatformId);
+
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return;
+	}
+	
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteUnlinkOtherPlatformId>
+		(AccelByteSubsystemPtr.Get(), UserId, PlatformId);
 }
 
 void FOnlineUserAccelByte::CheckUserAccountAvailability(const FUniqueNetId& UserId, const FString& DisplayName, bool bIsSearchUniqueDisplayName)
 {
 	UE_LOG_AB(Display, TEXT("FOnlineIdentityAccelByte::CheckUserAccountAvailability"));
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteCheckUserAccountAvailability>
-		(AccelByteSubsystem, UserId, DisplayName, bIsSearchUniqueDisplayName);
+
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return;
+	}
+	
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteCheckUserAccountAvailability>
+		(AccelByteSubsystemPtr.Get(), UserId, DisplayName, bIsSearchUniqueDisplayName);
 }
 
 void FOnlineUserAccelByte::AddNewLinkedUserAccountToCache(const TSharedRef<const FUniqueNetId>& UserId, const TArray<FPlatformLink>& LinkedAccounts)
@@ -450,8 +552,16 @@ void FOnlineUserAccelByte::GetLinkedUserAccountFromCache(const TSharedRef<const 
 void FOnlineUserAccelByte::ValidateUserInput(int32 LocalUserNum, const FUserInputValidationRequest& UserInputValidationRequest)
 {
 	UE_LOG_AB(Display, TEXT("FOnlineUserAccelByte::ValidateUserInput"));
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteValidateUserInput>
-		(AccelByteSubsystem, LocalUserNum, UserInputValidationRequest);
+
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return;
+	}
+	
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteValidateUserInput>
+		(AccelByteSubsystemPtr.Get(), LocalUserNum, UserInputValidationRequest);
 }
 
 #undef ONLINE_ERROR_NAMESPACE

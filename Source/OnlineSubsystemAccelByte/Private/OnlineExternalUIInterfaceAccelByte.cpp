@@ -181,9 +181,25 @@ bool FOnlineExternalUIAccelByte::ShowSendMessageUI(int32 LocalUserNum, const FSh
 	return NativeExternalUI->ShowSendMessageUI(LocalUserNum, ShowParams, Delegate);
 }
 
+FOnlineExternalUIAccelByte::FOnlineExternalUIAccelByte(FOnlineSubsystemAccelByte* InSubsystem)
+#if ENGINE_MAJOR_VERSION >= 5
+		: AccelByteSubsystem(InSubsystem->AsWeak())
+#else
+		: AccelByteSubsystem(InSubsystem->AsShared())
+#endif
+	{
+	}
+
 IOnlineExternalUIPtr FOnlineExternalUIAccelByte::GetNativePlatformExternalUI()
 {
-	IOnlineSubsystem* NativeSubsystem = AccelByteSubsystem->GetNativePlatformSubsystem();
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		UE_LOG_AB(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return nullptr;
+	}
+	
+	IOnlineSubsystem* NativeSubsystem = AccelByteSubsystemPtr->GetNativePlatformSubsystem();
 	if (NativeSubsystem == nullptr)
 	{
 		return nullptr;

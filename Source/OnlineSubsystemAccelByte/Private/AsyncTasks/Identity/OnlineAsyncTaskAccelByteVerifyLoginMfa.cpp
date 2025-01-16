@@ -32,13 +32,22 @@ void FOnlineAsyncTaskAccelByteVerifyLoginMfa::Initialize()
 
 	GConfig->GetInt(TEXT("OnlineSubsystemAccelByte"), TEXT("LoginQueuePresentationThreshold"), LoginQueuePresentationThreshold, GEngineIni);
 
+	FAccelByteInstancePtr AccelByteInstance = GetAccelByteInstance().Pin();
+	if(!AccelByteInstance.IsValid())
+	{
+		ErrorStr = TEXT("login-failed-invalid-accelbyte-instance");
+		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to verify MFA, AccelByteInstance is invalid!"));
+		CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState);
+		return;
+	}
+
 	if (SubsystemPin->IsMultipleLocalUsersEnabled())
 	{
-		SetApiClient(FMultiRegistry::GetApiClient(FString::Printf(TEXT("%d"), LoginUserNum)));
+		SetApiClient(AccelByteInstance->GetApiClient(FString::Printf(TEXT("%d"), LoginUserNum)));
 	}
 	else
 	{
-		SetApiClient(FMultiRegistry::GetApiClient());
+		SetApiClient(AccelByteInstance->GetApiClient());
 	}
 
 	API_CLIENT_CHECK_GUARD();
@@ -310,15 +319,25 @@ void FOnlineAsyncTaskAccelByteVerifyLoginMfa::OnLoginSuccess()
 	}
 
 	IdentityInterface->AddNewAuthenticatedUser(LoginUserNum, UserId.ToSharedRef(), Account.ToSharedRef());
-	FMultiRegistry::RemoveApiClient(UserId->GetAccelByteId());
-	FMultiRegistry::RegisterApiClient(UserId->GetAccelByteId(), ApiClient);
+
+	FAccelByteInstancePtr AccelByteInstance = GetAccelByteInstance().Pin();
+	if(!AccelByteInstance.IsValid())
+	{
+		ErrorStr = TEXT("login-failed-invalid-accelbyte-instance");
+		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to verify MFA, AccelByteInstance is invalid!"));
+		CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState);
+		return;
+	}
+	
+	AccelByteInstance->RemoveApiClient(UserId->GetAccelByteId());
+	AccelByteInstance->RegisterApiClient(UserId->GetAccelByteId(), ApiClient);
 	if (SubsystemPin->IsMultipleLocalUsersEnabled())
 	{
-		FMultiRegistry::RemoveApiClient(FString::Printf(TEXT("%d"), LoginUserNum));
+		AccelByteInstance->RemoveApiClient(FString::Printf(TEXT("%d"), LoginUserNum));
 	}
 	else
 	{
-		FMultiRegistry::RemoveApiClient();
+		AccelByteInstance->RemoveApiClient();
 	}
 
 	// Grab our user interface and kick off a task to get information about the newly logged in player from it, namely

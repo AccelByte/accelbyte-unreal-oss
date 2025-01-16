@@ -91,9 +91,19 @@ public:
 	virtual FOnVoiceChatPlayerVolumeUpdatedDelegate& OnVoiceChatPlayerVolumeUpdated() override;
 	virtual void TransmitToAllChannels() override;
 	virtual void TransmitToNoChannels() override;
+
+	// #NOTE: TransmitToSpecificChannel deprecated in 5.3 and removed in 5.5
+#if !(ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION >= 5)
 	virtual void TransmitToSpecificChannel(const FString& ChannelName) override;
+#endif // !(ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION >= 5)
+
 	virtual EVoiceChatTransmitMode GetTransmitMode() const override;
+
+	// #NOTE: GetTransmitChannel deprecated in 5.3 and removed in 5.5
+#if !(ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION >= 5)
 	virtual FString GetTransmitChannel() const override;
+#endif // !(ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION >= 5)
+
 	virtual FDelegateHandle StartRecording(const FOnVoiceChatRecordSamplesAvailableDelegate::FDelegate& Delegate) override;
 	virtual void StopRecording(FDelegateHandle Handle) override;
 	virtual FDelegateHandle RegisterOnVoiceChatAfterCaptureAudioReadDelegate(const FOnVoiceChatAfterCaptureAudioReadDelegate::FDelegate& Delegate) override;

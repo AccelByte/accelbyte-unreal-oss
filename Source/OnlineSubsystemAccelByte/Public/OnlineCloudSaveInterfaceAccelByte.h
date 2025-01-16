@@ -6,10 +6,13 @@
 #include "CoreMinimal.h"
 #include "OnlineSubsystemTypes.h"
 #include "OnlineDelegateMacros.h"
+#include "OnlineError.h"
 #include "OnlineSubsystemAccelByte.h"
+#include "OnlineSubsystemAccelByteDefines.h"
 #include "OnlineUserCacheAccelByte.h"
 #include "OnlineSubsystemAccelBytePackage.h"
 #include "Containers/Map.h"
+#include "Models/AccelByteCloudSaveModels.h"
 
 using FBulkReplaceUserRecordMap = TMap< FUniqueNetIdAccelByteUserRef, FAccelByteModelsBulkReplaceUserRecordResponse>;
 using FBulkGetUserRecordMap = TMap< FUniqueNetIdAccelByteUserRef, FAccelByteModelsUserRecord>;
@@ -57,7 +60,11 @@ class ONLINESUBSYSTEMACCELBYTE_API FOnlineCloudSaveAccelByte : public TSharedFro
 {
 PACKAGE_SCOPE:
 	FOnlineCloudSaveAccelByte(FOnlineSubsystemAccelByte* InSubsystem)
-		: AccelByteSubsystem(InSubsystem)
+#if ENGINE_MAJOR_VERSION >= 5
+		: AccelByteSubsystem(InSubsystem->AsWeak())
+#else
+		: AccelByteSubsystem(InSubsystem->AsShared())
+#endif
 	{}
 
 	TMap<FString, TSharedRef<FAccelByteModelsGameRecord>> GameRecordMap;
@@ -298,7 +305,7 @@ protected:
 	{}
 
 	/** Instance of the subsystem that created this interface */
-	FOnlineSubsystemAccelByte* AccelByteSubsystem = nullptr;
+	FOnlineSubsystemAccelByteWPtr AccelByteSubsystem = nullptr;
 
 private:
 	bool GetUserRecord(int32 LocalUserNum, const FString& Key, bool IsPublic, const FString& UserId = TEXT(""));

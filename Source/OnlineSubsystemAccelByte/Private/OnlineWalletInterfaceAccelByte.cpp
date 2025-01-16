@@ -12,6 +12,14 @@
 #include "OnlineSubsystemUtils.h"
 #include "Engine/World.h"
 
+FOnlineWalletAccelByte::FOnlineWalletAccelByte(FOnlineSubsystemAccelByte* InSubsystem)
+#if ENGINE_MAJOR_VERSION >= 5
+		: AccelByteSubsystem(InSubsystem->AsWeak())
+#else
+		: AccelByteSubsystem(InSubsystem->AsShared())
+#endif
+{};
+
 bool FOnlineWalletAccelByte::GetFromWorld(const UWorld* World, FOnlineWalletAccelBytePtr& OutInterfaceInstance)
 {
 	const IOnlineSubsystem* Subsystem = ::Online::GetSubsystem(World);
@@ -39,9 +47,16 @@ bool FOnlineWalletAccelByte::GetFromSubsystem(const IOnlineSubsystem* Subsystem,
 
 bool FOnlineWalletAccelByte::GetCurrencyList(int32 LocalUserNum, bool bAlwaysRequestToService)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("Get Currency List, LocalUserNum: %d"), LocalUserNum);
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("Get Currency List, LocalUserNum: %d"), LocalUserNum);
 
-	const IOnlineIdentityPtr IdentityInterface = AccelByteSubsystem->GetIdentityInterface();
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return false;
+	}
+
+	const IOnlineIdentityPtr IdentityInterface = AccelByteSubsystemPtr->GetIdentityInterface();
 	if (IdentityInterface.IsValid())
 	{
 		// Check whether user is connected or not yet
@@ -50,15 +65,15 @@ bool FOnlineWalletAccelByte::GetCurrencyList(int32 LocalUserNum, bool bAlwaysReq
 			const FUniqueNetIdPtr LocalUserId = IdentityInterface->GetUniquePlayerId(LocalUserNum);
 			if (LocalUserId.IsValid())
 			{
-				AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGetCurrencyList>(AccelByteSubsystem, *LocalUserId, bAlwaysRequestToService);
-				AB_OSS_INTERFACE_TRACE_END(TEXT("Dispatching async task to attempt to get currency list!"));
+				AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGetCurrencyList>(AccelByteSubsystemPtr.Get(), *LocalUserId, bAlwaysRequestToService);
+				AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Dispatching async task to attempt to get currency list!"));
 
 				return true;
 			}
 			else
 			{
 				const FString ErrorStr = TEXT("get-currency-list-failed-userid-invalid");
-				AB_OSS_INTERFACE_TRACE_END(TEXT("UserId is not valid at user index '%d'!"), LocalUserNum);
+				AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("UserId is not valid at user index '%d'!"), LocalUserNum);
 				TriggerOnGetCurrencyListCompletedDelegates(LocalUserNum, false, TArray<FAccelByteModelsCurrencyList>{}, ErrorStr);
 
 				return false;
@@ -67,7 +82,7 @@ bool FOnlineWalletAccelByte::GetCurrencyList(int32 LocalUserNum, bool bAlwaysReq
 	}
 
 	const FString ErrorStr = TEXT("get-currency-list-failed-not-logged-in");
-	AB_OSS_INTERFACE_TRACE_END(TEXT("User not logged in at user index '%d'!"), LocalUserNum);
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("User not logged in at user index '%d'!"), LocalUserNum);
 	TriggerOnGetCurrencyListCompletedDelegates(LocalUserNum, false, TArray<FAccelByteModelsCurrencyList>{}, ErrorStr);
 
 	return false;
@@ -75,7 +90,7 @@ bool FOnlineWalletAccelByte::GetCurrencyList(int32 LocalUserNum, bool bAlwaysReq
 
 bool FOnlineWalletAccelByte::GetCurrencyFromCache(const FString& CurrencyCode, FAccelByteModelsCurrencyList& OutCurrency)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("Get Currency, CurrencyCode: %s"), *CurrencyCode);
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("Get Currency, CurrencyCode: %s"), *CurrencyCode);
 	FScopeLock ScopeLock(&CurrencyListLock);
 
 	if (CurrencyCodeToCurrencyListMap.Num() > 0)
@@ -84,12 +99,12 @@ bool FOnlineWalletAccelByte::GetCurrencyFromCache(const FString& CurrencyCode, F
 		if (Currency != nullptr)
 		{
 			OutCurrency = Currency->Get();
-			AB_OSS_INTERFACE_TRACE_END(TEXT("Currency found for currency code %s"), *CurrencyCode);
+			AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Currency found for currency code %s"), *CurrencyCode);
 			return true;
 		}
 	}
 
-	AB_OSS_INTERFACE_TRACE_END(TEXT("Currency not found for currency code %s"), *CurrencyCode);
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Currency not found for currency code %s"), *CurrencyCode);
 	return false;
 }
 
@@ -118,9 +133,16 @@ void FOnlineWalletAccelByte::AddCurrencyToList(const FString& CurrencyCode, cons
 
 bool FOnlineWalletAccelByte::GetWalletInfoByCurrencyCode(int32 LocalUserNum, const FString& CurrencyCode, bool bAlwaysRequestToService)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("Get Wallet Info, LocalUserNum: %d"), LocalUserNum);
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("Get Wallet Info, LocalUserNum: %d"), LocalUserNum);
 
-	const IOnlineIdentityPtr IdentityInterface = AccelByteSubsystem->GetIdentityInterface();
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return false;
+	}
+
+	const IOnlineIdentityPtr IdentityInterface = AccelByteSubsystemPtr->GetIdentityInterface();
 	if (IdentityInterface.IsValid())
 	{
 		// Check whether user is connected or not yet
@@ -129,15 +151,15 @@ bool FOnlineWalletAccelByte::GetWalletInfoByCurrencyCode(int32 LocalUserNum, con
 			const FUniqueNetIdPtr LocalUserId = IdentityInterface->GetUniquePlayerId(LocalUserNum);
 			if (LocalUserId.IsValid())
 			{
-				AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGetWalletInfo>(AccelByteSubsystem, *LocalUserId, CurrencyCode, bAlwaysRequestToService);
-				AB_OSS_INTERFACE_TRACE_END(TEXT("Dispatching async task to attempt to get wallet info!"));
+				AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGetWalletInfo>(AccelByteSubsystemPtr.Get(), *LocalUserId, CurrencyCode, bAlwaysRequestToService);
+				AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Dispatching async task to attempt to get wallet info!"));
 
 				return true;
 			}
 			else
 			{
 				const FString ErrorStr = TEXT("get-wallet-info-failed-userid-invalid");
-				AB_OSS_INTERFACE_TRACE_END(TEXT("UserId is not valid at user index '%d'!"), LocalUserNum);
+				AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("UserId is not valid at user index '%d'!"), LocalUserNum);
 				TriggerOnGetWalletInfoCompletedDelegates(LocalUserNum, false, FAccelByteModelsWalletInfo{}, ErrorStr);
 
 				return false;
@@ -146,7 +168,7 @@ bool FOnlineWalletAccelByte::GetWalletInfoByCurrencyCode(int32 LocalUserNum, con
 	}
 
 	const FString ErrorStr = TEXT("get-wallet-info-failed-not-logged-in");
-	AB_OSS_INTERFACE_TRACE_END(TEXT("User not logged in at user index '%d'!"), LocalUserNum);
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("User not logged in at user index '%d'!"), LocalUserNum);
 	TriggerOnGetWalletInfoCompletedDelegates(LocalUserNum, false, FAccelByteModelsWalletInfo{}, ErrorStr);
 
 	return false;
@@ -154,9 +176,16 @@ bool FOnlineWalletAccelByte::GetWalletInfoByCurrencyCode(int32 LocalUserNum, con
 
 bool FOnlineWalletAccelByte::GetWalletInfoFromCache(int32 LocalUserNum, const FString& CurrencyCode, FAccelByteModelsWalletInfo& OutWalletInfo)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("Get Wallet Info from Cache, LocalUserNum: %d"), LocalUserNum);
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("Get Wallet Info from Cache, LocalUserNum: %d"), LocalUserNum);
 
-	const IOnlineIdentityPtr IdentityInterface = AccelByteSubsystem->GetIdentityInterface();
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return false;
+	}
+
+	const IOnlineIdentityPtr IdentityInterface = AccelByteSubsystemPtr->GetIdentityInterface();
 	if (!IdentityInterface.IsValid())
 	{
 		return false;
@@ -180,13 +209,20 @@ bool FOnlineWalletAccelByte::GetWalletInfoFromCache(int32 LocalUserNum, const FS
 		}
 	}
 
-	AB_OSS_INTERFACE_TRACE_END(TEXT("User not logged in at user index '%d'!"), LocalUserNum);
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("User not logged in at user index '%d'!"), LocalUserNum);
 	return false;
 }
 
 void FOnlineWalletAccelByte::AddWalletInfoToList(int32 LocalUserNum, const FString& CurrencyCode, const TSharedRef<FAccelByteModelsWalletInfo>& InWalletInfo)
 {
-	const IOnlineIdentityPtr IdentityInterface = AccelByteSubsystem->GetIdentityInterface();
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return;
+	}
+	
+	const IOnlineIdentityPtr IdentityInterface = AccelByteSubsystemPtr->GetIdentityInterface();
 	if (IdentityInterface.IsValid())
 	{
 		// Check whether user is connected or not yet
@@ -206,9 +242,16 @@ void FOnlineWalletAccelByte::AddWalletInfoToList(int32 LocalUserNum, const FStri
 
 bool FOnlineWalletAccelByte::ListWalletTransactionsByCurrencyCode(int32 LocalUserNum, const FString& CurrencyCode, int32 Offset, int32 Limit)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("Get Wallet Transaction List, LocalUserNum: %d"), LocalUserNum);
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("Get Wallet Transaction List, LocalUserNum: %d"), LocalUserNum);
 
-	const IOnlineIdentityPtr IdentityInterface = AccelByteSubsystem->GetIdentityInterface();
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return false;
+	}
+
+	const IOnlineIdentityPtr IdentityInterface = AccelByteSubsystemPtr->GetIdentityInterface();
 	if (IdentityInterface.IsValid())
 	{
 		// Check whether user is connected or not yet
@@ -217,15 +260,15 @@ bool FOnlineWalletAccelByte::ListWalletTransactionsByCurrencyCode(int32 LocalUse
 			const FUniqueNetIdPtr LocalUserId = IdentityInterface->GetUniquePlayerId(LocalUserNum);
 			if (LocalUserId.IsValid())
 			{
-				AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGetWalletTransactions>(AccelByteSubsystem, *LocalUserId, CurrencyCode, Offset, Limit);
-				AB_OSS_INTERFACE_TRACE_END(TEXT("Dispatching async task to attempt to get wallet transaction list!"));
+				AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGetWalletTransactions>(AccelByteSubsystemPtr.Get(), *LocalUserId, CurrencyCode, Offset, Limit);
+				AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Dispatching async task to attempt to get wallet transaction list!"));
 
 				return true;
 			}
 			else
 			{
 				const FString ErrorStr = TEXT("get-wallet-transaction-list-failed-userid-invalid");
-				AB_OSS_INTERFACE_TRACE_END(TEXT("UserId is not valid at user index '%d'!"), LocalUserNum);
+				AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("UserId is not valid at user index '%d'!"), LocalUserNum);
 				TriggerOnGetWalletTransactionsCompletedDelegates(LocalUserNum, false, TArray<FAccelByteModelsWalletTransactionInfo>{}, ErrorStr);
 
 				return false;
@@ -234,7 +277,7 @@ bool FOnlineWalletAccelByte::ListWalletTransactionsByCurrencyCode(int32 LocalUse
 	}
 
 	const FString ErrorStr = TEXT("get-wallet-transaction-list-failed-not-logged-in");
-	AB_OSS_INTERFACE_TRACE_END(TEXT("User not logged in at user index '%d'!"), LocalUserNum);
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("User not logged in at user index '%d'!"), LocalUserNum);
 	TriggerOnGetWalletTransactionsCompletedDelegates(LocalUserNum, false, TArray<FAccelByteModelsWalletTransactionInfo>{}, ErrorStr);
 
 	return false;

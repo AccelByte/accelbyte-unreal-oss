@@ -61,8 +61,14 @@ void FOnlineAsyncTaskAccelByteReadLeaderboardAroundUser::Initialize()
 	OnRequestFailedHandler = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteReadLeaderboardAroundUser::OnRequestFailed);
 
 	const TSharedRef<const FUniqueNetIdAccelByteUser> ABUser = FUniqueNetIdAccelByteUser::CastChecked(User);
+
+#if ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION >= 5
+	// LeaderboardName is already an FString type in 5.5 and above
+	const FString LeaderboardCode = LeaderboardObject->LeaderboardName;
+#else
 	const FString LeaderboardCode = LeaderboardObject->LeaderboardName.ToString();
-	
+#endif // ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION >= 5
+
 	API_CLIENT_CHECK_GUARD(ErrorMessage);
 	ApiClient->Leaderboard.GetUserRankingV3(UserId->GetAccelByteId(), LeaderboardCode, OnGetUserRankingSuccessHandler, OnRequestFailedHandler);
 
@@ -85,7 +91,12 @@ void FOnlineAsyncTaskAccelByteReadLeaderboardAroundUser::Finalize()
 		if (PredefinedEventInterface.IsValid())
 		{
 			FAccelByteModelsLeaderboardGetUserRankingPayload LeaderboardGetUserRankingPayload{};
+#if ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION >= 5
+			// LeaderboardName is already an FString type in 5.5 and above
+			LeaderboardGetUserRankingPayload.LeaderboardCode = LeaderboardObject->LeaderboardName;
+#else
 			LeaderboardGetUserRankingPayload.LeaderboardCode = LeaderboardObject->LeaderboardName.ToString();
+#endif
 			LeaderboardGetUserRankingPayload.UserId = UserId->GetAccelByteId();
 
 			PredefinedEventInterface->SendEvent(LocalUserNum, MakeShared<FAccelByteModelsLeaderboardGetUserRankingPayload>(LeaderboardGetUserRankingPayload));
@@ -153,7 +164,14 @@ void FOnlineAsyncTaskAccelByteReadLeaderboardAroundUser::OnGetUserRankingSuccess
 	}
 	
 	const int32 Limit = Range * 2;
+
+#if ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION >= 5
+	// LeaderboardName is already an FString type in 5.5 and above
+	const FString LeaderboardCode = LeaderboardObject->LeaderboardName;
+#else
 	const FString LeaderboardCode = LeaderboardObject->LeaderboardName.ToString();
+#endif // ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION >= 5
+
 	Offset = UserRank - Range;
 
 	Offset = Offset < 0 ? 0 : Offset;
@@ -201,7 +219,13 @@ void FOnlineAsyncTaskAccelByteReadLeaderboardAroundUser::OnGetRankingSuccess(FAc
 					UniqueNetIdRef);
 
 		LeaderboardRow->Rank = Offset + Count;
-		LeaderboardRow->Columns.Add(FName("Point"), Data.point);
+
+#if ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION >= 5
+		// Column key uses FString in 5.5 and above
+		LeaderboardRow->Columns.Add(TEXT("Point"), Data.point);
+#else
+		LeaderboardRow->Columns.Add(FName(TEXT("Point")), Data.point);
+#endif // ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION >= 5
 
 		Count++;
 	}

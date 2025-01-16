@@ -30,9 +30,7 @@ class ONLINESUBSYSTEMACCELBYTE_API FOnlineWalletAccelByte : public TSharedFromTh
 PACKAGE_SCOPE:
 
 	/** Constructor that is invoked by the Subsystem instance to create a user cloud instance */
-	FOnlineWalletAccelByte(FOnlineSubsystemAccelByte* InSubsystem)
-		: AccelByteSubsystem(InSubsystem)
-	{};
+	FOnlineWalletAccelByte(FOnlineSubsystemAccelByte* InSubsystem);
 
 	TMap<FString, TSharedRef<FAccelByteModelsCurrencyList>> CurrencyCodeToCurrencyListMap;
 	/** Critical sections for thread safe operation of CurrencyCodeToCurrencyListMap */
@@ -93,6 +91,6 @@ protected:
 	{}
 
 	/** Instance of the subsystem that created this interface */
-	FOnlineSubsystemAccelByte* AccelByteSubsystem = nullptr;
+	FOnlineSubsystemAccelByteWPtr AccelByteSubsystem = nullptr;
 
 };

@@ -28,13 +28,7 @@ void FOnlineAsyncTaskAccelByteSendPSNEvents::Initialize()
 		return;
 	}
 
-	FServerApiClientPtr ServerApiClient = FMultiRegistry::GetServerApiClient();
-	if (!ensure(ServerApiClient.IsValid()))
-	{
-		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to send PSN events to achievement service as our server API client is invalid!"));
-		CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState);
-		return;
-	}
+	SERVER_API_CLIENT_CHECK_GUARD()
 
 	AB_ASYNC_TASK_DEFINE_SDK_DELEGATES(FOnlineAsyncTaskAccelByteSendPSNEvents, CreatePSNEvent, THandler<FAccelByteModelsAchievementBulkCreatePSNEventResponse>);
 	ServerApiClient->ServerAchievement.BulkCreatePSNEvent(Request

@@ -15,6 +15,7 @@ FOnlineAsyncTaskAccelByteGroupsQueryGroupInvites::FOnlineAsyncTaskAccelByteGroup
 	: FOnlineAsyncTaskAccelByte(InABInterface)
 	, RequestContent(InRequestContent)
 	, Delegate(InDelegate)
+	, httpStatus(0)
 {
 	UserId = FUniqueNetIdAccelByteUser::CastChecked(ContextUserId);
 }

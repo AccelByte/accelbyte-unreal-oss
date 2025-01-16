@@ -89,7 +89,7 @@ void FOnlineAsyncTaskAccelByteGetUserEntitlementHistory::Initialize()
 	{
 		if (LocalTargetUserId->IsValid())
 		{
-			FServerApiClientPtr ServerApiClient = FMultiRegistry::GetServerApiClient();
+			SERVER_API_CLIENT_CHECK_GUARD(ErrorString);
 			ServerApiClient->ServerEcommerce.GetUserEntitlementHistory(LocalTargetUserId->GetAccelByteId(), EntitlementId, SuccessDelegate, OnErrorDelegate);
 		}
 	}

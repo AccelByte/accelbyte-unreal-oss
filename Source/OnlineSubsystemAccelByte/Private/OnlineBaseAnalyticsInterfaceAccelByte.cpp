@@ -20,7 +20,15 @@ void FOnlineBaseAnalyticsAccelByte::OnLocalUserNumCachedSuccess()
 {
 	int32 LocalUserNum = GetLocalUserNumCached();
 	MoveTempUserCachedEvent(LocalUserNum);
-	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystem->GetIdentityInterface());
+	
+	const FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if(!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Failed to handle on party invite notification, AccelByteSubsystem ptr is invalid"));
+		return;
+	}
+	
+	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystemPtr->GetIdentityInterface());
 	if (!IdentityInterface.IsValid())
 	{
 		return;
@@ -44,10 +52,18 @@ void FOnlineBaseAnalyticsAccelByte::OnLocalUserNumCachedSuccess()
 		OnLoginSuccess(LocalUserNum, true, *UserId.Get(), ONLINE_ERROR_ACCELBYTE(TEXT(""), EOnlineErrorResult::Success));
 	}
 
-	AccelByteSubsystem->OnLocalUserNumCached().Remove(OnLocalUserNumCachedDelegateHandle);
+	AccelByteSubsystemPtr->OnLocalUserNumCached().Remove(OnLocalUserNumCachedDelegateHandle);
 	OnLocalUserNumCachedDelegateHandle.Reset();
 }
 #undef ONLINE_ERROR_NAMESPACE
+
+FOnlineBaseAnalyticsAccelByte::FOnlineBaseAnalyticsAccelByte(FOnlineSubsystemAccelByte* InSubsystem)
+#if ENGINE_MAJOR_VERSION >= 5
+		: AccelByteSubsystem(InSubsystem->AsWeak())
+#else
+		: AccelByteSubsystem(InSubsystem->AsShared())
+#endif
+{}
 
 void FOnlineBaseAnalyticsAccelByte::AddToCache(int32 LocalUserNum, const TSharedPtr<FAccelByteModelsTelemetryBody>& Cache)
 {
@@ -107,20 +123,34 @@ void FOnlineBaseAnalyticsAccelByte::OnLogoutSuccess(int32 LocalUserNum, bool bWa
 const int32 FOnlineBaseAnalyticsAccelByte::GetLocalUserNumCached()
 {
 	int32 LocalUserNum = -1;
-	if (AccelByteSubsystem->IsLocalUserNumCached())
+
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
 	{
-		LocalUserNum = AccelByteSubsystem->GetLocalUserNumCached();
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return LocalUserNum;
+	}
+	
+	if (AccelByteSubsystemPtr->IsLocalUserNumCached())
+	{
+		LocalUserNum = AccelByteSubsystemPtr->GetLocalUserNumCached();
 	}
 	return LocalUserNum;
 }
 
 void FOnlineBaseAnalyticsAccelByte::SetDelegatesAndInterval(int32 LocalUserNum)
 {
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		return;
+	}
+	
 	if (LocalUserNum < 0)
 	{
 		LocalUserNum = GetLocalUserNumCached();
 	}
-	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystem->GetIdentityInterface());
+	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystemPtr->GetIdentityInterface());
 	if (IdentityInterface.IsValid())
 	{
 		if (!SetEventIntervalMap.Find(LocalUserNum) && LocalUserNum != -1)
@@ -151,9 +181,21 @@ void FOnlineBaseAnalyticsAccelByte::SetDelegatesAndInterval(int32 LocalUserNum)
 			{
 				if (!OnLocalUserNumCachedDelegateHandle.IsValid())
 				{
-					OnLocalUserNumCachedDelegateHandle = OnLoginSuccessDelegateHandle.Add(LocalUserNum, AccelByteSubsystem->OnLocalUserNumCached().AddThreadSafeSP(AsShared(), &FOnlineBaseAnalyticsAccelByte::OnLocalUserNumCachedSuccess));
+					OnLocalUserNumCachedDelegateHandle = OnLoginSuccessDelegateHandle.Add(LocalUserNum, AccelByteSubsystemPtr->OnLocalUserNumCached().AddThreadSafeSP(AsShared(), &FOnlineBaseAnalyticsAccelByte::OnLocalUserNumCachedSuccess));
 				}
 			}
 		}
 	}
+}
+
+TWeakPtr<FAccelByteInstance, ESPMode::ThreadSafe> FOnlineBaseAnalyticsAccelByte::GetAccelByteInstance() const
+{
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return nullptr;
+	}
+
+	return AccelByteSubsystemPtr->GetAccelByteInstance();
 }

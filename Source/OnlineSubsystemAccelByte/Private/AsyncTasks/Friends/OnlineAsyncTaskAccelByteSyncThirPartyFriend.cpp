@@ -4,6 +4,8 @@
 
 #include "OnlineAsyncTaskAccelByteSyncThirPartyFriend.h"
 
+#include "OnlineSubsystemAccelByteUtils.h"
+
 using namespace AccelByte;
 
 #define ONLINE_ERROR_NAMESPACE "FOnlineAsyncTaskAccelByteSyncThirPartyFriend"

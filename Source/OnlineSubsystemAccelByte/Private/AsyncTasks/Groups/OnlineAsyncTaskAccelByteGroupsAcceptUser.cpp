@@ -4,6 +4,7 @@
 
 #include "OnlineAsyncTaskAccelByteGroupsAcceptUser.h"
 #include "OnlinePredefinedEventInterfaceAccelByte.h"
+#include "OnlineGroupsInterfaceAccelByte.h"
 
 using namespace AccelByte;
 
@@ -17,6 +18,7 @@ FOnlineAsyncTaskAccelByteGroupsAcceptUser::FOnlineAsyncTaskAccelByteGroupsAccept
 	, MemberId(FUniqueNetIdAccelByteUser::CastChecked(GroupMemberUserId))
 	, GroupId(InGroupId)
 	, Delegate(InDelegate)
+	, httpStatus(0)
 {
 	LocalUserNum = GroupAdmin;
 }

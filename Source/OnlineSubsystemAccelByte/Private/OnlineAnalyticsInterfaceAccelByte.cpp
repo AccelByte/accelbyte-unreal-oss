@@ -41,7 +41,7 @@ bool FOnlineAnalyticsAccelByte::GetFromWorld(const UWorld* World
 
 bool FOnlineAnalyticsAccelByte::SetTelemetrySendInterval(int32 InLocalUserNum)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("Set Telemetry Send Interval for LocalUserNum: %d"), InLocalUserNum);
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("Set Telemetry Send Interval for LocalUserNum: %d"), InLocalUserNum);
 
 	bool bIsSuccess = false;
 	int32 SendTelemetryEventIntervalInSeconds;
@@ -49,16 +49,27 @@ bool FOnlineAnalyticsAccelByte::SetTelemetrySendInterval(int32 InLocalUserNum)
 	{
 		if (IsRunningDedicatedServer())
 		{
-			const FServerApiClientPtr ServerApiClient = FMultiRegistry::GetServerApiClient();
-			if (ServerApiClient.IsValid())
+			const FAccelByteInstancePtr AccelByteInstance = GetAccelByteInstance().Pin();
+			if(AccelByteInstance.IsValid())
 			{
-				ServerApiClient->ServerGameTelemetry.SetBatchFrequency(FTimespan::FromSeconds(SendTelemetryEventIntervalInSeconds));
-				bIsSuccess = true;
+				const FServerApiClientPtr ServerApiClient = AccelByteInstance->GetServerApiClient();
+				if (ServerApiClient.IsValid())
+				{
+					ServerApiClient->ServerGameTelemetry.SetBatchFrequency(FTimespan::FromSeconds(SendTelemetryEventIntervalInSeconds));
+					bIsSuccess = true;
+				}
 			}
 		}
 		else
 		{
-			const auto ApiClient = AccelByteSubsystem->GetApiClient(InLocalUserNum);
+			const FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+			if(!AccelByteSubsystemPtr.IsValid())
+			{
+				AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Failed to set telemetry send interval, AccelByteSubsystem ptr is invalid"));
+				return false;
+			}
+			
+			const auto ApiClient = AccelByteSubsystemPtr->GetApiClient(InLocalUserNum);
 			if (ApiClient.IsValid())
 			{
 				ApiClient->GameTelemetry.SetBatchFrequency(FTimespan::FromSeconds(SendTelemetryEventIntervalInSeconds));
@@ -67,13 +78,13 @@ bool FOnlineAnalyticsAccelByte::SetTelemetrySendInterval(int32 InLocalUserNum)
 		}
 	}
 
-	AB_OSS_INTERFACE_TRACE_END(TEXT("Set Telemetry Send Interval is finished with status (Success: %s)"), LOG_BOOL_FORMAT(bIsSuccess));
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Set Telemetry Send Interval is finished with status (Success: %s)"), LOG_BOOL_FORMAT(bIsSuccess));
 	return bIsSuccess;
 }
 
 bool FOnlineAnalyticsAccelByte::SetTelemetryImmediateEventList(int32 InLocalUserNum, TArray<FString> const& EventNames)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("Set Telemetry Immediate Event List for LocalUserNum: %d"), InLocalUserNum);
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("Set Telemetry Immediate Event List for LocalUserNum: %d"), InLocalUserNum);
 	
 	if (!IsUserLoggedIn(InLocalUserNum) || EventNames.Num() <= 0)
 	{
@@ -83,16 +94,27 @@ bool FOnlineAnalyticsAccelByte::SetTelemetryImmediateEventList(int32 InLocalUser
 	bool bIsSuccess = false;
 	if (IsRunningDedicatedServer())
 	{
-		const auto ServerApiClient = FMultiRegistry::GetServerApiClient();
-		if (ServerApiClient.IsValid())
+		const FAccelByteInstancePtr AccelByteInstance = GetAccelByteInstance().Pin();
+		if(AccelByteInstance.IsValid())
 		{
-			ServerApiClient->ServerGameTelemetry.SetImmediateEventList(EventNames);
-			bIsSuccess = true;
+			const FServerApiClientPtr ServerApiClient = AccelByteInstance->GetServerApiClient();
+			if (ServerApiClient.IsValid())
+			{
+				ServerApiClient->ServerGameTelemetry.SetImmediateEventList(EventNames);
+				bIsSuccess = true;
+			}
 		}
 	}
 	else
 	{
-		const auto ApiClient = AccelByteSubsystem->GetApiClient(InLocalUserNum);
+		const FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+		if(!AccelByteSubsystemPtr.IsValid())
+		{
+			AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Failed to set telemetry immediate event list, AccelByteSubsystem ptr is invalid"));
+			return false;
+		}
+		
+		const auto ApiClient = AccelByteSubsystemPtr->GetApiClient(InLocalUserNum);
 		if (ApiClient.IsValid())
 		{
 			ApiClient->GameTelemetry.SetImmediateEventList(EventNames);
@@ -100,23 +122,30 @@ bool FOnlineAnalyticsAccelByte::SetTelemetryImmediateEventList(int32 InLocalUser
 		}
 	}
 	
-	AB_OSS_INTERFACE_TRACE_END(TEXT("Set Telemetry Immediate Event List is finished with status (Success: %s)"), LOG_BOOL_FORMAT(bIsSuccess));
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Set Telemetry Immediate Event List is finished with status (Success: %s)"), LOG_BOOL_FORMAT(bIsSuccess));
 	return bIsSuccess;
 }
 
 bool FOnlineAnalyticsAccelByte::SetTelemetryCriticalEventList(int32 InLocalUserNum, TArray<FString> const& EventNames)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("Set Telemetry Critical Event List for LocalUserNum: %d"), InLocalUserNum);
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("Set Telemetry Critical Event List for LocalUserNum: %d"), InLocalUserNum);
 
 	if (!IsUserLoggedIn(InLocalUserNum) || EventNames.Num() <= 0)
 	{
 		return false;
 	}
 
+	const FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if(!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Failed to set telemetry critical event list, AccelByteSubsystem ptr is invalid"));
+		return false;
+	}
+
 	bool bIsSuccess = false;
 	if (!IsRunningDedicatedServer())
 	{
-		const auto ApiClient = AccelByteSubsystem->GetApiClient(InLocalUserNum);
+		const auto ApiClient = AccelByteSubsystemPtr->GetApiClient(InLocalUserNum);
 		if (ApiClient.IsValid())
 		{
 			ApiClient->GameTelemetry.SetCriticalEventList(EventNames);
@@ -124,7 +153,7 @@ bool FOnlineAnalyticsAccelByte::SetTelemetryCriticalEventList(int32 InLocalUserN
 		}
 	}
 
-	AB_OSS_INTERFACE_TRACE_END(TEXT("Set Telemetry Critical Event List is finished with status (Success: %s)"), LOG_BOOL_FORMAT(bIsSuccess));
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Set Telemetry Critical Event List is finished with status (Success: %s)"), LOG_BOOL_FORMAT(bIsSuccess));
 	return bIsSuccess;
 }
 
@@ -133,23 +162,34 @@ bool FOnlineAnalyticsAccelByte::SendTelemetryEvent(int32 InLocalUserNum
 	, FVoidHandler const& OnSuccess
 	, FErrorHandler const& OnError)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("Send Telemetry Event for LocalUserNum: %d"), InLocalUserNum);
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("Send Telemetry Event for LocalUserNum: %d"), InLocalUserNum);
 	
 	bool bIsSuccess = false;
 	if (IsUserLoggedIn(InLocalUserNum) && IsValidTelemetry(TelemetryBody))
 	{
 		if (IsRunningDedicatedServer())
 		{
-			const auto ServerApiClient = FMultiRegistry::GetServerApiClient();
-			if (ServerApiClient.IsValid())
+			const FAccelByteInstancePtr AccelByteInstance = GetAccelByteInstance().Pin();
+			if(AccelByteInstance.IsValid())
 			{
-				ServerApiClient->ServerGameTelemetry.Send(TelemetryBody, OnSuccess, OnError);
-				bIsSuccess = true;
+				const FServerApiClientPtr ServerApiClient = AccelByteInstance->GetServerApiClient();
+				if (ServerApiClient.IsValid())
+				{
+					ServerApiClient->ServerGameTelemetry.Send(TelemetryBody, OnSuccess, OnError);
+					bIsSuccess = true;
+				}
 			}
 		}
 		else
 		{
-			const auto ApiClient = AccelByteSubsystem->GetApiClient(InLocalUserNum);
+			const FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+			if(!AccelByteSubsystemPtr.IsValid())
+			{
+				AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Failed to send telemetry event, AccelByteSubsystem ptr is invalid"));
+				return false;
+			}
+			
+			const auto ApiClient = AccelByteSubsystemPtr->GetApiClient(InLocalUserNum);
 			if (ApiClient.IsValid())
 			{
 				ApiClient->GameTelemetry.Send(TelemetryBody, OnSuccess, OnError);
@@ -158,13 +198,20 @@ bool FOnlineAnalyticsAccelByte::SendTelemetryEvent(int32 InLocalUserNum
 		}
 	}
 
-	AB_OSS_INTERFACE_TRACE_END(TEXT("Send Telemetry Event is finished with status (Success: %s)"), LOG_BOOL_FORMAT(bIsSuccess));
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Send Telemetry Event is finished with status (Success: %s)"), LOG_BOOL_FORMAT(bIsSuccess));
 	return bIsSuccess;
 }
 
 bool FOnlineAnalyticsAccelByte::IsUserLoggedIn(const int32 InLocalUserNum) const
 {
-	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystem->GetIdentityInterface());
+	const FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if(!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Failed to check is user logged in, AccelByteSubsystem ptr is invalid"));
+		return false;
+	}
+	
+	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystemPtr->GetIdentityInterface());
 	
 	if (IdentityInterface.IsValid())
 	{
@@ -181,6 +228,18 @@ bool FOnlineAnalyticsAccelByte::IsUserLoggedIn(const int32 InLocalUserNum) const
 	}
 	
 	return false;
+}
+
+FAccelByteInstanceWPtr FOnlineAnalyticsAccelByte::GetAccelByteInstance() const
+{
+	const FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if(!AccelByteSubsystemPtr.IsValid())
+	{
+		UE_LOG_AB(Warning, TEXT("Failed to get accelbyte instance, AccelByteSubsystem ptr is invalid"));
+		return nullptr;
+	}
+
+	return AccelByteSubsystemPtr->GetAccelByteInstance();
 }
 
 bool FOnlineAnalyticsAccelByte::IsValidTelemetry(FAccelByteModelsTelemetryBody const& TelemetryBody)

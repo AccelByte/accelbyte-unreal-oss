@@ -41,6 +41,9 @@ typedef FOnChatConnectionClosed::FDelegate FOnChatConnectionClosedDelegate;
 DECLARE_MULTICAST_DELEGATE_FourParams(FOnSendChatComplete, FString /*UserId*/, FString /*MsgBody*/, FString /*RoomId*/, bool /*bWasSuccessful*/);
 typedef FOnSendChatComplete::FDelegate FOnSendChatCompleteDelegate;
 
+DECLARE_MULTICAST_DELEGATE_FiveParams(FOnSendChatCompleteWithError, FString /*UserId*/, FString /*MsgBody*/, FString /*RoomId*/, bool /*bWasSuccessful*/, const FOnlineError& /*Error*/)
+typedef FOnSendChatCompleteWithError::FDelegate FOnSendChatCompleteWithErrorDelegate;
+
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnChatDisconnected, FString /*Message*/);
 typedef FOnChatDisconnected::FDelegate FOnChatDisconnectedDelegate;
 
@@ -204,7 +207,7 @@ class ONLINESUBSYSTEMACCELBYTE_API FOnlineChatAccelByte : public IOnlineChat, pu
 {
 private:
 	/** Reference to the main AccelByte subsystem */
-	FOnlineSubsystemAccelByte* AccelByteSubsystem;
+	FOnlineSubsystemAccelByteWPtr AccelByteSubsystem;
 	
 public:
 	
@@ -513,6 +516,11 @@ public:
 	 */
 	DEFINE_ONLINE_DELEGATE_FOUR_PARAM(OnSendChatComplete, FString /*UserId*/, FString /*MsgBody*/, FString /*RoomId*/, bool /*bWasSuccessful*/);
 	
+	/**
+	* Delegate fired when a sending a chat message is completed
+	*/
+	DEFINE_ONLINE_DELEGATE_FIVE_PARAM(OnSendChatCompleteWithError, FString /*UserId*/, FString /*MsgBody*/, FString /*RoomId*/, bool /*bWasSuccessful*/, const FOnlineError& /*Error*/);
+
 	/**
 	* Delegate fired when a notification is received regarding a read chat
 	*/

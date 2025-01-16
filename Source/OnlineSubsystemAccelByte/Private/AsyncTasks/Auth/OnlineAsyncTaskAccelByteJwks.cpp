@@ -20,7 +20,8 @@ void FOnlineAsyncTaskAccelByteJwks::Initialize()
 
 	AB_ASYNC_TASK_DEFINE_SDK_DELEGATES(FOnlineAsyncTaskAccelByteJwks, Jwks, THandler<FJwkSet>);
 
-	FRegistry::ServerOauth2.GetJwks(OnJwksSuccessDelegate, OnJwksErrorDelegate);
+	SERVER_API_CLIENT_CHECK_GUARD();
+	ServerApiClient->ServerOauth2.GetJwks(OnJwksSuccessDelegate, OnJwksErrorDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }

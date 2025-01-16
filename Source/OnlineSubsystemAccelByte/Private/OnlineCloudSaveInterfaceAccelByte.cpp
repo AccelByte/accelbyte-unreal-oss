@@ -83,36 +83,51 @@ bool FOnlineCloudSaveAccelByte::ReplacePublicUserRecord(int32 LocalUserNum, cons
 
 bool FOnlineCloudSaveAccelByte::BulkReplaceUserRecord(const FString& Key, const TMap<FUniqueNetIdAccelByteUserRef, FJsonObject>& Request)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("Replacing user records, key:%s, total record:%d"), *Key, Request.Num());
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("Replacing user records, key:%s, total record:%d"), *Key, Request.Num());
 
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteBulkReplaceUserRecord>(AccelByteSubsystem, Key, Request);
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return false;
+	}
 
-	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteBulkReplaceUserRecord>(AccelByteSubsystemPtr.Get(), Key, Request);
+
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
 
 	return true;
 }
 
 bool FOnlineCloudSaveAccelByte::DeleteUserRecord(int32 LocalUserNum, const FString& Key, const FUniqueNetIdAccelByteUserRef& TargetUserId)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("LocalUserNum: %d"), LocalUserNum);
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("LocalUserNum: %d"), LocalUserNum);
 	if (IsRunningDedicatedServer() && TargetUserId->GetAccelByteId() == ACCELBYTE_INVALID_ID_VALUE)
 	{
-		AB_OSS_INTERFACE_TRACE_END(TEXT("Target User Id is not valid at user index '%d'!"), LocalUserNum);
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Target User Id is not valid at user index '%d'!"), LocalUserNum);
 		TriggerOnDeleteUserRecordCompletedDelegates(LocalUserNum, ONLINE_ERROR(EOnlineErrorResult::InvalidParams), Key);
 		return false;
 	}
+
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		TriggerOnDeleteUserRecordCompletedDelegates(LocalUserNum, ONLINE_ERROR(EOnlineErrorResult::Unknown), Key);
+		return false;
+	}
 	
-	const IOnlineIdentityPtr IdentityInterface = AccelByteSubsystem->GetIdentityInterface();
+	const IOnlineIdentityPtr IdentityInterface = AccelByteSubsystemPtr->GetIdentityInterface();
 	if (!IdentityInterface.IsValid())
 	{
-		AB_OSS_INTERFACE_TRACE_END(TEXT("Failed to delete user record, identity interface is invalid!"));
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Failed to delete user record, identity interface is invalid!"));
 		TriggerOnDeleteUserRecordCompletedDelegates(LocalUserNum, ONLINE_ERROR(EOnlineErrorResult::MissingInterface), Key);
 		return false;
 	}
 
 	if (IdentityInterface->GetLoginStatus(LocalUserNum) != ELoginStatus::LoggedIn)
 	{
-		AB_OSS_INTERFACE_TRACE_END(TEXT("User not logged in at user index '%d'!"), LocalUserNum);
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("User not logged in at user index '%d'!"), LocalUserNum);
 		TriggerOnDeleteUserRecordCompletedDelegates(LocalUserNum, ONLINE_ERROR(EOnlineErrorResult::InvalidAuth), Key);
 		return false;
 	}
@@ -120,7 +135,7 @@ bool FOnlineCloudSaveAccelByte::DeleteUserRecord(int32 LocalUserNum, const FStri
 	const FUniqueNetIdPtr LocalUserId = IdentityInterface->GetUniquePlayerId(LocalUserNum);
 	if (!LocalUserId.IsValid())
 	{
-		AB_OSS_INTERFACE_TRACE_END(TEXT("UserId is not valid at user index '%d'!"), LocalUserNum);
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("UserId is not valid at user index '%d'!"), LocalUserNum);
 		TriggerOnDeleteUserRecordCompletedDelegates(LocalUserNum, ONLINE_ERROR(EOnlineErrorResult::InvalidUser), Key);
 		return false;
 	}
@@ -130,34 +145,48 @@ bool FOnlineCloudSaveAccelByte::DeleteUserRecord(int32 LocalUserNum, const FStri
 		const FUniqueNetIdAccelByteUserPtr CurrentUserId = FUniqueNetIdAccelByteUser::CastChecked(LocalUserId.ToSharedRef());
 		if (CurrentUserId->GetAccelByteId() != TargetUserId->GetAccelByteId())
 		{
-			AB_OSS_INTERFACE_TRACE_END(TEXT("Target User Id should be matched with the current instance of the user"));
+			AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Target User Id should be matched with the current instance of the user"));
 			TriggerOnDeleteUserRecordCompletedDelegates(LocalUserNum, ONLINE_ERROR(EOnlineErrorResult::InvalidParams), Key);
 			return false;
 		}
 	}
 	
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteDeleteUserRecord>(AccelByteSubsystem, *LocalUserId, Key, LocalUserNum, TargetUserId->GetAccelByteId());
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteDeleteUserRecord>(AccelByteSubsystemPtr.Get(), *LocalUserId, Key, LocalUserNum, TargetUserId->GetAccelByteId());
 	return true;
 }
 
 bool FOnlineCloudSaveAccelByte::BulkGetUserRecord(const FString& Key, const TArray<FUniqueNetIdAccelByteUserRef>& UniqueNetIds)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("Get user records, key:%s, total user:%d"), *Key, UniqueNetIds.Num());
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("Get user records, key:%s, total user:%d"), *Key, UniqueNetIds.Num());
 
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteBulkGetUserRecord>(AccelByteSubsystem, Key, UniqueNetIds);
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return false;
+	}
 
-	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteBulkGetUserRecord>(AccelByteSubsystemPtr.Get(), Key, UniqueNetIds);
+
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
 
 	return true;
 }
 
 bool FOnlineCloudSaveAccelByte::BulkGetPublicUserRecord(int32 LocalUserNum, const FString& Key, const TArray<FString>& UserIds)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("LocalUserNum: %d"), LocalUserNum);
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("LocalUserNum: %d"), LocalUserNum);
 	if (IsRunningDedicatedServer())
 	{
-		AB_OSS_INTERFACE_TRACE_END(TEXT("Failed to bulk get public user record as the current game instance is a dedicated server!"));
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Failed to bulk get public user record as the current game instance is a dedicated server!"));
 		TriggerOnBulkGetPublicUserRecordCompletedDelegates(LocalUserNum, ONLINE_ERROR(EOnlineErrorResult::NotImplemented), FListAccelByteModelsUserRecord());
+		return false;
+	}
+
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
 		return false;
 	}
 	
@@ -170,17 +199,17 @@ bool FOnlineCloudSaveAccelByte::BulkGetPublicUserRecord(int32 LocalUserNum, cons
 		TempUserRecords.Data.Add(TempUserRecord);
 	}
 
-	const IOnlineIdentityPtr IdentityInterface = AccelByteSubsystem->GetIdentityInterface();
+	const IOnlineIdentityPtr IdentityInterface = AccelByteSubsystemPtr->GetIdentityInterface();
 	if (!IdentityInterface.IsValid())
 	{
-		AB_OSS_INTERFACE_TRACE_END(TEXT("Failed to get bulk user record, identity interface is invalid!"));
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Failed to get bulk user record, identity interface is invalid!"));
 		TriggerOnBulkGetPublicUserRecordCompletedDelegates(LocalUserNum, ONLINE_ERROR(EOnlineErrorResult::MissingInterface), TempUserRecords);
 		return false;
 	}
 
 	if (IdentityInterface->GetLoginStatus(LocalUserNum) != ELoginStatus::LoggedIn)
 	{
-		AB_OSS_INTERFACE_TRACE_END(TEXT("User not logged in at user index '%d'!"), LocalUserNum);
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("User not logged in at user index '%d'!"), LocalUserNum);
 		TriggerOnBulkGetPublicUserRecordCompletedDelegates(LocalUserNum, ONLINE_ERROR(EOnlineErrorResult::InvalidAuth), TempUserRecords);
 		return false;
 	}
@@ -188,12 +217,12 @@ bool FOnlineCloudSaveAccelByte::BulkGetPublicUserRecord(int32 LocalUserNum, cons
 	const FUniqueNetIdPtr LocalUserId = IdentityInterface->GetUniquePlayerId(LocalUserNum);
 	if (!LocalUserId.IsValid())
 	{
-		AB_OSS_INTERFACE_TRACE_END(TEXT("UserId is not valid at user index '%d'!"), LocalUserNum);
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("UserId is not valid at user index '%d'!"), LocalUserNum);
 		TriggerOnBulkGetPublicUserRecordCompletedDelegates(LocalUserNum, ONLINE_ERROR(EOnlineErrorResult::InvalidUser), TempUserRecords);
 		return false;
 	}
 
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteBulkGetPublicUserRecord>(AccelByteSubsystem, *LocalUserId, Key, UserIds);
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteBulkGetPublicUserRecord>(AccelByteSubsystemPtr.Get(), *LocalUserId, Key, UserIds);
 	return true;	
 }
 
@@ -209,19 +238,27 @@ bool FOnlineCloudSaveAccelByte::BulkGetPublicUserRecord(int32 LocalUserNum, cons
 
 bool FOnlineCloudSaveAccelByte::GetGameRecord(int32 LocalUserNum, const FString& Key, bool bAlwaysRequestToService)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("LocalUserNum: %d"), LocalUserNum);
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("LocalUserNum: %d"), LocalUserNum);
+
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return false;
+	}
+	
 	FAccelByteModelsGameRecord TempGameRecord{};
-	const IOnlineIdentityPtr IdentityInterface = AccelByteSubsystem->GetIdentityInterface();
+	const IOnlineIdentityPtr IdentityInterface = AccelByteSubsystemPtr->GetIdentityInterface();
 	if (!IdentityInterface.IsValid())
 	{
-		AB_OSS_INTERFACE_TRACE_END(TEXT("Failed to get game record, identity interface is invalid!"));
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Failed to get game record, identity interface is invalid!"));
 		TriggerOnGetGameRecordCompletedDelegates(LocalUserNum, ONLINE_ERROR(EOnlineErrorResult::MissingInterface), Key, FAccelByteModelsGameRecord());
 		return false;
 	}
 
 	if (IdentityInterface->GetLoginStatus(LocalUserNum) != ELoginStatus::LoggedIn)
 	{
-		AB_OSS_INTERFACE_TRACE_END(TEXT("User not logged in at user index '%d'!"), LocalUserNum);
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("User not logged in at user index '%d'!"), LocalUserNum);
 		TriggerOnGetGameRecordCompletedDelegates(LocalUserNum, ONLINE_ERROR(EOnlineErrorResult::InvalidAuth), Key, FAccelByteModelsGameRecord());
 		return false;
 	}
@@ -231,13 +268,13 @@ bool FOnlineCloudSaveAccelByte::GetGameRecord(int32 LocalUserNum, const FString&
 		const FUniqueNetIdPtr LocalUserId = IdentityInterface->GetUniquePlayerId(LocalUserNum);
 		if (!LocalUserId.IsValid())
 		{
-			AB_OSS_INTERFACE_TRACE_END(TEXT("UserId is not valid at user index '%d'!"), LocalUserNum);
+			AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("UserId is not valid at user index '%d'!"), LocalUserNum);
 			TriggerOnGetGameRecordCompletedDelegates(LocalUserNum, ONLINE_ERROR(EOnlineErrorResult::InvalidUser), Key, FAccelByteModelsGameRecord());
 			return false;
 		}
 	}
 
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGetGameRecord>(AccelByteSubsystem, LocalUserNum, Key, bAlwaysRequestToService);
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGetGameRecord>(AccelByteSubsystemPtr.Get(), LocalUserNum, Key, bAlwaysRequestToService);
 	return true;
 }
 
@@ -250,87 +287,111 @@ bool FOnlineCloudSaveAccelByte::ReplaceGameRecord(int32 LocalUserNum, const FStr
 bool FOnlineCloudSaveAccelByte::ReplaceGameRecord(int32 LocalUserNum, const FString& Key, ESetByMetadataRecord SetBy,
 	const FJsonObject& RecordRequest, const FTTLConfig& TTLConfig)
 {	
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("LocalUserNum: %d"), LocalUserNum);
-	const IOnlineIdentityPtr IdentityInterface = AccelByteSubsystem->GetIdentityInterface();
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("LocalUserNum: %d"), LocalUserNum);
+
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return false;
+	}
+	
+	const IOnlineIdentityPtr IdentityInterface = AccelByteSubsystemPtr->GetIdentityInterface();
 	if (!IdentityInterface.IsValid())
 	{
-		AB_OSS_INTERFACE_TRACE_END(TEXT("Failed to replace game record, identity interface is invalid!"));
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Failed to replace game record, identity interface is invalid!"));
 		TriggerOnReplaceGameRecordCompletedDelegates(LocalUserNum, ONLINE_ERROR(EOnlineErrorResult::MissingInterface), Key);
 		return false;
 	}
 
 	if (IdentityInterface->GetLoginStatus(LocalUserNum) != ELoginStatus::LoggedIn)
 	{
-		AB_OSS_INTERFACE_TRACE_END(TEXT("User not logged in at user index '%d'!"), LocalUserNum);
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("User not logged in at user index '%d'!"), LocalUserNum);
 		TriggerOnReplaceGameRecordCompletedDelegates(LocalUserNum, ONLINE_ERROR(EOnlineErrorResult::InvalidAuth), Key);
 		return false;
 	}
 
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteReplaceGameRecord>(AccelByteSubsystem, LocalUserNum, Key, SetBy, RecordRequest, TTLConfig);
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteReplaceGameRecord>(AccelByteSubsystemPtr.Get(), LocalUserNum, Key, SetBy, RecordRequest, TTLConfig);
 	return true;
 }
 
 bool FOnlineCloudSaveAccelByte::DeleteGameRecordTTLConfig(int32 LocalUserNum, const FString& Key)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("LocalUserNum: %d"), LocalUserNum);
-	const IOnlineIdentityPtr IdentityInterface = AccelByteSubsystem->GetIdentityInterface();
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("LocalUserNum: %d"), LocalUserNum);
+
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return false;
+	}
+	
+	const IOnlineIdentityPtr IdentityInterface = AccelByteSubsystemPtr->GetIdentityInterface();
 	if (!IdentityInterface.IsValid())
 	{
-		AB_OSS_INTERFACE_TRACE_END(TEXT("Failed to delete ttl config of game record, identity interface is invalid!"));
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Failed to delete ttl config of game record, identity interface is invalid!"));
 		TriggerOnDeleteGameRecordTTLConfigCompletedDelegates(ONLINE_ERROR(EOnlineErrorResult::MissingInterface), Key);
 		return false;
 	}
 
 	if (IdentityInterface->GetLoginStatus(LocalUserNum) != ELoginStatus::LoggedIn)
 	{
-		AB_OSS_INTERFACE_TRACE_END(TEXT("User not logged in at user index '%d'!"), LocalUserNum);
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("User not logged in at user index '%d'!"), LocalUserNum);
 		TriggerOnDeleteGameRecordTTLConfigCompletedDelegates(ONLINE_ERROR(EOnlineErrorResult::InvalidAuth), Key);
 		return false;
 	}
 
 	if (!IsRunningDedicatedServer())
 	{
-		AB_OSS_INTERFACE_TRACE_END(TEXT("Failed to delete ttl config of game record, user is not a Server '%d'!"), LocalUserNum);
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Failed to delete ttl config of game record, user is not a Server '%d'!"), LocalUserNum);
 		TriggerOnDeleteGameRecordTTLConfigCompletedDelegates(ONLINE_ERROR(EOnlineErrorResult::InvalidUser), Key);
 		return false;
 	}
 
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteDeleteGameRecordTTLConfig>(AccelByteSubsystem, Key, LocalUserNum);
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteDeleteGameRecordTTLConfig>(AccelByteSubsystemPtr.Get(), Key, LocalUserNum);
 	return true;
 }
 
 bool FOnlineCloudSaveAccelByte::GetAdminGameRecord(int32 LocalUserNum, const FString& Key, bool bAlwaysRequestToService)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("LocalUserNum: %d"), LocalUserNum);
-	const IOnlineIdentityPtr IdentityInterface = AccelByteSubsystem->GetIdentityInterface();
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("LocalUserNum: %d"), LocalUserNum);
+
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return false;
+	}
+	
+	const IOnlineIdentityPtr IdentityInterface = AccelByteSubsystemPtr->GetIdentityInterface();
 	if (!IdentityInterface.IsValid())
 	{
-		AB_OSS_INTERFACE_TRACE_END(TEXT("Failed to get admin game record, identity interface is invalid!"));
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Failed to get admin game record, identity interface is invalid!"));
 		TriggerOnGetAdminGameRecordCompletedDelegates(ONLINE_ERROR(EOnlineErrorResult::MissingInterface), Key, FAccelByteModelsAdminGameRecord());
 		return false;
 	}
 
 	if (IdentityInterface->GetLoginStatus(LocalUserNum) != ELoginStatus::LoggedIn)
 	{
-		AB_OSS_INTERFACE_TRACE_END(TEXT("User not logged in at user index '%d'!"), LocalUserNum);
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("User not logged in at user index '%d'!"), LocalUserNum);
 		TriggerOnGetAdminGameRecordCompletedDelegates(ONLINE_ERROR(EOnlineErrorResult::InvalidAuth), Key, FAccelByteModelsAdminGameRecord());
 		return false;
 	}
 
 	if (!IsRunningDedicatedServer())
 	{
-		AB_OSS_INTERFACE_TRACE_END(TEXT("Failed to get admin game record, user is not a Server '%d'!"), LocalUserNum);
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Failed to get admin game record, user is not a Server '%d'!"), LocalUserNum);
 		TriggerOnGetAdminGameRecordCompletedDelegates(ONLINE_ERROR(EOnlineErrorResult::InvalidUser), Key, FAccelByteModelsAdminGameRecord());
 		return false;
 	}
 
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGetAdminGameRecord>(AccelByteSubsystem, LocalUserNum, Key, bAlwaysRequestToService);
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGetAdminGameRecord>(AccelByteSubsystemPtr.Get(), LocalUserNum, Key, bAlwaysRequestToService);
 	return true;
 }
 
 bool FOnlineCloudSaveAccelByte::GetAdminGameRecordFromCache(const FString& Key, FAccelByteModelsAdminGameRecord& OutRecord)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("Get Admin Game Record, Key: %s"), *Key);
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("Get Admin Game Record, Key: %s"), *Key);
 	FScopeLock ScopeLock(&AdminGameRecordMapLock);
 
 	if (AdminGameRecordMap.Num() > 0)
@@ -339,47 +400,55 @@ bool FOnlineCloudSaveAccelByte::GetAdminGameRecordFromCache(const FString& Key, 
 		if (Record != nullptr)
 		{
 			OutRecord = Record->Get();
-			AB_OSS_INTERFACE_TRACE_END(TEXT("Admin Game Record found for key %s"), *Key);
+			AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Admin Game Record found for key %s"), *Key);
 			return true;
 		}
 	}
 
-	AB_OSS_INTERFACE_TRACE_END(TEXT("Admin Game Record not found for key %s"), *Key);
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Admin Game Record not found for key %s"), *Key);
 	return false;
 }
 
 bool FOnlineCloudSaveAccelByte::CreateAdminGameRecord(int32 LocalUserNum, const FString& Key, const FJsonObject& RecordRequest, const TArray<FString>& Tags, const FTTLConfig& TTLConfig)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("LocalUserNum: %d"), LocalUserNum);
-	const IOnlineIdentityPtr IdentityInterface = AccelByteSubsystem->GetIdentityInterface();
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("LocalUserNum: %d"), LocalUserNum);
+
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return false;
+	}
+	
+	const IOnlineIdentityPtr IdentityInterface = AccelByteSubsystemPtr->GetIdentityInterface();
 	if (!IdentityInterface.IsValid())
 	{
-		AB_OSS_INTERFACE_TRACE_END(TEXT("Failed to create admin game record, identity interface is invalid!"));
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Failed to create admin game record, identity interface is invalid!"));
 		TriggerOnModifyAdminGameRecordCompletedDelegates(ONLINE_ERROR(EOnlineErrorResult::MissingInterface), Key);
 		return false;
 	}
 
 	if (IdentityInterface->GetLoginStatus(LocalUserNum) != ELoginStatus::LoggedIn)
 	{
-		AB_OSS_INTERFACE_TRACE_END(TEXT("User not logged in at user index '%d'!"), LocalUserNum);
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("User not logged in at user index '%d'!"), LocalUserNum);
 		TriggerOnModifyAdminGameRecordCompletedDelegates(ONLINE_ERROR(EOnlineErrorResult::InvalidAuth), Key);
 		return false;
 	}
 
 	if (!IsRunningDedicatedServer())
 	{
-		AB_OSS_INTERFACE_TRACE_END(TEXT("Failed to create admin game record, user is not a Server '%d'!"), LocalUserNum);
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Failed to create admin game record, user is not a Server '%d'!"), LocalUserNum);
 		TriggerOnModifyAdminGameRecordCompletedDelegates(ONLINE_ERROR(EOnlineErrorResult::InvalidUser), Key);
 		return false;
 	}
 
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteCreateAdminGameRecord>(AccelByteSubsystem, LocalUserNum, Key, RecordRequest, Tags, TTLConfig);
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteCreateAdminGameRecord>(AccelByteSubsystemPtr.Get(), LocalUserNum, Key, RecordRequest, Tags, TTLConfig);
 	return true;
 }
 
 bool FOnlineCloudSaveAccelByte::GetGameRecordFromCache(const FString& Key, FAccelByteModelsGameRecord& OutRecord)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("Get Game Record, Key: %s"), *Key);
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("Get Game Record, Key: %s"), *Key);
 	FScopeLock ScopeLock(&GameRecordMapLock);
 
 	if (GameRecordMap.Num() > 0)
@@ -388,33 +457,40 @@ bool FOnlineCloudSaveAccelByte::GetGameRecordFromCache(const FString& Key, FAcce
 		if (Record != nullptr)
 		{
 			OutRecord = Record->Get();
-			AB_OSS_INTERFACE_TRACE_END(TEXT("Game Record found for key %s"), *Key);
+			AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Game Record found for key %s"), *Key);
 			return true;
 		}
 	}
 
-	AB_OSS_INTERFACE_TRACE_END(TEXT("Game Record not found for key %s"), *Key);
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Game Record not found for key %s"), *Key);
 	return false;
 }
 
 bool FOnlineCloudSaveAccelByte::GetUserRecord(int32 LocalUserNum, const FString& Key, bool IsPublic, const FString& UserId)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("LocalUserNum: %d"), LocalUserNum);
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("LocalUserNum: %d"), LocalUserNum);
+	
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+    if (!AccelByteSubsystemPtr.IsValid())
+    {
+        AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+        return false;
+    }
 
 	FAccelByteModelsUserRecord TempRecord{};
 	TempRecord.Key = Key;
 	TempRecord.UserId = UserId;
-	const IOnlineIdentityPtr IdentityInterface = AccelByteSubsystem->GetIdentityInterface();
+	const IOnlineIdentityPtr IdentityInterface = AccelByteSubsystemPtr->GetIdentityInterface();
 	if (!IdentityInterface.IsValid())
 	{
-		AB_OSS_INTERFACE_TRACE_END(TEXT("Failed to get user record, identity interface is invalid!"));
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Failed to get user record, identity interface is invalid!"));
 		TriggerOnGetUserRecordCompletedDelegates(LocalUserNum, ONLINE_ERROR(EOnlineErrorResult::MissingInterface), Key, TempRecord);
 		return false;
 	}
 
 	if (IdentityInterface->GetLoginStatus(LocalUserNum) != ELoginStatus::LoggedIn)
 	{
-		AB_OSS_INTERFACE_TRACE_END(TEXT("User not logged in at user index '%d'!"), LocalUserNum);
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("User not logged in at user index '%d'!"), LocalUserNum);
 		TriggerOnGetUserRecordCompletedDelegates(LocalUserNum, ONLINE_ERROR(EOnlineErrorResult::InvalidAuth), Key, TempRecord);
 		return false;
 	}
@@ -422,36 +498,44 @@ bool FOnlineCloudSaveAccelByte::GetUserRecord(int32 LocalUserNum, const FString&
 	const FUniqueNetIdPtr LocalUserId = IdentityInterface->GetUniquePlayerId(LocalUserNum);
 	if (!LocalUserId.IsValid())
 	{
-		AB_OSS_INTERFACE_TRACE_END(TEXT("UserId is not valid at user index '%d'!"), LocalUserNum);
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("UserId is not valid at user index '%d'!"), LocalUserNum);
 		TriggerOnGetUserRecordCompletedDelegates(LocalUserNum, ONLINE_ERROR(EOnlineErrorResult::InvalidUser), Key, TempRecord);
 		return false;
 	}
 
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGetUserRecord>(AccelByteSubsystem, LocalUserNum, *LocalUserId, Key, IsPublic, UserId);
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGetUserRecord>(AccelByteSubsystemPtr.Get(), LocalUserNum, *LocalUserId, Key, IsPublic, UserId);
 	return true;
 }
 
 bool FOnlineCloudSaveAccelByte::ReplaceUserRecord(int32 LocalUserNum, const FString& Key, const FJsonObject& RecordRequest, bool IsPublic, const FUniqueNetIdAccelByteUserRef& TargetUserId)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("LocalUserNum: %d"), LocalUserNum);
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("LocalUserNum: %d"), LocalUserNum);
+	
 	if (IsRunningDedicatedServer() && TargetUserId->GetAccelByteId() == ACCELBYTE_INVALID_ID_VALUE)
 	{
-		AB_OSS_INTERFACE_TRACE_END(TEXT("Target User Id is not valid at user index '%d'!"), LocalUserNum);
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Target User Id is not valid at user index '%d'!"), LocalUserNum);
 		TriggerOnReplaceUserRecordCompletedDelegates(LocalUserNum, ONLINE_ERROR(EOnlineErrorResult::InvalidParams), Key);
 		return false;
 	}
 
-	const IOnlineIdentityPtr IdentityInterface = AccelByteSubsystem->GetIdentityInterface();
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return false;
+	}
+
+	const IOnlineIdentityPtr IdentityInterface = AccelByteSubsystemPtr->GetIdentityInterface();
 	if (!IdentityInterface.IsValid())
 	{
-		AB_OSS_INTERFACE_TRACE_END(TEXT("Failed to replace user record, identity interface is invalid!"));
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Failed to replace user record, identity interface is invalid!"));
 		TriggerOnReplaceUserRecordCompletedDelegates(LocalUserNum, ONLINE_ERROR(EOnlineErrorResult::MissingInterface), Key);
 		return false;
 	}
 
 	if (IdentityInterface->GetLoginStatus(LocalUserNum) != ELoginStatus::LoggedIn)
 	{
-		AB_OSS_INTERFACE_TRACE_END(TEXT("User not logged in at user index '%d'!"), LocalUserNum);
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("User not logged in at user index '%d'!"), LocalUserNum);
 		TriggerOnReplaceUserRecordCompletedDelegates(LocalUserNum, ONLINE_ERROR(EOnlineErrorResult::InvalidAuth), Key);
 		return false;
 	}
@@ -459,7 +543,7 @@ bool FOnlineCloudSaveAccelByte::ReplaceUserRecord(int32 LocalUserNum, const FStr
 	const FUniqueNetIdPtr LocalUserId = IdentityInterface->GetUniquePlayerId(LocalUserNum);
 	if (!LocalUserId.IsValid())
 	{
-		AB_OSS_INTERFACE_TRACE_END(TEXT("UserId is not valid at user index '%d'!"), LocalUserNum);
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("UserId is not valid at user index '%d'!"), LocalUserNum);
 		TriggerOnReplaceUserRecordCompletedDelegates(LocalUserNum, ONLINE_ERROR(EOnlineErrorResult::InvalidUser), Key);
 		return false;
 	}
@@ -469,72 +553,88 @@ bool FOnlineCloudSaveAccelByte::ReplaceUserRecord(int32 LocalUserNum, const FStr
 		const FUniqueNetIdAccelByteUserPtr CurrentUserId = FUniqueNetIdAccelByteUser::CastChecked(LocalUserId.ToSharedRef());
 		if (CurrentUserId->GetAccelByteId() != TargetUserId->GetAccelByteId())
 		{
-			AB_OSS_INTERFACE_TRACE_END(TEXT("Target User Id should be matched with the current instance of the user"));
+			AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Target User Id should be matched with the current instance of the user"));
 			TriggerOnReplaceUserRecordCompletedDelegates(LocalUserNum, ONLINE_ERROR(EOnlineErrorResult::InvalidParams), Key);
 			return false;
 		}
 	}
 
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteReplaceUserRecord>(AccelByteSubsystem, *LocalUserId, Key, RecordRequest, IsPublic, LocalUserNum, TargetUserId->GetAccelByteId());
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteReplaceUserRecord>(AccelByteSubsystemPtr.Get(), *LocalUserId, Key, RecordRequest, IsPublic, LocalUserNum, TargetUserId->GetAccelByteId());
 	return true;
 }
 
 
 bool FOnlineCloudSaveAccelByte::ReplaceAdminGameRecord(int32 LocalUserNum, const FString& Key, const FJsonObject& RecordRequest, const FTTLConfig& TTLConfig)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("LocalUserNum: %d"), LocalUserNum);
-	const IOnlineIdentityPtr IdentityInterface = AccelByteSubsystem->GetIdentityInterface();
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("LocalUserNum: %d"), LocalUserNum);
+
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return false;
+	}
+	
+	const IOnlineIdentityPtr IdentityInterface = AccelByteSubsystemPtr->GetIdentityInterface();
 	if (!IdentityInterface.IsValid())
 	{
-		AB_OSS_INTERFACE_TRACE_END(TEXT("Failed to replace admin game record, identity interface is invalid!"));
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Failed to replace admin game record, identity interface is invalid!"));
 		TriggerOnModifyAdminGameRecordCompletedDelegates(ONLINE_ERROR(EOnlineErrorResult::MissingInterface), Key);
 		return false;
 	}
 
 	if (IdentityInterface->GetLoginStatus(LocalUserNum) != ELoginStatus::LoggedIn)
 	{
-		AB_OSS_INTERFACE_TRACE_END(TEXT("User not logged in at user index '%d'!"), LocalUserNum);
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("User not logged in at user index '%d'!"), LocalUserNum);
 		TriggerOnModifyAdminGameRecordCompletedDelegates(ONLINE_ERROR(EOnlineErrorResult::InvalidAuth), Key);
 		return false;
 	}
 
 	if (!IsRunningDedicatedServer())
 	{
-		AB_OSS_INTERFACE_TRACE_END(TEXT("Failed to replace admin game record, user is not a Server '%d'!"), LocalUserNum);
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Failed to replace admin game record, user is not a Server '%d'!"), LocalUserNum);
 		TriggerOnModifyAdminGameRecordCompletedDelegates(ONLINE_ERROR(EOnlineErrorResult::InvalidUser), Key);
 		return false;
 	}
 
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteReplaceAdminGameRecord>(AccelByteSubsystem, LocalUserNum, Key, RecordRequest, TTLConfig);
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteReplaceAdminGameRecord>(AccelByteSubsystemPtr.Get(), LocalUserNum, Key, RecordRequest, TTLConfig);
 	return true;
 }
 
 bool FOnlineCloudSaveAccelByte::DeleteAdminGameRecordTTLConfig(int32 LocalUserNum, const FString& Key)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("LocalUserNum: %d"), LocalUserNum);
-	const IOnlineIdentityPtr IdentityInterface = AccelByteSubsystem->GetIdentityInterface();
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("LocalUserNum: %d"), LocalUserNum);
+
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return false;
+	}
+	
+	const IOnlineIdentityPtr IdentityInterface = AccelByteSubsystemPtr->GetIdentityInterface();
 	if (!IdentityInterface.IsValid())
 	{
-		AB_OSS_INTERFACE_TRACE_END(TEXT("Failed to delete ttl config of admin game record, identity interface is invalid!"));
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Failed to delete ttl config of admin game record, identity interface is invalid!"));
 		TriggerOnDeleteAdminGameRecordTTLConfigCompletedDelegates(ONLINE_ERROR(EOnlineErrorResult::MissingInterface), Key);
 		return false;
 	}
 
 	if (IdentityInterface->GetLoginStatus(LocalUserNum) != ELoginStatus::LoggedIn)
 	{
-		AB_OSS_INTERFACE_TRACE_END(TEXT("User not logged in at user index '%d'!"), LocalUserNum);
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("User not logged in at user index '%d'!"), LocalUserNum);
 		TriggerOnDeleteAdminGameRecordTTLConfigCompletedDelegates(ONLINE_ERROR(EOnlineErrorResult::InvalidAuth), Key);
 		return false;
 	}
 
 	if (!IsRunningDedicatedServer())
 	{
-		AB_OSS_INTERFACE_TRACE_END(TEXT("Failed to delete ttl config of admin game record, user is not a Server '%d'!"), LocalUserNum);
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Failed to delete ttl config of admin game record, user is not a Server '%d'!"), LocalUserNum);
 		TriggerOnDeleteAdminGameRecordTTLConfigCompletedDelegates(ONLINE_ERROR(EOnlineErrorResult::InvalidUser), Key);
 		return false;
 	}
 
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteDeleteAdminGameRecordTTLConfig>(AccelByteSubsystem, Key, LocalUserNum);
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteDeleteAdminGameRecordTTLConfig>(AccelByteSubsystemPtr.Get(), Key, LocalUserNum);
 	return true;
 }
 

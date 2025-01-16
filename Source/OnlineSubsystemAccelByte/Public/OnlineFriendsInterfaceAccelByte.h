@@ -6,6 +6,7 @@
 #include "CoreMinimal.h"
 #include "OnlineSubsystemTypes.h"
 #include "OnlineDelegateMacros.h"
+#include "OnlineSubsystemAccelByte.h"
 #include "OnlineSubsystemAccelByteTypes.h"
 #include "Interfaces/OnlineFriendsInterface.h"
 #include "Interfaces/OnlinePresenceInterface.h"
@@ -389,11 +390,12 @@ public:
 protected:
 
 	/** Instance of the subsystem that created this interface */
-	FOnlineSubsystemAccelByte* AccelByteSubsystem = nullptr;
+	FOnlineSubsystemAccelByteWPtr AccelByteSubsystem = nullptr;
 
 	/** Hidden default constructor, the constructor that takes in a subsystem instance should be used instead. */
 	FOnlineFriendsAccelByte()
-		: AccelByteSubsystem(nullptr) {}
+		: AccelByteSubsystem(nullptr)
+	{}
 
 	/** Map of user IDs representing local users to an array of FOnlineFriend instances */
 	TMap<int32, TArray<TSharedPtr<FOnlineFriend>>> LocalUserNumToFriendsMap;

@@ -4,6 +4,8 @@
 
 #include "OnlineAsyncTaskAccelByteQueryUserOrders.h"
 
+#include "OnlinePurchaseInterfaceAccelByte.h"
+
 #define ONLINE_ERROR_NAMESPACE "FOnlinePurchaseSystemAccelByte"
 
 using namespace AccelByte;

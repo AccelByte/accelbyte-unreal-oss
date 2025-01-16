@@ -4,6 +4,8 @@
 
 #include "OnlineAsyncTaskAccelByteRefreshPlatformToken.h" 
 
+#include "OnlineSubsystemAccelByteUtils.h"
+
 #define ONLINE_ERROR_NAMESPACE "FOnlineUserAccelByte"
 
 using namespace AccelByte;

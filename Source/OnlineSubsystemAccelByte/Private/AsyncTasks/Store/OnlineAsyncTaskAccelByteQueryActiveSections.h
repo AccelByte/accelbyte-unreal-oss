@@ -6,6 +6,7 @@
 
 #include "AsyncTasks/OnlineAsyncTaskAccelByte.h"
 #include "AsyncTasks/OnlineAsyncTaskAccelByteUtils.h"
+#include "OnlineStoreInterfaceV2AccelByte.h"
 
 class FOnlineAsyncTaskAccelByteQueryActiveSections
 	: public FOnlineAsyncTaskAccelByte

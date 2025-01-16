@@ -33,9 +33,11 @@ void FOnlineAsyncTaskAccelByteRegisterLocalServerV2::Initialize()
 	ServerName = TEXT("");
 	AB_ASYNC_TASK_VALIDATE(SessionInterface->GetLocalServerName(ServerName), "Failed to register local server to Armada as we failed to get the server's name!");
 
+	SERVER_API_CLIENT_CHECK_GUARD();
+
 	OnRegisterServerSuccessDelegate = TDelegateUtils<FVoidHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteRegisterLocalServerV2::OnRegisterServerSuccess);
 	OnRegisterServerErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteRegisterLocalServerV2::OnRegisterServerError);;
-	FRegistry::ServerDSM.RegisterLocalServerToDSM(LocalServerIp, RegisterPort, ServerName, OnRegisterServerSuccessDelegate, OnRegisterServerErrorDelegate);
+	ServerApiClient->ServerDSM.RegisterLocalServerToDSM(LocalServerIp, RegisterPort, ServerName, OnRegisterServerSuccessDelegate, OnRegisterServerErrorDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }

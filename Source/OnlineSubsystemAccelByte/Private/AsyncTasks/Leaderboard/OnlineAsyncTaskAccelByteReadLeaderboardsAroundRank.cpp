@@ -68,7 +68,12 @@ void FOnlineAsyncTaskAccelByteReadLeaderboardsAroundRank::Initialize()
 		return;
 	}
 
+#if ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION >= 5
+	// LeaderboardName is an FString type in 5.5 and above
+	const FString LeaderboardCode = LeaderboardReadRef->LeaderboardName;
+#else
 	const FString LeaderboardCode = LeaderboardReadRef->LeaderboardName.ToString();
+#endif // ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION >= 5
 
 	OnReadLeaderboardRankSuccessHandler = TDelegateUtils<THandler<FAccelByteModelsLeaderboardRankingResultV3>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteReadLeaderboardsAroundRank::OnReadLeaderboardRankSuccess);
 	OnReadLeaderboardRankErrorHandler = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteReadLeaderboardsAroundRank::OnReadLeaderboardRankFailed);
@@ -114,7 +119,14 @@ void FOnlineAsyncTaskAccelByteReadLeaderboardsAroundRank::Finalize()
 			if (bUseCycle)
 			{
 				FAccelByteModelsLeaderboardGetRankingByCycleIdPayload LeaderboardGetRankingByCycleIdPayload{};
+
+#if ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION >= 5
+				// LeaderboardName is an FString type in 5.5 and above
+				LeaderboardGetRankingByCycleIdPayload.LeaderboardCode = LeaderboardReadRef->LeaderboardName;
+#else
 				LeaderboardGetRankingByCycleIdPayload.LeaderboardCode = LeaderboardReadRef->LeaderboardName.ToString();
+#endif // ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION >= 5
+
 				LeaderboardGetRankingByCycleIdPayload.CycleId = CycleId;
 				LeaderboardGetRankingByCycleIdPayload.UserId = UserId->GetAccelByteId();
 
@@ -123,7 +135,14 @@ void FOnlineAsyncTaskAccelByteReadLeaderboardsAroundRank::Finalize()
 			else
 			{
 				FAccelByteModelsLeaderboardGetRankingsPayload LeaderboardGetRankingsPayload{};
+
+#if ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION >= 5
+				// LeaderboardName is an FString type in 5.5 and above
+				LeaderboardGetRankingsPayload.LeaderboardCode = LeaderboardReadRef->LeaderboardName;
+#else
 				LeaderboardGetRankingsPayload.LeaderboardCode = LeaderboardReadRef->LeaderboardName.ToString();
+#endif // ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION >= 5
+
 				LeaderboardGetRankingsPayload.UserId = UserId->GetAccelByteId();
 
 				PredefinedEventInterface->SendEvent(LocalUserNum, MakeShared<FAccelByteModelsLeaderboardGetRankingsPayload>(LeaderboardGetRankingsPayload));
@@ -184,7 +203,14 @@ void FOnlineAsyncTaskAccelByteReadLeaderboardsAroundRank::OnReadLeaderboardRankS
 			UniqueNetIdRef);
 
 		LeaderboardRow->Rank = Offset + DataCount;
-		LeaderboardRow->Columns.Add(FName("Point"), Data.point);
+
+#if ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION >= 5
+		// LeaderboardName is an FString type in 5.5 and above
+		LeaderboardRow->Columns.Add(TEXT("Point"), Data.point);
+#else
+		LeaderboardRow->Columns.Add(FName(TEXT("Point")), Data.point);
+#endif // ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION >= 5
+
 		DataCount++;
 	}
 

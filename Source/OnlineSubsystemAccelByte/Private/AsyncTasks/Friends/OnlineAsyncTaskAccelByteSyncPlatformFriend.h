@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include "OnlineUserCacheAccelByte.h"
 #include "AsyncTasks/OnlineAsyncTaskAccelByte.h"
 #include "AsyncTasks/OnlineAsyncTaskAccelByteUtils.h"
 #include "Core/Platform/AccelBytePlatformHandleModels.h"

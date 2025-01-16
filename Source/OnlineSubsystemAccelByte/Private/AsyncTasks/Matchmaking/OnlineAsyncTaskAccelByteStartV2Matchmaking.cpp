@@ -246,7 +246,11 @@ void FOnlineAsyncTaskAccelByteStartV2Matchmaking::ObtainPartyStorageExcludedSess
 			auto ExcessToRemove = PastSessionIDs.Num() - SearchHandle.Get().GameSessionExclusion.ExcludedPastSessionCount;
 			if (ExcessToRemove > 0)
 			{
+#if ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION >= 5
+				PastSessionIDs.RemoveAt(0, ExcessToRemove, EAllowShrinking::Yes);
+#else
 				PastSessionIDs.RemoveAt(0, ExcessToRemove, true);
+#endif // ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION >= 5
 			}
 			Optionals.ExcludedGameSessionIDs = PastSessionIDs;
 		}

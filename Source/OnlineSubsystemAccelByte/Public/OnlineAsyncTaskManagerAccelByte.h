@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
 #include "OnlineAsyncTaskManager.h"
 
 class FOnlineSubsystemAccelByte;
@@ -23,8 +24,10 @@ public:
 
 private:
 
-	/** Pointer to subsystem instance that constructed this manager */
-	FOnlineSubsystemAccelByte* AccelByteSubsystem;
+	/** Pointer to subsystem instance that constructed this manager
+	 * using explicit TWeakPtr here instead of FOnlineSubsystemAccelByteWPtr to remove cyclic dependency
+	 */
+	TWeakPtr<FOnlineSubsystemAccelByte, ESPMode::ThreadSafe> AccelByteSubsystem;
 
 	/** How long Task elapsed can considered as too long*/
 	const double TaskTimeThreshold = 30.0;

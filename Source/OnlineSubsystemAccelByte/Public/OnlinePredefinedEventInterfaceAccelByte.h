@@ -60,32 +60,43 @@ public:
 		}
 
 		SetDelegatesAndInterval(LocalUserNum);
-		const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystem->GetIdentityInterface());
-		if (IdentityInterface.IsValid())
+		FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+		if(!AccelByteSubsystemPtr.IsValid())
 		{
-			if (IdentityInterface->GetLoginStatus(LocalUserNum) == ELoginStatus::LoggedIn)
+			return;
+		}
+
+		const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystemPtr->GetIdentityInterface());
+		if (!IdentityInterface.IsValid())
+		{
+			return;
+		}
+
+		if (IdentityInterface->GetLoginStatus(LocalUserNum) != ELoginStatus::LoggedIn)
+		{
+			Payload->PreDefinedEventName = Payload->GetPreDefinedEventName();
+			ConvertAndAddToCache(LocalUserNum, Payload, Payload->GetPreDefinedEventName(), ClientTimestamp);
+			return;
+		}
+
+		if (!IsRunningDedicatedServer())
+		{
+			const auto ApiClient = IdentityInterface->GetApiClient(LocalUserNum);
+			if (ApiClient.IsValid())
 			{
-				if (!IsRunningDedicatedServer())
-				{
-					const auto ApiClient = IdentityInterface->GetApiClient(LocalUserNum);
-					if (ApiClient.IsValid())
-					{
-						ApiClient->PredefinedEvent.SendPredefinedEventData(Payload, AccelByte::FVoidHandler::CreateThreadSafeSP(this, &FOnlinePredefinedEventAccelByte::OnSuccess, LocalUserNum, Payload->GetPreDefinedEventName()), FErrorHandler::CreateThreadSafeSP(this, &FOnlinePredefinedEventAccelByte::OnError, LocalUserNum, Payload->GetPreDefinedEventName()), ClientTimestamp);
-					}
-				}
-				else
-				{
-					const auto ApiClient = AccelByte::FMultiRegistry::GetServerApiClient();
-					if (ApiClient.IsValid())
-					{
-						ApiClient->ServerPredefinedEvent.SendPredefinedEventData(Payload, AccelByte::FVoidHandler::CreateThreadSafeSP(this, &FOnlinePredefinedEventAccelByte::OnSuccess, LocalUserNum, Payload->GetPreDefinedEventName()), FErrorHandler::CreateThreadSafeSP(this, &FOnlinePredefinedEventAccelByte::OnError, LocalUserNum, Payload->GetPreDefinedEventName()), ClientTimestamp);
-					}
-				}
+				ApiClient->PredefinedEvent.SendPredefinedEventData(Payload, AccelByte::FVoidHandler::CreateThreadSafeSP(this, &FOnlinePredefinedEventAccelByte::OnSuccess, LocalUserNum, Payload->GetPreDefinedEventName()), FErrorHandler::CreateThreadSafeSP(this, &FOnlinePredefinedEventAccelByte::OnError, LocalUserNum, Payload->GetPreDefinedEventName()), ClientTimestamp);
 			}
-			else
+		}
+		else
+		{
+			const FAccelByteInstancePtr AccelByteInstance = GetAccelByteInstance().Pin();
+			if(AccelByteInstance.IsValid())
 			{
-				Payload->PreDefinedEventName = Payload->GetPreDefinedEventName();
-				ConvertAndAddToCache(LocalUserNum, Payload, Payload->GetPreDefinedEventName(), ClientTimestamp);
+				const FServerApiClientPtr ServerApiClient = AccelByteInstance->GetServerApiClient();
+				if (ServerApiClient.IsValid())
+				{
+					ServerApiClient->ServerPredefinedEvent.SendPredefinedEventData(Payload, AccelByte::FVoidHandler::CreateThreadSafeSP(this, &FOnlinePredefinedEventAccelByte::OnSuccess, LocalUserNum, Payload->GetPreDefinedEventName()), FErrorHandler::CreateThreadSafeSP(this, &FOnlinePredefinedEventAccelByte::OnError, LocalUserNum, Payload->GetPreDefinedEventName()), ClientTimestamp);
+				}
 			}
 		}
 	}

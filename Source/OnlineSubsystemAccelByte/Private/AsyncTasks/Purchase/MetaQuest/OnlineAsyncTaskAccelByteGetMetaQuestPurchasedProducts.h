@@ -6,6 +6,7 @@
 
 #include "AsyncTasks/OnlineAsyncTaskAccelByte.h"
 #include "AsyncTasks/OnlineAsyncTaskAccelByteUtils.h"
+#include "Core/Platform/AccelBytePlatformHandleModels.h"
 #include "OnlineSubsystemAccelByteTypes.h"
 #include "OnlinePurchaseInterfaceAccelByte.h"
 

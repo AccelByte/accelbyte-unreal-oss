@@ -16,9 +16,12 @@
 #include "OnlineSubsystemAccelByteInternalHelpers.h"
 
 FOnlineVoiceAccelByte::FOnlineVoiceAccelByte(FOnlineSubsystemAccelByte* InSubsystem)
-	: AccelByteSubsystem(InSubsystem)
-{
-}
+#if ENGINE_MAJOR_VERSION >= 5
+	: AccelByteSubsystem(InSubsystem->AsWeak())
+#else
+	: AccelByteSubsystem(InSubsystem->AsShared())
+#endif
+{}
 
 bool FOnlineVoiceAccelByte::Init()
 {
@@ -45,7 +48,14 @@ void FOnlineVoiceAccelByte::RegisterTalker(const FUniqueNetIdRef Player)
 		return;
 	}
 
-	if (AccelByteSubsystem->IsLocalPlayer(Player.Get()))
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return;
+	}
+	
+	if (AccelByteSubsystemPtr->IsLocalPlayer(Player.Get()))
 	{
 		RegisterLocalTalker(0);
 	}
@@ -71,7 +81,14 @@ void FOnlineVoiceAccelByte::RegisterTalker(const FUniqueNetIdRef Player, const F
 		return;
 	}
 
-	const IOnlineIdentityPtr IdentityInterface = AccelByteSubsystem->GetIdentityInterface();
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return;
+	}
+
+	const IOnlineIdentityPtr IdentityInterface = AccelByteSubsystemPtr->GetIdentityInterface();
 	if (!IdentityInterface.IsValid())
 	{
 		return;

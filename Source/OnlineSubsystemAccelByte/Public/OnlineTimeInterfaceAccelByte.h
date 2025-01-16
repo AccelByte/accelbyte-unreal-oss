@@ -4,10 +4,13 @@
 
 #pragma once
 #include "OnlineSubsystemAccelByte.h"
+#include "OnlineSubsystemAccelByteDefines.h"
 #include "Interfaces/OnlineTimeInterface.h"
 #include "OnlineSubsystemAccelByteTypes.h"
 #include "Misc/DateTime.h"
 #include "OnlineSubsystemAccelBytePackage.h"
+
+class IOnlineSubsystem;
 
 class ONLINESUBSYSTEMACCELBYTE_API FOnlineTimeAccelByte : public IOnlineTime
 {
@@ -46,5 +49,5 @@ public:
 
 protected:
 	/** Instance of the subsystem that created this interface */
-	FOnlineSubsystemAccelByte* AccelByteSubsystem = nullptr;
+	FOnlineSubsystemAccelByteWPtr AccelByteSubsystem = nullptr;
 };

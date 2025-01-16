@@ -59,17 +59,28 @@ bool FOnlineChatAccelByte::GetFromWorld(const UWorld* World, FOnlineChatAccelByt
 }
 
 FOnlineChatAccelByte::FOnlineChatAccelByte(FOnlineSubsystemAccelByte* InSubsystem)
-	: AccelByteSubsystem(InSubsystem)
+#if ENGINE_MAJOR_VERSION >= 5
+	: AccelByteSubsystem(InSubsystem->AsWeak())
+#else
+	: AccelByteSubsystem(InSubsystem->AsShared())
+#endif
 {}
 
 bool FOnlineChatAccelByte::Connect(int32 LocalUserNum)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("LocalUserNum: %d"), LocalUserNum);
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("LocalUserNum: %d"), LocalUserNum);
 
-	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystem->GetIdentityInterface());
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelByteSubsystemPtr.Get() is invalid"));
+		return false;
+	}
+
+	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystemPtr->GetIdentityInterface());
 	if (!ensure(IdentityInterface.IsValid()))
 	{
-		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to register notifications for session updates as our identity interface is invalid!"));
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to register notifications for session updates as our identity interface is invalid!"));
 		return false;
 	}
 
@@ -77,7 +88,7 @@ bool FOnlineChatAccelByte::Connect(int32 LocalUserNum)
 	if (IdentityInterface->GetLoginStatus(LocalUserNum) != ELoginStatus::LoggedIn)
 	{
 		const FString ErrorStr = TEXT("chat-connect-failed-not-logged-in");
-		AB_OSS_INTERFACE_TRACE_END(TEXT("User not logged in at user index '%d'!"), LocalUserNum);
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("User not logged in at user index '%d'!"), LocalUserNum);
 
 		TriggerOnConnectChatCompleteDelegates(LocalUserNum, false, FUniqueNetIdAccelByteUser::Invalid().Get(), ErrorStr);
 		return false;
@@ -87,7 +98,7 @@ bool FOnlineChatAccelByte::Connect(int32 LocalUserNum)
 	if (!LocalUserId.IsValid())
 	{
 		const FString ErrorStr = TEXT("chat-connect-failed-user-invalid");
-		AB_OSS_INTERFACE_TRACE_END(TEXT("Local User at index '%d' is invalid!"), LocalUserNum);
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Local User at index '%d' is invalid!"), LocalUserNum);
 
 		TriggerOnConnectChatCompleteDelegates(LocalUserNum, false, FUniqueNetIdAccelByteUser::Invalid().Get(), ErrorStr);
 		return false;
@@ -97,7 +108,7 @@ bool FOnlineChatAccelByte::Connect(int32 LocalUserNum)
 	if (!UserAccount.IsValid())
 	{
 		const FString ErrorStr = TEXT("chat-connect-failed-user-account-invalid");
-		AB_OSS_INTERFACE_TRACE_END(TEXT("User Account at index '%d' is invalid!"), LocalUserNum);
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("User Account at index '%d' is invalid!"), LocalUserNum);
 
 		TriggerOnConnectChatCompleteDelegates(LocalUserNum, false, *LocalUserId.Get(), ErrorStr);
 		return false;
@@ -107,7 +118,7 @@ bool FOnlineChatAccelByte::Connect(int32 LocalUserNum)
 	if (UserAccountAccelByte->IsConnectedToChat())
 	{
 		const FString ErrorStr = TEXT("chat-connect-failed-already-connected");
-		AB_OSS_INTERFACE_TRACE_END(TEXT("User already connected to chat at user index '%d'!"), LocalUserNum);
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("User already connected to chat at user index '%d'!"), LocalUserNum);
 
 		TriggerOnConnectChatCompleteDelegates(LocalUserNum, false, *LocalUserId.Get(), ErrorStr);
 		return false;
@@ -117,14 +128,14 @@ bool FOnlineChatAccelByte::Connect(int32 LocalUserNum)
 	bool bIsAutoCheckMaximumLimitChatMessage{false};
 	if (FAccelByteUtilities::LoadABConfigFallback(TEXT("OnlineSubsystemAccelByte"), TEXT("bIsAutoCheckMaximumLimitChatMessage"), bIsAutoCheckMaximumLimitChatMessage) && bIsAutoCheckMaximumLimitChatMessage)
 	{
-		AccelByteSubsystem->CreateAndDispatchAsyncTaskSerial<FOnlineAsyncTaskAccelByteChatGetConfig>(AccelByteSubsystem, *LocalUserId.Get());
-		AccelByteSubsystem->CreateAndDispatchAsyncTaskSerial<FOnlineAsyncTaskAccelByteConnectChat>(AccelByteSubsystem, *LocalUserId.Get());
+		AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskSerial<FOnlineAsyncTaskAccelByteChatGetConfig>(AccelByteSubsystemPtr.Get(), *LocalUserId.Get());
+		AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskSerial<FOnlineAsyncTaskAccelByteConnectChat>(AccelByteSubsystemPtr.Get(), *LocalUserId.Get());
 	}
 	else
 	{
-		AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteConnectChat>(AccelByteSubsystem, *LocalUserId.Get());
+		AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteConnectChat>(AccelByteSubsystemPtr.Get(), *LocalUserId.Get());
 	}
-	AB_OSS_INTERFACE_TRACE_END(TEXT("Dispatching async task to attempt to connect chat!"));
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Dispatching async task to attempt to connect chat!"));
 	return true;
 }
 
@@ -143,35 +154,48 @@ bool FOnlineChatAccelByte::CreateRoom(const FUniqueNetId& UserId, const FString&
 {
 	FReport::LogDeprecated(FString(__FUNCTION__), TEXT("Manual room creation is deprecated - please use V2 Sessions to auto-create chat rooms"));
 
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("UserId: %s, Nickname: %s, bIsJoinable: %s"), *UserId.ToDebugString(), *Nickname, LOG_BOOL_FORMAT(ChatRoomConfig.bIsJoinable));
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("UserId: %s, Nickname: %s, bIsJoinable: %s"), *UserId.ToDebugString(), *Nickname, LOG_BOOL_FORMAT(ChatRoomConfig.bIsJoinable));
 
 	// TODO: Store the supplied nickname
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelByteSubsystemPtr.Get() is invalid"));
+		return false;
+	}
 
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteChatCreateRoom>(AccelByteSubsystem, UserId, ChatRoomConfig);
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteChatCreateRoom>(AccelByteSubsystemPtr.Get(), UserId, ChatRoomConfig);
 
-	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
 
 	return true;
 }
 
 bool FOnlineChatAccelByte::ConfigureRoom(const FUniqueNetId&, const FChatRoomId&, const FChatRoomConfig&)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT(""));
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT(""));
 
 	// #NOTE Not doing anything, as none of the fields in FChatRoomConfig are supported by the backend. So a call to this method would be redundant
 
-	AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Cannot configure chat room using FChatRoomConfig as its fields are not supported! Please supply an instance of FAccelByteChatRoomConfig instead!"));
+	AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Cannot configure chat room using FChatRoomConfig as its fields are not supported! Please supply an instance of FAccelByteChatRoomConfig instead!"));
 
 	return false;
 }
 
 bool FOnlineChatAccelByte::ConfigureRoom(const FUniqueNetId& UserId, const FChatRoomId& RoomId, const FAccelByteChatRoomConfig& ChatRoomConfig)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("UserId: %s, RoomId: %s, bIsJoinable: %s"), *UserId.ToDebugString(), *RoomId, LOG_BOOL_FORMAT(ChatRoomConfig.bIsJoinable));
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("UserId: %s, RoomId: %s, bIsJoinable: %s"), *UserId.ToDebugString(), *RoomId, LOG_BOOL_FORMAT(ChatRoomConfig.bIsJoinable));
 
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteChatConfigureRoom>(AccelByteSubsystem, UserId, RoomId, ChatRoomConfig);
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelByteSubsystemPtr.Get() is invalid"));
+		return false;
+	}
+	
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteChatConfigureRoom>(AccelByteSubsystemPtr.Get(), UserId, RoomId, ChatRoomConfig);
 
-	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
 
 	return true;
 }
@@ -182,51 +206,71 @@ bool FOnlineChatAccelByte::JoinPublicRoom(
 	const FString& Nickname,
 	const FChatRoomConfig&)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("UserId: %s, RoomId: %s, Nickname: %s"), *UserId.ToDebugString(), *RoomId, *Nickname);
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("UserId: %s, RoomId: %s, Nickname: %s"), *UserId.ToDebugString(), *RoomId, *Nickname);
 
 	// TODO: Store the supplied nickname
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelByteSubsystemPtr.Get() is invalid"));
+		return false;
+	}
 
 	FOnlineAsyncTaskInfo TaskInfo;
 	TaskInfo.Type = ETypeOfOnlineAsyncTask::Parallel;
 	TaskInfo.bCreateEpicForThis = true;
-	AccelByteSubsystem->CreateAndDispatchAsyncTask<FOnlineAsyncTaskAccelByteChatJoinPublicRoom>(TaskInfo, AccelByteSubsystem, UserId, RoomId);
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTask<FOnlineAsyncTaskAccelByteChatJoinPublicRoom>(TaskInfo, AccelByteSubsystemPtr.Get(), UserId, RoomId);
 
-	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
 
 	return true;
 }
 
 bool FOnlineChatAccelByte::JoinPrivateRoom(const FUniqueNetId&, const FChatRoomId&, const FString&, const FChatRoomConfig&)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT(""));
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT(""));
 
 	// #NOTE Not doing anything, as the backend does not support private rooms
 
-	AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Cannot join private chat room as it is unsupported!"));
+	AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Cannot join private chat room as it is unsupported!"));
 
 	return false;
 }
 
 bool FOnlineChatAccelByte::ExitRoom(const FUniqueNetId& UserId, const FChatRoomId& RoomId)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("UserId: %s, RoomId: %s"), *UserId.ToDebugString(), *RoomId);
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("UserId: %s, RoomId: %s"), *UserId.ToDebugString(), *RoomId);
 
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteChatExitRoom>(AccelByteSubsystem, UserId, RoomId);
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelByteSubsystemPtr.Get() is invalid"));
+		return false;
+	}
 
-	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteChatExitRoom>(AccelByteSubsystemPtr.Get(), UserId, RoomId);
+
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
 
 	return true;
 }
 
 bool FOnlineChatAccelByte::SendRoomChat(const FUniqueNetId& UserId, const FChatRoomId& RoomId, const FString& MsgBody)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("UserId: %s, RoomId: %s, MsgBody: %s"), *UserId.ToDebugString(), *RoomId, *MsgBody);
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("UserId: %s, RoomId: %s, MsgBody: %s"), *UserId.ToDebugString(), *RoomId, *MsgBody);
+
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelByteSubsystemPtr.Get() is invalid"));
+		return false;
+	}
 
 	const FUniqueNetIdAccelByteUserRef AccelByteUserId = FUniqueNetIdAccelByteUser::CastChecked(UserId);
 	const FString AccelByteId = AccelByteUserId->GetAccelByteId();
 	if (!IsJoinedTopic(AccelByteId, RoomId))
 	{
-		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Unable to send room chat as the user %s has not joined room %s"), *AccelByteId, *RoomId);
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Unable to send room chat as the user %s has not joined room %s"), *AccelByteId, *RoomId);
 		return false;
 	}
 
@@ -235,167 +279,244 @@ bool FOnlineChatAccelByte::SendRoomChat(const FUniqueNetId& UserId, const FChatR
 	{
 		if (MsgBody.Len() > MaxChatMessageLength)
 		{
-			AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Unable to send room chat as the message body is more than limit of %d characters"), MaxChatMessageLength);
+			AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Unable to send room chat as the message body is more than limit of %d characters"), MaxChatMessageLength);
 			return false;
 		}
 	}
 
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteChatSendRoomChat>(AccelByteSubsystem, UserId, RoomId, MsgBody);
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteChatSendRoomChat>(AccelByteSubsystemPtr.Get(), UserId, RoomId, MsgBody);
 
-	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
 
 	return true;
 }
 
 bool FOnlineChatAccelByte::SendPrivateChat(const FUniqueNetId& UserId, const FUniqueNetId& RecipientId, const FString& MsgBody)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("UserId: %s, RecipientId: %s"), *UserId.ToDebugString(), *RecipientId.ToDebugString());
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("UserId: %s, RecipientId: %s"), *UserId.ToDebugString(), *RecipientId.ToDebugString());
+
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelByteSubsystemPtr.Get() is invalid"));
+		return false;
+	}
 
 	// If max chat message length is not an index none, then check the message body length compare with max chat message length
 	if (MaxChatMessageLength != INDEX_NONE)
 	{
 		if (MsgBody.Len() > MaxChatMessageLength)
 		{
-			AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Unable to send room chat as the message body is more than limit of %d characters"), MaxChatMessageLength);
+			AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Unable to send room chat as the message body is more than limit of %d characters"), MaxChatMessageLength);
 			return false;
 		}
 	}
 
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteChatSendPersonalChat>(AccelByteSubsystem, UserId, RecipientId, MsgBody);
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteChatSendPersonalChat>(AccelByteSubsystemPtr.Get(), UserId, RecipientId, MsgBody);
 
-	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
 
 	return true;
 }
 
 bool FOnlineChatAccelByte::DeleteSystemMessages(const FUniqueNetId& UserId, const TSet<FString>& MessageIds)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("UserId: %s"), *UserId.ToDebugString());
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("UserId: %s"), *UserId.ToDebugString());
 
-	if (MessageIds.Num() <= 0)
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
 	{
-		AB_OSS_INTERFACE_TRACE_END(TEXT("Can't delete system message, the message ids is empty"));
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelByteSubsystemPtr.Get() is invalid"));
 		return false;
 	}
 
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteChatDeleteSystemMessages>(AccelByteSubsystem, UserId, MessageIds);
+	if (MessageIds.Num() <= 0)
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Can't delete system message, the message ids is empty"));
+		return false;
+	}
 
-	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteChatDeleteSystemMessages>(AccelByteSubsystemPtr.Get(), UserId, MessageIds);
+
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
 
 	return true;
 }
 
 bool FOnlineChatAccelByte::UpdateSystemMessages(const FUniqueNetId& UserId, const TArray<FAccelByteModelsActionUpdateSystemMessage>& ActionUpdateSystemMessages)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("UserId: %s"), *UserId.ToDebugString());
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("UserId: %s"), *UserId.ToDebugString());
 
-	if (ActionUpdateSystemMessages.Num() <= 0)
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
 	{
-		AB_OSS_INTERFACE_TRACE_END(TEXT("Can't update system messages, the actions is empty"));
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelByteSubsystemPtr.Get() is invalid"));
 		return false;
 	}
 
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteChatUpdateSystemMessages>(AccelByteSubsystem, UserId, ActionUpdateSystemMessages);
-	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+	if (ActionUpdateSystemMessages.Num() <= 0)
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Can't update system messages, the actions is empty"));
+		return false;
+	}
+
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteChatUpdateSystemMessages>(AccelByteSubsystemPtr.Get(), UserId, ActionUpdateSystemMessages);
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
 
 	return true;
 }
 
 bool FOnlineChatAccelByte::QuerySystemMessage(const FUniqueNetId& UserId, const FQuerySystemMessageOptions& OptionalParams)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("UserId: %s"), *UserId.ToDebugString());
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteChatQuerySystemMessages>(AccelByteSubsystem, UserId, OptionalParams);
-	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("UserId: %s"), *UserId.ToDebugString());
+	
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelByteSubsystemPtr.Get() is invalid"));
+		return false;
+	}
+	
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteChatQuerySystemMessages>(AccelByteSubsystemPtr.Get(), UserId, OptionalParams);
+	
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
 
 	return true;
 }
 
 bool FOnlineChatAccelByte::QueryTransientSystemMessage(const FUniqueNetId& UserId, const FQuerySystemMessageOptions& OptionalParams)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("UserId: %s"), *UserId.ToDebugString());
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteChatQueryTransientSystemMessages>(AccelByteSubsystem, UserId, OptionalParams);
-	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("UserId: %s"), *UserId.ToDebugString());
+
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelByteSubsystemPtr.Get() is invalid"));
+		return false;
+	}
+	
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteChatQueryTransientSystemMessages>(AccelByteSubsystemPtr.Get(), UserId, OptionalParams);
+
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
 
 	return true;
 }
 
 bool FOnlineChatAccelByte::GetSystemMessageStats(const FUniqueNetId& UserId, const FAccelByteGetSystemMessageStatsRequest& Request)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("UserId: %s"), *UserId.ToDebugString());
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteChatGetSystemMessagesStats>(AccelByteSubsystem, UserId, Request);
-	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("UserId: %s"), *UserId.ToDebugString());
+
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelByteSubsystemPtr.Get() is invalid"));
+		return false;
+	}
+	
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteChatGetSystemMessagesStats>(AccelByteSubsystemPtr.Get(), UserId, Request);
+
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
 
 	return true;
 }
 
 bool FOnlineChatAccelByte::GetChatConfig(int32 LocalUserNum)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("LocalUserNum: %i"), LocalUserNum);
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("LocalUserNum: %i"), LocalUserNum);
+
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelByteSubsystemPtr.Get() is invalid"));
+		return false;
+	}
 
 	if (IsRunningDedicatedServer())
 	{
-		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Get chat config is not supported for game server"));
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Get chat config is not supported for game server"));
 		return false;
 	}
-	const TSharedPtr<const FUniqueNetId> UserIdPtr = AccelByteSubsystem->GetIdentityInterface()->GetUniquePlayerId(LocalUserNum);
+	const TSharedPtr<const FUniqueNetId> UserIdPtr = AccelByteSubsystemPtr->GetIdentityInterface()->GetUniquePlayerId(LocalUserNum);
 	GetChatConfig(*UserIdPtr.Get());
 
-	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
 
 	return true;
 }
 
 bool FOnlineChatAccelByte::GetChatConfig(const FUniqueNetId& UserId)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("UserId: %s"), *UserId.ToDebugString());
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("UserId: %s"), *UserId.ToDebugString());
 
 	if (IsRunningDedicatedServer())
 	{
-		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Get chat config is not supported for game server"));
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Get chat config is not supported for game server"));
 		return false;
 	}
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteChatGetConfig>(AccelByteSubsystem, UserId);
 
-	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelByteSubsystemPtr.Get() is invalid"));
+		return false;
+	}
+	
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteChatGetConfig>(AccelByteSubsystemPtr.Get(), UserId);
+
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
 
 	return true;
 }
 
 bool FOnlineChatAccelByte::GetUserConfiguration(const int32 LocalUserNum)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("LocalUserNum: %i"), LocalUserNum);
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("LocalUserNum: %i"), LocalUserNum);
 
 	if (IsRunningDedicatedServer())
 	{
-		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Get user chat configuration is not supported for game server"));
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Get user chat configuration is not supported for game server"));
 		return false;
 	}
 
-	const FUniqueNetIdPtr UserIdPtr = AccelByteSubsystem->GetIdentityInterface()->GetUniquePlayerId(LocalUserNum);
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelByteSubsystemPtr.Get() is invalid"));
+		return false;
+	}
 
-	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+	const FUniqueNetIdPtr UserIdPtr = AccelByteSubsystemPtr->GetIdentityInterface()->GetUniquePlayerId(LocalUserNum);
+
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
 	
 	return GetUserConfiguration(*UserIdPtr);
 }
 
 bool FOnlineChatAccelByte::GetUserConfiguration(const FUniqueNetId& UserId)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("UserId: %s"), *UserId.ToDebugString());
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("UserId: %s"), *UserId.ToDebugString());
 
 	if (IsRunningDedicatedServer())
 	{
-		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Get user chat configuration is not supported for game server"));
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Get user chat configuration is not supported for game server"));
 		return false;
 	}
 
 	if (!UserId.IsValid())
 	{
-		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Get user chat configuration failed as the user id is invalid"));
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Get user chat configuration failed as the user id is invalid"));
 		return false;
 	}
 
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGetUserChatConfiguration>(AccelByteSubsystem, UserId);
-	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelByteSubsystemPtr.Get() is invalid"));
+		return false;
+	}
+
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGetUserChatConfiguration>(AccelByteSubsystemPtr.Get(), UserId);
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
 
 	return true;
 }
@@ -403,17 +524,24 @@ bool FOnlineChatAccelByte::GetUserConfiguration(const FUniqueNetId& UserId)
 bool FOnlineChatAccelByte::SetUserConfiguration(const int32 LocalUserNum
 	, const FAccelByteModelsSetUserChatConfigurationRequest& Configuration)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("LocalUserNum: %i"), LocalUserNum);
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("LocalUserNum: %i"), LocalUserNum);
 
 	if (IsRunningDedicatedServer())
 	{
-		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Set user chat configuration is not supported for game server"));
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Set user chat configuration is not supported for game server"));
 		return false;
 	}
 
-	const TSharedPtr<const FUniqueNetId> UserIdPtr = AccelByteSubsystem->GetIdentityInterface()->GetUniquePlayerId(LocalUserNum);
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelByteSubsystemPtr.Get() is invalid"));
+		return false;
+	}
 
-	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+	const TSharedPtr<const FUniqueNetId> UserIdPtr = AccelByteSubsystemPtr->GetIdentityInterface()->GetUniquePlayerId(LocalUserNum);
+
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
 
 	return SetUserConfiguration(*UserIdPtr, Configuration);
 }
@@ -421,22 +549,29 @@ bool FOnlineChatAccelByte::SetUserConfiguration(const int32 LocalUserNum
 bool FOnlineChatAccelByte::SetUserConfiguration(const FUniqueNetId& UserId
 	, const FAccelByteModelsSetUserChatConfigurationRequest& Configuration)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("UserId: %s"), *UserId.ToDebugString());
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("UserId: %s"), *UserId.ToDebugString());
 
 	if (IsRunningDedicatedServer())
 	{
-		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Set user chat configuration is not supported for game server"));
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Set user chat configuration is not supported for game server"));
 		return false;
 	}
 
 	if (!UserId.IsValid())
 	{
-		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Set user chat configuration failed as the user id is invalid"));
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Set user chat configuration failed as the user id is invalid"));
 		return false;
 	}
 
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteSetUserChatConfiguration>(AccelByteSubsystem, UserId, Configuration);
-	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelByteSubsystemPtr.Get() is invalid"));
+		return false;
+	}
+
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteSetUserChatConfiguration>(AccelByteSubsystemPtr.Get(), UserId, Configuration);
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
 
 	return true;
 }
@@ -448,7 +583,7 @@ bool FOnlineChatAccelByte::IsChatAllowed(const FUniqueNetId& UserId, const FUniq
 
 void FOnlineChatAccelByte::GetJoinedRooms(const FUniqueNetId& UserId, TArray<FChatRoomId>& OutRooms)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("UserId: %s"), *UserId.ToDebugString());
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("UserId: %s"), *UserId.ToDebugString());
 
 	const FUniqueNetIdAccelByteUserRef AccelByteUserId = FUniqueNetIdAccelByteUser::CastChecked(UserId);
 	const FString AccelByteId = AccelByteUserId->GetAccelByteId();
@@ -460,33 +595,33 @@ void FOnlineChatAccelByte::GetJoinedRooms(const FUniqueNetId& UserId, TArray<FCh
 		}
 	}
 
-	AB_OSS_INTERFACE_TRACE_END(TEXT("Number of rooms: %d"), OutRooms.Num());
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Number of rooms: %d"), OutRooms.Num());
 }
 
 TSharedPtr<FChatRoomInfo> FOnlineChatAccelByte::GetRoomInfo(const FUniqueNetId& UserId, const FChatRoomId& RoomId)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("UserId: %s, RoomId: %s"), *UserId.ToDebugString(), *RoomId);
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("UserId: %s, RoomId: %s"), *UserId.ToDebugString(), *RoomId);
 
 	FAccelByteChatRoomInfoRef* RoomInfo = TopicIdToChatRoomInfoCached.Find(RoomId);
 	if (RoomInfo == nullptr)
 	{
-		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Room with ID %s not found"), *RoomId);
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Room with ID %s not found"), *RoomId);
 		return nullptr;		
 	}
 
-	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
 
 	return *RoomInfo;
 }
 
 bool FOnlineChatAccelByte::GetMembers(const FUniqueNetId& UserId, const FChatRoomId& RoomId, TArray<TSharedRef<FChatRoomMember>>& OutMembers)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("UserId: %s, RoomId: %s"), *UserId.ToDebugString(), *RoomId);
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("UserId: %s, RoomId: %s"), *UserId.ToDebugString(), *RoomId);
 
 	const FAccelByteChatRoomInfoRef* RoomInfo = TopicIdToChatRoomInfoCached.Find(RoomId);
 	if (RoomInfo == nullptr)
 	{
-		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to get members for room with ID %s as the room was not found!"), *RoomId);
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to get members for room with ID %s as the room was not found!"), *RoomId);
 		return false;
 	}
 
@@ -497,7 +632,7 @@ bool FOnlineChatAccelByte::GetMembers(const FUniqueNetId& UserId, const FChatRoo
 		OutMembers.Add(RoomMember);
 	}
 
-	AB_OSS_INTERFACE_TRACE_END(TEXT("Number of members: %d"), OutMembers.Num());
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Number of members: %d"), OutMembers.Num());
 
 	return true;
 }
@@ -507,7 +642,7 @@ TSharedPtr<FChatRoomMember> FOnlineChatAccelByte::GetMember(
 	const FChatRoomId& RoomId,
 	const FUniqueNetId& MemberId)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("UserId: %s, RoomId: %s, MemberId: %s"), *UserId.ToDebugString(), *RoomId, *MemberId.ToDebugString());
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("UserId: %s, RoomId: %s, MemberId: %s"), *UserId.ToDebugString(), *RoomId, *MemberId.ToDebugString());
 
 	const FUniqueNetIdAccelByteUserRef AccelByteUserId = FUniqueNetIdAccelByteUser::CastChecked(UserId);
 	const FString AccelByteId = AccelByteUserId->GetAccelByteId();
@@ -515,17 +650,17 @@ TSharedPtr<FChatRoomMember> FOnlineChatAccelByte::GetMember(
 	const FAccelByteChatRoomInfoRef* RoomInfo = TopicIdToChatRoomInfoCached.Find(RoomId);
 	if (RoomInfo == nullptr)
 	{
-		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to get member from room with ID %s as the room was not found!"), *RoomId);
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to get member from room with ID %s as the room was not found!"), *RoomId);
 		return nullptr;
 	}
 	
 	if (!(*RoomInfo)->HasMember(AccelByteId))
 	{
-		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to get member with ID %s from room with ID %s as the user is not a member of the room!"), *MemberId.ToDebugString(), *RoomId);
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to get member with ID %s from room with ID %s as the user is not a member of the room!"), *MemberId.ToDebugString(), *RoomId);
 		return nullptr;
 	}
 
-	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
 
 	return GetAccelByteChatRoomMember(AccelByteId);
 }
@@ -536,7 +671,7 @@ bool FOnlineChatAccelByte::GetLastMessages(
 	int32 NumMessages,
 	TArray<TSharedRef<FChatMessage>>& OutMessages)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("UserId: %s, RoomId: %s, NumMessages: %d"), *UserId.ToDebugString(), *RoomId, NumMessages);
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("UserId: %s, RoomId: %s, NumMessages: %d"), *UserId.ToDebugString(), *RoomId, NumMessages);
 
 	const FUniqueNetIdAccelByteUserRef AccelByteUserId = FUniqueNetIdAccelByteUser::CastChecked(UserId);	
 	FString RoomIdToLoad = RoomId;
@@ -550,13 +685,13 @@ bool FOnlineChatAccelByte::GetLastMessages(
 	FChatRoomIdToChatMessages* RoomIdToChatMessages = UserIdToChatRoomMessagesCached.Find(AccelByteUserId);
 	if (RoomIdToChatMessages == nullptr)
 	{
-		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to get last messages from room with ID %s as the room was not found!"), *RoomId);
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to get last messages from room with ID %s as the room was not found!"), *RoomId);
 		return false;
 	}
 	TArray<TSharedRef<FChatMessage>>* Messages = RoomIdToChatMessages->Find(RoomIdToLoad);
 	if (Messages == nullptr)
 	{
-		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to get last messages from room with ID %s as the room has no messages!"), *RoomId);
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to get last messages from room with ID %s as the room has no messages!"), *RoomId);
 		return false;
 	}
 
@@ -569,7 +704,7 @@ bool FOnlineChatAccelByte::GetLastMessages(
 		OutMessages.Add(MsgList[i]);
 	}
 
-	AB_OSS_INTERFACE_TRACE_END(TEXT("Number of messages: %d"), OutMessages.Num());
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Number of messages: %d"), OutMessages.Num());
 
 	return true;
 }
@@ -714,26 +849,33 @@ FAccelByteChatRoomMemberRef FOnlineChatAccelByte::GetAccelByteChatRoomMember(con
 
 void FOnlineChatAccelByte::RegisterChatDelegates(const FUniqueNetId& PlayerId)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("PlayerId: %s"), *PlayerId.ToDebugString());
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("PlayerId: %s"), *PlayerId.ToDebugString());
 
-	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystem->GetIdentityInterface());
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelByteSubsystemPtr.Get() is invalid"));
+		return;
+	}
+
+	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystemPtr->GetIdentityInterface());
 	if (!ensure(IdentityInterface.IsValid()))
 	{
-		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to register notifications for session updates as our identity interface is invalid!"));
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to register notifications for session updates as our identity interface is invalid!"));
 		return;
 	}
 
 	int32 LocalUserNum = 0;
 	if (!ensure(IdentityInterface->GetLocalUserNum(PlayerId, LocalUserNum)))
 	{
-		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to register notifications for session updates as we could not get a local user index for player with ID '%s'!"), *PlayerId.ToDebugString());
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to register notifications for session updates as we could not get a local user index for player with ID '%s'!"), *PlayerId.ToDebugString());
 		return;
 	}
 
 	AccelByte::FApiClientPtr ApiClient = IdentityInterface->GetApiClient(PlayerId);
 	if (!ensure(ApiClient.IsValid()))
 	{
-		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to register notifications for session updates as player '%s' has an invalid API client!"), *PlayerId.ToDebugString());
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to register notifications for session updates as player '%s' has an invalid API client!"), *PlayerId.ToDebugString());
 		return;
 	}
 
@@ -794,23 +936,23 @@ void FOnlineChatAccelByte::RegisterChatDelegates(const FUniqueNetId& PlayerId)
 	FOnlineAsyncTaskInfo TaskInfo;
 	TaskInfo.Type = ETypeOfOnlineAsyncTask::Parallel;
 	TaskInfo.bCreateEpicForThis = true;
-	AccelByteSubsystem->CreateAndDispatchAsyncTask<FOnlineAsyncTaskAccelByteChatQueryRoom>(TaskInfo, AccelByteSubsystem, PlayerId, QueryTopicRequest, OnQueryTopicResponse);
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTask<FOnlineAsyncTaskAccelByteChatQueryRoom>(TaskInfo, AccelByteSubsystemPtr.Get(), PlayerId, QueryTopicRequest, OnQueryTopicResponse);
 
-	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
 }
 
 void FOnlineChatAccelByte::OnChatDisconnectedNotification(const FAccelByteModelsChatDisconnectNotif& DisconnectEvent, int32 LocalUserNum)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("Message: %s"), *DisconnectEvent.Message);
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("Message: %s"), *DisconnectEvent.Message);
 
 	TriggerOnChatDisconnectedDelegates(DisconnectEvent.Message);
 
-	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
 }
 
 void FOnlineChatAccelByte::OnChatConnectionClosed(int32 StatusCode, const FString& Reason, bool bWasClean, int32 LocalUserNum)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("Chat connection closed: status code %d, reason %s, bWasClean %s"), StatusCode, *Reason, bWasClean?TEXT("true"):TEXT("false"));
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("Chat connection closed: status code %d, reason %s, bWasClean %s"), StatusCode, *Reason, bWasClean?TEXT("true"):TEXT("false"));
 
 	UpdateUserAccount(LocalUserNum);
 
@@ -818,23 +960,30 @@ void FOnlineChatAccelByte::OnChatConnectionClosed(int32 StatusCode, const FStrin
 
 	TriggerOnChatConnectionClosedDelegates(LocalUserNum, StatusCode, Reason, bWasClean);
 
-	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
 }
 
 void FOnlineChatAccelByte::OnRemoveFromTopicNotification(const FAccelByteModelsChatUpdateUserTopicNotif& RemoveTopicEvent, int32 LocalUserNum)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("TopicId: %s"), *RemoveTopicEvent.TopicId);
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("TopicId: %s"), *RemoveTopicEvent.TopicId);
+
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelByteSubsystemPtr.Get() is invalid"));
+		return;
+	}
 
 	RemoveMemberFromTopic(RemoveTopicEvent.SenderId, RemoveTopicEvent.TopicId);
 	TriggerOnTopicRemovedDelegates(RemoveTopicEvent.Name, RemoveTopicEvent.TopicId, RemoveTopicEvent.UserId);
-	const FUniqueNetIdPtr LocalUserId = AccelByteSubsystem->GetIdentityInterface()->GetUniquePlayerId(LocalUserNum);
+	const FUniqueNetIdPtr LocalUserId = AccelByteSubsystemPtr->GetIdentityInterface()->GetUniquePlayerId(LocalUserNum);
 	if (LocalUserId.IsValid())
 	{
 		FUniqueNetIdPtr SenderUserId = FUniqueNetIdAccelByteUser::Create(FAccelByteUniqueIdComposite(RemoveTopicEvent.SenderId));
 		TriggerOnChatRoomMemberExitDelegates(*LocalUserId, RemoveTopicEvent.TopicId, *SenderUserId);
 	}
 	
-	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = AccelByteSubsystem->GetPredefinedEventInterface();
+	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = AccelByteSubsystemPtr->GetPredefinedEventInterface();
 	if (PredefinedEventInterface.IsValid())
 	{
 		FAccelByteModelsChatV2TopicUserRemovedPayload TopicUserRemovedPayload{};
@@ -843,24 +992,31 @@ void FOnlineChatAccelByte::OnRemoveFromTopicNotification(const FAccelByteModelsC
 		PredefinedEventInterface->SendEvent(LocalUserNum, MakeShared<FAccelByteModelsChatV2TopicUserRemovedPayload>(TopicUserRemovedPayload));
 	}
 
-	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
 }
 
 void FOnlineChatAccelByte::OnAddToTopicNotification(const FAccelByteModelsChatUpdateUserTopicNotif& AddTopicEvent, int32 LocalUserNum)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("TopicId: %s"), *AddTopicEvent.TopicId);
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("TopicId: %s"), *AddTopicEvent.TopicId);
 
-	const IOnlineIdentityPtr IdentityInterface = AccelByteSubsystem->GetIdentityInterface();
-	if (!ensure(IdentityInterface.IsValid()))
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
 	{
-		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to add to topic notification as our identity interface is invalid!"));
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelByteSubsystemPtr.Get() is invalid"));
 		return;
 	}
 
-	const FUniqueNetIdPtr LocalUserId = AccelByteSubsystem->GetIdentityInterface()->GetUniquePlayerId(LocalUserNum);
+	const IOnlineIdentityPtr IdentityInterface = AccelByteSubsystemPtr->GetIdentityInterface();
+	if (!ensure(IdentityInterface.IsValid()))
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to add to topic notification as our identity interface is invalid!"));
+		return;
+	}
+
+	const FUniqueNetIdPtr LocalUserId = AccelByteSubsystemPtr->GetIdentityInterface()->GetUniquePlayerId(LocalUserNum);
 	if (!ensure(LocalUserId.IsValid()))
 	{
-		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to add to topic notification as our LocalUserId is invalid!"));
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to add to topic notification as our LocalUserId is invalid!"));
 		return;
 	}
 	
@@ -878,7 +1034,7 @@ void FOnlineChatAccelByte::OnAddToTopicNotification(const FAccelByteModelsChatUp
 		FOnlineAsyncTaskInfo TaskInfo;
 		TaskInfo.Type = ETypeOfOnlineAsyncTask::Parallel;
 		TaskInfo.bCreateEpicForThis = true;
-		AccelByteSubsystem->CreateAndDispatchAsyncTask<FOnlineAsyncTaskAccelByteChatQueryRoomById>(TaskInfo, AccelByteSubsystem, *LocalUserId, AddTopicEvent.TopicId, OnQueryTopicResponse);
+		AccelByteSubsystemPtr->CreateAndDispatchAsyncTask<FOnlineAsyncTaskAccelByteChatQueryRoomById>(TaskInfo, AccelByteSubsystemPtr.Get(), *LocalUserId, AddTopicEvent.TopicId, OnQueryTopicResponse);
 	}
 	else
 	{
@@ -889,7 +1045,7 @@ void FOnlineChatAccelByte::OnAddToTopicNotification(const FAccelByteModelsChatUp
 		// member is not cached get the info
 		if (MemberPtr == nullptr || !(*MemberPtr)->HasNickname())
 		{
-			const FOnlineUserCacheAccelBytePtr UserStore = AccelByteSubsystem->GetUserCache();
+			const FOnlineUserCacheAccelBytePtr UserStore = AccelByteSubsystemPtr->GetUserCache();
 			if (!UserStore.IsValid())
 			{
 				UE_LOG_AB(Warning, TEXT("Unable to get member info as our user store instance is invalid!"));
@@ -910,7 +1066,7 @@ void FOnlineChatAccelByte::OnAddToTopicNotification(const FAccelByteModelsChatUp
 	
 	TriggerOnTopicAddedDelegates(AddTopicEvent.Name, AddTopicEvent.TopicId, AddTopicEvent.UserId);
 	
-	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = AccelByteSubsystem->GetPredefinedEventInterface();
+	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = AccelByteSubsystemPtr->GetPredefinedEventInterface();
 	if (PredefinedEventInterface.IsValid())
 	{
 		FAccelByteModelsChatV2TopicUserAddedPayload TopicUserAddedPayload{};
@@ -919,24 +1075,31 @@ void FOnlineChatAccelByte::OnAddToTopicNotification(const FAccelByteModelsChatUp
 		PredefinedEventInterface->SendEvent(LocalUserNum, MakeShared<FAccelByteModelsChatV2TopicUserAddedPayload>(TopicUserAddedPayload));
 	}
 
-	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
 }
 
 void FOnlineChatAccelByte::OnReceivedChatNotification(const FAccelByteModelsChatNotif& ChatNotif, int32 LocalUserNum)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("TopicId: %s"), *ChatNotif.TopicId);
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("TopicId: %s"), *ChatNotif.TopicId);
 
-	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystem->GetIdentityInterface());
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelByteSubsystemPtr.Get() is invalid"));
+		return;
+	}
+
+	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystemPtr->GetIdentityInterface());
 	if (!ensure(IdentityInterface.IsValid()))
 	{
-		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to handle received chat notification as our identity interface is invalid!"));
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to handle received chat notification as our identity interface is invalid!"));
 		return;
 	}
 
 	const FUniqueNetIdPtr LocalUserId = IdentityInterface->GetUniquePlayerId(LocalUserNum);
 	if (!LocalUserId.IsValid())
 	{
-		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to handle received chat notification as LocalUserId is invalid!"));
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to handle received chat notification as LocalUserId is invalid!"));
 		return;
 	}
 
@@ -967,12 +1130,12 @@ void FOnlineChatAccelByte::OnReceivedChatNotification(const FAccelByteModelsChat
 		TriggerOnChatRoomMessageReceivedDelegates(*LocalUserId, ChatNotif.TopicId, OutChatMessage);
 	}
 
-	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
 }
 
 void FOnlineChatAccelByte::OnUpdateTopicNotification(const FAccelByteModelsChatUpdateTopicNotif& UpdateTopicNotif, int32 LocalUserNum)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("TopicId: %s"), *UpdateTopicNotif.TopicId);
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("TopicId: %s"), *UpdateTopicNotif.TopicId);
 
 	FAccelByteChatRoomInfoRef* RoomInfoPtr = TopicIdToChatRoomInfoCached.Find(UpdateTopicNotif.TopicId);
 	if (RoomInfoPtr != nullptr)
@@ -982,7 +1145,14 @@ void FOnlineChatAccelByte::OnUpdateTopicNotification(const FAccelByteModelsChatU
 	
 	TriggerOnTopicUpdatedDelegates(UpdateTopicNotif.Name, UpdateTopicNotif.TopicId, UpdateTopicNotif.SenderId, UpdateTopicNotif.IsChannel);
 
-	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = AccelByteSubsystem->GetPredefinedEventInterface();
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelByteSubsystemPtr.Get() is invalid"));
+		return;
+	}
+
+	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = AccelByteSubsystemPtr->GetPredefinedEventInterface();
 	if (PredefinedEventInterface.IsValid())
 	{
 		FAccelByteModelsChatV2TopicUpdatedPayload TopicUpdatedPayload{};
@@ -992,17 +1162,24 @@ void FOnlineChatAccelByte::OnUpdateTopicNotification(const FAccelByteModelsChatU
 		PredefinedEventInterface->SendEvent(LocalUserNum, MakeShared<FAccelByteModelsChatV2TopicUpdatedPayload>(TopicUpdatedPayload));
 	}
 
-	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
 }
 
 void FOnlineChatAccelByte::OnDeleteTopicNotification(const FAccelByteModelsChatUpdateTopicNotif& DeleteTopicNotif, int32 LocalUserNum)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("TopicId: %s"), *DeleteTopicNotif.TopicId);
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("TopicId: %s"), *DeleteTopicNotif.TopicId);
 
 	RemoveTopic(DeleteTopicNotif.TopicId);
 	TriggerOnTopicDeletedDelegates(DeleteTopicNotif.Name, DeleteTopicNotif.TopicId, DeleteTopicNotif.SenderId, DeleteTopicNotif.IsChannel);
 
-	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = AccelByteSubsystem->GetPredefinedEventInterface();
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+    if (!AccelByteSubsystemPtr.IsValid())
+    {
+        AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelByteSubsystemPtr.Get() is invalid"));
+        return;
+    }
+
+	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = AccelByteSubsystemPtr->GetPredefinedEventInterface();
 	if (PredefinedEventInterface.IsValid())
 	{
 		FAccelByteModelsChatV2TopicDeletedPayload TopicDeletedPayload{};
@@ -1010,51 +1187,58 @@ void FOnlineChatAccelByte::OnDeleteTopicNotification(const FAccelByteModelsChatU
 		TopicDeletedPayload.TopicId = DeleteTopicNotif.Name;
 		PredefinedEventInterface->SendEvent(LocalUserNum, MakeShared<FAccelByteModelsChatV2TopicDeletedPayload>(TopicDeletedPayload));
 	}
-	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
 }
 
 void FOnlineChatAccelByte::OnReadChatNotification(const FAccelByteModelsReadChatNotif& ReadChatNotif, int32 LocalUserNum)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT(""));
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT(""));
 
 	TriggerOnReadChatReceivedDelegates(ReadChatNotif.ReadChat);
 
-	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
 }
 
 void FOnlineChatAccelByte::OnUserBanNotification(const FAccelByteModelsChatUserBanUnbanNotif& UserBanNotif, int32 LocalUserNum)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT(""));
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT(""));
 
 	TriggerOnUserBannedDelegates(UserBanNotif.UserId, UserBanNotif.Ban, UserBanNotif.EndDate, UserBanNotif.Reason, UserBanNotif.Enable);
 
-	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
 }
 
 void FOnlineChatAccelByte::OnUserUnbanNotification(const FAccelByteModelsChatUserBanUnbanNotif& UserUnbanNotif, int32 LocalUserNum)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT(""));
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT(""));
 
 	TriggerOnUserUnbannedDelegates(UserUnbanNotif.UserId, UserUnbanNotif.Ban, UserUnbanNotif.EndDate, UserUnbanNotif.Reason, UserUnbanNotif.Enable);
 
-	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
 }
 
 void FOnlineChatAccelByte::OnSystemMessageNotification(const FAccelByteModelsChatSystemMessageNotif& SystemMessageNotif, int32 LocalUserNum)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT(""));
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT(""));
 
-	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystem->GetIdentityInterface());
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+    if (!AccelByteSubsystemPtr.IsValid())
+    {
+        AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelByteSubsystemPtr.Get() is invalid"));
+        return;
+    }
+
+	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystemPtr->GetIdentityInterface());
 	if (!ensure(IdentityInterface.IsValid()))
 	{
-		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to handle received system message notification as our identity interface is invalid!"));
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to handle received system message notification as our identity interface is invalid!"));
 		return;
 	}
 
 	const FUniqueNetIdPtr LocalUserId = IdentityInterface->GetUniquePlayerId(LocalUserNum);
 	if (!LocalUserId.IsValid())
 	{
-		AB_OSS_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to handle received system message notification as LocalUserId is invalid!"));
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to handle received system message notification as LocalUserId is invalid!"));
 		return;
 	}
 
@@ -1069,7 +1253,7 @@ void FOnlineChatAccelByte::OnSystemMessageNotification(const FAccelByteModelsCha
 		TriggerOnTransientSystemMessageReceivedDelegates(*LocalUserId, SystemMessageNotif);
 	}
 
-	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
 }
 
 void FOnlineChatAccelByte::OnChatReconnectAttempted(const FReconnectAttemptInfo& Info, int32 InLocalUserNum)
@@ -1084,39 +1268,39 @@ void FOnlineChatAccelByte::OnChatMassiveOutageEvent(const FMassiveOutageInfo& In
 
 void FOnlineChatAccelByte::OnQueryChatRoomInfoComplete(bool bWasSuccessful, TArray<FAccelByteChatRoomInfoRef> RoomList, int32 LocalUserNum)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("Room length %d"), RoomList.Num());
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("Room length %d"), RoomList.Num());
 
-	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
 }
 
 void FOnlineChatAccelByte::OnQueryChatMemberInfo_TriggerChatRoomMemberJoin(bool bIsSuccessful, TArray<FAccelByteUserInfoRef> UsersQueried, FString RoomId, FUniqueNetIdPtr InUserId, FUniqueNetIdPtr InMemberId)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("RoomId %s MemberId %s"), *RoomId, *InMemberId->ToDebugString());
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("RoomId %s MemberId %s"), *RoomId, *InMemberId->ToDebugString());
 
 	if(!bIsSuccessful)
 	{
-		AB_OSS_INTERFACE_TRACE_END(TEXT("Query chat member info on ChatRoomMemberJoin failed"));
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Query chat member info on ChatRoomMemberJoin failed"));
 		return;
 	}
 	
 	TriggerOnChatRoomMemberJoinDelegates(*InUserId, RoomId, *InMemberId);
 
-	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
 }
 
 void FOnlineChatAccelByte::OnQueryChatRoomById_TriggerChatRoomMemberJoin(bool bWasSuccessful, FAccelByteChatRoomInfoPtr RoomInfo, int32 LocalUserNum, FUniqueNetIdPtr InUserId, FUniqueNetIdPtr InMemberId)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("MemberId %s"), *InMemberId->ToDebugString());
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("MemberId %s"), *InMemberId->ToDebugString());
 	
 	if(!bWasSuccessful)
 	{
-		AB_OSS_INTERFACE_TRACE_END(TEXT("Query room info on ChatRoomMemberJoin failed"));
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Query room info on ChatRoomMemberJoin failed"));
 		return;
 	}
 	
 	TriggerOnChatRoomMemberJoinDelegates(*InUserId, RoomInfo->GetRoomId(), *InMemberId);
 
-	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
 }
 
 const FUniqueNetIdRef& FAccelByteChatMessage::GetUserId() const
@@ -1291,7 +1475,14 @@ void FAccelByteChatRoomInfo::RemoveMember(const FString& UserId)
 
 bool FOnlineChatAccelByte::UpdateUserAccount(const int32 LocalUserNum)
 {
-	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystem->GetIdentityInterface());
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelByteSubsystemPtr.Get() is invalid"));
+		return false;
+	}
+	
+	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystemPtr->GetIdentityInterface());
 	if (!IdentityInterface.IsValid())
 	{
 		UE_LOG_AB(Warning, TEXT("Failed updating user account due to invalid IdentityInterface"));
@@ -1319,10 +1510,17 @@ bool FOnlineChatAccelByte::UpdateUserAccount(const int32 LocalUserNum)
 
 void FOnlineChatAccelByte::SendDisconnectPredefinedEvent(int32 StatusCode, int32 LocalUserNum)
 {
-	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = AccelByteSubsystem->GetPredefinedEventInterface();
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelByteSubsystemPtr.Get() is invalid"));
+		return;
+	}
+	
+	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = AccelByteSubsystemPtr->GetPredefinedEventInterface();
 	if (PredefinedEventInterface.IsValid())
 	{
-		const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystem->GetIdentityInterface());
+		const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystemPtr->GetIdentityInterface());
 		if (!IdentityInterface.IsValid())
 		{
 			UE_LOG_AB(Warning, TEXT("Failed sending disconnect predefined event due to invalid IdentityInterface"));
@@ -1353,21 +1551,28 @@ bool FOnlineChatAccelByte::ReportChatMessage(const FUniqueNetId& UserId
 	, const FString& Comment
 	, FOnReportChatMessageComplete CompletionDelegate)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("UserId: %s; Reason: %s; Comment: %s"), *UserId.ToDebugString(), *Reason, *Comment);
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("UserId: %s; Reason: %s; Comment: %s"), *UserId.ToDebugString(), *Reason, *Comment);
+
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelByteSubsystemPtr.Get() is invalid"));
+		return false;
+	}
 
 	TSharedRef<FAccelByteChatMessage> AbChatMessage = StaticCastSharedRef<FAccelByteChatMessage>(Message);
 
 	FOnlineAsyncTaskInfo TaskInfo{};
 	TaskInfo.Type = ETypeOfOnlineAsyncTask::Parallel;
 	TaskInfo.bCreateEpicForThis = true;
-	AccelByteSubsystem->CreateAndDispatchAsyncTask<FOnlineAsyncTaskAccelByteChatReportMessage>(TaskInfo
-		, AccelByteSubsystem
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTask<FOnlineAsyncTaskAccelByteChatReportMessage>(TaskInfo
+		, AccelByteSubsystemPtr.Get()
 		, UserId
 		, AbChatMessage
 		, Reason
 		, Comment
 		, CompletionDelegate);
 
-	AB_OSS_INTERFACE_TRACE_END(TEXT(""));
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
 	return true;
 }

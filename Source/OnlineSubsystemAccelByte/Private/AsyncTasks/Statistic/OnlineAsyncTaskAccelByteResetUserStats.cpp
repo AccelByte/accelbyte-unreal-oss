@@ -116,7 +116,7 @@ void FOnlineAsyncTaskAccelByteResetUserStats::Initialize()
 
 	if (IsRunningDedicatedServer())
 	{
-		FServerApiClientPtr ServerApiClient = FMultiRegistry::GetServerApiClient();
+		SERVER_API_CLIENT_CHECK_GUARD(ErrorMessage);
 		ServerApiClient->ServerStatistic.BulkResetMultipleUserStatItemsValue(UserStatItemValues
 			, OnBulkResetMultipleUserStatItemsValueSuccess
 			, OnError);

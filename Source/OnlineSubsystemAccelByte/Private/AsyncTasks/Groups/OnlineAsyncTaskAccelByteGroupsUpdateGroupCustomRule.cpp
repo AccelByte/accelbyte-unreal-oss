@@ -19,6 +19,7 @@ FOnlineAsyncTaskAccelByteGroupsUpdateGroupCustomRule::FOnlineAsyncTaskAccelByteG
 	, GroupId(InGroupId)
 	, RequestedContent(InRequestContent)
 	, Delegate(InDelegate)
+	, httpStatus(0)
 {
 	LocalUserNum = GroupAdmin;
 }

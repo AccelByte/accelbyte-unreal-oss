@@ -6,6 +6,7 @@
 #include "CoreMinimal.h"
 #include "OnlineSubsystemAccelByte.h"
 #include "OnlineBaseAnalyticsInterfaceAccelByte.h"
+#include "OnlineSubsystemAccelByteInternalHelpers.h"
 #include "Core/AccelByteMultiRegistry.h"
 #include "Models/AccelByteGameStandardEventModels.h"
 #include "OnlineSubsystemAccelBytePackage.h"
@@ -71,7 +72,15 @@ protected:
 		}
 
 		SetDelegatesAndInterval(LocalUserNum);
-		const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystem->GetIdentityInterface());
+
+		FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+		if (!AccelByteSubsystemPtr.IsValid())
+		{
+			AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+			return;
+		}
+		
+		const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystemPtr->GetIdentityInterface());
 		if (IdentityInterface.IsValid())
 		{
 			if (IdentityInterface->GetLoginStatus(LocalUserNum) == ELoginStatus::LoggedIn)
@@ -86,10 +95,15 @@ protected:
 				}
 				else
 				{
-					const auto ApiClient = AccelByte::FMultiRegistry::GetServerApiClient();
-					if (ApiClient.IsValid())
+					
+					const FAccelByteInstancePtr AccelByteInstance = GetAccelByteInstance().Pin();
+					if(AccelByteInstance.IsValid())
 					{
-						ApiClient->ServerGameStandardEvent.SendGameStandardEventData(Payload, AccelByte::FVoidHandler::CreateThreadSafeSP(this, &FOnlineGameStandardEventAccelByte::OnSuccess, LocalUserNum, Payload->GetGameStandardEventName()), FErrorHandler::CreateThreadSafeSP(this, &FOnlineGameStandardEventAccelByte::OnError, LocalUserNum, Payload->GetGameStandardEventName()), ClientTimestamp);
+						const FServerApiClientPtr ApiClient = AccelByteInstance->GetServerApiClient();
+						if (ApiClient.IsValid())
+						{
+							ApiClient->ServerGameStandardEvent.SendGameStandardEventData(Payload, AccelByte::FVoidHandler::CreateThreadSafeSP(this, &FOnlineGameStandardEventAccelByte::OnSuccess, LocalUserNum, Payload->GetGameStandardEventName()), FErrorHandler::CreateThreadSafeSP(this, &FOnlineGameStandardEventAccelByte::OnError, LocalUserNum, Payload->GetGameStandardEventName()), ClientTimestamp);
+						}
 					}
 				}
 			}

@@ -63,7 +63,8 @@ void FOnlineAsyncTaskAccelByteGetGameRecord::Initialize()
 				return;
 			}
 
-			FServerApiClientPtr ServerApiClient = FMultiRegistry::GetServerApiClient();
+			SERVER_API_CLIENT_CHECK_GUARD(ErrorStr);
+			
 			ServerApiClient->ServerCloudSave.GetGameRecord(Key, OnGetGameRecordSuccessDelegate, OnGetGameRecordErrorDelegate);
 		}
 		else

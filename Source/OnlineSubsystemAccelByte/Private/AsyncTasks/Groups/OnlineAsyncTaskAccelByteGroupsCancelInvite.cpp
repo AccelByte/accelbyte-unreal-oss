@@ -17,6 +17,7 @@ FOnlineAsyncTaskAccelByteGroupsCancelInvite::FOnlineAsyncTaskAccelByteGroupsCanc
 	, UserIdToCancel(InUserIdToCancel)
 	, GroupId(InGroupId)
 	, Delegate(InDelegate)
+	, httpStatus(0)
 {
 	UserId = FUniqueNetIdAccelByteUser::CastChecked(AdminUserId);
 }

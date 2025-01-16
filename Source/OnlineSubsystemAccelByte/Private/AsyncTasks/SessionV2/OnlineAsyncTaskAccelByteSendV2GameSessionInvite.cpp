@@ -57,7 +57,8 @@ void FOnlineAsyncTaskAccelByteSendV2GameSessionInvite::Initialize()
 	}
 	else
 	{
-		FRegistry::ServerSession.SendGameSessionInvite(SessionId, RecipientId->GetAccelByteId(), OnSendGameSessionInviteSuccessDelegate, OnSendGameSessionInviteErrorDelegate);
+		SERVER_API_CLIENT_CHECK_GUARD();
+		ServerApiClient->ServerSession.SendGameSessionInvite(SessionId, RecipientId->GetAccelByteId(), OnSendGameSessionInviteSuccessDelegate, OnSendGameSessionInviteErrorDelegate);
 	}
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

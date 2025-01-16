@@ -58,7 +58,8 @@ void FOnlineAsyncTaskAccelByteGetUserRecord::Initialize()
 
 	if (IsRunningDedicatedServer())
 	{
-		FServerApiClientPtr ServerApiClient = FMultiRegistry::GetServerApiClient();
+		SERVER_API_CLIENT_CHECK_GUARD(ErrorStr);
+		
 		if (IsPublicRecord)
 		{
 			ServerApiClient->ServerCloudSave.GetPublicUserRecord(Key, RecordUserId, OnGetUserRecordsSuccessDelegate, OnGetUserRecordsErrorDelegate);

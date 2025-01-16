@@ -26,14 +26,22 @@ void FOnlineAsyncTaskAccelByteLoginQueueCancelTicket::Initialize()
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("LoginUserNum: %d, ticketId: %s"), LoginUserNum, *TicketId);
 
 	Super::Initialize();
+
+	FAccelByteInstancePtr AccelByteInstance = GetAccelByteInstance().Pin();
+	if(!AccelByteInstance.IsValid())
+	{
+		AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Unable to cancel login queue, AccelByteInstance is invalid"));
+		CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState);
+		return;
+	}
 	
 	if (SubsystemPin->IsMultipleLocalUsersEnabled())
 	{
-		SetApiClient(FMultiRegistry::GetApiClient(FString::Printf(TEXT("%d"), LoginUserNum)));
+		SetApiClient(AccelByteInstance->GetApiClient(FString::Printf(TEXT("%d"), LoginUserNum)));
 	}
 	else
 	{
-		SetApiClient(FMultiRegistry::GetApiClient());
+		SetApiClient(AccelByteInstance->GetApiClient());
 	}
 	
 	API_CLIENT_CHECK_GUARD(ErrorStr);

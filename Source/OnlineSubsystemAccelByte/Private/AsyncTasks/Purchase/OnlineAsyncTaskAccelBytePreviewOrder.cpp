@@ -4,6 +4,8 @@
 
 #include "OnlineAsyncTaskAccelBytePreviewOrder.h"
 
+#include "OnlinePurchaseInterfaceAccelByte.h"
+
 #define ONLINE_ERROR_NAMESPACE "FOnlinePurchaseSystemAccelByte"
 
 FOnlineAsyncTaskAccelBytePreviewOrder::FOnlineAsyncTaskAccelBytePreviewOrder(

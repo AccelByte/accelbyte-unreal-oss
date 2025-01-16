@@ -4,6 +4,8 @@
 
 #include "OnlineAsyncTaskAccelByteQueryCategories.h"
 
+#include "OnlineStoreInterfaceV2AccelByte.h"
+
 using namespace AccelByte;
 
 FOnlineAsyncTaskAccelByteQueryCategories::FOnlineAsyncTaskAccelByteQueryCategories(

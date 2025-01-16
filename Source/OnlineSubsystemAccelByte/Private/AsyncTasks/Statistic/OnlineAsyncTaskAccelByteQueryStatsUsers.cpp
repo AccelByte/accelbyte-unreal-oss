@@ -116,7 +116,8 @@ void FOnlineAsyncTaskAccelByteQueryStatsUsers::Initialize()
 
 		if (IsRunningDedicatedServer())
 		{
-			FMultiRegistry::GetServerApiClient()->ServerStatistic.GetUserStatItems(AccelByteUserId
+			SERVER_API_CLIENT_CHECK_GUARD();
+			ServerApiClient->ServerStatistic.GetUserStatItems(AccelByteUserId
 				, StatNames
 				, {}
 				, OnGetUserStatItemsSuccessHandler

@@ -56,7 +56,9 @@ void FOnlineAsyncTaskAccelByteBulkGetUserRecord::Initialize()
 	}
 
 	const auto ABUserIds = ConvertUniqueNetIdsToAccelByteIds();
-	const FServerApiClientPtr ServerApiClient = FMultiRegistry::GetServerApiClient();
+
+	SERVER_API_CLIENT_CHECK_GUARD(ErrorStr);
+	
 	TArray<FString> ProcessedIds{};
 	for (int i =0 ; i < ABUserIds.Num(); i++)
 	{

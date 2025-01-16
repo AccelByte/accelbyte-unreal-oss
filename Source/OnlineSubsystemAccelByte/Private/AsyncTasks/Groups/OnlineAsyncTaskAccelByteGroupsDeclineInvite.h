@@ -7,6 +7,8 @@
 #include "OnlineSubsystemAccelByte.h"
 #include "AsyncTasks/OnlineAsyncTaskAccelByte.h"
 #include "AsyncTasks/OnlineAsyncTaskAccelByteUtils.h"
+#include "OnlineGroupsInterfaceAccelByte.h"
+
 
 class FOnlineAsyncTaskAccelByteGroupsDeclineInvite
 	: public FOnlineAsyncTaskAccelByte

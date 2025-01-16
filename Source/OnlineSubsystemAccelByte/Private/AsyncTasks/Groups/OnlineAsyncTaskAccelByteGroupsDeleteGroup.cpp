@@ -15,6 +15,7 @@ FOnlineAsyncTaskAccelByteGroupsDeleteGroup::FOnlineAsyncTaskAccelByteGroupsDelet
 	: FOnlineAsyncTaskAccelByte(InABInterface)
 	, GroupId(InGroupId)
 	, Delegate(InDelegate)
+	, httpStatus(0)
 {
 	LocalUserNum = GroupAdmin;
 }

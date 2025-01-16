@@ -81,16 +81,33 @@ void FOnlineAsyncTaskAccelByteSimultaneousLogin::Initialize()
 		return;
 	}
 
+	FAccelByteInstancePtr AccelByteInstance = GetAccelByteInstance().Pin();
+	if(!AccelByteInstance.IsValid())
+	{
+		ErrorStr = TEXT("login-failed-invalid-accelbyte-instance");
+		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to login with type '%s' as the AccelByteInstance is invalid!"), *AccountCredentials.Type);
+		CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState);
+		return;
+	}
+
 	if (SubsystemPin->IsMultipleLocalUsersEnabled())
 	{
-		SetApiClient(FMultiRegistry::GetApiClient(FString::Printf(TEXT("%d"), LoginUserNum)));
+		SetApiClient(AccelByteInstance->GetApiClient(FString::Printf(TEXT("%d"), LoginUserNum)));
 	}
 	else
 	{
-		SetApiClient(FMultiRegistry::GetApiClient());
+		SetApiClient(AccelByteInstance->GetApiClient());
 	}
 	API_CLIENT_CHECK_GUARD(ErrorStr);
-	ApiClient->CredentialsRef->SetClientCredentials(FRegistry::Settings.ClientId, FRegistry::Settings.ClientSecret);
+	const SettingsPtr Setting = ApiClient->Settings;
+	if(!Setting.IsValid())
+	{
+		ErrorStr = TEXT("login-failed-invalid-accelbyte-instance");
+		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to login with type '%s' as the Settings is invalid!"), *AccountCredentials.Type);
+		CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState);
+		return;
+	}
+	ApiClient->CredentialsRef->SetClientCredentials(Setting->ClientId, Setting->ClientSecret);
 	
 	LoginWithNativeSubsystem();
 

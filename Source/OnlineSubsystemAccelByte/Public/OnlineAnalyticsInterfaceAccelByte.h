@@ -17,7 +17,11 @@ class ONLINESUBSYSTEMACCELBYTE_API FOnlineAnalyticsAccelByte
 {
 PACKAGE_SCOPE:
 	FOnlineAnalyticsAccelByte(FOnlineSubsystemAccelByte* InSubsystem)
-		: AccelByteSubsystem(InSubsystem)
+#if ENGINE_MAJOR_VERSION >= 5
+		: AccelByteSubsystem(InSubsystem->AsWeak())
+#else
+		: AccelByteSubsystem(InSubsystem->AsShared())
+#endif
 	{}
 
 public:
@@ -92,7 +96,14 @@ protected:
 	{}
 	
 	/** Instance of the subsystem that created this interface */
-	FOnlineSubsystemAccelByte* AccelByteSubsystem = nullptr;
+	FOnlineSubsystemAccelByteWPtr AccelByteSubsystem = nullptr;
+
+	/**
+	 * Helper function to get AccelByteInstance from subsystem
+	 *
+	 * @return weak ptr instance of the AccelByteInstance, nullptr if it's invalid
+	 */
+	FAccelByteInstanceWPtr GetAccelByteInstance() const;
 
 private:
 	/**

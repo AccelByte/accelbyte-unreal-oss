@@ -9,6 +9,8 @@
 #include "OnlineSubsystemAccelByteTypes.h"
 #include "Models/AccelByteEcommerceModels.h"
 #include "OnlineError.h"
+#include "OnlineErrorAccelByte.h"
+#include "OnlineSubsystemAccelByte.h"
 #include "OnlineSubsystemAccelBytePackage.h"
 #include "Core/Platform/AccelBytePlatformHandleModels.h"
 
@@ -348,7 +350,7 @@ public:
 
 protected:
 	/** Instance of the subsystem that created this interface */
-	FOnlineSubsystemAccelByte* AccelByteSubsystem = nullptr;
+	FOnlineSubsystemAccelByteWPtr AccelByteSubsystem = nullptr;
 	TMap<FUniqueCategoryId, FOnlineStoreCategory> StoreCategories; 
 	TMap<FUniqueOfferId, FOnlineStoreOfferAccelByteRef> StoreOffers;
 	TMap<FUniqueOfferId, FOnlineStoreOfferRef> PlatformOffers;

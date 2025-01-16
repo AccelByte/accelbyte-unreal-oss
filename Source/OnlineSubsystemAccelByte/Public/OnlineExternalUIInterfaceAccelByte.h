@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include "OnlineSubsystemAccelByte.h"
 #include "Interfaces/OnlineExternalUIInterface.h"
 #include "OnlineSubsystemAccelBytePackage.h"
 
@@ -55,15 +56,12 @@ PACKAGE_SCOPE:
 	 *
 	 * @param InSubsystem AccelByte subsystem instance that owns this external UI instance
 	 */
-	explicit FOnlineExternalUIAccelByte(FOnlineSubsystemAccelByte* InSubsystem)
-		: AccelByteSubsystem(InSubsystem)
-	{
-	}
+	explicit FOnlineExternalUIAccelByte(FOnlineSubsystemAccelByte* InSubsystem);
 
 private:
 
 	/** Subsystem that owns this external UI interface */
-	FOnlineSubsystemAccelByte* AccelByteSubsystem;
+	FOnlineSubsystemAccelByteWPtr AccelByteSubsystem;
 
 	/**
 	 * Attempt to get the external UI interface for the native platform of the user

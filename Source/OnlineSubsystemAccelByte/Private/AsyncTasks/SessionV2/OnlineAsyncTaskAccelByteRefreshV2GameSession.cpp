@@ -52,7 +52,8 @@ void FOnlineAsyncTaskAccelByteRefreshV2GameSession::Initialize()
 	OnRefreshGameSessionErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteRefreshV2GameSession::OnRefreshGameSessionError);;
 	if (IsRunningDedicatedServer())
 	{
-		FRegistry::ServerSession.GetGameSessionDetails(SessionId, OnRefreshGameSessionSuccessDelegate, OnRefreshGameSessionErrorDelegate);
+		SERVER_API_CLIENT_CHECK_GUARD();
+		ServerApiClient->ServerSession.GetGameSessionDetails(SessionId, OnRefreshGameSessionSuccessDelegate, OnRefreshGameSessionErrorDelegate);
 	}
 	else
 	{

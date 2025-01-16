@@ -8,7 +8,11 @@
 #include "AsyncTasks/Time/OnlineAsyncTaskAccelByteGetServerTime.h"
 
 FOnlineTimeAccelByte::FOnlineTimeAccelByte(FOnlineSubsystemAccelByte* InSubsystem) 
-	: AccelByteSubsystem(InSubsystem)
+#if ENGINE_MAJOR_VERSION >= 5
+		: AccelByteSubsystem(InSubsystem->AsWeak())
+#else
+		: AccelByteSubsystem(InSubsystem->AsShared())
+#endif
 {
 }
 
@@ -32,16 +36,61 @@ bool FOnlineTimeAccelByte::GetFromWorld(const UWorld* World, FOnlineTimeAccelByt
 
 bool FOnlineTimeAccelByte::QueryServerUtcTime()
 {
-	AccelByteSubsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGetServerTime>(AccelByteSubsystem);
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return false;
+	}
+	
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGetServerTime>(AccelByteSubsystemPtr.Get());
 	return true;
 }
 
 FString FOnlineTimeAccelByte::GetLastServerUtcTime()
 {
-	return AccelByte::FRegistry::TimeManager.GetCachedServerTime().ToString();
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return TEXT("");
+	}
+	
+	FAccelByteInstancePtr AccelByteInstance = AccelByteSubsystemPtr->GetAccelByteInstance().Pin();
+	if(!AccelByteInstance.IsValid())
+	{
+		return TEXT("");
+	}
+
+	FAccelByteTimeManagerPtr TimeManager = AccelByteInstance->GetTimeManager().Pin();
+	if(!TimeManager.IsValid())
+	{
+		return TEXT("");
+	}
+	
+	return TimeManager->GetCachedServerTime().ToString();
 }
 
 FString FOnlineTimeAccelByte::GetCurrentServerUtcTime()
 {
-	return AccelByte::FRegistry::TimeManager.GetCurrentServerTime().ToString();
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return TEXT("");
+	}
+	
+	const FAccelByteInstancePtr AccelByteInstance = AccelByteSubsystemPtr->GetAccelByteInstance().Pin();
+	if(!AccelByteInstance.IsValid())
+	{
+		return TEXT("");
+	}
+
+	const FAccelByteTimeManagerPtr TimeManager = AccelByteInstance->GetTimeManager().Pin();
+	if(!TimeManager.IsValid())
+	{
+		return TEXT("");
+	}
+	
+	return TimeManager->GetCurrentServerTime().ToString();
 }

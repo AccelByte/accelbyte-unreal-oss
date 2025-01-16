@@ -57,7 +57,7 @@ void FOnlineAsyncTaskAccelByteListUserByUserId::Initialize()
 		OnListUserDataSuccess = TDelegateUtils<THandler<FListUserDataResponse>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteListUserByUserId::HandleListUsersByUserId);
 		OnError = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteListUserByUserId::HandleAsyncTaskError);
 		
-		const FServerApiClientPtr ServerApiClient = FMultiRegistry::GetServerApiClient();
+		SERVER_API_CLIENT_CHECK_GUARD()
 		FListUserDataRequest RequestBody{};
 		RequestBody.UserIds = UserIds;
 		ServerApiClient->ServerUser.ListUserByUserId(RequestBody, OnListUserDataSuccess, OnError);

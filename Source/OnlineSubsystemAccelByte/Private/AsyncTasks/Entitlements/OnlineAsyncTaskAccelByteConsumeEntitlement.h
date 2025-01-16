@@ -5,6 +5,7 @@
 #pragma once
 #include "AsyncTasks/OnlineAsyncTaskAccelByte.h"
 #include "AsyncTasks/OnlineAsyncTaskAccelByteUtils.h"
+#include "OnlineEntitlementsInterfaceAccelByte.h"
 
 class FOnlineAsyncTaskAccelByteConsumeEntitlement
 	: public FOnlineAsyncTaskAccelByte

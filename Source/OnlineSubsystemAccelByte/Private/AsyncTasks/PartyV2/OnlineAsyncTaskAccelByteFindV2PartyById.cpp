@@ -36,8 +36,7 @@ void FOnlineAsyncTaskAccelByteFindV2PartyById::Initialize()
 
 	if (IsRunningDedicatedServer())
 	{
-		FServerApiClientPtr ServerApiClient = AccelByte::FMultiRegistry::GetServerApiClient();
-		ensure(ServerApiClient.IsValid());
+		SERVER_API_CLIENT_CHECK_GUARD();
 
 		ServerApiClient->ServerSession.GetPartyDetails(SessionId->ToString()
 			, OnGetPartySessionDetailsSuccessDelegate

@@ -4,6 +4,7 @@
 
 #pragma once
 #include "OnlineSubsystemAccelByte.h"
+#include "OnlineSubsystemAccelByte.h"
 #include "OnlineSubsystemAccelByteTypes.h"
 #include "OnlineSubsystemAccelByteUtils.h"
 #include "Interfaces/OnlineEntitlementsInterface.h"
@@ -369,8 +370,8 @@ public:
 
 protected:
 	/** Instance of the subsystem that created this interface */
-	FOnlineSubsystemAccelByte* AccelByteSubsystem = nullptr;
-
+	FOnlineSubsystemAccelByteWPtr AccelByteSubsystem;
+	
 private:
 	FUserIDToEntitlementMap EntitlementMap;
 	FUserIDToItemEntitlementMap ItemEntitlementMap;

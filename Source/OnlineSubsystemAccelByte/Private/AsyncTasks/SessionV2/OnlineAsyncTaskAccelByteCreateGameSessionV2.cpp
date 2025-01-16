@@ -156,7 +156,8 @@ void FOnlineAsyncTaskAccelByteCreateGameSessionV2::Initialize()
 	}
 	else
 	{
-		FRegistry::ServerSession.CreateGameSession(CreateRequest, OnCreateGameSessionSuccessDelegate, OnCreateGameSessionErrorDelegate);
+		SERVER_API_CLIENT_CHECK_GUARD();
+		ServerApiClient->ServerSession.CreateGameSession(CreateRequest, OnCreateGameSessionSuccessDelegate, OnCreateGameSessionErrorDelegate);
 	}
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

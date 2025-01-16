@@ -3,6 +3,8 @@
 // and restrictions contact your company contract manager.
 
 #include "OnlineAsyncTaskAccelByteGroupsQueryGroupInfo.h"
+
+#include "OnlineGroupsInterfaceAccelByte.h"
 #include "OnlinePredefinedEventInterfaceAccelByte.h"
 
 using namespace AccelByte;
@@ -15,6 +17,7 @@ FOnlineAsyncTaskAccelByteGroupsQueryGroupInfo::FOnlineAsyncTaskAccelByteGroupsQu
 	: FOnlineAsyncTaskAccelByte(InABInterface)
 	, GroupId(InGroupId)
 	, Delegate(InDelegate)
+	, httpStatus(0)
 {
 	UserId = FUniqueNetIdAccelByteUser::CastChecked(ContextUserId);
 }

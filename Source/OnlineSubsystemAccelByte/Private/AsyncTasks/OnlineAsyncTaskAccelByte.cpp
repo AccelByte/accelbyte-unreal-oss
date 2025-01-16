@@ -51,6 +51,29 @@ void FOnlineAsyncTaskAccelByte::ExecuteCriticalSectionAction(FVoidHandler Action
 	Subsystem->ResetParentTaskHasBeenSet();
 }
 
+FOnlineAsyncTaskAccelByte::FOnlineAsyncTaskAccelByte(FOnlineSubsystemAccelByte* const InABSubsystem,
+int32 InLocalUserNum, uint8 InFlags, TSharedPtr<FAccelByteKey> InLockKey)
+	: FOnlineAsyncTaskBasic(InABSubsystem)
+#if ENGINE_MAJOR_VERSION >= 5
+	, AccelByteSubsystem(InABSubsystem->AsWeak())
+#else
+	, AccelByteSubsystem(InABSubsystem->AsShared())
+#endif
+	, LocalUserNum(InLocalUserNum)
+	, Flags(InFlags)
+	, LockKey(InLockKey)
+	, Subsystem(InABSubsystem)
+{
+	bShouldUseTimeout = HasFlag(EAccelByteAsyncTaskFlags::UseTimeout);
+
+	// NOTE(Maxwell, 7/8/2021): Due to a bug where we cannot cancel requests on the SDK side, as well as cancel the delegates
+	// that are supposed to run with these requests, if a timeout is quicker than a request could be received from the backend
+	// we may get a crash from that. To combat this for now, we want to set our default timeout to always be one second higher
+	// than the SDK HTTP timeout to give the SDK a chance to fire off its delegates for a timeout.
+	// Fix this once https://accelbyte.atlassian.net/browse/OSS-193 is implemented.
+	TaskTimeoutInSeconds = static_cast<double>(AccelByte::FHttpRetryScheduler::TotalTimeout) + 1.0;
+}
+
 void FOnlineAsyncTaskAccelByte::ForcefullySetTimeoutState()
 {
 	CompleteTask(EAccelByteAsyncTaskCompleteState::TimedOut);

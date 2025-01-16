@@ -26,6 +26,7 @@
 #include "OnlineDelegateMacros.h"
 #include "Runtime/Launch/Resources/Version.h"
 #include "AccelByteNetworkingStatus.h"
+#include "OnlineSubsystemAccelByte.h"
 #include "OnlineSubsystemAccelBytePackage.h"
 
 class FOnlineSubsystemAccelByte;
@@ -150,7 +151,7 @@ class ONLINESUBSYSTEMACCELBYTE_API FOnlineSessionV1AccelByte : public IOnlineSes
 private:
 
 	/** Reference to the main AccelByte subsystem */
-	FOnlineSubsystemAccelByte* AccelByteSubsystem = nullptr;
+	FOnlineSubsystemAccelByteWPtr AccelByteSubsystem;
 	
 	/** Current search start time. */
 	double LANPingStartSeconds = 0.0;

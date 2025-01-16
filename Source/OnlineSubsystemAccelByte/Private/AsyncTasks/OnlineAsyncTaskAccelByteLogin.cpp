@@ -89,18 +89,35 @@ void FOnlineAsyncTaskAccelByteLogin::Initialize()
 
 	TRY_PIN_SUBSYSTEM()
 
+	FAccelByteInstancePtr AccelByteInstance = GetAccelByteInstance().Pin();
+	if(!AccelByteInstance.IsValid())
+	{
+		ErrorStr = TEXT("login-failed-invalid-accelbyte-instance");
+		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to login with type '%s' as the AccelByteInstance is invalid!"), *AccountCredentials.Type);
+		CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState);
+		return;
+	}
+
 	if (SubsystemPin->IsMultipleLocalUsersEnabled())
 	{
-		SetApiClient(FMultiRegistry::GetApiClient(FString::Printf(TEXT("%d"), LoginUserNum)));
+		SetApiClient(AccelByteInstance->GetApiClient(FString::Printf(TEXT("%d"), LoginUserNum)));
 	}
 	else
 	{
-		SetApiClient(FMultiRegistry::GetApiClient());
+		SetApiClient(AccelByteInstance->GetApiClient(FString::Printf(TEXT("%d"), LoginUserNum)));
 	}
 	
 	API_CLIENT_CHECK_GUARD();
 	//Valid because just recently SetApiClient()
-	ApiClient->CredentialsRef->SetClientCredentials(FRegistry::Settings.ClientId, FRegistry::Settings.ClientSecret);
+	SettingsPtr Settings = ApiClient->Settings;
+	if(!Settings.IsValid())
+	{
+		ErrorStr = TEXT("login-failed-invalid-settings-instance");
+		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to login with type '%s' as the settings instance is invalid!"), *AccountCredentials.Type);
+		CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState);
+		return;
+	}
+	ApiClient->CredentialsRef->SetClientCredentials(Settings->ClientId, Settings->ClientSecret);
 
 	if (AccountCredentials.LoginType == EAccelByteLoginType::Oculus)
 	{
@@ -759,15 +776,25 @@ void FOnlineAsyncTaskAccelByteLogin::OnLoginSuccess()
 	}
 		
 	IdentityInterface->AddNewAuthenticatedUser(LoginUserNum, UserId.ToSharedRef(), Account.ToSharedRef());
-	AccelByte::FMultiRegistry::RemoveApiClient(UserId->GetAccelByteId());
-	AccelByte::FMultiRegistry::RegisterApiClient(UserId->GetAccelByteId(), ApiClient);
+
+	FAccelByteInstancePtr AccelByteInstance = GetAccelByteInstance().Pin();
+	if(!AccelByteInstance.IsValid())
+	{
+		ErrorStr = TEXT("login-failed-invalid-accelbyte-instance");
+		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to login with type '%s' as the AccelByteInstance is invalid!"), *AccountCredentials.Type);
+		CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState);
+		return;
+	}
+	
+	AccelByteInstance->RemoveApiClient(UserId->GetAccelByteId());
+	AccelByteInstance->RegisterApiClient(UserId->GetAccelByteId(), ApiClient);
 	if (SubsystemPin->IsMultipleLocalUsersEnabled())
 	{
-		AccelByte::FMultiRegistry::RemoveApiClient(FString::Printf(TEXT("%d"), LoginUserNum));
+		AccelByteInstance->RemoveApiClient(FString::Printf(TEXT("%d"), LoginUserNum));
 	}
 	else
 	{
-		AccelByte::FMultiRegistry::RemoveApiClient();
+		AccelByteInstance->RemoveApiClient();
 	}
 
 	// Grab our user interface and kick off a task to get information about the newly logged in player from it, namely
@@ -816,6 +843,9 @@ void FOnlineAsyncTaskAccelByteLogin::OnLoginSuccessV4(const FAccelByteModelsLogi
 		return;
 	}
 
+	// initialize login queue here so LoginUserNum-Ticket map is filled when we trigger OnLoginQueuedDelegate
+	IdentityInterface->InitializeLoginQueue(LoginUserNum, TicketInfo.Ticket);
+	
 	// Only trigger login queued delegate if estimated waiting time is above presentation threshold
 	if(TicketInfo.EstimatedWaitingTimeInSeconds > LoginQueuePresentationThreshold)
 	{

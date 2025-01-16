@@ -160,9 +160,11 @@ void FOnlineAsyncTaskAccelByteRetrieveDedicatedV1SessionInfo::OnAuthenticateServ
 
 void FOnlineAsyncTaskAccelByteRetrieveDedicatedV1SessionInfo::TryQueryDedicatedSessionInfo()
 {
+	SERVER_API_CLIENT_CHECK_GUARD();
+	
 	THandler<FAccelByteModelsServerSessionResponse> OnGetSessionIdSuccess = TDelegateUtils<THandler<FAccelByteModelsServerSessionResponse>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteRetrieveDedicatedV1SessionInfo::OnGetSessionIdSuccess);
 	FErrorHandler OnGetSessionIdError = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteRetrieveDedicatedV1SessionInfo::OnGetSessionIdError);
-	FRegistry::ServerDSM.GetSessionId(OnGetSessionIdSuccess, OnGetSessionIdError);
+	ServerApiClient->ServerDSM.GetSessionId(OnGetSessionIdSuccess, OnGetSessionIdError);
 }
 
 void FOnlineAsyncTaskAccelByteRetrieveDedicatedV1SessionInfo::OnQueryMatchSessionSuccess(const FAccelByteModelsMatchmakingResult& Result)
@@ -277,11 +279,13 @@ void FOnlineAsyncTaskAccelByteRetrieveDedicatedV1SessionInfo::OnGetSessionIdSucc
 		return;
 	}
 
+	SERVER_API_CLIENT_CHECK_GUARD();
+
 	if (!bIsCustomGame) 
 	{
 		THandler<FAccelByteModelsMatchmakingResult> OnQuerySessionStatusSuccess = TDelegateUtils<THandler<FAccelByteModelsMatchmakingResult>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteRetrieveDedicatedV1SessionInfo::OnQueryMatchSessionSuccess);
 		FErrorHandler OnQuerySessionStatusError = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteRetrieveDedicatedV1SessionInfo::OnQueryMatchSessionError);
-		FRegistry::ServerMatchmaking.QuerySessionStatus(SessionId, OnQuerySessionStatusSuccess, OnQuerySessionStatusError);
+		ServerApiClient->ServerMatchmaking.QuerySessionStatus(SessionId, OnQuerySessionStatusSuccess, OnQuerySessionStatusError);
 	}
 	else
 	{
@@ -289,7 +293,7 @@ void FOnlineAsyncTaskAccelByteRetrieveDedicatedV1SessionInfo::OnGetSessionIdSucc
 		// that require this channel to be passed in
 		THandler<FAccelByteModelsSessionBrowserData> OnQuerySessionStatusSuccess = TDelegateUtils<THandler<FAccelByteModelsSessionBrowserData>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteRetrieveDedicatedV1SessionInfo::OnQueryCustomMatchSessionSuccess);
 		FErrorHandler OnQuerySessionStatusError = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteRetrieveDedicatedV1SessionInfo::OnQueryMatchSessionError);
-		FRegistry::ServerSessionBrowser.GetGameSessionBySessionId(SessionId, OnQuerySessionStatusSuccess, OnQuerySessionStatusError);
+		ServerApiClient->ServerSessionBrowser.GetGameSessionBySessionId(SessionId, OnQuerySessionStatusSuccess, OnQuerySessionStatusError);
 	}
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Found session ID '%s'! Querying status of this session from backend!"), *SessionId);
 }

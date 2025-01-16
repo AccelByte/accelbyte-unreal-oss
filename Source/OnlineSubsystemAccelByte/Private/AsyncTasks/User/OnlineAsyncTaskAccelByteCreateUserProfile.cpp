@@ -10,6 +10,8 @@
 #include "Api/AccelByteUserApi.h"
 #include "OnlineError.h"
 #include "OnlinePredefinedEventInterfaceAccelByte.h"
+#include "OnlineSubsystemAccelByteUtils.h"
+#include "OnlineUserCacheAccelByte.h"
 
 using namespace AccelByte;
 

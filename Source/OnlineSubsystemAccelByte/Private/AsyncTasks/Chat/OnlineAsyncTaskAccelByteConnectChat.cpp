@@ -3,6 +3,8 @@
 // and restrictions contact your company contract manager.
 
 #include "OnlineAsyncTaskAccelByteConnectChat.h"
+
+#include "OnlineChatInterfaceAccelByte.h"
 #include "OnlinePredefinedEventInterfaceAccelByte.h"
 
 #include "AsyncTasks/OnlineAsyncTaskAccelByteUtils.h"

@@ -4,6 +4,7 @@
 
 #include "OnlineAsyncTaskAccelByteCreateNewOrder.h"
 #include "OnlinePredefinedEventInterfaceAccelByte.h"
+#include "OnlinePurchaseInterfaceAccelByte.h"
 
 #define ONLINE_ERROR_NAMESPACE "FOnlinePurchaseSystemAccelByte"
 

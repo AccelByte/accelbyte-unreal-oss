@@ -18,6 +18,7 @@ FOnlineAsyncTaskAccelByteGroupsUpdateGroupCustomAttributes::FOnlineAsyncTaskAcce
 	, AdminMemberId(FUniqueNetIdAccelByteUser::CastChecked(InAdminUserId))
 	, GroupId(InGroupId)
 	, Delegate(InDelegate)
+	, httpStatus(0)
 {
 	LocalUserNum = GroupAdmin;
 	RequestedContent = InRequestContent;

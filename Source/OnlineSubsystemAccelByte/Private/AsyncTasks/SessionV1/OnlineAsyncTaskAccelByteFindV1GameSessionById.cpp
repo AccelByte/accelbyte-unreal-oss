@@ -31,7 +31,9 @@ void FOnlineAsyncTaskAccelByteFindV1GameSessionById::Initialize()
 	OnGetGameSessionDetailsErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteFindV1GameSessionById::OnGetGameSessionDetailsError);;
 	if (IsRunningDedicatedServer())
 	{
-		FRegistry::ServerSessionBrowser.GetGameSessionBySessionId(SessionId->ToString(), OnGetGameSessionDetailsSuccessDelegate, OnGetGameSessionDetailsErrorDelegate);
+		SERVER_API_CLIENT_CHECK_GUARD();
+		
+		ServerApiClient->ServerSessionBrowser.GetGameSessionBySessionId(SessionId->ToString(), OnGetGameSessionDetailsSuccessDelegate, OnGetGameSessionDetailsErrorDelegate);
 	}
 	else
 	{

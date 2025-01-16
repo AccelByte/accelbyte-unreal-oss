@@ -3,7 +3,11 @@
 // and restrictions contact your company contract manager.
 
 #include "OnlineAsyncTaskAccelByteChatSendPersonalChat.h"
+
+#include "OnlineChatInterfaceAccelByte.h"
 #include "OnlinePredefinedEventInterfaceAccelByte.h"
+
+#define ONLINE_ERROR_NAMESPACE "FOnlineAsyncTaskAccelByteChatSendPersonalChat"
 
 using namespace AccelByte;
 
@@ -72,6 +76,11 @@ void FOnlineAsyncTaskAccelByteChatSendPersonalChat::TriggerDelegates()
 	}
 
 	ChatInterface->TriggerOnSendChatCompleteDelegates(UserId.ToSharedRef().Get().GetAccelByteId(), ChatMessage, RoomId, bWasSuccessful);
+	ChatInterface->TriggerOnSendChatCompleteWithErrorDelegates(UserId.ToSharedRef().Get().GetAccelByteId()
+		, ChatMessage
+		, RoomId
+		, bWasSuccessful
+		, ONLINE_ERROR(bWasSuccessful ? EOnlineErrorResult::Success : EOnlineErrorResult::RequestFailure, FString::FromInt(ErrorCode), FText::FromString(ErrorString)));
 	
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
@@ -125,9 +134,10 @@ void FOnlineAsyncTaskAccelByteChatSendPersonalChat::SendPersonalChat()
 	ApiClient->Chat.SendChat(RoomId, ChatMessage, OnSendRoomChatSuccessDelegate, OnSendRoomChatErrorDelegate);
 }
 
-void FOnlineAsyncTaskAccelByteChatSendPersonalChat::OnSendRoomChatError(int32 ErrorCode, const FString& ErrorMessage)
+void FOnlineAsyncTaskAccelByteChatSendPersonalChat::OnSendRoomChatError(int32 InErrorCode, const FString& ErrorMessage)
 {
 	UE_LOG_AB(Warning, TEXT("Failed to send chat to topic with ID '%s' as the request to send failed on the backend! Error code: %d; Error message: %s"), *RoomId, ErrorCode, *ErrorMessage);
+	ErrorCode = InErrorCode;
 	ErrorString = ErrorMessage;
 	CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
 }
@@ -142,9 +152,10 @@ void FOnlineAsyncTaskAccelByteChatSendPersonalChat::OnSendRoomChatSuccess(const 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 
-void FOnlineAsyncTaskAccelByteChatSendPersonalChat::OnCreatePersonalTopicError(int32 ErrorCode, const FString& ErrorMessage)
+void FOnlineAsyncTaskAccelByteChatSendPersonalChat::OnCreatePersonalTopicError(int32 InErrorCode, const FString& ErrorMessage)
 {
 	UE_LOG_AB(Warning, TEXT("Failed to create personal chat topic with recepient '%s' as the request to create failed on the backend! Error code: %d; Error message: %s"), *RecipientId->GetAccelByteId(), ErrorCode, *ErrorMessage);
+	ErrorCode = InErrorCode;
 	ErrorString = ErrorMessage;
 	CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
 }
@@ -187,3 +198,5 @@ void FOnlineAsyncTaskAccelByteChatSendPersonalChat::OnCreatePersonalTopicSuccess
 	}
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
+
+#undef ONLINE_ERROR_NAMESPACE

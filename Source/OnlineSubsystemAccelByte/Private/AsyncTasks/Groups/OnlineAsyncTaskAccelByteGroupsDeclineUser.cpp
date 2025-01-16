@@ -17,6 +17,7 @@ FOnlineAsyncTaskAccelByteGroupsDeclineUser::FOnlineAsyncTaskAccelByteGroupsDecli
 	, MemberId(FUniqueNetIdAccelByteUser::CastChecked(GroupMemberUserId))
 	, GroupId(InGroupId)
 	, Delegate(InDelegate)
+	, httpStatus(0)
 {
 	LocalUserNum = GroupAdmin;
 }

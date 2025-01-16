@@ -145,6 +145,31 @@ if (!IsApiClientValid())\
 }\
 auto ApiClient = GetApiClientInternal();\
 
+#define SERVER_API_CLIENT_CHECK_GUARD(...) \
+FAccelByteInstancePtr AccelByteInstance = GetAccelByteInstance().Pin(); \
+if(!AccelByteInstance.IsValid()) \
+{ \
+	RaiseGenericServerError(__VA_ARGS__); \
+	AB_OSS_ASYNC_TASK_TRACE_END(TEXT("AccelByteInstance is invalid")); \
+	return;\
+} \
+\
+const FServerApiClientPtr ServerApiClient = AccelByteInstance->GetServerApiClient(); \
+if(!ServerApiClient.IsValid()) \
+{ \
+	RaiseGenericServerError(__VA_ARGS__);\
+	AB_OSS_ASYNC_TASK_TRACE_END(TEXT("ServerApiClient is invalid")); \
+	return;\
+} \
+
+#define TRY_PIN_ACCELBYTEINSTANCE() \
+FAccelByteInstancePtr AccelByteInstance = GetAccelByteInstance().Pin(); \
+if(!AccelByteInstance.IsValid()) \
+{ \
+	AB_OSS_ASYNC_TASK_TRACE_END(TEXT("AccelByteInstance is invalid")); \
+	return; \
+} \
+
 #define TRY_PIN_SUBSYSTEM_RAW(bCompleteTaskIfInvalid, .../*returned variable if the SubsystemPin invalid*/) \
 auto SubsystemPin = AccelByteSubsystem.Pin();\
 if (!SubsystemPin.IsValid())\
@@ -221,27 +246,7 @@ public:
 	explicit FOnlineAsyncTaskAccelByte(FOnlineSubsystemAccelByte *const InABSubsystem
 		, int32 InLocalUserNum
 		, uint8 InFlags
-		, TSharedPtr<FAccelByteKey> InLockKey)
-		: FOnlineAsyncTaskBasic(InABSubsystem)
-#if ENGINE_MAJOR_VERSION >= 5
-		, AccelByteSubsystem(InABSubsystem->AsWeak())
-#else
-		, AccelByteSubsystem(InABSubsystem->AsShared())
-#endif
-		, LocalUserNum(InLocalUserNum)
-		, Flags(InFlags)
-		, LockKey(InLockKey)
-		, Subsystem(InABSubsystem)
-	{
-		bShouldUseTimeout = HasFlag(EAccelByteAsyncTaskFlags::UseTimeout);
-
-		// NOTE(Maxwell, 7/8/2021): Due to a bug where we cannot cancel requests on the SDK side, as well as cancel the delegates
-		// that are supposed to run with these requests, if a timeout is quicker than a request could be received from the backend
-		// we may get a crash from that. To combat this for now, we want to set our default timeout to always be one second higher
-		// than the SDK HTTP timeout to give the SDK a chance to fire off its delegates for a timeout.
-		// Fix this once https://accelbyte.atlassian.net/browse/OSS-193 is implemented.
-		TaskTimeoutInSeconds = static_cast<double>(AccelByte::FHttpRetryScheduler::TotalTimeout) + 1.0;
-	}
+		, TSharedPtr<FAccelByteKey> InLockKey);
 
 	/**
 	 * Simple tick override to check if we are using timeouts, and if so check the task timeout and complete the task unsuccessfully if it's over its timeout
@@ -371,7 +376,7 @@ protected:
 	using Super = FOnlineAsyncTaskAccelByte;
 
 	/** Need to use this instead of using parent's member FOnlineAsyncTaskBasic::Subsystem T* raw pointer */
-	TWeakPtr<FOnlineSubsystemAccelByte, ESPMode::ThreadSafe> AccelByteSubsystem;
+	FOnlineSubsystemAccelByteWPtr AccelByteSubsystem;
 
 	/** Enum representing the current state of a task as a whole */
 	EAccelByteAsyncTaskState CurrentState = EAccelByteAsyncTaskState::Uninitialized;
@@ -490,6 +495,38 @@ protected:
 		RaiseGenericError();
 	}
 
+	template<typename T>
+	void RaiseGenericServerError(T Args)
+	{}
+
+	void RaiseGenericServerError()
+	{
+		FString ErrorStr = TEXT("request-to-obtain-valid-serverapiclient");
+		UE_LOG_AB(Warning, TEXT("%s"), *ErrorStr);
+		CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState);
+	}
+
+	template<>
+	void RaiseGenericServerError<FString&>(FString& InErrorStrMember)
+	{
+		InErrorStrMember = TEXT("request-to-obtain-valid-serverapiclient");
+		RaiseGenericError();
+	}
+
+	template<>
+	void RaiseGenericServerError<FOnlineError&>(FOnlineError& InOnlineError)
+	{
+		InOnlineError.CreateError("AccelByteServerApiClientError", EOnlineErrorResult::RequestFailure);
+		RaiseGenericError();
+	}
+	
+	template<>
+	void RaiseGenericServerError<FOnlineErrorAccelByte&>(FOnlineErrorAccelByte& InOnlineError)
+	{
+		InOnlineError.CreateError("AccelByteServerApiClientError", static_cast<int32>(AccelByte::ErrorCodes::InvalidRequest), EOnlineErrorResult::RequestFailure);
+		RaiseGenericError();
+	}
+
 	/**
 	 * Method called when this async task has timed out. Use to add custom timeout functionality.
 	 */
@@ -542,6 +579,13 @@ protected:
 
 		ApiClientInternal = IdentityInterface->GetApiClient(InUserId.Get());
 		return ApiClientInternal;
+	}
+
+	virtual FAccelByteInstanceWPtr GetAccelByteInstance()
+	{
+		TRY_PIN_SUBSYSTEM(nullptr)
+
+		return SubsystemPin->GetAccelByteInstance();
 	}
 
 	/**

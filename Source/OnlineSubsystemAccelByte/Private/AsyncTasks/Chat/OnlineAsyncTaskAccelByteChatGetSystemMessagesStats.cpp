@@ -4,6 +4,8 @@
 
 #include "OnlineAsyncTaskAccelByteChatGetSystemMessagesStats.h"
 
+#include "OnlineChatInterfaceAccelByte.h"
+
 #define ONLINE_ERROR_NAMESPACE "FOnlineAsyncTaskAccelByteChatGetSystemMessagesStats"
 
 FOnlineAsyncTaskAccelByteChatGetSystemMessagesStats::FOnlineAsyncTaskAccelByteChatGetSystemMessagesStats(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InLocalUserId, const FAccelByteGetSystemMessageStatsRequest& InOptionalParams)

@@ -29,10 +29,12 @@ void FOnlineAsyncTaskAccelByteServerQueryGameSessionsV2::Initialize()
 		return;
 	}
 
+	SERVER_API_CLIENT_CHECK_GUARD()
+
 	OnQuerySuccess = TDelegateUtils<THandler<FAccelByteModelsV2PaginatedGameSessionQueryResult>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteServerQueryGameSessionsV2::OnQueryGameSessionsSuccess);
 	OnQueryFailed = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteServerQueryGameSessionsV2::OnQueryGameSessionsFailed);
 
-	FMultiRegistry::GetServerApiClient()->ServerSession.QueryGameSessions(Request, OnQuerySuccess, OnQueryFailed, Offset, Limit);
+	ServerApiClient->ServerSession.QueryGameSessions(Request, OnQuerySuccess, OnQueryFailed, Offset, Limit);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }

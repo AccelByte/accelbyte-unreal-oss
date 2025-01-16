@@ -39,9 +39,7 @@ void FOnlineAsyncTaskAccelByteLoginQueue::Initialize()
 		CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState);
 		return;
 	}
-
-	IdentityInterface->InitializeLoginQueue(LoginUserNum, Ticket.Ticket);
-
+	
 	OnLoginQueueCancelledDelegate = TDelegateUtils<FAccelByteOnLoginQueueCanceledByUserDelegate>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteLoginQueue::OnLoginQueueCancelled);
 	OnLoginQueueCancelledDelegateHandle = IdentityInterface->AddAccelByteOnLoginQueueCanceledByUserDelegate_Handle(OnLoginQueueCancelledDelegate);
 

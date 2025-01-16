@@ -29,8 +29,7 @@ void FOnlineAsyncTaskAccelByteDeleteBackfillTicket::Initialize()
 	FString BackfillTicketId{};
 	AB_ASYNC_TASK_VALIDATE(Session->SessionSettings.Get(SETTING_MATCHMAKING_BACKFILL_TICKET_ID, BackfillTicketId), "Failed to delete backfill ticket as we do not have a valid backfill ticket ID stored!");
 
-	AccelByte::FServerApiClientPtr ServerApiClient = AccelByte::FMultiRegistry::GetServerApiClient();
-	AB_ASYNC_TASK_VALIDATE(ServerApiClient.IsValid(), "Failed to delete backfill ticket for session as we could not get a server API client!");
+	SERVER_API_CLIENT_CHECK_GUARD()
 
 	OnDeleteBackfillTicketSuccessDelegate = AccelByte::TDelegateUtils<FVoidHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteDeleteBackfillTicket::OnDeleteBackfillTicketSuccess);
 	OnDeleteBackfillTicketErrorDelegate = AccelByte::TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteDeleteBackfillTicket::OnDeleteBackfillTicketError);;

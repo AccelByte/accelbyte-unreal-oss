@@ -6,13 +6,17 @@
 #include "OnlineSubsystemAccelByte.h"
 
 FOnlineAsyncTaskManagerAccelByte::FOnlineAsyncTaskManagerAccelByte(FOnlineSubsystemAccelByte* ParentSubsystem)
-	: AccelByteSubsystem(ParentSubsystem)
+#if ENGINE_MAJOR_VERSION >= 5
+	: AccelByteSubsystem(ParentSubsystem->AsWeak())
+#else
+	: AccelByteSubsystem(ParentSubsystem->AsShared())
+#endif
 {
 }
 
 void FOnlineAsyncTaskManagerAccelByte::OnlineTick()
 {
-	check(AccelByteSubsystem);
+	check(AccelByteSubsystem.Pin().IsValid());
 	check(FPlatformTLS::GetCurrentThreadId() == OnlineThreadId);
 }
 

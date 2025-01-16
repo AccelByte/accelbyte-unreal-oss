@@ -36,7 +36,8 @@ void FOnlineAsyncTaskAccelByteRevokeV2GameCode::Initialize()
 
 	if(IsRunningDedicatedServer())
 	{
-		FMultiRegistry::GetServerApiClient()->ServerSession.RevokeGameSessionCode(SessionId, OnRevokeCodeSuccessDelegate, OnRevokeCodeErrorDelegate);
+		SERVER_API_CLIENT_CHECK_GUARD();
+		ServerApiClient->ServerSession.RevokeGameSessionCode(SessionId, OnRevokeCodeSuccessDelegate, OnRevokeCodeErrorDelegate);
 	}
 	else
 	{

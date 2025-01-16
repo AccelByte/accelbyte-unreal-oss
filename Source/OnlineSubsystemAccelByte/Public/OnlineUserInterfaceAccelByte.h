@@ -16,8 +16,10 @@
 #include "OnlineSubsystemAccelByte.h"
 #include "OnlineSubsystemAccelByteTypes.h"
 #include "OnlineError.h"
+#include "OnlineErrorAccelByte.h"
 #include "OnlineSubsystemAccelBytePackage.h"
 
+class FAccelByteUserPlatformLinkInformation;
 typedef TSharedRef<FAccelByteUserPlatformLinkInformation, ESPMode::ThreadSafe> FAccelByteUserPlatformLinkInformationRef;
 
 /**
@@ -283,7 +285,7 @@ PACKAGE_SCOPE:
 private:
 
 	/** Pointer to the AccelByte OSS instance that instantiated this online user interface. */
-	FOnlineSubsystemAccelByte* AccelByteSubsystem = nullptr;
+	FOnlineSubsystemAccelByteWPtr AccelByteSubsystem = nullptr;
 
 	/** Map of AccelByte IDs to AccelByte accounts */
 	TUniqueNetIdMap<TSharedRef<FUserOnlineAccountAccelByte>> IDToUserInfoMap;

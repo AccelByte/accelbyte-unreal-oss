@@ -446,6 +446,7 @@ void FAccelByteVoiceChat::TransmitToNoChannels()
 	GetVoiceChatUser()->TransmitToNoChannels();
 }
 
+#if !(ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION >= 5)
 void FAccelByteVoiceChat::TransmitToSpecificChannel(const FString& ChannelName)
 {
 #if (ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 3)
@@ -455,6 +456,7 @@ void FAccelByteVoiceChat::TransmitToSpecificChannel(const FString& ChannelName)
 	GetVoiceChatUser()->TransmitToSpecificChannel(ChannelName);
 #endif // (ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 3)
 }
+#endif // !(ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION >= 5)
 
 #if (ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 3)
 void FAccelByteVoiceChat::TransmitToSpecificChannels(const TSet<FString>& ChannelNames)
@@ -468,6 +470,7 @@ EVoiceChatTransmitMode FAccelByteVoiceChat::GetTransmitMode() const
 	return GetVoiceChatUser()->GetTransmitMode();
 }
 
+#if !(ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION >= 5)
 FString FAccelByteVoiceChat::GetTransmitChannel() const
 {
 	FString Result;
@@ -482,6 +485,7 @@ FString FAccelByteVoiceChat::GetTransmitChannel() const
 #endif // (ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 3)
 	return Result;
 }
+#endif // !(ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION >= 5)
 
 #if (ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 3)
 TSet<FString> FAccelByteVoiceChat::GetTransmitChannels() const

@@ -7,6 +7,7 @@
 #include "OnlineSubsystemAccelByte.h"
 #include "AsyncTasks/OnlineAsyncTaskAccelByte.h"
 #include "AsyncTasks/OnlineAsyncTaskAccelByteUtils.h"
+#include "OnlineChatInterfaceAccelByte.h"
 
 struct FAccelByteChatRoomConfig;
 struct FAccelByteModelsChatActionTopicResponse;

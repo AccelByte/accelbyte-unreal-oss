@@ -1,10 +1,12 @@
 // Copyright (c) 2022 AccelByte Inc. All Rights Reserved.
 // This is licensed software from AccelByte Inc, for limitations
 // and restrictions contact your company contract manager.
+
 #include "OnlineUserCacheAccelByte.h"
 #include "OnlineSubsystemAccelByte.h"
 #include "Containers/UnrealString.h"
 #include "OnlineSubsystemAccelByteTypes.h"
+#include "OnlineSubsystemAccelByteUtils.h"
 #include "AsyncTasks/User/OnlineAsyncTaskAccelByteQueryUsersByIds.h"
 #include "AsyncTasks/User/OnlineAsyncTaskAccelByteQueryUserProfile.h"
 #include "OnlineUserInterfaceAccelByte.h"

@@ -3,6 +3,7 @@
 // and restrictions contact your company contract manager.
 
 #include "OnlineAsyncTaskAccelByteQueryAllV2SessionInvites.h"
+#include "Core/AccelByteApiClient.h"
 
 using namespace AccelByte;
 
@@ -93,7 +94,8 @@ void FOnlineAsyncTaskAccelByteQueryAllV2SessionInvites::OnGetGameSessionInvitesS
 
 	for (const FAccelByteModelsV2GameSession& Session : Result.Data)
 	{
-		FOnlineSessionInviteAccelByte Invite{};
+		API_CLIENT_CHECK_GUARD();
+		FOnlineSessionInviteAccelByte Invite{ApiClient->GetTimeManager()};
 		Invite.SessionType = EAccelByteV2SessionType::GameSession;
 		Invite.RecipientId = UserId;
 
@@ -129,7 +131,8 @@ void FOnlineAsyncTaskAccelByteQueryAllV2SessionInvites::OnGetPartySessionInvites
 
 	for (const FAccelByteModelsV2PartySession& Session : Result.Data)
 	{
-		FOnlineSessionInviteAccelByte Invite{};
+		API_CLIENT_CHECK_GUARD();
+		FOnlineSessionInviteAccelByte Invite{ApiClient->GetTimeManager()};
 		Invite.SessionType = EAccelByteV2SessionType::PartySession;
 		Invite.RecipientId = UserId;
 

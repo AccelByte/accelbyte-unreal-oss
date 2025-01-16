@@ -5,6 +5,7 @@
 #pragma once
 #include "AsyncTasks/OnlineAsyncTaskAccelByte.h"
 #include "AsyncTasks/OnlineAsyncTaskAccelByteUtils.h"
+#include "Interfaces/OnlineEntitlementsInterface.h"
 
 class FOnlineAsyncTaskAccelByteGetCurrentUserEntitlementHistory
 	: public FOnlineAsyncTaskAccelByte

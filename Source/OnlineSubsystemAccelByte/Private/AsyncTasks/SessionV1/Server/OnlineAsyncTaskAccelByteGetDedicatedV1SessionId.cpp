@@ -54,10 +54,12 @@ void FOnlineAsyncTaskAccelByteGetDedicatedV1SessionId::Initialize()
 		return;
 	}
 
+	SERVER_API_CLIENT_CHECK_GUARD();
+
 	// Otherwise, make the request to get session ID for this server from the DSMC
 	THandler<FAccelByteModelsServerSessionResponse> OnGetSessionIdSuccess = TDelegateUtils<THandler<FAccelByteModelsServerSessionResponse>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteGetDedicatedV1SessionId::OnGetSessionIdSuccess);
 	FErrorHandler OnGetSessionIdError = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteGetDedicatedV1SessionId::OnGetSessionIdError);
-	FRegistry::ServerDSM.GetSessionId(OnGetSessionIdSuccess, OnGetSessionIdError);
+	ServerApiClient->ServerDSM.GetSessionId(OnGetSessionIdSuccess, OnGetSessionIdError);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }

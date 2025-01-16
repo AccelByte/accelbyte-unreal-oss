@@ -47,10 +47,12 @@ void FOnlineAsyncTaskAccelByteEnqueueJoinableV1Session::Initialize()
 		return;
 	}
 
+	SERVER_API_CLIENT_CHECK_GUARD();
+
 	FVoidHandler OnEnqueueJoinableSessionSuccessDelegate = TDelegateUtils<FVoidHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteEnqueueJoinableV1Session::OnEnqueueJoinableSessionSuccess);
 	FErrorHandler OnEnqueueJoinableSessionErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteEnqueueJoinableV1Session::OnEnqueueJoinableSessionError);
 	
-	FRegistry::ServerMatchmaking.EnqueueJoinableSession(ABSessionInfo->GetSessionResult(), OnEnqueueJoinableSessionSuccessDelegate, OnEnqueueJoinableSessionErrorDelegate);
+	ServerApiClient->ServerMatchmaking.EnqueueJoinableSession(ABSessionInfo->GetSessionResult(), OnEnqueueJoinableSessionSuccessDelegate, OnEnqueueJoinableSessionErrorDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sent request to enqueue joinable session on backend."));
 }

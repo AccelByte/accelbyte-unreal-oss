@@ -35,13 +35,22 @@ void FOnlineAsyncTaskAccelByteLoginQueueClaimTicket::Initialize()
 		return;
 	}
 
+	FAccelByteInstancePtr AccelByteInstance = SubsystemPin->GetAccelByteInstance().Pin();
+
+	if(!AccelByteInstance.IsValid())
+	{
+		AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Unable to initialize login queue, AccelByteInstance is invalid"));
+		CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState);
+		return;
+	}
+	
 	if (SubsystemPin->IsMultipleLocalUsersEnabled())
 	{
-		SetApiClient(FMultiRegistry::GetApiClient(FString::Printf(TEXT("%d"), LoginUserNum)));
+		SetApiClient(AccelByteInstance->GetApiClient(FString::Printf(TEXT("%d"), LoginUserNum)));
 	}
 	else
 	{
-		SetApiClient(FMultiRegistry::GetApiClient());
+		SetApiClient(AccelByteInstance->GetApiClient());
 	}
 
 	if (!IsApiClientValid())

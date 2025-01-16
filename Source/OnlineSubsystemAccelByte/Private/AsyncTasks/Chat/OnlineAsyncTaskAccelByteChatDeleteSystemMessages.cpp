@@ -4,6 +4,8 @@
 
 #include "OnlineAsyncTaskAccelByteChatDeleteSystemMessages.h"
 
+#include "OnlineChatInterfaceAccelByte.h"
+
 using namespace AccelByte;
 
 #define ONLINE_ERROR_NAMESPACE "FOnlineAsyncTaskAccelByteChatDeleteSystemMessages"

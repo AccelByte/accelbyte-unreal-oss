@@ -29,7 +29,7 @@ void FOnlineAsyncTaskAccelByteDeleteAdminGameRecordTTLConfig::Initialize()
 	OnDeleteAdminGameRecordTTLConfigSuccessDelegate = TDelegateUtils<FVoidHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteDeleteAdminGameRecordTTLConfig::OnDeleteAdminGameRecordTTLConfigSuccess);
 	OnDeleteAdminGameRecordTTLConfigErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteDeleteAdminGameRecordTTLConfig::OnDeleteAdminGameRecordTTLConfigError);
 
-	const FServerApiClientPtr ServerApiClient = FMultiRegistry::GetServerApiClient();
+	SERVER_API_CLIENT_CHECK_GUARD()
 	ServerApiClient->ServerCloudSave.DeleteAdminGameRecordTTLConfig(Key, OnDeleteAdminGameRecordTTLConfigSuccessDelegate, OnDeleteAdminGameRecordTTLConfigErrorDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

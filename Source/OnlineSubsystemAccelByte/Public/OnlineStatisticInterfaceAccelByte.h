@@ -38,9 +38,7 @@ PACKAGE_SCOPE:
 	TUniqueNetIdMap<TArray<TSharedRef<FAccelByteModelsFetchUser>>> UsersMap;
 	
 	/** Constructor that is invoked by the Subsystem instance to create a user cloud instance */
-	FOnlineStatisticAccelByte(FOnlineSubsystemAccelByte* InSubsystem)
-		: AccelByteSubsystem(InSubsystem)
-	{}
+	FOnlineStatisticAccelByte(FOnlineSubsystemAccelByte* InSubsystem);
 
 public:
 	virtual ~FOnlineStatisticAccelByte() override = default;
@@ -239,7 +237,7 @@ protected:
 	{}
 
 	/** Instance of the subsystem that created this interface */
-	FOnlineSubsystemAccelByte* AccelByteSubsystem = nullptr;
+	FOnlineSubsystemAccelByteWPtr AccelByteSubsystem = nullptr;
 
 private :
 	

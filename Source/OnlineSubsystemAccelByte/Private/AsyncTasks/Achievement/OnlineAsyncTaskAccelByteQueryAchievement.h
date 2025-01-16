@@ -5,7 +5,8 @@
 
 #include "AsyncTasks/OnlineAsyncTaskAccelByte.h"
 #include "AsyncTasks/OnlineAsyncTaskAccelByteUtils.h"
-#include "InterfaceModels/OnlineUserInterfaceAccelByteModels.h"
+#include "InterfaceModels/OnlineAchievementInterfaceAccelByteModels.h"
+#include "Interfaces/OnlineAchievementsInterface.h"
 
 class FOnlineAsyncTaskAccelByteQueryAchievement
 	: public FOnlineAsyncTaskAccelByte
@@ -40,7 +41,6 @@ private:
 
 	TArray<FAccelByteModelsPublicAchievement> PublicAchievements{};
 	FOnQueryAchievementsCompleteDelegate Delegate;
-	bool bWasSuccessful;
 
 	FAccelByteQueryAchievementDescriptionParameters RequestParameters = {};
 };

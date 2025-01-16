@@ -33,27 +33,43 @@ bool FOnlinePredefinedEventAccelByte::GetFromWorld(const UWorld* World, FOnlineP
 
 bool FOnlinePredefinedEventAccelByte::SetEventSendInterval(int32 InLocalUserNum)
 {
-	AB_OSS_INTERFACE_TRACE_BEGIN(TEXT("Set PredefinedEvent Send Interval for LocalUserNum: %d"), InLocalUserNum);
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("Set PredefinedEvent Send Interval for LocalUserNum: %d"), InLocalUserNum);
 
 	bool bIsSuccess = false;
 	if (bIsHaveSettingInterval)
 	{
 		if (IsRunningDedicatedServer())
 		{
-			const auto ServerApiClient = AccelByte::FMultiRegistry::GetServerApiClient();
-			if (ServerApiClient.IsValid())
+			const FAccelByteInstancePtr AccelByteInstance = GetAccelByteInstance().Pin();
+			if(!AccelByteInstance.IsValid())
 			{
-				ServerApiClient->ServerPredefinedEvent.SetBatchFrequency(FTimespan::FromSeconds(SettingInterval));
-				bIsSuccess = true;
+				bIsSuccess = false;
+			}
+			else
+			{
+				const FServerApiClientPtr ServerApiClient = AccelByteInstance->GetServerApiClient();
+				if (ServerApiClient.IsValid())
+				{
+					ServerApiClient->ServerPredefinedEvent.SetBatchFrequency(FTimespan::FromSeconds(SettingInterval));
+					bIsSuccess = true;
+				}
+				else
+				{
+					bIsSuccess = false;
+				}
 			}
 		}
 		else
 		{
-			const auto ApiClient = AccelByteSubsystem->GetApiClient(InLocalUserNum);
-			if (ApiClient.IsValid())
+			FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+			if (AccelByteSubsystemPtr.IsValid())
 			{
-				ApiClient->PredefinedEvent.SetBatchFrequency(FTimespan::FromSeconds(SettingInterval));
-				bIsSuccess = true;
+				const auto ApiClient = AccelByteSubsystemPtr->GetApiClient(InLocalUserNum);
+				if (ApiClient.IsValid())
+				{
+					ApiClient->PredefinedEvent.SetBatchFrequency(FTimespan::FromSeconds(SettingInterval));
+					bIsSuccess = true;
+				}
 			}
 		}
 	}
@@ -64,7 +80,7 @@ bool FOnlinePredefinedEventAccelByte::SetEventSendInterval(int32 InLocalUserNum)
 
 	SetEventIntervalMap.Add(InLocalUserNum, bIsSuccess);
 
-	AB_OSS_INTERFACE_TRACE_END(TEXT("Set PredefinedEvent Send Interval is finished with status (Success: %s)"), LOG_BOOL_FORMAT(bIsSuccess));
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Set PredefinedEvent Send Interval is finished with status (Success: %s)"), LOG_BOOL_FORMAT(bIsSuccess));
 	return bIsSuccess;
 }
 

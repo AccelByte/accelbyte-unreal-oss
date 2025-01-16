@@ -27,9 +27,11 @@ void FOnlineAsyncTaskAccelByteUnregisterLocalServerV2::Initialize()
 	ServerName = TEXT("");
 	AB_ASYNC_TASK_VALIDATE(SessionInterface->GetLocalServerName(ServerName), "Failed to unregister local server as we failed to get the name of the server!");
 
+	SERVER_API_CLIENT_CHECK_GUARD();
+
 	OnUnregisterServerSuccessDelegate = TDelegateUtils<FVoidHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteUnregisterLocalServerV2::OnUnregisterServerSuccess);
 	OnUnregisterServerErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteUnregisterLocalServerV2::OnUnregisterServerError);;
-	FRegistry::ServerDSM.DeregisterLocalServerFromDSM(ServerName, OnUnregisterServerSuccessDelegate, OnUnregisterServerErrorDelegate);
+	ServerApiClient->ServerDSM.DeregisterLocalServerFromDSM(ServerName, OnUnregisterServerSuccessDelegate, OnUnregisterServerErrorDelegate);
 
     AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }

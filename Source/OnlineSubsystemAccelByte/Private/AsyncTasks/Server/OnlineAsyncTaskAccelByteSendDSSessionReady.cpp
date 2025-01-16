@@ -55,10 +55,12 @@ void FOnlineAsyncTaskAccelByteSendDSSessionReady::Initialize()
 	const TSharedPtr<FOnlineSessionInfoAccelByteV2> SessionInfo = StaticCastSharedPtr<FOnlineSessionInfoAccelByteV2>(GameSession->SessionInfo);
 	const FString GameSessionId = SessionInfo.IsValid() ? SessionInfo->GetSessionId().ToString() : TEXT("");
 
+	SERVER_API_CLIENT_CHECK_GUARD();
+
 	OnSendDSReadySuccessDelegate = TDelegateUtils<FVoidHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteSendDSSessionReady::OnSendDSReadySuccess);
 	OnSendDSReadyErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteSendDSSessionReady::OnSendDSReadyError);
 
-	FMultiRegistry::GetServerApiClient()->ServerSession.SendDSSessionReady(GameSessionId, bIsServerReady, OnSendDSReadySuccessDelegate, OnSendDSReadyErrorDelegate);
+	ServerApiClient->ServerSession.SendDSSessionReady(GameSessionId, bIsServerReady, OnSendDSReadySuccessDelegate, OnSendDSReadyErrorDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
