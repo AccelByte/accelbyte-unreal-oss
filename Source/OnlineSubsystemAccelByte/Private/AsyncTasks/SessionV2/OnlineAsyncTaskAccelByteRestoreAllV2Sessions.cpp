@@ -27,13 +27,13 @@ void FOnlineAsyncTaskAccelByteRestoreAllV2Sessions::Initialize()
 	// Get information about the user's party, which then will give us a party to restore if we are in one
 	OnGetMyPartiesSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsV2PaginatedPartyQueryResult>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteRestoreAllV2Sessions::OnGetMyPartiesSuccess);
 	OnGetMyPartiesErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteRestoreAllV2Sessions::OnGetMyPartiesError);
-	API_CLIENT_CHECK_GUARD();
-	ApiClient->Session.GetMyParties(OnGetMyPartiesSuccessDelegate, OnGetMyPartiesErrorDelegate);
+	API_FULL_CHECK_GUARD(Session);
+	Session->GetMyParties(OnGetMyPartiesSuccessDelegate, OnGetMyPartiesErrorDelegate);
 
 	// Get information about the user's game sessions, which then will give us a game session to restore if we are in one
 	OnGetMyGameSessionsSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsV2PaginatedGameSessionQueryResult>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteRestoreAllV2Sessions::OnGetMyGameSessionsSuccess);
 	OnGetMyGameSessionsErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteRestoreAllV2Sessions::OnGetMyGameSessionsError);
-	ApiClient->Session.GetMyGameSessions(OnGetMyGameSessionsSuccessDelegate, OnGetMyGameSessionsErrorDelegate);
+	Session->GetMyGameSessions(OnGetMyGameSessionsSuccessDelegate, OnGetMyGameSessionsErrorDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
@@ -50,7 +50,7 @@ void FOnlineAsyncTaskAccelByteRestoreAllV2Sessions::Tick()
 
 void FOnlineAsyncTaskAccelByteRestoreAllV2Sessions::Finalize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
@@ -88,7 +88,7 @@ bool FOnlineAsyncTaskAccelByteRestoreAllV2Sessions::HasFinishedAsyncWork()
 
 void FOnlineAsyncTaskAccelByteRestoreAllV2Sessions::OnGetMyGameSessionsSuccess(const FAccelByteModelsV2PaginatedGameSessionQueryResult& Result)
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("GameSessionCount: %d"), Result.Data.Num());
 
@@ -143,7 +143,7 @@ void FOnlineAsyncTaskAccelByteRestoreAllV2Sessions::OnGetMyGameSessionsError(int
 
 void FOnlineAsyncTaskAccelByteRestoreAllV2Sessions::OnGetMyPartiesSuccess(const FAccelByteModelsV2PaginatedPartyQueryResult& Result)
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("PartySessionCount: %d"), Result.Data.Num());
 

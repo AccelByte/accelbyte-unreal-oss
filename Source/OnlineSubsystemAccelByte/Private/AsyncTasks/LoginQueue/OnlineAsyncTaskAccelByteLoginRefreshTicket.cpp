@@ -23,7 +23,7 @@ FOnlineAsyncTaskAccelByteLoginRefreshTicket::FOnlineAsyncTaskAccelByteLoginRefre
 
 void FOnlineAsyncTaskAccelByteLoginRefreshTicket::Initialize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::Initialize();
 
@@ -48,8 +48,8 @@ void FOnlineAsyncTaskAccelByteLoginRefreshTicket::Initialize()
 	
 	OnRefreshTicketSuccessHandler = TDelegateUtils<THandler<FAccelByteModelsLoginQueueTicketInfo>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteLoginRefreshTicket::OnRefreshTicketSuccess);
 	OnRefreshTicketErrorHandler = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteLoginRefreshTicket::OnRefreshTicketError);
-	API_CLIENT_CHECK_GUARD(ErrorStr);
-	ApiClient->LoginQueue.RefreshTicket(TicketId, OnRefreshTicketSuccessHandler, OnRefreshTicketErrorHandler);
+	API_FULL_CHECK_GUARD(LoginQueue, ErrorStr);
+	LoginQueue->RefreshTicket(TicketId, OnRefreshTicketSuccessHandler, OnRefreshTicketErrorHandler);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 

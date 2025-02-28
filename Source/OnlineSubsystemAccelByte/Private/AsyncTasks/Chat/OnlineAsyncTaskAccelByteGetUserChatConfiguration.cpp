@@ -23,19 +23,19 @@ void FOnlineAsyncTaskAccelByteGetUserChatConfiguration::Initialize()
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("UserId: %s"), *UserId->ToDebugString());
 
-	API_CLIENT_CHECK_GUARD(OnlineError);
+	API_FULL_CHECK_GUARD(Chat, OnlineError);
 	const auto OnSuccessDelegate = TDelegateUtils<Api::Chat::FGetUserChatConfigurationResponse>::CreateThreadSafeSelfPtr(
 		this, &FOnlineAsyncTaskAccelByteGetUserChatConfiguration::OnGetUserChatConfigurationSuccess);
 	const auto OnErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(
 		this, &FOnlineAsyncTaskAccelByteGetUserChatConfiguration::OnGetUserChatConfigurationFailed);
-	ApiClient->Chat.GetUserChatConfiguration(OnSuccessDelegate, OnErrorDelegate);
+	Chat->GetUserChatConfiguration(OnSuccessDelegate, OnErrorDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""))
 }
 
 void FOnlineAsyncTaskAccelByteGetUserChatConfiguration::Finalize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::Finalize();
 
@@ -55,7 +55,7 @@ void FOnlineAsyncTaskAccelByteGetUserChatConfiguration::Finalize()
 
 void FOnlineAsyncTaskAccelByteGetUserChatConfiguration::TriggerDelegates()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::TriggerDelegates();
 

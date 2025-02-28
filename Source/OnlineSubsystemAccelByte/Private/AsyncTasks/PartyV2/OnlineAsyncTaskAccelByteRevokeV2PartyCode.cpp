@@ -14,7 +14,7 @@ FOnlineAsyncTaskAccelByteRevokeV2PartyCode::FOnlineAsyncTaskAccelByteRevokeV2Par
 
 void FOnlineAsyncTaskAccelByteRevokeV2PartyCode::Initialize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::Initialize();
 
@@ -23,23 +23,23 @@ void FOnlineAsyncTaskAccelByteRevokeV2PartyCode::Initialize()
 	FOnlineSessionV2AccelBytePtr SessionInterface = nullptr;
 	AB_ASYNC_TASK_VALIDATE(FOnlineSessionV2AccelByte::GetFromSubsystem(SubsystemPin.Get(), SessionInterface), "Failed to get session interface for revoking party code!");
 
-	FNamedOnlineSession* Session = SessionInterface->GetNamedSession(SessionName);
-	AB_ASYNC_TASK_VALIDATE(Session != nullptr, "Failed to get named session for revoking party code!");
+	FNamedOnlineSession* OnlineSession = SessionInterface->GetNamedSession(SessionName);
+	AB_ASYNC_TASK_VALIDATE(OnlineSession != nullptr, "Failed to get named session for revoking party code!");
 
-	const FString SessionId = Session->GetSessionIdStr();
+	const FString SessionId = OnlineSession->GetSessionIdStr();
 	AB_ASYNC_TASK_VALIDATE(!SessionId.Equals(TEXT("InvalidSession"), ESearchCase::IgnoreCase), "Named session used to revoke party code has invalid party ID!");
 
 	OnRevokeCodeSuccessDelegate = AccelByte::TDelegateUtils<FVoidHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteRevokeV2PartyCode::OnRevokeCodeSuccess);
 	OnRevokeCodeErrorDelegate = AccelByte::TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteRevokeV2PartyCode::OnRevokeCodeError);;
-	API_CLIENT_CHECK_GUARD();
-	ApiClient->Session.RevokePartyCode(SessionId, OnRevokeCodeSuccessDelegate, OnRevokeCodeErrorDelegate);
+	API_FULL_CHECK_GUARD(Session);
+	Session->RevokePartyCode(SessionId, OnRevokeCodeSuccessDelegate, OnRevokeCodeErrorDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 
 void FOnlineAsyncTaskAccelByteRevokeV2PartyCode::Finalize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::Finalize();
 

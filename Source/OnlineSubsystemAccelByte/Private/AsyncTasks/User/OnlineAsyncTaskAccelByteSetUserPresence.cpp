@@ -37,16 +37,16 @@ void FOnlineAsyncTaskAccelByteSetUserPresence::Initialize()
 
 	// Send off the actual request to set user presence
 	AccelByte::Api::Lobby::FSetUserPresenceResponse OnSetUserPresenceResponseDelegate = TDelegateUtils<AccelByte::Api::Lobby::FSetUserPresenceResponse>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteSetUserPresence::OnSetUserPresenceResponse);
-	API_CLIENT_CHECK_GUARD();
-	ApiClient->Lobby.SetUserPresenceResponseDelegate(OnSetUserPresenceResponseDelegate);
-	ApiClient->Lobby.SendSetPresenceStatus(PresenceStatus, LocalCachedPresenceStatus->StatusStr);
+	API_FULL_CHECK_GUARD(Lobby);
+	Lobby->SetUserPresenceResponseDelegate(OnSetUserPresenceResponseDelegate);
+	Lobby->SendSetPresenceStatus(PresenceStatus, LocalCachedPresenceStatus->StatusStr);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 
 void FOnlineAsyncTaskAccelByteSetUserPresence::Finalize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
@@ -75,7 +75,7 @@ void FOnlineAsyncTaskAccelByteSetUserPresence::Finalize()
 
 void FOnlineAsyncTaskAccelByteSetUserPresence::TriggerDelegates() 
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 

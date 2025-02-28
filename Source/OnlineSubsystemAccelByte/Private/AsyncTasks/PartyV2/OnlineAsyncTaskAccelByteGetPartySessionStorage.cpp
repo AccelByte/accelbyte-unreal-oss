@@ -37,9 +37,9 @@ void FOnlineAsyncTaskAccelByteGetPartySessionStorage::Initialize()
 	OnGetPartySessionStorageSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsV2PartySessionStorage>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteGetPartySessionStorage::OnGetPartySessionStorageSuccess);
 	OnGetPartySessionStorageErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteGetPartySessionStorage::OnGetPartySessionStorageError);
 
-	API_CLIENT_CHECK_GUARD();
+	API_FULL_CHECK_GUARD(Session);
 	FAccelByteModelsV2PartySessionStorageReservedData ReservedData{};
-	ApiClient->Session.GetPartySessionStorage(
+	Session->GetPartySessionStorage(
 		  PartySession->GetSessionIdStr()
 		, OnGetPartySessionStorageSuccessDelegate
 		, OnGetPartySessionStorageErrorDelegate);

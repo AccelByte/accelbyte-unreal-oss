@@ -14,7 +14,7 @@ FOnlineAsyncTaskAccelByteGenerateNewV2PartyCode::FOnlineAsyncTaskAccelByteGenera
 
 void FOnlineAsyncTaskAccelByteGenerateNewV2PartyCode::Initialize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::Initialize();
 
@@ -23,23 +23,23 @@ void FOnlineAsyncTaskAccelByteGenerateNewV2PartyCode::Initialize()
 	FOnlineSessionV2AccelBytePtr SessionInterface = nullptr;
 	AB_ASYNC_TASK_VALIDATE(FOnlineSessionV2AccelByte::GetFromSubsystem(SubsystemPin.Get(),  SessionInterface), "Failed to get session interface for generating party code!");
 
-	FNamedOnlineSession* Session = SessionInterface->GetNamedSession(SessionName);
-	AB_ASYNC_TASK_VALIDATE(Session != nullptr, "Failed to get named session for generating party code!");
+	FNamedOnlineSession* OnlineSession = SessionInterface->GetNamedSession(SessionName);
+	AB_ASYNC_TASK_VALIDATE(OnlineSession != nullptr, "Failed to get named session for generating party code!");
 
-	const FString SessionId = Session->GetSessionIdStr();
+	const FString SessionId = OnlineSession->GetSessionIdStr();
 	AB_ASYNC_TASK_VALIDATE(!SessionId.Equals(TEXT("InvalidSession"), ESearchCase::IgnoreCase), "Named session used to generate new party code has invalid party ID!");
 
 	OnGenerateNewCodeSuccessDelegate = AccelByte::TDelegateUtils<THandler<FAccelByteModelsV2PartySession>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteGenerateNewV2PartyCode::OnGenerateNewCodeSuccess);
 	OnGenerateNewCodeErrorDelegate = AccelByte::TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteGenerateNewV2PartyCode::OnGenerateNewCodeError);;
-	API_CLIENT_CHECK_GUARD();
-	ApiClient->Session.GenerateNewPartyCode(SessionId, OnGenerateNewCodeSuccessDelegate, OnGenerateNewCodeErrorDelegate);
+	API_FULL_CHECK_GUARD(Session);
+	Session->GenerateNewPartyCode(SessionId, OnGenerateNewCodeSuccessDelegate, OnGenerateNewCodeErrorDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 
 void FOnlineAsyncTaskAccelByteGenerateNewV2PartyCode::Finalize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::Finalize();
 

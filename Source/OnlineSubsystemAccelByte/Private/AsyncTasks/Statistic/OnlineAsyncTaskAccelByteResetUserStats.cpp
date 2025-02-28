@@ -46,7 +46,7 @@ FOnlineAsyncTaskAccelByteResetUserStats::FOnlineAsyncTaskAccelByteResetUserStats
 
 void FOnlineAsyncTaskAccelByteResetUserStats::Initialize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::Initialize();
 	
@@ -123,8 +123,8 @@ void FOnlineAsyncTaskAccelByteResetUserStats::Initialize()
 	}
 	else
 	{
-		API_CLIENT_CHECK_GUARD(ErrorMessage);
-		ApiClient->Statistic.BulkResetMultipleUserStatItemsValue(UserStatItemValues
+		API_FULL_CHECK_GUARD(Statistic, ErrorMessage);
+		Statistic->BulkResetMultipleUserStatItemsValue(UserStatItemValues
 			, OnBulkResetMultipleUserStatItemsValueSuccess
 			, OnError);
 	}
@@ -138,7 +138,7 @@ void FOnlineAsyncTaskAccelByteResetUserStats::Initialize()
 
 void FOnlineAsyncTaskAccelByteResetUserStats::Finalize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Finalize"));
 	Super::Finalize();
@@ -173,7 +173,7 @@ void FOnlineAsyncTaskAccelByteResetUserStats::Finalize()
 
 void FOnlineAsyncTaskAccelByteResetUserStats::TriggerDelegates()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Trigger Delegates"));
 	Super::TriggerDelegates();

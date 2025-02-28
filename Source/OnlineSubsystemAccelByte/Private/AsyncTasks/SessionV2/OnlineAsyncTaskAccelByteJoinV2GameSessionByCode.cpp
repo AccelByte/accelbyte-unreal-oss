@@ -15,7 +15,7 @@ FOnlineAsyncTaskAccelByteJoinV2GameSessionByCode::FOnlineAsyncTaskAccelByteJoinV
 
 void FOnlineAsyncTaskAccelByteJoinV2GameSessionByCode::Initialize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::Initialize();
 
@@ -29,15 +29,15 @@ void FOnlineAsyncTaskAccelByteJoinV2GameSessionByCode::Initialize()
 
 	OnJoinGameSessionByCodeSuccessDelegate = AccelByte::TDelegateUtils<THandler<FAccelByteModelsV2GameSession>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteJoinV2GameSessionByCode::OnJoinGameSessionByCodeSuccess);
 	OnJoinGameSessionByCodeErrorDelegate = AccelByte::TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteJoinV2GameSessionByCode::OnJoinGameSessionByCodeError);;
-	API_CLIENT_CHECK_GUARD();
-	ApiClient->Session.JoinGameSessionByCode(Code, OnJoinGameSessionByCodeSuccessDelegate, OnJoinGameSessionByCodeErrorDelegate);
+	API_FULL_CHECK_GUARD(Session);
+	Session->JoinGameSessionByCode(Code, OnJoinGameSessionByCodeSuccessDelegate, OnJoinGameSessionByCodeErrorDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 
 void FOnlineAsyncTaskAccelByteJoinV2GameSessionByCode::Finalize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::Finalize();
 
@@ -95,7 +95,7 @@ void FOnlineAsyncTaskAccelByteJoinV2GameSessionByCode::Finalize()
 
 void FOnlineAsyncTaskAccelByteJoinV2GameSessionByCode::TriggerDelegates()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::TriggerDelegates();
 

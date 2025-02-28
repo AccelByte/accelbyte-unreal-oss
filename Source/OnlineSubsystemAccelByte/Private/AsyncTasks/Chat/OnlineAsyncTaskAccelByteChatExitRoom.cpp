@@ -29,15 +29,15 @@ void FOnlineAsyncTaskAccelByteChatExitRoom::Initialize()
 		TDelegateUtils<AccelByte::Api::Chat::FChatActionTopicResponse>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteChatExitRoom::OnExitRoomSuccess);
 	const FErrorHandler OnExitRoomErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteChatExitRoom::OnExitRoomError);
 
-	API_CLIENT_CHECK_GUARD(ErrorString);
-	ApiClient->Chat.QuitTopic(RoomId, OnExitRoomSuccessDelegate, OnExitRoomErrorDelegate);
+	API_FULL_CHECK_GUARD(Chat, ErrorString);
+	Chat->QuitTopic(RoomId, OnExitRoomSuccessDelegate, OnExitRoomErrorDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 
 void FOnlineAsyncTaskAccelByteChatExitRoom::TriggerDelegates()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::TriggerDelegates();
 
@@ -56,7 +56,7 @@ void FOnlineAsyncTaskAccelByteChatExitRoom::TriggerDelegates()
 
 void FOnlineAsyncTaskAccelByteChatExitRoom::Finalize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::Finalize();
 

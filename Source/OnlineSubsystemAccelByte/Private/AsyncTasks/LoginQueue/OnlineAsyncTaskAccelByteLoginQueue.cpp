@@ -23,7 +23,7 @@ FOnlineAsyncTaskAccelByteLoginQueue::FOnlineAsyncTaskAccelByteLoginQueue(FOnline
 
 void FOnlineAsyncTaskAccelByteLoginQueue::Initialize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::Initialize();
 
@@ -56,7 +56,7 @@ void FOnlineAsyncTaskAccelByteLoginQueue::Initialize()
 
 void FOnlineAsyncTaskAccelByteLoginQueue::Finalize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), bWasSuccessful ? TEXT("True") : TEXT("False"));
 
@@ -72,7 +72,7 @@ void FOnlineAsyncTaskAccelByteLoginQueue::Finalize()
 
 void FOnlineAsyncTaskAccelByteLoginQueue::TriggerDelegates()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), bWasSuccessful ? TEXT("True") : TEXT("False"));
 
@@ -99,7 +99,7 @@ void FOnlineAsyncTaskAccelByteLoginQueue::TriggerDelegates()
 
 void FOnlineAsyncTaskAccelByteLoginQueue::OnPollTicketRefreshed(const FAccelByteModelsLoginQueueTicketInfo& InTicket)
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("LocalUserNum: %d, TicketId: %s"), LoginUserNum, *InTicket.Ticket);
 
@@ -166,7 +166,7 @@ void FOnlineAsyncTaskAccelByteLoginQueue::OnLoginQueueCancelled(int32 InLoginUse
 
 void FOnlineAsyncTaskAccelByteLoginQueue::CleanupDelegateHandler()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Poller->UnbindOnPollStopped();
 	Poller->UnbindOnTicketRefreshed();

@@ -26,15 +26,15 @@ void FOnlineAsyncTaskAccelByteChatQueryTransientSystemMessages::Initialize()
 		this, &FOnlineAsyncTaskAccelByteChatQueryTransientSystemMessages::OnQuerySystemMessagesSuccess);
 	OnQuerySystemMessagesErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(
 		this, &FOnlineAsyncTaskAccelByteChatQueryTransientSystemMessages::OnQuerySystemMessagesError);
-	API_CLIENT_CHECK_GUARD(OnlineError);
-	ApiClient->Chat.QuerySystemMessage(OnQuerySystemMessagesSuccessDelegate, OnQuerySystemMessagesErrorDelegate, QueryParams);
+	API_FULL_CHECK_GUARD(Chat, OnlineError);
+	Chat->QuerySystemMessage(OnQuerySystemMessagesSuccessDelegate, OnQuerySystemMessagesErrorDelegate, QueryParams);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 
 void FOnlineAsyncTaskAccelByteChatQueryTransientSystemMessages::TriggerDelegates()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s, ErrorMessage: %s"), LOG_BOOL_FORMAT(bWasSuccessful), *OnlineError.ErrorMessage.ToString());
 

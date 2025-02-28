@@ -28,7 +28,7 @@ FOnlineAsyncTaskAccelByteReplaceUserRecord::FOnlineAsyncTaskAccelByteReplaceUser
 
 void FOnlineAsyncTaskAccelByteReplaceUserRecord::Initialize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::Initialize();
 
@@ -65,8 +65,8 @@ void FOnlineAsyncTaskAccelByteReplaceUserRecord::Initialize()
 	}
 	else
 	{
-		API_CLIENT_CHECK_GUARD(ErrorStr);
-		ApiClient->CloudSave.ReplaceUserRecord(Key, IsPublicRecord, UserRecordObj, OnReplaceUserRecordSuccessDelegate, OnReplaceUserRecordErrorDelegate);
+		API_FULL_CHECK_GUARD(CloudSave,ErrorStr);
+		CloudSave->ReplaceUserRecord(Key, IsPublicRecord, UserRecordObj, OnReplaceUserRecordSuccessDelegate, OnReplaceUserRecordErrorDelegate);
 		SetBy = FAccelByteUtilities::GetUEnumValueAsString(ESetByMetadataRecord::CLIENT);
 	}
 
@@ -75,7 +75,7 @@ void FOnlineAsyncTaskAccelByteReplaceUserRecord::Initialize()
 
 void FOnlineAsyncTaskAccelByteReplaceUserRecord::Finalize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = SubsystemPin->GetPredefinedEventInterface();
 	if (bWasSuccessful && PredefinedEventInterface.IsValid())
@@ -93,7 +93,7 @@ void FOnlineAsyncTaskAccelByteReplaceUserRecord::Finalize()
 
 void FOnlineAsyncTaskAccelByteReplaceUserRecord::TriggerDelegates()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 

@@ -29,8 +29,8 @@ void FOnlineAsyncTaskAccelByteGroupsDeleteGroup::Initialize()
 	OnSuccessDelegate = TDelegateUtils<FVoidHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteGroupsDeleteGroup::OnDeleteGroupSuccess);
 	OnErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteGroupsDeleteGroup::OnDeleteGroupError);
 
-	API_CLIENT_CHECK_GUARD(ErrorString);
-	ApiClient->Group.DeleteV2Group(GroupId, OnSuccessDelegate, OnErrorDelegate);
+	API_FULL_CHECK_GUARD(Group, ErrorString);
+	Group->DeleteV2Group(GroupId, OnSuccessDelegate, OnErrorDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
@@ -49,7 +49,7 @@ void FOnlineAsyncTaskAccelByteGroupsDeleteGroup::TriggerDelegates()
 
 void FOnlineAsyncTaskAccelByteGroupsDeleteGroup::Finalize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::Finalize();
 

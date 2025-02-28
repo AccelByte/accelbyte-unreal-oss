@@ -81,10 +81,14 @@ public:
 
 		if (!IsRunningDedicatedServer())
 		{
-			const auto ApiClient = IdentityInterface->GetApiClient(LocalUserNum);
+			const auto ApiClient = AccelByteSubsystemPtr->GetApiClient(LocalUserNum);
 			if (ApiClient.IsValid())
 			{
-				ApiClient->PredefinedEvent.SendPredefinedEventData(Payload, AccelByte::FVoidHandler::CreateThreadSafeSP(this, &FOnlinePredefinedEventAccelByte::OnSuccess, LocalUserNum, Payload->GetPreDefinedEventName()), FErrorHandler::CreateThreadSafeSP(this, &FOnlinePredefinedEventAccelByte::OnError, LocalUserNum, Payload->GetPreDefinedEventName()), ClientTimestamp);
+				const auto PredefinedEvent = ApiClient->GetPredefinedEventApi().Pin();
+				if (PredefinedEvent.IsValid())
+				{
+					PredefinedEvent->SendPredefinedEventData(Payload, AccelByte::FVoidHandler::CreateThreadSafeSP(this, &FOnlinePredefinedEventAccelByte::OnSuccess, LocalUserNum, Payload->GetPreDefinedEventName()), FErrorHandler::CreateThreadSafeSP(this, &FOnlinePredefinedEventAccelByte::OnError, LocalUserNum, Payload->GetPreDefinedEventName()), ClientTimestamp);
+				}
 			}
 		}
 		else

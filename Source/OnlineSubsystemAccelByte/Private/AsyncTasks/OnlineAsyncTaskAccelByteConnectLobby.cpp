@@ -32,9 +32,9 @@ void FOnlineAsyncTaskAccelByteConnectLobby::Initialize()
 {
 	Super::Initialize();
 
-	API_CLIENT_CHECK_GUARD(ErrorStr);
+	API_FULL_CHECK_GUARD(Lobby, ErrorStr);
 	
-	if (ApiClient->Lobby.IsConnected())
+	if (Lobby->IsConnected())
 	{
 		if (SuppressConnectSuccessIfAlreadyConnected)
 		{
@@ -55,20 +55,20 @@ void FOnlineAsyncTaskAccelByteConnectLobby::Initialize()
 	OnLobbyConnectErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteConnectLobby::OnLobbyConnectError);
 	
 	OnLobbyDisconnectedNotifDelegate = TDelegateUtils<AccelByte::Api::Lobby::FDisconnectNotif>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteConnectLobby::OnLobbyDisconnectedNotif);
-	ApiClient->Lobby.SetDisconnectNotifDelegate(OnLobbyDisconnectedNotifDelegate);
+	Lobby->SetDisconnectNotifDelegate(OnLobbyDisconnectedNotifDelegate);
 
 	// Send off a request to connect to the lobby websocket, as well as connect our delegates for doing so
-	ApiClient->Lobby.SetConnectSuccessDelegate(OnLobbyConnectSuccessDelegate);
-	ApiClient->Lobby.SetConnectFailedDelegate(OnLobbyConnectErrorDelegate);
-	ApiClient->Lobby.SetTokenGenerator(CreateTokenGenerator());
-	ApiClient->Lobby.Connect();
+	Lobby->SetConnectSuccessDelegate(OnLobbyConnectSuccessDelegate);
+	Lobby->SetConnectFailedDelegate(OnLobbyConnectErrorDelegate);
+	Lobby->SetTokenGenerator(CreateTokenGenerator());
+	Lobby->Connect();
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 
 void FOnlineAsyncTaskAccelByteConnectLobby::Finalize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	UnbindDelegates();
 	FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = SubsystemPin->GetPredefinedEventInterface();
@@ -82,7 +82,7 @@ void FOnlineAsyncTaskAccelByteConnectLobby::Finalize()
 
 void FOnlineAsyncTaskAccelByteConnectLobby::TriggerDelegates()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
@@ -104,22 +104,37 @@ void FOnlineAsyncTaskAccelByteConnectLobby::TriggerDelegates()
 
 void FOnlineAsyncTaskAccelByteConnectLobby::OnLobbyConnectSuccess()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 
 	// Update identity interface lobby flag
 	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(SubsystemPin->GetIdentityInterface());
-	if (IdentityInterface.IsValid())
+	if (!IdentityInterface.IsValid())
 	{
-		TSharedPtr<FUserOnlineAccount> UserAccount = IdentityInterface->GetUserAccount(LocalUserNum);
-
-		if (UserAccount.IsValid())
-		{
-			const TSharedPtr<FUserOnlineAccountAccelByte> UserAccountAccelByte = StaticCastSharedPtr<FUserOnlineAccountAccelByte>(UserAccount);
-			UserAccountAccelByte->SetConnectedToLobby(true);
-		}
+		AB_OSS_ASYNC_TASK_TRACE_END(TEXT("AsyncTask terminated because IdentityInterface is invalid!"));
+		CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState);
+		return;
 	}
+
+	if (IdentityInterface->GetLoginStatus(LocalUserNum) != ELoginStatus::LoggedIn)
+	{
+		AB_OSS_ASYNC_TASK_TRACE_END(TEXT("AsyncTask terminated because user '%s' is not logged in!"), *UserId->ToDebugString());
+		CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState);
+		return;
+	}
+
+	TSharedPtr<FUserOnlineAccount> UserAccount = IdentityInterface->GetUserAccount(LocalUserNum);
+
+	if (!UserAccount.IsValid())
+	{
+		AB_OSS_ASYNC_TASK_TRACE_END(TEXT("AsyncTask terminated because user account for user '%s' is invalid!"), *UserId->ToDebugString());
+		CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState);
+		return;
+	}
+
+	const TSharedPtr<FUserOnlineAccountAccelByte> UserAccountAccelByte = StaticCastSharedPtr<FUserOnlineAccountAccelByte>(UserAccount);
+	UserAccountAccelByte->SetConnectedToLobby(true);
 
 	// Register all delegates for the presence interface to get real time notifications for presence actions
 	const TSharedPtr<FOnlinePresenceAccelByte, ESPMode::ThreadSafe> PresenceInterface = StaticCastSharedPtr<FOnlinePresenceAccelByte>(SubsystemPin->GetPresenceInterface());
@@ -175,7 +190,7 @@ void FOnlineAsyncTaskAccelByteConnectLobby::OnLobbyConnectError(int32 ErrorCode,
 
 void FOnlineAsyncTaskAccelByteConnectLobby::OnLobbyDisconnectedNotif(const FAccelByteModelsDisconnectNotif& Result)
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	// Update identity interface lobby flag
 	const TSharedPtr<FOnlineIdentityAccelByte, ESPMode::ThreadSafe> IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(SubsystemPin->GetIdentityInterface());

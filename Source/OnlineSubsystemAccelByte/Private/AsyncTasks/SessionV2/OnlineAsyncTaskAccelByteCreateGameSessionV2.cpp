@@ -32,7 +32,7 @@ FOnlineAsyncTaskAccelByteCreateGameSessionV2::FOnlineAsyncTaskAccelByteCreateGam
 
 void FOnlineAsyncTaskAccelByteCreateGameSessionV2::Initialize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::Initialize();
 
@@ -151,8 +151,8 @@ void FOnlineAsyncTaskAccelByteCreateGameSessionV2::Initialize()
 	OnCreateGameSessionErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteCreateGameSessionV2::OnCreateGameSessionError);;
 	if (!IsRunningDedicatedServer())
 	{
-		API_CLIENT_CHECK_GUARD();
-		ApiClient->Session.CreateGameSession(CreateRequest, OnCreateGameSessionSuccessDelegate, OnCreateGameSessionErrorDelegate);
+		API_FULL_CHECK_GUARD(Session);
+		Session->CreateGameSession(CreateRequest, OnCreateGameSessionSuccessDelegate, OnCreateGameSessionErrorDelegate);
 	}
 	else
 	{
@@ -165,7 +165,7 @@ void FOnlineAsyncTaskAccelByteCreateGameSessionV2::Initialize()
 
 void FOnlineAsyncTaskAccelByteCreateGameSessionV2::Finalize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
@@ -213,7 +213,7 @@ void FOnlineAsyncTaskAccelByteCreateGameSessionV2::Finalize()
 
 void FOnlineAsyncTaskAccelByteCreateGameSessionV2::TriggerDelegates()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::TriggerDelegates();
 

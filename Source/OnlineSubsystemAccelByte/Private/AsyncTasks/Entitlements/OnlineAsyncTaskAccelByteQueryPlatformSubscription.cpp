@@ -28,9 +28,9 @@ void FOnlineAsyncTaskAccelByteQueryPlatformSubscription::Initialize()
 {
 	FOnlineAsyncTaskAccelByte::Initialize();
 
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
-	API_CLIENT_CHECK_GUARD();
+	API_FULL_CHECK_GUARD(Entitlement);
 
 	EAccelBytePlatformSync PlatformSync = EAccelBytePlatformSync::OTHER;
 
@@ -54,7 +54,7 @@ void FOnlineAsyncTaskAccelByteQueryPlatformSubscription::Initialize()
 	auto OnSuccess = TDelegateUtils<THandler<FAccelByteModelsThirdPartyUserSubscriptions>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryPlatformSubscription::HandleQuerySubscriptionSuccess);
 	auto OnError = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryPlatformSubscription::HandleQuerySubscriptionError);
 
-	ApiClient->Entitlement.QueryUserSubcriptions(
+	Entitlement->QueryUserSubcriptions(
 		PlatformSync,
 		QueryRequest,
 		OnSuccess,
@@ -65,7 +65,7 @@ void FOnlineAsyncTaskAccelByteQueryPlatformSubscription::Initialize()
 
 void FOnlineAsyncTaskAccelByteQueryPlatformSubscription::TriggerDelegates()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 	FOnlineAsyncTaskAccelByte::TriggerDelegates();

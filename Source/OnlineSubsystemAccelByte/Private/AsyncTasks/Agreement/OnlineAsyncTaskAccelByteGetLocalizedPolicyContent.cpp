@@ -22,7 +22,7 @@ FOnlineAsyncTaskAccelByteGetLocalizedPolicyContent::FOnlineAsyncTaskAccelByteGet
 
 void FOnlineAsyncTaskAccelByteGetLocalizedPolicyContent::Initialize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::Initialize();
 
@@ -115,8 +115,8 @@ void FOnlineAsyncTaskAccelByteGetLocalizedPolicyContent::Initialize()
 					}
 
 					// Send off a request to get localized policy content, as well as connect our delegates for doing so
-					API_CLIENT_CHECK_GUARD(ErrorStr);
-					ApiClient->Agreement.GetLegalDocument(FString::Printf(TEXT("%s%s"), *BaseUrl, *AttachmentLocation), OnGetLocalizedPolicyContentSuccessDelegate, OnGetLocalizedPolicyContentErrorDelegate);
+					API_FULL_CHECK_GUARD(Agreement, ErrorStr);
+					Agreement->GetLegalDocument(FString::Printf(TEXT("%s%s"), *BaseUrl, *AttachmentLocation), OnGetLocalizedPolicyContentSuccessDelegate, OnGetLocalizedPolicyContentErrorDelegate);
 				}
 			}
 			else
@@ -133,7 +133,7 @@ void FOnlineAsyncTaskAccelByteGetLocalizedPolicyContent::Initialize()
 
 void FOnlineAsyncTaskAccelByteGetLocalizedPolicyContent::TriggerDelegates()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
@@ -157,7 +157,7 @@ void FOnlineAsyncTaskAccelByteGetLocalizedPolicyContent::TriggerDelegates()
 
 void FOnlineAsyncTaskAccelByteGetLocalizedPolicyContent::OnGetLocalizedPolicyContentSuccess(const FString& Result)
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 

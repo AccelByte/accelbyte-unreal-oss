@@ -18,7 +18,7 @@ FOnlineAsyncTaskAccelByteSendV2PartyInvite::FOnlineAsyncTaskAccelByteSendV2Party
 
 void FOnlineAsyncTaskAccelByteSendV2PartyInvite::Initialize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::Initialize();
 
@@ -29,22 +29,22 @@ void FOnlineAsyncTaskAccelByteSendV2PartyInvite::Initialize()
 	AB_ASYNC_TASK_VALIDATE(SessionInterface.IsValid(), "Failed to send invite to party session as our session interface is invalid!");
 	check(SessionInterface.IsValid());
 
-	FNamedOnlineSession* Session = SessionInterface->GetNamedSession(SessionName);
-	AB_ASYNC_TASK_VALIDATE(Session != nullptr, "Failed to send invite to party session as our local session instance is invalid!");
+	FNamedOnlineSession* OnlineSession = SessionInterface->GetNamedSession(SessionName);
+	AB_ASYNC_TASK_VALIDATE(OnlineSession != nullptr, "Failed to send invite to party session as our local session instance is invalid!");
 
 	// Now, once we know we are in this party, we want to send a request to invite the player to the party
 	OnSendPartyInviteSuccessDelegate = AccelByte::TDelegateUtils<FVoidHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteSendV2PartyInvite::OnSendPartyInviteSuccess);
 	OnSendPartyInviteErrorDelegate = AccelByte::TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteSendV2PartyInvite::OnSendPartyInviteError);;
-	API_CLIENT_CHECK_GUARD();
-	ApiClient->Session.SendPartyInvite(Session->GetSessionIdStr(), RecipientId->GetAccelByteId(), OnSendPartyInviteSuccessDelegate, OnSendPartyInviteErrorDelegate);
+	API_FULL_CHECK_GUARD(Session);
+	Session->SendPartyInvite(OnlineSession->GetSessionIdStr(), RecipientId->GetAccelByteId(), OnSendPartyInviteSuccessDelegate, OnSendPartyInviteErrorDelegate);
 
-	SessionId = Session->GetSessionIdStr();
+	SessionId = OnlineSession->GetSessionIdStr();
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 
 void FOnlineAsyncTaskAccelByteSendV2PartyInvite::Finalize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = SubsystemPin->GetPredefinedEventInterface();
 	if (bWasSuccessful && PredefinedEventInterface.IsValid())
@@ -58,7 +58,7 @@ void FOnlineAsyncTaskAccelByteSendV2PartyInvite::Finalize()
 
 void FOnlineAsyncTaskAccelByteSendV2PartyInvite::TriggerDelegates()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::TriggerDelegates();
 

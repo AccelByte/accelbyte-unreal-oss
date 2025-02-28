@@ -89,7 +89,7 @@ void FOnlineAsyncTaskAccelByteFindGameSessionsV2::Finalize()
 
 void FOnlineAsyncTaskAccelByteFindGameSessionsV2::TriggerDelegates()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
@@ -122,15 +122,15 @@ void FOnlineAsyncTaskAccelByteFindGameSessionsV2::QueryResultsPage(int32 Offset)
 	OnQueryGameSessionsErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteFindGameSessionsV2::OnQueryGameSessionsError);
 
 	const int32 Limit = FMath::Min(ResultsRemaining, ResultsPerPage);
-	API_CLIENT_CHECK_GUARD();
-	ApiClient->Session.QueryGameSessions(QueryStruct, OnQueryGameSessionsSuccessDelegate, OnQueryGameSessionsErrorDelegate, Offset, Limit);
+	API_FULL_CHECK_GUARD(Session);
+	Session->QueryGameSessions(QueryStruct, OnQueryGameSessionsSuccessDelegate, OnQueryGameSessionsErrorDelegate, Offset, Limit);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 
 void FOnlineAsyncTaskAccelByteFindGameSessionsV2::OnQueryGameSessionsSuccess(const FAccelByteModelsV2PaginatedGameSessionQueryResult& Result, int32 LastOffset)
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("SessionsFound: %d"), Result.Data.Num());
 

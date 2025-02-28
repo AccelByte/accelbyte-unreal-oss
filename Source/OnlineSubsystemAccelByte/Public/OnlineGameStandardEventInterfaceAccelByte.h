@@ -10,6 +10,7 @@
 #include "Core/AccelByteMultiRegistry.h"
 #include "Models/AccelByteGameStandardEventModels.h"
 #include "OnlineSubsystemAccelBytePackage.h"
+#include "OnlineSessionSettings.h"
 
 /**
  * Implementation of Predefined Event Api from AccelByte services
@@ -55,6 +56,72 @@ public:
 	void SendPlayerLeveledEvent(int32 LocalUserNum, const FAccelByteModelsPlayerLeveledPayload& Payload, const FDateTime& ClientTimestamp = FDateTime::UtcNow());
 	void SendPlayerDeadEvent(int32 LocalUserNum, const FAccelByteModelsPlayerDeadPayload& Payload, const FDateTime& ClientTimestamp = FDateTime::UtcNow());
 	void SendRewardCollectedEvent(int32 LocalUserNum, const FAccelByteModelsRewardCollectedPayload& Payload, const FDateTime& ClientTimestamp = FDateTime::UtcNow());
+	
+	bool SendMissionStartedEvent(int32 LocalUserNum
+		, FUniqueNetIdAccelByteUserPtr const& UserId
+		, FMissionId const& MissionId
+		, FMissionInstanceId const& MissionInstanceId
+		, FAccelByteModelsMissionStartedOptPayload const& Optional = FAccelByteModelsMissionStartedOptPayload{});
+
+	bool SendMissionStepEndedEvent(int32 LocalUserNum
+		, FUniqueNetIdAccelByteUserPtr const& UserId
+		, FMissionId const& MissionId
+		, FMissionInstanceId const& MissionInstanceId
+		, FMissionStep const& MissionStep
+		, FMissionStepName const& MissionStepName = FMissionStepName{});
+
+	bool SendMissionEndedEvent(int32 LocalUserNum
+		, FUniqueNetIdAccelByteUserPtr const& UserId
+		, FMissionId const& MissionId
+		, FMissionInstanceId const& MissionInstanceId
+		, FMissionSuccess const& MissionSuccess
+		, FMissionOutcome const& MissionOutcome = FMissionOutcome{});
+
+	bool SendMatchInfoEvent(int32 LocalUserNum
+		, FMatchInfoId const& MatchInfoId
+		, TSharedPtr<FNamedOnlineSession> const& Session = nullptr
+		, FMatchGameMode const& GameMode = FMatchGameMode()
+		, FMatchDifficulty const& MatchDifficulty = FMatchDifficulty());
+
+	bool SendMatchInfoPlayerEvent(int32 LocalUserNum
+		, FUniqueNetIdAccelByteUserPtr const& UserId
+		, FMatchInfoId const& MatchInfoId
+		, TSharedPtr<FNamedOnlineSession> const& Session = nullptr
+		, FMatchTeam const& Team = FMatchTeam()
+		, FMatchClass const& Class = FMatchClass()
+		, FMatchRank const& Rank = FMatchRank());
+
+	bool SendMatchInfoEndedEvent(int32 LocalUserNum
+		, FMatchInfoId const& MatchInfoId
+		, FMatchEndReason const& EndReason
+		, TSharedPtr<FNamedOnlineSession> const& Session = nullptr
+		, FMatchWinner const& Winner = FMatchWinner());
+
+	bool SendPopupAppearEvent(int32 LocalUserNum
+		, FUniqueNetIdAccelByteUserPtr const& UserId
+		, FPopupEventId const& PopupId
+		, FAccelByteModelsPopupAppearOptPayload const& Optional = FAccelByteModelsPopupAppearOptPayload{});
+
+	bool SendEntityLeveledEvent(int32 LocalUserNum
+		, FEntityType const& EntityType
+		, FEntityId const& EntityId = FEntityId{}
+		, FUniqueNetIdAccelByteUserPtr const& UserId = nullptr
+		, FAccelByteModelsEntityLeveledOptPayload const& Optional = FAccelByteModelsEntityLeveledOptPayload{});
+
+	bool SendEntityDeadEvent(int32 LocalUserNum
+		, FEntityType const& EntityType
+		, FEntityId const& EntityId = FEntityId{}
+		, FUniqueNetIdAccelByteUserPtr const& UserId = nullptr
+		, FAccelByteModelsEntityDeadOptPayload const& Optional = FAccelByteModelsEntityDeadOptPayload{});
+
+	bool SendResourceFlowEvent(int32 LocalUserNum
+		, FUniqueNetIdAccelByteUserPtr const& UserId
+		, EAccelByteFlowType const& FlowType
+		, FAccelByteTransactionId const& TransactionId
+		, FTransactionType const& TransactionType
+		, FResourceName const& ResourceName
+		, FResourceAmount const& Amount
+		, FResourceEndBalance const& EndBalance);
 
 protected:
 	template<typename T>
@@ -87,10 +154,14 @@ protected:
 			{
 				if (!IsRunningDedicatedServer())
 				{
-					const auto ApiClient = IdentityInterface->GetApiClient(LocalUserNum);
+					const auto ApiClient = AccelByteSubsystemPtr->GetApiClient(LocalUserNum);
 					if (ApiClient.IsValid())
 					{
-						ApiClient->GameStandardEvent.SendGameStandardEventData(Payload, AccelByte::FVoidHandler::CreateThreadSafeSP(this, &FOnlineGameStandardEventAccelByte::OnSuccess, LocalUserNum, Payload->GetGameStandardEventName()), FErrorHandler::CreateThreadSafeSP(this, &FOnlineGameStandardEventAccelByte::OnError, LocalUserNum, Payload->GetGameStandardEventName()), ClientTimestamp);
+						const auto GameStandardEvent = ApiClient->GetGameStandardEventApi().Pin();
+						if (GameStandardEvent.IsValid())
+						{
+							GameStandardEvent->SendGameStandardEventData(Payload, AccelByte::FVoidHandler::CreateThreadSafeSP(this, &FOnlineGameStandardEventAccelByte::OnSuccess, LocalUserNum, Payload->GetGameStandardEventName()), FErrorHandler::CreateThreadSafeSP(this, &FOnlineGameStandardEventAccelByte::OnError, LocalUserNum, Payload->GetGameStandardEventName()), ClientTimestamp);
+						}
 					}
 				}
 				else
@@ -115,6 +186,20 @@ protected:
 		}
 	}
 
+	bool SendMatchInfoEvent(int32 LocalUserNum
+		, FMatchInfoId const& MatchInfoId
+		, FAccelByteModelsMatchInfoOptPayload const& Optional);
+
+	bool SendMatchInfoPlayerEvent(int32 LocalUserNum
+		, FUniqueNetIdAccelByteUserPtr const& UserId
+		, FMatchInfoId const& MatchInfoId
+		, FAccelByteModelsMatchInfoPlayerOptPayload const& Optional);
+
+	bool SendMatchInfoEndedEvent(int32 LocalUserNum
+		, FMatchInfoId const& MatchInfoId
+		, FMatchEndReason const& EndReason
+		, FAccelByteModelsMatchInfoEndedOptPayload const& Optional);
+	
 	/** Hidden default constructor, the constructor that takes in a subsystem instance should be used instead. */
 	FOnlineGameStandardEventAccelByte()
 		: FOnlineBaseAnalyticsAccelByte(nullptr)

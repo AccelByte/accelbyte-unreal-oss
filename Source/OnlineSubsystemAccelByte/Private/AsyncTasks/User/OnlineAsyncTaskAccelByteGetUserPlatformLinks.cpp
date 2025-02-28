@@ -27,15 +27,15 @@ void FOnlineAsyncTaskAccelByteGetUserPlatformLinks::Initialize()
 	OnSuccessDelegate = TDelegateUtils<THandler<FPagedPlatformLinks>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteGetUserPlatformLinks::OnGetUserPlatformLinksSuccess);
 	OnErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteGetUserPlatformLinks::OnGetUserPlatformLinksError);
 
-	API_CLIENT_CHECK_GUARD(ErrorString);
-	ApiClient->User.GetPlatformLinks(OnSuccessDelegate, OnErrorDelegate);
+	API_FULL_CHECK_GUARD(User, ErrorString);
+	User->GetPlatformLinks(OnSuccessDelegate, OnErrorDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));	
 }
 
 void FOnlineAsyncTaskAccelByteGetUserPlatformLinks::TriggerDelegates()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::TriggerDelegates();
 
@@ -65,7 +65,7 @@ void FOnlineAsyncTaskAccelByteGetUserPlatformLinks::TriggerDelegates()
 
 void FOnlineAsyncTaskAccelByteGetUserPlatformLinks::Finalize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::Finalize();
 

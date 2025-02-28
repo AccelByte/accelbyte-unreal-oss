@@ -14,7 +14,7 @@ FOnlineAsyncTaskAccelByteDeleteBackfillTicket::FOnlineAsyncTaskAccelByteDeleteBa
 
 void FOnlineAsyncTaskAccelByteDeleteBackfillTicket::Initialize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::Initialize();
 
@@ -40,7 +40,7 @@ void FOnlineAsyncTaskAccelByteDeleteBackfillTicket::Initialize()
 
 void FOnlineAsyncTaskAccelByteDeleteBackfillTicket::Finalize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::Finalize();
 

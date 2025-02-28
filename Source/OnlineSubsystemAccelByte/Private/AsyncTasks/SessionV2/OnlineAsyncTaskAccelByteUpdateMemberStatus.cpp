@@ -19,7 +19,7 @@ FOnlineAsyncTaskAccelByteUpdateMemberStatus::FOnlineAsyncTaskAccelByteUpdateMemb
 
 void FOnlineAsyncTaskAccelByteUpdateMemberStatus::Initialize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::Initialize();
 
@@ -46,7 +46,7 @@ void FOnlineAsyncTaskAccelByteUpdateMemberStatus::Initialize()
 
 void FOnlineAsyncTaskAccelByteUpdateMemberStatus::Finalize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::Finalize();
 

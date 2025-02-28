@@ -67,8 +67,12 @@ bool FOnlinePredefinedEventAccelByte::SetEventSendInterval(int32 InLocalUserNum)
 				const auto ApiClient = AccelByteSubsystemPtr->GetApiClient(InLocalUserNum);
 				if (ApiClient.IsValid())
 				{
-					ApiClient->PredefinedEvent.SetBatchFrequency(FTimespan::FromSeconds(SettingInterval));
-					bIsSuccess = true;
+					const auto PredefinedEvent = ApiClient->GetPredefinedEventApi().Pin();
+					if (PredefinedEvent.IsValid())
+					{
+						PredefinedEvent->SetBatchFrequency(FTimespan::FromSeconds(SettingInterval));
+						bIsSuccess = true;
+					}
 				}
 			}
 		}

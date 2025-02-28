@@ -26,15 +26,15 @@ void FOnlineAsyncTaskAccelByteRejectV2GameSessionInvite::Initialize()
 
 	OnRejectGameSessionInviteSuccessDelegate = AccelByte::TDelegateUtils<FVoidHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteRejectV2GameSessionInvite::OnRejectGameSessionInviteSuccess);
 	OnRejectGameSessionInviteErrorDelegate = AccelByte::TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteRejectV2GameSessionInvite::OnRejectGameSessionInviteError);;
-	API_CLIENT_CHECK_GUARD();
-	ApiClient->Session.RejectGameSessionInvite(SessionId, OnRejectGameSessionInviteSuccessDelegate, OnRejectGameSessionInviteErrorDelegate);
+	API_FULL_CHECK_GUARD(Session);
+	Session->RejectGameSessionInvite(SessionId, OnRejectGameSessionInviteSuccessDelegate, OnRejectGameSessionInviteErrorDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 
 void FOnlineAsyncTaskAccelByteRejectV2GameSessionInvite::Finalize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 

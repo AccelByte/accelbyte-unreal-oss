@@ -29,15 +29,15 @@ void FOnlineAsyncTaskAccelByteChatJoinPublicRoom::Initialize()
 		TDelegateUtils<AccelByte::Api::Chat::FChatActionTopicResponse>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteChatJoinPublicRoom::OnJoinPublicRoomSuccess);
 	const FErrorHandler OnJoinPublicRoomErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteChatJoinPublicRoom::OnJoinPublicRoomError);
 
-	API_CLIENT_CHECK_GUARD(ErrorString);
-	ApiClient->Chat.JoinTopic(RoomId, OnJoinPublicRoomSuccessDelegate, OnJoinPublicRoomErrorDelegate);
+	API_FULL_CHECK_GUARD(Chat, ErrorString);
+	Chat->JoinTopic(RoomId, OnJoinPublicRoomSuccessDelegate, OnJoinPublicRoomErrorDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 
 void FOnlineAsyncTaskAccelByteChatJoinPublicRoom::TriggerDelegates()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::TriggerDelegates();
 
@@ -64,7 +64,7 @@ void FOnlineAsyncTaskAccelByteChatJoinPublicRoom::TriggerDelegates()
 
 void FOnlineAsyncTaskAccelByteChatJoinPublicRoom::Finalize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::Finalize();
 
@@ -116,7 +116,7 @@ void FOnlineAsyncTaskAccelByteChatJoinPublicRoom::OnJoinPublicRoomSuccess(const 
 	// query topic to get members
 	this->ExecuteCriticalSectionAction(FVoidHandler::CreateLambda([this, TopicId = Response.TopicId]()
 		{
-			TRY_PIN_SUBSYSTEM()
+			TRY_PIN_SUBSYSTEM();
 
 			const FOnChatQueryRoomByIdComplete OnJoinPublicRoomSuccessDelegate =
 				TDelegateUtils<FOnChatQueryRoomByIdComplete>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteChatJoinPublicRoom::OnQueryTopicByIdAfterJoinRoomSuccess);

@@ -2,6 +2,30 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.12.31](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.12.31%0D0.12.30) (2025-02-28)
+
+
+### Features
+
+* **achievement, agreement:** change api call to use the api Ptr ([2b0598f](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/2b0598f7c05099ea4430bac415c3388ad70a77ad))
+* change api call to use the api Ptr for Chat, CloudSave, Entitlement, Friends, Groupd, Identity, Leaderboard, LoginQueue, Matchmaking, Party ([b8d5263](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/b8d52630d133f1765396a602be1ea36004c18251))
+* change api call to use the api Ptr on all OSS Interfaces ([f0ea0c6](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/f0ea0c6e87c57e029e3c5945bae0bc331bd201ca))
+* **session:** introduce new multicast delegate to listen a changes of refreshed session after websocket connection has been reconnected ([305ba47](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/305ba477ac027a5746be55ff6f32d119d2346f57))
+
+
+### Bug Fixes
+
+* **Agreement:** Delegate not triggered after accepting mandatory agreements ([950e827](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/950e827d338def3325d28bebb7dc75454741088b))
+* **analytics:** remove EventNamespace checker since it will be filled on the api side when empty ([89cd0df](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/89cd0dfc8e254bd592374d7dbd92d0c0c230f5b9))
+* ApiClient replaced with different instance after accepting the agreements ([97a57ce](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/97a57ce2d142c6d622af0e762ca9b793d83d150e))
+* check AccelByteInstance validity before clearing in SubsystemAccelByte ([eb65d1b](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/eb65d1b55a0f20bdf6bc19f9b0ac5de38816da93))
+* check ServerApiClient validity in DisconnectFromAMS ([54e5547](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/54e554780171a6ecce0ab9f7e6d0cc0f645a825f))
+* cleanup AccelByteInstance on Subsytem shutdown ([1a6c189](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/1a6c18949f55f13bc93390965ded12750f4aa3ac))
+* Dangling websocket connected delegates causes error ([7ad2b21](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/7ad2b211ab40d94cf6ba28ffd0ae6b52d8ca8c5f))
+* **OnlineSubsystem:** remove ServerApiClient on Shutdown ([b634c71](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/b634c7117e286c888d6dca12f3f567821acafa96))
+* **sessionv2:** query session when get session updated notification before trigger the autoJoin ([cef720a](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/cef720a0427331dd7d43a05e988b52b96d1737ba))
+* stop session server and match ticket check poll when successfully leave session ([005ada3](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/005ada3a3aeb20524060cbdfc2ce2af6e8e7e676))
+
 ### [0.12.30](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.12.30%0D0.12.29) (2025-01-22)
 
 ### [0.12.29](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.12.29%0D0.12.28) (2025-01-16)

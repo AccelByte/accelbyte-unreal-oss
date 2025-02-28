@@ -48,7 +48,7 @@ void FOnlineAsyncTaskAccelByteSyncPlatformFriend::Finalize()
 		return;
 	}
 
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 	const TSharedPtr<FOnlineFriendsAccelByte, ESPMode::ThreadSafe> FriendInterface = StaticCastSharedPtr<FOnlineFriendsAccelByte>(SubsystemPin->GetFriendsInterface());
 
 	if (!FriendInterface.IsValid())
@@ -68,7 +68,7 @@ void FOnlineAsyncTaskAccelByteSyncPlatformFriend::TriggerDelegates()
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("UserID: %s, LocalUserNum: %d"), *UserId->ToDebugString(), LocalUserNum);
 
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	const TSharedPtr<FOnlineFriendsAccelByte, ESPMode::ThreadSafe> FriendInterface = StaticCastSharedPtr<FOnlineFriendsAccelByte>(SubsystemPin->GetFriendsInterface());
 
@@ -144,8 +144,8 @@ void FOnlineAsyncTaskAccelByteSyncPlatformFriend::BulkGetUserByOtherPlatformUser
 
 	const THandler<FBulkPlatformUserIdResponse> OnBulkGetUserSuccess = AccelByte::TDelegateUtils<THandler<FBulkPlatformUserIdResponse>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteSyncPlatformFriend::OnBulkGetUserByOtherPlatformUserIdsSuccess);
 	const FErrorHandler OnBulkGetUserError = AccelByte::TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteSyncPlatformFriend::OnBulkGetUserByOtherPlatformUserIdsError);
-	API_CLIENT_CHECK_GUARD(OnlineError);
-	ApiClient->User.BulkGetUserByOtherPlatformUserIdsV4(NativePlatform, InUserIds, OnBulkGetUserSuccess, OnBulkGetUserError, false, EAccelBytePidType::OCULUS_APP_USER_ID);
+	API_FULL_CHECK_GUARD(User, OnlineError);
+	User->BulkGetUserByOtherPlatformUserIdsV4(NativePlatform, InUserIds, OnBulkGetUserSuccess, OnBulkGetUserError, false, EAccelBytePidType::OCULUS_APP_USER_ID);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
@@ -179,7 +179,7 @@ void FOnlineAsyncTaskAccelByteSyncPlatformFriend::OnBulkGetUserByOtherPlatformUs
 		UserIds.Add(UserData.UserId);
 	}
 
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	const FOnlineUserCacheAccelBytePtr UserStore = SubsystemPin->GetUserCache();
 	if (!UserStore.IsValid())
@@ -210,7 +210,7 @@ void FOnlineAsyncTaskAccelByteSyncPlatformFriend::OnQuerySyncedFriendComplete(co
 {
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("UserID: %s, LocalUserNum: %d"), *UserId->ToDebugString(), LocalUserNum);
 
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	if (!bIsSuccessful)
 	{
@@ -245,8 +245,8 @@ void FOnlineAsyncTaskAccelByteSyncPlatformFriend::OnQuerySyncedFriendComplete(co
 	// Send the request to sync third party platform friend
 	const FVoidHandler OnBulkFriendRequestSuccessHandler = AccelByte::TDelegateUtils<FVoidHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteSyncPlatformFriend::OnBulkFriendRequestSuccess);
 	const FErrorHandler OnBulkFriendRequestErrorHandler = AccelByte::TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteSyncPlatformFriend::OnBulkFriendRequestError);
-	API_CLIENT_CHECK_GUARD(OnlineError);
-	ApiClient->Lobby.BulkFriendRequest(BulkFriendsRequest, OnBulkFriendRequestSuccessHandler, OnBulkFriendRequestErrorHandler);
+	API_FULL_CHECK_GUARD(Lobby, OnlineError);
+	Lobby->BulkFriendRequest(BulkFriendsRequest, OnBulkFriendRequestSuccessHandler, OnBulkFriendRequestErrorHandler);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }

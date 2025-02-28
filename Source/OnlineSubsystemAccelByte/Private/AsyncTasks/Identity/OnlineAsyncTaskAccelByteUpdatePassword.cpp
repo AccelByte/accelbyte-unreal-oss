@@ -39,7 +39,7 @@ void FOnlineAsyncTaskAccelByteUpdatePassword::Initialize()
 
 void FOnlineAsyncTaskAccelByteUpdatePassword::TriggerDelegates()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::TriggerDelegates();
 
@@ -79,11 +79,11 @@ void FOnlineAsyncTaskAccelByteUpdatePassword::GetMfaToken()
 {
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("UserId: %s"), *UserId->ToDebugString());
 
-	API_CLIENT_CHECK_GUARD(OnlineError);
+	API_FULL_CHECK_GUARD(User, OnlineError);
 
 	const auto OnSuccessDelegate = TDelegateUtils<THandler<FVerifyMfaResponse>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteUpdatePassword::OnGetMfaTokenSuccess);
 	const auto OnErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteUpdatePassword::OnGetMfaTokenError);
-	ApiClient->User.VerifyMfaCode(FactorType, Code, OnSuccessDelegate, OnErrorDelegate);
+	User->VerifyMfaCode(FactorType, Code, OnSuccessDelegate, OnErrorDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""))
 }
@@ -115,11 +115,11 @@ void FOnlineAsyncTaskAccelByteUpdatePassword::UpdatePassword()
 {
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("UserId: %s"), *UserId->ToDebugString());
 
-	API_CLIENT_CHECK_GUARD(OnlineError);
+	API_FULL_CHECK_GUARD(User, OnlineError);
 
 	const auto OnSuccessDelegate = TDelegateUtils<FVoidHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteUpdatePassword::OnUpdatePasswordSuccess);
 	const auto OnErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteUpdatePassword::OnUpdatePasswordError);
-	ApiClient->User.UpdatePassword(UpdatePasswordRequest, OnSuccessDelegate, OnErrorDelegate);
+	User->UpdatePassword(UpdatePasswordRequest, OnSuccessDelegate, OnErrorDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""))
 }

@@ -45,7 +45,7 @@ FOnlineAsyncTaskAccelByteReadLeaderboards::FOnlineAsyncTaskAccelByteReadLeaderbo
 
 void FOnlineAsyncTaskAccelByteReadLeaderboards::Initialize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::Initialize();
 
@@ -94,13 +94,13 @@ void FOnlineAsyncTaskAccelByteReadLeaderboards::Initialize()
 		// Call the endpoint using the stored user ids.
 		if (!IsRunningDedicatedServer())
 		{
-			API_CLIENT_CHECK_GUARD(ErrorMessage);
+			API_FULL_CHECK_GUARD(Leaderboard, ErrorMessage);
 
 #if ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION >= 5
 			// LeaderboardName is an FString type in 5.5 and above
-			ApiClient->Leaderboard.GetBulkUserRankingV3(FriendsUserIds, LeaderboardObject->LeaderboardName, OnReadLeaderboardsSuccessHandler, OnReadLeaderboardsFailedHandler);
+			Leaderboard->GetBulkUserRankingV3(FriendsUserIds, LeaderboardObject->LeaderboardName, OnReadLeaderboardsSuccessHandler, OnReadLeaderboardsFailedHandler);
 #else
-			ApiClient->Leaderboard.GetBulkUserRankingV3(FriendsUserIds, LeaderboardObject->LeaderboardName.ToString(), OnReadLeaderboardsSuccessHandler, OnReadLeaderboardsFailedHandler);
+			Leaderboard->GetBulkUserRankingV3(FriendsUserIds, LeaderboardObject->LeaderboardName.ToString(), OnReadLeaderboardsSuccessHandler, OnReadLeaderboardsFailedHandler);
 #endif // ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION >= 5
 
 			CountRequests++;
@@ -119,7 +119,7 @@ void FOnlineAsyncTaskAccelByteReadLeaderboards::Initialize()
 
 void FOnlineAsyncTaskAccelByteReadLeaderboards::Finalize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::Finalize();
 
@@ -153,7 +153,7 @@ void FOnlineAsyncTaskAccelByteReadLeaderboards::Finalize()
 
 void FOnlineAsyncTaskAccelByteReadLeaderboards::TriggerDelegates()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::TriggerDelegates();
 
@@ -183,7 +183,7 @@ void FOnlineAsyncTaskAccelByteReadLeaderboards::Tick()
 
 void FOnlineAsyncTaskAccelByteReadLeaderboards::OnReadLeaderboardsSuccess(FAccelByteModelsBulkUserRankingDataV3 const& Result)
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Read Leaderboards Success"));
 

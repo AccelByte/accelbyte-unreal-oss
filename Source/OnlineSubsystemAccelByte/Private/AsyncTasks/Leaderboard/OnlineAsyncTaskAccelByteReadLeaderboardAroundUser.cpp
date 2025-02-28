@@ -31,7 +31,7 @@ FOnlineAsyncTaskAccelByteReadLeaderboardAroundUser::FOnlineAsyncTaskAccelByteRea
 
 void FOnlineAsyncTaskAccelByteReadLeaderboardAroundUser::Initialize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::Initialize();
 
@@ -69,15 +69,15 @@ void FOnlineAsyncTaskAccelByteReadLeaderboardAroundUser::Initialize()
 	const FString LeaderboardCode = LeaderboardObject->LeaderboardName.ToString();
 #endif // ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION >= 5
 
-	API_CLIENT_CHECK_GUARD(ErrorMessage);
-	ApiClient->Leaderboard.GetUserRankingV3(UserId->GetAccelByteId(), LeaderboardCode, OnGetUserRankingSuccessHandler, OnRequestFailedHandler);
+	API_FULL_CHECK_GUARD(Leaderboard, ErrorMessage);
+	Leaderboard->GetUserRankingV3(UserId->GetAccelByteId(), LeaderboardCode, OnGetUserRankingSuccessHandler, OnRequestFailedHandler);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 
 void FOnlineAsyncTaskAccelByteReadLeaderboardAroundUser::Finalize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::Finalize();
 
@@ -108,7 +108,7 @@ void FOnlineAsyncTaskAccelByteReadLeaderboardAroundUser::Finalize()
 
 void FOnlineAsyncTaskAccelByteReadLeaderboardAroundUser::TriggerDelegates()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::TriggerDelegates();
 
@@ -180,8 +180,8 @@ void FOnlineAsyncTaskAccelByteReadLeaderboardAroundUser::OnGetUserRankingSuccess
 
 	if(bUseCycle)
 	{
-		API_CLIENT_CHECK_GUARD(ErrorMessage);
-		ApiClient->Leaderboard.GetRankingByCycle(
+		API_FULL_CHECK_GUARD(Leaderboard, ErrorMessage);
+		Leaderboard->GetRankingByCycle(
 			LeaderboardCode,
 			CycleId,
 			Offset,
@@ -190,8 +190,8 @@ void FOnlineAsyncTaskAccelByteReadLeaderboardAroundUser::OnGetUserRankingSuccess
 			OnRequestFailedHandler);
 	}else
 	{
-		API_CLIENT_CHECK_GUARD(ErrorMessage);
-		ApiClient->Leaderboard.GetRankingsV3(
+		API_FULL_CHECK_GUARD(Leaderboard, ErrorMessage);
+		Leaderboard->GetRankingsV3(
 			LeaderboardCode, 
 			Offset,
 			Limit,

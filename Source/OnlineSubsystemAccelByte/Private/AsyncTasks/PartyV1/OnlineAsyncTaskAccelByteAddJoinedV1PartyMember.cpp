@@ -19,7 +19,7 @@ FOnlineAsyncTaskAccelByteAddJoinedV1PartyMember::FOnlineAsyncTaskAccelByteAddJoi
 
 void FOnlineAsyncTaskAccelByteAddJoinedV1PartyMember::Initialize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::Initialize();
 
@@ -54,7 +54,7 @@ void FOnlineAsyncTaskAccelByteAddJoinedV1PartyMember::Tick()
 
 void FOnlineAsyncTaskAccelByteAddJoinedV1PartyMember::Finalize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 

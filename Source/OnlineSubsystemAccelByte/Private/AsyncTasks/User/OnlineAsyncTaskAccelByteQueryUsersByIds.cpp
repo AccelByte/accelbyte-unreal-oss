@@ -78,15 +78,15 @@ FOnlineAsyncTaskAccelByteQueryUsersByIds::FOnlineAsyncTaskAccelByteQueryUsersByI
 
 void FOnlineAsyncTaskAccelByteQueryUsersByIds::BulkGetUserByOtherPlatformUserIds(const TArray<FString>& InUserIds)
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	EAccelBytePlatformType ABPlatformType;
 	if (SubsystemPin->GetAccelBytePlatformTypeFromAuthType(PlatformType, ABPlatformType))
 	{
 		const THandler<FBulkPlatformUserIdResponse> OnBulkGetUserSuccess = TDelegateUtils<THandler<FBulkPlatformUserIdResponse>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryUsersByIds::OnBulkQueryPlatformIdMappingsSuccess);
 		const FErrorHandler OnBulkGetUserError = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryUsersByIds::OnBulkQueryPlatformIdMappingsError);
-		API_CLIENT_CHECK_GUARD();
-		ApiClient->User.BulkGetUserByOtherPlatformUserIdsV4(ABPlatformType, InUserIds, OnBulkGetUserSuccess, OnBulkGetUserError);
+		API_FULL_CHECK_GUARD(User);
+		User->BulkGetUserByOtherPlatformUserIdsV4(ABPlatformType, InUserIds, OnBulkGetUserSuccess, OnBulkGetUserError);
 	}
 }
 
@@ -130,7 +130,7 @@ void FOnlineAsyncTaskAccelByteQueryUsersByIds::Tick()
 
 void FOnlineAsyncTaskAccelByteQueryUsersByIds::Finalize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
@@ -211,7 +211,7 @@ void FOnlineAsyncTaskAccelByteQueryUsersByIds::OnBulkQueryPlatformIdMappingsErro
 
 void FOnlineAsyncTaskAccelByteQueryUsersByIds::GetBasicUserInfo(const TArray<FString>& AccelByteIds)
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("IDs to query: %d"), AccelByteIds.Num());
 
@@ -266,13 +266,13 @@ void FOnlineAsyncTaskAccelByteQueryUsersByIds::GetUserOtherPlatformBasicPublicIn
 
 	const THandler<FAccountUserPlatformInfosResponse> OnGetUserPlatformInfoSuccessDelegate = TDelegateUtils<THandler<FAccountUserPlatformInfosResponse>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryUsersByIds::OnGetUserOtherPlatformBasicPublicInfoSuccess);
 	const FErrorHandler OnGetUserPlatformInfoErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryUsersByIds::OnGetUserOtherPlatformBasicPublicInfoError);
-	API_CLIENT_CHECK_GUARD();
-	ApiClient->User.GetUserOtherPlatformBasicPublicInfo(Request, OnGetUserPlatformInfoSuccessDelegate, OnGetUserPlatformInfoErrorDelegate);
+	API_FULL_CHECK_GUARD(User);
+	User->GetUserOtherPlatformBasicPublicInfo(Request, OnGetUserPlatformInfoSuccessDelegate, OnGetUserPlatformInfoErrorDelegate);
 }
 
 void FOnlineAsyncTaskAccelByteQueryUsersByIds::OnGetUserOtherPlatformBasicPublicInfoSuccess(const FAccountUserPlatformInfosResponse& Result)
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("User information received: %d"), Result.Data.Num());
 
@@ -389,7 +389,7 @@ void FOnlineAsyncTaskAccelByteQueryUsersByIds::OnGetUserOtherPlatformBasicPublic
 
 void FOnlineAsyncTaskAccelByteQueryUsersByIds::QueryUsersOnNativePlatform(const TArray<TSharedRef<const FUniqueNetId>>& PlatformUniqueIds)
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	const IOnlineSubsystem* NativeSubsystem = SubsystemPin->GetNativePlatformSubsystem();
 	if (NativeSubsystem == nullptr)
@@ -415,7 +415,7 @@ void FOnlineAsyncTaskAccelByteQueryUsersByIds::QueryUsersOnNativePlatform(const 
 
 void FOnlineAsyncTaskAccelByteQueryUsersByIds::ExtractPlatformDataFromBasicUserInfo(const FAccountUserPlatformData& BasicInfo, FAccelByteUniqueIdComposite& CompositeId)
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	// Grab our own user account from the identity interface to determine which platform we should grab for composite IDs
 	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(SubsystemPin->GetIdentityInterface());

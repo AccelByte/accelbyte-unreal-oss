@@ -27,7 +27,7 @@ FOnlineAsyncTaskAccelByteGetUserRecord::FOnlineAsyncTaskAccelByteGetUserRecord(F
 
 void FOnlineAsyncTaskAccelByteGetUserRecord::Initialize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::Initialize();
 
@@ -77,15 +77,15 @@ void FOnlineAsyncTaskAccelByteGetUserRecord::Initialize()
 		}
 		if (IsPublicRecord)
 		{
-			API_CLIENT_CHECK_GUARD(ErrorStr);
-			ApiClient->CloudSave.GetPublicUserRecord(Key, RecordUserId, OnGetUserRecordsSuccessDelegate, OnGetUserRecordsErrorDelegate);
+			API_FULL_CHECK_GUARD(CloudSave,ErrorStr);
+			CloudSave->GetPublicUserRecord(Key, RecordUserId, OnGetUserRecordsSuccessDelegate, OnGetUserRecordsErrorDelegate);
 		}
 		else
 		{
 			if (RecordUserId == *UserId->GetAccelByteId())
 			{
-				API_CLIENT_CHECK_GUARD(ErrorStr);
-				ApiClient->CloudSave.GetUserRecord(Key, OnGetUserRecordsSuccessDelegate, OnGetUserRecordsErrorDelegate);
+				API_FULL_CHECK_GUARD(CloudSave,ErrorStr);
+				CloudSave->GetUserRecord(Key, OnGetUserRecordsSuccessDelegate, OnGetUserRecordsErrorDelegate);
 			}
 			else
 			{
@@ -103,7 +103,7 @@ void FOnlineAsyncTaskAccelByteGetUserRecord::Initialize()
 
 void FOnlineAsyncTaskAccelByteGetUserRecord::TriggerDelegates()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
@@ -126,7 +126,7 @@ void FOnlineAsyncTaskAccelByteGetUserRecord::TriggerDelegates()
 
 void FOnlineAsyncTaskAccelByteGetUserRecord::Finalize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Finalize"));
 

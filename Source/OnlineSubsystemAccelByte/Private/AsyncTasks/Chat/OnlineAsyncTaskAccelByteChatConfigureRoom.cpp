@@ -28,15 +28,15 @@ void FOnlineAsyncTaskAccelByteChatConfigureRoom::Initialize()
 		TDelegateUtils<AccelByte::Api::Chat::FChatActionTopicResponse>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteChatConfigureRoom::OnUpdateTopicSuccess);
 	const FErrorHandler OnUpdateTopicErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteChatConfigureRoom::OnUpdateTopicError);
 
-	API_CLIENT_CHECK_GUARD(ErrorString);
-	ApiClient->Chat.UpdateTopic(RoomId, ChatRoomConfig.FriendlyName, ChatRoomConfig.bIsJoinable, OnUpdateTopicSuccessDelegate, OnUpdateTopicErrorDelegate);
+	API_FULL_CHECK_GUARD(Chat, ErrorString);
+	Chat->UpdateTopic(RoomId, ChatRoomConfig.FriendlyName, ChatRoomConfig.bIsJoinable, OnUpdateTopicSuccessDelegate, OnUpdateTopicErrorDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 
 void FOnlineAsyncTaskAccelByteChatConfigureRoom::TriggerDelegates()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::TriggerDelegates();
 

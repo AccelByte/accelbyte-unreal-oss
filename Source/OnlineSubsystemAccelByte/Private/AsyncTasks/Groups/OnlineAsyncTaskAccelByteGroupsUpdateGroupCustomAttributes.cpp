@@ -33,8 +33,8 @@ void FOnlineAsyncTaskAccelByteGroupsUpdateGroupCustomAttributes::Initialize()
 	OnSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsGroupInformation>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteGroupsUpdateGroupCustomAttributes::OnUpdateGroupCustomAttributesSuccess);
 	OnErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteGroupsUpdateGroupCustomAttributes::OnUpdateGroupCustomAttributesError);
 
-	API_CLIENT_CHECK_GUARD(ErrorString);
-	ApiClient->Group.UpdateV2GroupCustomAttributes(GroupId, RequestedContent, OnSuccessDelegate, OnErrorDelegate);
+	API_FULL_CHECK_GUARD(Group, ErrorString);
+	Group->UpdateV2GroupCustomAttributes(GroupId, RequestedContent, OnSuccessDelegate, OnErrorDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
@@ -53,7 +53,7 @@ void FOnlineAsyncTaskAccelByteGroupsUpdateGroupCustomAttributes::TriggerDelegate
 
 void FOnlineAsyncTaskAccelByteGroupsUpdateGroupCustomAttributes::Finalize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::Finalize();
 

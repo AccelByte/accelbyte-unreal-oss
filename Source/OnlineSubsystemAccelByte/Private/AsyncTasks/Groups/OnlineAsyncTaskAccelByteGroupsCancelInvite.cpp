@@ -31,8 +31,8 @@ void FOnlineAsyncTaskAccelByteGroupsCancelInvite::Initialize()
 	OnSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsMemberRequestGroupResponse>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteGroupsCancelInvite::OnCancelInviteSuccess);
 	OnErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteGroupsCancelInvite::OnCancelInviteError);
 
-	API_CLIENT_CHECK_GUARD(ErrorString);
-	ApiClient->Group.CancelGroupMemberInvitation(UserIdToCancel, GroupId, OnSuccessDelegate, OnErrorDelegate);
+	API_FULL_CHECK_GUARD(Group, ErrorString);
+	Group->CancelGroupMemberInvitation(UserIdToCancel, GroupId, OnSuccessDelegate, OnErrorDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
@@ -51,7 +51,7 @@ void FOnlineAsyncTaskAccelByteGroupsCancelInvite::TriggerDelegates()
 
 void FOnlineAsyncTaskAccelByteGroupsCancelInvite::Finalize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::Finalize();
 

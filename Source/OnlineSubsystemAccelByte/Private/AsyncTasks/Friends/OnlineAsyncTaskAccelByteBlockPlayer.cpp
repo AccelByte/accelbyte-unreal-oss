@@ -22,7 +22,7 @@ FOnlineAsyncTaskAccelByteBlockPlayer::FOnlineAsyncTaskAccelByteBlockPlayer(FOnli
 
 void FOnlineAsyncTaskAccelByteBlockPlayer::Initialize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::Initialize();
 
@@ -51,15 +51,15 @@ void FOnlineAsyncTaskAccelByteBlockPlayer::Initialize()
 	// Now, send the request to block the player through the lobby websocket
 	OnBlockPlayerSuccessDelegate = TDelegateUtils<FVoidHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteBlockPlayer::OnBlockPlayerSuccess);
 	OnBlockPlayerFailedDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteBlockPlayer::OnBlockPlayerFailed);
-	API_CLIENT_CHECK_GUARD(ErrorStr);
-	ApiClient->Lobby.BlockPlayer(PlayerId->GetAccelByteId(), OnBlockPlayerSuccessDelegate, OnBlockPlayerFailedDelegate);
+	API_FULL_CHECK_GUARD(Lobby, ErrorStr);
+	Lobby->BlockPlayer(PlayerId->GetAccelByteId(), OnBlockPlayerSuccessDelegate, OnBlockPlayerFailedDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 
 void FOnlineAsyncTaskAccelByteBlockPlayer::Finalize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
@@ -94,7 +94,7 @@ void FOnlineAsyncTaskAccelByteBlockPlayer::Finalize()
 
 void FOnlineAsyncTaskAccelByteBlockPlayer::TriggerDelegates()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
@@ -106,7 +106,7 @@ void FOnlineAsyncTaskAccelByteBlockPlayer::TriggerDelegates()
 
 void FOnlineAsyncTaskAccelByteBlockPlayer::OnBlockPlayerSuccess()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	// We'll need to get the UserInfo from UserCache
 	FOnlineUserCacheAccelBytePtr UserStore = SubsystemPin->GetUserCache();
@@ -149,7 +149,7 @@ void FOnlineAsyncTaskAccelByteBlockPlayer::OnQueryBlockedPlayerComplete(bool bIs
 
 void FOnlineAsyncTaskAccelByteBlockPlayer::PerformBlockedPlayerPartyOperation()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	const TSharedPtr<FOnlineIdentityAccelByte, ESPMode::ThreadSafe> IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(SubsystemPin->GetIdentityInterface());
 	if (!IdentityInterface.IsValid())

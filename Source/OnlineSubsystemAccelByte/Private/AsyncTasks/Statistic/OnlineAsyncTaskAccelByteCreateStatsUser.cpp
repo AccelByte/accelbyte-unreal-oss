@@ -28,7 +28,7 @@ FOnlineAsyncTaskAccelByteCreateStatsUser::FOnlineAsyncTaskAccelByteCreateStatsUs
 
 void FOnlineAsyncTaskAccelByteCreateStatsUser::Initialize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::Initialize();
 	
@@ -84,7 +84,7 @@ void FOnlineAsyncTaskAccelByteCreateStatsUser::Initialize()
 
 void FOnlineAsyncTaskAccelByteCreateStatsUser::Finalize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::Finalize();
 

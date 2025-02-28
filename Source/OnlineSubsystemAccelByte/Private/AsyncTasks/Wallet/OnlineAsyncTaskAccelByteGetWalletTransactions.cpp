@@ -22,7 +22,7 @@ FOnlineAsyncTaskAccelByteGetWalletTransactions::FOnlineAsyncTaskAccelByteGetWall
 
 void FOnlineAsyncTaskAccelByteGetWalletTransactions::Initialize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::Initialize();
 
@@ -36,8 +36,8 @@ void FOnlineAsyncTaskAccelByteGetWalletTransactions::Initialize()
 		OnGetWalletTransactionsErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteGetWalletTransactions::OnGetWalletTransactionsError);
 
 		// Send off a request to get wallet transaction list, as well as connect our delegates for doing so
-		API_CLIENT_CHECK_GUARD(ErrorStr);
-		ApiClient->Wallet.ListWalletTransactionsByCurrencyCode(CurrencyCode, OnGetWalletTransactionsSuccessDelegate, OnGetWalletTransactionsErrorDelegate);
+		API_FULL_CHECK_GUARD(Wallet, ErrorStr);
+		Wallet->ListWalletTransactionsByCurrencyCode(CurrencyCode, OnGetWalletTransactionsSuccessDelegate, OnGetWalletTransactionsErrorDelegate);
 	}
 	else
 	{
@@ -51,7 +51,7 @@ void FOnlineAsyncTaskAccelByteGetWalletTransactions::Initialize()
 
 void FOnlineAsyncTaskAccelByteGetWalletTransactions::TriggerDelegates()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
@@ -66,7 +66,7 @@ void FOnlineAsyncTaskAccelByteGetWalletTransactions::TriggerDelegates()
 
 void FOnlineAsyncTaskAccelByteGetWalletTransactions::OnGetWalletTransactionsSuccess(const FAccelByteModelsWalletTransactionPaging& Result)
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 

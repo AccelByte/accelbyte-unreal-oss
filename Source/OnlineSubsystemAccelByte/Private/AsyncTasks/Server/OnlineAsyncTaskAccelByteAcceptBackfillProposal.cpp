@@ -34,7 +34,7 @@ void FOnlineAsyncTaskAccelByteAcceptBackfillProposal::Initialize()
 
 void FOnlineAsyncTaskAccelByteAcceptBackfillProposal::Finalize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	SERVER_API_CLIENT_CHECK_GUARD();
 

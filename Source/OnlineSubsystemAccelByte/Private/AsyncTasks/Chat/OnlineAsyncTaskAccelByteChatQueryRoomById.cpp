@@ -28,8 +28,8 @@ void FOnlineAsyncTaskAccelByteChatQueryRoomById::Initialize()
 		TDelegateUtils<AccelByte::Api::Chat::FQueryTopicByIdResponse>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteChatQueryRoomById::OnQueryRoomSuccess);
 	const FErrorHandler OnQueryRoomErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteChatQueryRoomById::OnQueryRoomError);
 
-	API_CLIENT_CHECK_GUARD(ErrorString);
-	ApiClient->Chat.QueryTopicById(RoomId, OnQueryRoomSuccessDelegate, OnQueryRoomErrorDelegate);
+	API_FULL_CHECK_GUARD(Chat, ErrorString);
+	Chat->QueryTopicById(RoomId, OnQueryRoomSuccessDelegate, OnQueryRoomErrorDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
@@ -47,7 +47,7 @@ void FOnlineAsyncTaskAccelByteChatQueryRoomById::TriggerDelegates()
 
 void FOnlineAsyncTaskAccelByteChatQueryRoomById::Finalize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::Finalize();
 
@@ -78,7 +78,7 @@ void FOnlineAsyncTaskAccelByteChatQueryRoomById::OnQueryRoomError(int32 ErrorCod
 
 void FOnlineAsyncTaskAccelByteChatQueryRoomById::OnQueryRoomSuccess(const FAccelByteModelsChatQueryTopicByIdResponse& Response)
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Processed: %s"), *Response.Processed.ToIso8601());
 

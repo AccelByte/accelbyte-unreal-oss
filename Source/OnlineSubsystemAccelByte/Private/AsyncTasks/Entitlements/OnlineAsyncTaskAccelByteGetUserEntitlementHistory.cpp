@@ -31,7 +31,7 @@ FOnlineAsyncTaskAccelByteGetUserEntitlementHistory::FOnlineAsyncTaskAccelByteGet
 
 void FOnlineAsyncTaskAccelByteGetUserEntitlementHistory::Initialize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	FOnlineAsyncTaskAccelByte::Initialize();
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
@@ -114,7 +114,7 @@ void FOnlineAsyncTaskAccelByteGetUserEntitlementHistory::Initialize()
 
 void FOnlineAsyncTaskAccelByteGetUserEntitlementHistory::TriggerDelegates()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::TriggerDelegates();
 

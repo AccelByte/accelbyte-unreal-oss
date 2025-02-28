@@ -47,8 +47,8 @@ void FOnlineAsyncTaskAccelByteChatReportMessage::Initialize()
 	ChatReportData.Reason = Reason;
 	ChatReportData.Comment = Comment;
 
-	API_CLIENT_CHECK_GUARD(OnlineError);
-	ApiClient->Reporting.SubmitChatReport(ChatReportData, OnReportMessageSuccessDelegate, OnReportMessageErrorDelegate);
+	API_FULL_CHECK_GUARD(Reporting, OnlineError);
+	Reporting->SubmitChatReport(ChatReportData, OnReportMessageSuccessDelegate, OnReportMessageErrorDelegate);
 	
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }

@@ -21,7 +21,7 @@ FOnlineAsyncTaskAccelByteRejectFriendInvite::FOnlineAsyncTaskAccelByteRejectFrie
 
 void FOnlineAsyncTaskAccelByteRejectFriendInvite::Initialize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::Initialize();
 
@@ -45,8 +45,8 @@ void FOnlineAsyncTaskAccelByteRejectFriendInvite::Initialize()
 			// Since this friend is a valid pointer and is a pending inbound invite, then we want to send a request to reject their invite
 			OnRejectFriendSuccessDelegate = TDelegateUtils<FVoidHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteRejectFriendInvite::OnRejectFriendSuccess);
 			OnRejectFriendFailedDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteRejectFriendInvite::OnRejectFriendFailed);
-			API_CLIENT_CHECK_GUARD(ErrorStr);
-			ApiClient->Lobby.RejectFriendRequest(FriendId->GetAccelByteId(), OnRejectFriendSuccessDelegate, OnRejectFriendFailedDelegate);
+			API_FULL_CHECK_GUARD(Lobby, ErrorStr);
+			Lobby->RejectFriendRequest(FriendId->GetAccelByteId(), OnRejectFriendSuccessDelegate, OnRejectFriendFailedDelegate);
 			AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sent request through lobby websocket to reject a friend request."));
 		}
 		else
@@ -66,7 +66,7 @@ void FOnlineAsyncTaskAccelByteRejectFriendInvite::Initialize()
 
 void FOnlineAsyncTaskAccelByteRejectFriendInvite::Finalize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
@@ -91,7 +91,7 @@ void FOnlineAsyncTaskAccelByteRejectFriendInvite::Finalize()
 
 void FOnlineAsyncTaskAccelByteRejectFriendInvite::TriggerDelegates()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 

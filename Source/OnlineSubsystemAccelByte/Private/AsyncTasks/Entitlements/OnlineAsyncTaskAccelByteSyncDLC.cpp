@@ -19,7 +19,7 @@ FOnlineAsyncTaskAccelByteSyncDLC::FOnlineAsyncTaskAccelByteSyncDLC(FOnlineSubsys
 
 void FOnlineAsyncTaskAccelByteSyncDLC::Initialize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::Initialize();
 
@@ -30,12 +30,12 @@ void FOnlineAsyncTaskAccelByteSyncDLC::Initialize()
 
 	const FName NativeSubsystemName = SubsystemPin->GetNativePlatformName();
 
-	API_CLIENT_CHECK_GUARD(Error);
+	API_FULL_CHECK_GUARD(Entitlement, Error);
 	// Use the respective API sync depending on the platform user is on
 #ifdef STEAM_SUBSYSTEM
 	if (NativeSubsystemName == STEAM_SUBSYSTEM)
 	{
-		ApiClient->Entitlement.SyncSteamDLC(OnSuccessDelegate, OnErrorDelegate);
+		Entitlement->SyncSteamDLC(OnSuccessDelegate, OnErrorDelegate);
 		AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 		return;
 	}
@@ -70,7 +70,7 @@ void FOnlineAsyncTaskAccelByteSyncDLC::Initialize()
 		TSharedPtr<FUserOnlineAccount> UserAccount = PlatformIdentityInt->GetUserAccount(PlatformUniqueId.ToSharedRef().Get());
 		XboxDLCSync.XstsToken = UserAccount->GetAccessToken();
 
-		ApiClient->Entitlement.SyncXBoxDLC(XboxDLCSync, OnSuccessDelegate, OnErrorDelegate);
+		Entitlement->SyncXBoxDLC(XboxDLCSync, OnSuccessDelegate, OnErrorDelegate);
 		AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 		return;
 	}
@@ -95,7 +95,7 @@ void FOnlineAsyncTaskAccelByteSyncDLC::Initialize()
 
 		PSSyncModel.ServiceLabel = ServiceLabel;
 
-		ApiClient->Entitlement.SyncPSNDLC(PSSyncModel, OnSuccessDelegate, OnErrorDelegate);
+		Entitlement->SyncPSNDLC(PSSyncModel, OnSuccessDelegate, OnErrorDelegate);
 		AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 		return;
 	}
@@ -120,7 +120,7 @@ void FOnlineAsyncTaskAccelByteSyncDLC::Initialize()
 
 		PSSyncModel.ServiceLabel = ServiceLabel;
 
-		ApiClient->Entitlement.SyncPSNDLC(PSSyncModel, OnSuccessDelegate, OnErrorDelegate);
+		Entitlement->SyncPSNDLC(PSSyncModel, OnSuccessDelegate, OnErrorDelegate);
 		AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 		return;
 	}
@@ -154,7 +154,7 @@ void FOnlineAsyncTaskAccelByteSyncDLC::Initialize()
 		TSharedPtr<FUserOnlineAccount> UserAccount = IdentityInterface->GetUserAccount(UserIdPtr.ToSharedRef().Get());
 		EpicGamesJwtToken = UserAccount->GetAccessToken();
 
-		ApiClient->Entitlement.SyncEpicGameDurableItems(EpicGamesJwtToken, OnSuccessDelegate, OnErrorDelegate);
+		Entitlement->SyncEpicGameDurableItems(EpicGamesJwtToken, OnSuccessDelegate, OnErrorDelegate);
 		AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 		return;
 	}

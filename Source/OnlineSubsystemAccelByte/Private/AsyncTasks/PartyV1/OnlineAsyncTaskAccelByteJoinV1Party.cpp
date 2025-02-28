@@ -33,7 +33,7 @@ FOnlineAsyncTaskAccelByteJoinV1Party::FOnlineAsyncTaskAccelByteJoinV1Party(FOnli
 
 void FOnlineAsyncTaskAccelByteJoinV1Party::Initialize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::Initialize();
 
@@ -73,9 +73,9 @@ void FOnlineAsyncTaskAccelByteJoinV1Party::Initialize()
 	// Now, we want to send a request to query whether we are in a party currently or not, this way if we are in a party
 	// on the backend, but not in one on the client, we can tell the developer that they need to call RestoreParties first
 	AccelByte::Api::Lobby::FPartyInfoResponse OnGetPartyInfoResponseDelegate = TDelegateUtils<AccelByte::Api::Lobby::FPartyInfoResponse>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteJoinV1Party::OnGetPartyInfoResponse);
-	API_CLIENT_CHECK_GUARD();
-	ApiClient->Lobby.SetInfoPartyResponseDelegate(OnGetPartyInfoResponseDelegate);
-	ApiClient->Lobby.SendInfoPartyRequest();
+	API_FULL_CHECK_GUARD(Lobby);
+	Lobby->SetInfoPartyResponseDelegate(OnGetPartyInfoResponseDelegate);
+	Lobby->SendInfoPartyRequest();
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
@@ -87,7 +87,7 @@ void FOnlineAsyncTaskAccelByteJoinV1Party::Tick()
 
 void FOnlineAsyncTaskAccelByteJoinV1Party::Finalize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
@@ -130,7 +130,7 @@ void FOnlineAsyncTaskAccelByteJoinV1Party::Finalize()
 
 void FOnlineAsyncTaskAccelByteJoinV1Party::TriggerDelegates()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
@@ -154,7 +154,7 @@ void FOnlineAsyncTaskAccelByteJoinV1Party::TriggerDelegates()
 
 void FOnlineAsyncTaskAccelByteJoinV1Party::OnGetPartyInfoResponse(const FAccelByteModelsInfoPartyResponse& Result)
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	SetLastUpdateTimeToCurrentTime();
 
@@ -178,24 +178,24 @@ void FOnlineAsyncTaskAccelByteJoinV1Party::OnGetPartyInfoResponse(const FAccelBy
 		return;
 	}
 
-	API_CLIENT_CHECK_GUARD();
+	API_FULL_CHECK_GUARD(Lobby);
 	// Now, if we are joining via an invite, which we will be if join info is not invalid, then we will get the invite and accept it
 	// otherwise, we will try and join via party code
 	if (OnlinePartyJoinInfo.IsValid())
 	{
 		// Now, send the actual request to join a party via PartyId
 		const AccelByte::Api::Lobby::FPartyJoinResponse OnJoinPartyResponseDelegate = TDelegateUtils<AccelByte::Api::Lobby::FPartyJoinResponse>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteJoinV1Party::OnJoinPartyResponse);
-		ApiClient->Lobby.SetInvitePartyJoinResponseDelegate(OnJoinPartyResponseDelegate);
+		Lobby->SetInvitePartyJoinResponseDelegate(OnJoinPartyResponseDelegate);
 		const TSharedPtr<const FAccelBytePartyInvite> PartyInvite = PartyInterface->GetInviteForParty(UserId.ToSharedRef() ,StaticCastSharedRef<const FOnlinePartyIdAccelByte>(OnlinePartyJoinInfo.GetPartyId()));
-		ApiClient->Lobby.SendAcceptInvitationRequest(OnlinePartyJoinInfo.GetPartyId()->ToString(), PartyInvite->InviteToken);
+		Lobby->SendAcceptInvitationRequest(OnlinePartyJoinInfo.GetPartyId()->ToString(), PartyInvite->InviteToken);
 	}
 	else
 	{
 		// We will want to leave the current party if in one before sending the request to join a party with code
 		// Otherwise partyJoinViaCodeResponse will return error code 115704 (codename JoinViaPartyCodeUserHasParty) for users that accept an invitation from Steam app when game is not running
 		AccelByte::Api::Lobby::FPartyLeaveResponse OnLeavePartyResponseDelegate = TDelegateUtils<AccelByte::Api::Lobby::FPartyLeaveResponse>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteJoinV1Party::OnLeavePartyResponse);
-		ApiClient->Lobby.SetLeavePartyResponseDelegate(OnLeavePartyResponseDelegate);
-		ApiClient->Lobby.SendLeavePartyRequest();
+		Lobby->SetLeavePartyResponseDelegate(OnLeavePartyResponseDelegate);
+		Lobby->SendLeavePartyRequest();
 	}
 }
 
@@ -217,13 +217,13 @@ void FOnlineAsyncTaskAccelByteJoinV1Party::OnJoinPartyResponse(const FAccelByteM
 	// unbind this function
 	if (OnlinePartyJoinInfo.IsValid())
 	{
-		API_CLIENT_CHECK_GUARD();
-		ApiClient->Lobby.SetInvitePartyJoinResponseDelegate(AccelByte::Api::Lobby::FPartyJoinResponse());
+		API_FULL_CHECK_GUARD(Lobby);
+		Lobby->SetInvitePartyJoinResponseDelegate(AccelByte::Api::Lobby::FPartyJoinResponse());
 	}
 	else
 	{
-		API_CLIENT_CHECK_GUARD();
-		ApiClient->Lobby.SetPartyJoinViaCodeResponseDelegate(AccelByte::Api::Lobby::FPartyJoinResponse());
+		API_FULL_CHECK_GUARD(Lobby);
+		Lobby->SetPartyJoinViaCodeResponseDelegate(AccelByte::Api::Lobby::FPartyJoinResponse());
 	}
 
 	// Set the party info member to be that of the result that we got from the backend
@@ -231,7 +231,7 @@ void FOnlineAsyncTaskAccelByteJoinV1Party::OnJoinPartyResponse(const FAccelByteM
 
 	Super::ExecuteCriticalSectionAction(FVoidHandler::CreateLambda([&]()
 		{
-			TRY_PIN_SUBSYSTEM()
+			TRY_PIN_SUBSYSTEM();
 
 		FOnQueryPartyInfoComplete OnQueryPartyInfoCompleteDelegate = TDelegateUtils<FOnQueryPartyInfoComplete>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteJoinV1Party::OnQueryPartyInfoComplete);
 		SubsystemPin->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteQueryV1PartyInfo>(SubsystemPin.Get(), UserId.ToSharedRef().Get(), Result.PartyId, Result.Members, OnQueryPartyInfoCompleteDelegate);
@@ -256,8 +256,8 @@ void FOnlineAsyncTaskAccelByteJoinV1Party::OnQueryPartyInfoComplete(bool bIsSucc
 			PartyMemberUid.Add(Member->Id->GetAccelByteId());
 		}
 
-		API_CLIENT_CHECK_GUARD();
-		ApiClient->Lobby.BulkGetUserPresenceV2(PartyMemberUid,
+		API_FULL_CHECK_GUARD(Lobby);
+		Lobby->BulkGetUserPresenceV2(PartyMemberUid,
 			TDelegateUtils<THandler<FAccelByteModelsBulkUserStatusNotif>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteJoinV1Party::OnGetUserPresenceComplete),
 			FErrorHandler::CreateLambda([this](int32 Code, FString const& ErrMsg)
 			{
@@ -281,9 +281,9 @@ void FOnlineAsyncTaskAccelByteJoinV1Party::OnLeavePartyResponse(const FAccelByte
 {
 	// Now, send the actual request to join a party via PartyId
 	const AccelByte::Api::Lobby::FPartyJoinResponse OnJoinPartyResponseDelegate = TDelegateUtils<AccelByte::Api::Lobby::FPartyJoinResponse>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteJoinV1Party::OnJoinPartyResponse);
-	API_CLIENT_CHECK_GUARD();
-	ApiClient->Lobby.SetPartyJoinViaCodeResponseDelegate(OnJoinPartyResponseDelegate);
-	ApiClient->Lobby.SendPartyJoinViaCodeRequest(PartyCode);
+	API_FULL_CHECK_GUARD(Lobby);
+	Lobby->SetPartyJoinViaCodeResponseDelegate(OnJoinPartyResponseDelegate);
+	Lobby->SendPartyJoinViaCodeRequest(PartyCode);
 }
 
 FString FOnlineAsyncTaskAccelByteJoinV1Party::GetJoinInfoString()
@@ -326,8 +326,8 @@ void FOnlineAsyncTaskAccelByteJoinV1Party::OnGetUserPresenceComplete(const FAcce
 	if (Statuses.NotProcessed.Num() > 0)
 	{
 		SetLastUpdateTimeToCurrentTime();
-		API_CLIENT_CHECK_GUARD();
-		ApiClient->Lobby.BulkGetUserPresenceV2(Statuses.NotProcessed,
+		API_FULL_CHECK_GUARD(Lobby);
+		Lobby->BulkGetUserPresenceV2(Statuses.NotProcessed,
 			TDelegateUtils<THandler<FAccelByteModelsBulkUserStatusNotif>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteJoinV1Party::OnGetUserPresenceComplete),
 			FErrorHandler::CreateLambda([this](int32 Code, FString const& ErrMsg)
 				{

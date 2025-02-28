@@ -20,7 +20,7 @@ FOnlineAsyncTaskAccelByteRemoveUserFromV1Session::FOnlineAsyncTaskAccelByteRemov
 
 void FOnlineAsyncTaskAccelByteRemoveUserFromV1Session::Initialize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::Initialize();
 

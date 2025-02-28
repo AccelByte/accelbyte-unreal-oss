@@ -21,7 +21,7 @@ FOnlineAsyncTaskAccelByteAcceptAgreementPolicies::FOnlineAsyncTaskAccelByteAccep
 
 void FOnlineAsyncTaskAccelByteAcceptAgreementPolicies::Initialize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::Initialize();
 
@@ -92,8 +92,8 @@ void FOnlineAsyncTaskAccelByteAcceptAgreementPolicies::Initialize()
 				OnAcceptAgreementPoliciesErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteAcceptAgreementPolicies::OnAcceptAgreementPoliciesError);
 
 				// Send off a request to accept agreement policies, as well as connect our delegates for doing so
-				API_CLIENT_CHECK_GUARD(ErrorStr);
-				ApiClient->Agreement.BulkAcceptPolicyVersions(RequestedDocuments, OnAcceptAgreementPoliciesSuccessDelegate, OnAcceptAgreementPoliciesErrorDelegate);
+				API_FULL_CHECK_GUARD(Agreement, ErrorStr);
+				Agreement->BulkAcceptPolicyVersions(RequestedDocuments, OnAcceptAgreementPoliciesSuccessDelegate, OnAcceptAgreementPoliciesErrorDelegate);
 			}
 			else
 			{
@@ -115,7 +115,7 @@ void FOnlineAsyncTaskAccelByteAcceptAgreementPolicies::Initialize()
 
 void FOnlineAsyncTaskAccelByteAcceptAgreementPolicies::Finalize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	if (bWasSuccessful)
 	{
@@ -126,13 +126,17 @@ void FOnlineAsyncTaskAccelByteAcceptAgreementPolicies::Finalize()
 
 void FOnlineAsyncTaskAccelByteAcceptAgreementPolicies::TriggerDelegates()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
 	const FOnlineAgreementAccelBytePtr AgreementInterface = SubsystemPin->GetAgreementInterface();
 	if (AgreementInterface.IsValid())
 	{
+		bool bSuccessful = bWasSuccessful && bRequestResult;
+		FString ErrorMessage = "";
+		FOnlineErrorAccelByte ErrorAccelByte = ONLINE_ERROR_ACCELBYTE(TEXT(""), bRequestResult ? EOnlineErrorResult::Success : EOnlineErrorResult::RequestFailure);
+
 		if (bWasSuccessful)
 		{
 			if (bIsMandatory)
@@ -142,23 +146,21 @@ void FOnlineAsyncTaskAccelByteAcceptAgreementPolicies::TriggerDelegates()
 				if (IdentityInterface.IsValid())
 				{
 					EAccelByteLoginType Type = EAccelByteLoginType::RefreshToken;
-					FString ID = "";
+					FString ID = ApiClient->CredentialsRef->GetUserId();
 					FString Password = ApiClient->CredentialsRef->GetRefreshToken();
 
 					IdentityInterface->Login(LocalUserNum, FOnlineAccelByteAccountCredentials{ Type , ID, Password });
 				}
 			}
-			else
-			{
-				AgreementInterface->TriggerOnAcceptAgreementPoliciesCompletedDelegates(LocalUserNum, bRequestResult, TEXT(""));
-				AgreementInterface->TriggerAccelByteOnAcceptAgreementPoliciesCompletedDelegates(LocalUserNum, bRequestResult, ONLINE_ERROR_ACCELBYTE(TEXT(""), bRequestResult? EOnlineErrorResult::Success : EOnlineErrorResult::RequestFailure));
-			}
 		}
 		else
 		{
-			AgreementInterface->TriggerOnAcceptAgreementPoliciesCompletedDelegates(LocalUserNum, false, ErrorStr);
-			AgreementInterface->TriggerAccelByteOnAcceptAgreementPoliciesCompletedDelegates(LocalUserNum, false, ONLINE_ERROR_ACCELBYTE(FOnlineErrorAccelByte::PublicGetErrorKey(ErrorCode, ErrorStr)));
+			ErrorMessage = ErrorStr;
+			ErrorAccelByte = ONLINE_ERROR_ACCELBYTE(FOnlineErrorAccelByte::PublicGetErrorKey(ErrorCode, ErrorStr));
 		}
+
+		AgreementInterface->TriggerOnAcceptAgreementPoliciesCompletedDelegates(LocalUserNum, bSuccessful, ErrorMessage);
+		AgreementInterface->TriggerAccelByteOnAcceptAgreementPoliciesCompletedDelegates(LocalUserNum, bSuccessful, ErrorAccelByte);
 	}
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

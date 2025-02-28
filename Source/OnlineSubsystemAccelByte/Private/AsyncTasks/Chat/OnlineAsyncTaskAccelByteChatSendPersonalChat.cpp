@@ -25,7 +25,7 @@ FOnlineAsyncTaskAccelByteChatSendPersonalChat::FOnlineAsyncTaskAccelByteChatSend
 
 void FOnlineAsyncTaskAccelByteChatSendPersonalChat::Initialize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::Initialize();
 	
@@ -55,7 +55,7 @@ void FOnlineAsyncTaskAccelByteChatSendPersonalChat::Initialize()
 
 void FOnlineAsyncTaskAccelByteChatSendPersonalChat::TriggerDelegates()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::TriggerDelegates();
 
@@ -87,7 +87,7 @@ void FOnlineAsyncTaskAccelByteChatSendPersonalChat::TriggerDelegates()
 
 void FOnlineAsyncTaskAccelByteChatSendPersonalChat::Finalize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::Finalize();
 
@@ -120,8 +120,8 @@ void FOnlineAsyncTaskAccelByteChatSendPersonalChat::CreatePersonalTopic()
 		TDelegateUtils<AccelByte::Api::Chat::FChatActionTopicResponse>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteChatSendPersonalChat::OnCreatePersonalTopicSuccess);
 	const FErrorHandler OnCreatePersonalTopicErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteChatSendPersonalChat::OnCreatePersonalTopicError);
 
-	API_CLIENT_CHECK_GUARD(ErrorString);
-	ApiClient->Chat.CreatePersonalTopic(RecipientId->GetAccelByteId(), OnCreatePersonalTopicSuccessDelegate, OnCreatePersonalTopicErrorDelegate);
+	API_FULL_CHECK_GUARD(Chat, ErrorString);
+	Chat->CreatePersonalTopic(RecipientId->GetAccelByteId(), OnCreatePersonalTopicSuccessDelegate, OnCreatePersonalTopicErrorDelegate);
 }
 
 void FOnlineAsyncTaskAccelByteChatSendPersonalChat::SendPersonalChat()
@@ -130,8 +130,8 @@ void FOnlineAsyncTaskAccelByteChatSendPersonalChat::SendPersonalChat()
 		TDelegateUtils<AccelByte::Api::Chat::FSendChatResponse>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteChatSendPersonalChat::OnSendRoomChatSuccess);
 	const FErrorHandler OnSendRoomChatErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteChatSendPersonalChat::OnSendRoomChatError);
 
-	API_CLIENT_CHECK_GUARD(ErrorString);
-	ApiClient->Chat.SendChat(RoomId, ChatMessage, OnSendRoomChatSuccessDelegate, OnSendRoomChatErrorDelegate);
+	API_FULL_CHECK_GUARD(Chat, ErrorString);
+	Chat->SendChat(RoomId, ChatMessage, OnSendRoomChatSuccessDelegate, OnSendRoomChatErrorDelegate);
 }
 
 void FOnlineAsyncTaskAccelByteChatSendPersonalChat::OnSendRoomChatError(int32 InErrorCode, const FString& ErrorMessage)
@@ -162,7 +162,7 @@ void FOnlineAsyncTaskAccelByteChatSendPersonalChat::OnCreatePersonalTopicError(i
 
 void FOnlineAsyncTaskAccelByteChatSendPersonalChat::OnCreatePersonalTopicSuccess(const FAccelByteModelsChatActionTopicResponse& Response)
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("TopicId: %s"), *Response.TopicId);
 

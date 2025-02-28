@@ -31,15 +31,15 @@ void FOnlineAsyncTaskAccelByteLeaveV2GameSession::Initialize()
 
 	OnLeaveGameSessionSuccessDelegate = TDelegateUtils<FVoidHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteLeaveV2GameSession::OnLeaveGameSessionSuccess);
 	OnLeaveGameSessionErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteLeaveV2GameSession::OnLeaveGameSessionError);
-	API_CLIENT_CHECK_GUARD();
-	ApiClient->Session.LeaveGameSession(SessionId, OnLeaveGameSessionSuccessDelegate, OnLeaveGameSessionErrorDelegate);
+	API_FULL_CHECK_GUARD(Session);
+	Session->LeaveGameSession(SessionId, OnLeaveGameSessionSuccessDelegate, OnLeaveGameSessionErrorDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 
 void FOnlineAsyncTaskAccelByteLeaveV2GameSession::Finalize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
@@ -68,6 +68,9 @@ void FOnlineAsyncTaskAccelByteLeaveV2GameSession::Finalize()
 	if (bWasSuccessful)
 	{
 		SessionInterface->CurrentMatchmakingSearchHandle.Reset();
+		
+		SessionInterface->StopMatchTicketCheckPoll();
+		SessionInterface->StopSessionServerCheckPoll(UserId, RemovedSessionName);
 	}
 
 	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = SubsystemPin->GetPredefinedEventInterface();
@@ -84,7 +87,7 @@ void FOnlineAsyncTaskAccelByteLeaveV2GameSession::Finalize()
 
 void FOnlineAsyncTaskAccelByteLeaveV2GameSession::TriggerDelegates()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 

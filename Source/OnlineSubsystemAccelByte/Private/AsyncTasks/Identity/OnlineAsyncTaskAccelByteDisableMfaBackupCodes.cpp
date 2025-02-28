@@ -34,7 +34,7 @@ void FOnlineAsyncTaskAccelByteDisableMfaBackupCodes::Initialize()
 
 void FOnlineAsyncTaskAccelByteDisableMfaBackupCodes::TriggerDelegates()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::TriggerDelegates();
 
@@ -74,11 +74,11 @@ void FOnlineAsyncTaskAccelByteDisableMfaBackupCodes::GetMfaToken()
 {
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("UserId: %s"), *UserId->ToDebugString());
 
-	API_CLIENT_CHECK_GUARD(OnlineError);
+	API_FULL_CHECK_GUARD(User, OnlineError);
 
 	const auto OnSuccessDelegate = TDelegateUtils<THandler<FVerifyMfaResponse>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteDisableMfaBackupCodes::OnGetMfaTokenSuccess);
 	const auto OnErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteDisableMfaBackupCodes::OnGetMfaTokenError);
-	ApiClient->User.VerifyMfaCode(EAccelByteLoginAuthFactorType::BackupCode, BackupCode, OnSuccessDelegate, OnErrorDelegate);
+	User->VerifyMfaCode(EAccelByteLoginAuthFactorType::BackupCode, BackupCode, OnSuccessDelegate, OnErrorDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""))
 }
@@ -110,14 +110,14 @@ void FOnlineAsyncTaskAccelByteDisableMfaBackupCodes::DisableMfaBackupCodes()
 {
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("UserId: %s"), *UserId->ToDebugString());
 
-	API_CLIENT_CHECK_GUARD(OnlineError);
+	API_FULL_CHECK_GUARD(User, OnlineError);
 
 	FDisableMfaBackupCodeRequest Request;
 	Request.MfaToken = MfaToken;
 	
 	const auto OnSuccessDelegate = TDelegateUtils<FVoidHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteDisableMfaBackupCodes::OnDisableMfaBackupCodesSuccess);
 	const auto OnErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteDisableMfaBackupCodes::OnDisableMfaBackupCodesError);
-	ApiClient->User.Disable2FaBackupCode(OnSuccessDelegate, OnErrorDelegate, Request);
+	User->Disable2FaBackupCode(OnSuccessDelegate, OnErrorDelegate, Request);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""))
 }

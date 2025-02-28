@@ -28,15 +28,15 @@ void FOnlineAsyncTaskAccelByteUnblockPlayer::Initialize()
 	// the blocked players list if the unblock call is successful
 	OnUnblockPlayerSuccessDelegate = TDelegateUtils<FVoidHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteUnblockPlayer::OnUnblockPlayerSuccess);
 	OnUnblockPlayerFailedDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteUnblockPlayer::OnUnblockPlayerFailed);
-	API_CLIENT_CHECK_GUARD(ErrorStr);
-	ApiClient->Lobby.UnblockPlayer(PlayerId->GetAccelByteId(), OnUnblockPlayerSuccessDelegate, OnUnblockPlayerFailedDelegate);
+	API_FULL_CHECK_GUARD(Lobby, ErrorStr);
+	Lobby->UnblockPlayer(PlayerId->GetAccelByteId(), OnUnblockPlayerSuccessDelegate, OnUnblockPlayerFailedDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 
 void FOnlineAsyncTaskAccelByteUnblockPlayer::Finalize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
@@ -60,7 +60,7 @@ void FOnlineAsyncTaskAccelByteUnblockPlayer::Finalize()
 
 void FOnlineAsyncTaskAccelByteUnblockPlayer::TriggerDelegates()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 	

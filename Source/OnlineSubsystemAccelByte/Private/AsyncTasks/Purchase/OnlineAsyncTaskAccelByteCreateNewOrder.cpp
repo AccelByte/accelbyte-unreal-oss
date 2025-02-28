@@ -34,15 +34,15 @@ void FOnlineAsyncTaskAccelByteCreateNewOrder::Initialize()
 		(this, &FOnlineAsyncTaskAccelByteCreateNewOrder::HandleSuccess);
 	const FErrorHandler& OnError = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr
 		(this, &FOnlineAsyncTaskAccelByteCreateNewOrder::HandleError);
-	API_CLIENT_CHECK_GUARD(ErrorMessage);
-	ApiClient->Order.CreateNewOrder(OrderCreate, OnSuccess, OnError);
+	API_FULL_CHECK_GUARD(Order, ErrorMessage);
+	Order->CreateNewOrder(OrderCreate, OnSuccess, OnError);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 
 void FOnlineAsyncTaskAccelByteCreateNewOrder::Finalize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Finalized"));
 	
@@ -77,7 +77,7 @@ void FOnlineAsyncTaskAccelByteCreateNewOrder::Finalize()
 
 void FOnlineAsyncTaskAccelByteCreateNewOrder::TriggerDelegates()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Trigger Delegates"));
 	

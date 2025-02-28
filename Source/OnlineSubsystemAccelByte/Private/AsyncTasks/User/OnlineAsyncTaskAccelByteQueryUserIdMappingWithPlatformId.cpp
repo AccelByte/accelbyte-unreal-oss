@@ -49,8 +49,8 @@ void FOnlineAsyncTaskAccelByteQueryUserIdMappingWithPlatformId::Initialize()
 
 	THandler<FPagedPublicUsersInfo> OnSuccess = TDelegateUtils<THandler<FPagedPublicUsersInfo>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryUserIdMappingWithPlatformId::OnSearchUserSuccessResponse);
 	FErrorHandler OnError = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryUserIdMappingWithPlatformId::OnSearchUserErrorResponse);
-	API_CLIENT_CHECK_GUARD(ErrorString);
-	ApiClient->User.SearchUsers(DisplayNameOrEmail, PlatformId, EAccelByteSearchPlatformType::PLATFORM_DISPLAY_NAME, OnSuccess, OnError);
+	API_FULL_CHECK_GUARD(User, ErrorString);
+	User->SearchUsers(DisplayNameOrEmail, PlatformId, EAccelByteSearchPlatformType::PLATFORM_DISPLAY_NAME, OnSuccess, OnError);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }

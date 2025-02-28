@@ -34,7 +34,7 @@ void FOnlineAsyncTaskAccelByteDisableMfaEmail::Initialize()
 
 void FOnlineAsyncTaskAccelByteDisableMfaEmail::TriggerDelegates()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::TriggerDelegates();
 
@@ -74,11 +74,11 @@ void FOnlineAsyncTaskAccelByteDisableMfaEmail::GetMfaToken()
 {
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("UserId: %s"), *UserId->ToDebugString());
     
-    API_CLIENT_CHECK_GUARD(OnlineError);
+    API_FULL_CHECK_GUARD(User, OnlineError);
 
     const auto OnSuccessDelegate = TDelegateUtils<THandler<FVerifyMfaResponse>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteDisableMfaEmail::OnGetMfaTokenSuccess);
     const auto OnErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteDisableMfaEmail::OnGetMfaTokenError);
-    ApiClient->User.VerifyMfaCode(EAccelByteLoginAuthFactorType::Email, Code, OnSuccessDelegate, OnErrorDelegate);
+    User->VerifyMfaCode(EAccelByteLoginAuthFactorType::Email, Code, OnSuccessDelegate, OnErrorDelegate);
 
     AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""))
 }
@@ -110,14 +110,14 @@ void FOnlineAsyncTaskAccelByteDisableMfaEmail::DisableMfaEmail()
 {
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("UserId: %s"), *UserId->ToDebugString());
 
-	API_CLIENT_CHECK_GUARD(OnlineError);
+	API_FULL_CHECK_GUARD(User, OnlineError);
 
 	FDisableMfaEmailRequest Request;
 	Request.MfaToken = MfaToken;
 	
 	const auto OnSuccessDelegate = TDelegateUtils<FVoidHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteDisableMfaEmail::OnDisableMfaEmailSuccess);
 	const auto OnErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteDisableMfaEmail::OnDisableMfaEmailError);
-	ApiClient->User.DisableMfaEmail(OnSuccessDelegate, OnErrorDelegate, Request);
+	User->DisableMfaEmail(OnSuccessDelegate, OnErrorDelegate, Request);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""))
 }

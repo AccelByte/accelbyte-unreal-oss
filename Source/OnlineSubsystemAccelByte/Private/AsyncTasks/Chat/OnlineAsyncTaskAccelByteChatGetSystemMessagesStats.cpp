@@ -26,15 +26,15 @@ void FOnlineAsyncTaskAccelByteChatGetSystemMessagesStats::Initialize()
 		this, &FOnlineAsyncTaskAccelByteChatGetSystemMessagesStats::OnGetSystemMessagesStatsSuccess);
 	OnGetSystemMessagesStatsErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(
 		this, &FOnlineAsyncTaskAccelByteChatGetSystemMessagesStats::OnGetSystemMessagesStatsError);
-	API_CLIENT_CHECK_GUARD(OnlineError);
-	ApiClient->Chat.GetSystemMessageStats(OnGetSystemMessagesStatsSuccessDelegate, OnGetSystemMessagesStatsErrorDelegate, OptionalParams);
+	API_FULL_CHECK_GUARD(Chat, OnlineError);
+	Chat->GetSystemMessageStats(OnGetSystemMessagesStatsSuccessDelegate, OnGetSystemMessagesStatsErrorDelegate, OptionalParams);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 
 void FOnlineAsyncTaskAccelByteChatGetSystemMessagesStats::TriggerDelegates()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s, ErrorMessage: %s"), LOG_BOOL_FORMAT(bWasSuccessful), *OnlineError.ErrorMessage.ToString());
 

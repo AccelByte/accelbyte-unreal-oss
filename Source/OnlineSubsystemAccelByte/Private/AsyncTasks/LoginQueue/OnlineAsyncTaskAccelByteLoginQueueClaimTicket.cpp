@@ -21,7 +21,7 @@ FOnlineAsyncTaskAccelByteLoginQueueClaimTicket::FOnlineAsyncTaskAccelByteLoginQu
 
 void FOnlineAsyncTaskAccelByteLoginQueueClaimTicket::Initialize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::Initialize();
 
@@ -66,15 +66,15 @@ void FOnlineAsyncTaskAccelByteLoginQueueClaimTicket::Initialize()
 	OnClaimAccessTokenSuccessHandler = TDelegateUtils<FVoidHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteLoginQueueClaimTicket::OnClaimAccessTokenSuccess);
 	OnClaimAccessTokenErrorHandler = TDelegateUtils<FOAuthErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteLoginQueueClaimTicket::OnClaimAccessTokenError);
 
-	API_CLIENT_CHECK_GUARD();
-	ApiClient->User.ClaimAccessToken(TicketId, OnClaimAccessTokenSuccessHandler, OnClaimAccessTokenErrorHandler);
+	API_FULL_CHECK_GUARD(User);
+	User->ClaimAccessToken(TicketId, OnClaimAccessTokenSuccessHandler, OnClaimAccessTokenErrorHandler);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 
 void FOnlineAsyncTaskAccelByteLoginQueueClaimTicket::Finalize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), bWasSuccessful ? TEXT("True") : TEXT("False"));
 
@@ -92,7 +92,7 @@ void FOnlineAsyncTaskAccelByteLoginQueueClaimTicket::Finalize()
 
 void FOnlineAsyncTaskAccelByteLoginQueueClaimTicket::TriggerDelegates()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), bWasSuccessful ? TEXT("True") : TEXT("False"));
 	
@@ -149,7 +149,7 @@ void FOnlineAsyncTaskAccelByteLoginQueueClaimTicket::OnLoginQueueCancelled(int32
 
 void FOnlineAsyncTaskAccelByteLoginQueueClaimTicket::CleanupDelegateHandler()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Poller->UnbindOnPollStopped();
 	Poller->UnbindOnTicketRefreshed();

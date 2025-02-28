@@ -30,15 +30,15 @@ void FOnlineAsyncTaskAccelByteLinkOtherPlatformId::Initialize()
 		(this, &FOnlineAsyncTaskAccelByteLinkOtherPlatformId::HandleSuccess);
 	const FCustomErrorHandler& OnLinkOtherPlatformError = TDelegateUtils<FCustomErrorHandler>::CreateThreadSafeSelfPtr
 		(this, &FOnlineAsyncTaskAccelByteLinkOtherPlatformId::HandleError);
-	API_CLIENT_CHECK_GUARD(OnlineError);
-	ApiClient->User.LinkOtherPlatformId(PlatformId, Ticket, OnLinkOtherPlatformSuccess, OnLinkOtherPlatformError);
+	API_FULL_CHECK_GUARD(User, OnlineError);
+	User->LinkOtherPlatformId(PlatformId, Ticket, OnLinkOtherPlatformSuccess, OnLinkOtherPlatformError);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));	
 }
 
 void FOnlineAsyncTaskAccelByteLinkOtherPlatformId::TriggerDelegates()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("TriggerDelegates"));
 	FOnlineAsyncTaskAccelByte::TriggerDelegates();

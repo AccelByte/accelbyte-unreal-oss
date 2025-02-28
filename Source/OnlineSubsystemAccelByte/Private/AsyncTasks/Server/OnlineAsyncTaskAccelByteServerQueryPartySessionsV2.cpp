@@ -41,7 +41,7 @@ void FOnlineAsyncTaskAccelByteServerQueryPartySessionsV2::Initialize()
 
 void FOnlineAsyncTaskAccelByteServerQueryPartySessionsV2::TriggerDelegates()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s, ErrorMessage: %s"), LOG_BOOL_FORMAT(bWasSuccessful), *ErrorText.ToString());
 

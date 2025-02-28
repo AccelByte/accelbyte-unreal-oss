@@ -35,5 +35,5 @@ private:
 	FString RequestId{};
 	int32 ErrorCode = 0;
 	FString ErrorMessage{};
-	TSharedPtr<FOnlineEntitlementAccelByte> Entitlement;
+	TSharedPtr<FOnlineEntitlementAccelByte> EntitlementItem;
 };

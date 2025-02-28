@@ -29,7 +29,7 @@ void FOnlineAsyncTaskAccelByteGetV2MatchmakingTicketDetails::Initialize()
 
 void FOnlineAsyncTaskAccelByteGetV2MatchmakingTicketDetails::TriggerDelegates()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::TriggerDelegates();
 
@@ -72,8 +72,8 @@ void FOnlineAsyncTaskAccelByteGetV2MatchmakingTicketDetails::SendGetMyTicketRequ
 	OnGetMatchTicketDetailSuccessDelegate = AccelByte::TDelegateUtils<THandler<FAccelByteModelsV2MatchmakingGetTicketDetailsResponse>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteGetV2MatchmakingTicketDetails::OnGetMyMatchTicketSuccess);
 	OnGetMatchTicketDetailErrorDelegate = AccelByte::TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteGetV2MatchmakingTicketDetails::OnGetMyMatchTicketError);;
 
-	API_CLIENT_CHECK_GUARD(OnlineError);
-	ApiClient->MatchmakingV2.GetMatchTicketDetails(TicketId, OnGetMatchTicketDetailSuccessDelegate, OnGetMatchTicketDetailErrorDelegate);
+	API_FULL_CHECK_GUARD(MatchmakingV2, OnlineError);
+	MatchmakingV2->GetMatchTicketDetails(TicketId, OnGetMatchTicketDetailSuccessDelegate, OnGetMatchTicketDetailErrorDelegate);
 }
 
 #undef ONLINE_ERROR_NAMESPACE

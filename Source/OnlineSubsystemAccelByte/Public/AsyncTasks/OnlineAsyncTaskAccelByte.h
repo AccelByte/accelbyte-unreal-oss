@@ -145,6 +145,18 @@ if (!IsApiClientValid())\
 }\
 auto ApiClient = GetApiClientInternal();\
 
+#define API_CHECK_GUARD(ApiName, ...) \
+auto ApiName = ApiClient->Get##ApiName##Api().Pin(); \
+if(!ApiName.IsValid()) \
+{ \
+	RaiseGenericError(__VA_ARGS__);\
+	return;\
+} \
+
+#define API_FULL_CHECK_GUARD(ApiName, ...) \
+API_CLIENT_CHECK_GUARD(__VA_ARGS__) \
+API_CHECK_GUARD(ApiName, __VA_ARGS__) \
+
 #define SERVER_API_CLIENT_CHECK_GUARD(...) \
 FAccelByteInstancePtr AccelByteInstance = GetAccelByteInstance().Pin(); \
 if(!AccelByteInstance.IsValid()) \
@@ -549,13 +561,7 @@ protected:
 			return nullptr;
 		}
 
-		const TSharedPtr<FOnlineIdentityAccelByte, ESPMode::ThreadSafe> IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(SubsystemPin->GetIdentityInterface());
-		if (!IdentityInterface.IsValid())
-		{
-			return nullptr;
-		}
-
-		ApiClientInternal = IdentityInterface->GetApiClient(InLocalUserNum);
+		ApiClientInternal = SubsystemPin->GetApiClient(InLocalUserNum);
 		return ApiClientInternal;
 	}
 
@@ -571,13 +577,7 @@ protected:
 			return ApiClientInternal;
 		}
 
-		const TSharedPtr<FOnlineIdentityAccelByte, ESPMode::ThreadSafe> IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(SubsystemPin->GetIdentityInterface());
-		if (!IdentityInterface.IsValid())
-		{
-			return nullptr;
-		}
-
-		ApiClientInternal = IdentityInterface->GetApiClient(InUserId.Get());
+		ApiClientInternal = SubsystemPin->GetApiClient(InUserId.Get());
 		return ApiClientInternal;
 	}
 
@@ -619,7 +619,7 @@ protected:
 	 */
 	void GetOtherUserIdentifiers()
 	{
-		TRY_PIN_SUBSYSTEM()
+		TRY_PIN_SUBSYSTEM();
 
 		const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(SubsystemPin->GetIdentityInterface());
 		if (!IdentityInterface.IsValid())

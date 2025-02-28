@@ -13,7 +13,7 @@ FOnlineAsyncTaskAccelByteServerKickV2GameSession::FOnlineAsyncTaskAccelByteServe
 
 void FOnlineAsyncTaskAccelByteServerKickV2GameSession::Initialize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::Initialize();
 
@@ -54,7 +54,7 @@ void FOnlineAsyncTaskAccelByteServerKickV2GameSession::Finalize()
 
 	if (bWasSuccessful)
 	{
-		TRY_PIN_SUBSYSTEM()
+		TRY_PIN_SUBSYSTEM();
 
 		const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(SubsystemPin->GetSessionInterface());
 		if (!ensure(SessionInterface.IsValid()))
@@ -75,7 +75,7 @@ void FOnlineAsyncTaskAccelByteServerKickV2GameSession::TriggerDelegates()
 
 	if (bWasSuccessful)
 	{
-		TRY_PIN_SUBSYSTEM()
+		TRY_PIN_SUBSYSTEM();
 
 		const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(SubsystemPin->GetSessionInterface());
 		if (!ensure(SessionInterface.IsValid()))

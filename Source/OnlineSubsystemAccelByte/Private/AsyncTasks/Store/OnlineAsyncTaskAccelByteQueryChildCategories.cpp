@@ -21,7 +21,7 @@ FOnlineAsyncTaskAccelByteQueryChildCategories::FOnlineAsyncTaskAccelByteQueryChi
 
 void FOnlineAsyncTaskAccelByteQueryChildCategories::Initialize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::Initialize();
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
@@ -38,15 +38,15 @@ void FOnlineAsyncTaskAccelByteQueryChildCategories::Initialize()
 	OnGetChildCategoriesSuccess = TDelegateUtils<THandler<TArray<FAccelByteModelsCategoryInfo>>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryChildCategories::HandleGetChildCategoriesSuccess);
 	OnError = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryChildCategories::HandleAsyncTaskError);
 	
-	API_CLIENT_CHECK_GUARD(ErrorMsg);
-	ApiClient->Category.GetDescendantCategories(Language, CategoryPath,OnGetChildCategoriesSuccess, OnError);
+	API_FULL_CHECK_GUARD(Category, ErrorMsg);
+	Category->GetDescendantCategories(Language, CategoryPath,OnGetChildCategoriesSuccess, OnError);
 	
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 
 void FOnlineAsyncTaskAccelByteQueryChildCategories::Finalize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::Finalize();
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));

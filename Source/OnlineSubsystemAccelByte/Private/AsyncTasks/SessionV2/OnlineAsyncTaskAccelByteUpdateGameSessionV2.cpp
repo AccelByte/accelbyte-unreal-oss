@@ -37,7 +37,7 @@ FOnlineAsyncTaskAccelByteUpdateGameSessionV2::FOnlineAsyncTaskAccelByteUpdateGam
 
 void FOnlineAsyncTaskAccelByteUpdateGameSessionV2::Initialize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::Initialize();
 
@@ -46,10 +46,10 @@ void FOnlineAsyncTaskAccelByteUpdateGameSessionV2::Initialize()
 	const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(SubsystemPin->GetSessionInterface());
 	AB_ASYNC_TASK_VALIDATE(SessionInterface.IsValid(), "Failed to update game session as our session interface is invalid!");
 
-	FNamedOnlineSession* Session = SessionInterface->GetNamedSession(SessionName);
-	AB_ASYNC_TASK_VALIDATE(Session != nullptr, "Failed to update game session as our local session instance is invalid!");
+	FNamedOnlineSession* OnlineSession = SessionInterface->GetNamedSession(SessionName);
+	AB_ASYNC_TASK_VALIDATE(OnlineSession != nullptr, "Failed to update game session as our local session instance is invalid!");
 
-	TSharedPtr<FOnlineSessionInfoAccelByteV2> SessionInfo = StaticCastSharedPtr<FOnlineSessionInfoAccelByteV2>(Session->SessionInfo);
+	TSharedPtr<FOnlineSessionInfoAccelByteV2> SessionInfo = StaticCastSharedPtr<FOnlineSessionInfoAccelByteV2>(OnlineSession->SessionInfo);
 	AB_ASYNC_TASK_VALIDATE(SessionInfo.IsValid(), "Failed to update game session as our local session info instance is invalid!");
 
 	AB_ASYNC_TASK_VALIDATE(SessionInfo->GetBackendSessionData()->SessionType == EAccelByteV2SessionType::GameSession, "Failed to update game session as our local backend session info is invalid!");
@@ -180,8 +180,8 @@ void FOnlineAsyncTaskAccelByteUpdateGameSessionV2::Initialize()
 	}
 	else
 	{
-		API_CLIENT_CHECK_GUARD();
-		ApiClient->Session.UpdateGameSession(SessionInfo->GetSessionId().ToString(), UpdateRequest, OnUpdateGameSessionSuccessDelegate, OnUpdateGameSessionErrorDelegate);
+		API_FULL_CHECK_GUARD(Session);
+		Session->UpdateGameSession(SessionInfo->GetSessionId().ToString(), UpdateRequest, OnUpdateGameSessionSuccessDelegate, OnUpdateGameSessionErrorDelegate);
 	}
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
@@ -189,7 +189,7 @@ void FOnlineAsyncTaskAccelByteUpdateGameSessionV2::Initialize()
 
 void FOnlineAsyncTaskAccelByteUpdateGameSessionV2::Finalize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
@@ -212,7 +212,7 @@ void FOnlineAsyncTaskAccelByteUpdateGameSessionV2::Finalize()
 
 void FOnlineAsyncTaskAccelByteUpdateGameSessionV2::TriggerDelegates()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
@@ -261,17 +261,17 @@ void FOnlineAsyncTaskAccelByteUpdateGameSessionV2::OnUpdateGameSessionError(int3
 
 void FOnlineAsyncTaskAccelByteUpdateGameSessionV2::RefreshSession()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 
 	const TSharedPtr<FOnlineSessionV2AccelByte, ESPMode::ThreadSafe> SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(SubsystemPin->GetSessionInterface());
 	check(SessionInterface.IsValid());
 
-	FNamedOnlineSession* Session = SessionInterface->GetNamedSession(SessionName);
-	AB_ASYNC_TASK_VALIDATE(Session != nullptr, "Could not refresh game session named '%s' as the session does not exist locally!", *SessionName.ToString());
+	FNamedOnlineSession* OnlineSession = SessionInterface->GetNamedSession(SessionName);
+	AB_ASYNC_TASK_VALIDATE(OnlineSession != nullptr, "Could not refresh game session named '%s' as the session does not exist locally!", *SessionName.ToString());
 
-	const FString SessionId = Session->GetSessionIdStr();
+	const FString SessionId = OnlineSession->GetSessionIdStr();
 	AB_ASYNC_TASK_VALIDATE(!SessionId.Equals(TEXT("InvalidSession")), "Could not refresh game session named '%s' as there is not a valid session ID associated!", *SessionName.ToString());
 
 	// Send the API call based on whether we are a server or a client
@@ -284,8 +284,8 @@ void FOnlineAsyncTaskAccelByteUpdateGameSessionV2::RefreshSession()
 	}
 	else
 	{
-		API_CLIENT_CHECK_GUARD();
-		ApiClient->Session.GetGameSessionDetails(SessionId, OnRefreshGameSessionSuccessDelegate, OnRefreshGameSessionErrorDelegate);
+		API_FULL_CHECK_GUARD(Session);
+		Session->GetGameSessionDetails(SessionId, OnRefreshGameSessionSuccessDelegate, OnRefreshGameSessionErrorDelegate);
 	}
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
@@ -293,7 +293,7 @@ void FOnlineAsyncTaskAccelByteUpdateGameSessionV2::RefreshSession()
 
 void FOnlineAsyncTaskAccelByteUpdateGameSessionV2::OnRefreshGameSessionSuccess(const FAccelByteModelsV2GameSession& Result)
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 

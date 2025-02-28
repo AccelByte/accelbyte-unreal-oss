@@ -19,7 +19,7 @@ FOnlineAsyncTaskAccelBytePromoteV2PartyLeader::FOnlineAsyncTaskAccelBytePromoteV
 
 void FOnlineAsyncTaskAccelBytePromoteV2PartyLeader::Initialize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::Initialize();
 
@@ -28,20 +28,20 @@ void FOnlineAsyncTaskAccelBytePromoteV2PartyLeader::Initialize()
 	const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(SubsystemPin->GetSessionInterface());
 	AB_ASYNC_TASK_VALIDATE(SessionInterface.IsValid(), "Failed to promote player to leader of party session as our session interface is invalid!");
 
-	FNamedOnlineSession* Session = SessionInterface->GetPartySession();
-	AB_ASYNC_TASK_VALIDATE(Session != nullptr, "Failed to promote player to leader of party session as the local session instance is invalid!");
+	FNamedOnlineSession* OnlineSession = SessionInterface->GetPartySession();
+	AB_ASYNC_TASK_VALIDATE(OnlineSession != nullptr, "Failed to promote player to leader of party session as the local session instance is invalid!");
 	
 	OnPromotePartyLeaderSuccessDelegate = AccelByte::TDelegateUtils<THandler<FAccelByteModelsV2PartySession>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelBytePromoteV2PartyLeader::OnPromotePartyLeaderSuccess);
 	OnPromotePartyLeaderErrorDelegate = AccelByte::TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelBytePromoteV2PartyLeader::OnPromotePartyLeaderError);;
-	API_CLIENT_CHECK_GUARD();
-	ApiClient->Session.PromotePartyLeader(SessionId, TargetMemberId->GetAccelByteId(), OnPromotePartyLeaderSuccessDelegate, OnPromotePartyLeaderErrorDelegate);
+	API_FULL_CHECK_GUARD(Session);
+	Session->PromotePartyLeader(SessionId, TargetMemberId->GetAccelByteId(), OnPromotePartyLeaderSuccessDelegate, OnPromotePartyLeaderErrorDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sent request to promote a member of this party to leader."));
 }
 
 void FOnlineAsyncTaskAccelBytePromoteV2PartyLeader::Finalize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 

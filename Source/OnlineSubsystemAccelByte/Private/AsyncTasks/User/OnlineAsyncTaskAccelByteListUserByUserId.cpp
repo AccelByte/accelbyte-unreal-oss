@@ -24,7 +24,7 @@ FOnlineAsyncTaskAccelByteListUserByUserId::FOnlineAsyncTaskAccelByteListUserByUs
 } 
 void FOnlineAsyncTaskAccelByteListUserByUserId::Initialize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 
@@ -77,7 +77,7 @@ void FOnlineAsyncTaskAccelByteListUserByUserId::Initialize()
 
 void FOnlineAsyncTaskAccelByteListUserByUserId::TriggerDelegates()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 

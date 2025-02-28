@@ -22,7 +22,7 @@ FOnlineAsyncTaskAccelByteSendV1PartyInvite::FOnlineAsyncTaskAccelByteSendV1Party
 
 void FOnlineAsyncTaskAccelByteSendV1PartyInvite::Initialize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::Initialize();
 
@@ -50,16 +50,16 @@ void FOnlineAsyncTaskAccelByteSendV1PartyInvite::Initialize()
 
 	// Now, once we know we are in this party, we want to send a request to invite the player to the party
 	AccelByte::Api::Lobby::FPartyInviteResponse OnPartyInviteResponseDelegate = TDelegateUtils<AccelByte::Api::Lobby::FPartyInviteResponse>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteSendV1PartyInvite::OnPartyInviteResponse);
-	API_CLIENT_CHECK_GUARD();
-	ApiClient->Lobby.SetInvitePartyResponseDelegate(OnPartyInviteResponseDelegate);
-	ApiClient->Lobby.SendInviteToPartyRequest(RecipientId->GetAccelByteId());
+	API_FULL_CHECK_GUARD(Lobby);
+	Lobby->SetInvitePartyResponseDelegate(OnPartyInviteResponseDelegate);
+	Lobby->SendInviteToPartyRequest(RecipientId->GetAccelByteId());
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 
 void FOnlineAsyncTaskAccelByteSendV1PartyInvite::Finalize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 

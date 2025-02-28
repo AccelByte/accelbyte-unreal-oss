@@ -16,7 +16,7 @@ FOnlineAsyncTaskAccelByteCreateBackfillTicket::FOnlineAsyncTaskAccelByteCreateBa
 
 void FOnlineAsyncTaskAccelByteCreateBackfillTicket::Initialize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::Initialize();
 
@@ -45,7 +45,7 @@ void FOnlineAsyncTaskAccelByteCreateBackfillTicket::Initialize()
 
 void FOnlineAsyncTaskAccelByteCreateBackfillTicket::Finalize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::Finalize();
 

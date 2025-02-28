@@ -24,7 +24,7 @@ FOnlineAsyncTaskAccelByteVerifyLoginMfa::FOnlineAsyncTaskAccelByteVerifyLoginMfa
 
 void FOnlineAsyncTaskAccelByteVerifyLoginMfa::Initialize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::Initialize();
 
@@ -41,27 +41,27 @@ void FOnlineAsyncTaskAccelByteVerifyLoginMfa::Initialize()
 		return;
 	}
 
-	if (SubsystemPin->IsMultipleLocalUsersEnabled())
+	FApiClientPtr LocalApiClient = SubsystemPin->GetApiClient(LoginUserNum);
+
+	if (!LocalApiClient.IsValid())
 	{
-		SetApiClient(AccelByteInstance->GetApiClient(FString::Printf(TEXT("%d"), LoginUserNum)));
-	}
-	else
-	{
-		SetApiClient(AccelByteInstance->GetApiClient());
+		LocalApiClient = AccelByteInstance->GetApiClient(FString::Printf(TEXT("%d"), LoginUserNum));
 	}
 
-	API_CLIENT_CHECK_GUARD();
+	SetApiClient(LocalApiClient);
+
+	API_FULL_CHECK_GUARD(User);
 
 	const auto OnSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsLoginQueueTicketInfo>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteVerifyLoginMfa::OnVerifyLoginSuccess);
 	const auto OnErrorDelegate = TDelegateUtils<FOAuthErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteVerifyLoginMfa::OnVerifyLoginError);
-	ApiClient->User.VerifyLoginWithNewDevice2FAEnabledV4(MfaToken, FactorType, Code, OnSuccessDelegate, OnErrorDelegate, bRememberDevice);
+	User->VerifyLoginWithNewDevice2FAEnabledV4(MfaToken, FactorType, Code, OnSuccessDelegate, OnErrorDelegate, bRememberDevice);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""))
 }
 
 void FOnlineAsyncTaskAccelByteVerifyLoginMfa::Finalize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::Finalize();
 
@@ -86,7 +86,7 @@ void FOnlineAsyncTaskAccelByteVerifyLoginMfa::Finalize()
 
 void FOnlineAsyncTaskAccelByteVerifyLoginMfa::TriggerDelegates()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::TriggerDelegates();
 
@@ -141,7 +141,7 @@ void FOnlineAsyncTaskAccelByteVerifyLoginMfa::Tick()
 
 void FOnlineAsyncTaskAccelByteVerifyLoginMfa::OnVerifyLoginSuccess(const FAccelByteModelsLoginQueueTicketInfo& Response)
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("LoginUserNum: %d, TicketId: %s"), LoginUserNum, *Response.Ticket);
 
@@ -176,7 +176,7 @@ void FOnlineAsyncTaskAccelByteVerifyLoginMfa::OnVerifyLoginSuccess(const FAccelB
 	bLoginInQueue = true;
 	this->ExecuteCriticalSectionAction(FVoidHandler::CreateLambda([this, &Response]()
 	{
-		TRY_PIN_SUBSYSTEM()
+		TRY_PIN_SUBSYSTEM();
 		SubsystemPin->CreateAndDispatchAsyncTaskSerial<FOnlineAsyncTaskAccelByteLoginQueue>(SubsystemPin.Get(), LoginUserNum, Response);
 	}));
 	
@@ -308,7 +308,7 @@ void FOnlineAsyncTaskAccelByteVerifyLoginMfa::OnLoginSuccess()
 		Account->AddPlatformUser(LocalPlatformUser);
 	}
 	
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(SubsystemPin->GetIdentityInterface());
 	if (!IdentityInterface.IsValid())

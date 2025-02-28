@@ -32,15 +32,15 @@ void FOnlineAsyncTaskAccelByteChatCreateRoom::Initialize()
 	// #NOTE Passing UserIds as both members and admins, since the creating user should be both
 	Members = UserIds;
 	Admins = UserIds;
-	API_CLIENT_CHECK_GUARD(ErrorString);
-	ApiClient->Chat.CreateGroupTopic(Members, Admins, ChatRoomConfig.FriendlyName, ChatRoomConfig.bIsJoinable, OnCreateGroupTopicSuccessDelegate, OnCreateGroupTopicErrorDelegate);
+	API_FULL_CHECK_GUARD(Chat, ErrorString);
+	Chat->CreateGroupTopic(Members, Admins, ChatRoomConfig.FriendlyName, ChatRoomConfig.bIsJoinable, OnCreateGroupTopicSuccessDelegate, OnCreateGroupTopicErrorDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 
 void FOnlineAsyncTaskAccelByteChatCreateRoom::TriggerDelegates()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::TriggerDelegates();
 
@@ -60,7 +60,7 @@ void FOnlineAsyncTaskAccelByteChatCreateRoom::TriggerDelegates()
 
 void FOnlineAsyncTaskAccelByteChatCreateRoom::Finalize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::Finalize();
 

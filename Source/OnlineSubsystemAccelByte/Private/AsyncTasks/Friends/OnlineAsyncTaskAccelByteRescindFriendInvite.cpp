@@ -27,8 +27,8 @@ void FOnlineAsyncTaskAccelByteRescindFriendInvite::Initialize()
 
 	OnCancelFriendRequestSuccessDelegate = TDelegateUtils<FVoidHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteRescindFriendInvite::OnCancelFriendRequestSuccess);
 	OnCancelFriendRequestFailedDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteRescindFriendInvite::OnCancelFriendRequestFailed);
-	API_CLIENT_CHECK_GUARD(ErrorStr);
-	ApiClient->Lobby.CancelFriendRequest(FriendId->GetAccelByteId(), OnCancelFriendRequestSuccessDelegate, OnCancelFriendRequestFailedDelegate);
+	API_FULL_CHECK_GUARD(Lobby, ErrorStr);
+	Lobby->CancelFriendRequest(FriendId->GetAccelByteId(), OnCancelFriendRequestSuccessDelegate, OnCancelFriendRequestFailedDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
@@ -42,7 +42,7 @@ void FOnlineAsyncTaskAccelByteRescindFriendInvite::Finalize()
 
 void FOnlineAsyncTaskAccelByteRescindFriendInvite::TriggerDelegates()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 	

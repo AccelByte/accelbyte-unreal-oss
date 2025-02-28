@@ -24,15 +24,15 @@ void FOnlineAsyncTaskAccelByteEnumerateUserFiles::Initialize()
 
 	THandler<TArray<FAccelByteModelsSlot>> OnGetAllSlotsSuccessDelegate = TDelegateUtils<THandler<TArray<FAccelByteModelsSlot>>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteEnumerateUserFiles::OnGetAllSlotsSuccess);
 	FErrorHandler OnGetAllSlotsErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteEnumerateUserFiles::OnGetAllSlotsError);
-	API_CLIENT_CHECK_GUARD();
-	ApiClient->CloudStorage.GetAllSlots(OnGetAllSlotsSuccessDelegate, OnGetAllSlotsErrorDelegate);
+	API_FULL_CHECK_GUARD(CloudStorage);
+	CloudStorage->GetAllSlots(OnGetAllSlotsSuccessDelegate, OnGetAllSlotsErrorDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 
 void FOnlineAsyncTaskAccelByteEnumerateUserFiles::Finalize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s; Header Amount: %d"), LOG_BOOL_FORMAT(bWasSuccessful), FileNameToFileHeaderMap.Num());
 
@@ -51,7 +51,7 @@ void FOnlineAsyncTaskAccelByteEnumerateUserFiles::Finalize()
 
 void FOnlineAsyncTaskAccelByteEnumerateUserFiles::TriggerDelegates()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 

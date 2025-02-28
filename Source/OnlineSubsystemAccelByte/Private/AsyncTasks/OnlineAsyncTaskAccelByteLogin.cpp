@@ -87,10 +87,19 @@ void FOnlineAsyncTaskAccelByteLogin::Initialize()
 	
 	GConfig->GetInt(TEXT("OnlineSubsystemAccelByte"), TEXT("LoginQueuePresentationThreshold"), LoginQueuePresentationThreshold, GEngineIni);
 
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
+
+	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(SubsystemPin->GetIdentityInterface());
+	if (!IdentityInterface.IsValid())
+	{
+		ErrorStr = TEXT("login-failed-invalid-identity-interface");
+		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to login with type '%s' as the IdentityInterface is invalid!"), *AccountCredentials.Type);
+		CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState);
+		return;
+	}
 
 	FAccelByteInstancePtr AccelByteInstance = GetAccelByteInstance().Pin();
-	if(!AccelByteInstance.IsValid())
+	if (!AccelByteInstance.IsValid())
 	{
 		ErrorStr = TEXT("login-failed-invalid-accelbyte-instance");
 		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to login with type '%s' as the AccelByteInstance is invalid!"), *AccountCredentials.Type);
@@ -98,14 +107,24 @@ void FOnlineAsyncTaskAccelByteLogin::Initialize()
 		return;
 	}
 
-	if (SubsystemPin->IsMultipleLocalUsersEnabled())
+	FApiClientPtr LocalApiClient = nullptr;
+	FUniqueNetIdPtr LocalUserId = IdentityInterface->GetUniquePlayerId(LoginUserNum);
+
+	if (LocalUserId.IsValid())
 	{
-		SetApiClient(AccelByteInstance->GetApiClient(FString::Printf(TEXT("%d"), LoginUserNum)));
+		FUniqueNetIdAccelByteUserRef LocalABUserId = FUniqueNetIdAccelByteUser::CastChecked(*LocalUserId.Get());
+		if (LocalABUserId->GetAccelByteId() == AccountCredentials.Id)
+		{
+			LocalApiClient = SubsystemPin->GetApiClient(*LocalUserId.Get());
+		}
 	}
-	else
+
+	if (!LocalApiClient.IsValid())
 	{
-		SetApiClient(AccelByteInstance->GetApiClient(FString::Printf(TEXT("%d"), LoginUserNum)));
+		LocalApiClient = AccelByteInstance->GetApiClient(FString::Printf(TEXT("%d"), LoginUserNum));
 	}
+
+	SetApiClient(LocalApiClient);
 	
 	API_CLIENT_CHECK_GUARD();
 	//Valid because just recently SetApiClient()
@@ -187,7 +206,7 @@ void FOnlineAsyncTaskAccelByteLogin::Finalize()
 {
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 	API_CLIENT_CHECK_GUARD();
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	SubsystemPin->SetLocalUserNumCached(LoginUserNum);
 	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = SubsystemPin->GetPredefinedEventInterface();
@@ -216,7 +235,7 @@ void FOnlineAsyncTaskAccelByteLogin::TriggerDelegates()
 {
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 	API_CLIENT_CHECK_GUARD();
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(SubsystemPin->GetIdentityInterface());
 	const TSharedRef<const FUniqueNetIdAccelByteUser> ReturnId = (bWasSuccessful) ? UserId.ToSharedRef() : FUniqueNetIdAccelByteUser::Invalid();
@@ -257,7 +276,7 @@ void FOnlineAsyncTaskAccelByteLogin::TriggerDelegates()
 
 void FOnlineAsyncTaskAccelByteLogin::LoginWithNativeSubsystem()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 #if WITH_EDITOR
 	const FString NativePlatformName = SubsystemPin->GetNativePlatformNameString();
@@ -295,7 +314,7 @@ void FOnlineAsyncTaskAccelByteLogin::LoginWithSpecificSubsystem(FName InSubsyste
 void FOnlineAsyncTaskAccelByteLogin::LoginWithSpecificSubsystem(IOnlineSubsystem* SpecificSubsystem)
 {
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	if (SpecificSubsystem == nullptr)
 	{
@@ -577,7 +596,7 @@ void FOnlineAsyncTaskAccelByteLogin::OnGetAuthSessionTicketResponse(GetAuthSessi
 void FOnlineAsyncTaskAccelByteLogin::PerformLogin(const FOnlineAccountCredentials& Credentials)
 {
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("LoginType: %s"), *Credentials.Type);
-	API_CLIENT_CHECK_GUARD();
+	API_FULL_CHECK_GUARD(User);
 
 	if (IsApiClientValid())
 	{
@@ -586,42 +605,42 @@ void FOnlineAsyncTaskAccelByteLogin::PerformLogin(const FOnlineAccountCredential
 		switch (LoginType)
 		{
 		case EAccelByteLoginType::DeviceId:
-			ApiClient->User.LoginWithDeviceIdV4(OnLoginSuccessDelegate, OnLoginErrorOAuthDelegate, bCreateHeadlessAccount);
+			User->LoginWithDeviceIdV4(OnLoginSuccessDelegate, OnLoginErrorOAuthDelegate, bCreateHeadlessAccount);
 			AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sending async task to login with Device ID."));
 			PlatformId = FAccelByteUtilities::GetUEnumValueAsString(EAccelBytePlatformType::Device);
 			break;
 		case EAccelByteLoginType::AccelByte:
-			ApiClient->User.LoginWithUsernameV4(Credentials.Id, Credentials.Token, OnLoginSuccessDelegate, OnLoginErrorOAuthDelegate);
+			User->LoginWithUsernameV4(Credentials.Id, Credentials.Token, OnLoginSuccessDelegate, OnLoginErrorOAuthDelegate);
 			AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sending async task to login with AccelByte credentials."));
 			break;
 		case EAccelByteLoginType::Xbox:
-			ApiClient->User.LoginWithOtherPlatformV4(EAccelBytePlatformType::Live, Credentials.Token, OnLoginSuccessDelegate, OnLoginErrorOAuthDelegate, bCreateHeadlessAccount);
+			User->LoginWithOtherPlatformV4(EAccelBytePlatformType::Live, Credentials.Token, OnLoginSuccessDelegate, OnLoginErrorOAuthDelegate, bCreateHeadlessAccount);
 			AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sending async task to login with XSTS token from native online subsystem."));
 			PlatformId = FAccelByteUtilities::GetUEnumValueAsString(EAccelBytePlatformType::Live);
 			break;
 		case EAccelByteLoginType::Google:
 		case EAccelByteLoginType::GooglePlayGames:
-			ApiClient->User.LoginWithOtherPlatformV4(EAccelBytePlatformType::GooglePlayGames, Credentials.Token, OnLoginSuccessDelegate, OnLoginErrorOAuthDelegate, bCreateHeadlessAccount);
+			User->LoginWithOtherPlatformV4(EAccelBytePlatformType::GooglePlayGames, Credentials.Token, OnLoginSuccessDelegate, OnLoginErrorOAuthDelegate, bCreateHeadlessAccount);
 			AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sending async task to login with Google Play Games token from native online subsystem."));
 			PlatformId = FAccelByteUtilities::GetUEnumValueAsString(EAccelBytePlatformType::GooglePlayGames);
 			break;
 		case EAccelByteLoginType::PS4:
-			ApiClient->User.LoginWithOtherPlatformV4(EAccelBytePlatformType::PS4, Credentials.Token, OnLoginSuccessDelegate, OnLoginErrorOAuthDelegate, bCreateHeadlessAccount);
+			User->LoginWithOtherPlatformV4(EAccelBytePlatformType::PS4, Credentials.Token, OnLoginSuccessDelegate, OnLoginErrorOAuthDelegate, bCreateHeadlessAccount);
 			AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sending async task to login with PS4 auth token from native online subsystem."));
 			PlatformId = FAccelByteUtilities::GetUEnumValueAsString(EAccelBytePlatformType::PS4);
 			break;
 		case EAccelByteLoginType::PS5:
-			ApiClient->User.LoginWithOtherPlatformV4(EAccelBytePlatformType::PS5, Credentials.Token, OnLoginSuccessDelegate, OnLoginErrorOAuthDelegate, bCreateHeadlessAccount,  AccountCredentials.OptionalParams);
+			User->LoginWithOtherPlatformV4(EAccelBytePlatformType::PS5, Credentials.Token, OnLoginSuccessDelegate, OnLoginErrorOAuthDelegate, bCreateHeadlessAccount,  AccountCredentials.OptionalParams);
 			AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sending async task to login with PS5 auth token from native online subsystem."));
 			PlatformId = FAccelByteUtilities::GetUEnumValueAsString(EAccelBytePlatformType::PS5);
 			break;
 		case EAccelByteLoginType::Apple:
-			ApiClient->User.LoginWithOtherPlatformV4(EAccelBytePlatformType::Apple, Credentials.Token, OnLoginSuccessDelegate, OnLoginErrorOAuthDelegate, bCreateHeadlessAccount);
+			User->LoginWithOtherPlatformV4(EAccelBytePlatformType::Apple, Credentials.Token, OnLoginSuccessDelegate, OnLoginErrorOAuthDelegate, bCreateHeadlessAccount);
 			AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sending async task to login with Apple auth token from native online subsystem."));
 			PlatformId = FAccelByteUtilities::GetUEnumValueAsString(EAccelBytePlatformType::Apple);
 			break;
 		case EAccelByteLoginType::Launcher:
-			ApiClient->User.LoginWithLauncherV4(OnLoginSuccessDelegate, OnLoginErrorOAuthDelegate);
+			User->LoginWithLauncherV4(OnLoginSuccessDelegate, OnLoginErrorOAuthDelegate);
 			AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sending async task to login with AccelByte launcher auth token."));
 			break;
 		case EAccelByteLoginType::PublisherCode:
@@ -643,34 +662,34 @@ void FOnlineAsyncTaskAccelByteLogin::PerformLogin(const FOnlineAccountCredential
 				break;
 			}
 
-			ApiClient->User.GenerateGameTokenV4(Code, OnLoginSuccessDelegate, OnLoginErrorOAuthDelegate);
+			User->GenerateGameTokenV4(Code, OnLoginSuccessDelegate, OnLoginErrorOAuthDelegate);
 			AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sending async task to login with AccelByte launcher auth token."));
 			break;
 		}
 		case EAccelByteLoginType::Steam:
-			ApiClient->User.LoginWithOtherPlatformV4(EAccelBytePlatformType::Steam, Credentials.Token, OnLoginSuccessDelegate, OnLoginErrorOAuthDelegate, bCreateHeadlessAccount);
+			User->LoginWithOtherPlatformV4(EAccelBytePlatformType::Steam, Credentials.Token, OnLoginSuccessDelegate, OnLoginErrorOAuthDelegate, bCreateHeadlessAccount);
 			AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sending async task to login with Steam auth token from native online subsystem."));
 			PlatformId = FAccelByteUtilities::GetUEnumValueAsString(EAccelBytePlatformType::Steam);
 			break;
 		case EAccelByteLoginType::RefreshToken:
-			ApiClient->User.LoginWithRefreshTokenV4(OnLoginSuccessDelegate, OnLoginErrorOAuthDelegate, Credentials.Token);
+			User->LoginWithRefreshTokenV4(OnLoginSuccessDelegate, OnLoginErrorOAuthDelegate, Credentials.Token);
 			AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sending async task to login with refresh token from native online subsystem."));
 			break;
 		case EAccelByteLoginType::EOS:
-			ApiClient->User.LoginWithOtherPlatformV4(EAccelBytePlatformType::EpicGames, Credentials.Token, OnLoginSuccessDelegate, OnLoginErrorOAuthDelegate, bCreateHeadlessAccount);
+			User->LoginWithOtherPlatformV4(EAccelBytePlatformType::EpicGames, Credentials.Token, OnLoginSuccessDelegate, OnLoginErrorOAuthDelegate, bCreateHeadlessAccount);
 			AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sending async task to login with Epic Games from native online subsystem."));
 			PlatformId = FAccelByteUtilities::GetUEnumValueAsString(EAccelBytePlatformType::EpicGames);
 			break;
 		case EAccelByteLoginType::CachedToken:
-			ApiClient->User.TryReloginV4(Credentials.Id, OnLoginSuccessDelegate, OnLoginErrorOAuthDelegate);
+			User->TryReloginV4(Credentials.Id, OnLoginSuccessDelegate, OnLoginErrorOAuthDelegate);
 			AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sending async task to login with cached refresh token for the specified PlatformUserID."));
 			break;
 		case EAccelByteLoginType::OIDC:
-			ApiClient->User.LoginWithOtherPlatformIdV4(Credentials.Id, Credentials.Token, OnLoginSuccessDelegate, OnLoginErrorOAuthDelegate, bCreateHeadlessAccount);
+			User->LoginWithOtherPlatformIdV4(Credentials.Id, Credentials.Token, OnLoginSuccessDelegate, OnLoginErrorOAuthDelegate, bCreateHeadlessAccount);
 			AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sending async task to login with OIDC for Id %s."), *Credentials.Id);
 			break;
 		case EAccelByteLoginType::Oculus:
-			ApiClient->User.LoginWithOtherPlatformV4(EAccelBytePlatformType::Oculus, Credentials.Token, OnLoginSuccessDelegate, OnLoginErrorOAuthDelegate, bCreateHeadlessAccount);
+			User->LoginWithOtherPlatformV4(EAccelBytePlatformType::Oculus, Credentials.Token, OnLoginSuccessDelegate, OnLoginErrorOAuthDelegate, bCreateHeadlessAccount);
 			AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sending async task to login with Oculus for Id %s."), *Credentials.Id);
 			break;
 		default:
@@ -695,7 +714,7 @@ void FOnlineAsyncTaskAccelByteLogin::OnLoginSuccess()
 	// Create a new user ID instance for the user that we just logged in as
 	FAccelByteUniqueIdComposite CompositeId;
 	API_CLIENT_CHECK_GUARD();
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	CompositeId.Id = ApiClient->CredentialsRef->GetUserId();
 
@@ -834,7 +853,7 @@ void FOnlineAsyncTaskAccelByteLogin::OnLoginSuccessV4(const FAccelByteModelsLogi
 		return;
 	}
 
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(SubsystemPin->GetIdentityInterface());
 	if(!IdentityInterface.IsValid())
 	{
@@ -862,7 +881,7 @@ void FOnlineAsyncTaskAccelByteLogin::OnLoginSuccessV4(const FAccelByteModelsLogi
 	bLoginInQueue = true;
 	this->ExecuteCriticalSectionAction(FVoidHandler::CreateLambda([this, &TicketInfo]()
 	{
-		TRY_PIN_SUBSYSTEM()
+		TRY_PIN_SUBSYSTEM();
 		SubsystemPin->CreateAndDispatchAsyncTaskSerial<FOnlineAsyncTaskAccelByteLoginQueue>(SubsystemPin.Get(), LoginUserNum, TicketInfo);
 	}));
 	

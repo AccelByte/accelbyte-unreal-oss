@@ -27,15 +27,15 @@ void FOnlineAsyncTaskAccelByteCancelV2Matchmaking::Initialize()
 	OnDeleteMatchTicketSuccessDelegate = TDelegateUtils<FVoidHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteCancelV2Matchmaking::OnDeleteMatchTicketSuccess);
 	OnDeleteMatchTicketErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteCancelV2Matchmaking::OnDeleteMatchTicketError);
 
-	API_CLIENT_CHECK_GUARD();
-	DeleteTicketTaskWPtr = ApiClient->MatchmakingV2.DeleteMatchTicket(SearchHandle->TicketId, OnDeleteMatchTicketSuccessDelegate, OnDeleteMatchTicketErrorDelegate);
+	API_FULL_CHECK_GUARD(MatchmakingV2);
+	DeleteTicketTaskWPtr = MatchmakingV2->DeleteMatchTicket(SearchHandle->TicketId, OnDeleteMatchTicketSuccessDelegate, OnDeleteMatchTicketErrorDelegate);
 	
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 
 void FOnlineAsyncTaskAccelByteCancelV2Matchmaking::Finalize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::Finalize();
 	
@@ -88,7 +88,7 @@ void FOnlineAsyncTaskAccelByteCancelV2Matchmaking::Finalize()
 
 void FOnlineAsyncTaskAccelByteCancelV2Matchmaking::TriggerDelegates()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::TriggerDelegates();
 

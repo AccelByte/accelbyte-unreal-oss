@@ -25,7 +25,7 @@ FOnlineAsyncTaskAccelByteRegisterPlayersV1::FOnlineAsyncTaskAccelByteRegisterPla
 
 void FOnlineAsyncTaskAccelByteRegisterPlayersV1::Initialize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::Initialize();
 
@@ -79,7 +79,7 @@ void FOnlineAsyncTaskAccelByteRegisterPlayersV1::Tick()
 
 void FOnlineAsyncTaskAccelByteRegisterPlayersV1::TriggerDelegates()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 
@@ -94,7 +94,7 @@ void FOnlineAsyncTaskAccelByteRegisterPlayersV1::TriggerDelegates()
 
 void FOnlineAsyncTaskAccelByteRegisterPlayersV1::GetAllUserInformation()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 	SetLastUpdateTimeToCurrentTime();
@@ -128,7 +128,7 @@ void FOnlineAsyncTaskAccelByteRegisterPlayersV1::GetAllUserInformation()
 
 void FOnlineAsyncTaskAccelByteRegisterPlayersV1::RegisterAllPlayers()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	SetLastUpdateTimeToCurrentTime();
 
@@ -175,8 +175,8 @@ void FOnlineAsyncTaskAccelByteRegisterPlayersV1::RegisterAllPlayers()
 			SERVER_API_CLIENT_CHECK_GUARD();
 			ServerApiClient->ServerSessionBrowser.RegisterPlayer(SessionId, Player->GetAccelByteId(), bIsSpectator, OnRegisterPlayerSuccessDelegate, OnRegisterPlayerErrorDelegate);
 #else
-			API_CLIENT_CHECK_GUARD();
-			ApiClient->SessionBrowser.RegisterPlayer(SessionId, Player->GetAccelByteId(), bIsSpectator, OnRegisterPlayerSuccessDelegate, OnRegisterPlayerErrorDelegate);
+			API_FULL_CHECK_GUARD(SessionBrowser);
+			SessionBrowser->RegisterPlayer(SessionId, Player->GetAccelByteId(), bIsSpectator, OnRegisterPlayerSuccessDelegate, OnRegisterPlayerErrorDelegate);
 #endif
 		}
 		else

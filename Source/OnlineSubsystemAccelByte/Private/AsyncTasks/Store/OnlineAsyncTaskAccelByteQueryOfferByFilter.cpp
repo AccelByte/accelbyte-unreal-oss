@@ -42,16 +42,16 @@ void FOnlineAsyncTaskAccelByteQueryOfferByFilter::Initialize()
 		{
 			SearchCriteriaRequest.CategoryPath = Filter.IncludeCategories[0].Id;
 		}
-		API_CLIENT_CHECK_GUARD(ErrorMsg);
-		ApiClient->Item.GetItemsByCriteria(SearchCriteriaRequest, 0, 20, OnSuccess, OnError);
+		API_FULL_CHECK_GUARD(Item, ErrorMsg);
+		Item->GetItemsByCriteria(SearchCriteriaRequest, 0, 20, OnSuccess, OnError);
 	}
 	else
 	{
 		// search by keyword, and the result filtered by categories
 		THandler<FAccelByteModelsItemPagingSlicedResult> OnSuccess = TDelegateUtils<THandler<FAccelByteModelsItemPagingSlicedResult>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryOfferByFilter::HandleSearchItem);
 		FErrorHandler OnError = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryOfferByFilter::HandleAsyncTaskError);
-		API_CLIENT_CHECK_GUARD(ErrorMsg);
-		ApiClient->Item.SearchItem(Language, Filter.Keywords[0], 0, 20, TEXT(""), OnSuccess, OnError, AutoCalcEstimatedPrice);
+		API_FULL_CHECK_GUARD(Item, ErrorMsg);
+		Item->SearchItem(Language, Filter.Keywords[0], 0, 20, TEXT(""), OnSuccess, OnError, AutoCalcEstimatedPrice);
 	}
 	
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
@@ -59,7 +59,7 @@ void FOnlineAsyncTaskAccelByteQueryOfferByFilter::Initialize()
 
 void FOnlineAsyncTaskAccelByteQueryOfferByFilter::Finalize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 	FOnlineAsyncTaskAccelByte::Finalize();
@@ -93,8 +93,8 @@ void FOnlineAsyncTaskAccelByteQueryOfferByFilter::HandleGetItemByCriteria(const 
 		{
 			THandler<FAccelByteModelsItemPagingSlicedResult> OnSuccess = TDelegateUtils<THandler<FAccelByteModelsItemPagingSlicedResult>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryOfferByFilter::HandleGetItemByCriteria);
 			FErrorHandler OnError = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryOfferByFilter::HandleAsyncTaskError);
-			API_CLIENT_CHECK_GUARD(ErrorMsg);
-			ApiClient->Item.GetItemsByCriteria(SearchCriteriaRequest, Offset, Limit, OnSuccess, OnError);
+			API_FULL_CHECK_GUARD(Item, ErrorMsg);
+			Item->GetItemsByCriteria(SearchCriteriaRequest, Offset, Limit, OnSuccess, OnError);
 			return;
 		}
 	}
@@ -114,8 +114,8 @@ void FOnlineAsyncTaskAccelByteQueryOfferByFilter::HandleSearchItem(const FAccelB
 		{
 			THandler<FAccelByteModelsItemPagingSlicedResult> OnSuccess = TDelegateUtils<THandler<FAccelByteModelsItemPagingSlicedResult>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryOfferByFilter::HandleGetItemByCriteria);
 			FErrorHandler OnError = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryOfferByFilter::HandleAsyncTaskError);
-			API_CLIENT_CHECK_GUARD(ErrorMsg);
-			ApiClient->Item.SearchItem(Language, Filter.Keywords[0], Offset, Limit, TEXT(""), OnSuccess, OnError, AutoCalcEstimatedPrice);
+			API_FULL_CHECK_GUARD(Item, ErrorMsg);
+			Item->SearchItem(Language, Filter.Keywords[0], Offset, Limit, TEXT(""), OnSuccess, OnError, AutoCalcEstimatedPrice);
 			return;
 		}
 	}

@@ -62,15 +62,15 @@ void FOnlineAsyncTaskAccelByteUpdateV1PartyData::Initialize()
 
 	THandler<FAccelByteModelsPartyDataNotif> OnWritePartyStorageSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsPartyDataNotif>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteUpdateV1PartyData::OnWritePartyStorageSuccess);
 	FErrorHandler OnWritePartyStorageErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteUpdateV1PartyData::OnWritePartyStorageError);
-	API_CLIENT_CHECK_GUARD();
-	ApiClient->Lobby.WritePartyStorage(PartyId->ToString(), PartyStorageWriterFunction, OnWritePartyStorageSuccessDelegate, OnWritePartyStorageErrorDelegate, 5);
+	API_FULL_CHECK_GUARD(Lobby);
+	Lobby->WritePartyStorage(PartyId->ToString(), PartyStorageWriterFunction, OnWritePartyStorageSuccessDelegate, OnWritePartyStorageErrorDelegate, 5);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sent off request to update party storage!"));
 }
 
 void FOnlineAsyncTaskAccelByteUpdateV1PartyData::Finalize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 	

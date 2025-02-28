@@ -22,7 +22,7 @@ FOnlineAsyncTaskAccelByteCreateV1Party::FOnlineAsyncTaskAccelByteCreateV1Party(F
 
 void FOnlineAsyncTaskAccelByteCreateV1Party::Initialize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::Initialize();
 
@@ -37,21 +37,21 @@ void FOnlineAsyncTaskAccelByteCreateV1Party::Initialize()
 		return;
 	}
 
-	API_CLIENT_CHECK_GUARD();
+	API_FULL_CHECK_GUARD(Lobby);
 
 	// Next, we want to send off a request to check on the backend if we are in a party. This way we can validate in case
 	// we're in one, but we haven't restored our state. This will tell the developer to call RestoreParties to restore
 	// that previous state and act accordingly.
 	AccelByte::Api::Lobby::FPartyInfoResponse OnGetPartyInfoResponseDelegate = TDelegateUtils<AccelByte::Api::Lobby::FPartyInfoResponse>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteCreateV1Party::OnGetPartyInfoResponse);
-	ApiClient->Lobby.SetInfoPartyResponseDelegate(OnGetPartyInfoResponseDelegate);
-	ApiClient->Lobby.SendInfoPartyRequest();
+	Lobby->SetInfoPartyResponseDelegate(OnGetPartyInfoResponseDelegate);
+	Lobby->SendInfoPartyRequest();
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sent request to get info about current party before creating party!"));
 }
 
 void FOnlineAsyncTaskAccelByteCreateV1Party::Finalize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
@@ -87,7 +87,7 @@ void FOnlineAsyncTaskAccelByteCreateV1Party::Finalize()
 
 void FOnlineAsyncTaskAccelByteCreateV1Party::TriggerDelegates()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
@@ -124,9 +124,9 @@ void FOnlineAsyncTaskAccelByteCreateV1Party::OnGetPartyInfoResponse(const FAccel
 
 	// Finally, since we are not in a party, we can send the request to create one
 	AccelByte::Api::Lobby::FPartyCreateResponse OnCreatePartyResponseDelegate = TDelegateUtils<AccelByte::Api::Lobby::FPartyCreateResponse>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteCreateV1Party::OnCreatePartyResponse);
-	API_CLIENT_CHECK_GUARD();
-	ApiClient->Lobby.SetCreatePartyResponseDelegate(OnCreatePartyResponseDelegate);
-	ApiClient->Lobby.SendCreatePartyRequest();
+	API_FULL_CHECK_GUARD(Lobby);
+	Lobby->SetCreatePartyResponseDelegate(OnCreatePartyResponseDelegate);
+	Lobby->SendCreatePartyRequest();
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sent off request to create party for user (%s)!"), *UserId->ToDebugString());
 }
@@ -155,9 +155,9 @@ void FOnlineAsyncTaskAccelByteCreateV1Party::OnCreatePartyResponse(const FAccelB
 
 		// Send a request to get party code for the current party
 		AccelByte::Api::Lobby::FPartyGetCodeResponse OnPartyGetCodeResponseDelegate = TDelegateUtils<AccelByte::Api::Lobby::FPartyGetCodeResponse>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteCreateV1Party::OnPartyGetCodeResponse);
-		API_CLIENT_CHECK_GUARD();
-		ApiClient->Lobby.SetPartyGetCodeResponseDelegate(OnPartyGetCodeResponseDelegate);
-		ApiClient->Lobby.SendPartyGetCodeRequest();
+		API_FULL_CHECK_GUARD(Lobby);
+		Lobby->SetPartyGetCodeResponseDelegate(OnPartyGetCodeResponseDelegate);
+		Lobby->SendPartyGetCodeRequest();
 	}
 }
 
@@ -187,6 +187,6 @@ void FOnlineAsyncTaskAccelByteCreateV1Party::OnPartyGetCodeResponse(const FAccel
 	}
 
 	// Reset the party code delegate
-	API_CLIENT_CHECK_GUARD();
-	ApiClient->Lobby.SetPartyGetCodeResponseDelegate(AccelByte::Api::Lobby::FPartyGetCodeResponse());
+	API_FULL_CHECK_GUARD(Lobby);
+	Lobby->SetPartyGetCodeResponseDelegate(AccelByte::Api::Lobby::FPartyGetCodeResponse());
 }

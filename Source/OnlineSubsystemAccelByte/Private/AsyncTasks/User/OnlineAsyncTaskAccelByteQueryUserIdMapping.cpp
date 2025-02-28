@@ -38,8 +38,8 @@ void FOnlineAsyncTaskAccelByteQueryUserIdMapping::Initialize()
 
 	THandler<FPagedPublicUsersInfo> OnSuccess = TDelegateUtils<THandler<FPagedPublicUsersInfo>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryUserIdMapping::OnSearchUserSuccessResponse);
 	FErrorHandler OnError = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryUserIdMapping::OnSearchUserErrorResponse);
-	API_CLIENT_CHECK_GUARD(ErrorString);
-	ApiClient->User.SearchUsers(DisplayNameOrEmail, EAccelByteSearchType::ALL, OnSuccess, OnError);
+	API_FULL_CHECK_GUARD(User, ErrorString);
+	User->SearchUsers(DisplayNameOrEmail, EAccelByteSearchType::ALL, OnSuccess, OnError);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }

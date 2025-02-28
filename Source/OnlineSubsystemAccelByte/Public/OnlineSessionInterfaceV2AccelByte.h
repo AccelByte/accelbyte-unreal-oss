@@ -1,4 +1,4 @@
-// Copyright (c) 2022 AccelByte Inc. All Rights Reserved.
+// Copyright (c) 2022 - 2025 AccelByte Inc. All Rights Reserved.
 // This is licensed software from AccelByte Inc, for limitations
 // and restrictions contact your company contract manager.
 
@@ -613,6 +613,13 @@ DECLARE_MULTICAST_DELEGATE_OneParam(FOnSessionRemoved, FName /*SessionName*/);
 typedef FOnSessionRemoved::FDelegate FOnSessionRemovedDelegate;
 
 /**
+ * Delegate broadcast when party or game session that the player are registered locally have been removed on the backend. Gives the game an
+ * opportunity to clean up state.
+ */
+DECLARE_MULTICAST_DELEGATE_ThreeParams(FAccelByteOnReconnectedRefreshSession, int32 /*LocalUserNum*/, bool /*bWasSuccess*/, const TArray<FName>& /*RemovedSessionNames*/);
+typedef FAccelByteOnReconnectedRefreshSession::FDelegate FAccelByteOnReconnectedRefreshSessionDelegate;
+
+/**
  * Delegate broadcast when an attempt by the session interface to automatically join a session has completed. If unsuccessful,
  * you may call 'FindSessionById' or 'FindSessionByStringId' to retry retrieving session data. If that is successful, a
  * 'JoinSession' call should be used to populate the session into local state.
@@ -897,6 +904,14 @@ public:
 	 * @return 
 	 */
 	bool RefreshActiveSessions(const FOnRefreshActiveSessionsComplete& Delegate);
+
+	/**
+	 * Refresh all active session locally with backend for specific localUserNum.
+	 * WARNING: This function is automatically triggered after successfully reconnected.
+	 * Eventually after obtain the response, it automatically triggers the OnReconnectedRefreshSession delegate from this Session Interface.
+	 * @return Whether success or not to execute the function.
+	 */
+	bool RefreshActiveSessionsV2AfterReconnected(int32 LocalUserNum);
 
 	/**
 	 * Create a backfill ticket for the session provided. This will queue your session to be backfilled with users from
@@ -1412,6 +1427,11 @@ public:
 	 * opportunity to clean up state.
 	 */
 	DEFINE_ONLINE_DELEGATE_ONE_PARAM(OnSessionRemoved, FName /*SessionName*/);
+
+	/**
+	 * Delegate broadcasted when the player refreshes the active session after their websocket connection has been reconnected.
+	 */
+	DEFINE_ONLINE_PLAYER_DELEGATE_TWO_PARAM(MAX_LOCAL_PLAYERS, AccelByteOnReconnectedRefreshSession, bool /*bWasSuccess*/, const TArray<FName>& /*RemovedSessionNames*/);
 
 	/**
 	 * Delegate broadcast when another game session member promoted to be a game session leader.
@@ -2094,6 +2114,7 @@ private:
 	void OnGameSessionInviteCanceledNotification(const FAccelByteModelsV2GameSessionInviteCanceledEvent& CanceledEvent, int32 LocalUserNum);
 	void OnGameSessionJoinedNotification(FAccelByteModelsV2GameSessionUserJoinedEvent JoinedEvent, int32 LocalUserNum);
 	void OnFindJoinedGameSessionByIdComplete(int32 LocalUserNum, bool bWasSuccessful, const FOnlineSessionSearchResult& FoundSession, FString SessionId);
+	void OnCheckGameSessionDataComplete(int32 LocalUserNum, bool bWasSuccessful, const FOnlineSessionSearchResult& FoundSession);
 	//~ End Game Session Notification Handlers
 
 	//~ Begin Party Session Notification Handlers

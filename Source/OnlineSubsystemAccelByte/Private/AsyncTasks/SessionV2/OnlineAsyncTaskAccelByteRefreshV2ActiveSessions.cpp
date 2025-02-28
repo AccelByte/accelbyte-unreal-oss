@@ -1,22 +1,24 @@
-﻿// Copyright (c) 2024 AccelByte Inc. All Rights Reserved.
+﻿// Copyright (c) 2025 AccelByte Inc. All Rights Reserved.
 // This is licensed software from AccelByte Inc, for limitations
 // and restrictions contact your company contract manager.
 
-#include "OnlineAsyncTaskAccelByteRefreshActiveSessions.h"
+#include "OnlineAsyncTaskAccelByteRefreshV2ActiveSessions.h"
 #include "OnlineSessionInterfaceV2AccelByte.h"
 
 using namespace AccelByte;
 
-FOnlineAsyncTaskAccelByteRefreshActiveSessions::FOnlineAsyncTaskAccelByteRefreshActiveSessions(FOnlineSubsystemAccelByte* const InABInterface,
+FOnlineAsyncTaskAccelByteRefreshV2ActiveSessions::FOnlineAsyncTaskAccelByteRefreshV2ActiveSessions(FOnlineSubsystemAccelByte* const InABInterface,
+	const int32 InLocalUserNum,
 	const TArray<FName>& InSessionNames,
-	const FOnRefreshActiveSessionsComplete& InDelegate)
+	bool bOnReconnectedRefreshSessionDelegates)
 	: FOnlineAsyncTaskAccelByte(InABInterface)
+	, LocalUserNum(InLocalUserNum)
 	, SessionNames(InSessionNames)
-	, Delegate(InDelegate)
+	, bTriggerOnReconnectedRefreshSessionDelegates(bOnReconnectedRefreshSessionDelegates)
 {
 }
 
-void FOnlineAsyncTaskAccelByteRefreshActiveSessions::Initialize()
+void FOnlineAsyncTaskAccelByteRefreshV2ActiveSessions::Initialize()
 {
 	TRY_PIN_SUBSYSTEM();
 
@@ -30,9 +32,9 @@ void FOnlineAsyncTaskAccelByteRefreshActiveSessions::Initialize()
 	TotalSessionRefreshed.Reset();
 	
 	FOnRefreshSessionComplete OnRefreshSessionCompleteDelegate = TDelegateUtils<FOnRefreshSessionComplete>::CreateThreadSafeSelfPtr(this,
-		&FOnlineAsyncTaskAccelByteRefreshActiveSessions::HandleOnRefreshSessionComplete);
+		&FOnlineAsyncTaskAccelByteRefreshV2ActiveSessions::HandleOnRefreshSessionComplete);
 
-	TArray<FName> SessionsTest;
+	TArray<FName> SessionsTest{};
 	for (auto SessionName : SessionNames)
 	{
 		bool bIsRefreshSession{true};
@@ -49,6 +51,7 @@ void FOnlineAsyncTaskAccelByteRefreshActiveSessions::Initialize()
 			bIsRefreshSession = false;
 		}
 
+		//TODO make the current async task as EPIC TASK & this RefreshSession should become a child task
 		if (bIsRefreshSession)
 		{
 			SessionInterface->RefreshSession(SessionName, OnRefreshSessionCompleteDelegate);
@@ -62,7 +65,7 @@ void FOnlineAsyncTaskAccelByteRefreshActiveSessions::Initialize()
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 
-void FOnlineAsyncTaskAccelByteRefreshActiveSessions::Finalize()
+void FOnlineAsyncTaskAccelByteRefreshV2ActiveSessions::Finalize()
 {
 	TRY_PIN_SUBSYSTEM();
 
@@ -81,23 +84,45 @@ void FOnlineAsyncTaskAccelByteRefreshActiveSessions::Finalize()
 	}
 }
 
-void FOnlineAsyncTaskAccelByteRefreshActiveSessions::TriggerDelegates()
+void FOnlineAsyncTaskAccelByteRefreshV2ActiveSessions::TriggerDelegates()
 {
-	Super::TriggerDelegates();
+	if (!bTriggerOnReconnectedRefreshSessionDelegates)
+	{
+		return;
+	}
+
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s. Total RemovedSessionNames: %d"), LOG_BOOL_FORMAT(bWasSuccessful), RemovedSessionNames.Num());
 
-	Delegate.ExecuteIfBound(bWasSuccessful, RemovedSessionNames);
+
+	const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(SubsystemPin->GetSessionInterface());
+	if (!ensure(SessionInterface.IsValid()))
+	{
+		FString ErrorString = TEXT("Failed to trigger delegates to refresh-active-session-after-reconnected as AccelByte session interface is invalid!");
+		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("%s"), *ErrorString);
+		return;
+	}
+
+	SessionInterface->TriggerAccelByteOnReconnectedRefreshSessionDelegates(
+		LocalUserNum,
+		bWasSuccessful,
+		RemovedSessionNames);
+
+	if (!bWasSuccessful)
+	{
+		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to refresh active session reconnected."));
+		return;
+	}
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 
-void FOnlineAsyncTaskAccelByteRefreshActiveSessions::HandleOnRefreshSessionComplete(bool /*bWasSuccessful*/)
+void FOnlineAsyncTaskAccelByteRefreshV2ActiveSessions::HandleOnRefreshSessionComplete(bool bResponseSuccess)
 {
 	TotalSessionRefreshed.Increment();
 	if (SessionNames.Num() == TotalSessionRefreshed.GetValue())
 	{
-		bWasSuccessful = true;
 		CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
 	}
 }

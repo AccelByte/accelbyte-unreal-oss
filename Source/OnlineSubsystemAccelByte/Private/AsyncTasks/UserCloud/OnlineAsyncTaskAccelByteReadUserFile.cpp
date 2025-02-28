@@ -18,7 +18,7 @@ FOnlineAsyncTaskAccelByteReadUserFile::FOnlineAsyncTaskAccelByteReadUserFile(FOn
 
 void FOnlineAsyncTaskAccelByteReadUserFile::Initialize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::Initialize();
 
@@ -33,8 +33,8 @@ void FOnlineAsyncTaskAccelByteReadUserFile::Initialize()
 	{
 		THandler<TArray<FAccelByteModelsSlot>> OnGetAllSlotsSuccessDelegate = TDelegateUtils<THandler<TArray<FAccelByteModelsSlot>>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteReadUserFile::OnGetAllSlotsSuccess);
 		FErrorHandler OnGetAllSlotsErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteReadUserFile::OnGetAllSlotsError);
-		API_CLIENT_CHECK_GUARD();
-		ApiClient->CloudStorage.GetAllSlots(OnGetAllSlotsSuccessDelegate, OnGetAllSlotsErrorDelegate);
+		API_FULL_CHECK_GUARD(CloudStorage);
+		CloudStorage->GetAllSlots(OnGetAllSlotsSuccessDelegate, OnGetAllSlotsErrorDelegate);
 	}
 	// Otherwise, just get the slot contents from the cached ID
 	else
@@ -47,7 +47,7 @@ void FOnlineAsyncTaskAccelByteReadUserFile::Initialize()
 
 void FOnlineAsyncTaskAccelByteReadUserFile::Finalize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
@@ -68,7 +68,7 @@ void FOnlineAsyncTaskAccelByteReadUserFile::Finalize()
 
 void FOnlineAsyncTaskAccelByteReadUserFile::TriggerDelegates()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
@@ -85,8 +85,8 @@ void FOnlineAsyncTaskAccelByteReadUserFile::RunGetSlot(const FString& SlotId)
 {
 	THandler<TArray<uint8>> OnGetSlotSuccessDelegate = TDelegateUtils<THandler<TArray<uint8>>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteReadUserFile::OnGetSlotSuccess);
 	FErrorHandler OnGetSlotErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteReadUserFile::OnGetSlotError);
-	API_CLIENT_CHECK_GUARD();
-	ApiClient->CloudStorage.GetSlot(SlotId, OnGetSlotSuccessDelegate, OnGetSlotErrorDelegate);
+	API_FULL_CHECK_GUARD(CloudStorage);
+	CloudStorage->GetSlot(SlotId, OnGetSlotSuccessDelegate, OnGetSlotErrorDelegate);
 
 	ResolvedSlotId = SlotId;
 }

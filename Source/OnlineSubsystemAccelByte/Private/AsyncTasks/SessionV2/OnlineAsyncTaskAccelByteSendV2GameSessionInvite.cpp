@@ -25,7 +25,7 @@ FOnlineAsyncTaskAccelByteSendV2GameSessionInvite::FOnlineAsyncTaskAccelByteSendV
 
 void FOnlineAsyncTaskAccelByteSendV2GameSessionInvite::Initialize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::Initialize();
 
@@ -42,18 +42,18 @@ void FOnlineAsyncTaskAccelByteSendV2GameSessionInvite::Initialize()
 	const TSharedPtr<FOnlineSessionV2AccelByte, ESPMode::ThreadSafe> SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(SubsystemPin->GetSessionInterface());
 	AB_ASYNC_TASK_VALIDATE(SessionInterface.IsValid(), "Failed to send game session invite as our session interface is invalid!");
 
-	FNamedOnlineSession* Session = SessionInterface->GetNamedSession(SessionName);
-	AB_ASYNC_TASK_VALIDATE(Session != nullptr, "Failed to send game session invite as our local session instance is invalid!");
+	FNamedOnlineSession* OnlineSession = SessionInterface->GetNamedSession(SessionName);
+	AB_ASYNC_TASK_VALIDATE(OnlineSession != nullptr, "Failed to send game session invite as our local session instance is invalid!");
 
 	// Now, once we know we are in this game session, we want to send a request to invite the player to the session
 	OnSendGameSessionInviteSuccessDelegate = TDelegateUtils<FVoidHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteSendV2GameSessionInvite::OnSendGameSessionInviteSuccess);
 	OnSendGameSessionInviteErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteSendV2GameSessionInvite::OnSendGameSessionInviteError);;
 	
-	SessionId = Session->GetSessionIdStr();
+	SessionId = OnlineSession->GetSessionIdStr();
 	if (!IsRunningDedicatedServer())
 	{
-		API_CLIENT_CHECK_GUARD();
-		ApiClient->Session.SendGameSessionInvite(SessionId, RecipientId->GetAccelByteId(), OnSendGameSessionInviteSuccessDelegate, OnSendGameSessionInviteErrorDelegate);
+		API_FULL_CHECK_GUARD(Session);
+		Session->SendGameSessionInvite(SessionId, RecipientId->GetAccelByteId(), OnSendGameSessionInviteSuccessDelegate, OnSendGameSessionInviteErrorDelegate);
 	}
 	else
 	{
@@ -66,7 +66,7 @@ void FOnlineAsyncTaskAccelByteSendV2GameSessionInvite::Initialize()
 
 void FOnlineAsyncTaskAccelByteSendV2GameSessionInvite::Finalize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = SubsystemPin->GetPredefinedEventInterface();
 	if (bWasSuccessful && PredefinedEventInterface.IsValid())
@@ -87,7 +87,7 @@ void FOnlineAsyncTaskAccelByteSendV2GameSessionInvite::Finalize()
 
 void FOnlineAsyncTaskAccelByteSendV2GameSessionInvite::TriggerDelegates()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::TriggerDelegates();
 

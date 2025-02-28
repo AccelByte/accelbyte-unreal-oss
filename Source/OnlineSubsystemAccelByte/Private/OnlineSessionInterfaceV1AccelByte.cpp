@@ -547,7 +547,7 @@ bool FOnlineSessionV1AccelByte::CreateSession(int32 HostingPlayerNum, FName Sess
 		SessionInfo->SetupP2PRelaySessionInfo(*AccelByteSubsystemPtr);
 		// Setup the network manager for using the logged player api client
 		FOnlineIdentityAccelBytePtr IdentityInterface =  StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystemPtr->GetIdentityInterface());
-		const AccelByte::FApiClientPtr ApiClient = IdentityInterface->GetApiClient(HostingPlayerNum); 
+		const AccelByte::FApiClientPtr ApiClient = AccelByteSubsystemPtr->GetApiClient(HostingPlayerNum); 
 		FAccelByteNetworkUtilitiesModule::Get().Setup(ApiClient);
 		FAccelByteNetworkUtilitiesModule::Get().EnableHosting();
 	}
@@ -606,17 +606,17 @@ void FOnlineSessionV1AccelByte::CreateP2PSession(FNamedOnlineSession* Session)
 	}
 	
 	// Retrieve the API client for the user hosting this session
-	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystemPtr->GetIdentityInterface());
-	if (!IdentityInterface.IsValid())
-	{
-		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to create session browser as an identity interface instance could not be retrieved!"));
-		return;
-	}
-
-	AccelByte::FApiClientPtr ApiClient = IdentityInterface->GetApiClient(Session->HostingPlayerNum);
+	AccelByte::FApiClientPtr ApiClient = AccelByteSubsystemPtr->GetApiClient(Session->HostingPlayerNum);
 	if (!ApiClient.IsValid())
 	{
 		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to create session browser as an API client could not be retrieved for user num %d!"), Session->HostingPlayerNum);
+		return;
+	}
+
+	const auto SessionBrowser = ApiClient->GetSessionBrowserApi().Pin();
+	if (!SessionBrowser.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to create session browser as an SessionBrowser API could not be retrieved for user num %d!"), Session->HostingPlayerNum);
 		return;
 	}
 
@@ -647,7 +647,7 @@ void FOnlineSessionV1AccelByte::CreateP2PSession(FNamedOnlineSession* Session)
 		TriggerOnCreateSessionCompleteDelegates(Session->SessionName, false);
 	});
 
-	ApiClient->SessionBrowser.CreateGameSession(SETTING_SEARCH_TYPE_PEER_TO_PEER_RELAY, GameMode, GameMapName, GameVersion, GameNumBot, Setting.NumPublicConnections, Setting.NumPrivateConnections, TEXT(""), SettingJson, OnSessionCreateSuccessDelegate, OnSessionCreateFailedDelegate);
+	SessionBrowser->CreateGameSession(SETTING_SEARCH_TYPE_PEER_TO_PEER_RELAY, GameMode, GameMapName, GameVersion, GameNumBot, Setting.NumPublicConnections, Setting.NumPrivateConnections, TEXT(""), SettingJson, OnSessionCreateSuccessDelegate, OnSessionCreateFailedDelegate);
 }
 
 void FOnlineSessionV1AccelByte::OnSessionCreateSuccess(const FAccelByteModelsSessionBrowserData& Data, FName SessionName)
@@ -775,12 +775,6 @@ bool FOnlineSessionV1AccelByte::EndSession(FName SessionName)
 	}
 
 	// Retrieve the API client for the user hosting this session
-	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystemPtr->GetIdentityInterface());
-	if (!IdentityInterface.IsValid())
-	{
-		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to end session as an identity interface instance could not be retrieved!"));
-		return false;
-	}
 
 	// First set to ending to notify that we are ending this session
 	Session->SessionState = EOnlineSessionState::Ending;
@@ -808,10 +802,17 @@ bool FOnlineSessionV1AccelByte::EndSession(FName SessionName)
 
 		if(Session->bHosting)
 		{
-			AccelByte::FApiClientPtr ApiClient = IdentityInterface->GetApiClient(Session->HostingPlayerNum);
+			AccelByte::FApiClientPtr ApiClient = AccelByteSubsystemPtr->GetApiClient(Session->HostingPlayerNum);
 			if (!ApiClient.IsValid())
 			{
 				AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to end session as an API client could not be retrieved for user num %d!"), Session->HostingPlayerNum);
+				return false;
+			}
+
+			const auto SessionBrowser = ApiClient->GetSessionBrowserApi().Pin();
+			if (!SessionBrowser.IsValid())
+			{
+				AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to end session as an SessionBrowser API could not be retrieved for user num %d!"), Session->HostingPlayerNum);
 				return false;
 			}
 
@@ -827,7 +828,7 @@ bool FOnlineSessionV1AccelByte::EndSession(FName SessionName)
 			});
 			
 			AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Spawning task to remove game session from session browser! SessionName: %s"), *SessionName.ToString());
-			ApiClient->SessionBrowser.RemoveGameSession(SessionBrowserData.Session_id, OnRemoveSessionSuccess, OnRemoveSessionError);
+			SessionBrowser->RemoveGameSession(SessionBrowserData.Session_id, OnRemoveSessionSuccess, OnRemoveSessionError);
 			return true;
 		}
 		
@@ -945,14 +946,8 @@ bool FOnlineSessionV1AccelByte::CancelMatchmaking(const FUniqueNetId& SearchingP
 		return false;
 	}
 
-	const TSharedPtr<FOnlineIdentityAccelByte, ESPMode::ThreadSafe> IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystemPtr->GetIdentityInterface());
-	if (!IdentityInterface.IsValid())
-	{
-		return false;
-	}
-
 	// Get the player's API client
-	AccelByte::FApiClientPtr ApiClient = IdentityInterface->GetApiClient(SearchingPlayerId);
+	AccelByte::FApiClientPtr ApiClient = AccelByteSubsystemPtr->GetApiClient(SearchingPlayerId);
 	if (!ApiClient.IsValid())
 	{
 		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to cancel matchmaking as an API client could not be retrieved for user '%s'!"), *(SearchingPlayerId.ToDebugString()));
@@ -962,6 +957,13 @@ bool FOnlineSessionV1AccelByte::CancelMatchmaking(const FUniqueNetId& SearchingP
 	if (!SessionSearchHandle.IsValid())
 	{
 		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to cancel matchmaking as we are not currently matchmaking!"));
+		return false;
+	}
+
+	const auto Lobby = ApiClient->GetLobbyApi().Pin();
+	if (!Lobby.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to cancel matchmaking as an Lobby API could not be retrieved for user '%s'!"), *(SearchingPlayerId.ToDebugString()));
 		return false;
 	}
 
@@ -981,14 +983,18 @@ bool FOnlineSessionV1AccelByte::CancelMatchmaking(const FUniqueNetId& SearchingP
 
 		if (ApiClient.IsValid())
 		{
-			ApiClient->Lobby.SetCancelMatchmakingResponseDelegate(AccelByte::Api::Lobby::FMatchmakingResponse());
+			const auto Lobby = ApiClient->GetLobbyApi().Pin();
+			if (!Lobby.IsValid())
+			{
+				Lobby->SetCancelMatchmakingResponseDelegate(AccelByte::Api::Lobby::FMatchmakingResponse());
+			}
 		}
 
 		// We will then want to send a party notification to tell other party members that we've canceled matchmaking
 		FString Topic = PARTYNOTIF_PARTY_LEADER_CANCEL_MATCHMAKING;		// Customization changed notification
 		FString Payload = PartyLeaderIdString;							// UserId of the party leader just in case the receiving party members need it 
 	});
-	ApiClient->Lobby.SetCancelMatchmakingResponseDelegate(OnCancelMatchmakingSuccess);
+	Lobby->SetCancelMatchmakingResponseDelegate(OnCancelMatchmakingSuccess);
 
 	FString GameModeToCancel;
 	if (!SessionSearchHandle.IsValid() || !SessionSearchHandle->QuerySettings.Get(SETTING_GAMEMODE, GameModeToCancel))
@@ -996,7 +1002,7 @@ bool FOnlineSessionV1AccelByte::CancelMatchmaking(const FUniqueNetId& SearchingP
 		UE_LOG_AB(Warning, TEXT("Failed to get matchmaking game mode from session search handle, defaulting to current pending match game mode!"));
 	}
 
-	ApiClient->Lobby.SendCancelMatchmaking(GameModeToCancel);
+	Lobby->SendCancelMatchmaking(GameModeToCancel);
 
 	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Sent off request to cancel matchmaking for game mode '%s'!"), *GameModeToCancel);
 	return true;
@@ -1131,17 +1137,17 @@ bool FOnlineSessionV1AccelByte::JoinSession(int32 PlayerNum, FName SessionName, 
 	}
 
 	// Retrieve the API client for this user
-	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystemPtr->GetIdentityInterface());
-	if (!IdentityInterface.IsValid())
-	{
-		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to join session as an identity interface instance could not be retrieved!"));
-		return false;
-	}
-
-	AccelByte::FApiClientPtr ApiClient = IdentityInterface->GetApiClient(PlayerNum);
+	AccelByte::FApiClientPtr ApiClient = AccelByteSubsystemPtr->GetApiClient(PlayerNum);
 	if (!ApiClient.IsValid())
 	{
 		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to join session as an API client could not be retrieved for user num %d!"), PlayerNum);
+		return false;
+	}
+
+	const auto Lobby = ApiClient->GetLobbyApi().Pin();
+	if (!Lobby.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to join session as a Lobby API could not be retrieved for user num %d!"), PlayerNum);
 		return false;
 	}
 
@@ -1176,7 +1182,7 @@ bool FOnlineSessionV1AccelByte::JoinSession(int32 PlayerNum, FName SessionName, 
 		}
 
 		// Next check if we are connected to the AccelByte lobby socket, which is required to connect to a P2P relay session
-		if (ApiClient->Lobby.IsConnected())
+		if (Lobby->IsConnected())
 		{
 			// Register the Socket Subsystem AccelByte when the session is P2P Relay
 			FAccelByteNetworkUtilitiesModule::Get().RegisterDefaultSocketSubsystem();
@@ -1529,17 +1535,17 @@ void FOnlineSessionV1AccelByte::RegisterRealTimeLobbyDelegates(int32 LocalUserNu
 	}
 	
 	// Retrieve the API client for this user
-	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystemPtr->GetIdentityInterface());
-	if (!IdentityInterface.IsValid())
-	{
-		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to register real-time lobby as an identity interface instance could not be retrieved!"));
-		return;
-	}
-
-	AccelByte::FApiClientPtr ApiClient = IdentityInterface->GetApiClient(LocalUserNum);
+	AccelByte::FApiClientPtr ApiClient = AccelByteSubsystemPtr->GetApiClient(LocalUserNum);
 	if (!ApiClient.IsValid())
 	{
 		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to register real-time lobby as an API client could not be retrieved for user num %d!"), LocalUserNum);
+		return;
+	}
+
+	const auto Lobby = ApiClient->GetLobbyApi().Pin();
+	if (!Lobby.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to register real-time lobby as a Lobby API could not be retrieved for user num %d!"), LocalUserNum);
 		return;
 	}
 
@@ -1548,8 +1554,8 @@ void FOnlineSessionV1AccelByte::RegisterRealTimeLobbyDelegates(int32 LocalUserNu
 	// keep a search handle around so that the client can act on matchmaking results.
 	const AccelByte::Api::Lobby::FMatchmakingNotif OnMatchmakingNotificationReceivedDelegate = AccelByte::Api::Lobby::FMatchmakingNotif::CreateRaw(this, &FOnlineSessionV1AccelByte::OnMatchmakingNotificationReceived);
 	const AccelByte::Api::Lobby::FDsNotif OnDedicatedServerNotificationReceivedDelegate = AccelByte::Api::Lobby::FDsNotif::CreateRaw(this, &FOnlineSessionV1AccelByte::OnDedicatedServerNotificationReceived);
-	ApiClient->Lobby.SetMatchmakingNotifDelegate(OnMatchmakingNotificationReceivedDelegate);
-	ApiClient->Lobby.SetDsNotifDelegate(OnDedicatedServerNotificationReceivedDelegate);
+	Lobby->SetMatchmakingNotifDelegate(OnMatchmakingNotificationReceivedDelegate);
+	Lobby->SetDsNotifDelegate(OnDedicatedServerNotificationReceivedDelegate);
 }
 
 void FOnlineSessionV1AccelByte::OnSessionResultCreateSuccess(const FOnlineSessionSearchResult& Result)
@@ -2002,17 +2008,17 @@ void FOnlineSessionV1AccelByte::SendReady(int32 LocalUserNum, const FString& Mat
 	}
 	
 	// Retrieve the API client for this user
-	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystemPtr->GetIdentityInterface());
-	if (!IdentityInterface.IsValid())
-	{
-		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to send ready consent as an identity interface instance could not be retrieved!"));
-		return;
-	}
-
-	AccelByte::FApiClientPtr ApiClient = IdentityInterface->GetApiClient(LocalUserNum);
+	AccelByte::FApiClientPtr ApiClient = AccelByteSubsystemPtr->GetApiClient(LocalUserNum);
 	if (!ApiClient.IsValid())
 	{
 		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to send ready consent as an API client could not be retrieved for user num %d!"), LocalUserNum);
+		return;
+	}
+
+	const auto Lobby = ApiClient->GetLobbyApi().Pin();
+	if (!Lobby.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to send ready consent as a Lobby API could not be retrieved for user num %d!"), LocalUserNum);
 		return;
 	}
 
@@ -2020,8 +2026,8 @@ void FOnlineSessionV1AccelByte::SendReady(int32 LocalUserNum, const FString& Mat
 		// Ready consent sending was successful if the code returned for the response is 0
 		Delegate.ExecuteIfBound(Result.Code == TEXT("0"));
 	});
-	ApiClient->Lobby.SetReadyConsentResponseDelegate(OnReadyConsentSent);
-	ApiClient->Lobby.SendReadyConsentRequest(MatchId);
+	Lobby->SetReadyConsentResponseDelegate(OnReadyConsentSent);
+	Lobby->SendReadyConsentRequest(MatchId);
 }
 
 void FOnlineSessionV1AccelByte::SetDefaultSessionSettings(const FOnlineSessionSettings& DefaultSettings)

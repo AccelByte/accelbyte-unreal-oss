@@ -32,15 +32,15 @@ void FOnlineAsyncTaskAccelByteQueryUserPresence::Initialize()
 	// Send off the actual request to get user presence
 	THandler<FAccelByteModelsBulkUserStatusNotif> OnQueryUserPresenceSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsBulkUserStatusNotif>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryUserPresence::OnQueryUserPresenceSuccess);
 	FErrorHandler OnQueryUserPresenceErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryUserPresence::OnQueryUserPresenceError);
-	API_CLIENT_CHECK_GUARD();
-	ApiClient->Lobby.BulkGetUserPresenceV2(UsersToQuery, OnQueryUserPresenceSuccessDelegate, OnQueryUserPresenceErrorDelegate, false);
+	API_FULL_CHECK_GUARD(Lobby);
+	Lobby->BulkGetUserPresenceV2(UsersToQuery, OnQueryUserPresenceSuccessDelegate, OnQueryUserPresenceErrorDelegate, false);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 
 void FOnlineAsyncTaskAccelByteQueryUserPresence::Finalize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
@@ -55,7 +55,7 @@ void FOnlineAsyncTaskAccelByteQueryUserPresence::Finalize()
 
 void FOnlineAsyncTaskAccelByteQueryUserPresence::TriggerDelegates() 
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 

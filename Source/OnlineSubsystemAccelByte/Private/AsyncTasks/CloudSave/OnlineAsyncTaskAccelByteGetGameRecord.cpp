@@ -22,7 +22,7 @@ FOnlineAsyncTaskAccelByteGetGameRecord::FOnlineAsyncTaskAccelByteGetGameRecord(F
 
 void FOnlineAsyncTaskAccelByteGetGameRecord::Initialize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::Initialize();
 
@@ -69,8 +69,8 @@ void FOnlineAsyncTaskAccelByteGetGameRecord::Initialize()
 		}
 		else
 		{
-			API_CLIENT_CHECK_GUARD(ErrorStr);
-			ApiClient->CloudSave.GetGameRecord(Key, OnGetGameRecordSuccessDelegate, OnGetGameRecordErrorDelegate);
+			API_FULL_CHECK_GUARD(CloudSave,ErrorStr);
+			CloudSave->GetGameRecord(Key, OnGetGameRecordSuccessDelegate, OnGetGameRecordErrorDelegate);
 		}
 	}
 	else
@@ -83,7 +83,7 @@ void FOnlineAsyncTaskAccelByteGetGameRecord::Initialize()
 
 void FOnlineAsyncTaskAccelByteGetGameRecord::Finalize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::Finalize();
 
@@ -103,7 +103,7 @@ void FOnlineAsyncTaskAccelByteGetGameRecord::Finalize()
 
 void FOnlineAsyncTaskAccelByteGetGameRecord::TriggerDelegates()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
@@ -124,7 +124,7 @@ void FOnlineAsyncTaskAccelByteGetGameRecord::TriggerDelegates()
 
 void FOnlineAsyncTaskAccelByteGetGameRecord::OnGetGameRecordSuccess(const FAccelByteModelsGameRecord& Result)
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 

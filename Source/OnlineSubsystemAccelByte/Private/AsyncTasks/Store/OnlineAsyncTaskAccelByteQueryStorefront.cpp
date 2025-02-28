@@ -29,12 +29,13 @@ void FOnlineAsyncTaskAccelByteQueryStorefront::Initialize()
 	OnLoadItemMappingsSuccessDelegate= AccelByte::TDelegateUtils<THandler<FAccelByteModelsItemMappingsResponse>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryStorefront::OnLoadItemMappingsSuccess);
 	OnLoadItemMappingsErrorDelegate = AccelByte::TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryStorefront::HandleLoadItemMappingsErrorError);
 
-	API_CLIENT_CHECK_GUARD(ErrorMsg);
-	ApiClient->StoreDisplay.GetAllViews(StoreId, Language, OnLoadDisplaysSuccessDelegate, OnQueryErrorDelegate);
-	ApiClient->Item.GetItemMappings(Platform, OnLoadItemMappingsSuccessDelegate, OnLoadItemMappingsErrorDelegate);
+	API_FULL_CHECK_GUARD(StoreDisplay, ErrorMsg);
+	API_CHECK_GUARD(Item, ErrorMsg);
+	StoreDisplay->GetAllViews(StoreId, Language, OnLoadDisplaysSuccessDelegate, OnQueryErrorDelegate);
+	Item->GetItemMappings(Platform, OnLoadItemMappingsSuccessDelegate, OnLoadItemMappingsErrorDelegate);
 	ExecuteCriticalSectionAction(FVoidHandler::CreateLambda([&]()
 	{
-		TRY_PIN_SUBSYSTEM()
+		TRY_PIN_SUBSYSTEM();
 
 		SubsystemPin->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteQueryActiveSections>(SubsystemPin.Get(), UserId.ToSharedRef().Get(), StoreId, ViewId, Region, OnLoadSections);
 	}));
@@ -44,7 +45,7 @@ void FOnlineAsyncTaskAccelByteQueryStorefront::Initialize()
 
 void FOnlineAsyncTaskAccelByteQueryStorefront::Finalize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 	FOnlineAsyncTaskAccelByte::Finalize();

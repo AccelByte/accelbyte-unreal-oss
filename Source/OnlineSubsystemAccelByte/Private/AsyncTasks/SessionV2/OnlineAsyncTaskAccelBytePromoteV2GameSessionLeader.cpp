@@ -38,7 +38,7 @@ void FOnlineAsyncTaskAccelBytePromoteV2GameSessionLeader::Initialize()
 
 void FOnlineAsyncTaskAccelBytePromoteV2GameSessionLeader::Finalize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
@@ -56,7 +56,7 @@ void FOnlineAsyncTaskAccelBytePromoteV2GameSessionLeader::Finalize()
 
 void FOnlineAsyncTaskAccelBytePromoteV2GameSessionLeader::TriggerDelegates()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
@@ -110,7 +110,12 @@ bool FOnlineAsyncTaskAccelBytePromoteV2GameSessionLeader::PromoteGameSessionLead
 		if (IsApiClientValid())
 		{
 			auto ApiClient = GetApiClientInternal();
-			ApiClient->Session.PromoteGameSessionLeader(SessionId, TargetMemberId->GetAccelByteId(), OnPromoteGameSessionLeaderSuccessDelegate, OnPromoteGameSessionLeaderErrorDelegate);
+			const auto Session = ApiClient->GetSessionApi().Pin();
+			if (!Session.IsValid()) 
+			{
+				return false;
+			}
+			Session->PromoteGameSessionLeader(SessionId, TargetMemberId->GetAccelByteId(), OnPromoteGameSessionLeaderSuccessDelegate, OnPromoteGameSessionLeaderErrorDelegate);
 		}
 		else
 		{

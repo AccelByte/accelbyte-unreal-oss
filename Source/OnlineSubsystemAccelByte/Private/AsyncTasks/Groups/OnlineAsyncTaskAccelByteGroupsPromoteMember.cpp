@@ -38,8 +38,8 @@ void FOnlineAsyncTaskAccelByteGroupsPromoteMember::Initialize()
 	FAccelByteModelsUserIdWrapper MemberUserId;
 	MemberUserId.UserId = MemberId->GetAccelByteId();
 
-	API_CLIENT_CHECK_GUARD(ErrorString);
-	ApiClient->Group.AssignV2MemberRole(RoleId, GroupId, MemberUserId, OnSuccessDelegate, OnErrorDelegate);
+	API_FULL_CHECK_GUARD(Group, ErrorString);
+	Group->AssignV2MemberRole(RoleId, GroupId, MemberUserId, OnSuccessDelegate, OnErrorDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
@@ -58,7 +58,7 @@ void FOnlineAsyncTaskAccelByteGroupsPromoteMember::TriggerDelegates()
 
 void FOnlineAsyncTaskAccelByteGroupsPromoteMember::Finalize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::Finalize();
 

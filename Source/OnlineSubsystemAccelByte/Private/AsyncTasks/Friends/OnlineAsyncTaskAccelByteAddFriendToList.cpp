@@ -20,7 +20,7 @@ FOnlineAsyncTaskAccelByteAddFriendToList::FOnlineAsyncTaskAccelByteAddFriendToLi
 
 void FOnlineAsyncTaskAccelByteAddFriendToList::Initialize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::Initialize();
 
@@ -45,7 +45,7 @@ void FOnlineAsyncTaskAccelByteAddFriendToList::Initialize()
 
 void FOnlineAsyncTaskAccelByteAddFriendToList::Finalize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
@@ -63,7 +63,7 @@ void FOnlineAsyncTaskAccelByteAddFriendToList::Finalize()
 
 void FOnlineAsyncTaskAccelByteAddFriendToList::TriggerDelegates()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 

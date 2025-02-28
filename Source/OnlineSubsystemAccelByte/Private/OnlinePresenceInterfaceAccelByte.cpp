@@ -238,23 +238,23 @@ void FOnlinePresenceAccelByte::RegisterRealTimeLobbyDelegates(int32 LocalUserNum
 	}
 	
 	// Get our identity interface to retrieve the API client for this user
-	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystemPtr->GetIdentityInterface());
-	if (!IdentityInterface.IsValid())
-	{
-		UE_LOG_AB(Warning, TEXT("Failed to register real-time lobby as an identity interface instance could not be retrieved!"));
-		return;
-	}
-
-	AccelByte::FApiClientPtr ApiClient = IdentityInterface->GetApiClient(LocalUserNum);
+	AccelByte::FApiClientPtr ApiClient = AccelByteSubsystemPtr->GetApiClient(LocalUserNum);
 	if (!ApiClient.IsValid())
 	{
 		UE_LOG_AB(Warning, TEXT("Failed to register real-time lobby as an Api client could not be retrieved for user num %d!"), LocalUserNum);
 		return;
 	}
 
+	const auto Lobby = ApiClient->GetLobbyApi().Pin();
+	if (!Lobby.IsValid())
+	{
+		UE_LOG_AB(Warning, TEXT("Failed to register real-time lobby as an Lobby Api could not be retrieved for user num %d!"), LocalUserNum);
+		return;
+	}
+
 	// Set each delegate for the corresponding API client to be a new realtime delegate
 	AccelByte::Api::Lobby::FFriendStatusNotif OnFriendStatusChangedNotificationReceivedDelegate = AccelByte::Api::Lobby::FFriendStatusNotif::CreateThreadSafeSP(AsShared(), &FOnlinePresenceAccelByte::OnFriendStatusChangedNotificationReceived, LocalUserNum);
-	ApiClient->Lobby.SetUserPresenceNotifDelegate(OnFriendStatusChangedNotificationReceivedDelegate);
+	Lobby->SetUserPresenceNotifDelegate(OnFriendStatusChangedNotificationReceivedDelegate);
 }
 
 TSharedRef<FOnlineUserPresenceAccelByte> FOnlinePresenceAccelByte::FindOrCreatePresence(const TSharedRef<const FUniqueNetIdAccelByteUser>& UserId) 

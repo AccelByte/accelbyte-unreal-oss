@@ -22,7 +22,7 @@ FOnlineAsyncTaskAccelByteQueryEligibilities::FOnlineAsyncTaskAccelByteQueryEligi
 
 void FOnlineAsyncTaskAccelByteQueryEligibilities::Initialize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::Initialize();
 
@@ -54,8 +54,8 @@ void FOnlineAsyncTaskAccelByteQueryEligibilities::Initialize()
 			OnQueryEligibilitiesErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryEligibilities::OnQueryEligibilitiesError);
 
 			// Send off a request to query eligibilities, as well as connect our delegates for doing so
-			API_CLIENT_CHECK_GUARD(ErrorStr);
-			ApiClient->Agreement.QueryLegalEligibilities(ApiClient->CredentialsRef->GetNamespace(), OnQueryEligibilitiesSuccessDelegate, OnQueryEligibilitiesErrorDelegate);
+			API_FULL_CHECK_GUARD(Agreement, ErrorStr);
+			Agreement->QueryLegalEligibilities(ApiClient->CredentialsRef->GetNamespace(), OnQueryEligibilitiesSuccessDelegate, OnQueryEligibilitiesErrorDelegate);
 		}
 	}
 
@@ -64,7 +64,7 @@ void FOnlineAsyncTaskAccelByteQueryEligibilities::Initialize()
 
 void FOnlineAsyncTaskAccelByteQueryEligibilities::Finalize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	if (bWasSuccessful)
 	{
@@ -75,7 +75,7 @@ void FOnlineAsyncTaskAccelByteQueryEligibilities::Finalize()
 
 void FOnlineAsyncTaskAccelByteQueryEligibilities::TriggerDelegates()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
@@ -108,7 +108,7 @@ void FOnlineAsyncTaskAccelByteQueryEligibilities::TriggerDelegates()
 
 void FOnlineAsyncTaskAccelByteQueryEligibilities::OnQueryEligibilitiesSuccess(const TArray<FAccelByteModelsRetrieveUserEligibilitiesResponse>& Result)
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 

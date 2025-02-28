@@ -203,7 +203,14 @@ bool FOnlineSubsystemAccelByte::Shutdown()
 		auto ApiClient = GetApiClient(UserNum);
 		if (ApiClient.IsValid() && NativeTokenRefreshHandles.Contains(UserNum) && NativeTokenRefreshHandles[UserNum].IsValid())
 		{
+			FDelegateHandle MessageNotifHandle;
+			if (LobbyMessageNotifMap.Contains(UserNum))
+			{
+				MessageNotifHandle = LobbyMessageNotifMap[UserNum];
+				ApiClient->Lobby.RemoveMessageNotifBroadcasterDelegate(MessageNotifHandle);
+			}
 			ApiClient->CredentialsRef->OnTokenRefreshed().Remove(NativeTokenRefreshHandles[UserNum]);
+			LobbyMessageNotifMap.Remove(UserNum);
 			NativeTokenRefreshHandles.Remove(UserNum);
 		}
 
@@ -214,8 +221,16 @@ bool FOnlineSubsystemAccelByte::Shutdown()
 		}
 
 		TSharedRef<const FUniqueNetIdAccelByteUser> AccelByteCompositeId = FUniqueNetIdAccelByteUser::CastChecked(PlayerId.ToSharedRef());
-		AccelByteInstance->RemoveApiClient(AccelByteCompositeId->GetAccelByteId());
+		if(AccelByteInstance.IsValid())
+		{
+			AccelByteInstance->RemoveApiClient(AccelByteCompositeId->GetAccelByteId());
+		}
 	}
+	if(AccelByteInstance.IsValid())
+	{
+		AccelByteInstance->ClearServerApiClient();
+	}
+	AccelByteInstance.Reset();
 
 	LogoutDelegates.Empty();
 
@@ -759,7 +774,7 @@ void FOnlineSubsystemAccelByte::OnLoginCallback(int32 LocalUserNum, bool bWasSuc
 	}
 
 	// listen to Message Notif Lobby
-	const AccelByte::FApiClientPtr ApiClient = IdentityInterface->GetApiClient(LocalUserNum); 
+	const AccelByte::FApiClientPtr ApiClient = GetApiClient(LocalUserNum); 
 	const AccelByte::Api::Lobby::FMessageNotif Delegate = AccelByte::Api::Lobby::FMessageNotif::CreateThreadSafeSP(AsShared()
 		, &FOnlineSubsystemAccelByte::OnMessageNotif
 		, LocalUserNum);
@@ -768,11 +783,13 @@ void FOnlineSubsystemAccelByte::OnLoginCallback(int32 LocalUserNum, bool bWasSuc
 		return;
 	}
 
-	ApiClient->Lobby.SetMessageNotifDelegate(Delegate);
-	if (bIsAutoLobbyConnectAfterLoginSuccess)
+	if (!LobbyMessageNotifMap.Contains(LocalUserNum))
 	{
-		IdentityInterface->ConnectAccelByteLobby(LocalUserNum);
+		FDelegateHandle MessageNotifDelegate = ApiClient->Lobby.AddMessageNotifDelegate(Delegate);
+		LobbyMessageNotifMap.Emplace(LocalUserNum, MessageNotifDelegate);
 	}
+
+	IdentityInterface->ConnectAccelByteLobby(LocalUserNum);
 
 	if(bIsAutoChatConnectAfterLoginSuccess && ChatInterface.IsValid())
 	{
@@ -795,30 +812,35 @@ void FOnlineSubsystemAccelByte::OnLobbyConnectedCallback(int32 LocalUserNum, boo
 	
 	if (ApiClient.IsValid())
 	{
-		const auto OnLobbyConnectionClosedDelegate = AccelByte::Api::Lobby::FConnectionClosed::CreateThreadSafeSP(AsShared()
-			, &FOnlineSubsystemAccelByte::OnLobbyConnectionClosed
-			, LocalUserNum
-			, false);
-		ApiClient->Lobby.SetConnectionClosedDelegate(OnLobbyConnectionClosedDelegate);
+		const auto Lobby = ApiClient->GetLobbyApi().Pin();
+		if (Lobby.IsValid())
+		{
 
-		const auto OnLobbyReconnectionDelegate = Api::Lobby::FConnectSuccess::CreateThreadSafeSP(AsShared()
-			, &FOnlineSubsystemAccelByte::OnLobbyReconnected
-			, LocalUserNum);
-		ApiClient->Lobby.SetConnectSuccessDelegate(OnLobbyReconnectionDelegate);
+			const auto OnLobbyConnectionClosedDelegate = AccelByte::Api::Lobby::FConnectionClosed::CreateThreadSafeSP(AsShared()
+				, &FOnlineSubsystemAccelByte::OnLobbyConnectionClosed
+				, LocalUserNum
+				, false);
+			Lobby->SetConnectionClosedDelegate(OnLobbyConnectionClosedDelegate);
 
-		const auto OnLobbyReconnectingDelegate = AccelByte::Api::Lobby::FConnectionClosed::CreateThreadSafeSP(AsShared()
-			, &FOnlineSubsystemAccelByte::OnLobbyConnectionClosed
-			, LocalUserNum
-			, true);
-		ApiClient->Lobby.SetReconnectingDelegate(OnLobbyReconnectingDelegate);
+			const auto OnLobbyReconnectionDelegate = Api::Lobby::FConnectSuccess::CreateThreadSafeSP(AsShared()
+				, &FOnlineSubsystemAccelByte::OnLobbyReconnected
+				, LocalUserNum);
+			Lobby->SetConnectSuccessDelegate(OnLobbyReconnectionDelegate);
 
-		ApiClient->Lobby.OnReconnectAttemptedMulticastDelegate().AddThreadSafeSP(AsShared()
-			, &FOnlineSubsystemAccelByte::OnLobbyReconnectAttempted
-			, LocalUserNum);
+			const auto OnLobbyReconnectingDelegate = AccelByte::Api::Lobby::FConnectionClosed::CreateThreadSafeSP(AsShared()
+				, &FOnlineSubsystemAccelByte::OnLobbyConnectionClosed
+				, LocalUserNum
+				, true);
+			Lobby->SetReconnectingDelegate(OnLobbyReconnectingDelegate);
 
-		ApiClient->Lobby.OnMassiveOutageMulticastDelegate().AddThreadSafeSP(AsShared()
-			, &FOnlineSubsystemAccelByte::OnLobbyMassiveOutageEvent
-			, LocalUserNum);
+			Lobby->OnReconnectAttemptedMulticastDelegate().AddThreadSafeSP(AsShared()
+				, &FOnlineSubsystemAccelByte::OnLobbyReconnectAttempted
+				, LocalUserNum);
+
+			Lobby->OnMassiveOutageMulticastDelegate().AddThreadSafeSP(AsShared()
+				, &FOnlineSubsystemAccelByte::OnLobbyMassiveOutageEvent
+				, LocalUserNum);
+		}
 	}
 }
 
@@ -934,12 +956,7 @@ void FOnlineSubsystemAccelByte::OnLobbyReconnected(int32 InLocalUserNum)
 #else
 	if (SessionInterface.IsValid())
 	{
-		SessionInterface->RefreshActiveSessions(FOnRefreshActiveSessionsComplete::CreateLambda(
-			[InLocalUserNum](bool bWasSuccessful, const TArray<FName>& RemovedSessionNames)
-		{
-			UE_LOG_AB(Log, TEXT("Refresh Active Sessions after reconnected completed. LocalUserNum: %d; bWasSuccessful: %s; Total RemovedSessionNames: %d"),
-				InLocalUserNum, LOG_BOOL_FORMAT(bWasSuccessful), RemovedSessionNames.Num());
-		}));
+		SessionInterface->RefreshActiveSessionsV2AfterReconnected(InLocalUserNum);
 	}
 	else
 	{
@@ -1254,7 +1271,7 @@ void FOnlineSubsystemAccelByte::SetNativePlatformTokenRefreshScheduler(int32 Loc
 				{
 					UE_LOG_AB(Log, TEXT("EOS token changed/refreshed locally."));
 					// Trigger refresh to IAM
-					if (IdentityInterface.IsValid() && IdentityInterface->GetApiClient(LocalUserNum).IsValid())
+					if (IdentityInterface.IsValid() && GetApiClient(LocalUserNum).IsValid())
 					{
 						UE_LOG_AB(Log, TEXT("Trigger EOS token refresh to backend."));
 						IdentityInterface->RefreshPlatformToken(LocalUserNum);
@@ -1394,7 +1411,11 @@ TOptional<IWebsocketConfigurableReconnectStrategy*> FOnlineSubsystemAccelByte::T
 			auto ApiClient = GetApiClient(LocalUserNum);
 			if (ApiClient.IsValid())
 			{
-				Output = &(ApiClient->Lobby);
+				const auto Lobby = ApiClient->GetLobbyApi().Pin();
+				if (Lobby.IsValid()) 
+				{
+					Output = Lobby.Get();
+				}
 			}
 		}
 		break;
@@ -1403,7 +1424,11 @@ TOptional<IWebsocketConfigurableReconnectStrategy*> FOnlineSubsystemAccelByte::T
 			auto ApiClient = GetApiClient(LocalUserNum);
 			if (ApiClient.IsValid())
 			{
-				Output = &(ApiClient->Chat);
+				const auto Chat = ApiClient->GetChatApi().Pin();
+				if (Chat.IsValid())
+				{
+					Output = Chat.Get(); 
+				}
 			}
 		}
 		break;

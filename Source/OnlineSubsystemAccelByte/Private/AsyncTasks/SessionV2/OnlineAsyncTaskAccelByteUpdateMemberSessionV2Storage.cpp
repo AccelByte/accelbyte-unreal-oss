@@ -26,15 +26,15 @@ void FOnlineAsyncTaskAccelByteUpdateMemberSessionV2Storage::Initialize()
 	OnUpdateStorageSuccessDelegate = TDelegateUtils<THandler<FJsonObjectWrapper>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteUpdateMemberSessionV2Storage::OnUpdateMemberStorageSuccess);
 	OnUpdateStorageErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteUpdateMemberSessionV2Storage::OnUpdateMemberStorageError);
 
-	API_CLIENT_CHECK_GUARD(OnlineError);
-	ApiClient->Session.UpdateMemberStorage(SessionToUpdate->GetSessionIdStr(), Data, OnUpdateStorageSuccessDelegate, OnUpdateStorageErrorDelegate);
+	API_FULL_CHECK_GUARD(Session, OnlineError);
+	Session->UpdateMemberStorage(SessionToUpdate->GetSessionIdStr(), Data, OnUpdateStorageSuccessDelegate, OnUpdateStorageErrorDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 
 void FOnlineAsyncTaskAccelByteUpdateMemberSessionV2Storage::TriggerDelegates()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 

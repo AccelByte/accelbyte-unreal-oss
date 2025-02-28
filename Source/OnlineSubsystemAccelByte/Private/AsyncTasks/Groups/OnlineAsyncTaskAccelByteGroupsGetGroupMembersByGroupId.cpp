@@ -31,8 +31,8 @@ void FOnlineAsyncTaskAccelByteGroupsGetGroupMembersByGroupId::Initialize()
 	OnSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsGetGroupMemberListResponse>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteGroupsGetGroupMembersByGroupId::OnGetGroupMembersByGroupIdsSuccess);
 	OnErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteGroupsGetGroupMembersByGroupId::OnGetGroupMembersByGroupIdsError);
 
-	API_CLIENT_CHECK_GUARD(ErrorString);
-	ApiClient->Group.GetGroupMembersListByGroupId(GroupId, RequestedContent, OnSuccessDelegate, OnErrorDelegate);
+	API_FULL_CHECK_GUARD(Group, ErrorString);
+	Group->GetGroupMembersListByGroupId(GroupId, RequestedContent, OnSuccessDelegate, OnErrorDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
@@ -51,7 +51,7 @@ void FOnlineAsyncTaskAccelByteGroupsGetGroupMembersByGroupId::TriggerDelegates()
 
 void FOnlineAsyncTaskAccelByteGroupsGetGroupMembersByGroupId::Finalize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::Finalize();
 

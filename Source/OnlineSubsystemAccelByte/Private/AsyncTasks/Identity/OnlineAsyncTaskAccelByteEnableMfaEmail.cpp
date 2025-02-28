@@ -21,18 +21,18 @@ void FOnlineAsyncTaskAccelByteEnableMfaEmail::Initialize()
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("UserId: %s"), *UserId->ToDebugString());
 
-	API_CLIENT_CHECK_GUARD(OnlineError);
+	API_FULL_CHECK_GUARD(User, OnlineError);
 
 	const auto OnSuccessDelegate = TDelegateUtils<FVoidHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteEnableMfaEmail::OnEnableMfaEmailSuccess);
 	const auto OnErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteEnableMfaEmail::OnEnableMfaEmailError);
-	ApiClient->User.EnableMfaEmail(Code, OnSuccessDelegate, OnErrorDelegate);
+	User->EnableMfaEmail(Code, OnSuccessDelegate, OnErrorDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""))
 }
 
 void FOnlineAsyncTaskAccelByteEnableMfaEmail::TriggerDelegates()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::TriggerDelegates();
 

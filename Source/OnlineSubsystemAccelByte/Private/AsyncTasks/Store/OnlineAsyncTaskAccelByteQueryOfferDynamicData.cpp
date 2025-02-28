@@ -23,15 +23,15 @@ void FOnlineAsyncTaskAccelByteQueryOfferDynamicData::Initialize()
 	
 	OnSuccess = TDelegateUtils<THandler<FAccelByteModelsItemDynamicData>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryOfferDynamicData::HandleGetItemDynamicData);
 	OnError = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryOfferDynamicData::HandleAsyncTaskError);
-	API_CLIENT_CHECK_GUARD(ErrorMsg);
-	ApiClient->Item.GetItemDynamicData(OfferId, OnSuccess, OnError);
+	API_FULL_CHECK_GUARD(Item, ErrorMsg);
+	Item->GetItemDynamicData(OfferId, OnSuccess, OnError);
 	
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 
 void FOnlineAsyncTaskAccelByteQueryOfferDynamicData::Finalize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Finalized"));
 	Super::Finalize();

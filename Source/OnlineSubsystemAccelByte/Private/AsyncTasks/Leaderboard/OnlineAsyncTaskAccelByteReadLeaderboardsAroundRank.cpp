@@ -42,7 +42,7 @@ FOnlineAsyncTaskAccelByteReadLeaderboardsAroundRank::FOnlineAsyncTaskAccelByteRe
 
 void FOnlineAsyncTaskAccelByteReadLeaderboardsAroundRank::Initialize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::Initialize();
 
@@ -80,8 +80,8 @@ void FOnlineAsyncTaskAccelByteReadLeaderboardsAroundRank::Initialize()
 
 	if(bUseCycle)
 	{
-		API_CLIENT_CHECK_GUARD(ErrorMessage);
-		ApiClient->Leaderboard.GetRankingByCycle(
+		API_FULL_CHECK_GUARD(Leaderboard, ErrorMessage);
+		Leaderboard->GetRankingByCycle(
 			LeaderboardCode,
 			CycleId,
 			Offset,
@@ -90,8 +90,8 @@ void FOnlineAsyncTaskAccelByteReadLeaderboardsAroundRank::Initialize()
 			OnReadLeaderboardRankErrorHandler);	
 	}else
 	{
-		API_CLIENT_CHECK_GUARD(ErrorMessage);
-		ApiClient->Leaderboard.GetRankingsV3(
+		API_FULL_CHECK_GUARD(Leaderboard, ErrorMessage);
+		Leaderboard->GetRankingsV3(
 			LeaderboardCode,
 			Offset,
 			Limit,
@@ -104,7 +104,7 @@ void FOnlineAsyncTaskAccelByteReadLeaderboardsAroundRank::Initialize()
 
 void FOnlineAsyncTaskAccelByteReadLeaderboardsAroundRank::Finalize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::Finalize();
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Finalize"));
@@ -155,7 +155,7 @@ void FOnlineAsyncTaskAccelByteReadLeaderboardsAroundRank::Finalize()
 
 void FOnlineAsyncTaskAccelByteReadLeaderboardsAroundRank::TriggerDelegates()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::TriggerDelegates();
 
@@ -180,7 +180,7 @@ void FOnlineAsyncTaskAccelByteReadLeaderboardsAroundRank::Tick()
 
 void FOnlineAsyncTaskAccelByteReadLeaderboardsAroundRank::OnReadLeaderboardRankSuccess(FAccelByteModelsLeaderboardRankingResultV3 const& Result)
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Read Leaderboards Success"));
 

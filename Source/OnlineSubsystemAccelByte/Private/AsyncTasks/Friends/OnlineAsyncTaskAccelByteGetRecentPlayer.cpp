@@ -30,15 +30,15 @@ void FOnlineAsyncTaskAccelByteGetRecentPlayer::Initialize()
 	const FErrorHandler ErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteGetRecentPlayer::OnGetRecentPlayerError);
 
 	// #AB (apin) limit only for 50 for splitgate
-	API_CLIENT_CHECK_GUARD(ErrorString);
-	ApiClient->SessionBrowser.GetRecentPlayer(UserId->GetAccelByteId(), SuccessDelegate, ErrorDelegate, 0, 50);
+	API_FULL_CHECK_GUARD(SessionBrowser, ErrorString);
+	SessionBrowser->GetRecentPlayer(UserId->GetAccelByteId(), SuccessDelegate, ErrorDelegate, 0, 50);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 
 void FOnlineAsyncTaskAccelByteGetRecentPlayer::Finalize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
@@ -59,7 +59,7 @@ void FOnlineAsyncTaskAccelByteGetRecentPlayer::Finalize()
 
 void FOnlineAsyncTaskAccelByteGetRecentPlayer::TriggerDelegates()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
@@ -71,7 +71,7 @@ void FOnlineAsyncTaskAccelByteGetRecentPlayer::TriggerDelegates()
 
 void FOnlineAsyncTaskAccelByteGetRecentPlayer::OnGetRecentPlayerSuccess(const FAccelByteModelsSessionBrowserRecentPlayerGetResult& InResult)
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	// Construct array of user IDs to query for recent players
 	TArray<FString> UsersToQuery;

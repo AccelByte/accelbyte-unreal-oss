@@ -21,7 +21,7 @@ FOnlineAsyncTaskAccelByteDeleteUserFile::FOnlineAsyncTaskAccelByteDeleteUserFile
 
 void FOnlineAsyncTaskAccelByteDeleteUserFile::Initialize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::Initialize();
 
@@ -38,8 +38,8 @@ void FOnlineAsyncTaskAccelByteDeleteUserFile::Initialize()
 		{
 			THandler<TArray<FAccelByteModelsSlot>> OnGetAllSlotsSuccessDelegate = TDelegateUtils<THandler<TArray<FAccelByteModelsSlot>>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteDeleteUserFile::OnGetAllSlotsSuccess);
 			FErrorHandler OnGetAllSlotsErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteDeleteUserFile::OnGetAllSlotsError);
-			API_CLIENT_CHECK_GUARD();
-			ApiClient->CloudStorage.GetAllSlots(OnGetAllSlotsSuccessDelegate, OnGetAllSlotsErrorDelegate);
+			API_FULL_CHECK_GUARD(CloudStorage);
+			CloudStorage->GetAllSlots(OnGetAllSlotsSuccessDelegate, OnGetAllSlotsErrorDelegate);
 		}
 		else
 		{
@@ -52,7 +52,7 @@ void FOnlineAsyncTaskAccelByteDeleteUserFile::Initialize()
 
 void FOnlineAsyncTaskAccelByteDeleteUserFile::Finalize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
@@ -70,7 +70,7 @@ void FOnlineAsyncTaskAccelByteDeleteUserFile::Finalize()
 
 void FOnlineAsyncTaskAccelByteDeleteUserFile::TriggerDelegates()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
@@ -87,8 +87,8 @@ void FOnlineAsyncTaskAccelByteDeleteUserFile::RunDeleteSlot(const FString& SlotI
 {
 	FVoidHandler OnDeleteSlotSuccessDelegate = TDelegateUtils<FVoidHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteDeleteUserFile::OnDeleteSlotSuccess);
 	FErrorHandler OnDeleteSlotErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteDeleteUserFile::OnDeleteSlotError);
-	API_CLIENT_CHECK_GUARD();
-	ApiClient->CloudStorage.DeleteSlot(SlotId, OnDeleteSlotSuccessDelegate, OnDeleteSlotErrorDelegate);
+	API_FULL_CHECK_GUARD(CloudStorage);
+	CloudStorage->DeleteSlot(SlotId, OnDeleteSlotSuccessDelegate, OnDeleteSlotErrorDelegate);
 }
 
 void FOnlineAsyncTaskAccelByteDeleteUserFile::OnGetAllSlotsSuccess(const TArray<FAccelByteModelsSlot>& Results)

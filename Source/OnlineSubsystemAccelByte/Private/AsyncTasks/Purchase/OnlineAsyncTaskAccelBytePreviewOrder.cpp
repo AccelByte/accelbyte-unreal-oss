@@ -24,15 +24,15 @@ void FOnlineAsyncTaskAccelBytePreviewOrder::Initialize()
 
 	const THandler<FAccelByteModelsUserPreviewOrderResponse>& OnSuccess = AccelByte::TDelegateUtils<THandler<FAccelByteModelsUserPreviewOrderResponse>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelBytePreviewOrder::HandleSuccess);
 	const FErrorHandler& OnError = AccelByte::TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelBytePreviewOrder::HandleError);
-	API_CLIENT_CHECK_GUARD(ErrorMessage);
-	ApiClient->Order.PreviewUserOrder(PreviewOrderRequest, OnSuccess, OnError);
+	API_FULL_CHECK_GUARD(Order, ErrorMessage);
+	Order->PreviewUserOrder(PreviewOrderRequest, OnSuccess, OnError);
 	
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 
 void FOnlineAsyncTaskAccelBytePreviewOrder::TriggerDelegates()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 	Super::TriggerDelegates();

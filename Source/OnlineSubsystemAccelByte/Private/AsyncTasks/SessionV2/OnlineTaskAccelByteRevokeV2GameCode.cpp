@@ -16,7 +16,7 @@ FOnlineAsyncTaskAccelByteRevokeV2GameCode::FOnlineAsyncTaskAccelByteRevokeV2Game
 
 void FOnlineAsyncTaskAccelByteRevokeV2GameCode::Initialize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::Initialize();
 
@@ -25,10 +25,10 @@ void FOnlineAsyncTaskAccelByteRevokeV2GameCode::Initialize()
 	FOnlineSessionV2AccelBytePtr SessionInterface = nullptr;
 	AB_ASYNC_TASK_VALIDATE(FOnlineSessionV2AccelByte::GetFromSubsystem(SubsystemPin.Get(), SessionInterface), "Failed to get session interface for revoking game code!");
 
-	FNamedOnlineSession* Session = SessionInterface->GetNamedSession(SessionName);
-	AB_ASYNC_TASK_VALIDATE(Session != nullptr, "Failed to get named session for revoking game code!");
+	FNamedOnlineSession* OnlineSession = SessionInterface->GetNamedSession(SessionName);
+	AB_ASYNC_TASK_VALIDATE(OnlineSession != nullptr, "Failed to get named session for revoking game code!");
 
-	const FString SessionId = Session->GetSessionIdStr();
+	const FString SessionId = OnlineSession->GetSessionIdStr();
 	AB_ASYNC_TASK_VALIDATE(!SessionId.Equals(TEXT("InvalidSession"), ESearchCase::IgnoreCase), "Named session used to revoke game code has invalid session ID!");
 
 	OnRevokeCodeSuccessDelegate = TDelegateUtils<FVoidHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteRevokeV2GameCode::OnRevokeCodeSuccess);
@@ -41,8 +41,8 @@ void FOnlineAsyncTaskAccelByteRevokeV2GameCode::Initialize()
 	}
 	else
 	{
-		API_CLIENT_CHECK_GUARD();
-		ApiClient->Session.RevokeGameSessionCode(SessionId, OnRevokeCodeSuccessDelegate, OnRevokeCodeErrorDelegate);
+		API_FULL_CHECK_GUARD(Session);
+		Session->RevokeGameSessionCode(SessionId, OnRevokeCodeSuccessDelegate, OnRevokeCodeErrorDelegate);
 	}
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
@@ -50,7 +50,7 @@ void FOnlineAsyncTaskAccelByteRevokeV2GameCode::Initialize()
 
 void FOnlineAsyncTaskAccelByteRevokeV2GameCode::Finalize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::Finalize();
 

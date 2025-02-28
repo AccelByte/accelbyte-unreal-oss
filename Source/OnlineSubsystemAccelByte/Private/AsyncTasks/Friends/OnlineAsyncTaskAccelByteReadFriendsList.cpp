@@ -80,8 +80,8 @@ void FOnlineAsyncTaskAccelByteReadFriendsList::Tick()
 
 		if (FriendIdsToQuery.Num() > 0)
 		{
-			API_CLIENT_CHECK_GUARD(ErrorString);
-			ApiClient->Lobby.BulkGetUserPresenceV2(FriendIdsToQuery,
+			API_FULL_CHECK_GUARD(Lobby, ErrorString);
+			Lobby->BulkGetUserPresenceV2(FriendIdsToQuery,
 				TDelegateUtils<THandler<FAccelByteModelsBulkUserStatusNotif>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteReadFriendsList::OnGetUserPresenceComplete),
 				FErrorHandler::CreateLambda([this](int32 Code, FString const& ErrMsg)
 					{
@@ -99,7 +99,7 @@ void FOnlineAsyncTaskAccelByteReadFriendsList::Tick()
 	// If we have received all friend IDs from each list, but we haven't tried to get information on those friends yet, send the request out
 	if (bHasReceivedResponseForCurrentFriends && bHasReceivedResponseForIncomingFriends && bHasReceivedResponseForOutgoingFriends && bHasReceivedAllUserStatus && (!bHasSentRequestForFriendInformation && !bHasRecievedAllFriendInformation))
 	{
-		TRY_PIN_SUBSYSTEM()
+		TRY_PIN_SUBSYSTEM();
 
 		SetLastUpdateTimeToCurrentTime();//Increase this AsyncTask lifespan to do the initial QueryUsersByAccelByteIds operation
 
@@ -128,7 +128,7 @@ void FOnlineAsyncTaskAccelByteReadFriendsList::Tick()
 
 void FOnlineAsyncTaskAccelByteReadFriendsList::Finalize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
@@ -167,7 +167,7 @@ void FOnlineAsyncTaskAccelByteReadFriendsList::QueryFriendList()
 	OnQueryFriendListSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsQueryFriendListResponse>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteReadFriendsList::OnQueryFriendListSuccess);
 	OnQueryFriendListFailedDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteReadFriendsList::OnQueryFriendListFailed);
 
-	API_CLIENT_CHECK_GUARD(ErrorString);
+	API_FULL_CHECK_GUARD(Lobby, ErrorString);
 
 	int32 Limit = MaximumQueryLimit;
 	if (QueryFriendListLimit > MaximumQueryLimit)
@@ -179,7 +179,7 @@ void FOnlineAsyncTaskAccelByteReadFriendsList::QueryFriendList()
 		Limit = QueryFriendListLimit;
 		QueryFriendListLimit = 0;
 	}
-	ApiClient->Lobby.QueryFriendList(OnQueryFriendListSuccessDelegate, OnQueryFriendListFailedDelegate, QueryFriendListOffset, Limit);
+	Lobby->QueryFriendList(OnQueryFriendListSuccessDelegate, OnQueryFriendListFailedDelegate, QueryFriendListOffset, Limit);
 }
 
 void FOnlineAsyncTaskAccelByteReadFriendsList::OnQueryFriendListSuccess(const FAccelByteModelsQueryFriendListResponse& Result)
@@ -217,7 +217,7 @@ void FOnlineAsyncTaskAccelByteReadFriendsList::QueryIncomingFriendRequest()
 {
 	OnQueryIncomingFriendRequestSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsIncomingFriendRequests>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteReadFriendsList::OnQueryIncomingFriendRequestSuccess);
 	OnQueryIncomingFriendRequestFailedDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteReadFriendsList::OnQueryIncomingFriendRequestFailed);
-	API_CLIENT_CHECK_GUARD(ErrorString);
+	API_FULL_CHECK_GUARD(Lobby, ErrorString);
 
 	int32 Limit = MaximumQueryLimit;
 	if (QueryIncomingFriendReqLimit > MaximumQueryLimit)
@@ -229,7 +229,7 @@ void FOnlineAsyncTaskAccelByteReadFriendsList::QueryIncomingFriendRequest()
 		Limit = QueryIncomingFriendReqLimit;
 		QueryIncomingFriendReqLimit = 0;
 	}
-	ApiClient->Lobby.QueryIncomingFriendRequest(OnQueryIncomingFriendRequestSuccessDelegate, OnQueryIncomingFriendRequestFailedDelegate, QueryIncomingFriendReqOffset,Limit);
+	Lobby->QueryIncomingFriendRequest(OnQueryIncomingFriendRequestSuccessDelegate, OnQueryIncomingFriendRequestFailedDelegate, QueryIncomingFriendReqOffset,Limit);
 }
 
 void FOnlineAsyncTaskAccelByteReadFriendsList::OnQueryIncomingFriendRequestSuccess(const FAccelByteModelsIncomingFriendRequests& Result)
@@ -267,7 +267,7 @@ void FOnlineAsyncTaskAccelByteReadFriendsList::QueryOutgoingFriendRequest()
 {
 	OnQueryOutgoingFriendRequestSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsOutgoingFriendRequests>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteReadFriendsList::OnQueryOutgoingFriendRequestSuccess);
 	OnQueryOutgoingFriendRequestFailedDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteReadFriendsList::OnQueryOutgoingFriendRequestFailed);
-	API_CLIENT_CHECK_GUARD(ErrorString);
+	API_FULL_CHECK_GUARD(Lobby, ErrorString);
 
 	int32 Limit = MaximumQueryLimit;
 	if (QueryOutgoingFriendReqLimit > MaximumQueryLimit)
@@ -279,7 +279,7 @@ void FOnlineAsyncTaskAccelByteReadFriendsList::QueryOutgoingFriendRequest()
 		Limit = QueryOutgoingFriendReqLimit;
 		QueryOutgoingFriendReqLimit = 0;
 	}
-	ApiClient->Lobby.QueryOutgoingFriendRequest(OnQueryOutgoingFriendRequestSuccessDelegate, OnQueryOutgoingFriendRequestFailedDelegate, QueryOutgoingFriendReqOffset, Limit);
+	Lobby->QueryOutgoingFriendRequest(OnQueryOutgoingFriendRequestSuccessDelegate, OnQueryOutgoingFriendRequestFailedDelegate, QueryOutgoingFriendReqOffset, Limit);
 }
 
 void FOnlineAsyncTaskAccelByteReadFriendsList::OnQueryOutgoingFriendRequestSuccess(const FAccelByteModelsOutgoingFriendRequests& Result)
@@ -365,8 +365,8 @@ void FOnlineAsyncTaskAccelByteReadFriendsList::OnGetUserPresenceComplete(const F
 	if (Statuses.NotProcessed.Num() > 0)
 	{
 		SetLastUpdateTimeToCurrentTime();//Increase this AsyncTask lifespan if still continue to process next UserStatus
-		API_CLIENT_CHECK_GUARD(ErrorString);
-		ApiClient->Lobby.BulkGetUserPresenceV2(Statuses.NotProcessed,
+		API_FULL_CHECK_GUARD(Lobby, ErrorString);
+		Lobby->BulkGetUserPresenceV2(Statuses.NotProcessed,
 			TDelegateUtils<THandler<FAccelByteModelsBulkUserStatusNotif>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteReadFriendsList::OnGetUserPresenceComplete),
 			FErrorHandler::CreateLambda([this](int32 Code, FString const& ErrMsg)
 				{

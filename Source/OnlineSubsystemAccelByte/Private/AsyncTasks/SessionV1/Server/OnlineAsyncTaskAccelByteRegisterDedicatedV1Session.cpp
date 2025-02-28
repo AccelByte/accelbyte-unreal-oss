@@ -31,7 +31,7 @@ FOnlineAsyncTaskAccelByteRegisterDedicatedV1Session::FOnlineAsyncTaskAccelByteRe
 
 void FOnlineAsyncTaskAccelByteRegisterDedicatedV1Session::Initialize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::Initialize();
 
@@ -68,7 +68,7 @@ void FOnlineAsyncTaskAccelByteRegisterDedicatedV1Session::Initialize()
 
 void FOnlineAsyncTaskAccelByteRegisterDedicatedV1Session::Finalize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
@@ -121,7 +121,7 @@ void FOnlineAsyncTaskAccelByteRegisterDedicatedV1Session::Finalize()
 
 void FOnlineAsyncTaskAccelByteRegisterDedicatedV1Session::TriggerDelegates()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 
@@ -279,7 +279,7 @@ void FOnlineAsyncTaskAccelByteRegisterDedicatedV1Session::GetRegisterIpAddress(F
 
 void FOnlineAsyncTaskAccelByteRegisterDedicatedV1Session::CreateGameSession()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 

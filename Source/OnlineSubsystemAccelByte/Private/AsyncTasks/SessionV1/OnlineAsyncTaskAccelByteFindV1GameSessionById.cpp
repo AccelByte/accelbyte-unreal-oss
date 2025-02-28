@@ -37,8 +37,8 @@ void FOnlineAsyncTaskAccelByteFindV1GameSessionById::Initialize()
 	}
 	else
 	{
-		API_CLIENT_CHECK_GUARD();
-		ApiClient->SessionBrowser.GetGameSession(SessionId->ToString(), OnGetGameSessionDetailsSuccessDelegate, OnGetGameSessionDetailsErrorDelegate);
+		API_FULL_CHECK_GUARD(SessionBrowser);
+		SessionBrowser->GetGameSession(SessionId->ToString(), OnGetGameSessionDetailsSuccessDelegate, OnGetGameSessionDetailsErrorDelegate);
 	}
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
@@ -46,7 +46,7 @@ void FOnlineAsyncTaskAccelByteFindV1GameSessionById::Initialize()
 
 void FOnlineAsyncTaskAccelByteFindV1GameSessionById::Finalize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 

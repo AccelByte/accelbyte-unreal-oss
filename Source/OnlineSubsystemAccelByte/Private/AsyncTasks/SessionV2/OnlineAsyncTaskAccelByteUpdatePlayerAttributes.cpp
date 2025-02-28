@@ -22,7 +22,7 @@ FOnlineAsyncTaskAccelByteUpdatePlayerAttributes::FOnlineAsyncTaskAccelByteUpdate
 
 void FOnlineAsyncTaskAccelByteUpdatePlayerAttributes::Initialize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::Initialize();
 
@@ -57,7 +57,7 @@ void FOnlineAsyncTaskAccelByteUpdatePlayerAttributes::Finalize()
 
 	if (bWasSuccessful)
 	{
-		TRY_PIN_SUBSYSTEM()
+		TRY_PIN_SUBSYSTEM();
 
 		FOnlineSessionV2AccelBytePtr SessionInterface{};
 		if (!ensureAlwaysMsgf(FOnlineSessionV2AccelByte::GetFromSubsystem(SubsystemPin.Get(), SessionInterface), TEXT("Failed to get session interface instance from subsystem")))
@@ -106,8 +106,8 @@ void FOnlineAsyncTaskAccelByteUpdatePlayerAttributes::OnGetPlayerCrossplayPrivil
 
 	OnStorePlayerAttributesSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsV2PlayerAttributes>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteUpdatePlayerAttributes::OnStorePlayerAttributesSuccess);
 	OnStorePlayerAttributesErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteUpdatePlayerAttributes::OnStorePlayerAttributesError);;
-	API_CLIENT_CHECK_GUARD();
-	ApiClient->Session.StorePlayerAttributes(Request, OnStorePlayerAttributesSuccessDelegate, OnStorePlayerAttributesErrorDelegate);
+	API_FULL_CHECK_GUARD(Session);
+	Session->StorePlayerAttributes(Request, OnStorePlayerAttributesSuccessDelegate, OnStorePlayerAttributesErrorDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }

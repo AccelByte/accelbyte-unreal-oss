@@ -28,15 +28,15 @@ void FOnlineAsyncTaskAccelByteQueryOfferBySku::Initialize()
 	
 	OnSuccess = TDelegateUtils<THandler<FAccelByteModelsItemInfo>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryOfferBySku::HandleGetItemBySku);
 	OnError = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryOfferBySku::HandleAsyncTaskError);
-	API_CLIENT_CHECK_GUARD(ErrorMsg);
-	ApiClient->Item.GetItemBySku(Sku, Language, TEXT(""), OnSuccess, OnError, AutoCalcEstimatedPrice);
+	API_FULL_CHECK_GUARD(Item, ErrorMsg);
+	Item->GetItemBySku(Sku, Language, TEXT(""), OnSuccess, OnError, AutoCalcEstimatedPrice);
 	
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 
 void FOnlineAsyncTaskAccelByteQueryOfferBySku::Finalize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Finalized"));
 	Super::Finalize();

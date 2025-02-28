@@ -54,7 +54,7 @@ FOnlineAsyncTaskAccelByteQueryStatsUsers::FOnlineAsyncTaskAccelByteQueryStatsUse
 
 void FOnlineAsyncTaskAccelByteQueryStatsUsers::Initialize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::Initialize();
 	
@@ -125,8 +125,8 @@ void FOnlineAsyncTaskAccelByteQueryStatsUsers::Initialize()
 		}
 		else
 		{
-			API_CLIENT_CHECK_GUARD(ErrorMessage);
-			ApiClient->Statistic.GetUserStatItems(AccelByteUserId
+			API_FULL_CHECK_GUARD(Statistic, ErrorMessage);
+			Statistic->GetUserStatItems(AccelByteUserId
 				, StatNames
 				, {}
 				, OnGetUserStatItemsSuccessHandler
@@ -139,7 +139,7 @@ void FOnlineAsyncTaskAccelByteQueryStatsUsers::Initialize()
 
 void FOnlineAsyncTaskAccelByteQueryStatsUsers::Finalize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 	Super::Finalize();

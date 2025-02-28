@@ -26,7 +26,7 @@ FOnlineAsyncTaskAccelByteRefreshV2PartySession::FOnlineAsyncTaskAccelByteRefresh
 
 void FOnlineAsyncTaskAccelByteRefreshV2PartySession::Initialize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::Initialize();
 
@@ -35,23 +35,23 @@ void FOnlineAsyncTaskAccelByteRefreshV2PartySession::Initialize()
 	const TSharedPtr<FOnlineSessionV2AccelByte, ESPMode::ThreadSafe> SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(SubsystemPin->GetSessionInterface());
 	AB_ASYNC_TASK_VALIDATE(SessionInterface.IsValid(), "Could not refresh party session named '%s' as our session interface is invalid!", *SessionName.ToString());
 
-	FNamedOnlineSession* Session = SessionInterface->GetNamedSession(SessionName);
-	AB_ASYNC_TASK_VALIDATE(Session != nullptr, "Could not refresh party session named '%s' as the session does not exist locally!", *SessionName.ToString());
+	FNamedOnlineSession* OnlineSession = SessionInterface->GetNamedSession(SessionName);
+	AB_ASYNC_TASK_VALIDATE(OnlineSession != nullptr, "Could not refresh party session named '%s' as the session does not exist locally!", *SessionName.ToString());
 
-	const FString SessionId = Session->GetSessionIdStr();
+	const FString SessionId = OnlineSession->GetSessionIdStr();
 	AB_ASYNC_TASK_VALIDATE(!SessionId.Equals(TEXT("InvalidSession")), "Could not refresh party session named '%s' as there is not a valid session ID associated!", *SessionName.ToString());
 
 	OnRefreshPartySessionSuccessDelegate = AccelByte::TDelegateUtils<THandler<FAccelByteModelsV2PartySession>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteRefreshV2PartySession::OnRefreshPartySessionSuccess);
 	OnRefreshPartySessionErrorDelegate = AccelByte::TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteRefreshV2PartySession::OnRefreshPartySessionError);;
-	API_CLIENT_CHECK_GUARD();
-	ApiClient->Session.GetPartyDetails(SessionId, OnRefreshPartySessionSuccessDelegate, OnRefreshPartySessionErrorDelegate);
+	API_FULL_CHECK_GUARD(Session);
+	Session->GetPartyDetails(SessionId, OnRefreshPartySessionSuccessDelegate, OnRefreshPartySessionErrorDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 
 void FOnlineAsyncTaskAccelByteRefreshV2PartySession::Finalize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::Finalize();
 
@@ -75,7 +75,7 @@ void FOnlineAsyncTaskAccelByteRefreshV2PartySession::Finalize()
 
 void FOnlineAsyncTaskAccelByteRefreshV2PartySession::TriggerDelegates()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::TriggerDelegates();
 

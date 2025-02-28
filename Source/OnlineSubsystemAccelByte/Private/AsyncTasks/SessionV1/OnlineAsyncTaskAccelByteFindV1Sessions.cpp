@@ -56,8 +56,8 @@ void FOnlineAsyncTaskAccelByteFindV1Sessions::Initialize()
 
 	FString RegionName = TEXT("");
 	SearchSettings->QuerySettings.Get(SETTING_REGION, RegionName);
-	API_CLIENT_CHECK_GUARD();
-	ApiClient->SessionBrowser.GetGameSessions(SearchType, FString(""), OnSessionBrowserFindSuccessDelegate, OnSessionBrowserFindErrorDelegate, 0, SearchSettings->MaxSearchResults);
+	API_FULL_CHECK_GUARD(SessionBrowser);
+	SessionBrowser->GetGameSessions(SearchType, FString(""), OnSessionBrowserFindSuccessDelegate, OnSessionBrowserFindErrorDelegate, 0, SearchSettings->MaxSearchResults);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sent off task to find %s game sessions!"), *SearchType);
 }
@@ -81,7 +81,7 @@ void FOnlineAsyncTaskAccelByteFindV1Sessions::Finalize()
 
 void FOnlineAsyncTaskAccelByteFindV1Sessions::TriggerDelegates()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 
@@ -93,7 +93,7 @@ void FOnlineAsyncTaskAccelByteFindV1Sessions::TriggerDelegates()
 
 void FOnlineAsyncTaskAccelByteFindV1Sessions::OnSessionBrowserFindSuccess(const FAccelByteModelsSessionBrowserGetResult& Result)
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Session Count: %d"), Result.Sessions.Num());
 

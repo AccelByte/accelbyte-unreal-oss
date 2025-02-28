@@ -71,8 +71,8 @@ void FOnlineAsyncTaskAccelByteQueryUserAchievements::QueryAchievement(int32 Offs
 	const FErrorHandler OnError = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this,
 		&FOnlineAsyncTaskAccelByteQueryUserAchievements::HandleQueryAchievementError);
 
-	API_CLIENT_CHECK_GUARD();
-	ApiClient->Achievement.QueryUserAchievements(
+	API_FULL_CHECK_GUARD(Achievement);
+	Achievement->QueryUserAchievements(
 		RequestParameters.SortBy,
 		OnQueryAchievementSuccess,
 		OnError,
@@ -161,7 +161,7 @@ void FOnlineAsyncTaskAccelByteQueryUserAchievements::HandleQueryAchievementError
 
 void FOnlineAsyncTaskAccelByteQueryUserAchievements::Finalize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	const TSharedPtr<FOnlineAchievementsAccelByte, ESPMode::ThreadSafe> AchievementInterface =
 		StaticCastSharedPtr<FOnlineAchievementsAccelByte>(SubsystemPin->GetAchievementsInterface());

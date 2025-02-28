@@ -28,7 +28,7 @@ FOnlineAsyncTaskAccelByteCheckout::FOnlineAsyncTaskAccelByteCheckout(
 
 void FOnlineAsyncTaskAccelByteCheckout::Initialize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 	Super::Initialize();
@@ -72,8 +72,8 @@ void FOnlineAsyncTaskAccelByteCheckout::Initialize()
 
 	THandler<FAccelByteModelsOrderInfo> OnSuccess = TDelegateUtils<THandler<FAccelByteModelsOrderInfo>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteCheckout::HandleCheckoutComplete);
 	FErrorHandler OnError = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteCheckout::HandleAsyncTaskError);
-	API_CLIENT_CHECK_GUARD(ErrorMessage);
-	ApiClient->Order.CreateNewOrder(OrderRequest, OnSuccess, OnError);
+	API_FULL_CHECK_GUARD(Order, ErrorMessage);
+	Order->CreateNewOrder(OrderRequest, OnSuccess, OnError);
 
 	PaymentEventPayload.ItemId = OrderRequest.ItemId;
 	PaymentEventPayload.Price = OrderRequest.Price;
@@ -82,7 +82,7 @@ void FOnlineAsyncTaskAccelByteCheckout::Initialize()
 
 void FOnlineAsyncTaskAccelByteCheckout::Finalize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 	Super::Finalize();

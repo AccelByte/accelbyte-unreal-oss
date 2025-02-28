@@ -138,13 +138,13 @@ void FOnlineAsyncTaskAccelByteQueryUserProfile::QueryUserProfile(const TArray<FS
 {
 	auto OnQueryUsersProfileCompleteDelegate = TDelegateUtils<THandler<FAccelByteModelsPublicUserProfileInfoV2>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryUserProfile::OnQueryUsersProfileComplete);
 	auto OnQueryUserProfileErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryUserProfile::OnQueryUserProfileError);
-	API_CLIENT_CHECK_GUARD(ErrorStr);
-	ApiClient->UserProfile.BulkGetPublicUserProfileInfosV2(UserIds, OnQueryUsersProfileCompleteDelegate, OnQueryUserProfileErrorDelegate);
+	API_FULL_CHECK_GUARD(UserProfile, ErrorStr);
+	UserProfile->BulkGetPublicUserProfileInfosV2(UserIds, OnQueryUsersProfileCompleteDelegate, OnQueryUserProfileErrorDelegate);
 }
 
 void FOnlineAsyncTaskAccelByteQueryUserProfile::Finalize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 

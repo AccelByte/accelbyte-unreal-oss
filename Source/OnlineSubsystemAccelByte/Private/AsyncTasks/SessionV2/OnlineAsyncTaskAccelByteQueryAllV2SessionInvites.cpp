@@ -21,12 +21,12 @@ void FOnlineAsyncTaskAccelByteQueryAllV2SessionInvites::Initialize()
 
 	OnGetGameSessionInvitesSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsV2PaginatedGameSessionQueryResult>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryAllV2SessionInvites::OnGetGameSessionInvitesSuccess);
 	OnGetGameSessionInvitesErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryAllV2SessionInvites::OnGetGameSessionInvitesError);
-	API_CLIENT_CHECK_GUARD();
-	ApiClient->Session.GetMyGameSessions(OnGetGameSessionInvitesSuccessDelegate, OnGetGameSessionInvitesErrorDelegate, EAccelByteV2SessionMemberStatus::INVITED);
+	API_FULL_CHECK_GUARD(Session);
+	Session->GetMyGameSessions(OnGetGameSessionInvitesSuccessDelegate, OnGetGameSessionInvitesErrorDelegate, EAccelByteV2SessionMemberStatus::INVITED);
 
 	OnGetPartySessionInvitesSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsV2PaginatedPartyQueryResult>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryAllV2SessionInvites::OnGetPartySessionInvitesSuccess);
 	OnGetPartySessionInvitesErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryAllV2SessionInvites::OnGetPartySessionInvitesError);
-	ApiClient->Session.GetMyParties(OnGetPartySessionInvitesSuccessDelegate, OnGetPartySessionInvitesErrorDelegate, EAccelByteV2SessionMemberStatus::INVITED);
+	Session->GetMyParties(OnGetPartySessionInvitesSuccessDelegate, OnGetPartySessionInvitesErrorDelegate, EAccelByteV2SessionMemberStatus::INVITED);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
@@ -43,7 +43,7 @@ void FOnlineAsyncTaskAccelByteQueryAllV2SessionInvites::Tick()
 
 void FOnlineAsyncTaskAccelByteQueryAllV2SessionInvites::Finalize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
@@ -66,7 +66,7 @@ void FOnlineAsyncTaskAccelByteQueryAllV2SessionInvites::Finalize()
 
 void FOnlineAsyncTaskAccelByteQueryAllV2SessionInvites::TriggerDelegates()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
@@ -85,23 +85,23 @@ void FOnlineAsyncTaskAccelByteQueryAllV2SessionInvites::TriggerDelegates()
 
 void FOnlineAsyncTaskAccelByteQueryAllV2SessionInvites::OnGetGameSessionInvitesSuccess(const FAccelByteModelsV2PaginatedGameSessionQueryResult& Result)
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("GameSessionInviteCount: %d"), Result.Data.Num());
 
 	const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(SubsystemPin->GetSessionInterface());
 	AB_ASYNC_TASK_VALIDATE(SessionInterface.IsValid(), "Failed to construct game session invite instances as our session interface is invalid!");
 
-	for (const FAccelByteModelsV2GameSession& Session : Result.Data)
+	for (const FAccelByteModelsV2GameSession& GameSession : Result.Data)
 	{
 		API_CLIENT_CHECK_GUARD();
 		FOnlineSessionInviteAccelByte Invite{ApiClient->GetTimeManager()};
 		Invite.SessionType = EAccelByteV2SessionType::GameSession;
 		Invite.RecipientId = UserId;
 
-		if (!SessionInterface->ConstructGameSessionFromBackendSessionModel(Session, Invite.Session.Session))
+		if (!SessionInterface->ConstructGameSessionFromBackendSessionModel(GameSession, Invite.Session.Session))
 		{
-			UE_LOG_AB(Warning, TEXT("Failed to construct session result for invite to session '%s'!"), *Session.ID);
+			UE_LOG_AB(Warning, TEXT("Failed to construct session result for invite to session '%s'!"), *GameSession.ID);
 		}
 
 		// #TODO #SESSIONv2 Need a way to get the ID of the user who invited you to a session in the REST API
@@ -122,23 +122,23 @@ void FOnlineAsyncTaskAccelByteQueryAllV2SessionInvites::OnGetGameSessionInvitesE
 
 void FOnlineAsyncTaskAccelByteQueryAllV2SessionInvites::OnGetPartySessionInvitesSuccess(const FAccelByteModelsV2PaginatedPartyQueryResult& Result)
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("PartySessionInviteCount: %d"), Result.Data.Num());
 
 	const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(SubsystemPin->GetSessionInterface());
 	AB_ASYNC_TASK_VALIDATE(SessionInterface.IsValid(), "Failed to construct party session invite instances as our session interface is invalid!");
 
-	for (const FAccelByteModelsV2PartySession& Session : Result.Data)
+	for (const FAccelByteModelsV2PartySession& GameSession : Result.Data)
 	{
 		API_CLIENT_CHECK_GUARD();
 		FOnlineSessionInviteAccelByte Invite{ApiClient->GetTimeManager()};
 		Invite.SessionType = EAccelByteV2SessionType::PartySession;
 		Invite.RecipientId = UserId;
 
-		if (!SessionInterface->ConstructPartySessionFromBackendSessionModel(Session, Invite.Session.Session))
+		if (!SessionInterface->ConstructPartySessionFromBackendSessionModel(GameSession, Invite.Session.Session))
 		{
-			UE_LOG_AB(Warning, TEXT("Failed to construct session result for invite to session '%s'!"), *Session.ID);
+			UE_LOG_AB(Warning, TEXT("Failed to construct session result for invite to session '%s'!"), *GameSession.ID);
 		}
 
 		// #TODO #SESSIONv2 Need a way to get the ID of the user who invited you to a session in the REST API

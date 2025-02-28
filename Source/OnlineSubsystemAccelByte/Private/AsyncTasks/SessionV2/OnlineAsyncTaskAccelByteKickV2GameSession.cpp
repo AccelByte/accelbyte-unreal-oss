@@ -17,7 +17,7 @@ FOnlineAsyncTaskAccelByteKickV2GameSession::FOnlineAsyncTaskAccelByteKickV2GameS
 
 void FOnlineAsyncTaskAccelByteKickV2GameSession::Initialize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::Initialize();
 
@@ -31,21 +31,21 @@ void FOnlineAsyncTaskAccelByteKickV2GameSession::Initialize()
 		return;
 	}
 
-	const FNamedOnlineSession* Session = SessionInterface->GetNamedSession(SessionName);
-	if (Session == nullptr)
+	const FNamedOnlineSession* OnlineSession = SessionInterface->GetNamedSession(SessionName);
+	if (OnlineSession == nullptr)
 	{
 		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to kick player from game session as the session can't be found."), *SessionName.ToString());
 		CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState);
 		return;
 	}
 
-	GameSessionID = Session->GetSessionIdStr();
+	GameSessionID = OnlineSession->GetSessionIdStr();
 
 	const auto OnSuccessDelegate = TDelegateUtils<FVoidHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteKickV2GameSession::OnKickUserSuccess);
 	const auto OnErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteKickV2GameSession::OnKickUserError);
 
-	API_CLIENT_CHECK_GUARD();
-	ApiClient->Session.KickUserFromGameSession(GameSessionID, PlayerIdToKick->GetAccelByteId(), OnSuccessDelegate, OnErrorDelegate);
+	API_FULL_CHECK_GUARD(Session);
+	Session->KickUserFromGameSession(GameSessionID, PlayerIdToKick->GetAccelByteId(), OnSuccessDelegate, OnErrorDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
@@ -58,7 +58,7 @@ void FOnlineAsyncTaskAccelByteKickV2GameSession::Finalize()
 
 	if (bWasSuccessful)
 	{
-		TRY_PIN_SUBSYSTEM()
+		TRY_PIN_SUBSYSTEM();
 
 		const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(SubsystemPin->GetSessionInterface());
 		if (!ensure(SessionInterface.IsValid()))
@@ -79,7 +79,7 @@ void FOnlineAsyncTaskAccelByteKickV2GameSession::TriggerDelegates()
 
 	if (bWasSuccessful)
 	{
-		TRY_PIN_SUBSYSTEM()
+		TRY_PIN_SUBSYSTEM();
 
 		const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(SubsystemPin->GetSessionInterface());
 		if (!ensure(SessionInterface.IsValid()))

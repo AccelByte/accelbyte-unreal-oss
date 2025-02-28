@@ -25,7 +25,7 @@ FOnlineAsyncTaskAccelByteListUserStatItems::FOnlineAsyncTaskAccelByteListUserSta
 
 void FOnlineAsyncTaskAccelByteListUserStatItems::Initialize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::Initialize();
 
@@ -75,8 +75,8 @@ void FOnlineAsyncTaskAccelByteListUserStatItems::Initialize()
 				, &FOnlineAsyncTaskAccelByteListUserStatItems::OnListUserStatItemsError);
 
 			// Send off a request to query users, as well as connect our delegates for doing so
-			API_CLIENT_CHECK_GUARD(ErrorStr);
-			ApiClient->Statistic.ListUserStatItems({}
+			API_FULL_CHECK_GUARD(Statistic, ErrorStr);
+			Statistic->ListUserStatItems({}
 				, {}
 				, TEXT("")
 				, OnListUserStatItemsSuccessDelegate
@@ -89,7 +89,7 @@ void FOnlineAsyncTaskAccelByteListUserStatItems::Initialize()
 
 void FOnlineAsyncTaskAccelByteListUserStatItems::Finalize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::Finalize();
 
@@ -113,7 +113,7 @@ void FOnlineAsyncTaskAccelByteListUserStatItems::Finalize()
 
 void FOnlineAsyncTaskAccelByteListUserStatItems::TriggerDelegates()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s")
 		, LOG_BOOL_FORMAT(bWasSuccessful));
@@ -148,7 +148,7 @@ void FOnlineAsyncTaskAccelByteListUserStatItems::TriggerDelegates()
 
 void FOnlineAsyncTaskAccelByteListUserStatItems::OnListUserStatItemsSuccess(TArray<FAccelByteModelsFetchUser> const& Result)
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 

@@ -25,7 +25,7 @@ void FOnlineAsyncTaskAccelByteUpdateReservedPartyStorage::Initialize()
 {
 	Super::Initialize();
 
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(SubsystemPin->GetSessionInterface());
 	AB_ASYNC_TASK_VALIDATE(SessionInterface.IsValid(), "Failed to update party session as our session interface is invalid!");
@@ -37,8 +37,8 @@ void FOnlineAsyncTaskAccelByteUpdateReservedPartyStorage::Initialize()
 	OnUpdatePartyReservedStorageSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsV2PartySessionStorageReservedData>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteUpdateReservedPartyStorage::OnUpdatePartySessionSuccess);
 	OnUpdatePartyReservedStorageErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteUpdateReservedPartyStorage::OnUpdatePartySessionError);
 
-	API_CLIENT_CHECK_GUARD();
-	ApiClient->Session.StorePersonalDataToReservedPartySessionStorage
+	API_FULL_CHECK_GUARD(Session);
+	Session->StorePersonalDataToReservedPartySessionStorage
 		( PartySession->GetSessionIdStr()
 		, UserDataToStoreOnReservedStorage
 		, OnUpdatePartyReservedStorageSuccessDelegate

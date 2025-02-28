@@ -235,17 +235,41 @@ bool FOnlineIdentityAccelByte::Logout(int32 LocalUserNum, FString Reason)
 			return false;
 		}
 
+		const auto Lobby = ApiClient->GetLobbyApi().Pin();
+		if (!Lobby.IsValid())
+		{
+			UE_LOG_AB(Warning, TEXT("Failed to log out user %d as an Lobby API could not be found for them!"), LocalUserNum);
+			OnLogout(LocalUserNum, false);
+			return false;
+		}
+
+		const auto Chat = ApiClient->GetChatApi().Pin();
+		if (!Chat.IsValid())
+		{
+			UE_LOG_AB(Warning, TEXT("Failed to log out user %d as an Chat API could not be found for them!"), LocalUserNum);
+			OnLogout(LocalUserNum, false);
+			return false;
+		}
+
+		const auto User = ApiClient->GetUserApi().Pin();
+		if (!User.IsValid())
+		{
+			UE_LOG_AB(Warning, TEXT("Failed to log out user %d as an User API could not be found for them!"), LocalUserNum);
+			OnLogout(LocalUserNum, false);
+			return false;
+		}
+
 		// @todo multiuser Change this to logout the user based on LocalUserNum when SDK supports multiple user login
 		// NOTE(Maxwell, 4/8/2021): Logout automatically signals to the credential store to forget all credentials, so this is all we need to call
-		if (ApiClient->Lobby.IsConnected())
+		if (Lobby->IsConnected())
 		{
-			ApiClient->Lobby.Disconnect(true);
+			Lobby->Disconnect(true);
 		}
-		if (ApiClient->Chat.IsConnected())
+		if (Chat->IsConnected())
 		{
-			ApiClient->Chat.Disconnect();
+			Chat->Disconnect();
 		}
-		auto TaskWPtr = ApiClient->User.LogoutV3(OnLogoutSuccessDelegate, OnLogoutFailedDelegate);
+		auto TaskWPtr = User->LogoutV3(OnLogoutSuccessDelegate, OnLogoutFailedDelegate);
 		LocalUserNumToLogoutTask.Emplace(LocalUserNum, TaskWPtr);
 	}
 	else
@@ -902,10 +926,10 @@ void FOnlineIdentityAccelByte::SetAutoLoginCreateHeadless(bool bInIsAutoLoginCre
 void FOnlineIdentityAccelByte::AddNewAuthenticatedUser(int32 LocalUserNum, const TSharedRef<const FUniqueNetId>& UserId, const TSharedRef<FUserOnlineAccount>& Account)
 {
 	// Add to mappings for the user
-	LocalUserNumToNetIdMap.Add(LocalUserNum, UserId);
-	LocalUserNumToLoginStatusMap.Add(LocalUserNum, ELoginStatus::NotLoggedIn);
-	NetIdToLocalUserNumMap.Add(UserId, LocalUserNum);
-	NetIdToOnlineAccountMap.Add(UserId, Account);
+	LocalUserNumToNetIdMap.Emplace(LocalUserNum, UserId);
+	LocalUserNumToLoginStatusMap.Emplace(LocalUserNum, ELoginStatus::NotLoggedIn);
+	NetIdToLocalUserNumMap.Emplace(UserId, LocalUserNum);
+	NetIdToOnlineAccountMap.Emplace(UserId, Account);
 }
 
 #define ONLINE_ERROR_NAMESPACE "FOnlineAccelByteLogout"

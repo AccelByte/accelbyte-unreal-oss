@@ -25,15 +25,15 @@ void FOnlineAsyncTaskAccelByteQueryActiveSections::Initialize()
 
 	OnListActiveSectionContentsSuccessDelegate = TDelegateUtils<THandler<TArray<FAccelByteModelsSectionInfo>>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryActiveSections::OnListActiveSectionContentsSuccess);
 	OnListActiveSectionContentsErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryActiveSections::OnListActiveSectionContentsError);
-	API_CLIENT_CHECK_GUARD(ErrorMsg);
-	ApiClient->StoreDisplay.ListActiveSectionContents(StoreId, ViewId, Region, Language, OnListActiveSectionContentsSuccessDelegate, OnListActiveSectionContentsErrorDelegate);
+	API_FULL_CHECK_GUARD(StoreDisplay, ErrorMsg);
+	StoreDisplay->ListActiveSectionContents(StoreId, ViewId, Region, Language, OnListActiveSectionContentsSuccessDelegate, OnListActiveSectionContentsErrorDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 
 void FOnlineAsyncTaskAccelByteQueryActiveSections::Finalize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 	FOnlineAsyncTaskAccelByte::Finalize();

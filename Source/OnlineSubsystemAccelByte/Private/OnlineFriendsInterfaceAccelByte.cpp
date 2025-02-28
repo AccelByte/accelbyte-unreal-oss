@@ -539,36 +539,36 @@ void FOnlineFriendsAccelByte::RegisterRealTimeLobbyDelegates(int32 LocalUserNum)
 		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
 		return;
 	}
-	
-	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystemPtr->GetIdentityInterface());
-	if (!IdentityInterface.IsValid())
-	{
-		UE_LOG_AB(Warning, TEXT("Failed to register real-time lobby as an identity interface instance could not be retrieved!"));
-		return;
-	}
 
-	AccelByte::FApiClientPtr ApiClient = IdentityInterface->GetApiClient(LocalUserNum);
+	AccelByte::FApiClientPtr ApiClient = AccelByteSubsystemPtr->GetApiClient(LocalUserNum);
 	if (!ApiClient.IsValid())
 	{
 		UE_LOG_AB(Warning, TEXT("Failed to register real-time lobby as an Api client could not be retrieved for user num %d!"), LocalUserNum);
 		return;
 	}
 
+	const auto Lobby = ApiClient->GetLobbyApi().Pin();
+	if (!Lobby.IsValid())
+	{
+		UE_LOG_AB(Warning, TEXT("Failed to register real-time lobby as an Lobby Api could not be retrieved for user num %d!"), LocalUserNum);
+		return;
+	}
+
 	// Set each delegate for the corresponding API client to be a new realtime delegate
 	AccelByte::Api::Lobby::FAcceptFriendsNotif OnFriendRequestAcceptedNotificationReceivedDelegate = AccelByte::Api::Lobby::FAcceptFriendsNotif::CreateThreadSafeSP(AsShared(), &FOnlineFriendsAccelByte::OnFriendRequestAcceptedNotificationReceived, LocalUserNum);
-	ApiClient->Lobby.SetOnFriendRequestAcceptedNotifDelegate(OnFriendRequestAcceptedNotificationReceivedDelegate);
+	Lobby->SetOnFriendRequestAcceptedNotifDelegate(OnFriendRequestAcceptedNotificationReceivedDelegate);
 
 	AccelByte::Api::Lobby::FRequestFriendsNotif OnFriendRequestReceivedNotificationReceivedDelegate = AccelByte::Api::Lobby::FRequestFriendsNotif::CreateThreadSafeSP(AsShared(), &FOnlineFriendsAccelByte::OnFriendRequestReceivedNotificationReceived, LocalUserNum);
-	ApiClient->Lobby.SetOnIncomingRequestFriendsNotifDelegate(OnFriendRequestReceivedNotificationReceivedDelegate);
+	Lobby->SetOnIncomingRequestFriendsNotifDelegate(OnFriendRequestReceivedNotificationReceivedDelegate);
 
 	AccelByte::Api::Lobby::FUnfriendNotif OnUnfriendNotificationReceivedDelegate = AccelByte::Api::Lobby::FUnfriendNotif::CreateThreadSafeSP(AsShared(), &FOnlineFriendsAccelByte::OnUnfriendNotificationReceived, LocalUserNum);
-	ApiClient->Lobby.SetOnUnfriendNotifDelegate(OnUnfriendNotificationReceivedDelegate);
+	Lobby->SetOnUnfriendNotifDelegate(OnUnfriendNotificationReceivedDelegate);
 
 	AccelByte::Api::Lobby::FRejectFriendsNotif OnRejectFriendRequestNotificationReceivedDelegate = AccelByte::Api::Lobby::FRejectFriendsNotif::CreateThreadSafeSP(AsShared(), &FOnlineFriendsAccelByte::OnRejectFriendRequestNotificationReceived, LocalUserNum);
-	ApiClient->Lobby.SetOnRejectFriendsNotifDelegate(OnRejectFriendRequestNotificationReceivedDelegate);
+	Lobby->SetOnRejectFriendsNotifDelegate(OnRejectFriendRequestNotificationReceivedDelegate);
 
 	AccelByte::Api::Lobby::FCancelFriendsNotif OnCancelFriendRequestNotificationReceivedDelegate = AccelByte::Api::Lobby::FCancelFriendsNotif::CreateThreadSafeSP(AsShared(), &FOnlineFriendsAccelByte::OnCancelFriendRequestNotificationReceived, LocalUserNum);
-	ApiClient->Lobby.SetOnCancelFriendsNotifDelegate(OnCancelFriendRequestNotificationReceivedDelegate);
+	Lobby->SetOnCancelFriendsNotifDelegate(OnCancelFriendRequestNotificationReceivedDelegate);
 
 	// Update the friend presence
 	const FOnlinePresenceAccelBytePtr PresenceInterface = StaticCastSharedPtr<FOnlinePresenceAccelByte>(AccelByteSubsystemPtr->GetPresenceInterface());

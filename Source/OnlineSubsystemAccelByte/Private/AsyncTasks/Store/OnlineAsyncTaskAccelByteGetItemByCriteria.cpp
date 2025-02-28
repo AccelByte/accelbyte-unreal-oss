@@ -41,8 +41,8 @@ void FOnlineAsyncTaskAccelByteGetItemByCriteria::Initialize()
 		(this, &FOnlineAsyncTaskAccelByteGetItemByCriteria::HandleSuccess);
 	const FErrorHandler& OnError = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr
 		(this, &FOnlineAsyncTaskAccelByteGetItemByCriteria::HandleError);
-	API_CLIENT_CHECK_GUARD(ErrorMessage);
-	ApiClient->Item.GetItemsByCriteria(ItemCriteria, Offset, Limit, OnSuccess, OnError, SortBy, StoreId, AutoCalcEstimatedPrice);
+	API_FULL_CHECK_GUARD(Item, ErrorMessage);
+	Item->GetItemsByCriteria(ItemCriteria, Offset, Limit, OnSuccess, OnError, SortBy, StoreId, AutoCalcEstimatedPrice);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
@@ -58,7 +58,7 @@ void FOnlineAsyncTaskAccelByteGetItemByCriteria::Finalize()
 
 void FOnlineAsyncTaskAccelByteGetItemByCriteria::TriggerDelegates()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Trigger Delegates"));
 	

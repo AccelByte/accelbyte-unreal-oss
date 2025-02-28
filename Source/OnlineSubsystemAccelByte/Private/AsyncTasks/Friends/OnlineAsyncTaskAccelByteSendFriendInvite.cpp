@@ -49,8 +49,8 @@ void FOnlineAsyncTaskAccelByteSendFriendInvite::Initialize()
 
 		const THandler<FAccelByteModelsPublicUserProfileInfo> OnGetUserByFriendCodeSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsPublicUserProfileInfo>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteSendFriendInvite::OnGetUserByFriendCodeSuccess);
 		const FCustomErrorHandler OnGetUserByFriendCodeErrorDelegate = TDelegateUtils<FCustomErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteSendFriendInvite::OnGetUserByFriendCodeError);
-		API_CLIENT_CHECK_GUARD(ErrorStr);
-		ApiClient->UserProfile.GetUserProfilePublicInfoByPublicId(FriendCode, OnGetUserByFriendCodeSuccessDelegate, OnGetUserByFriendCodeErrorDelegate);
+		API_FULL_CHECK_GUARD(UserProfile, ErrorStr);
+		UserProfile->GetUserProfilePublicInfoByPublicId(FriendCode, OnGetUserByFriendCodeSuccessDelegate, OnGetUserByFriendCodeErrorDelegate);
 	}
 	else
 	{
@@ -64,7 +64,7 @@ void FOnlineAsyncTaskAccelByteSendFriendInvite::Initialize()
 
 void FOnlineAsyncTaskAccelByteSendFriendInvite::Finalize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
@@ -88,7 +88,7 @@ void FOnlineAsyncTaskAccelByteSendFriendInvite::Finalize()
 
 void FOnlineAsyncTaskAccelByteSendFriendInvite::TriggerDelegates()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
@@ -103,7 +103,7 @@ void FOnlineAsyncTaskAccelByteSendFriendInvite::TriggerDelegates()
 
 void FOnlineAsyncTaskAccelByteSendFriendInvite::OnGetUserByFriendCodeSuccess(const FAccelByteModelsPublicUserProfileInfo& Result)
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("FriendCode: %s, UserId: %s"), *FriendCode, *Result.UserId);
 
@@ -149,7 +149,7 @@ void FOnlineAsyncTaskAccelByteSendFriendInvite::OnGetUserByFriendCodeError(int32
 
 void FOnlineAsyncTaskAccelByteSendFriendInvite::QueryInvitedFriend(const FString& InFriendId)
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	FOnlineUserCacheAccelBytePtr UserStore = SubsystemPin->GetUserCache();
 	if (!UserStore.IsValid())
@@ -180,8 +180,8 @@ void FOnlineAsyncTaskAccelByteSendFriendInvite::OnQueryInvitedFriendComplete(boo
 		// Send the actual request to send the friend request
 		OnSendFriendRequestSuccessDelegate = TDelegateUtils<FVoidHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteSendFriendInvite::OnSendFriendRequestSuccess);
 		OnSendFriendRequestFailedDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteSendFriendInvite::OnSendFriendRequestError);
-		API_CLIENT_CHECK_GUARD(ErrorStr);
-		ApiClient->Lobby.SendFriendRequest(User->Id->GetAccelByteId(), OnSendFriendRequestSuccessDelegate, OnSendFriendRequestFailedDelegate);
+		API_FULL_CHECK_GUARD(Lobby, ErrorStr);
+		Lobby->SendFriendRequest(User->Id->GetAccelByteId(), OnSendFriendRequestSuccessDelegate, OnSendFriendRequestFailedDelegate);
 	}
 	else
 	{

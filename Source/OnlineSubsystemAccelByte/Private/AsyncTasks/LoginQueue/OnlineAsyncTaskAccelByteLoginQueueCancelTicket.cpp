@@ -21,7 +21,7 @@ FOnlineAsyncTaskAccelByteLoginQueueCancelTicket::FOnlineAsyncTaskAccelByteLoginQ
 
 void FOnlineAsyncTaskAccelByteLoginQueueCancelTicket::Initialize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("LoginUserNum: %d, ticketId: %s"), LoginUserNum, *TicketId);
 
@@ -44,19 +44,19 @@ void FOnlineAsyncTaskAccelByteLoginQueueCancelTicket::Initialize()
 		SetApiClient(AccelByteInstance->GetApiClient());
 	}
 	
-	API_CLIENT_CHECK_GUARD(ErrorStr);
+	API_FULL_CHECK_GUARD(LoginQueue, ErrorStr);
 
 	OnCancelTicketSuccessHandler = TDelegateUtils<FVoidHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteLoginQueueCancelTicket::OnCancelTicketSuccess);
 	OnCancelTicketErrorHandler = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteLoginQueueCancelTicket::OnCancelTicketError);
 
-	ApiClient->LoginQueue.CancelTicket(TicketId, OnCancelTicketSuccessHandler, OnCancelTicketErrorHandler);
+	LoginQueue->CancelTicket(TicketId, OnCancelTicketSuccessHandler, OnCancelTicketErrorHandler);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 
 void FOnlineAsyncTaskAccelByteLoginQueueCancelTicket::Finalize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("LoginUserNum: %d, ticketId: %s, bWasSuccessful: %s"), LoginUserNum, *TicketId, bWasSuccessful? TEXT("True") : TEXT("False"));
 
@@ -80,7 +80,7 @@ void FOnlineAsyncTaskAccelByteLoginQueueCancelTicket::Finalize()
 
 void FOnlineAsyncTaskAccelByteLoginQueueCancelTicket::TriggerDelegates()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("LoginUserNum: %d, ticketId: %s, bWasSuccessful: %s"), LoginUserNum, *TicketId, bWasSuccessful? TEXT("True") : TEXT("False"));
 

@@ -1030,14 +1030,11 @@ void FOnlinePartySystemAccelByte::OnPartyDataChangeNotification(const FAccelByte
 					AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Failed to request party code on leader change, AccelByteSubsystem ptr is invalid"));
 					return;
 				}
-				const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystemPtr->GetIdentityInterface());
-				if (IdentityInterface.IsValid())
+
+				if (Member->GetUserId() == LeaderMember->GetUserId() && AccelByteSubsystemPtr->GetApiClient(LeaderMemberId.Get()).IsValid())
 				{
-					if (Member->GetUserId() == LeaderMember->GetUserId() && IdentityInterface->GetApiClient(LeaderMemberId.Get()).IsValid())
-					{
-						FOnPartyCodeGenerated Delegate = FOnPartyCodeGenerated::CreateRaw(this, &FOnlinePartySystemAccelByte::OnPromotedLeaderGetPartyCode);
-						AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGetV1PartyCode>(AccelByteSubsystemPtr.Get(), LeaderMemberId, Notification.PartyId, Delegate);
-					}
+					FOnPartyCodeGenerated Delegate = FOnPartyCodeGenerated::CreateRaw(this, &FOnlinePartySystemAccelByte::OnPromotedLeaderGetPartyCode);
+					AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGetV1PartyCode>(AccelByteSubsystemPtr.Get(), LeaderMemberId, Notification.PartyId, Delegate);
 				}
 			}
 		}
@@ -1170,44 +1167,45 @@ void FOnlinePartySystemAccelByte::RegisterRealTimeLobbyDelegates(const TSharedRe
 		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Failed to register lobby delegates, AccelByteSubsystem ptr is invalid"));
 		return;
 	}
-	
-	const TSharedPtr<FOnlineIdentityAccelByte, ESPMode::ThreadSafe> IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystemPtr->GetIdentityInterface());
-	if (!IdentityInterface.IsValid())
-	{
-		return;
-	}
 
 	// Get our identity interface to retrieve the API client for this user
-	AccelByte::FApiClientPtr ApiClient = IdentityInterface->GetApiClient(UserId.Get());
+	AccelByte::FApiClientPtr ApiClient = AccelByteSubsystemPtr->GetApiClient(UserId.Get());
 	if (!ApiClient.IsValid())
 	{
 		UE_LOG_AB(Warning, TEXT("Failed to register real-time lobby as an API client could not be retrieved for user '%s'"), *(UserId->ToDebugString()))
 		return;
 	}
 
+	const auto Lobby = ApiClient->GetLobbyApi().Pin();
+	if (!Lobby.IsValid())
+	{
+		UE_LOG_AB(Warning, TEXT("Failed to register real-time lobby as an Lobby API could not be retrieved for user '%s'"), *(UserId->ToDebugString()))
+		return;
+	}
+
 	AccelByte::Api::Lobby::FPartyGetInvitedNotif OnReceivedPartyInviteNotifDelegate = AccelByte::Api::Lobby::FPartyGetInvitedNotif::CreateThreadSafeSP(AsShared(), &FOnlinePartySystemAccelByte::OnReceivedPartyInviteNotification, UserId);
-	ApiClient->Lobby.SetPartyGetInvitedNotifDelegate(OnReceivedPartyInviteNotifDelegate);
+	Lobby->SetPartyGetInvitedNotifDelegate(OnReceivedPartyInviteNotifDelegate);
 
 	AccelByte::Api::Lobby::FPartyInviteNotif OnPartyInviteSentNotifDelegate = AccelByte::Api::Lobby::FPartyInviteNotif::CreateThreadSafeSP(AsShared(), &FOnlinePartySystemAccelByte::OnPartyInviteSentNotification, UserId);
-	ApiClient->Lobby.SetPartyInviteNotifDelegate(OnPartyInviteSentNotifDelegate);
+	Lobby->SetPartyInviteNotifDelegate(OnPartyInviteSentNotifDelegate);
 
 	AccelByte::Api::Lobby::FPartyJoinNotif OnPartyJoinNotificationDelegate = AccelByte::Api::Lobby::FPartyJoinNotif::CreateThreadSafeSP(AsShared(), &FOnlinePartySystemAccelByte::OnPartyJoinNotification, UserId);
-	ApiClient->Lobby.SetPartyJoinNotifDelegate(OnPartyJoinNotificationDelegate);
+	Lobby->SetPartyJoinNotifDelegate(OnPartyJoinNotificationDelegate);
 
 	AccelByte::Api::Lobby::FPartyMemberLeaveNotif OnPartyMemberLeaveNotificationDelegate = AccelByte::Api::Lobby::FPartyMemberLeaveNotif::CreateThreadSafeSP(AsShared(), &FOnlinePartySystemAccelByte::OnPartyMemberLeaveNotification, UserId);
-	ApiClient->Lobby.SetPartyMemberLeaveNotifDelegate(OnPartyMemberLeaveNotificationDelegate);
+	Lobby->SetPartyMemberLeaveNotifDelegate(OnPartyMemberLeaveNotificationDelegate);
 
 	AccelByte::Api::Lobby::FPartyKickNotif OnPartyKickNotificationDelegate = AccelByte::Api::Lobby::FPartyKickNotif::CreateThreadSafeSP(AsShared(), &FOnlinePartySystemAccelByte::OnPartyKickNotification, UserId);
-	ApiClient->Lobby.SetPartyKickNotifDelegate(OnPartyKickNotificationDelegate);
+	Lobby->SetPartyKickNotifDelegate(OnPartyKickNotificationDelegate);
 
 	AccelByte::Api::Lobby::FPartyDataUpdateNotif OnPartyDataChangeNotificationDelegate = AccelByte::Api::Lobby::FPartyDataUpdateNotif::CreateThreadSafeSP(AsShared(), &FOnlinePartySystemAccelByte::OnPartyDataChangeNotification, UserId);
-	ApiClient->Lobby.SetPartyDataUpdateResponseDelegate(OnPartyDataChangeNotificationDelegate);
+	Lobby->SetPartyDataUpdateResponseDelegate(OnPartyDataChangeNotificationDelegate);
 
 	AccelByte::Api::Lobby::FPartyMemberConnectNotif OnPartyMemberConnectNotificationDelegate = AccelByte::Api::Lobby::FPartyMemberConnectNotif::CreateThreadSafeSP(AsShared(), &FOnlinePartySystemAccelByte::OnPartyMemberConnectNotification, UserId);
-	ApiClient->Lobby.SetPartyMemberConnectNotifDelegate(OnPartyMemberConnectNotificationDelegate);
+	Lobby->SetPartyMemberConnectNotifDelegate(OnPartyMemberConnectNotificationDelegate);
 	
 	AccelByte::Api::Lobby::FPartyMemberConnectNotif OnPartyMemberDisconnectNotificationDelegate = AccelByte::Api::Lobby::FPartyMemberDisconnectNotif::CreateThreadSafeSP(AsShared(), &FOnlinePartySystemAccelByte::OnPartyMemberDisconnectNotification, UserId);
-	ApiClient->Lobby.SetPartyMemberDisconnectNotifDelegate(OnPartyMemberDisconnectNotificationDelegate);
+	Lobby->SetPartyMemberDisconnectNotifDelegate(OnPartyMemberDisconnectNotificationDelegate);
 	
 	FOnPartyJoinedDelegate PartyJoinedDelegate = FOnPartyJoinedDelegate::CreateThreadSafeSP(this, &FOnlinePartySystemAccelByte::OnPartyJoinedComplete);
 	AddOnPartyJoinedDelegate_Handle(PartyJoinedDelegate);
@@ -1901,18 +1899,19 @@ bool FOnlinePartySystemAccelByte::RejectInvitation(const FUniqueNetId& LocalUser
 
 	TSharedRef<const FUniqueNetIdAccelByteUser> LocalUserIdAccelByte = FUniqueNetIdAccelByteUser::CastChecked(LocalUserId);
 	TSharedRef<const FUniqueNetIdAccelByteUser> SenderIdAccelByte = FUniqueNetIdAccelByteUser::CastChecked(SenderId);
-	
-	const TSharedPtr<FOnlineIdentityAccelByte, ESPMode::ThreadSafe> IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystemPtr->GetIdentityInterface());
-	if (!IdentityInterface.IsValid())
-	{
-		return false;
-	}
 
 	// Get API client for user to reject party invite
-	AccelByte::FApiClientPtr ApiClient = IdentityInterface->GetApiClient(LocalUserId);
+	AccelByte::FApiClientPtr ApiClient = AccelByteSubsystemPtr->GetApiClient(LocalUserId);
 	if (!ApiClient.IsValid())
 	{
 		UE_LOG_AB(Warning, TEXT("Failed to reject invitation as an API client could not be retrieved for user '%s'"), *(LocalUserId.ToDebugString()))
+		return false;
+	}
+
+	const auto Lobby = ApiClient->GetLobbyApi().Pin();
+	if (!Lobby.IsValid())
+	{
+		UE_LOG_AB(Warning, TEXT("Failed to reject invitation as an Lobby API could not be retrieved for user '%s'"), *(LocalUserId.ToDebugString()))
 		return false;
 	}
 
@@ -1922,7 +1921,7 @@ bool FOnlinePartySystemAccelByte::RejectInvitation(const FUniqueNetId& LocalUser
 	if (Invite.IsValid())
 	{
 		// Send off a request to reject the invitation on the backend as well as remove the invite from our local cache
-		ApiClient->Lobby.SendRejectInvitationRequest(Invite->PartyId->ToString(), Invite->InviteToken);
+		Lobby->SendRejectInvitationRequest(Invite->PartyId->ToString(), Invite->InviteToken);
 		RemoveInviteForParty(LocalUserIdAccelByte, SenderIdAccelByte, EPartyInvitationRemovedReason::Declined);
 	}
 	return true;

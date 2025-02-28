@@ -34,14 +34,14 @@ void FOnlineAsyncTaskAccelByteRedeemCode::Initialize()
 	THandler<FAccelByteModelsFulfillmentResult> OnSuccess = TDelegateUtils<THandler<FAccelByteModelsFulfillmentResult>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteRedeemCode::HandleRedeemCodeComplete);
 	FErrorHandler OnError = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteRedeemCode::HandleAsyncTaskError);
 	FString ONLINE_ERROR_NAMESPACE = "FOnlineAsyncTaskAccelByteRedeemCode";
-	API_CLIENT_CHECK_GUARD(Error);
-	ApiClient->Fulfillment.RedeemCode(RedeemCodeRequest.Code, TEXT(""), Language, OnSuccess, OnError);
+	API_FULL_CHECK_GUARD(Fulfillment, Error);
+	Fulfillment->RedeemCode(RedeemCodeRequest.Code, TEXT(""), Language, OnSuccess, OnError);
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 
 void FOnlineAsyncTaskAccelByteRedeemCode::Finalize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 	FOnlineAsyncTaskAccelByte::Finalize();
@@ -89,7 +89,7 @@ void FOnlineAsyncTaskAccelByteRedeemCode::TriggerDelegates()
 
 void FOnlineAsyncTaskAccelByteRedeemCode::HandleRedeemCodeComplete(const FAccelByteModelsFulfillmentResult& Result)
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	for (const auto& Entitlement : Result.EntitlementSummaries)
 	{

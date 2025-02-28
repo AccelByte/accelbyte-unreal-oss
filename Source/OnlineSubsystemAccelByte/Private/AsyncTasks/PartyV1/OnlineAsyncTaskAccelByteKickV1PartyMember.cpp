@@ -21,7 +21,7 @@ FOnlineAsyncTaskAccelByteKickV1PartyMember::FOnlineAsyncTaskAccelByteKickV1Party
 
 void FOnlineAsyncTaskAccelByteKickV1PartyMember::Initialize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::Initialize();
 
@@ -56,16 +56,16 @@ void FOnlineAsyncTaskAccelByteKickV1PartyMember::Initialize()
 	}
 
 	AccelByte::Api::Lobby::FPartyKickResponse OnKickPartyMemberResponseDelegate = TDelegateUtils<AccelByte::Api::Lobby::FPartyKickResponse>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteKickV1PartyMember::OnKickPartyMemberResponse);
-	API_CLIENT_CHECK_GUARD();
-	ApiClient->Lobby.SetInvitePartyKickMemberResponseDelegate(OnKickPartyMemberResponseDelegate);
-	ApiClient->Lobby.SendKickPartyMemberRequest(TargetMemberId->GetAccelByteId());
+	API_FULL_CHECK_GUARD(Lobby);
+	Lobby->SetInvitePartyKickMemberResponseDelegate(OnKickPartyMemberResponseDelegate);
+	Lobby->SendKickPartyMemberRequest(TargetMemberId->GetAccelByteId());
 	
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sent request to kick a member from a party."));
 }
 
 void FOnlineAsyncTaskAccelByteKickV1PartyMember::Finalize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 

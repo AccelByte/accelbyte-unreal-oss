@@ -22,7 +22,7 @@ FOnlineAsyncTaskAccelByteUnregisterPlayersV1::FOnlineAsyncTaskAccelByteUnregiste
 
 void FOnlineAsyncTaskAccelByteUnregisterPlayersV1::Initialize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::Initialize();
 
@@ -89,8 +89,8 @@ void FOnlineAsyncTaskAccelByteUnregisterPlayersV1::Initialize()
 			SERVER_API_CLIENT_CHECK_GUARD();
 			ServerApiClient->ServerSessionBrowser.UnregisterPlayer(SessionId, Player->GetAccelByteId(), OnUnregisterPlayerFromSessionSuccessDelegate, OnUnregisterPlayerFromSessionErrorDelegate);
 #else
-			API_CLIENT_CHECK_GUARD();
-			ApiClient->SessionBrowser.UnregisterPlayer(SessionId, Player->GetAccelByteId(), OnUnregisterPlayerFromSessionSuccessDelegate, OnUnregisterPlayerFromSessionErrorDelegate);
+			API_FULL_CHECK_GUARD(SessionBrowser);
+			SessionBrowser->UnregisterPlayer(SessionId, Player->GetAccelByteId(), OnUnregisterPlayerFromSessionSuccessDelegate, OnUnregisterPlayerFromSessionErrorDelegate);
 #endif
 		}
 		else
@@ -113,7 +113,7 @@ void FOnlineAsyncTaskAccelByteUnregisterPlayersV1::Tick()
 
 void FOnlineAsyncTaskAccelByteUnregisterPlayersV1::TriggerDelegates()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 

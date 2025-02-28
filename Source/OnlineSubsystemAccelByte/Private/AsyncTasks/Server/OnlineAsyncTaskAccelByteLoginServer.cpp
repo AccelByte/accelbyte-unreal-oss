@@ -33,7 +33,7 @@ void FOnlineAsyncTaskAccelByteLoginServer::Initialize()
 
 void FOnlineAsyncTaskAccelByteLoginServer::Finalize()
 {
-    TRY_PIN_SUBSYSTEM()
+    TRY_PIN_SUBSYSTEM();
 
     AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
@@ -55,7 +55,7 @@ void FOnlineAsyncTaskAccelByteLoginServer::Finalize()
 
 void FOnlineAsyncTaskAccelByteLoginServer::TriggerDelegates()
 {
-    TRY_PIN_SUBSYSTEM()
+    TRY_PIN_SUBSYSTEM();
 
     AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 	
@@ -75,7 +75,7 @@ void FOnlineAsyncTaskAccelByteLoginServer::TriggerDelegates()
 
 void FOnlineAsyncTaskAccelByteLoginServer::OnLoginServerSuccess()
 {
-    TRY_PIN_SUBSYSTEM()
+    TRY_PIN_SUBSYSTEM();
 
     AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 

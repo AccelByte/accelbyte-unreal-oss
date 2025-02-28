@@ -23,7 +23,7 @@ FOnlineAsyncTaskAccelByteAcceptFriendInvite::FOnlineAsyncTaskAccelByteAcceptFrie
 
 void FOnlineAsyncTaskAccelByteAcceptFriendInvite::Initialize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::Initialize();
 
@@ -47,8 +47,8 @@ void FOnlineAsyncTaskAccelByteAcceptFriendInvite::Initialize()
 			// Since this friend is a valid pointer and is a pending inbound invite, then we want to send a request to accept their invite
 			OnAcceptFriendRequestSuccessDelegate = TDelegateUtils<FVoidHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteAcceptFriendInvite::OnAcceptFriendRequestSuccess);
 			OnAcceptFriendRequestFailedDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteAcceptFriendInvite::OnAcceptFriendRequestFailed);
-			API_CLIENT_CHECK_GUARD(ErrorStr);
-			ApiClient->Lobby.AcceptFriendRequest(FriendId->GetAccelByteId(), OnAcceptFriendRequestSuccessDelegate, OnAcceptFriendRequestFailedDelegate);
+			API_FULL_CHECK_GUARD(Lobby, ErrorStr);
+			Lobby->AcceptFriendRequest(FriendId->GetAccelByteId(), OnAcceptFriendRequestSuccessDelegate, OnAcceptFriendRequestFailedDelegate);
 			AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sent request through lobby websocket to accept a friend request."));
 		}
 		else
@@ -68,7 +68,7 @@ void FOnlineAsyncTaskAccelByteAcceptFriendInvite::Initialize()
 
 void FOnlineAsyncTaskAccelByteAcceptFriendInvite::Finalize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
@@ -93,7 +93,7 @@ void FOnlineAsyncTaskAccelByteAcceptFriendInvite::Finalize()
 
 void FOnlineAsyncTaskAccelByteAcceptFriendInvite::TriggerDelegates()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 	
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 	
@@ -111,7 +111,7 @@ void FOnlineAsyncTaskAccelByteAcceptFriendInvite::TriggerDelegates()
 
 void FOnlineAsyncTaskAccelByteAcceptFriendInvite::OnAcceptFriendRequestSuccess()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""))
 	Super::ExecuteCriticalSectionAction(FVoidHandler::CreateLambda([&]()
@@ -130,7 +130,7 @@ void FOnlineAsyncTaskAccelByteAcceptFriendInvite::OnAcceptFriendRequestFailed(in
 
 void FOnlineAsyncTaskAccelByteAcceptFriendInvite::OnGetUserPresenceComplete(const FUniqueNetId& TargetUserId, const bool bGetPresenceSuccess)
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	TSharedPtr<FOnlineUserPresence> Presence;
 	SubsystemPin->GetPresenceInterface()->GetCachedPresence(TargetUserId, Presence);

@@ -16,7 +16,7 @@ FOnlineAsyncTaskAccelByteGenerateNewV2GameCode::FOnlineAsyncTaskAccelByteGenerat
 
 void FOnlineAsyncTaskAccelByteGenerateNewV2GameCode::Initialize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::Initialize();
 
@@ -25,10 +25,10 @@ void FOnlineAsyncTaskAccelByteGenerateNewV2GameCode::Initialize()
 	FOnlineSessionV2AccelBytePtr SessionInterface = nullptr;
 	AB_ASYNC_TASK_VALIDATE(FOnlineSessionV2AccelByte::GetFromSubsystem(SubsystemPin.Get(),  SessionInterface), "Failed to get session interface for generating game code!");
 
-	FNamedOnlineSession* Session = SessionInterface->GetNamedSession(SessionName);
-	AB_ASYNC_TASK_VALIDATE(Session != nullptr, "Failed to get named session for generating game code!");
+	FNamedOnlineSession* OnlineSession = SessionInterface->GetNamedSession(SessionName);
+	AB_ASYNC_TASK_VALIDATE(OnlineSession != nullptr, "Failed to get named session for generating game code!");
 
-	const FString SessionId = Session->GetSessionIdStr();
+	const FString SessionId = OnlineSession->GetSessionIdStr();
 	AB_ASYNC_TASK_VALIDATE(!SessionId.Equals(TEXT("InvalidSession"), ESearchCase::IgnoreCase), "Named session used to generate new game code has invalid game ID!");
 
 	OnGenerateNewCodeSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsV2GameSession>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteGenerateNewV2GameCode::OnGenerateNewCodeSuccess);
@@ -41,8 +41,8 @@ void FOnlineAsyncTaskAccelByteGenerateNewV2GameCode::Initialize()
 	}
 	else
 	{
-		API_CLIENT_CHECK_GUARD();
-		ApiClient->Session.GenerateNewGameSessionCode(SessionId, OnGenerateNewCodeSuccessDelegate, OnGenerateNewCodeErrorDelegate);
+		API_FULL_CHECK_GUARD(Session);
+		Session->GenerateNewGameSessionCode(SessionId, OnGenerateNewCodeSuccessDelegate, OnGenerateNewCodeErrorDelegate);
 	}
 	
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
@@ -50,7 +50,7 @@ void FOnlineAsyncTaskAccelByteGenerateNewV2GameCode::Initialize()
 
 void FOnlineAsyncTaskAccelByteGenerateNewV2GameCode::Finalize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::Finalize();
 

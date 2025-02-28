@@ -21,7 +21,7 @@ FOnlineAsyncTaskAccelByteUpdateV1GameSession::FOnlineAsyncTaskAccelByteUpdateV1G
 
 void FOnlineAsyncTaskAccelByteUpdateV1GameSession::Initialize()
 {
-    TRY_PIN_SUBSYSTEM()
+    TRY_PIN_SUBSYSTEM();
 
     Super::Initialize();
 
@@ -56,15 +56,15 @@ void FOnlineAsyncTaskAccelByteUpdateV1GameSession::Initialize()
         UE_LOG_AB(Error, TEXT("Failed to update session '%s' from backend! Error code: %d; Error message: %s"), *SessionName.ToString(), ErrorCode, *ErrorMessage);
     });
 
-    API_CLIENT_CHECK_GUARD();
-    ApiClient->SessionBrowser.UpdateGameSession(SessionId, UpdatedSessionSettings.NumPublicConnections, CurrentPlayer, OnUpdateGameSessionSuccessDelegate, OnUpdateGameSessionErrorDelegate);
+    API_FULL_CHECK_GUARD(SessionBrowser);
+    SessionBrowser->UpdateGameSession(SessionId, UpdatedSessionSettings.NumPublicConnections, CurrentPlayer, OnUpdateGameSessionSuccessDelegate, OnUpdateGameSessionErrorDelegate);
 
     AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sent off task to update %s game sessions!"), *SessionName.ToString());
 }
 
 void FOnlineAsyncTaskAccelByteUpdateV1GameSession::TriggerDelegates()
 {
-    TRY_PIN_SUBSYSTEM()
+    TRY_PIN_SUBSYSTEM();
 
     AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 

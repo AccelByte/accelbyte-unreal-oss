@@ -44,8 +44,8 @@ void FOnlineAsyncTaskAccelByteFindV2PartyById::Initialize()
 	}
 	else
 	{
-		API_CLIENT_CHECK_GUARD();
-		ApiClient->Session.GetPartyDetails(SessionId->ToString()
+		API_FULL_CHECK_GUARD(Session);
+		Session->GetPartyDetails(SessionId->ToString()
 			, OnGetPartySessionDetailsSuccessDelegate
 			, OnGetPartySessionDetailsErrorDelegate);
 	}
@@ -55,7 +55,7 @@ void FOnlineAsyncTaskAccelByteFindV2PartyById::Initialize()
 
 void FOnlineAsyncTaskAccelByteFindV2PartyById::Finalize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
     AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 

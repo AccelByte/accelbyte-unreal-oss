@@ -40,9 +40,9 @@ void FOnlineAsyncTaskAccelByteSyncIOSAppStore::Initialize()
 
     FVoidHandler OnSyncPlatformPurchaseSuccessDelegate = TDelegateUtils<FVoidHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteSyncIOSAppStore::OnSyncPlatformPurchaseSuccess);
 	FErrorHandler OnSyncPlatformPurchaseErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteSyncIOSAppStore::OnSyncPlatformPurchaseError);
-	API_CLIENT_CHECK_GUARD(Error);
+	API_FULL_CHECK_GUARD(Entitlement, Error);
 
-	ApiClient->Entitlement.SyncMobilePlatformPurchaseApple(SyncRequest, OnSyncPlatformPurchaseSuccessDelegate, OnSyncPlatformPurchaseErrorDelegate);
+	Entitlement->SyncMobilePlatformPurchaseApple(SyncRequest, OnSyncPlatformPurchaseSuccessDelegate, OnSyncPlatformPurchaseErrorDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }

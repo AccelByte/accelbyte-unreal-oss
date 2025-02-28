@@ -21,7 +21,7 @@ FOnlineAsyncTaskAccelByteGetAdminGameRecord::FOnlineAsyncTaskAccelByteGetAdminGa
 
 void FOnlineAsyncTaskAccelByteGetAdminGameRecord::Initialize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::Initialize();
 
@@ -74,7 +74,7 @@ void FOnlineAsyncTaskAccelByteGetAdminGameRecord::Initialize()
 
 void FOnlineAsyncTaskAccelByteGetAdminGameRecord::TriggerDelegates()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
@@ -95,7 +95,7 @@ void FOnlineAsyncTaskAccelByteGetAdminGameRecord::TriggerDelegates()
 
 void FOnlineAsyncTaskAccelByteGetAdminGameRecord::OnGetAdminGameRecordSuccess(const FAccelByteModelsAdminGameRecord& Result)
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 

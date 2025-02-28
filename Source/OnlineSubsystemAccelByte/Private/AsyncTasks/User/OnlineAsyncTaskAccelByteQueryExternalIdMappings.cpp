@@ -29,8 +29,8 @@ void FOnlineAsyncTaskAccelByteQueryExternalIdMappings::BulkGetUserByOtherPlatfor
 {
 	const THandler<FBulkPlatformUserIdResponse> OnBulkGetUserByOtherPlatformIdsSuccessDelegate = TDelegateUtils<THandler<FBulkPlatformUserIdResponse>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryExternalIdMappings::OnBulkGetUserByOtherPlatformIdsSuccess);
 	const FErrorHandler OnBulkGetUserByOtherPlatformIdsErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryExternalIdMappings::OnBulkGetUserByOtherPlatformIdsError);
-	API_CLIENT_CHECK_GUARD(ErrorStr);
-	ApiClient->User.BulkGetUserByOtherPlatformUserIdsV4(static_cast<EAccelBytePlatformType>(PlatformTypeEnumValue), InUserIds, OnBulkGetUserByOtherPlatformIdsSuccessDelegate, OnBulkGetUserByOtherPlatformIdsErrorDelegate);
+	API_FULL_CHECK_GUARD(User, ErrorStr);
+	User->BulkGetUserByOtherPlatformUserIdsV4(static_cast<EAccelBytePlatformType>(PlatformTypeEnumValue), InUserIds, OnBulkGetUserByOtherPlatformIdsSuccessDelegate, OnBulkGetUserByOtherPlatformIdsErrorDelegate);
 }
 
 void FOnlineAsyncTaskAccelByteQueryExternalIdMappings::Initialize()
@@ -70,7 +70,7 @@ void FOnlineAsyncTaskAccelByteQueryExternalIdMappings::Initialize()
 
 void FOnlineAsyncTaskAccelByteQueryExternalIdMappings::Finalize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 
@@ -111,7 +111,7 @@ void FOnlineAsyncTaskAccelByteQueryExternalIdMappings::OnBulkGetUserByOtherPlatf
 		return;
 	}
 
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	for (const FPlatformUserIdMap& Mapping : Result.UserIdPlatforms)
 	{

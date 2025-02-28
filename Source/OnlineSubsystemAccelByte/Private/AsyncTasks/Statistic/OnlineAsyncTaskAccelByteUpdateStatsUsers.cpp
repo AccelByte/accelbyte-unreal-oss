@@ -50,7 +50,7 @@ FOnlineAsyncTaskAccelByteUpdateStatsUsers::FOnlineAsyncTaskAccelByteUpdateStatsU
 
 void FOnlineAsyncTaskAccelByteUpdateStatsUsers::Initialize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::Initialize();
 	
@@ -92,7 +92,7 @@ void FOnlineAsyncTaskAccelByteUpdateStatsUsers::Initialize()
 
 void FOnlineAsyncTaskAccelByteUpdateStatsUsers::Finalize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::Finalize();
 	

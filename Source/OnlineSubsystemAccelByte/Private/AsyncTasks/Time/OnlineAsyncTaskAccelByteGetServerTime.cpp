@@ -50,7 +50,7 @@ void FOnlineAsyncTaskAccelByteGetServerTime::Initialize()
 
 void FOnlineAsyncTaskAccelByteGetServerTime::TriggerDelegates() 
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
@@ -65,7 +65,7 @@ void FOnlineAsyncTaskAccelByteGetServerTime::TriggerDelegates()
 
 void FOnlineAsyncTaskAccelByteGetServerTime::HandleGetServerTimeSuccess(FTime const& Result)
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	const FOnlineTimeAccelBytePtr TimeInterface =  StaticCastSharedPtr<FOnlineTimeAccelByte>(SubsystemPin->GetTimeInterface());
 	if (TimeInterface.IsValid())

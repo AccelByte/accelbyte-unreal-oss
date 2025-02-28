@@ -24,11 +24,11 @@ void FOnlineAsyncTaskAccelByteSyncMetaQuestIAP::Initialize()
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("UserID: %s, LocalUserNum: %d"), *UserId->ToDebugString(), LocalUserNum);
 
-	API_CLIENT_CHECK_GUARD(OnlineError);
+	API_FULL_CHECK_GUARD(Entitlement, OnlineError);
 
 	const THandler<TArray<FAccelByteModelsSyncOculusConsumableEntitlementInfo>> OnSuccess = TDelegateUtils<THandler<TArray<FAccelByteModelsSyncOculusConsumableEntitlementInfo>>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteSyncMetaQuestIAP::OnSyncOculusConsumableEntitlementsSuccess);
 	const FErrorHandler OnError = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteSyncMetaQuestIAP::OnSyncOculusConsumableEntitlementsFailed);
-	ApiClient->Entitlement.SyncOculusConsumableEntitlements(OnSuccess, OnError);
+	Entitlement->SyncOculusConsumableEntitlements(OnSuccess, OnError);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }

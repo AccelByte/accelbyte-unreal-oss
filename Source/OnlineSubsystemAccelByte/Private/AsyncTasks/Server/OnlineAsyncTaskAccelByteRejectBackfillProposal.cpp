@@ -32,7 +32,7 @@ void FOnlineAsyncTaskAccelByteRejectBackfillProposal::Initialize()
 
 void FOnlineAsyncTaskAccelByteRejectBackfillProposal::Finalize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::Finalize();
 

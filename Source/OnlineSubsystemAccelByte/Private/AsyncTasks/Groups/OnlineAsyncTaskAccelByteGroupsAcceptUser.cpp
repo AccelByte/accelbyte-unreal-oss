@@ -32,8 +32,8 @@ void FOnlineAsyncTaskAccelByteGroupsAcceptUser::Initialize()
 	OnSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsMemberRequestGroupResponse>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteGroupsAcceptUser::OnAcceptUserSuccess);
 	OnErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteGroupsAcceptUser::OnAcceptUserError);
 
-	API_CLIENT_CHECK_GUARD(ErrorString);
-	ApiClient->Group.AcceptV2GroupJoinRequest(MemberId->GetAccelByteId(), GroupId, OnSuccessDelegate, OnErrorDelegate);
+	API_FULL_CHECK_GUARD(Group, ErrorString);
+	Group->AcceptV2GroupJoinRequest(MemberId->GetAccelByteId(), GroupId, OnSuccessDelegate, OnErrorDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
@@ -52,7 +52,7 @@ void FOnlineAsyncTaskAccelByteGroupsAcceptUser::TriggerDelegates()
 
 void FOnlineAsyncTaskAccelByteGroupsAcceptUser::Finalize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::Finalize();
 

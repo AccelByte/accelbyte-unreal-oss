@@ -61,7 +61,7 @@ void FOnlineAsyncTaskAccelByteSendReadyToAMS::TriggerDelegates()
 
 void FOnlineAsyncTaskAccelByteSendReadyToAMS::Finalize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
@@ -91,7 +91,7 @@ void FOnlineAsyncTaskAccelByteSendReadyToAMS::Finalize()
 
 void FOnlineAsyncTaskAccelByteSendReadyToAMS::OnAMSConnectSuccess()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 

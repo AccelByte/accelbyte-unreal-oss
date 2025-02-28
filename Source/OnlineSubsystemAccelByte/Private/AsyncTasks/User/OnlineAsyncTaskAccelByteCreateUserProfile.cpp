@@ -28,7 +28,7 @@ FOnlineAsyncTaskAccelByteCreateUserProfile::FOnlineAsyncTaskAccelByteCreateUserP
 
 void FOnlineAsyncTaskAccelByteCreateUserProfile::Initialize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::Initialize();
 
@@ -82,7 +82,7 @@ void FOnlineAsyncTaskAccelByteCreateUserProfile::Initialize()
 
 void FOnlineAsyncTaskAccelByteCreateUserProfile::Finalize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	if (bWasSuccessful && UserProfileUpdatedFieldsPayload.JsonObject.IsValid())
 	{
@@ -96,7 +96,7 @@ void FOnlineAsyncTaskAccelByteCreateUserProfile::Finalize()
 
 void FOnlineAsyncTaskAccelByteCreateUserProfile::TriggerDelegates()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("UserId: %s; bWasSuccessful: %s"), *UserId->ToString(), LOG_BOOL_FORMAT(bWasSuccessful));
 
@@ -110,7 +110,7 @@ void FOnlineAsyncTaskAccelByteCreateUserProfile::TriggerDelegates()
 
 void FOnlineAsyncTaskAccelByteCreateUserProfile::OnCreateUserProfileSuccess(const FAccelByteModelsUserProfileInfo& Result)
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 
@@ -165,8 +165,8 @@ void FOnlineAsyncTaskAccelByteCreateUserProfile::CreateUserProfile()
 	// setting extra attributes for the user
 	OnCreateProfileSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsUserProfileInfo>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteCreateUserProfile::OnCreateUserProfileSuccess);
 	OnCreateProfileErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteCreateUserProfile::OnCreateUserProfileError);
-	API_CLIENT_CHECK_GUARD(ErrorString);
-	ApiClient->UserProfile.CreateUserProfile(CreateRequest, OnCreateProfileSuccessDelegate, OnCreateProfileErrorDelegate);
+	API_FULL_CHECK_GUARD(UserProfile, ErrorString);
+	UserProfile->CreateUserProfile(CreateRequest, OnCreateProfileSuccessDelegate, OnCreateProfileErrorDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Fired off request to create a new default user profile for user '%s'!"), *UserId->ToDebugString());
 }

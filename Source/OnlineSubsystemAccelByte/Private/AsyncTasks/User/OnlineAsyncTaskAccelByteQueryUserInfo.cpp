@@ -23,7 +23,7 @@ FOnlineAsyncTaskAccelByteQueryUserInfo::FOnlineAsyncTaskAccelByteQueryUserInfo
 
 void FOnlineAsyncTaskAccelByteQueryUserInfo::Initialize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::Initialize();
 
@@ -78,7 +78,7 @@ void FOnlineAsyncTaskAccelByteQueryUserInfo::Initialize()
 
 void FOnlineAsyncTaskAccelByteQueryUserInfo::Finalize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 

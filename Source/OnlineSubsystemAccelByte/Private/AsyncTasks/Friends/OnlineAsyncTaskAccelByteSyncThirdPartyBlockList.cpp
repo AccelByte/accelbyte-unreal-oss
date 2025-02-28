@@ -32,8 +32,8 @@ void FOnlineAsyncTaskAccelByteSyncThirdPartyBlockList::Initialize()
 	}
 
 	AB_ASYNC_TASK_DEFINE_SDK_DELEGATES(FOnlineAsyncTaskAccelByteSyncThirdPartyBlockList, SyncThirdPartyBlockList, THandler<TArray<FAccelByteModelsSyncThirdPartyBlockListResponse>>);
-	API_CLIENT_CHECK_GUARD(ErrorStr);
-	ApiClient->Lobby.SyncThirdPartyBlockList(SyncRequest
+	API_FULL_CHECK_GUARD(Lobby, ErrorStr);
+	Lobby->SyncThirdPartyBlockList(SyncRequest
 		, OnSyncThirdPartyBlockListSuccessDelegate
 		, OnSyncThirdPartyBlockListErrorDelegate);
 
@@ -42,7 +42,7 @@ void FOnlineAsyncTaskAccelByteSyncThirdPartyBlockList::Initialize()
 
 void FOnlineAsyncTaskAccelByteSyncThirdPartyBlockList::TriggerDelegates()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s, ErrorMessage: %s"), LOG_BOOL_FORMAT(bWasSuccessful), *ErrorStr);
 

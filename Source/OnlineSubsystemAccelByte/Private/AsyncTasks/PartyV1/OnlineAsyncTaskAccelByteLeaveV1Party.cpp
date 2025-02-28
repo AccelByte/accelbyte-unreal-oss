@@ -21,7 +21,7 @@ FOnlineAsyncTaskAccelByteLeaveV1Party::FOnlineAsyncTaskAccelByteLeaveV1Party(FOn
 
 void FOnlineAsyncTaskAccelByteLeaveV1Party::Initialize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::Initialize();
 
@@ -69,9 +69,9 @@ void FOnlineAsyncTaskAccelByteLeaveV1Party::Initialize()
 		SessionInt->CancelMatchmakingNotification();
 
 		AccelByte::Api::Lobby::FPartyLeaveResponse OnLeavePartyResponseDelegate = TDelegateUtils<AccelByte::Api::Lobby::FPartyLeaveResponse>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteLeaveV1Party::OnLeavePartyResponse);
-		API_CLIENT_CHECK_GUARD();
-		ApiClient->Lobby.SetLeavePartyResponseDelegate(OnLeavePartyResponseDelegate);
-		ApiClient->Lobby.SendLeavePartyRequest();
+		API_FULL_CHECK_GUARD(Lobby);
+		Lobby->SetLeavePartyResponseDelegate(OnLeavePartyResponseDelegate);
+		Lobby->SendLeavePartyRequest();
 	}
 	// If we aren't synchronizing the party leave to the backend, then we can consider this task successful as we just
 	// have to clear the local cache of parties
@@ -86,7 +86,7 @@ void FOnlineAsyncTaskAccelByteLeaveV1Party::Initialize()
 
 void FOnlineAsyncTaskAccelByteLeaveV1Party::Finalize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
@@ -118,7 +118,7 @@ void FOnlineAsyncTaskAccelByteLeaveV1Party::Finalize()
 
 void FOnlineAsyncTaskAccelByteLeaveV1Party::TriggerDelegates()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 

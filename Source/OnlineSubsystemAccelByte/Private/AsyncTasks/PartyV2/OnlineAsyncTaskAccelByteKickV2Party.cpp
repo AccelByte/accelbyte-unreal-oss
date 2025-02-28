@@ -20,7 +20,7 @@ FOnlineAsyncTaskAccelByteKickV2Party::FOnlineAsyncTaskAccelByteKickV2Party(FOnli
 
 void FOnlineAsyncTaskAccelByteKickV2Party::Initialize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::Initialize();
 
@@ -29,20 +29,20 @@ void FOnlineAsyncTaskAccelByteKickV2Party::Initialize()
 	const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(SubsystemPin->GetSessionInterface());
 	AB_ASYNC_TASK_VALIDATE(SessionInterface.IsValid(), "Failed to kick player from party as our session interface is invalid!");
 
-	FNamedOnlineSession* Session = SessionInterface->GetPartySession();
-	AB_ASYNC_TASK_VALIDATE(Session != nullptr, "Failed to kick player from party as we do not have a party session stored locally!");
+	FNamedOnlineSession* OnlineSession = SessionInterface->GetPartySession();
+	AB_ASYNC_TASK_VALIDATE(OnlineSession != nullptr, "Failed to kick player from party as we do not have a party session stored locally!");
 
 	OnKickUserFromPartySuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsV2PartySession>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteKickV2Party::OnKickUserFromPartySuccess);
 	OnKickUserFromPartyErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteKickV2Party::OnKickUserFromPartyError);
-	API_CLIENT_CHECK_GUARD();
-	ApiClient->Session.KickUserFromParty(Session->GetSessionIdStr(), PlayerIdToKick->GetAccelByteId(), OnKickUserFromPartySuccessDelegate, OnKickUserFromPartyErrorDelegate);
+	API_FULL_CHECK_GUARD(Session);
+	Session->KickUserFromParty(OnlineSession->GetSessionIdStr(), PlayerIdToKick->GetAccelByteId(), OnKickUserFromPartySuccessDelegate, OnKickUserFromPartyErrorDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 
 void FOnlineAsyncTaskAccelByteKickV2Party::Finalize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
@@ -72,7 +72,7 @@ void FOnlineAsyncTaskAccelByteKickV2Party::Finalize()
 
 void FOnlineAsyncTaskAccelByteKickV2Party::TriggerDelegates()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 

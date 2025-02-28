@@ -21,18 +21,18 @@ void FOnlineAsyncTaskAccelByteEnableMfaAuthenticator::Initialize()
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("UserId: %s"), *UserId->ToDebugString());
 
-	API_CLIENT_CHECK_GUARD(OnlineError);
+	API_FULL_CHECK_GUARD(User, OnlineError);
 
 	const auto OnSuccessDelegate = TDelegateUtils<FVoidHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteEnableMfaAuthenticator::OnEnableMfaAuthenticatorSuccess);
 	const auto OnErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteEnableMfaAuthenticator::OnEnableMfaAuthenticatorError);
-	ApiClient->User.Enable2FaAuthenticator(OnSuccessDelegate, OnErrorDelegate, Code);
+	User->Enable2FaAuthenticator(OnSuccessDelegate, OnErrorDelegate, Code);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""))
 }
 
 void FOnlineAsyncTaskAccelByteEnableMfaAuthenticator::TriggerDelegates()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::TriggerDelegates();
 

@@ -26,7 +26,7 @@ FOnlineAsyncTaskAccelByteDeleteUserRecord::FOnlineAsyncTaskAccelByteDeleteUserRe
 
 void FOnlineAsyncTaskAccelByteDeleteUserRecord::Initialize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::Initialize();
 
@@ -62,8 +62,8 @@ void FOnlineAsyncTaskAccelByteDeleteUserRecord::Initialize()
 	}
 	else
 	{
-		API_CLIENT_CHECK_GUARD(ErrorStr);
-		ApiClient->CloudSave.DeleteUserRecord(Key, OnDeleteUserRecordSuccessDelegate, OnDeleteUserRecordErrorDelegate);
+		API_FULL_CHECK_GUARD(CloudSave,ErrorStr);
+		CloudSave->DeleteUserRecord(Key, OnDeleteUserRecordSuccessDelegate, OnDeleteUserRecordErrorDelegate);
 	}
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
@@ -71,7 +71,7 @@ void FOnlineAsyncTaskAccelByteDeleteUserRecord::Initialize()
 
 void FOnlineAsyncTaskAccelByteDeleteUserRecord::Finalize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = SubsystemPin->GetPredefinedEventInterface();
 	if (bWasSuccessful && PredefinedEventInterface.IsValid())
@@ -85,7 +85,7 @@ void FOnlineAsyncTaskAccelByteDeleteUserRecord::Finalize()
 
 void FOnlineAsyncTaskAccelByteDeleteUserRecord::TriggerDelegates()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 

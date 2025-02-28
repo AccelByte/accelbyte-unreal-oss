@@ -45,7 +45,7 @@ void FOnlineAsyncTaskAccelByteSendFreeFormNotification::TriggerDelegates()
 
 void FOnlineAsyncTaskAccelByteSendFreeFormNotification::SendFreeFormNotification()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Sending notification!"));
 
@@ -59,8 +59,8 @@ void FOnlineAsyncTaskAccelByteSendFreeFormNotification::SendFreeFormNotification
 		FVoidHandler OnSuccess = TDelegateUtils<FVoidHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteSendFreeFormNotification::OnSendFreeFormNotificationSuccess);
 		FErrorHandler OnError = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteSendFreeFormNotification::OnSendFreeFormNotificationError);
 
-		API_CLIENT_CHECK_GUARD();
-		ApiClient->Lobby.SendNotificationToUser(Receiver, Request, true, OnSuccess, OnError);
+		API_FULL_CHECK_GUARD(Lobby);
+		Lobby->SendNotificationToUser(Receiver, Request, true, OnSuccess, OnError);
 	}
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sent off the notification!"));

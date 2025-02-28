@@ -81,6 +81,7 @@
 #include "AsyncTasks/SessionV2/OnlineAsyncTaskAccelByteQueryGameSessionHistories.h"
 #include "AsyncTasks/SessionV2/OnlineAsyncTaskAccelByteKickV2GameSession.h"
 #include "AsyncTasks/Server/OnlineAsyncTaskAccelByteServerKickV2GameSession.h"
+#include "AsyncTasks/SessionV2/OnlineAsyncTaskAccelByteRefreshV2ActiveSessions.h"
 #include "AsyncTasks/SessionV2/OnlineAsyncTaskAccelByteRefreshActiveSessions.h"
 
 using namespace AccelByte;
@@ -926,7 +927,7 @@ void FOnlineSessionV2AccelByte::OnMatchTicketCheckGetSessionInfoById(int32 Local
 	}
 	const FUniqueNetId& SearchingPlayerId = CurrentMatchmakingSearchHandle->GetSearchingPlayerId().ToSharedRef().Get();
 
-	const FApiClientPtr ApiClient = IdentityInterface->GetApiClient(SearchingPlayerId);
+	const FApiClientPtr ApiClient = AccelByteSubsystemPtr->GetApiClient(SearchingPlayerId);
 	if (!ensure(ApiClient.IsValid()))
 	{
 		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Log, TEXT("failed to check matchmaking progress as ApiClient of the searching player %s is invalid!"), *SearchingPlayerId.ToDebugString());
@@ -1004,7 +1005,7 @@ void FOnlineSessionV2AccelByte::OnMatchTicketCheckGetMatchTicketDetails(
 	}
 	const FUniqueNetId& SearchingPlayerId = CurrentMatchmakingSearchHandle->GetSearchingPlayerId().ToSharedRef().Get();
 
-	const FApiClientPtr ApiClient = IdentityInterface->GetApiClient(SearchingPlayerId);
+	const FApiClientPtr ApiClient = AccelByteSubsystemPtr->GetApiClient(SearchingPlayerId);
 	if (!ensure(ApiClient.IsValid()))
 	{
 		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Log, TEXT("failed to check matchmaking progress as ApiClient of the searching player %s is invalid!"), *SearchingPlayerId.ToDebugString());
@@ -1126,15 +1127,8 @@ void FOnlineSessionV2AccelByte::SendDSStatusChangedNotif(const int32 LocalUserNu
 		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Failed to send session server notification AccelByte subsystem is invalid"));
 		return;
 	}
-	
-	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystemPtr->GetIdentityInterface());
-	if (!ensure(IdentityInterface.IsValid()))
-	{
-		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(VeryVerbose, TEXT("Failed to send session server notification as our identity interface is invalid!"));
-		return;
-	}
 
-	const FApiClientPtr ApiClient = IdentityInterface->GetApiClient(LocalUserNum);
+	const FApiClientPtr ApiClient = AccelByteSubsystemPtr->GetApiClient(LocalUserNum);
 	if(!ensure(ApiClient.IsValid()))
 	{
 		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(VeryVerbose, TEXT("Failed to check session server notification as ApiClient for LocalUserNum %d is invalid!"), LocalUserNum);
@@ -1216,15 +1210,8 @@ void FOnlineSessionV2AccelByte::SendSessionInviteNotif(int32 LocalUserNum, const
 		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Failed to send session invite notif AccelByte subsystem is invalid"));
 		return;
 	}
-	
-	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystemPtr->GetIdentityInterface());
-	if (!ensure(IdentityInterface.IsValid()))
-	{
-		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(VeryVerbose, TEXT("Failed to send session server notification as our identity interface is invalid!"));
-		return;
-	}
 
-	const FApiClientPtr ApiClient = IdentityInterface->GetApiClient(LocalUserNum);
+	const FApiClientPtr ApiClient = AccelByteSubsystemPtr->GetApiClient(LocalUserNum);
 	if(!ensure(ApiClient.IsValid()))
 	{
 		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(VeryVerbose, TEXT("Failed to check session server notification as ApiClient for LocalUserNum %d is invalid!"), LocalUserNum);
@@ -1436,7 +1423,7 @@ void FOnlineSessionV2AccelByte::OnSessionServerCheckGetSession(int LocalUserNum,
 		return;
 	}
 
-	const FApiClientPtr ApiClient = IdentityInterface->GetApiClient(LocalUserNum);
+	const FApiClientPtr ApiClient = AccelByteSubsystemPtr->GetApiClient(LocalUserNum);
 	if(!ApiClient.IsValid())
 	{
 		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(VeryVerbose, TEXT("Failed to check session server as ApiClient for LocalUserNum %d is invalid!"), LocalUserNum);
@@ -1634,17 +1621,24 @@ void FOnlineSessionV2AccelByte::RegisterSessionNotificationDelegates(const FUniq
 		return;
 	}
 
-	AccelByte::FApiClientPtr ApiClient = InstanceIdentityInterface->GetApiClient(PlayerId);
+	AccelByte::FApiClientPtr ApiClient = AccelByteSubsystemPtr->GetApiClient(PlayerId);
 	if (!ensure(ApiClient.IsValid()))
 	{
 		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to register notifications for session updates as player '%s' has an invalid API client!"), *PlayerId.ToDebugString());
 		return;
 	}
 
+	const auto Lobby = ApiClient->GetLobbyApi().Pin();
+	if (!ensure(Lobby.IsValid()))
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to register notifications for session updates as player '%s' has an invalid Lobby API!"), *PlayerId.ToDebugString());
+		return;
+	}
+
 	#define BIND_LOBBY_NOTIFICATION(NotificationDelegateName, Verb) \
 		typedef AccelByte::Api::Lobby::FV2##NotificationDelegateName##Notif F##Verb##NotificationDelegate; \
 		const F##Verb##NotificationDelegate On##Verb##NotificationDelegate = F##Verb##NotificationDelegate::CreateThreadSafeSP(SharedThis(this), &FOnlineSessionV2AccelByte::On##Verb##Notification, LocalUserNum); \
-		ApiClient->Lobby.SetV2##NotificationDelegateName##NotifDelegate(On##Verb##NotificationDelegate); \
+		Lobby->SetV2##NotificationDelegateName##NotifDelegate(On##Verb##NotificationDelegate); \
 
 	// Begin Game Session Notifications
 	BIND_LOBBY_NOTIFICATION(GameSessionInvited, InvitedToGameSession);
@@ -1657,7 +1651,7 @@ void FOnlineSessionV2AccelByte::RegisterSessionNotificationDelegates(const FUniq
 	BIND_LOBBY_NOTIFICATION(GameSessionJoined, GameSessionJoined);
 
 	const THandler<FAccelByteModelsV2GameSessionInviteCanceledEvent> OnGameSessionInviteCanceled = THandler<FAccelByteModelsV2GameSessionInviteCanceledEvent>::CreateThreadSafeSP(SharedThis(this), &FOnlineSessionV2AccelByte::OnGameSessionInviteCanceledNotification, LocalUserNum);
-	OnGameSessionInviteCanceledHandle = ApiClient->Lobby.AddV2GameSessionInviteCanceledNotifDelegate(OnGameSessionInviteCanceled);
+	OnGameSessionInviteCanceledHandle = Lobby->AddV2GameSessionInviteCanceledNotifDelegate(OnGameSessionInviteCanceled);
 	//~ End Game Session Notifications
 
 	// Begin Party Session Notifications
@@ -1668,9 +1662,9 @@ void FOnlineSessionV2AccelByte::RegisterSessionNotificationDelegates(const FUniq
 	BIND_LOBBY_NOTIFICATION(PartyKicked, KickedFromPartySession);
 	BIND_LOBBY_NOTIFICATION(PartyRejected, PartySessionInviteRejected);
 	const THandler<FAccelByteModelsV2PartyInviteCanceledEvent> OnPartyInviteCanceled = THandler<FAccelByteModelsV2PartyInviteCanceledEvent>::CreateThreadSafeSP(SharedThis(this), &FOnlineSessionV2AccelByte::OnPartySessionInviteCanceledNotification, LocalUserNum);
-	OnPartyInviteCanceledHandle = ApiClient->Lobby.AddV2PartyInviteCanceledNotifDelegate(OnPartyInviteCanceled);
+	OnPartyInviteCanceledHandle = Lobby->AddV2PartyInviteCanceledNotifDelegate(OnPartyInviteCanceled);
 	const THandler<FAccelByteModelsV2PartyCreatedEvent> OnPartyCreatedNotification = THandler<FAccelByteModelsV2PartyCreatedEvent>::CreateThreadSafeSP(SharedThis(this), &FOnlineSessionV2AccelByte::OnPartySessionCreatedNotification, LocalUserNum);
-	OnPartyCreatedHandle = ApiClient->Lobby.AddV2PartyCreatedNotifDelegate(OnPartyCreatedNotification);
+	OnPartyCreatedHandle = Lobby->AddV2PartyCreatedNotifDelegate(OnPartyCreatedNotification);
 	//~ End Party Session Notifications
 
 	// Begin Matchmaking Notifications
@@ -2990,20 +2984,13 @@ void FOnlineSessionV2AccelByte::ConnectToJoinedP2PSession(FName SessionName, EOn
 	FAccelByteNetworkUtilitiesModule::Get().RegisterDefaultSocketSubsystem();
 
 	// Now, grab the API client for the user that is setting up P2P and run set up in the module
-	FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystemPtr->GetIdentityInterface());
-	if (!ensure(IdentityInterface.IsValid()))
-	{
-		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to connect to P2P socket for session as our identity interface is invalid!"));
-		return;
-	}
-
 	if (!ensure(Session->LocalOwnerId.IsValid()))
 	{
 		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to connect to P2P socket for session as the session's local owner is invalid!"));
 		return;
 	}
 
-	const AccelByte::FApiClientPtr ApiClient = IdentityInterface->GetApiClient(Session->LocalOwnerId.ToSharedRef().Get());
+	const AccelByte::FApiClientPtr ApiClient = AccelByteSubsystemPtr->GetApiClient(Session->LocalOwnerId.ToSharedRef().Get());
 	if (!ensure(ApiClient.IsValid()))
 	{
 		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to connect to P2P socket for session as the session's local owner is invalid!"));
@@ -5743,22 +5730,22 @@ TArray<FString> FOnlineSessionV2AccelByte::GetRegionList(const FUniqueNetId& Loc
 		return TArray<FString>();
 	}
 
-	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystemPtr->GetIdentityInterface());
-	if (!ensure(IdentityInterface.IsValid()))
-	{
-		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to get list of regions as our identity interface is invalid!"));
-		return TArray<FString>();
-	}
-
-	AccelByte::FApiClientPtr ApiClient = IdentityInterface->GetApiClient(LocalPlayerId);
+	AccelByte::FApiClientPtr ApiClient = AccelByteSubsystemPtr->GetApiClient(LocalPlayerId);
 	if (!ensure(ApiClient.IsValid()))
 	{
 		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Could not get list of regions as we could not get an API client for the user specified!"));
 		return TArray<FString>();
 	}
 
+	const auto Qos = ApiClient->GetQosApi().Pin();
+	if (!ensure(Qos.IsValid()))
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Could not get list of regions as we could not get an Qos API for the user specified!"));
+		return TArray<FString>();
+	}
+
 	// Get latencies to QOS regions, and sort by lowest latency
-	TArray<TPair<FString, float>> Latencies = ApiClient->Qos.GetCachedLatencies();
+	TArray<TPair<FString, float>> Latencies = Qos->GetCachedLatencies();
 	Latencies.Sort([](const TPair<FString, float>& LeftHandLatency, const TPair<FString, float>& RightHandLatency) {
 		return LeftHandLatency.Value < RightHandLatency.Value;
 	});
@@ -6042,6 +6029,32 @@ bool FOnlineSessionV2AccelByte::RefreshActiveSessions(const FOnRefreshActiveSess
 	Sessions.GetKeys(SessionNames);
 
 	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteRefreshActiveSessions>(AccelByteSubsystemPtr.Get(), SessionNames, Delegate);
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Sent off request to refresh active sessions with backend data!"));
+
+	return true;
+}
+
+bool FOnlineSessionV2AccelByte::RefreshActiveSessionsV2AfterReconnected(int32 LocalUserNum)
+{
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT(""));
+
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to refresh active session as our AccelByte subsystem is invalid"));
+		return false;
+	}
+
+	if (Sessions.Num() == 0)
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Log, TEXT("There is no active session needs to be refreshed."))
+		return true;
+	}
+
+	TArray<FName> SessionNames;
+	Sessions.GetKeys(SessionNames);
+
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteRefreshV2ActiveSessions>(AccelByteSubsystemPtr.Get(), LocalUserNum, SessionNames, true);
 	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Sent off request to refresh active sessions with backend data!"));
 
 	return true;
@@ -6392,7 +6405,7 @@ void FOnlineSessionV2AccelByte::OnInvitedToGameSessionNotification(FAccelByteMod
 		return;
 	}
 
-	FApiClientPtr ApiClientPtr = IdentityInterface->GetApiClient(LocalUserNum);
+	FApiClientPtr ApiClientPtr = AccelByteSubsystemPtr->GetApiClient(LocalUserNum);
 	TSharedPtr<FAccelByteKey> LobbyLockKey;
 	if (ApiClientPtr.IsValid())
 	{
@@ -6614,13 +6627,49 @@ void FOnlineSessionV2AccelByte::OnGameSessionUpdatedNotification(FAccelByteModel
 	FNamedOnlineSession* Session = GetNamedSessionById(UpdatedGameSession.ID);
 	if (Session == nullptr)
 	{
-		if (HandleAutoJoinGameSession(UpdatedGameSession, LocalUserNum))
+		FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+		if(!AccelByteSubsystemPtr.IsValid())
 		{
-			AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Log, TEXT("Synced auto joined game session from backend"));
+			AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to handle game session updated notification as our AccelByte subsystem is invalid"));
 			return;
 		}
 
-		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Could not update session with with new attributes as we do not have the session stored locally!"));
+		const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystemPtr->GetIdentityInterface());
+		if (!ensure(IdentityInterface.IsValid()))
+		{
+			AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to handle game session updated notification as our identity interface is invalid!"));
+			return;
+		}
+
+		const FUniqueNetIdPtr PlayerId = IdentityInterface->GetUniquePlayerId(LocalUserNum);
+		if (!ensure(PlayerId.IsValid()))
+		{
+			AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to handle game session updated notification as a unique ID could not be found for player at index %d!"), LocalUserNum);
+			return;
+		}
+
+		FApiClientPtr ApiClientPtr = AccelByteSubsystemPtr->GetApiClient(LocalUserNum);
+		TSharedPtr<FAccelByteKey> LobbyLockKey;
+		if (ApiClientPtr.IsValid())
+		{
+			LobbyLockKey = ApiClientPtr->Lobby.LockNotifications();
+		}
+		else
+		{
+			AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to handle game session updated notification as ApiClient is invalid for player at index %d!"), LocalUserNum);
+			return;
+		}
+
+		const FUniqueNetIdPtr SessionUniqueId = CreateSessionIdFromString(UpdatedGameSession.ID);
+		if (!ensure(SessionUniqueId.IsValid()))
+		{
+			AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to handle game session updated notification as a unique ID could not be created for the match's session ID!"));
+			return;
+		}
+
+		const FOnSingleSessionResultCompleteDelegate OnCheckGameSessionDataCompleteDelegate = FOnSingleSessionResultCompleteDelegate::CreateThreadSafeSP(SharedThis(this), &FOnlineSessionV2AccelByte::OnCheckGameSessionDataComplete);
+		AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteFindV2GameSessionById>(AccelByteSubsystemPtr.Get(), PlayerId.ToSharedRef().Get(), SessionUniqueId.ToSharedRef().Get(), OnCheckGameSessionDataCompleteDelegate, LobbyLockKey);
+
 		return;
 	}
 
@@ -6693,13 +6742,36 @@ void FOnlineSessionV2AccelByte::OnDsStatusChangedNotification(FAccelByteModelsV2
 	FNamedOnlineSession* Session = GetNamedSessionById(DsStatusChangeEvent.SessionID);
 	if (Session == nullptr)
 	{
-		if (HandleAutoJoinGameSession(DsStatusChangeEvent.Session, LocalUserNum, bDsStatusError, DsStatusChangeEvent.Error))
+
+		const FUniqueNetIdPtr PlayerId = IdentityInterface->GetUniquePlayerId(LocalUserNum);
+		if (!ensure(PlayerId.IsValid()))
 		{
-			AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Log, TEXT("Synced auto joined game session from backend"));
+			AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to handle DS status changed notification as a unique ID could not be found for player at index %d!"), LocalUserNum);
 			return;
 		}
 
-		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Could not update session with new DS status as session does not exist locally!"));
+		FApiClientPtr ApiClientPtr = AccelByteSubsystemPtr->GetApiClient(LocalUserNum);
+		TSharedPtr<FAccelByteKey> LobbyLockKey;
+		if (ApiClientPtr.IsValid())
+		{
+			LobbyLockKey = ApiClientPtr->Lobby.LockNotifications();
+		}
+		else
+		{
+			AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to handle DS status changed notification as ApiClient is invalid for player at index %d!"), LocalUserNum);
+			return;
+		}
+
+		const FUniqueNetIdPtr SessionUniqueId = CreateSessionIdFromString(DsStatusChangeEvent.SessionID);
+		if (!ensure(SessionUniqueId.IsValid()))
+		{
+			AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to handle DS status changed notification as a unique ID could not be created for the match's session ID!"));
+			return;
+		}
+
+		const FOnSingleSessionResultCompleteDelegate OnCheckGameSessionDataCompleteDelegate = FOnSingleSessionResultCompleteDelegate::CreateThreadSafeSP(SharedThis(this), &FOnlineSessionV2AccelByte::OnCheckGameSessionDataComplete);
+		AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteFindV2GameSessionById>(AccelByteSubsystemPtr.Get(), PlayerId.ToSharedRef().Get(), SessionUniqueId.ToSharedRef().Get(), OnCheckGameSessionDataCompleteDelegate, LobbyLockKey);
+
 		return;
 	}
 
@@ -6781,11 +6853,16 @@ void FOnlineSessionV2AccelByte::OnInvitedToPartySessionNotification(FAccelByteMo
 		return;
 	}
 
-	FApiClientPtr ApiClientPtr = IdentityInterface->GetApiClient(LocalUserNum);
+	FApiClientPtr ApiClientPtr = AccelByteSubsystemPtr->GetApiClient(LocalUserNum);
 	TSharedPtr<FAccelByteKey> LobbyLockKey;
 	if (ApiClientPtr.IsValid())
 	{
 		LobbyLockKey = ApiClientPtr->Lobby.LockNotifications();
+	}
+	else
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to handle party session invite notification as ApiClient is invalid for player at index %d!"), LocalUserNum);
+		return;
 	}
 
 	const FUniqueNetIdPtr SessionUniqueId = CreateSessionIdFromString(InviteEvent.PartyID);
@@ -7127,23 +7204,24 @@ void FOnlineSessionV2AccelByte::UnbindLobbyMulticastDelegate()
 		return;
 	}
 
-	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystemPtr->GetIdentityInterface());
-	if (!IdentityInterface.IsValid())
-	{
-		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Log, TEXT("Failed to unbind multicast delegate for session updates as our identity interface is invalid!"));
-		return;
-	}
 	// It seems currently this interface only support single local user, not ideal to hardcode this but this is the simplest way for now.
 	const int32 LocalPlayerNum = 0;
-	const FApiClientPtr ApiClient = IdentityInterface->GetApiClient(LocalPlayerNum);
+	const FApiClientPtr ApiClient = AccelByteSubsystemPtr->GetApiClient(LocalPlayerNum);
 	if (!ApiClient.IsValid())
 	{
 		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Log, TEXT("Failed to unbind multicast delegate for session updates as local player '%d' has an invalid API client!"), LocalPlayerNum);
 		return;
 	}
 
-	ApiClient->Lobby.RemoveV2GameSessionInviteCanceledNotifDelegate(OnGameSessionInviteCanceledHandle);
-	ApiClient->Lobby.RemoveV2PartyInviteCanceledNotifDelegate(OnPartyInviteCanceledHandle);
+	const auto Lobby = ApiClient->GetLobbyApi().Pin();
+	if (!Lobby.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Log, TEXT("Failed to unbind multicast delegate for session updates as local player '%d' has an invalid Lobby API!"), LocalPlayerNum);
+		return;
+	}
+
+	Lobby->RemoveV2GameSessionInviteCanceledNotifDelegate(OnGameSessionInviteCanceledHandle);
+	Lobby->RemoveV2PartyInviteCanceledNotifDelegate(OnPartyInviteCanceledHandle);
 
 	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""))
 }
@@ -7410,11 +7488,16 @@ void FOnlineSessionV2AccelByte::OnMatchmakingMatchFoundNotification(FAccelByteMo
 		return;
 	}
 
-	FApiClientPtr ApiClientPtr = IdentityInterface->GetApiClient(LocalUserNum);
+	FApiClientPtr ApiClientPtr = AccelByteSubsystemPtr->GetApiClient(LocalUserNum);
 	TSharedPtr<FAccelByteKey> LobbyLockKey;
 	if (ApiClientPtr.IsValid())
 	{
 		LobbyLockKey = ApiClientPtr->Lobby.LockNotifications();
+	}
+	else
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to handle match found notification as ApiClient is invalid for player at index %d!"), LocalUserNum);
+		return;
 	}
 
 	const FUniqueNetIdPtr SessionUniqueId = CreateSessionIdFromString(MatchFoundEvent.Id);
@@ -7602,14 +7685,7 @@ void FOnlineSessionV2AccelByte::SetupAccelByteP2PConnection(const FUniqueNetId& 
 	FAccelByteNetworkUtilitiesModule::Get().RegisterDefaultSocketSubsystem();
 
 	// Now, grab the API client for the user that is setting up P2P and run set up in the module
-	FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystemPtr->GetIdentityInterface());
-	if (!ensure(IdentityInterface.IsValid()))
-	{
-		UE_LOG_AB(Warning, TEXT("Failed to setup AccelByte P2P connection as our identity interface is invalid!"));
-		return;
-	}
-
-	const AccelByte::FApiClientPtr ApiClient = IdentityInterface->GetApiClient(LocalPlayerId);
+	const AccelByte::FApiClientPtr ApiClient = AccelByteSubsystemPtr->GetApiClient(LocalPlayerId);
 	if (!ensure(ApiClient.IsValid()))
 	{
 		UE_LOG_AB(Warning, TEXT("Failed to setup AccelByte P2P connection as an API client could not be found for player with ID '%s'!"), *LocalPlayerId.ToDebugString());
@@ -7737,6 +7813,11 @@ void FOnlineSessionV2AccelByte::DisconnectFromDSHub()
 	}
 
 	FServerApiClientPtr ServerApiClient = GetServerApiClient();
+
+	if(!ServerApiClient.IsValid())
+	{
+		return;
+	}
 
 	// Unbind any delegates that we want to stop listening to DS hub for
 	ServerApiClient->ServerDSHub.SetOnServerClaimedNotificationDelegate(AccelByte::GameServerApi::FOnServerClaimedNotification());
@@ -8109,6 +8190,12 @@ void FOnlineSessionV2AccelByte::DisconnectFromAMS()
 	}
 
 	FServerApiClientPtr ServerApiClient = GetServerApiClient();
+
+	if(!ServerApiClient.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
+		return;
+	}
 
 	// Unbind any delegates that we want to stop listening to AMS for
 	ServerApiClient->ServerAMS.SetOnAMSDrainReceivedDelegate(AccelByte::GameServerApi::ServerAMS::FOnAMSDrainReceived());
@@ -8774,7 +8861,7 @@ void FOnlineSessionV2AccelByte::OnGameSessionJoinedNotification(FAccelByteModels
 		return;
 	}
 
-	FApiClientPtr ApiClientPtr = IdentityInterface->GetApiClient(LocalUserNum);
+	FApiClientPtr ApiClientPtr = AccelByteSubsystemPtr->GetApiClient(LocalUserNum);
 	TSharedPtr<FAccelByteKey> LobbyLockKey;
 	if (ApiClientPtr.IsValid())
 	{
@@ -8848,6 +8935,47 @@ void FOnlineSessionV2AccelByte::OnFindJoinedGameSessionByIdComplete(int32 LocalU
 
 	HandleAutoJoinGameSession(GameSessionData.ToSharedRef().Get(), LocalUserNum);
 
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
+}
+
+void FOnlineSessionV2AccelByte::OnCheckGameSessionDataComplete(int32 LocalUserNum, bool bWasSuccessful, const FOnlineSessionSearchResult& FoundSession)
+{
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("LocalUserNum: %d; bWasSuccessful: %s"), LocalUserNum, LOG_BOOL_FORMAT(bWasSuccessful));
+
+	if (!bWasSuccessful)
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to find game session information for session joined notification"));
+		return;
+	}
+
+	// Check if we still have not joined this session, such as if another notification had come in and triggered auto join
+	FNamedOnlineSession* ExistingSession = GetNamedSessionById(FoundSession.GetSessionIdStr());
+	if (ExistingSession != nullptr)
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Found auto join enabled session, but we have already joined it locally. Ignoring."));
+		return;
+	}
+
+	// We have not already joined this session, grab the session data structure and pass to the auto join processing
+	TSharedPtr<FOnlineSessionInfoAccelByteV2> SessionInfo = StaticCastSharedPtr<FOnlineSessionInfoAccelByteV2>(FoundSession.Session.SessionInfo);
+	if (!SessionInfo.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("SessionInfo instance was invalid"));
+		return;
+	}
+
+	TSharedPtr<FAccelByteModelsV2GameSession> GameSessionData = SessionInfo->GetBackendSessionDataAsGameSession();
+	if (!GameSessionData.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to get game session data from found session"));
+		return;
+	}
+
+	if (HandleAutoJoinGameSession(GameSessionData.ToSharedRef().Get(), LocalUserNum))
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Log, TEXT("Synced auto joined game session from backend"));
+		return;
+	}
 	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
 }
 

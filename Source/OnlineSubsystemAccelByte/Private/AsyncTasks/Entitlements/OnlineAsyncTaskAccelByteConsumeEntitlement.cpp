@@ -15,8 +15,8 @@ FOnlineAsyncTaskAccelByteConsumeEntitlement::FOnlineAsyncTaskAccelByteConsumeEnt
 	, RequestId(InRequestId)
 {
 	UserId = FUniqueNetIdAccelByteUser::CastChecked(InUserId);
-	Entitlement = MakeShared<FOnlineEntitlementAccelByte>();
-	Entitlement->Id = EntitlementId;
+	EntitlementItem = MakeShared<FOnlineEntitlementAccelByte>();
+	EntitlementItem->Id = EntitlementId;
 }
 
 void FOnlineAsyncTaskAccelByteConsumeEntitlement::Initialize()
@@ -30,8 +30,8 @@ void FOnlineAsyncTaskAccelByteConsumeEntitlement::Initialize()
 
 	if (!IsRunningDedicatedServer())
 	{
-		API_CLIENT_CHECK_GUARD(ErrorMessage);
-		ApiClient->Entitlement.ConsumeUserEntitlement(EntitlementId, UseCount, OnConsumeEntitlementSuccess, OnError, Options, RequestId);
+		API_FULL_CHECK_GUARD(Entitlement, ErrorMessage);
+		Entitlement->ConsumeUserEntitlement(EntitlementId, UseCount, OnConsumeEntitlementSuccess, OnError, Options, RequestId);
 	}
 	else
 	{
@@ -45,14 +45,14 @@ void FOnlineAsyncTaskAccelByteConsumeEntitlement::Initialize()
 
 void FOnlineAsyncTaskAccelByteConsumeEntitlement::Finalize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 	FOnlineAsyncTaskAccelByte::TriggerDelegates();
 	const FOnlineEntitlementsAccelBytePtr EntitlementInterface = StaticCastSharedPtr<FOnlineEntitlementsAccelByte>(SubsystemPin->GetEntitlementsInterface());
 	if (EntitlementInterface.IsValid() && bWasSuccessful)
 	{
-		EntitlementInterface->AddEntitlementToMap(UserId.ToSharedRef(), Entitlement.ToSharedRef());
+		EntitlementInterface->AddEntitlementToMap(UserId.ToSharedRef(), EntitlementItem.ToSharedRef());
 	}
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
@@ -60,14 +60,14 @@ void FOnlineAsyncTaskAccelByteConsumeEntitlement::Finalize()
 
 void FOnlineAsyncTaskAccelByteConsumeEntitlement::TriggerDelegates()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 	FOnlineAsyncTaskAccelByte::TriggerDelegates();
 	const FOnlineEntitlementsAccelBytePtr EntitlementInterface = StaticCastSharedPtr<FOnlineEntitlementsAccelByte>(SubsystemPin->GetEntitlementsInterface());
 	if (EntitlementInterface.IsValid())
 	{
-		EntitlementInterface->TriggerOnConsumeEntitlementCompleteDelegates(bWasSuccessful, *UserId.Get(), Entitlement, ONLINE_ERROR(bWasSuccessful ? EOnlineErrorResult::Success : EOnlineErrorResult::RequestFailure, FString::Printf(TEXT("%d"), ErrorCode), FText::FromString(ErrorMessage)));
+		EntitlementInterface->TriggerOnConsumeEntitlementCompleteDelegates(bWasSuccessful, *UserId.Get(), EntitlementItem, ONLINE_ERROR(bWasSuccessful ? EOnlineErrorResult::Success : EOnlineErrorResult::RequestFailure, FString::Printf(TEXT("%d"), ErrorCode), FText::FromString(ErrorMessage)));
 	}
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
@@ -75,17 +75,17 @@ void FOnlineAsyncTaskAccelByteConsumeEntitlement::TriggerDelegates()
 
 void FOnlineAsyncTaskAccelByteConsumeEntitlement::HandleConsumeEntitlementSuccess(FAccelByteModelsEntitlementInfo const& Result)
 {	
-	Entitlement->Id = Result.Id;
-	Entitlement->Name = Result.Name;
-	Entitlement->Namespace = Result.Namespace;
-	Entitlement->Status = FAccelByteUtilities::GetUEnumValueAsString<EAccelByteEntitlementStatus>(Result.Status);
-	Entitlement->bIsConsumable = Result.Type == EAccelByteEntitlementType::CONSUMABLE;
-	Entitlement->EndDate = Result.EndDate;
-	Entitlement->ItemId = Result.ItemId;
-	Entitlement->ConsumedCount = UseCount;
-	Entitlement->RemainingCount = Result.UseCount;
-	Entitlement->StartDate = Result.StartDate;
-	Entitlement->SetBackendEntitlementInfo(Result);
+	EntitlementItem->Id = Result.Id;
+	EntitlementItem->Name = Result.Name;
+	EntitlementItem->Namespace = Result.Namespace;
+	EntitlementItem->Status = FAccelByteUtilities::GetUEnumValueAsString<EAccelByteEntitlementStatus>(Result.Status);
+	EntitlementItem->bIsConsumable = Result.Type == EAccelByteEntitlementType::CONSUMABLE;
+	EntitlementItem->EndDate = Result.EndDate;
+	EntitlementItem->ItemId = Result.ItemId;
+	EntitlementItem->ConsumedCount = UseCount;
+	EntitlementItem->RemainingCount = Result.UseCount;
+	EntitlementItem->StartDate = Result.StartDate;
+	EntitlementItem->SetBackendEntitlementInfo(Result);
 
 	CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
 }

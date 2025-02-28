@@ -79,8 +79,8 @@ void FOnlineAsyncTaskAccelByteUpdateStats::Initialize()
 		, &FOnlineAsyncTaskAccelByteUpdateStats::HandleAsyncTaskError);
 
 	FString AdditionalKey = TEXT("");
-	API_CLIENT_CHECK_GUARD(ErrorMessage);
-	ApiClient->Statistic.BulkUpdateUserStatItemsValue(AdditionalKey
+	API_FULL_CHECK_GUARD(Statistic, ErrorMessage);
+	Statistic->BulkUpdateUserStatItemsValue(AdditionalKey
 		, BulkUpdateUserStatItems
 		, OnBulkUpdateUserStatItemsValueSuccess
 		, OnError);
@@ -90,7 +90,7 @@ void FOnlineAsyncTaskAccelByteUpdateStats::Initialize()
 
 void FOnlineAsyncTaskAccelByteUpdateStats::Finalize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Finalize"));
 	Super::Finalize();

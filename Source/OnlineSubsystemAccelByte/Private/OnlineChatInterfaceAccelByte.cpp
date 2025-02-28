@@ -872,58 +872,65 @@ void FOnlineChatAccelByte::RegisterChatDelegates(const FUniqueNetId& PlayerId)
 		return;
 	}
 
-	AccelByte::FApiClientPtr ApiClient = IdentityInterface->GetApiClient(PlayerId);
+	AccelByte::FApiClientPtr ApiClient = AccelByteSubsystemPtr->GetApiClient(PlayerId);
 	if (!ensure(ApiClient.IsValid()))
 	{
 		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to register notifications for session updates as player '%s' has an invalid API client!"), *PlayerId.ToDebugString());
 		return;
 	}
 
+	const auto Chat = ApiClient->GetChatApi().Pin();
+	if (!ensure(Chat.IsValid()))
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to register notifications for session updates as player '%s' has an invalid Chat API!"), *PlayerId.ToDebugString());
+		return;
+	}
+
 	// Begin Chat Notifications
 	typedef AccelByte::Api::Chat::FAddRemoveFromTopicNotif FAddRemoveFromTopicNotificationDelegate;
 	const FAddRemoveFromTopicNotificationDelegate OnRemoveFromTopicNotificationDelegate = FAddRemoveFromTopicNotificationDelegate::CreateThreadSafeSP(SharedThis(this), &FOnlineChatAccelByte::OnRemoveFromTopicNotification, LocalUserNum);
-	ApiClient->Chat.SetRemoveFromTopicNotifDelegate(OnRemoveFromTopicNotificationDelegate);
+	Chat->SetRemoveFromTopicNotifDelegate(OnRemoveFromTopicNotificationDelegate);
 
 	const FAddRemoveFromTopicNotificationDelegate OnAddToTopicNotificationDelegate = FAddRemoveFromTopicNotificationDelegate::CreateThreadSafeSP(SharedThis(this), &FOnlineChatAccelByte::OnAddToTopicNotification, LocalUserNum);
-	ApiClient->Chat.SetAddToTopicNotifDelegate(OnAddToTopicNotificationDelegate);
+	Chat->SetAddToTopicNotifDelegate(OnAddToTopicNotificationDelegate);
 
 	typedef AccelByte::Api::Chat::FChatDisconnectNotif FChatDisconnectNotificationDelegate;
 	const FChatDisconnectNotificationDelegate OnChatDisconnectNotificationDelegate = FChatDisconnectNotificationDelegate::CreateThreadSafeSP(SharedThis(this), &FOnlineChatAccelByte::OnChatDisconnectedNotification, LocalUserNum);
-	ApiClient->Chat.SetDisconnectNotifDelegate(OnChatDisconnectNotificationDelegate);
+	Chat->SetDisconnectNotifDelegate(OnChatDisconnectNotificationDelegate);
 
 	typedef AccelByte::Api::Chat::FChatConnectionClosed FChatConnectionClosedDelegate;
 	const FChatConnectionClosedDelegate OnChatConnectionClosedDelegate = FChatConnectionClosedDelegate::CreateThreadSafeSP(SharedThis(this), &FOnlineChatAccelByte::OnChatConnectionClosed, LocalUserNum);
-	ApiClient->Chat.SetConnectionClosedDelegate(OnChatConnectionClosedDelegate);
+	Chat->SetConnectionClosedDelegate(OnChatConnectionClosedDelegate);
 
 	typedef AccelByte::Api::Chat::FChatNotif FReceivedChatNotificationDelegate;
 	const FReceivedChatNotificationDelegate OnReceivedChatNotificationDelegate = FReceivedChatNotificationDelegate::CreateThreadSafeSP(SharedThis(this), &FOnlineChatAccelByte::OnReceivedChatNotification, LocalUserNum);
-	ApiClient->Chat.SetChatNotifDelegate(OnReceivedChatNotificationDelegate);
+	Chat->SetChatNotifDelegate(OnReceivedChatNotificationDelegate);
 
 	typedef AccelByte::Api::Chat::FDeleteUpdateTopicNotif FDeleteUpdateTopicNotificationDelegate;
 	const FDeleteUpdateTopicNotificationDelegate OnUpdateTopicNotificationDelegate = FDeleteUpdateTopicNotificationDelegate::CreateThreadSafeSP(SharedThis(this), &FOnlineChatAccelByte::OnUpdateTopicNotification, LocalUserNum);
-	ApiClient->Chat.SetUpdateTopicNotifDelegate(OnUpdateTopicNotificationDelegate);
+	Chat->SetUpdateTopicNotifDelegate(OnUpdateTopicNotificationDelegate);
 
 	const FDeleteUpdateTopicNotificationDelegate OnDeleteTopicNotificationDelegate = FDeleteUpdateTopicNotificationDelegate::CreateThreadSafeSP(SharedThis(this), &FOnlineChatAccelByte::OnDeleteTopicNotification, LocalUserNum);
-	ApiClient->Chat.SetDeleteTopicNotifDelegate(OnDeleteTopicNotificationDelegate);
+	Chat->SetDeleteTopicNotifDelegate(OnDeleteTopicNotificationDelegate);
 
 	typedef AccelByte::Api::Chat::FReadChatNotif FReadChatNotificationDelegate;
 	const FReadChatNotificationDelegate OnReadChatNotificationDelegate = FReadChatNotificationDelegate::CreateThreadSafeSP(SharedThis(this), &FOnlineChatAccelByte::OnReadChatNotification, LocalUserNum);
-	ApiClient->Chat.SetReadChatNotifDelegate(OnReadChatNotificationDelegate);
+	Chat->SetReadChatNotifDelegate(OnReadChatNotificationDelegate);
 
 	typedef AccelByte::Api::Chat::FUserBanUnbanNotif FUserBanUnbanNotificationDelegate;
 	const FUserBanUnbanNotificationDelegate OnUserBanNotificationDelegate = FUserBanUnbanNotificationDelegate::CreateThreadSafeSP(SharedThis(this), &FOnlineChatAccelByte::OnUserBanNotification, LocalUserNum);
-	ApiClient->Chat.SetUserBanNotifDelegate(OnUserBanNotificationDelegate);
+	Chat->SetUserBanNotifDelegate(OnUserBanNotificationDelegate);
 
 	const FUserBanUnbanNotificationDelegate OnUserUnBanNotificationDelegate = FUserBanUnbanNotificationDelegate::CreateThreadSafeSP(SharedThis(this), &FOnlineChatAccelByte::OnUserUnbanNotification, LocalUserNum);
-	ApiClient->Chat.SetUserUnbanNotifDelegate(OnUserUnBanNotificationDelegate);
+	Chat->SetUserUnbanNotifDelegate(OnUserUnBanNotificationDelegate);
 
 	typedef AccelByte::Api::Chat::FSystemMessageNotif FSystemMessageNotificationDelegate;
 	const FSystemMessageNotificationDelegate OnSystemMessageDelegate = FSystemMessageNotificationDelegate::CreateThreadSafeSP(SharedThis(this), &FOnlineChatAccelByte::OnSystemMessageNotification, LocalUserNum);
-	ApiClient->Chat.SetSystemMessageNotifDelegate(OnSystemMessageDelegate);
+	Chat->SetSystemMessageNotifDelegate(OnSystemMessageDelegate);
 
-	ApiClient->Chat.OnReconnectAttemptedMulticastDelegate().AddThreadSafeSP(SharedThis(this), &FOnlineChatAccelByte::OnChatReconnectAttempted, LocalUserNum);
+	Chat->OnReconnectAttemptedMulticastDelegate().AddThreadSafeSP(SharedThis(this), &FOnlineChatAccelByte::OnChatReconnectAttempted, LocalUserNum);
 
-	ApiClient->Chat.OnMassiveOutageMulticastDelegate().AddThreadSafeSP(SharedThis(this), &FOnlineChatAccelByte::OnChatMassiveOutageEvent, LocalUserNum);
+	Chat->OnMassiveOutageMulticastDelegate().AddThreadSafeSP(SharedThis(this), &FOnlineChatAccelByte::OnChatMassiveOutageEvent, LocalUserNum);
 	//~ End Chat Notifications
 
 	// Cache topic data

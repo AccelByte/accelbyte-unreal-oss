@@ -17,7 +17,7 @@ FOnlineAsyncTaskAccelByteValidateUserInput::FOnlineAsyncTaskAccelByteValidateUse
 
 void FOnlineAsyncTaskAccelByteValidateUserInput::Initialize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	FOnlineAsyncTaskAccelByte::Initialize();
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Initialize Validate User Input"));
@@ -33,16 +33,16 @@ void FOnlineAsyncTaskAccelByteValidateUserInput::Initialize()
 		TRY_PIN_ACCELBYTEINSTANCE();
 		SetApiClient(AccelByteInstance->GetApiClient(FString::Printf(TEXT("%d"), LocalUserNum)));
 	}
-	API_CLIENT_CHECK_GUARD(OnlineError)
+	API_FULL_CHECK_GUARD(User, OnlineError)
 	
-	ApiClient->User.ValidateUserInput(UserInputValidationRequest, OnLinkOtherPlatformSuccess, OnLinkOtherPlatformError);
+	User->ValidateUserInput(UserInputValidationRequest, OnLinkOtherPlatformSuccess, OnLinkOtherPlatformError);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 
 void FOnlineAsyncTaskAccelByteValidateUserInput::TriggerDelegates()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("TriggerDelegates"));
 	FOnlineAsyncTaskAccelByte::TriggerDelegates();

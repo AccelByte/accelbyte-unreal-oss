@@ -26,15 +26,15 @@ void FOnlineAsyncTaskAccelByteRejectV2PartyInvite::Initialize()
 
 	OnRejectPartyInviteSuccessDelegate = AccelByte::TDelegateUtils<FVoidHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteRejectV2PartyInvite::OnRejectPartyInviteSuccess);
 	OnRejectPartyInviteErrorDelegate = AccelByte::TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteRejectV2PartyInvite::OnRejectPartyInviteError);;
-	API_CLIENT_CHECK_GUARD();
-	ApiClient->Session.RejectPartyInvite(SessionId, OnRejectPartyInviteSuccessDelegate, OnRejectPartyInviteErrorDelegate);
+	API_FULL_CHECK_GUARD(Session);
+	Session->RejectPartyInvite(SessionId, OnRejectPartyInviteSuccessDelegate, OnRejectPartyInviteErrorDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 
 void FOnlineAsyncTaskAccelByteRejectV2PartyInvite::Finalize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 

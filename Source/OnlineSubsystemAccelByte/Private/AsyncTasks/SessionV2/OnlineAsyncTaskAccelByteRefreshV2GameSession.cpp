@@ -32,7 +32,7 @@ FOnlineAsyncTaskAccelByteRefreshV2GameSession::FOnlineAsyncTaskAccelByteRefreshV
 
 void FOnlineAsyncTaskAccelByteRefreshV2GameSession::Initialize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::Initialize();
 
@@ -41,10 +41,10 @@ void FOnlineAsyncTaskAccelByteRefreshV2GameSession::Initialize()
 	const TSharedPtr<FOnlineSessionV2AccelByte, ESPMode::ThreadSafe> SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(SubsystemPin->GetSessionInterface());
 	check(SessionInterface.IsValid());
 
-	FNamedOnlineSession* Session = SessionInterface->GetNamedSession(SessionName);
-	AB_ASYNC_TASK_VALIDATE(Session != nullptr, "Could not refresh game session named '%s' as the session does not exist locally!", *SessionName.ToString());
+	FNamedOnlineSession* OnlineSession = SessionInterface->GetNamedSession(SessionName);
+	AB_ASYNC_TASK_VALIDATE(OnlineSession != nullptr, "Could not refresh game session named '%s' as the session does not exist locally!", *SessionName.ToString());
 
-	const FString SessionId = Session->GetSessionIdStr();
+	const FString SessionId = OnlineSession->GetSessionIdStr();
 	AB_ASYNC_TASK_VALIDATE(!SessionId.Equals(TEXT("InvalidSession")), "Could not refresh game session named '%s' as there is not a valid session ID associated!", *SessionName.ToString());
 
 	// Send the API call based on whether we are a server or a client
@@ -57,8 +57,8 @@ void FOnlineAsyncTaskAccelByteRefreshV2GameSession::Initialize()
 	}
 	else
 	{
-		API_CLIENT_CHECK_GUARD();
-		ApiClient->Session.GetGameSessionDetails(SessionId, OnRefreshGameSessionSuccessDelegate, OnRefreshGameSessionErrorDelegate);
+		API_FULL_CHECK_GUARD(Session);
+		Session->GetGameSessionDetails(SessionId, OnRefreshGameSessionSuccessDelegate, OnRefreshGameSessionErrorDelegate);
 	}
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
@@ -66,7 +66,7 @@ void FOnlineAsyncTaskAccelByteRefreshV2GameSession::Initialize()
 
 void FOnlineAsyncTaskAccelByteRefreshV2GameSession::Finalize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::Finalize();
 
@@ -92,7 +92,7 @@ void FOnlineAsyncTaskAccelByteRefreshV2GameSession::Finalize()
 
 void FOnlineAsyncTaskAccelByteRefreshV2GameSession::TriggerDelegates()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::TriggerDelegates();
 

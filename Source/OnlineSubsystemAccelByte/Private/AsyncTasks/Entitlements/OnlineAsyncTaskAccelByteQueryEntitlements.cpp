@@ -31,7 +31,7 @@ void FOnlineAsyncTaskAccelByteQueryEntitlements::Initialize()
 
 void FOnlineAsyncTaskAccelByteQueryEntitlements::TriggerDelegates()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 	FOnlineAsyncTaskAccelByte::TriggerDelegates();
@@ -46,14 +46,14 @@ void FOnlineAsyncTaskAccelByteQueryEntitlements::QueryEntitlement(int32 Offset, 
 	THandler<FAccelByteModelsEntitlementPagingSlicedResult> OnQueryEntitlementSuccess =
 		TDelegateUtils<THandler<FAccelByteModelsEntitlementPagingSlicedResult>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryEntitlements::HandleQueryEntitlementSuccess);
 	FErrorHandler OnError = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryEntitlements::HandleQueryEntitlementError);
-	API_CLIENT_CHECK_GUARD(ErrorMessage);
-	ApiClient->Entitlement.QueryUserEntitlements(TEXT(""), TEXT(""), Offset, Limit, OnQueryEntitlementSuccess, OnError, EAccelByteEntitlementClass::NONE, EAccelByteAppType::NONE);
+	API_FULL_CHECK_GUARD(Entitlement, ErrorMessage);
+	Entitlement->QueryUserEntitlements(TEXT(""), TEXT(""), Offset, Limit, OnQueryEntitlementSuccess, OnError, EAccelByteEntitlementClass::NONE, EAccelByteAppType::NONE);
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 
 void FOnlineAsyncTaskAccelByteQueryEntitlements::HandleQueryEntitlementSuccess(FAccelByteModelsEntitlementPagingSlicedResult const& Result)
 {	
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	const TSharedPtr<FOnlineEntitlementsAccelByte, ESPMode::ThreadSafe> EntitlementsInterface = StaticCastSharedPtr<FOnlineEntitlementsAccelByte>(SubsystemPin->GetEntitlementsInterface());
 	if (!EntitlementsInterface.IsValid())

@@ -21,11 +21,11 @@ void FOnlineAsyncTaskAccelByteSyncMetaQuestDLC::Initialize()
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("UserID: %s, LocalUserNum: %d"), *UserId->ToDebugString(), LocalUserNum);
 
-	API_CLIENT_CHECK_GUARD();
+	API_FULL_CHECK_GUARD(Entitlement);
 
 	const FVoidHandler OnSuccess = TDelegateUtils<FVoidHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteSyncMetaQuestDLC::OnSyncOculusDLCSuccess);
 	const FErrorHandler OnError = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteSyncMetaQuestDLC::OnSyncOculusDLCFailed);
-	ApiClient->Entitlement.SyncOculusDLC(OnSuccess, OnError);
+	Entitlement->SyncOculusDLC(OnSuccess, OnError);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }

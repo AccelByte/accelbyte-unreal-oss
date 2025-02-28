@@ -29,8 +29,8 @@ void FOnlineAsyncTaskAccelByteGroupsJoinGroup::Initialize()
 	OnSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsJoinGroupResponse>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteGroupsJoinGroup::OnJoinGroupSuccess);
 	OnErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteGroupsJoinGroup::OnJoinGroupError);
 
-	API_CLIENT_CHECK_GUARD(ErrorString);
-	ApiClient->Group.JoinV2Group(GroupId, OnSuccessDelegate, OnErrorDelegate);
+	API_FULL_CHECK_GUARD(Group, ErrorString);
+	Group->JoinV2Group(GroupId, OnSuccessDelegate, OnErrorDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
@@ -49,7 +49,7 @@ void FOnlineAsyncTaskAccelByteGroupsJoinGroup::TriggerDelegates()
 
 void FOnlineAsyncTaskAccelByteGroupsJoinGroup::Finalize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::Finalize();
 

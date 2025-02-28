@@ -67,7 +67,7 @@ bool FOnlineAsyncTaskAccelByteSimultaneousLogin::IsInitializeAllowed()
 
 void FOnlineAsyncTaskAccelByteSimultaneousLogin::Initialize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::Initialize();
 	CurrentAsyncTaskState = ESimultaneousLoginAsyncTaskState::Initialized;
@@ -129,7 +129,7 @@ void FOnlineAsyncTaskAccelByteSimultaneousLogin::Finalize()
 
 void FOnlineAsyncTaskAccelByteSimultaneousLogin::PostProcessTriggerDelegates()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(SubsystemPin->GetIdentityInterface());
 	const TSharedRef<const FUniqueNetIdAccelByteUser> ReturnId = (bWasSuccessful) ? UserId.ToSharedRef() : FUniqueNetIdAccelByteUser::Invalid();
@@ -206,7 +206,7 @@ void FOnlineAsyncTaskAccelByteSimultaneousLogin::TriggerDelegates()
 // This perform login occurs twice because we triggers LoginWithNativeSubsystem + LoginWithSpecificSubsystem
 void FOnlineAsyncTaskAccelByteSimultaneousLogin::PerformLogin(const FOnlineAccountCredentials& Credentials)
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("First native platform login success: %s"), *Credentials.Type);
 	if (CurrentAsyncTaskState == ESimultaneousLoginAsyncTaskState::Initialized)
@@ -235,8 +235,8 @@ void FOnlineAsyncTaskAccelByteSimultaneousLogin::PerformLogin(const FOnlineAccou
 		auto NativePlatformLoginType = FOnlineSubsystemAccelByteUtils::GetAccelByteLoginTypeFromNativeSubsystem(FName(NativePlatformCredentials.Type));
 		auto SecondaryPlatformLoginType = FOnlineSubsystemAccelByteUtils::GetAccelByteLoginTypeFromNativeSubsystem(FName(Credentials.Type));
 
-		API_CLIENT_CHECK_GUARD(ErrorStr);
-		ApiClient->User.LoginWithSimultaneousPlatformV4(
+		API_FULL_CHECK_GUARD(User, ErrorStr);
+		User->LoginWithSimultaneousPlatformV4(
 			ConvertOSSTypeToAccelBytePlatformType(NativePlatformLoginType),
 			NativePlatformTicket,
 			ConvertOSSTypeToAccelBytePlatformType(SecondaryPlatformLoginType),

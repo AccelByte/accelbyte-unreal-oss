@@ -31,8 +31,8 @@ void FOnlineAsyncTaskAccelByteGroupsLeaveGroup::Initialize()
 	OnSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsMemberRequestGroupResponse>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteGroupsLeaveGroup::OnLeaveGroupSuccess);
 	OnErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteGroupsLeaveGroup::OnLeaveGroupError);
 
-	API_CLIENT_CHECK_GUARD(ErrorString);
-	ApiClient->Group.LeaveV2Group(GroupId, OnSuccessDelegate, OnErrorDelegate);
+	API_FULL_CHECK_GUARD(Group, ErrorString);
+	Group->LeaveV2Group(GroupId, OnSuccessDelegate, OnErrorDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
@@ -51,7 +51,7 @@ void FOnlineAsyncTaskAccelByteGroupsLeaveGroup::TriggerDelegates()
 
 void FOnlineAsyncTaskAccelByteGroupsLeaveGroup::Finalize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::Finalize();
 

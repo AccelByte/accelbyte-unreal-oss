@@ -76,8 +76,8 @@ void FOnlineAsyncTaskAccelByteSyncGooglePlay::Initialize()
 	{
 		THandler<FAccelByteModelsItemInfo> OnGetItemSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsItemInfo>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteSyncGooglePlay::OnGetItemBySkuSuccess);
 		FErrorHandler OnGetItemBySkuErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteSyncGooglePlay::OnRequestError);
-		API_CLIENT_CHECK_GUARD(Error);
-		ApiClient->Item.GetItemBySku(Request.ProductId, TEXT(""), TEXT(""), OnGetItemSuccessDelegate, OnGetItemBySkuErrorDelegate);
+		API_FULL_CHECK_GUARD(Item, Error);
+		Item->GetItemBySku(Request.ProductId, TEXT(""), TEXT(""), OnGetItemSuccessDelegate, OnGetItemBySkuErrorDelegate);
 	}
 	else
 	{
@@ -125,8 +125,8 @@ void FOnlineAsyncTaskAccelByteSyncGooglePlay::SyncPlatformPurchase()
 	THandler<FAccelByteModelsPlatformSyncMobileGoogleResponse> OnSyncPlatformPurchaseSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsPlatformSyncMobileGoogleResponse>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteSyncGooglePlay::OnSyncPlatformPurchaseSuccess);
 	FErrorHandler OnSyncPlatformPurchaseErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteSyncGooglePlay::OnRequestError);
 
-	API_CLIENT_CHECK_GUARD(Error);
-	ApiClient->Entitlement.SyncMobilePlatformPurchaseGooglePlay(Request, OnSyncPlatformPurchaseSuccessDelegate, OnSyncPlatformPurchaseErrorDelegate);
+	API_FULL_CHECK_GUARD(Entitlement, Error);
+	Entitlement->SyncMobilePlatformPurchaseGooglePlay(Request, OnSyncPlatformPurchaseSuccessDelegate, OnSyncPlatformPurchaseErrorDelegate);
 }
 
 bool FOnlineAsyncTaskAccelByteSyncGooglePlay::ParsePurchaseReceiptToPlatformSyncMobileGoogle(const TSharedRef<FPurchaseReceipt>& Receipt)

@@ -16,7 +16,7 @@ FOnlineAsyncTaskAccelByteInitializePlayerAttributes::FOnlineAsyncTaskAccelByteIn
 
 void FOnlineAsyncTaskAccelByteInitializePlayerAttributes::Initialize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::Initialize();
 
@@ -35,7 +35,7 @@ void FOnlineAsyncTaskAccelByteInitializePlayerAttributes::Initialize()
 
 void FOnlineAsyncTaskAccelByteInitializePlayerAttributes::Finalize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::Finalize();
 
@@ -57,7 +57,7 @@ void FOnlineAsyncTaskAccelByteInitializePlayerAttributes::Finalize()
 
 void FOnlineAsyncTaskAccelByteInitializePlayerAttributes::TriggerDelegates()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::TriggerDelegates();
 
@@ -84,15 +84,15 @@ void FOnlineAsyncTaskAccelByteInitializePlayerAttributes::OnGetPlayerCrossplayPr
 	// Send off a request to get attributes from the session service
 	OnGetPlayerAttributesSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsV2PlayerAttributes>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteInitializePlayerAttributes::OnGetPlayerAttributesSuccess);
 	OnGetPlayerAttributesErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteInitializePlayerAttributes::OnGetPlayerAttributesError);;
-	API_CLIENT_CHECK_GUARD();
-	ApiClient->Session.GetPlayerAttributes(OnGetPlayerAttributesSuccessDelegate, OnGetPlayerAttributesErrorDelegate);
+	API_FULL_CHECK_GUARD(Session);
+	Session->GetPlayerAttributes(OnGetPlayerAttributesSuccessDelegate, OnGetPlayerAttributesErrorDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 
 void FOnlineAsyncTaskAccelByteInitializePlayerAttributes::OnGetPlayerAttributesSuccess(const FAccelByteModelsV2PlayerAttributes& Result)
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 
@@ -161,8 +161,8 @@ void FOnlineAsyncTaskAccelByteInitializePlayerAttributes::SendAttributeUpdateReq
 
 	OnStorePlayerAttributesSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsV2PlayerAttributes>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteInitializePlayerAttributes::OnStorePlayerAttributesSuccess);
 	OnStorePlayerAttributesErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteInitializePlayerAttributes::OnStorePlayerAttributesError);;
-	API_CLIENT_CHECK_GUARD();
-	ApiClient->Session.StorePlayerAttributes(Request, OnStorePlayerAttributesSuccessDelegate, OnStorePlayerAttributesErrorDelegate);
+	API_FULL_CHECK_GUARD(Session);
+	Session->StorePlayerAttributes(Request, OnStorePlayerAttributesSuccessDelegate, OnStorePlayerAttributesErrorDelegate);
 }
 
 void FOnlineAsyncTaskAccelByteInitializePlayerAttributes::OnStorePlayerAttributesSuccess(const FAccelByteModelsV2PlayerAttributes& Result)

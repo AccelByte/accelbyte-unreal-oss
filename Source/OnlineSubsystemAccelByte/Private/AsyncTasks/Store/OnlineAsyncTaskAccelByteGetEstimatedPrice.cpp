@@ -35,8 +35,8 @@ void FOnlineAsyncTaskAccelByteGetEstimatedPrice::Initialize()
 		(this, &FOnlineAsyncTaskAccelByteGetEstimatedPrice::HandleSuccess);
 	const FErrorHandler& OnError = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr
 		(this, &FOnlineAsyncTaskAccelByteGetEstimatedPrice::HandleError);
-	API_CLIENT_CHECK_GUARD(ErrorMessage);
-	ApiClient->Item.GetEstimatedPrice(ItemIds, Region, OnSuccess, OnError);
+	API_FULL_CHECK_GUARD(Item, ErrorMessage);
+	Item->GetEstimatedPrice(ItemIds, Region, OnSuccess, OnError);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
@@ -52,7 +52,7 @@ void FOnlineAsyncTaskAccelByteGetEstimatedPrice::Finalize()
 
 void FOnlineAsyncTaskAccelByteGetEstimatedPrice::TriggerDelegates()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Trigger Delegates"));
 	

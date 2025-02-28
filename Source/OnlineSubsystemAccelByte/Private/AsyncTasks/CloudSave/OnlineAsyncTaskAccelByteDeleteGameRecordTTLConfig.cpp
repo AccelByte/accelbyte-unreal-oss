@@ -20,7 +20,7 @@ FOnlineAsyncTaskAccelByteDeleteGameRecordTTLConfig::FOnlineAsyncTaskAccelByteDel
 
 void FOnlineAsyncTaskAccelByteDeleteGameRecordTTLConfig::Initialize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::Initialize();
 
@@ -45,7 +45,7 @@ void FOnlineAsyncTaskAccelByteDeleteGameRecordTTLConfig::Initialize()
 
 void FOnlineAsyncTaskAccelByteDeleteGameRecordTTLConfig::TriggerDelegates()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 

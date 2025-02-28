@@ -54,7 +54,7 @@ FOnlineAsyncTaskAccelByteGetCurrentUserEntitlementHistory::FOnlineAsyncTaskAccel
 
 void FOnlineAsyncTaskAccelByteGetCurrentUserEntitlementHistory::Initialize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	FOnlineAsyncTaskAccelByte::Initialize();
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
@@ -140,7 +140,7 @@ void FOnlineAsyncTaskAccelByteGetCurrentUserEntitlementHistory::Initialize()
 
 void FOnlineAsyncTaskAccelByteGetCurrentUserEntitlementHistory::TriggerDelegates()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::TriggerDelegates();
 
@@ -180,8 +180,8 @@ void FOnlineAsyncTaskAccelByteGetCurrentUserEntitlementHistory::GetCurrentUserEn
 	SuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsUserEntitlementHistoryPagingResult>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteGetCurrentUserEntitlementHistory::OnGetUserEntitlementHistorySuccess);
 	OnErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteGetCurrentUserEntitlementHistory::OnGetUserEntitlementHistoryError);
 
-	API_CLIENT_CHECK_GUARD(ErrorString);
-	ApiClient->Entitlement.GetCurrentUserEntitlementHistory(SuccessDelegate, OnErrorDelegate);
+	API_FULL_CHECK_GUARD(Entitlement, ErrorString);
+	Entitlement->GetCurrentUserEntitlementHistory(SuccessDelegate, OnErrorDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }

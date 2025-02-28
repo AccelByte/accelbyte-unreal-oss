@@ -29,15 +29,15 @@ void FOnlineAsyncTaskAccelByteChatGetConfig::Initialize()
 		TDelegateUtils<AccelByte::THandler<FAccelByteModelsChatPublicConfigResponse>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteChatGetConfig::OnGetChatConfigSuccess);
 	const AccelByte::FErrorHandler OnGetChatConfigFail =
 		TDelegateUtils<AccelByte::FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteChatGetConfig::OnGetChatConfigError);
-	API_CLIENT_CHECK_GUARD(ErrorStr);
-	ApiClient->Chat.GetChatConfig(OnGetChatConfigSuccess, OnGetChatConfigFail);
+	API_FULL_CHECK_GUARD(Chat, ErrorStr);
+	Chat->GetChatConfig(OnGetChatConfigSuccess, OnGetChatConfigFail);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 
 void FOnlineAsyncTaskAccelByteChatGetConfig::Finalize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = SubsystemPin->GetPredefinedEventInterface();
 	if (PredefinedEventInterface.IsValid() && bWasSuccessful)
@@ -50,7 +50,7 @@ void FOnlineAsyncTaskAccelByteChatGetConfig::Finalize()
 
 void FOnlineAsyncTaskAccelByteChatGetConfig::TriggerDelegates()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::TriggerDelegates();
 	
@@ -68,7 +68,7 @@ void FOnlineAsyncTaskAccelByteChatGetConfig::TriggerDelegates()
 void FOnlineAsyncTaskAccelByteChatGetConfig::OnGetChatConfigSuccess(
 	const FAccelByteModelsChatPublicConfigResponse& Response)
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	const FOnlineChatAccelBytePtr ChatInterface = StaticCastSharedPtr<FOnlineChatAccelByte>(SubsystemPin->GetChatInterface());
 	if (ChatInterface.IsValid())

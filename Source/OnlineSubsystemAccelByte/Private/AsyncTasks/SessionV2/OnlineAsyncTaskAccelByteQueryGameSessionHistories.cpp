@@ -26,7 +26,7 @@ FOnlineAsyncTaskAccelByteQueryGameSessionHistories::FOnlineAsyncTaskAccelByteQue
 
 void FOnlineAsyncTaskAccelByteQueryGameSessionHistories::Initialize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::Initialize();
 
@@ -50,7 +50,7 @@ void FOnlineAsyncTaskAccelByteQueryGameSessionHistories::Initialize()
 
 void FOnlineAsyncTaskAccelByteQueryGameSessionHistories::TriggerDelegates()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
@@ -85,8 +85,8 @@ void FOnlineAsyncTaskAccelByteQueryGameSessionHistories::QueryGameSessionHistory
 
 	OnQueryGameSessionHistorySuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsGameSessionHistoriesResult>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryGameSessionHistories::OnQueryGameSessionHistorySuccess);
 	OnQueryGameSessionHistoryErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryGameSessionHistories::OnQueryGameSessionHistoryError);;
-	API_CLIENT_CHECK_GUARD();
-	ApiClient->SessionHistory.QueryGameSessionHistory(OnQueryGameSessionHistorySuccessDelegate, OnQueryGameSessionHistoryErrorDelegate, SortBy, Offset, Limit);
+	API_FULL_CHECK_GUARD(SessionHistory);
+	SessionHistory->QueryGameSessionHistory(OnQueryGameSessionHistorySuccessDelegate, OnQueryGameSessionHistoryErrorDelegate, SortBy, Offset, Limit);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }

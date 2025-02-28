@@ -28,7 +28,7 @@ FOnlineAsyncTaskAccelByteQueryV1PartyInfo::FOnlineAsyncTaskAccelByteQueryV1Party
 
 void FOnlineAsyncTaskAccelByteQueryV1PartyInfo::Initialize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
     Super::Initialize();
 
@@ -57,8 +57,8 @@ void FOnlineAsyncTaskAccelByteQueryV1PartyInfo::Initialize()
 		// Finally, we want to send a request to get party storage for this party, so that we can save it to party data
 		const AccelByte::Api::Lobby::FPartyDataUpdateNotif OnGetPartyStorageSuccessDelegate = TDelegateUtils<AccelByte::Api::Lobby::FPartyDataUpdateNotif>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryV1PartyInfo::OnGetPartyStorageSuccess);
 		const FErrorHandler OnGetPartyStorageErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteQueryV1PartyInfo::OnGetPartyStorageError);
-		API_CLIENT_CHECK_GUARD();
-		ApiClient->Lobby.GetPartyStorage(PartyId, OnGetPartyStorageSuccessDelegate, OnGetPartyStorageErrorDelegate);
+		API_FULL_CHECK_GUARD(Lobby);
+		Lobby->GetPartyStorage(PartyId, OnGetPartyStorageSuccessDelegate, OnGetPartyStorageErrorDelegate);
 	}));
 
     AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

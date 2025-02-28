@@ -23,8 +23,8 @@ void FOnlineAsyncTaskAccelByteV2GetRecentPlayer::Initialize()
 
 	OnGetRecentPlayersSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsV2SessionRecentPlayers>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteV2GetRecentPlayer::OnGetRecentPlayersSuccess);
 	OnGetRecentPlayersErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteV2GetRecentPlayer::OnGetRecentPlayersError);
-	API_CLIENT_CHECK_GUARD(ErrorStr);
-	ApiClient->Session.GetRecentPlayers(OnGetRecentPlayersSuccessDelegate, OnGetRecentPlayersErrorDelegate, GetRecentPlayerLimit);
+	API_FULL_CHECK_GUARD(Session, ErrorStr);
+	Session->GetRecentPlayers(OnGetRecentPlayersSuccessDelegate, OnGetRecentPlayersErrorDelegate, GetRecentPlayerLimit);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
@@ -35,7 +35,7 @@ void FOnlineAsyncTaskAccelByteV2GetRecentPlayer::Finalize()
 
 	if (bWasSuccessful)
 	{
-		TRY_PIN_SUBSYSTEM()
+		TRY_PIN_SUBSYSTEM();
 
 		TArray<TSharedRef<FOnlineRecentPlayerAccelByte>> RecentPlayers;
 		for (const FAccelByteUserInfoRef& RecentPlayerInfo : RecentPlayersQueried)
@@ -55,7 +55,7 @@ void FOnlineAsyncTaskAccelByteV2GetRecentPlayer::Finalize()
 
 void FOnlineAsyncTaskAccelByteV2GetRecentPlayer::TriggerDelegates()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
@@ -72,7 +72,7 @@ void FOnlineAsyncTaskAccelByteV2GetRecentPlayer::TriggerDelegates()
 
 void FOnlineAsyncTaskAccelByteV2GetRecentPlayer::OnGetRecentPlayersSuccess(const FAccelByteModelsV2SessionRecentPlayers& InResult)
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 

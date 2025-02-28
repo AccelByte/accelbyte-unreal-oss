@@ -18,7 +18,7 @@ FOnlineAsyncTaskAccelByteBanUser::FOnlineAsyncTaskAccelByteBanUser(FOnlineSubsys
 
 void FOnlineAsyncTaskAccelByteBanUser::Initialize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::Initialize();
 

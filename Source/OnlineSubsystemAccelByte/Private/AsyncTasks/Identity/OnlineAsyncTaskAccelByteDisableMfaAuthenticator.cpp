@@ -34,7 +34,7 @@ void FOnlineAsyncTaskAccelByteDisableMfaAuthenticator::Initialize()
 
 void FOnlineAsyncTaskAccelByteDisableMfaAuthenticator::TriggerDelegates()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::TriggerDelegates();
 
@@ -74,11 +74,11 @@ void FOnlineAsyncTaskAccelByteDisableMfaAuthenticator::GetMfaToken()
 {
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("UserId: %s"), *UserId->ToDebugString());
     
-	API_CLIENT_CHECK_GUARD(OnlineError);
+	API_FULL_CHECK_GUARD(User, OnlineError);
 
 	const auto OnSuccessDelegate = TDelegateUtils<THandler<FVerifyMfaResponse>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteDisableMfaAuthenticator::OnGetMfaTokenSuccess);
 	const auto OnErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteDisableMfaAuthenticator::OnGetMfaTokenError);
-	ApiClient->User.VerifyMfaCode(EAccelByteLoginAuthFactorType::Authenticator, Code, OnSuccessDelegate, OnErrorDelegate);
+	User->VerifyMfaCode(EAccelByteLoginAuthFactorType::Authenticator, Code, OnSuccessDelegate, OnErrorDelegate);
 }
 
 void FOnlineAsyncTaskAccelByteDisableMfaAuthenticator::OnGetMfaTokenSuccess(const FVerifyMfaResponse& Response)
@@ -108,14 +108,14 @@ void FOnlineAsyncTaskAccelByteDisableMfaAuthenticator::DisableMfaAuthenticator()
 {
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("UserId: %s"), *UserId->ToDebugString());
 
-	API_CLIENT_CHECK_GUARD(OnlineError);
+	API_FULL_CHECK_GUARD(User, OnlineError);
 
 	FDisableMfaAuthenticatorRequest Request;
 	Request.MfaToken = MfaToken;
 	
 	const auto OnSuccessDelegate = TDelegateUtils<FVoidHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteDisableMfaAuthenticator::OnDisableMfaAuthenticatorSuccess);
 	const auto OnErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteDisableMfaAuthenticator::OnDisableMfaAuthenticatorError);
-	ApiClient->User.Disable2FaAuthenticator(OnSuccessDelegate, OnErrorDelegate, Request);
+	User->Disable2FaAuthenticator(OnSuccessDelegate, OnErrorDelegate, Request);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""))
 }

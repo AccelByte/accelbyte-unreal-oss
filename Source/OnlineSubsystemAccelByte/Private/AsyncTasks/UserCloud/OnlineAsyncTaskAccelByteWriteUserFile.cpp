@@ -21,7 +21,7 @@ FOnlineAsyncTaskAccelByteWriteUserFile::FOnlineAsyncTaskAccelByteWriteUserFile(F
 
 void FOnlineAsyncTaskAccelByteWriteUserFile::Initialize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::Initialize();
 
@@ -34,8 +34,8 @@ void FOnlineAsyncTaskAccelByteWriteUserFile::Initialize()
 	{
 		THandler<TArray<FAccelByteModelsSlot>> OnGetAllSlotsSuccessDelegate = TDelegateUtils<THandler<TArray<FAccelByteModelsSlot>>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteWriteUserFile::OnGetAllSlotsSuccess);
 		FErrorHandler OnGetAllSlotsErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteWriteUserFile::OnGetAllSlotsError);
-		API_CLIENT_CHECK_GUARD();
-		ApiClient->CloudStorage.GetAllSlots(OnGetAllSlotsSuccessDelegate, OnGetAllSlotsErrorDelegate);
+		API_FULL_CHECK_GUARD(CloudStorage);
+		CloudStorage->GetAllSlots(OnGetAllSlotsSuccessDelegate, OnGetAllSlotsErrorDelegate);
 	}
 	else
 	{
@@ -47,7 +47,7 @@ void FOnlineAsyncTaskAccelByteWriteUserFile::Initialize()
 
 void FOnlineAsyncTaskAccelByteWriteUserFile::Finalize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 	
@@ -65,7 +65,7 @@ void FOnlineAsyncTaskAccelByteWriteUserFile::Finalize()
 
 void FOnlineAsyncTaskAccelByteWriteUserFile::TriggerDelegates()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
@@ -87,14 +87,14 @@ void FOnlineAsyncTaskAccelByteWriteUserFile::RunWriteSlot(const FString& SlotId)
 	// If we have an empty slot ID passed in, we will treat this as meaning that we need to create a new slot
 	if (SlotId.IsEmpty())
 	{
-		API_CLIENT_CHECK_GUARD();
-		ApiClient->CloudStorage.CreateSlot(FileContents, FileName, TArray<FString>(), FileName, TEXT(""), OnCreateOrUpdateSlotSuccessDelegate, OnCreateOrUpdateSlotProgressDelegate, OnCreateOrUpdateSlotErrorDelegate);
+		API_FULL_CHECK_GUARD(CloudStorage);
+		CloudStorage->CreateSlot(FileContents, FileName, TArray<FString>(), FileName, TEXT(""), OnCreateOrUpdateSlotSuccessDelegate, OnCreateOrUpdateSlotProgressDelegate, OnCreateOrUpdateSlotErrorDelegate);
 	}
 	// Otherwise, we just want to update the existing slot
 	else
 	{
-		API_CLIENT_CHECK_GUARD();
-		ApiClient->CloudStorage.UpdateSlot(SlotId, FileContents, FileName, TArray<FString>(), FileName, TEXT(""), OnCreateOrUpdateSlotSuccessDelegate, OnCreateOrUpdateSlotProgressDelegate, OnCreateOrUpdateSlotErrorDelegate);
+		API_FULL_CHECK_GUARD(CloudStorage);
+		CloudStorage->UpdateSlot(SlotId, FileContents, FileName, TArray<FString>(), FileName, TEXT(""), OnCreateOrUpdateSlotSuccessDelegate, OnCreateOrUpdateSlotProgressDelegate, OnCreateOrUpdateSlotErrorDelegate);
 	}
 
 	ResolvedSlotId = SlotId;

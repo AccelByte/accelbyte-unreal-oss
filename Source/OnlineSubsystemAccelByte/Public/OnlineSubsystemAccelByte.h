@@ -650,6 +650,8 @@ private:
 
 	FDelegateHandle OnPreExitDelegate;
 
+	TMap<int32, FDelegateHandle> LobbyMessageNotifMap;
+
 #pragma region PLATFORM_RELATED
 	/**
 	 * Perform check and listen to the IAM refresh token scheduler.

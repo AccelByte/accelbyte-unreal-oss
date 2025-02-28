@@ -72,8 +72,12 @@ bool FOnlineAnalyticsAccelByte::SetTelemetrySendInterval(int32 InLocalUserNum)
 			const auto ApiClient = AccelByteSubsystemPtr->GetApiClient(InLocalUserNum);
 			if (ApiClient.IsValid())
 			{
-				ApiClient->GameTelemetry.SetBatchFrequency(FTimespan::FromSeconds(SendTelemetryEventIntervalInSeconds));
-				bIsSuccess = true;
+				const auto GameTelemetry = ApiClient->GetGameTelemetryApi().Pin();
+				if (GameTelemetry.IsValid())
+				{
+					GameTelemetry->SetBatchFrequency(FTimespan::FromSeconds(SendTelemetryEventIntervalInSeconds));
+					bIsSuccess = true;
+				}
 			}
 		}
 	}
@@ -117,8 +121,12 @@ bool FOnlineAnalyticsAccelByte::SetTelemetryImmediateEventList(int32 InLocalUser
 		const auto ApiClient = AccelByteSubsystemPtr->GetApiClient(InLocalUserNum);
 		if (ApiClient.IsValid())
 		{
-			ApiClient->GameTelemetry.SetImmediateEventList(EventNames);
-			bIsSuccess = true;
+			const auto GameTelemetry = ApiClient->GetGameTelemetryApi().Pin();
+			if (GameTelemetry.IsValid())
+			{
+				GameTelemetry->SetImmediateEventList(EventNames);
+				bIsSuccess = true;
+			}
 		}
 	}
 	
@@ -148,8 +156,12 @@ bool FOnlineAnalyticsAccelByte::SetTelemetryCriticalEventList(int32 InLocalUserN
 		const auto ApiClient = AccelByteSubsystemPtr->GetApiClient(InLocalUserNum);
 		if (ApiClient.IsValid())
 		{
-			ApiClient->GameTelemetry.SetCriticalEventList(EventNames);
-			bIsSuccess = true;
+			const auto GameTelemetry = ApiClient->GetGameTelemetryApi().Pin();
+			if (GameTelemetry.IsValid())
+			{
+				GameTelemetry->SetCriticalEventList(EventNames);
+				bIsSuccess = true;
+			}
 		}
 	}
 
@@ -192,8 +204,12 @@ bool FOnlineAnalyticsAccelByte::SendTelemetryEvent(int32 InLocalUserNum
 			const auto ApiClient = AccelByteSubsystemPtr->GetApiClient(InLocalUserNum);
 			if (ApiClient.IsValid())
 			{
-				ApiClient->GameTelemetry.Send(TelemetryBody, OnSuccess, OnError);
-				bIsSuccess = true;
+				const auto GameTelemetry = ApiClient->GetGameTelemetryApi().Pin();
+				if (GameTelemetry.IsValid())
+				{
+					GameTelemetry->Send(TelemetryBody, OnSuccess, OnError);
+					bIsSuccess = true;
+				}
 			}
 		}
 	}
@@ -244,5 +260,5 @@ FAccelByteInstanceWPtr FOnlineAnalyticsAccelByte::GetAccelByteInstance() const
 
 bool FOnlineAnalyticsAccelByte::IsValidTelemetry(FAccelByteModelsTelemetryBody const& TelemetryBody)
 {
-	return TelemetryBody.Payload.IsValid() && !TelemetryBody.EventName.IsEmpty() && !TelemetryBody.EventNamespace.IsEmpty();
+	return TelemetryBody.Payload.IsValid() && !TelemetryBody.EventName.IsEmpty();
 }

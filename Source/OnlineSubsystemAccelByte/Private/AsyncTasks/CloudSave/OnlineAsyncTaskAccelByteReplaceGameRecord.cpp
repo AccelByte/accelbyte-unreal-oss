@@ -26,7 +26,7 @@ FOnlineAsyncTaskAccelByteReplaceGameRecord::FOnlineAsyncTaskAccelByteReplaceGame
 
 void FOnlineAsyncTaskAccelByteReplaceGameRecord::Initialize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::Initialize();
 
@@ -72,7 +72,7 @@ void FOnlineAsyncTaskAccelByteReplaceGameRecord::Initialize()
 
 void FOnlineAsyncTaskAccelByteReplaceGameRecord::Finalize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = SubsystemPin->GetPredefinedEventInterface();
 	if (bWasSuccessful && PredefinedEventInterface.IsValid())
@@ -88,7 +88,7 @@ void FOnlineAsyncTaskAccelByteReplaceGameRecord::Finalize()
 
 void FOnlineAsyncTaskAccelByteReplaceGameRecord::TriggerDelegates()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
@@ -109,7 +109,7 @@ void FOnlineAsyncTaskAccelByteReplaceGameRecord::TriggerDelegates()
 
 void FOnlineAsyncTaskAccelByteReplaceGameRecord::OnReplaceGameRecordSuccess()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 	CompleteTask(EAccelByteAsyncTaskCompleteState::Success);

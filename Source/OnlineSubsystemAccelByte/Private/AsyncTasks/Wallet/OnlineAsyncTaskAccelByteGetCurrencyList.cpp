@@ -18,7 +18,7 @@ FOnlineAsyncTaskAccelByteGetCurrencyList::FOnlineAsyncTaskAccelByteGetCurrencyLi
 
 void FOnlineAsyncTaskAccelByteGetCurrencyList::Initialize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::Initialize();
 
@@ -34,8 +34,8 @@ void FOnlineAsyncTaskAccelByteGetCurrencyList::Initialize()
 			OnGetCurrencyListErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteGetCurrencyList::OnGetCurrencyListError);
 
 			// Send off a request to get currency list, as well as connect our delegates for doing so
-			API_CLIENT_CHECK_GUARD(ErrorStr);
-			ApiClient->Currency.GetCurrencyList(ApiClient->CredentialsRef->GetNamespace(), OnGetCurrencyListSuccessDelegate, OnGetCurrencyListErrorDelegate);
+			API_FULL_CHECK_GUARD(Currency, ErrorStr);
+			Currency->GetCurrencyList(ApiClient->CredentialsRef->GetNamespace(), OnGetCurrencyListSuccessDelegate, OnGetCurrencyListErrorDelegate);
 		}
 		else
 		{
@@ -63,7 +63,7 @@ void FOnlineAsyncTaskAccelByteGetCurrencyList::Initialize()
 
 void FOnlineAsyncTaskAccelByteGetCurrencyList::TriggerDelegates()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
@@ -85,7 +85,7 @@ void FOnlineAsyncTaskAccelByteGetCurrencyList::TriggerDelegates()
 
 void FOnlineAsyncTaskAccelByteGetCurrencyList::OnGetCurrencyListSuccess(const TArray<FAccelByteModelsCurrencyList>& Result)
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 

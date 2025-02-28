@@ -34,7 +34,7 @@ void FOnlineAsyncTaskAccelByteGetServerClaimedV2Session::Initialize()
 
 void FOnlineAsyncTaskAccelByteGetServerClaimedV2Session::Finalize()
 {
-    TRY_PIN_SUBSYSTEM()
+    TRY_PIN_SUBSYSTEM();
 
     Super::Finalize();
 
@@ -70,7 +70,7 @@ void FOnlineAsyncTaskAccelByteGetServerClaimedV2Session::Finalize()
 
 void FOnlineAsyncTaskAccelByteGetServerClaimedV2Session::TriggerDelegates()
 {
-    TRY_PIN_SUBSYSTEM()
+    TRY_PIN_SUBSYSTEM();
 
     Super::TriggerDelegates();
 

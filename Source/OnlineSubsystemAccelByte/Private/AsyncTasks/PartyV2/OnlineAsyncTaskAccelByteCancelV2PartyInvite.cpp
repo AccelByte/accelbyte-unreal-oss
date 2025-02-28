@@ -19,7 +19,7 @@ FOnlineAsyncTaskAccelByteCancelV2PartyInvite::FOnlineAsyncTaskAccelByteCancelV2P
 
 void FOnlineAsyncTaskAccelByteCancelV2PartyInvite::Initialize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Canceling %s session invite, local user id %s, invitee id %s"), *SessionName.ToString(), *UserId->ToDebugString(), *InviteeId->ToDebugString())
 
@@ -35,8 +35,8 @@ void FOnlineAsyncTaskAccelByteCancelV2PartyInvite::Initialize()
 		return;
 	}
 
-	const FNamedOnlineSession* Session = SessionInterface->GetNamedSession(SessionName);
-	if (Session == nullptr)
+	const FNamedOnlineSession* OnlineSession = SessionInterface->GetNamedSession(SessionName);
+	if (OnlineSession == nullptr)
 	{
 		ErrorText = FText::FromString(TEXT("cancel-party-invite-user-not-in-party"));
 		OnlineError = ONLINE_ERROR(EOnlineErrorResult::RequestFailure, FString(), ErrorText);
@@ -45,19 +45,19 @@ void FOnlineAsyncTaskAccelByteCancelV2PartyInvite::Initialize()
 		return;
 	}
 
-	const FString PartyID = Session->GetSessionIdStr();
+	const FString PartyID = OnlineSession->GetSessionIdStr();
 
-	API_CLIENT_CHECK_GUARD()
+	API_FULL_CHECK_GUARD(Session)
 	const FVoidHandler OnCancelPartyInviteSuccessDelegate = TDelegateUtils<FVoidHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteCancelV2PartyInvite::OnCancelPartyInviteSuccess);
 	const FErrorHandler OnCancelPartyInviteErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteCancelV2PartyInvite::OnCancelPartyInviteError);
-	ApiClient->Session.CancelPartyInvitation(PartyID, InviteeId->GetAccelByteId(), OnCancelPartyInviteSuccessDelegate, OnCancelPartyInviteErrorDelegate);
+	Session->CancelPartyInvitation(PartyID, InviteeId->GetAccelByteId(), OnCancelPartyInviteSuccessDelegate, OnCancelPartyInviteErrorDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""))
 }
 
 void FOnlineAsyncTaskAccelByteCancelV2PartyInvite::TriggerDelegates()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""))
 

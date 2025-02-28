@@ -19,7 +19,7 @@ FOnlineAsyncTaskAccelByteRetrieveDedicatedV1SessionInfo::FOnlineAsyncTaskAccelBy
 
 void FOnlineAsyncTaskAccelByteRetrieveDedicatedV1SessionInfo::Initialize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::Initialize();
 
@@ -85,7 +85,7 @@ void FOnlineAsyncTaskAccelByteRetrieveDedicatedV1SessionInfo::Initialize()
 
 void FOnlineAsyncTaskAccelByteRetrieveDedicatedV1SessionInfo::Finalize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s; Channel: %s"), LOG_BOOL_FORMAT(bWasSuccessful), *Channel);
 
@@ -116,7 +116,7 @@ void FOnlineAsyncTaskAccelByteRetrieveDedicatedV1SessionInfo::Finalize()
 
 void FOnlineAsyncTaskAccelByteRetrieveDedicatedV1SessionInfo::TriggerDelegates()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 

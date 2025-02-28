@@ -41,7 +41,7 @@ FOnlineAsyncTaskAccelByteStartV1Matchmaking::FOnlineAsyncTaskAccelByteStartV1Mat
 
 void FOnlineAsyncTaskAccelByteStartV1Matchmaking::Initialize()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	Super::Initialize();
 
@@ -91,18 +91,20 @@ void FOnlineAsyncTaskAccelByteStartV1Matchmaking::Initialize()
 	TSharedPtr<FOnlineUserAccelByte, ESPMode::ThreadSafe> UserInterface = StaticCastSharedPtr<FOnlineUserAccelByte>(SubsystemPin->GetUserInterface());
 
 	API_CLIENT_CHECK_GUARD(ErrorStringKey);
+	API_CHECK_GUARD(Qos, ErrorStringKey);
 	SearchSettings->SearchState = EOnlineAsyncTaskState::InProgress;
-	if (ApiClient->Qos.GetCachedLatencies().Num() <= 0)
+	if (Qos->GetCachedLatencies().Num() <= 0)
 	{
 		const THandler<TArray<TPair<FString, float>>> OnGetServerLatenciesSuccessDelegate = TDelegateUtils<THandler<TArray<TPair<FString, float>>>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteStartV1Matchmaking::OnGetServerLatenciesSuccess);
 		FErrorHandler OnGetServerLatenciesErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteStartV1Matchmaking::OnGetServerLatenciesError);
-		ApiClient->Qos.GetServerLatencies(OnGetServerLatenciesSuccessDelegate, OnGetServerLatenciesErrorDelegate);
+		Qos->GetServerLatencies(OnGetServerLatenciesSuccessDelegate, OnGetServerLatenciesErrorDelegate);
 	}
 	else
 	{
-		Latencies = ApiClient->Qos.GetCachedLatencies();
+		Latencies = Qos->GetCachedLatencies();
+		API_CHECK_GUARD(Lobby, ErrorStringKey);
 		AccelByte::Api::Lobby::FMatchmakingResponse OnStartMatchmakingResponseReceivedDelegate = TDelegateUtils<AccelByte::Api::Lobby::FMatchmakingResponse>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteStartV1Matchmaking::OnStartMatchmakingResponseReceived);
-		ApiClient->Lobby.SetStartMatchmakingResponseDelegate(OnStartMatchmakingResponseReceivedDelegate);
+		Lobby->SetStartMatchmakingResponseDelegate(OnStartMatchmakingResponseReceivedDelegate);
 		CreateMatchmakingSessionAndStartMatchmaking();
 	}
 
@@ -123,7 +125,7 @@ void FOnlineAsyncTaskAccelByteStartV1Matchmaking::Finalize()
 
 void FOnlineAsyncTaskAccelByteStartV1Matchmaking::TriggerDelegates()
 {
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
@@ -152,8 +154,8 @@ void FOnlineAsyncTaskAccelByteStartV1Matchmaking::OnGetServerLatenciesSuccess(co
 	Latencies = Result;
 
 	AccelByte::Api::Lobby::FMatchmakingResponse OnStartMatchmakingResponseReceivedDelegate = TDelegateUtils<AccelByte::Api::Lobby::FMatchmakingResponse>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteStartV1Matchmaking::OnStartMatchmakingResponseReceived);
-	API_CLIENT_CHECK_GUARD(ErrorStringKey);
-	ApiClient->Lobby.SetStartMatchmakingResponseDelegate(OnStartMatchmakingResponseReceivedDelegate);
+	API_FULL_CHECK_GUARD(Lobby,ErrorStringKey);
+	Lobby->SetStartMatchmakingResponseDelegate(OnStartMatchmakingResponseReceivedDelegate);
 	CreateMatchmakingSessionAndStartMatchmaking();
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
@@ -195,8 +197,8 @@ void FOnlineAsyncTaskAccelByteStartV1Matchmaking::CreateMatchmakingSessionAndSta
 		PartyAttribute.Add(SETTING_NUMBOTS.ToString(), FString::FromInt(NumBots));
 	}
 	
-	API_CLIENT_CHECK_GUARD(ErrorStringKey);
-	ApiClient->Lobby.SendStartMatchmaking(GameMode, ServerName, ClientVersion, Latencies, PartyAttribute);
+	API_FULL_CHECK_GUARD(Lobby,ErrorStringKey);
+	Lobby->SendStartMatchmaking(GameMode, ServerName, ClientVersion, Latencies, PartyAttribute);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sent matchmaking request for session '%s' with game mode '%s' and server name of '%s'"), *SessionName.ToString(), *GameMode, *ServerName);
 }
