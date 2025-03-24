@@ -3,7 +3,7 @@
 // and restrictions contact your company contract manager.
 
 #include "OnlineAsyncTaskAccelByteSimultaneousLogin.h"
-#include "Core/AccelByteMultiRegistry.h"
+
 #include "Core/AccelByteUtilities.h"
 #include "OnlineSubsystemAccelByte.h"
 #include "OnlineIdentityInterfaceAccelByte.h"

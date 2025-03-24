@@ -10,7 +10,7 @@
 #include "OnlineSubsystemAccelByte.h"
 #include "OnlineSubsystemAccelByteDefines.h"
 #include "OnlineIdentityInterfaceAccelByte.h"
-#include "Core/AccelByteRegistry.h"
+
 #include "Api/AccelByteLobbyApi.h"
 #include "Models/AccelByteMatchmakingModels.h"
 #include "GameServerApi/AccelByteServerMatchmakingApi.h"

@@ -3,7 +3,7 @@
 // and restrictions contact your company contract manager.
 
 #include "OnlineAsyncTaskAccelByteQueryExternalIdMappings.h"
-#include "Core/AccelByteRegistry.h"
+
 #include "Core/AccelByteError.h"
 #include "Api/AccelByteUserApi.h"
 #include "OnlineSubsystemAccelByte.h"

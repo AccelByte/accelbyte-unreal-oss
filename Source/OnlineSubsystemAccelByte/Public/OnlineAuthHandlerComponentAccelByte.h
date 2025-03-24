@@ -9,7 +9,7 @@
 #include "Core/AccelByteCredentials.h"
 #include "Core/AccelByteOpenSSL.h"
 #include "Core/AccelByteApiClient.h"
-#include "Core/AccelByteMultiRegistry.h"
+
 #include "OnlineSubsystemAccelByteTypes.h"
 #include "OnlineAuthInterfaceAccelByte.h"
 

@@ -1123,7 +1123,8 @@ void FOnlineChatAccelByte::OnReceivedChatNotification(const FAccelByteModelsChat
 		, ChatNotif.Message
 		, ChatNotif.CreatedAt
 		, ChatNotif.ChatId
-		, ChatNotif.TopicId);
+		, ChatNotif.TopicId
+		, ChatNotif.SenderPlatformId);
 
 	const FUniqueNetIdAccelByteUserRef AccelByteUserId = FUniqueNetIdAccelByteUser::CastChecked(LocalUserId.ToSharedRef());
 	AddChatMessage(AccelByteUserId, OutChatRoomId, OutChatMessage);
@@ -1338,6 +1339,11 @@ const FString& FAccelByteChatMessage::GetChatId() const
 const FString& FAccelByteChatMessage::GetTopicId() const
 {
 	return TopicId;
+}
+
+EAccelBytePlatformType FAccelByteChatMessage::GetSenderPlatformId() const
+{
+	return SenderPlatformId;
 }
 
 FAccelByteChatRoomMember::FAccelByteChatRoomMember(const FUniqueNetIdAccelByteUserRef& InUserId, const FString& InNickname)

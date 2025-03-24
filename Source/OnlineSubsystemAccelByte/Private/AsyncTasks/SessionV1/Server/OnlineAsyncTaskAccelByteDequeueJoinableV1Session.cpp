@@ -5,7 +5,7 @@
 #include "OnlineSessionSettings.h"
 #include "OnlineSubsystemAccelByteTypes.h"
 #include "GameServerApi/AccelByteServerMatchmakingApi.h"
-#include "Core/AccelByteRegistry.h"
+
 #include "Core/AccelByteError.h"
 #include "Interfaces/OnlineSessionInterface.h"
 

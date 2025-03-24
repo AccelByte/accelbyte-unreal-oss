@@ -188,7 +188,14 @@ bool FOnlineGameStandardEventAccelByte::SendMissionStartedEvent(int32 LocalUserN
 			}
 			else
 			{
-				const auto ApiClient = AccelByte::FMultiRegistry::GetServerApiClient();
+				const FAccelByteInstancePtr AccelByteInstance = GetAccelByteInstance().Pin();
+				if(!AccelByteInstance.IsValid())
+				{
+					AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("failed, AccelByteInstance is invalid"));
+					return false;
+				}
+				
+				const auto ApiClient = AccelByteInstance->GetServerApiClient();
 				AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Send MissionStarted Event is finished"));
 				return ApiClient->ServerGameStandardEvent.SendMissionStartedEventData(FAccelByteUserId(UserId->GetAccelByteId())
 					, MissionId
@@ -260,7 +267,14 @@ bool FOnlineGameStandardEventAccelByte::SendMissionStepEndedEvent(int32 LocalUse
 			}
 			else
 			{
-				const auto ApiClient = AccelByte::FMultiRegistry::GetServerApiClient();
+				const FAccelByteInstancePtr AccelByteInstance = GetAccelByteInstance().Pin();
+				if(!AccelByteInstance.IsValid())
+				{
+					AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("failed, AccelByteInstance is invalid"));
+					return false;
+				}
+				
+				const auto ApiClient = AccelByteInstance->GetServerApiClient();
 				AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Send MissionStepEnded Event is finished"));
 				return ApiClient->ServerGameStandardEvent.SendMissionStepEndedEventData(FAccelByteUserId(UserId->GetAccelByteId())
 					, MissionId
@@ -335,7 +349,14 @@ bool FOnlineGameStandardEventAccelByte::SendMissionEndedEvent(int32 LocalUserNum
 			}
 			else
 			{
-				const auto ApiClient = AccelByte::FMultiRegistry::GetServerApiClient();
+				const FAccelByteInstancePtr AccelByteInstance = GetAccelByteInstance().Pin();
+				if(!AccelByteInstance.IsValid())
+				{
+					AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("failed, AccelByteInstance is invalid"));
+					return false;
+				}
+				
+				const auto ApiClient = AccelByteInstance->GetServerApiClient();
 				AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Send MissionEnded Event is finished"));
 				return ApiClient->ServerGameStandardEvent.SendMissionEndedEventData(FAccelByteUserId(UserId->GetAccelByteId())
 					, MissionId
@@ -402,7 +423,14 @@ bool FOnlineGameStandardEventAccelByte::SendMatchInfoEvent(int32 LocalUserNum
 			}
 			else
 			{
-				const auto ApiClient = AccelByte::FMultiRegistry::GetServerApiClient();
+				const FAccelByteInstancePtr AccelByteInstance = GetAccelByteInstance().Pin();
+				if(!AccelByteInstance.IsValid())
+				{
+					AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("failed, AccelByteInstance is invalid"));
+					return false;
+				}
+				
+				const auto ApiClient = AccelByteInstance->GetServerApiClient();
 				AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Send MatchInfo Event is finished"));
 				return ApiClient->ServerGameStandardEvent.SendMatchInfoEventData(MatchInfoId
 					, Optional);
@@ -465,7 +493,14 @@ bool FOnlineGameStandardEventAccelByte::SendMatchInfoPlayerEvent(int32 LocalUser
 			}
 			else
 			{
-				const auto ApiClient = AccelByte::FMultiRegistry::GetServerApiClient();
+				const FAccelByteInstancePtr AccelByteInstance = GetAccelByteInstance().Pin();
+				if(!AccelByteInstance.IsValid())
+				{
+					AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("failed, AccelByteInstance is invalid"));
+					return false;
+				}
+				
+				const auto ApiClient = AccelByteInstance->GetServerApiClient();
 				AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Send MatchInfoPlayer Event is finished"));
 				return ApiClient->ServerGameStandardEvent.SendMatchInfoPlayerEventData(FAccelByteUserId(UserId->GetAccelByteId())
 					, MatchInfoId
@@ -530,7 +565,14 @@ bool FOnlineGameStandardEventAccelByte::SendMatchInfoEndedEvent(int32 LocalUserN
 			}
 			else
 			{
-				const auto ApiClient = AccelByte::FMultiRegistry::GetServerApiClient();
+				const FAccelByteInstancePtr AccelByteInstance = GetAccelByteInstance().Pin();
+				if(!AccelByteInstance.IsValid())
+				{
+					AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("failed, AccelByteInstance is invalid"));
+					return false;
+				}
+				
+				const auto ApiClient = AccelByteInstance->GetServerApiClient();
 				AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Send MatchInfoEnded Event is finished"));
 				return ApiClient->ServerGameStandardEvent.SendMatchInfoEndedEventData(MatchInfoId
 					, EndReason
@@ -595,7 +637,14 @@ bool FOnlineGameStandardEventAccelByte::SendPopupAppearEvent(int32 LocalUserNum
 			}
 			else
 			{
-				const auto ApiClient = AccelByte::FMultiRegistry::GetServerApiClient();
+				const FAccelByteInstancePtr AccelByteInstance = GetAccelByteInstance().Pin();
+				if(!AccelByteInstance.IsValid())
+				{
+					AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("failed, AccelByteInstance is invalid"));
+					return false;
+				}
+				
+				const auto ApiClient = AccelByteInstance->GetServerApiClient();
 				AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Send PopupAppear Event is finished"));
 				return ApiClient->ServerGameStandardEvent.SendPopupAppearEventData(FAccelByteUserId(UserId->GetAccelByteId())
 					, PopupId
@@ -662,7 +711,14 @@ bool FOnlineGameStandardEventAccelByte::SendEntityLeveledEvent(int32 LocalUserNu
 			}
 			else
 			{
-				const auto ApiClient = AccelByte::FMultiRegistry::GetServerApiClient();
+				const FAccelByteInstancePtr AccelByteInstance = GetAccelByteInstance().Pin();
+				if(!AccelByteInstance.IsValid())
+				{
+					AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("failed, AccelByteInstance is invalid"));
+					return false;
+				}
+				
+				const auto ApiClient = AccelByteInstance->GetServerApiClient();
 				AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Send EntityLeveled Event is finished"));
 				return ApiClient->ServerGameStandardEvent.SendEntityLeveledEventData(EntityType
 					, EntityId
@@ -730,7 +786,14 @@ bool FOnlineGameStandardEventAccelByte::SendEntityDeadEvent(int32 LocalUserNum
 			}
 			else
 			{
-				const auto ApiClient = AccelByte::FMultiRegistry::GetServerApiClient();
+				const FAccelByteInstancePtr AccelByteInstance = GetAccelByteInstance().Pin();
+				if(!AccelByteInstance.IsValid())
+				{
+					AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("failed, AccelByteInstance is invalid"));
+					return false;
+				}
+				
+				const auto ApiClient = AccelByteInstance->GetServerApiClient();
 				AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Send EntityDead Event is finished"));
 				return ApiClient->ServerGameStandardEvent.SendEntityDeadEventData(EntityType
 					, EntityId
@@ -808,7 +871,14 @@ bool FOnlineGameStandardEventAccelByte::SendResourceFlowEvent(int32 LocalUserNum
 			}
 			else
 			{
-				const auto ApiClient = AccelByte::FMultiRegistry::GetServerApiClient();
+				const FAccelByteInstancePtr AccelByteInstance = GetAccelByteInstance().Pin();
+				if(!AccelByteInstance.IsValid())
+				{
+					AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("failed, AccelByteInstance is invalid"));
+					return false;
+				}
+				
+				const auto ApiClient = AccelByteInstance->GetServerApiClient();
 				AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Send ResourceFlow Event is finished"));
 				return ApiClient->ServerGameStandardEvent.SendResourceFlowEventData(FAccelByteUserId(UserId->GetAccelByteId())
 				, FlowType

@@ -18,7 +18,7 @@
 #include "OnlineSubsystemUtils.h"
 #include "SocketSubsystem.h"
 #include "OnlineAsyncTaskManager.h"
-#include "Core/AccelByteRegistry.h"
+
 #include "Api/AccelByteSessionBrowserApi.h"
 #include "GameServerApi/AccelByteServerDSMApi.h"
 #include "GameServerApi/AccelByteServerOauth2Api.h"
@@ -30,7 +30,7 @@
 #include "OnlineVoiceInterfaceAccelByte.h"
 #include "OnlinePartyInterfaceAccelByte.h"
 #include "OnlinePredefinedEventInterfaceAccelByte.h"
-#include "Core/AccelByteMultiRegistry.h"
+
 #include "Core/AccelByteError.h"
 #include "AsyncTasks/SessionV1/OnlineAsyncTaskAccelByteStartV1Matchmaking.h"
 #include "AsyncTasks/SessionV1/OnlineAsyncTaskAccelByteRegisterPlayerV1.h"

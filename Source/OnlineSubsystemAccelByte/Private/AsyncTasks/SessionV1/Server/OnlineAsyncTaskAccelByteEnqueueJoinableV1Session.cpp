@@ -6,7 +6,7 @@
 #include "OnlineSessionSettings.h"
 #include "Interfaces/OnlineSessionInterface.h"
 #include "GameServerApi/AccelByteServerMatchmakingApi.h"
-#include "Core/AccelByteRegistry.h"
+
 #include "Core/AccelByteError.h"
 
 using namespace AccelByte;

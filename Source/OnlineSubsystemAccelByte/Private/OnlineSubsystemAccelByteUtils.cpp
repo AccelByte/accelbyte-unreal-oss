@@ -227,6 +227,11 @@ EAccelByteLoginType FOnlineSubsystemAccelByteUtils::GetAccelByteLoginTypeFromNat
 	{
 		return EAccelByteLoginType::Google;
 	}
+	else if (SubsystemStr.Equals(TEXT("SWITCH"), ESearchCase::IgnoreCase)
+		|| SubsystemStr.Equals(SWITCH_SUBSYSTEM.ToString(), ESearchCase::IgnoreCase))
+	{
+		return EAccelByteLoginType::Switch;
+	}
 	/* TODO: uncomment when able to authenticate GooglePlay using Server Auth Code
 	else if (SubsystemStr.Equals(TEXT("GOOGLEPLAY"), ESearchCase::IgnoreCase)
 		|| SubsystemStr.Equals(GOOGLEPLAY_SUBSYSTEM.ToString(), ESearchCase::IgnoreCase))

@@ -3,7 +3,7 @@
 // and restrictions contact your company contract manager.
 #include "OnlineStatisticInterfaceAccelByte.h"
 #include "OnlineSubsystemAccelByte.h"
-#include "Core/AccelByteMultiRegistry.h"
+
 #include "OnlineIdentityInterfaceAccelByte.h"
 #include "OnlineSubsystemAccelByteInternalHelpers.h"
 #include "AsyncTasks/Statistic/OnlineAsyncTaskAccelByteListUserStatItems.h"

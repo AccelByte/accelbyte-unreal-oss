@@ -7,7 +7,7 @@
 #include "OnlineSubsystemAccelByte.h"
 #include "OnlineBaseAnalyticsInterfaceAccelByte.h"
 #include "OnlineSubsystemAccelByteInternalHelpers.h"
-#include "Core/AccelByteMultiRegistry.h"
+
 #include "Models/AccelByteGameStandardEventModels.h"
 #include "OnlineSubsystemAccelBytePackage.h"
 #include "OnlineSessionSettings.h"

@@ -4,7 +4,7 @@
 
 #include "OnlineAsyncTaskAccelByteGetV1PartyInviteInfo.h"
 #include "OnlinePartyInterfaceAccelByte.h"
-#include "Core/AccelByteRegistry.h"
+
 #include "Api/AccelByteUserApi.h"
 
 using namespace AccelByte;

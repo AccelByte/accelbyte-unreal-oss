@@ -10,7 +10,7 @@
 #include "OnlineSubsystemAccelByte.h"
 #include "Interfaces/OnlineIdentityInterface.h"
 #include "OnlinePredefinedEventInterfaceAccelByte.h"
-#include "Core/AccelByteRegistry.h"
+
 #include "OnlineSubsystemSessionSettings.h"
 #include "OnlineSubsystemAccelByteSessionSettings.h"
 

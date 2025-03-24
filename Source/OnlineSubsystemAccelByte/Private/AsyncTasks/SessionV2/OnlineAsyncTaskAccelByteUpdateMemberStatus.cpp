@@ -4,7 +4,7 @@
 
 #include "OnlineAsyncTaskAccelByteUpdateMemberStatus.h"
 #include "GameServerApi/AccelByteServerSessionApi.h"
-#include "Core/AccelByteRegistry.h"
+
 
 using namespace AccelByte;
 

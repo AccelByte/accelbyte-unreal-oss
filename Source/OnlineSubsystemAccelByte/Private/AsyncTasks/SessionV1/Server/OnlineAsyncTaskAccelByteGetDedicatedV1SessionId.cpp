@@ -5,7 +5,7 @@
 #include "OnlineAsyncTaskAccelByteGetDedicatedV1SessionId.h"
 #include "OnlineSessionSettings.h"
 #include "Interfaces/OnlineSessionInterface.h"
-#include "Core/AccelByteRegistry.h"
+
 #include "GameServerApi/AccelByteServerDSMApi.h"
 
 using namespace AccelByte;

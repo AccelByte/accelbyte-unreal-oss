@@ -212,15 +212,15 @@ void FOnlineAsyncTaskAccelByteStartV2Matchmaking::CreateMatchTicket()
 		API_FULL_CHECK_GUARD(MatchmakingV2, OnlineError);
 		switch (SearchHandle.Get().GameSessionExclusion.CurrentType)
 		{
-		case FAccelBtyeModelsGameSessionExcludedSession::ExclusionType::ALL_MEMBER_CACHED_SESSION:
-		case FAccelBtyeModelsGameSessionExcludedSession::ExclusionType::N_PAST_SESSION:
+		case FAccelByteModelsGameSessionExcludedSession::ExclusionType::ALL_MEMBER_CACHED_SESSION:
+		case FAccelByteModelsGameSessionExcludedSession::ExclusionType::N_PAST_SESSION:
 			ObtainPartyStorageExcludedSessionInfoThenCreateMatchTicket();
 			break;
-		case FAccelBtyeModelsGameSessionExcludedSession::ExclusionType::EXPLICIT_LIST:
+		case FAccelByteModelsGameSessionExcludedSession::ExclusionType::EXPLICIT_LIST:
 			Optionals.ExcludedGameSessionIDs = SearchHandle.Get().GameSessionExclusion.GetExcludedGameSessionIDs();
 			MatchmakingV2->CreateMatchTicket(MatchPool, OnStartMatchmakingSuccessDelegate, OnStartMatchmakingErrorDelegate, Optionals);
 			break;
-		case FAccelBtyeModelsGameSessionExcludedSession::ExclusionType::NONE:
+		case FAccelByteModelsGameSessionExcludedSession::ExclusionType::NONE:
 			MatchmakingV2->CreateMatchTicket(MatchPool, OnStartMatchmakingSuccessDelegate, OnStartMatchmakingErrorDelegate, Optionals);
 			break;
 		}
@@ -244,11 +244,11 @@ void FOnlineAsyncTaskAccelByteStartV2Matchmaking::ObtainPartyStorageExcludedSess
 	{
 		API_FULL_CHECK_GUARD(MatchmakingV2, OnlineError);
 		auto PastSessionIDs = SessionInterface->PartySessionStorageLocalUserManager.PastSessionManager.GetPastSessionIDs(UserId);
-		if (SearchHandle.Get().GameSessionExclusion.CurrentType == FAccelBtyeModelsGameSessionExcludedSession::ExclusionType::ALL_MEMBER_CACHED_SESSION)
+		if (SearchHandle.Get().GameSessionExclusion.CurrentType == FAccelByteModelsGameSessionExcludedSession::ExclusionType::ALL_MEMBER_CACHED_SESSION)
 		{
 			Optionals.ExcludedGameSessionIDs = PastSessionIDs;
 		}
-		else if (SearchHandle.Get().GameSessionExclusion.CurrentType == FAccelBtyeModelsGameSessionExcludedSession::ExclusionType::N_PAST_SESSION)
+		else if (SearchHandle.Get().GameSessionExclusion.CurrentType == FAccelByteModelsGameSessionExcludedSession::ExclusionType::N_PAST_SESSION)
 		{
 			auto ExcessToRemove = PastSessionIDs.Num() - SearchHandle.Get().GameSessionExclusion.ExcludedPastSessionCount;
 			if (ExcessToRemove > 0)

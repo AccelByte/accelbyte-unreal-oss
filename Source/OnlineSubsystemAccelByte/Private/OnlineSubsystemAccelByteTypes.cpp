@@ -765,13 +765,37 @@ FString FUserOnlineAccountAccelByte::GetRealName() const
 	return DisplayName;
 }
 
-FString FUserOnlineAccountAccelByte::GetDisplayName(const FString& /*Platform*/) const
+FString FUserOnlineAccountAccelByte::GetDisplayName(const FString& Platform) const
 {
 	if (!UniqueDisplayName.IsEmpty())
 	{
 		return UniqueDisplayName;
 	}
-	return DisplayName;
+
+	if (Platform.IsEmpty())
+	{
+		return DisplayName;
+	}
+
+	// Caller has provided an explicit platform source, try and convert to platform type enum, and attempt to find linked account
+	const EAccelBytePlatformType PlatformType = FAccelByteUtilities::GetUEnumValueFromString<EAccelBytePlatformType>(Platform);
+	if (PlatformType == EAccelBytePlatformType::None)
+	{
+		// Platform type did not evaluate to a proper type, warn and return default display name
+		UE_LOG_AB(Warning, TEXT("Invalid platform type passed to GetDisplayName, returning default: %s"), *Platform);
+		return DisplayName;
+	}
+
+	// Attempt to find matching platform type in linked accounts
+	const FOnlinePlatformUserAccelByte* FoundPlatformUser = PlatformUsers.Find(Platform);
+	if (FoundPlatformUser == nullptr)
+	{
+		// Platform is not linked to user account, return default and warn
+		UE_LOG_AB(Warning, TEXT("Platform passed to GetDisplayName is not linked to user account, returning default: %s"), *Platform);
+		return DisplayName;
+	}
+
+	return FoundPlatformUser->GetDisplayName();
 }
 
 FString FUserOnlineAccountAccelByte::GetPublicCode()

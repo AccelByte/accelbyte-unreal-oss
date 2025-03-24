@@ -5,7 +5,7 @@
 #include "OnlineAsyncTaskAccelByteGetRecentPlayer.h"
 #include "OnlineSubsystemAccelByte.h"
 #include "OnlineFriendsInterfaceAccelByte.h"
-#include "Core/AccelByteRegistry.h"
+
 #include "Api/AccelByteUserApi.h"
 #include "Api/AccelByteSessionBrowserApi.h"
 #include "Interfaces/OnlineUserInterface.h"

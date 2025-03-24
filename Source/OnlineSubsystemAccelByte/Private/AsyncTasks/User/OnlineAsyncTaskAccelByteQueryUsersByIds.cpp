@@ -341,6 +341,7 @@ void FOnlineAsyncTaskAccelByteQueryUsersByIds::OnGetUserOtherPlatformBasicPublic
 			{
 				FAccelByteLinkedUserInfo PlatformUserInfo;
 				PlatformUserInfo.Id =  FUniqueNetIdAccelByteUser::Create(FAccelByteUniqueIdComposite(BasicInfo.UserId, UserPlatform.PlatformId, UserPlatform.PlatformUserId));
+				PlatformUserInfo.PlatformType = FAccelByteUtilities::GetUEnumValueFromString<EAccelBytePlatformType>(UserPlatform.PlatformId);
 				PlatformUserInfo.PlatformId = UserPlatform.PlatformUserId;
 				PlatformUserInfo.AvatarUrl = UserPlatform.PlatformAvatarUrl;
 				PlatformUserInfo.DisplayName = UserPlatform.PlatformDisplayName;

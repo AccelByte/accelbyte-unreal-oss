@@ -2,19 +2,11 @@
 // This is licensed software from AccelByte Inc, for limitations
 // and restrictions contact your company contract manager.
 
-#pragma once
+// #NOTE: pragma once intentionally removed as unity builds can fail to compile with it
 
 #undef PACKAGE_SCOPE
-#ifdef ONLINESUBSYSTEMACCELBYTE_PACKAGE
+#if defined(ACCELBYTE_TEST_OVERRIDE_PACKAGE) || defined(ONLINESUBSYSTEMACCELBYTE_PACKAGE)
 #define PACKAGE_SCOPE public
 #else
 #define PACKAGE_SCOPE protected
-#endif
-
-#undef OVERRIDE_PACKAGE_SCOPE
-#if defined(ACCELBYTE_TEST_OVERRIDE_PACKAGE) || defined(ONLINESUBSYSTEMACCELBYTE_PACKAGE)
-#define OVERRIDE_PACKAGE_SCOPE public
-#else
-#define OVERRIDE_PACKAGE_SCOPE protected
-#endif
-
+#endif // defined(ACCELBYTE_TEST_OVERRIDE_PACKAGE) || defined(ONLINESUBSYSTEMACCELBYTE_PACKAGE)

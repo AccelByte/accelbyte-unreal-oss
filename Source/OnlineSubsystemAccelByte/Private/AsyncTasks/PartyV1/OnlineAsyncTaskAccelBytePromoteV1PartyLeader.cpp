@@ -3,7 +3,7 @@
 // and restrictions contact your company contract manager.
 
 #include "OnlineAsyncTaskAccelBytePromoteV1PartyLeader.h"
-#include "Core/AccelByteRegistry.h"
+
 #include "Api/AccelByteLobbyApi.h"
 #include "OnlinePartyInterfaceAccelByte.h"
 

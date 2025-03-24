@@ -10,7 +10,7 @@
 #include "Engine/LocalPlayer.h"
 #include "OnlineIdentityInterfaceAccelByte.h"
 #include "OnlineSubsystemAccelByte.h"
-#include "Core/AccelByteMultiRegistry.h"
+
 #include "Core/AccelByteError.h"
 
 #define AB_OSS_ASYNC_TASK_TRACE_BEGIN_VERBOSITY(Verbosity, Format, ...) UE_LOG_AB(Verbosity, TEXT(">>> %s::%s (AsyncTask method) was called. Args: ") Format, *GetTaskName(), *FString(__func__), ##__VA_ARGS__)

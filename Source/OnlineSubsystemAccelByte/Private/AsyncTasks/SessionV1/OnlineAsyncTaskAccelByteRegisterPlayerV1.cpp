@@ -7,7 +7,7 @@
 #include "OnlineIdentityInterfaceAccelByte.h"
 #include "OnlineSubsystemAccelByteUtils.h"
 #include "OnlineUserCacheAccelByte.h"
-#include "Core/AccelByteRegistry.h"
+
 
 using namespace AccelByte;
 

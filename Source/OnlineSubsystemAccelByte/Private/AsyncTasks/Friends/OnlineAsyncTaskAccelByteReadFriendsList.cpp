@@ -6,7 +6,7 @@
 
 #include "OnlinePresenceInterfaceAccelByte.h"
 #include "OnlineSubsystemAccelByte.h"
-#include "Core/AccelByteRegistry.h"
+
 #include "Api/AccelByteLobbyApi.h"
 #include "Api/AccelByteUserApi.h"
 

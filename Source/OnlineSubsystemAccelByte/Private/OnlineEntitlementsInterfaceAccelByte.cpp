@@ -15,6 +15,8 @@
 #include "AsyncTasks/Entitlements/OnlineAsyncTaskAccelByteSyncIOSAppStore.h"
 #include "AsyncTasks/Entitlements/OnlineAsyncTaskAccelByteSyncMetaQuestDLC.h"
 #include "AsyncTasks/Entitlements/OnlineAsyncTaskAccelByteSyncMetaQuestIAP.h"
+#include "AsyncTasks/Entitlements/OnlineAsyncTaskAccelByteSyncSteamIAPTransaction.h"
+#include "AsyncTasks/Entitlements/OnlineAsyncTaskAccelByteSyncSteamAbnormalIAPTransaction.h"
 
 #pragma region FOnlineEntitlementAccelByte Methods
 bool FOnlineEntitlementAccelByte::GetAttribute(const FString& AttrName, FString& OutAttrValue) const
@@ -95,6 +97,39 @@ void FOnlineEntitlementsAccelByte::AddCurrentUserEntitlementHistoryToMap(const F
 	for (const auto& CurrentHistory : TempMapEntitlementHistory)
 	{
 		EntitlementHistoryMap.Emplace(CurrentHistory.Key, CurrentHistory.Value);
+	}
+}
+
+void FOnlineEntitlementsAccelByte::RegisterRealTimeLobbyDelegates(int32 LocalUserNum)
+{
+	// Get our identity interface to retrieve the API client for this user
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return;
+	}
+
+	AccelByte::FApiClientPtr ApiClient = AccelByteSubsystemPtr->GetApiClient(LocalUserNum);
+	if (!ApiClient.IsValid())
+	{
+		UE_LOG_AB(Warning, TEXT("Failed to register real-time lobby as an Api client could not be retrieved for user num %d!"), LocalUserNum);
+		return;
+	}
+
+	const auto Lobby = ApiClient->GetLobbyApi().Pin();
+	if (!Lobby.IsValid())
+	{
+		UE_LOG_AB(Warning, TEXT("Failed to register real-time lobby as an Lobby Api could not be retrieved for user num %d!"), LocalUserNum);
+		return;
+	}
+
+	// Set each delegate for the corresponding API client to be a new realtime delegate
+
+	if (OnEntitlementUpdatedNotificationReceivedDelegateHandleMap.Find(LocalUserNum) == nullptr)
+	{
+		THandler<FAccelByteModelsEntitlementUpdatedNotification> OnEntitlementUpdatedNotificationReceivedDelegate = THandler<FAccelByteModelsEntitlementUpdatedNotification>::CreateThreadSafeSP(AsShared(), &FOnlineEntitlementsAccelByte::OnEntitlementUpdatedNotificationReceived, LocalUserNum);
+		OnEntitlementUpdatedNotificationReceivedDelegateHandleMap.Add(LocalUserNum, Lobby->AddEntitlementUpdatedNotifDelegate(OnEntitlementUpdatedNotificationReceivedDelegate));
 	}
 }
 
@@ -190,6 +225,7 @@ void FOnlineEntitlementsAccelByte::SyncPlatformPurchase(int32 LocalUserNum, FAcc
 		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
 		return;
 	}
+
 	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteSyncPlatformPurchase>(AccelByteSubsystemPtr.Get(), LocalUserNum, EntitlementSyncBase, CompletionDelegate);
 }
 
@@ -225,6 +261,20 @@ void FOnlineEntitlementsAccelByte::SyncPlatformPurchase(int32 LocalUserNum, cons
 		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
 		return;
 	}
+
+	const IOnlineIdentityPtr IdentityInterfacePtr = AccelByteSubsystemPtr->GetIdentityInterface();
+	if (!IdentityInterfacePtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Unable to retrieve identity interface"));
+		return;
+	}
+
+	const FUniqueNetIdPtr UserIdPtr = IdentityInterfacePtr->GetUniquePlayerId(LocalUserNum);
+	if (!UserIdPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Unable to get user unique ID: %d"), LocalUserNum);
+		return;
+	}
 	
 	if(AccelByteSubsystemPtr->GetNativePlatformNameString().Contains(TEXT("google")))
 	{
@@ -236,19 +286,19 @@ void FOnlineEntitlementsAccelByte::SyncPlatformPurchase(int32 LocalUserNum, cons
 		AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteSyncIOSAppStore>(AccelByteSubsystemPtr.Get(), LocalUserNum, Receipt, CompletionDelegate);
 		return;
 	}
+	else if (AccelByteSubsystemPtr->GetNativePlatformNameString().Contains(TEXT("steam")))
+	{
+		AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteSyncSteamIAPTransaction>(AccelByteSubsystemPtr.Get()
+			, UserIdPtr.ToSharedRef().Get()
+			, Receipt
+			, CompletionDelegate);
+		return;
+	}
 	else if (AccelByteSubsystemPtr->GetSecondaryPlatformSubsystemName().ToString().Contains(TEXT("Oculus"))
 		|| AccelByteSubsystemPtr->GetSecondaryPlatformSubsystemName().ToString().Contains(TEXT("Meta")))
 	{
-		const auto IdentityInterfacePtr = AccelByteSubsystemPtr->GetIdentityInterface();
-		if (IdentityInterfacePtr.IsValid())
-		{
-			const auto UserId = IdentityInterfacePtr->GetUniquePlayerId(LocalUserNum);
-			if (UserId != nullptr && UserId.IsValid())
-			{
-				SyncPlatformPurchase(*UserId.Get(), CompletionDelegate);
-				return;
-			}
-		}
+		SyncPlatformPurchase(UserIdPtr.ToSharedRef().Get(), CompletionDelegate);
+		return;
 	}
 
 	CompletionDelegate.ExecuteIfBound(false, TEXT("Receipt not supported!"));
@@ -516,4 +566,50 @@ void FOnlineEntitlementsAccelByte::QueryPlatformSubscription(
 		AccelByteSubsystemPtr.Get(),
 		InLocalUserNum,
 		QueryRequest);
+}
+
+bool FOnlineEntitlementsAccelByte::SyncSteamAbnormalIAPTransaction(FUniqueNetId const& LocalUserId
+	, FOnSyncSteamAbnormalIAPTransactionComplete const& CompletionDelegate)
+{
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("LocalUserId: %s"), *LocalUserId.ToDebugString());
+	
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to sync Steam abnormal IAP by transaction: AccelByte subsystem is invalid"));
+		return false;
+	}
+
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteSyncSteamAbnormalIAPTransaction>(AccelByteSubsystemPtr.Get()
+		, LocalUserId
+		, CompletionDelegate);
+	
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
+	return true;
+}
+
+void FOnlineEntitlementsAccelByte::OnEntitlementUpdatedNotificationReceived(const FAccelByteModelsEntitlementUpdatedNotification& Response, int32 InLocalUserNum)
+{
+	// Get our identity interface to retrieve the UniqueNetId for this user
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return;
+	}
+
+	const IOnlineIdentityPtr IdentityInterface = AccelByteSubsystemPtr->GetIdentityInterface();
+	if (IdentityInterface.IsValid())
+	{
+		// Check whether user is connected or not yet
+		if (IdentityInterface->GetLoginStatus(InLocalUserNum) == ELoginStatus::LoggedIn)
+		{
+			const FUniqueNetIdPtr LocalUserId = IdentityInterface->GetUniquePlayerId(InLocalUserNum);
+			if (LocalUserId.IsValid())
+			{
+				//Trigger the notification
+				TriggerOnEntitlementUpdatedNotificationDelegates(InLocalUserNum, *LocalUserId.Get(), Response);
+			}
+		}
+	}
 }

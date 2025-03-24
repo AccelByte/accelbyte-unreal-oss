@@ -60,13 +60,21 @@ void FOnlineAsyncTaskAccelByteChatSendRoomChat::TriggerDelegates()
 
 	if (bWasSuccessful)
 	{
+		API_CLIENT_CHECK_GUARD(ErrorString);
+
 		FAccelByteChatRoomMemberRef ChatRoomMember = ChatInterface->GetAccelByteChatRoomMember(UserId->GetAccelByteId());
+		
+		// Convert platform ID from user token to EAccelBytePlatformType to construct chat message
+		const EAccelBytePlatformType PlatformType =
+			FAccelByteUtilities::GetUEnumValueFromString<EAccelBytePlatformType>(ApiClient->CredentialsRef->GetAuthToken().Platform_id);
+
 		TSharedRef<FAccelByteChatMessage> OutChatMessage = MakeShared<FAccelByteChatMessage>(UserId.ToSharedRef()
 			, ChatRoomMember->GetNickname()
 			, ChatMessage
 			, SendChatResponse.Processed
 			, SendChatResponse.ChatId
-			, SendChatResponse.TopicId);
+			, SendChatResponse.TopicId
+			, PlatformType);
 		ChatInterface->AddChatMessage(UserId.ToSharedRef(), RoomId, OutChatMessage);
 	}
 

@@ -11,8 +11,8 @@
 #include "OnlineError.h"
 #include "OnlineErrorAccelByte.h"
 #include "OnlineSubsystemAccelByte.h"
-#include "OnlineSubsystemAccelBytePackage.h"
 #include "Core/Platform/AccelBytePlatformHandleModels.h"
+#include "OnlineSubsystemAccelBytePackage.h"
 
 /** Typedef for a map of Offers to Item's Dynamic Data Map */
 using FOfferToDynamicDataMap = TMap<FUniqueOfferId, TSharedRef<FAccelByteModelsItemDynamicData>>;

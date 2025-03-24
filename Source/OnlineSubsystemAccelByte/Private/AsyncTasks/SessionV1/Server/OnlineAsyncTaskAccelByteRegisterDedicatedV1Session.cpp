@@ -12,7 +12,7 @@
 #include "OnlineSubsystemAccelByte.h"
 #include "OnlineIdentityInterfaceAccelByte.h"
 #include "OnlinePredefinedEventInterfaceAccelByte.h"
-#include "Core/AccelByteRegistry.h"
+
 #include "GameServerApi/AccelByteServerDSMApi.h"
 #include "GameServerApi/AccelByteServerSessionBrowserApi.h"
 #include "SocketSubsystem.h"

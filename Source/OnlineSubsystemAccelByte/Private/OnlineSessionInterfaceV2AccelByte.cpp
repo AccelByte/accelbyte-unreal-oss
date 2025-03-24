@@ -51,6 +51,7 @@
 #include "AsyncTasks/Server/OnlineAsyncTaskAccelByteServerQueryGameSessionsV2.h"
 #include "AsyncTasks/Server/OnlineAsyncTaskAccelByteServerQueryPartySessionsV2.h"
 #include "AsyncTasks/Server/OnlineAsyncTaskAccelByteSendReadyToAMS.h"
+#include "AsyncTasks/Server/OnlineAsyncTaskAccelByteUpdateDSInformation.h"
 #include "OnlineIdentityInterfaceAccelByte.h"
 #include "OnlineSessionInterfaceV1AccelByte.h"
 #include "OnlineVoiceInterfaceAccelByte.h"
@@ -1649,6 +1650,7 @@ void FOnlineSessionV2AccelByte::RegisterSessionNotificationDelegates(const FUniq
 	BIND_LOBBY_NOTIFICATION(DSStatusChanged, DsStatusChanged);
 	BIND_LOBBY_NOTIFICATION(GameSessionRejected, GameSessionInviteRejected);
 	BIND_LOBBY_NOTIFICATION(GameSessionJoined, GameSessionJoined);
+	BIND_LOBBY_NOTIFICATION(GameSessionEnded, GameSessionEnded);
 
 	const THandler<FAccelByteModelsV2GameSessionInviteCanceledEvent> OnGameSessionInviteCanceled = THandler<FAccelByteModelsV2GameSessionInviteCanceledEvent>::CreateThreadSafeSP(SharedThis(this), &FOnlineSessionV2AccelByte::OnGameSessionInviteCanceledNotification, LocalUserNum);
 	OnGameSessionInviteCanceledHandle = Lobby->AddV2GameSessionInviteCanceledNotifDelegate(OnGameSessionInviteCanceled);
@@ -5337,7 +5339,23 @@ void FOnlineSessionV2AccelByte::RegisterServer(FName SessionName, const FOnRegis
 {
 	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT(""));
 
-	EAccelByteCurrentServerManagementType CurrentServerType = FAccelByteUtilities::GetCurrentServerManagementType();
+	const FServerApiClientPtr ServerApiClientPtr = GetServerApiClient();
+	if(!ServerApiClientPtr.IsValid())
+	{
+		Delegate.ExecuteIfBound(false);
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Attempt to RegisterServer failed, ServerApiClient is invalid"));
+		return;
+	}
+
+	const FAccelByteApiUtilitiesPtr Utilities = ServerApiClientPtr->GetServerApiUtilities().Pin();
+	if(!Utilities.IsValid())
+	{
+		Delegate.ExecuteIfBound(false);
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Attempt to RegisterServer failed, Utilities is invalid"));
+		return;
+	}
+
+	EAccelByteCurrentServerManagementType CurrentServerType = Utilities->GetCurrentServerManagementType();
 	switch (CurrentServerType)
 	{
 	case EAccelByteCurrentServerManagementType::NOT_A_SERVER:
@@ -5399,7 +5417,23 @@ void FOnlineSessionV2AccelByte::SendServerReady(FName SessionName, const FOnRegi
 		return;
 	}
 
-	EAccelByteCurrentServerManagementType CurrentServerType = FAccelByteUtilities::GetCurrentServerManagementType();
+	const FServerApiClientPtr ServerApiClientPtr = GetServerApiClient();
+	if(!ServerApiClientPtr.IsValid())
+	{
+		Delegate.ExecuteIfBound(false);
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Failed to send server ready, ServerApiClient is invalid!"));
+		return;
+	}
+
+	const FAccelByteApiUtilitiesPtr Utilities = ServerApiClientPtr->GetServerApiUtilities().Pin();
+	if(!Utilities.IsValid())
+	{
+		Delegate.ExecuteIfBound(false);
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Failed to send server ready, Utilities is invalid!"));
+		return;
+	}
+
+	EAccelByteCurrentServerManagementType CurrentServerType = Utilities->GetCurrentServerManagementType();
 	switch (CurrentServerType)
 	{
 	case EAccelByteCurrentServerManagementType::NOT_A_SERVER:
@@ -6265,11 +6299,11 @@ bool FOnlineSessionV2AccelByte::GetEnablePartyMemberPastSessionRecordSync() { re
 TArray<FString> FOnlineSessionV2AccelByte::ExtractExcludedSessionFromPartySessionStorage(FOnlineSessionSearchAccelByte& SearchHandle, const FAccelByteModelsV2PartySessionStorage& Storage)
 {
 	// Defensive checking earlier
-	if (SearchHandle.GameSessionExclusion.CurrentType == FAccelBtyeModelsGameSessionExcludedSession::ExclusionType::NONE)
+	if (SearchHandle.GameSessionExclusion.CurrentType == FAccelByteModelsGameSessionExcludedSession::ExclusionType::NONE)
 	{
 		return TArray<FString>();
 	}
-	if (SearchHandle.GameSessionExclusion.CurrentType == FAccelBtyeModelsGameSessionExcludedSession::ExclusionType::EXPLICIT_LIST)
+	if (SearchHandle.GameSessionExclusion.CurrentType == FAccelByteModelsGameSessionExcludedSession::ExclusionType::EXPLICIT_LIST)
 	{
 		return SearchHandle.GameSessionExclusion.GetExcludedGameSessionIDs();
 	}
@@ -6282,7 +6316,7 @@ TArray<FString> FOnlineSessionV2AccelByte::ExtractExcludedSessionFromPartySessio
 		auto SessionIDs = ReservedDataFromEachUser[i].PastSessionIDs;
 
 		// Resize to N-Past Session count
-		if (SearchHandle.GameSessionExclusion.CurrentType == FAccelBtyeModelsGameSessionExcludedSession::ExclusionType::N_PAST_SESSION)
+		if (SearchHandle.GameSessionExclusion.CurrentType == FAccelByteModelsGameSessionExcludedSession::ExclusionType::N_PAST_SESSION)
 		{
 			int32 ExcessToRemove = SessionIDs.Num() - SearchHandle.GameSessionExclusion.ExcludedPastSessionCount;
 			if (ExcessToRemove > 0)
@@ -6409,7 +6443,15 @@ void FOnlineSessionV2AccelByte::OnInvitedToGameSessionNotification(FAccelByteMod
 	TSharedPtr<FAccelByteKey> LobbyLockKey;
 	if (ApiClientPtr.IsValid())
 	{
-		LobbyLockKey = ApiClientPtr->Lobby.LockNotifications();
+		auto Lobby =  ApiClientPtr->GetLobbyApi().Pin();
+		if (Lobby.IsValid())
+		{
+			LobbyLockKey = Lobby->LockNotifications();
+		}
+		else
+		{
+			UE_LOG_AB(Warning, TEXT("Invalid Lobby from API Client"));
+		}
 	}
 
 	const FUniqueNetIdPtr SessionUniqueId = CreateSessionIdFromString(InviteEvent.SessionID);
@@ -6652,7 +6694,15 @@ void FOnlineSessionV2AccelByte::OnGameSessionUpdatedNotification(FAccelByteModel
 		TSharedPtr<FAccelByteKey> LobbyLockKey;
 		if (ApiClientPtr.IsValid())
 		{
-			LobbyLockKey = ApiClientPtr->Lobby.LockNotifications();
+			auto Lobby = ApiClientPtr->GetLobbyApi().Pin();
+			if (Lobby.IsValid())
+			{
+				LobbyLockKey = Lobby->LockNotifications();
+			}
+			else
+			{
+				UE_LOG_AB(Warning, TEXT("Invalid Lobby from API Client"));
+			}
 		}
 		else
 		{
@@ -6754,7 +6804,15 @@ void FOnlineSessionV2AccelByte::OnDsStatusChangedNotification(FAccelByteModelsV2
 		TSharedPtr<FAccelByteKey> LobbyLockKey;
 		if (ApiClientPtr.IsValid())
 		{
-			LobbyLockKey = ApiClientPtr->Lobby.LockNotifications();
+			auto Lobby = ApiClientPtr->GetLobbyApi().Pin();
+			if (Lobby.IsValid())
+			{
+				LobbyLockKey = Lobby->LockNotifications();
+			}
+			else
+			{
+				UE_LOG_AB(Warning, TEXT("Invalid Lobby from API Client"));
+			}
 		}
 		else
 		{
@@ -6857,7 +6915,15 @@ void FOnlineSessionV2AccelByte::OnInvitedToPartySessionNotification(FAccelByteMo
 	TSharedPtr<FAccelByteKey> LobbyLockKey;
 	if (ApiClientPtr.IsValid())
 	{
-		LobbyLockKey = ApiClientPtr->Lobby.LockNotifications();
+		auto Lobby = ApiClientPtr->GetLobbyApi().Pin();
+		if (Lobby.IsValid())
+		{
+			LobbyLockKey = Lobby->LockNotifications();
+		}
+		else
+		{
+			UE_LOG_AB(Warning, TEXT("Invalid Lobby from API Client"));
+		}
 	}
 	else
 	{
@@ -7166,23 +7232,23 @@ void FOnlineSessionV2AccelByte::OnPartySessionInviteRejectedNotification(FAccelB
 	
 	if (bHasInvitedPlayersChanged)
 	{
-		FUniqueNetIdPtr UniqueRejectID = nullptr;
-		FAccelByteModelsV2SessionUser* FoundSender = RejectEvent.Members.FindByPredicate([RejectEvent](const FAccelByteModelsV2SessionUser& User) {
-			return User.ID == RejectEvent.RejectedID;
-		});
-
-		if (FoundSender != nullptr)
-		{
-			FAccelByteUniqueIdComposite IdComponents;
-			IdComponents.Id = FoundSender->ID;
-			IdComponents.PlatformType = FoundSender->PlatformID;
-			IdComponents.PlatformId = FoundSender->PlatformUserID;
-
-			UniqueRejectID = FUniqueNetIdAccelByteUser::Create(IdComponents);
-			TriggerOnSessionInviteRejectedDelegates(Session->SessionName, UniqueRejectID.ToSharedRef().Get());
-		}
-
 		TriggerOnSessionInvitesChangedDelegates(Session->SessionName);
+	}
+
+	FUniqueNetIdPtr UniqueRejectID = nullptr;
+	FAccelByteModelsV2SessionUser* FoundSender = RejectEvent.Members.FindByPredicate([RejectEvent](const FAccelByteModelsV2SessionUser& User) {
+		return User.ID == RejectEvent.RejectedID;
+	});
+
+	if (FoundSender != nullptr)
+	{
+		FAccelByteUniqueIdComposite IdComponents;
+		IdComponents.Id = FoundSender->ID;
+		IdComponents.PlatformType = FoundSender->PlatformID;
+		IdComponents.PlatformId = FoundSender->PlatformUserID;
+
+		UniqueRejectID = FUniqueNetIdAccelByteUser::Create(IdComponents);
+		TriggerOnSessionInviteRejectedDelegates(Session->SessionName, UniqueRejectID.ToSharedRef().Get());
 	}
 
 	SessionInfo->UpdateLeaderId();
@@ -7492,7 +7558,15 @@ void FOnlineSessionV2AccelByte::OnMatchmakingMatchFoundNotification(FAccelByteMo
 	TSharedPtr<FAccelByteKey> LobbyLockKey;
 	if (ApiClientPtr.IsValid())
 	{
-		LobbyLockKey = ApiClientPtr->Lobby.LockNotifications();
+		auto Lobby = ApiClientPtr->GetLobbyApi().Pin();
+		if (Lobby.IsValid())
+		{
+			LobbyLockKey = Lobby->LockNotifications();
+		}
+		else
+		{
+			UE_LOG_AB(Warning, TEXT("Invalid Lobby from API Client"));
+		}
 	}
 	else
 	{
@@ -8667,23 +8741,23 @@ void FOnlineSessionV2AccelByte::OnGameSessionInviteRejectedNotification(FAccelBy
 
 	if (bHasInvitedPlayersChanged)
 	{
-		FUniqueNetIdPtr UniqueRejectID = nullptr;
-		FAccelByteModelsV2SessionUser* FoundSender = RejectEvent.Members.FindByPredicate([RejectEvent](const FAccelByteModelsV2SessionUser& User) {
-			return User.ID == RejectEvent.RejectedID;
-		});
-
-		if (FoundSender != nullptr)
-		{
-			FAccelByteUniqueIdComposite IdComponents;
-			IdComponents.Id = FoundSender->ID;
-			IdComponents.PlatformType = FoundSender->PlatformID;
-			IdComponents.PlatformId = FoundSender->PlatformUserID;
-
-			UniqueRejectID = FUniqueNetIdAccelByteUser::Create(IdComponents);
-			TriggerOnSessionInviteRejectedDelegates(Session->SessionName, UniqueRejectID.ToSharedRef().Get());
-		}
-
 		TriggerOnSessionInvitesChangedDelegates(Session->SessionName);
+	}
+
+	FUniqueNetIdPtr UniqueRejectID = nullptr;
+	FAccelByteModelsV2SessionUser* FoundSender = RejectEvent.Members.FindByPredicate([RejectEvent](const FAccelByteModelsV2SessionUser& User) {
+		return User.ID == RejectEvent.RejectedID;
+	});
+
+	if (FoundSender != nullptr)
+	{
+		FAccelByteUniqueIdComposite IdComponents;
+		IdComponents.Id = FoundSender->ID;
+		IdComponents.PlatformType = FoundSender->PlatformID;
+		IdComponents.PlatformId = FoundSender->PlatformUserID;
+
+		UniqueRejectID = FUniqueNetIdAccelByteUser::Create(IdComponents);
+		TriggerOnSessionInviteRejectedDelegates(Session->SessionName, UniqueRejectID.ToSharedRef().Get());
 	}
 
 	SessionInfo->UpdateLeaderId();
@@ -8826,7 +8900,7 @@ void FOnlineSessionV2AccelByte::OnPartySessionCreatedNotification(const FAccelBy
 			}));
 	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Created Party Notification"));
 }
-
+ 
 void FOnlineSessionV2AccelByte::OnGameSessionJoinedNotification(FAccelByteModelsV2GameSessionUserJoinedEvent JoinedEvent, int32 LocalUserNum)
 {
 	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("SessionId: %s"), *JoinedEvent.SessionID);
@@ -8865,7 +8939,15 @@ void FOnlineSessionV2AccelByte::OnGameSessionJoinedNotification(FAccelByteModels
 	TSharedPtr<FAccelByteKey> LobbyLockKey;
 	if (ApiClientPtr.IsValid())
 	{
-		LobbyLockKey = ApiClientPtr->Lobby.LockNotifications();
+		auto Lobby = ApiClientPtr->GetLobbyApi().Pin();
+		if (Lobby.IsValid())
+		{
+			LobbyLockKey = Lobby->LockNotifications();
+		}
+		else
+		{
+			UE_LOG_AB(Warning, TEXT("Invalid Lobby from API Client"));
+		}
 	}
  
 	// Create session unique ID from notification string ID
@@ -8895,7 +8977,24 @@ void FOnlineSessionV2AccelByte::OnGameSessionJoinedNotification(FAccelByteModels
  
 	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
 }
- 
+
+void FOnlineSessionV2AccelByte::OnGameSessionEndedNotification(FAccelByteModelsV2GameSessionEndedEvent EndedEvent, int32 LocalUserNum)
+{
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("SessionId: %s"), *EndedEvent.SessionID);
+
+	// Check if we have already joined this session locally
+	FNamedOnlineSession* ExistingSession = GetNamedSessionById(EndedEvent.SessionID);
+	if (ExistingSession != nullptr)
+	{
+		RemoveNamedSession(ExistingSession->SessionName);
+		TriggerOnDestroySessionCompleteDelegates(ExistingSession->SessionName, true);
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("The local session will be cleaned to sync with the backend state. SessionId: %s"), *EndedEvent.SessionID);
+		return;
+	}
+
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
+}
+
 void FOnlineSessionV2AccelByte::OnFindJoinedGameSessionByIdComplete(int32 LocalUserNum, bool bWasSuccessful, const FOnlineSessionSearchResult& FoundSession, FString SessionId)
 {
 	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("LocalUserNum: %d; bWasSuccessful: %s"), LocalUserNum, LOG_BOOL_FORMAT(bWasSuccessful));
@@ -8977,6 +9076,49 @@ void FOnlineSessionV2AccelByte::OnCheckGameSessionDataComplete(int32 LocalUserNu
 		return;
 	}
 	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
+}
+
+bool FOnlineSessionV2AccelByte::UpdateDSInformation(FName SessionName
+	, FAccelByteModelsGameSessionUpdateDSInformationRequest const& NewDSInformation
+	, FOnUpdateDSInformationComplete const& CompletionDelegate)
+{
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("SessionName: %s"), *SessionName.ToString());
+
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if(!AccelByteSubsystemPtr.IsValid())
+	{
+		// #NOTE: Normally would want to execute next tick, but cannot since subsystem is invalid
+		CompletionDelegate.ExecuteIfBound(SessionName
+			, ONLINE_ERROR(EOnlineErrorResult::RequestFailure, FString(), FText::FromString(TEXT("update-ds-information-subsystem-invalid"))));
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to update DS information: Unable to pin AccelByte subsystem instance"));
+		return false;
+	}
+
+	const FNamedOnlineSession* Session = GetNamedSession(SessionName);
+	if (Session == nullptr)
+	{
+		AccelByteSubsystemPtr->ExecuteNextTick([SessionName, CompletionDelegate]() {
+#if ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION >= 3
+			const EOnlineErrorResult ErrorResult = EOnlineErrorResult::NoGameSession;
+#else
+			// UE versions lower than 5.3 do not have the NoGameSession error, so for those use the less descriptive InvalidParams
+			const EOnlineErrorResult ErrorResult = EOnlineErrorResult::InvalidParams;
+#endif // ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION >= 3
+
+			CompletionDelegate.ExecuteIfBound(SessionName
+				, ONLINE_ERROR(ErrorResult, FString(), FText::FromString(TEXT("update-ds-information-no-session-found"))));
+		});
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to update DS information: session '%s' does not exist"), *SessionName.ToString());
+		return false;
+	}
+
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteUpdateDSInformation>(AccelByteSubsystemPtr.Get()
+		, SessionName
+		, NewDSInformation
+		, CompletionDelegate);
+
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
+	return true;
 }
 
 #undef ONLINE_ERROR_NAMESPACE

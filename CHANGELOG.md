@@ -2,6 +2,38 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [0.13.0](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.13.0%0D0.12.31) (2025-03-24)
+
+
+### ⚠ BREAKING CHANGES
+
+* decommissioned ApiClass reference usage in ApiClient
+* decommissioned static FRegistry and FMultiregistry
+
+### Features
+
+* add switch login support ([3970e99](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/3970e99f8a8228d3c31de46d21cf7f10f909010c))
+* **chat:** add SenderPlatformId to FAccelByteChatMessage ([687f76e](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/687f76e13663967c75178b2e8d985a443ef2b5f0))
+* **iap:** Implement Steam inventory purchase and IAP sync by transaction methods ([a3a14e6](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/a3a14e66315efc590cdf5d61be83a8fdff1391af))
+* **login:** add configurable source for user display name ([cb0d9b9](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/cb0d9b97980b68a6152c9f9781862c73deb11c3b))
+* **OnlineSubsystem:** add error code NetworkError into OSS AccelByteErrorCodes.csv ([e7b0e18](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/e7b0e18603040b9d7f95038dbd955a6ac1d32adb))
+* **session:** Implement method to update DS information for game sessions on dedicated server ([b1595e5](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/b1595e527d69d332d120e1e835f24bd5ffa618b1))
+* **session:** OnDestroySession delegate from SessionInterface , will be triggered if the player's session is ended/removed by service remotely ([ca3113a](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/ca3113a5c8eddda159d63585f4886c1c4530a453))
+
+
+### Bug Fixes
+
+* **compile:** fix compile error relating to usage of NoGameSession enum on UE versions below 5.3 ([1658cf9](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/1658cf905f2d5dbf98212110554070e3e344a5dd))
+* fix race condition causing OnSessionInviteRejectedDelegates not triggered ([a353708](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/a3537086f6957a7318f2f4e7591428650548b0c8))
+* **Session:** remove typo definition of the FAccelBtyeModelsGameSessionExcludedSession ([b6197f8](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/b6197f8076f3b944c003eb185a08cdcbdf272ac0))
+* SubsystemAccelByte not reusing MultiRegistry AccelByteInstance if exist ([8c94907](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/8c94907c4450a9500446fda82216a525339d5ebe))
+
+
+### Refactors
+
+* decommissioned ApiClass reference usage in ApiClient ([cc42981](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/cc42981f329b779a12e7ee7cf72cbcbf9fb5b203))
+* decommissioned static FRegistry and FMultiregistry ([03cbe3d](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/03cbe3d98d7b4d93ba8a3abc171dbebcf9e30b88))
+
 ### [0.12.31](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.12.31%0D0.12.30) (2025-02-28)
 
 

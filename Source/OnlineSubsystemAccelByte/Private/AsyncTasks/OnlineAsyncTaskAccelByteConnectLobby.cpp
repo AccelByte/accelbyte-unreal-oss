@@ -14,6 +14,8 @@
 #include "OnlineSessionInterfaceV1AccelByte.h"
 #endif
 #include "OnlinePredefinedEventInterfaceAccelByte.h"
+#include "OnlineWalletInterfaceAccelByte.h"
+#include "OnlineEntitlementsInterfaceAccelByte.h"
 #include "Core/AccelByteEntitlementTokenGenerator.h"
 
 using namespace AccelByte;
@@ -176,6 +178,20 @@ void FOnlineAsyncTaskAccelByteConnectLobby::OnLobbyConnectSuccess()
 		PartyInterface->RegisterRealTimeLobbyDelegates(UserId.ToSharedRef());
 	}
 #endif
+
+	// Register all delegates for the Entitlements interface to get real time notifications for entitlements-related actions
+	const TSharedPtr<FOnlineEntitlementsAccelByte, ESPMode::ThreadSafe> EntitlementsInterface = StaticCastSharedPtr<FOnlineEntitlementsAccelByte>(SubsystemPin->GetEntitlementsInterface());
+	if (EntitlementsInterface.IsValid())
+	{
+		EntitlementsInterface->RegisterRealTimeLobbyDelegates(LocalUserNum);
+	}
+
+	// Register all delegates for the Wallet interface to get real time notifications for wallet-related actions
+	const TSharedPtr<FOnlineWalletAccelByte, ESPMode::ThreadSafe> WalletInterface = StaticCastSharedPtr<FOnlineWalletAccelByte>(SubsystemPin->GetWalletInterface());
+	if (WalletInterface.IsValid())
+	{
+		WalletInterface->RegisterRealTimeLobbyDelegates(LocalUserNum);
+	}
 
 	CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sending request to get or create a default user profile for user '%s'!"), *UserId->ToDebugString());

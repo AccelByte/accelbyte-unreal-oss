@@ -4,7 +4,7 @@
 
 #include "OnlineAsyncTaskAccelByteSyncIOSAppStore.h"
 
-#include "Core/AccelByteRegistry.h"
+
 #include "Api/AccelByteEntitlementApi.h"
 
 using namespace AccelByte;

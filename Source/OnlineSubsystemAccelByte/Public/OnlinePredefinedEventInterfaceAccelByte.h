@@ -6,7 +6,7 @@
 #include "CoreMinimal.h"
 #include "OnlineSubsystemAccelByte.h"
 #include "OnlineBaseAnalyticsInterfaceAccelByte.h"
-#include "Core/AccelByteMultiRegistry.h"
+
 #include "Models/AccelBytePredefinedEventModels.h"
 #include "OnlineSubsystemAccelBytePackage.h"
 

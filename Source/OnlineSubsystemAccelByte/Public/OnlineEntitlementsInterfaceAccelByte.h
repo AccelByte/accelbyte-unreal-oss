@@ -4,12 +4,14 @@
 
 #pragma once
 #include "OnlineSubsystemAccelByte.h"
-#include "OnlineSubsystemAccelByte.h"
 #include "OnlineSubsystemAccelByteTypes.h"
 #include "OnlineSubsystemAccelByteUtils.h"
 #include "Interfaces/OnlineEntitlementsInterface.h"
 #include "Interfaces/OnlinePurchaseInterface.h"
 #include "Models/AccelByteEcommerceModels.h"
+#if defined(STEAM_SDK_VER) && !UE_SERVER
+#include "steam/steam_api.h"
+#endif
 #include "OnlineSubsystemAccelBytePackage.h"
 
 // Client Caches
@@ -38,6 +40,11 @@ typedef FOnQueryPlatformSubscriptionComplete::FDelegate FOnQueryPlatformSubscrip
 
 DECLARE_MULTICAST_DELEGATE_FourParams(FOnSyncMetaQuestIAPComplete, int32 LocalUserNum /*LocalUserNum*/, const FUniqueNetId& /*UserId*/, const TArray<TSharedRef<FPurchaseReceipt>>& /*EntitlementInfos*/, const FOnlineError& /*Error*/);
 typedef FOnSyncMetaQuestIAPComplete::FDelegate FOnSyncMetaQuestIAPCompleteDelegate;
+
+DECLARE_DELEGATE_TwoParams(FOnSyncSteamAbnormalIAPTransactionComplete, FUniqueNetId const& /*LocalUserId*/, FOnlineError /*Result*/);
+
+DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnEntitlementUpdatedNotification, int32 /*LocalUserNum*/, const FUniqueNetId& /*UserId*/, const FAccelByteModelsEntitlementUpdatedNotification& /*Notification*/);
+typedef FOnEntitlementUpdatedNotification::FDelegate FOnEntitlementUpdatedNotificationDelegate;
 
 // Server Delegates
 DECLARE_MULTICAST_DELEGATE_FourParams(FOnGetUserEntitlementHistoryComplete, int32 /*LocalUserNum*/, bool /*bWasSuccessful*/, const TArray<FAccelByteModelsUserEntitlementHistory>& /*Entitlement History*/, const FOnlineError& /*Error*/);
@@ -84,7 +91,22 @@ public:
 	FPagedQuery QueryPaging{ 0, 20 };
 };
 
-class ONLINESUBSYSTEMACCELBYTE_API FOnlineEntitlementsAccelByte : public IOnlineEntitlements
+struct ONLINESUBSYSTEMACCELBYTE_API FOnlineAccelByteSteamInventoryPurchaseItem
+{
+	/**
+	 * @brief ID of the Steam inventory item to purchase
+	 */
+	int32 ItemId{};
+
+	/**
+	 * @brief Number of items that the user wishes to buy
+	 */
+	int32 Quantity{};
+};
+
+class ONLINESUBSYSTEMACCELBYTE_API FOnlineEntitlementsAccelByte
+	: public IOnlineEntitlements
+	, public TSharedFromThis<FOnlineEntitlementsAccelByte, ESPMode::ThreadSafe>
 {
 PACKAGE_SCOPE:
 	/** Constructor that is invoked by the Subsystem instance to create a entitlements interface instance */
@@ -95,6 +117,12 @@ PACKAGE_SCOPE:
 	virtual void AddUserEntitlementHistoryToMap(const FUniqueNetIdAccelByteUserRef& UserId, const FUniqueEntitlementId& EntitlementId, TArray<FAccelByteModelsUserEntitlementHistory> UserEntitlementHistory);
 
 	virtual void AddCurrentUserEntitlementHistoryToMap(const FUniqueNetIdAccelByteUserRef& UserId, TArray<FAccelByteModelsBaseUserEntitlementHistory> CurrentUserEntitlementHistory);
+
+	/**
+	 * Method used by the Identity interface to register delegates for entitlement notifications to this interface to get
+	 * real-time updates from the Lobby websocket.
+	 */
+	virtual void RegisterRealTimeLobbyDelegates(int32 LocalUserNum);
 
 public:
 	/**
@@ -120,6 +148,7 @@ public:
 	DEFINE_ONLINE_DELEGATE_FOUR_PARAM(OnGetCurrentUserEntitlementHistoryComplete, int32, bool, const TArray<FAccelByteModelsBaseUserEntitlementHistory>&, const FOnlineError&);
 	DEFINE_ONLINE_PLAYER_DELEGATE_FOUR_PARAM(MAX_LOCAL_PLAYERS, OnQueryPlatformSubscriptionComplete, bool, const FUniqueNetId&, const TArray<FAccelByteModelsThirdPartySubscriptionTransactionInfo>&, const FOnlineError&);
 	DEFINE_ONLINE_PLAYER_DELEGATE_THREE_PARAM(MAX_LOCAL_PLAYERS, OnSyncMetaQuestIAPComplete, const FUniqueNetId&, const TArray<TSharedRef<FPurchaseReceipt>>&, const FOnlineError&);
+	DEFINE_ONLINE_PLAYER_DELEGATE_TWO_PARAM(MAX_LOCAL_PLAYERS, OnEntitlementUpdatedNotification, const FUniqueNetId& /*UserId*/, const FAccelByteModelsEntitlementUpdatedNotification& /*Notification*/);
 
 	// Server Delegates
 	DEFINE_ONLINE_DELEGATE_FOUR_PARAM(OnGetUserEntitlementHistoryComplete, int32, bool, const TArray<FAccelByteModelsUserEntitlementHistory>&, const FOnlineError&);
@@ -368,9 +397,22 @@ public:
 			const FOnlineQuerySubscriptionRequestAccelByte& QueryRequest);
 #pragma endregion
 
+	/**
+	 * @brief Attempt to sync abnormal Steam transactions. Only to be used when Steam sync mode is set to TRANSACTION
+	 * in the admin portal.
+	 *
+	 * @param LocalUserId ID of the local user that the transaction sync is performed for
+	 * @param CompletionDelegate Delegate triggered when the sync operation has completed
+	 */
+	bool SyncSteamAbnormalIAPTransaction(FUniqueNetId const& LocalUserId
+		, FOnSyncSteamAbnormalIAPTransactionComplete const& CompletionDelegate);
+
 protected:
 	/** Instance of the subsystem that created this interface */
 	FOnlineSubsystemAccelByteWPtr AccelByteSubsystem;
+
+	void OnEntitlementUpdatedNotificationReceived(const FAccelByteModelsEntitlementUpdatedNotification& Response, int32 InLocalUserNum);
+	TMap<int32, FDelegateHandle> OnEntitlementUpdatedNotificationReceivedDelegateHandleMap;
 	
 private:
 	FUserIDToEntitlementMap EntitlementMap;

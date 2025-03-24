@@ -475,6 +475,7 @@ DECLARE_DELEGATE_OneParam(FOnCreateBackfillTicketComplete, bool /*bWasSuccessful
 DECLARE_DELEGATE_OneParam(FOnDeleteBackfillTicketComplete, bool /*bWasSuccessful*/);
 DECLARE_DELEGATE_TwoParams(FOnUpdatePlayerAttributesComplete, const FUniqueNetId& /*LocalPlayerId*/, bool /*bWasSuccessful*/);
 DECLARE_DELEGATE_TwoParams(FOnGetPartySessionStorageComplete, const FAccelByteModelsV2PartySessionStorage& /*Data*/, bool /*bWasSuccessful*/);
+DECLARE_DELEGATE_TwoParams(FOnUpdateDSInformationComplete, FName /*SessionName*/, const FOnlineError& /*Result*/);
 
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnServerReceivedSession, FName /*SessionName*/);
 typedef FOnServerReceivedSession::FDelegate FOnServerReceivedSessionDelegate;
@@ -1266,6 +1267,17 @@ public:
 	 */
 	bool StartMatchmaking(const TArray<FSessionMatchmakingUser>& LocalPlayers, FName SessionName, const FOnlineSessionSettings& NewSessionSettings, TSharedRef<FOnlineSessionSearchAccelByte>& SearchSettings, const FOnStartMatchmakingComplete& CompletionDelegate);
 	
+	/**
+	 * @brief Update DS information for the session associated with the given session name. Only implemented for dedicated servers.
+	 *
+	 * @param SessionName Name of the locally stored session that we want to update DS information for
+	 * @param NewDSInformation Structure containing the DS information that we wish to set on the session
+	 * @param CompletionDelegate Delegate triggered when DS information update is complete
+	 */
+	bool UpdateDSInformation(FName SessionName
+		, FAccelByteModelsGameSessionUpdateDSInformationRequest const& NewDSInformation
+		, FOnUpdateDSInformationComplete const& CompletionDelegate);
+
 	/**
 	 * Delegate fired when we have retrieved information on the session that our server is claimed by on the backend.
 	 *
@@ -2113,6 +2125,7 @@ private:
 	void OnGameSessionInviteRejectedNotification(FAccelByteModelsV2GameSessionUserRejectedEvent RejectEvent, int32 LocalUserNum);
 	void OnGameSessionInviteCanceledNotification(const FAccelByteModelsV2GameSessionInviteCanceledEvent& CanceledEvent, int32 LocalUserNum);
 	void OnGameSessionJoinedNotification(FAccelByteModelsV2GameSessionUserJoinedEvent JoinedEvent, int32 LocalUserNum);
+	void OnGameSessionEndedNotification(FAccelByteModelsV2GameSessionEndedEvent EndedEvent, int32 LocalUserNum);
 	void OnFindJoinedGameSessionByIdComplete(int32 LocalUserNum, bool bWasSuccessful, const FOnlineSessionSearchResult& FoundSession, FString SessionId);
 	void OnCheckGameSessionDataComplete(int32 LocalUserNum, bool bWasSuccessful, const FOnlineSessionSearchResult& FoundSession);
 	//~ End Game Session Notification Handlers

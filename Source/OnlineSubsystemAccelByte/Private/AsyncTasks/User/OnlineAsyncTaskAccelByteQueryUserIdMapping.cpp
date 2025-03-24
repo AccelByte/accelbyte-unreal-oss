@@ -4,7 +4,7 @@
 
 #include "OnlineAsyncTaskAccelByteQueryUserIdMapping.h"
 
-#include "Core/AccelByteRegistry.h"
+
 #include "Core/AccelByteError.h"
 #include "Api/AccelByteUserApi.h"
 

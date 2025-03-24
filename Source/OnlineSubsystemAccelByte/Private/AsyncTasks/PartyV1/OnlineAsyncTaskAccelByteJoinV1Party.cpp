@@ -5,7 +5,7 @@
 #include "OnlineAsyncTaskAccelByteJoinV1Party.h"
 #include "OnlineSubsystemAccelByte.h"
 #include "OnlinePartyInterfaceAccelByte.h"
-#include "Core/AccelByteRegistry.h"
+
 #include "Api/AccelByteLobbyApi.h"
 #include "OnlineAsyncTaskAccelByteQueryV1PartyInfo.h"
 #include "OnlineSubsystemUtils.h"

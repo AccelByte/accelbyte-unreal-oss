@@ -3,7 +3,7 @@
 // and restrictions contact your company contract manager.
 #include "OnlineWalletInterfaceAccelByte.h"
 #include "OnlineSubsystemAccelByte.h"
-#include "Core/AccelByteMultiRegistry.h"
+
 #include "OnlineIdentityInterfaceAccelByte.h"
 #include "OnlineSubsystemAccelByteInternalHelpers.h"
 #include "AsyncTasks/Wallet/OnlineAsyncTaskAccelByteGetCurrencyList.h"
@@ -281,4 +281,95 @@ bool FOnlineWalletAccelByte::ListWalletTransactionsByCurrencyCode(int32 LocalUse
 	TriggerOnGetWalletTransactionsCompletedDelegates(LocalUserNum, false, TArray<FAccelByteModelsWalletTransactionInfo>{}, ErrorStr);
 
 	return false;
+}
+
+void FOnlineWalletAccelByte::OnWalletBalanceChangedNotificationReceived(const FAccelByteModelsWalletBalanceChangedNotification& Response, int32 InLocalUserNum)
+{
+	// Get our identity interface to retrieve the UniqueNetId for this user
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return;
+	}
+
+	const IOnlineIdentityPtr IdentityInterface = AccelByteSubsystemPtr->GetIdentityInterface();
+	if (IdentityInterface.IsValid())
+	{
+		// Check whether user is connected or not yet
+		if (IdentityInterface->GetLoginStatus(InLocalUserNum) == ELoginStatus::LoggedIn)
+		{
+			const FUniqueNetIdPtr LocalUserId = IdentityInterface->GetUniquePlayerId(InLocalUserNum);
+			if (LocalUserId.IsValid())
+			{
+				//Trigger the notification
+				TriggerOnWalletBalanceChangedNotificationDelegates(InLocalUserNum, *LocalUserId.Get(), Response);
+			}
+		}
+	}
+}
+
+void FOnlineWalletAccelByte::OnWalletStatusChangedNotificationReceived(const FAccelByteModelsWalletStatusChangedNotification & Response, int32 InLocalUserNum)
+{
+	// Get our identity interface to retrieve the UniqueNetId for this user
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return;
+	}
+
+	const IOnlineIdentityPtr IdentityInterface = AccelByteSubsystemPtr->GetIdentityInterface();
+	if (IdentityInterface.IsValid())
+	{
+		// Check whether user is connected or not yet
+		if (IdentityInterface->GetLoginStatus(InLocalUserNum) == ELoginStatus::LoggedIn)
+		{
+			const FUniqueNetIdPtr LocalUserId = IdentityInterface->GetUniquePlayerId(InLocalUserNum);
+			if (LocalUserId.IsValid())
+			{
+				//Trigger the notification
+				TriggerOnWalletStatusChangedNotificationDelegates(InLocalUserNum, *LocalUserId.Get(), Response);
+			}
+		}
+	}
+}
+
+void FOnlineWalletAccelByte::RegisterRealTimeLobbyDelegates(int32 LocalUserNum)
+{
+	// Get our identity interface to retrieve the API client for this user
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return;
+	}
+
+	AccelByte::FApiClientPtr ApiClient = AccelByteSubsystemPtr->GetApiClient(LocalUserNum);
+	if (!ApiClient.IsValid())
+	{
+		UE_LOG_AB(Warning, TEXT("Failed to register real-time lobby as an Api client could not be retrieved for user num %d!"), LocalUserNum);
+		return;
+	}
+
+	const auto Lobby = ApiClient->GetLobbyApi().Pin();
+	if (!Lobby.IsValid())
+	{
+		UE_LOG_AB(Warning, TEXT("Failed to register real-time lobby as an Lobby Api could not be retrieved for user num %d!"), LocalUserNum);
+		return;
+	}
+
+	// Set each delegate for the corresponding API client to be a new realtime delegate
+
+	if (OnWalletBalanceChangedNotificationReceivedDelegateHandleMap.Find(LocalUserNum) == nullptr)
+	{
+		THandler<FAccelByteModelsWalletBalanceChangedNotification> OnBalanceChangedNotificationReceivedDelegate = THandler<FAccelByteModelsWalletBalanceChangedNotification>::CreateThreadSafeSP(AsShared(), &FOnlineWalletAccelByte::OnWalletBalanceChangedNotificationReceived, LocalUserNum);
+		OnWalletBalanceChangedNotificationReceivedDelegateHandleMap.Add(LocalUserNum, Lobby->AddWalletBalanceChangedNotifDelegate(OnBalanceChangedNotificationReceivedDelegate));
+	}
+
+	if (OnWalletStatusChangedNotificationReceivedDelegateHandleMap.Find(LocalUserNum) == nullptr)
+	{
+		THandler<FAccelByteModelsWalletStatusChangedNotification> OnStatusChangedNotificationReceivedDelegate = THandler<FAccelByteModelsWalletStatusChangedNotification>::CreateThreadSafeSP(AsShared(), &FOnlineWalletAccelByte::OnWalletStatusChangedNotificationReceived, LocalUserNum);
+		OnWalletStatusChangedNotificationReceivedDelegateHandleMap.Add(LocalUserNum, Lobby->AddWalletStatusChangedNotifDelegate(OnStatusChangedNotificationReceivedDelegate));
+	}
 }

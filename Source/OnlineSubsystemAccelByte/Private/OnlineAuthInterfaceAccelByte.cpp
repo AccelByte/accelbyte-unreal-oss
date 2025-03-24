@@ -10,7 +10,7 @@
 #include "OnlineSessionInterfaceV2AccelByte.h"
 #include "OnlinePartyInterfaceAccelByte.h"
 #include "Core/AccelByteUtilities.h"
-#include "Core/AccelByteMultiRegistry.h"
+
 #include "AsyncTasks/Auth/OnlineAsyncTaskAccelByteJwks.h"
 #include "AsyncTasks/Auth/OnlineAsyncTaskAccelByteAuthUser.h"
 #include "Engine/NetConnection.h"

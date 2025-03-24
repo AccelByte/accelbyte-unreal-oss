@@ -95,24 +95,45 @@ void FOnlineAsyncTaskAccelByteQueryUserInfo::Finalize()
 		
 		// Check from identity user account cache first and correspond to update information from it.
 		TSharedPtr<FUserOnlineAccountAccelByte> IdentityAccount = StaticCastSharedPtr<FUserOnlineAccountAccelByte>(IdentityInterface->GetUserAccount(QueriedUser->Id.ToSharedRef().Get()));
-		if (IdentityAccount.IsValid())
+		if (!IdentityAccount.IsValid())
 		{
-			IdentityAccount->SetDisplayName(QueriedUser->DisplayName);
-			IdentityAccount->SetUserAttribute(ACCELBYTE_ACCOUNT_GAME_AVATAR_URL, QueriedUser->GameAvatarUrl);
-			IdentityAccount->SetUserAttribute(ACCELBYTE_ACCOUNT_PUBLISHER_AVATAR_URL, QueriedUser->PublisherAvatarUrl);
-			IdentityAccount->SetPublicCode(QueriedUser->PublicCode);
-			IdentityAccount->SetUniqueDisplayName(QueriedUser->UniqueDisplayName);
+			// Create a new account instance if one does not already exist
+			IdentityAccount = MakeShared<FUserOnlineAccountAccelByte>(QueriedUser->Id.ToSharedRef(), QueriedUser->DisplayName);
+		}
+		
+		// Set user display name using desired source
+		FString DisplayName{};
+		const EAccelBytePlatformType DisplayNameSource = SubsystemPin->GetDisplayNameSource();
+		if (DisplayNameSource == EAccelBytePlatformType::None)
+		{
+			// If display name source is explicitly default, or the provided source is invalid
+			UE_LOG_AB(Verbose, TEXT("Using default display name source for queried user"));
+			DisplayName = QueriedUser->DisplayName;
 		}
 		else
 		{
-			// Construct the user information instance
-			IdentityAccount = MakeShared<FUserOnlineAccountAccelByte>(QueriedUser->Id.ToSharedRef(), QueriedUser->DisplayName);
-			IdentityAccount->SetPublicCode(QueriedUser->PublicCode);
-			IdentityAccount->SetUserAttribute(ACCELBYTE_ACCOUNT_GAME_AVATAR_URL, QueriedUser->GameAvatarUrl);
-			IdentityAccount->SetUserAttribute(ACCELBYTE_ACCOUNT_PUBLISHER_AVATAR_URL, QueriedUser->PublisherAvatarUrl);
-			IdentityAccount->SetUniqueDisplayName(QueriedUser->UniqueDisplayName);
+			// Otherwise, attempt to retrieve platform display name using evaluated platform type
+			const FAccelByteLinkedUserInfo* FoundLinkedPlatform = QueriedUser->LinkedPlatformInfo.FindByPredicate([&DisplayNameSource](const FAccelByteLinkedUserInfo& Info) {
+				return DisplayNameSource == Info.PlatformType;
+			});
+
+			if (FoundLinkedPlatform != nullptr)
+			{
+				DisplayName = FoundLinkedPlatform->DisplayName;
+			}
+			else
+			{
+				UE_LOG_AB(Warning, TEXT("Configured display name source '%s' was not found, reverting to default"), *FAccelByteUtilities::GetUEnumValueAsString(DisplayNameSource));
+				DisplayName = QueriedUser->DisplayName;
+			}
 		}
-				
+
+		IdentityAccount->SetDisplayName(DisplayName);
+		IdentityAccount->SetUserAttribute(ACCELBYTE_ACCOUNT_GAME_AVATAR_URL, QueriedUser->GameAvatarUrl);
+		IdentityAccount->SetUserAttribute(ACCELBYTE_ACCOUNT_PUBLISHER_AVATAR_URL, QueriedUser->PublisherAvatarUrl);
+		IdentityAccount->SetPublicCode(QueriedUser->PublicCode);
+		IdentityAccount->SetUniqueDisplayName(QueriedUser->UniqueDisplayName);
+
 		// Add the new user information instance to the user interface's cache so the developer can retrieve it in the delegate handler
 		TSharedPtr<FOnlineUserAccelByte, ESPMode::ThreadSafe> UserInterface = StaticCastSharedPtr<FOnlineUserAccelByte>(SubsystemPin->GetUserInterface());
 		if (UserInterface != nullptr && IdentityAccount.IsValid())

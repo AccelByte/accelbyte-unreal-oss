@@ -4,7 +4,7 @@
 
 #include "OnlineAsyncTaskAccelByteCreateUserProfile.h"
 
-#include "Core/AccelByteMultiRegistry.h"
+
 #include "Core/AccelByteError.h"
 #include "Core/AccelByteUtilities.h"
 #include "Api/AccelByteUserApi.h"

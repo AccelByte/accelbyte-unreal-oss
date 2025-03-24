@@ -124,13 +124,15 @@ public:
 		, FString InMessageBody
 		, FDateTime InTimestamp
 		, FString InChatId
-		, FString InTopicId)
+		, FString InTopicId
+		, EAccelBytePlatformType InSenderPlatformId)
 		: SenderUserId(InSenderUserId)
 		, MessageBody(InMessageBody)
 		, SenderNickname(InSenderNickname)
 		, Timestamp(InTimestamp)
 		, ChatId(InChatId)
 		, TopicId(InTopicId)
+		, SenderPlatformId(InSenderPlatformId)
 	{
 	}
 
@@ -143,6 +145,7 @@ public:
 
 	const FString& GetChatId() const;
 	const FString& GetTopicId() const;
+	EAccelBytePlatformType GetSenderPlatformId() const;
 
 PACKAGE_SCOPE:
 	FUniqueNetIdRef SenderUserId;
@@ -151,6 +154,7 @@ PACKAGE_SCOPE:
 	FDateTime Timestamp{};
 	FString ChatId{};
 	FString TopicId{};
+	EAccelBytePlatformType SenderPlatformId{};
 };
 
 class ONLINESUBSYSTEMACCELBYTE_API FAccelByteChatRoomMember : public FChatRoomMember

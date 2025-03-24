@@ -16,7 +16,7 @@
 #include "Interfaces/OnlineIdentityInterface.h"
 #include "OnlineSubsystemAccelByteTypes.h"
 #include "Core/AccelByteTask.h"
-#include "Core/AccelByteMultiRegistry.h"
+
 #include "Core/AccelByteUtilities.h"
 #include "Core/AccelByteWebSocket.h"
 #include "OnlineErrorAccelByte.h"

@@ -5,7 +5,7 @@
 #include "OnlineAsyncTaskAccelByteSyncPlatformPurchase.h"
 
 #include "OnlineStoreInterfaceV2AccelByte.h"
-#include "Core/AccelByteRegistry.h"
+
 #include "Api/AccelByteEntitlementApi.h"
 
 using namespace AccelByte;

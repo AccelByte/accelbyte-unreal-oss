@@ -4,7 +4,7 @@
 
 #include "OnlineAsyncTaskAccelByteRejectV2GameSessionInvite.h"
 #include "OnlineSubsystemAccelByte.h"
-#include "Core/AccelByteRegistry.h"
+
 #include "OnlineSessionInterfaceV2AccelByte.h"
 
 FOnlineAsyncTaskAccelByteRejectV2GameSessionInvite::FOnlineAsyncTaskAccelByteRejectV2GameSessionInvite(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InLocalUserId, const FOnlineSessionSearchResult& InInvitedSession, const FOnRejectSessionInviteComplete& InDelegate)

@@ -101,13 +101,23 @@ void FOnlineAsyncTaskAccelByteChatSendPersonalChat::Finalize()
 			AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to send chat message as our chat interface instance is not valid!"));
 			return;
 		}
+
+		API_CLIENT_CHECK_GUARD(ErrorString);
+
 		FAccelByteChatRoomMemberRef Member = ChatInterface->GetAccelByteChatRoomMember(UserId->GetAccelByteId());
+
+		// Convert platform ID from user token to EAccelBytePlatformType to construct chat message
+		const EAccelBytePlatformType PlatformType =
+			FAccelByteUtilities::GetUEnumValueFromString<EAccelBytePlatformType>(ApiClient->CredentialsRef->GetAuthToken().Platform_id);
+
 		TSharedRef<FAccelByteChatMessage> OutChatMessage = MakeShared<FAccelByteChatMessage>(UserId.ToSharedRef()
 			, Member->GetNickname()
 			, ChatMessage
 			, SendChatResponse.Processed
 			, SendChatResponse.ChatId
-			, SendChatResponse.TopicId);
+			, SendChatResponse.TopicId
+			, PlatformType);
+
 		ChatInterface->AddChatMessage(UserId.ToSharedRef(), RoomId, OutChatMessage);
 	}
 

@@ -7,7 +7,7 @@
 #include "OnlineFriendsInterfaceAccelByte.h"
 #include "OnlinePartyInterfaceAccelByte.h"
 #include "OnlinePredefinedEventInterfaceAccelByte.h"
-#include "Core/AccelByteRegistry.h"
+
 #include "Api/AccelByteLobbyApi.h"
 #include "OnlineUserCacheAccelByte.h"
 

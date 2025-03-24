@@ -3,7 +3,7 @@
 // and restrictions contact your company contract manager.
 
 #include "OnlineAsyncTaskAccelByteQueryBlockedPlayers.h"
-#include "Core/AccelByteRegistry.h"
+
 #include "Api/AccelByteLobbyApi.h"
 #include "Api/AccelByteUserApi.h"
 #include <OnlineFriendsInterfaceAccelByte.h>

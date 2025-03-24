@@ -6,7 +6,7 @@
 #include "OnlineIdentityInterfaceAccelByte.h"
 #include "OnlineSubsystemAccelByte.h"
 #include "Online.h"
-#include "Core/AccelByteMultiRegistry.h"
+
 #include "AsyncTasks/User/OnlineAsyncTaskAccelByteQueryUserPresence.h"
 #include "AsyncTasks/User/OnlineAsyncTaskAccelByteSetUserPresence.h"
 #include "OnlineSubsystemUtils.h"

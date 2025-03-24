@@ -10,6 +10,7 @@
 #include "AsyncTasks/Purchase/OnlineAsyncTaskAccelBytePreviewOrder.h"
 #include "AsyncTasks/Purchase/MetaQuest/OnlineAsyncTaskAccelByteCheckoutMetaQuestProduct.h"
 #include "AsyncTasks/Purchase/MetaQuest/OnlineAsyncTaskAccelByteGetMetaQuestPurchasedProducts.h"
+#include "AsyncTasks/Purchase/Steam/OnlineAsyncTaskAccelByteCheckoutSteamInventory.h"
 #include "OnlineSubsystemUtils.h"
 
 FOnlinePurchaseAccelByte::FOnlinePurchaseAccelByte(FOnlineSubsystemAccelByte* InSubsystem)
@@ -121,8 +122,19 @@ void FOnlinePurchaseAccelByte::PlatformCheckout(const FUniqueNetId& UserId, cons
 	if (AccelByteSubsystemPtr->GetSecondaryPlatformSubsystemName().ToString().Contains(TEXT("Oculus"))
 		|| AccelByteSubsystemPtr->GetSecondaryPlatformSubsystemName().ToString().Contains(TEXT("Meta")))
 	{
-		AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteCheckoutMetaQuestProduct>(AccelByteSubsystemPtr.Get(), UserId, CheckoutRequest, Delegate);
+		AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteCheckoutMetaQuestProduct>(AccelByteSubsystemPtr.Get()
+			, UserId
+			, CheckoutRequest
+			, Delegate);
 	}
+	else if (AccelByteSubsystemPtr->GetNativePlatformNameString().Equals(TEXT("Steam"), ESearchCase::IgnoreCase))
+	{
+		AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteCheckoutSteamInventory>(AccelByteSubsystemPtr.Get()
+			, UserId
+			, CheckoutRequest
+			, Delegate);
+	}
+
 	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""))
 }
 

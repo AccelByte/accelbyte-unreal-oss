@@ -5,7 +5,7 @@
 #include "OnlineAsyncTaskAccelByteDeleteUserFile.h"
 #include "OnlineSubsystemAccelByte.h"
 #include "OnlineUserCloudInterfaceAccelByte.h"
-#include "Core/AccelByteRegistry.h"
+
 #include "Api/AccelByteCloudStorageApi.h"
 
 using namespace AccelByte;

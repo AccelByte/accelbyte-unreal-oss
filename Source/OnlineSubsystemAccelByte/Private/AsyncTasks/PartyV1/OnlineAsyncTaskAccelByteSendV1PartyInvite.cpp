@@ -6,7 +6,7 @@
 #include "OnlineSubsystemAccelByte.h"
 #include "OnlinePartyInterfaceAccelByte.h"
 #include "Api/AccelByteLobbyApi.h"
-#include "Core/AccelByteRegistry.h"
+
 
 using namespace AccelByte;
 

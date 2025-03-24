@@ -5,7 +5,7 @@
 #include "OnlineAsyncTaskAccelByteRetrieveDedicatedV1SessionInfo.h"
 #include "OnlineSubsystemAccelByte.h"
 #include "OnlineIdentityInterfaceAccelByte.h"
-#include "Core/AccelByteRegistry.h"
+
 #include "Models/AccelByteDSMModels.h"
 
 using namespace AccelByte;

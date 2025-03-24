@@ -5,7 +5,7 @@
 #include "OnlineAsyncTaskAccelByteJoinV2Party.h"
 #include "OnlineSubsystemAccelByte.h"
 #include "OnlineSubsystemAccelByteSessionSettings.h"
-#include "Core/AccelByteRegistry.h"
+
 #include "OnlineSessionInterfaceV2AccelByte.h"
 #include "OnlinePredefinedEventInterfaceAccelByte.h"
 

@@ -3,7 +3,7 @@
 // and restrictions contact your company contract manager.
 
 #include "OnlineAsyncTaskAccelByteLogin.h"
-#include "Core/AccelByteMultiRegistry.h"
+
 #include "Core/AccelByteUtilities.h"
 #include "Models/AccelBytePredefinedEventModels.h"
 #include "OnlineSubsystemAccelByte.h"
@@ -217,7 +217,7 @@ void FOnlineAsyncTaskAccelByteLogin::Finalize()
 		LoginSuccededPayload.UserId = ApiClient->CredentialsRef->GetUserId();
 		LoginSuccededPayload.PlatformUserId = ApiClient->CredentialsRef->GetPlatformUserId();
 		LoginSuccededPayload.PlatformId = PlatformId;
-		LoginSuccededPayload.DeviceId = FAccelByteUtilities::GetDeviceId();
+		LoginSuccededPayload.DeviceId = ApiClient->GetDeviceId();
 		PredefinedEventInterface->SendEvent(LoginUserNum, MakeShared<FAccelByteModelsLoginSuccededPayload>(LoginSuccededPayload));
 	}
 	else
@@ -749,15 +749,32 @@ void FOnlineAsyncTaskAccelByteLogin::OnLoginSuccess()
 	// Also create an account instance for them, this will be fed back to the identity interface after login
 	Account = MakeShared<FUserOnlineAccountAccelByte>(UserId.ToSharedRef());
 	Account->SetUserCountry(ApiClient->CredentialsRef->GetAccountUserData().Country);
-	Account->SetDisplayName(ApiClient->CredentialsRef->GetUserDisplayName());
 	Account->SetCredentialsRef(ApiClient->CredentialsRef);
 	Account->SetPlatformUserId(ApiClient->CredentialsRef->GetPlatformUserId());
 	Account->SetSimultaneousPlatformID(ApiClient->CredentialsRef->GetSimultaneousPlatformId());
 	Account->SetSimultaneousPlatformUserID(ApiClient->CredentialsRef->GetSimultaneousPlatformUserId());
-	Account->SetUniqueDisplayName(ApiClient->CredentialsRef->GetUniqueDisplayName());
+
+	if (!ApiClient->CredentialsRef->GetAuthToken().Unique_display_name.IsEmpty())
+	{
+		// #NOTE GetUniqueDisplayName will always return the account's display name, even if a unique display name is
+		// not set for the account. This clashes with the display name source logic, as unique display name, if present,
+		// will always take precedence over other display names. Only set unique display name if the account has one
+		// to mitigate this.
+		Account->SetUniqueDisplayName(ApiClient->CredentialsRef->GetUniqueDisplayName());
+	}
 	
 	// Retrieve the platform user information array from the account user data.
 	const TArray<FAccountUserPlatformInfo>& PlatformInfos = ApiClient->CredentialsRef->GetAccountUserData().PlatformInfos;
+
+	// Attempt to set up display name based on configured source
+	FString DisplayName{};
+	const EAccelBytePlatformType DisplayNameSource = SubsystemPin->GetDisplayNameSource();
+	if (DisplayNameSource == EAccelBytePlatformType::None)
+	{
+		// If display name source is explicitly default, or the provided source is invalid
+		UE_LOG_AB(Verbose, TEXT("Using default display name source for logged in user"));
+		DisplayName = ApiClient->CredentialsRef->GetUserDisplayName();
+	}
 
 	// Iterate over platform user information retrieved from the account data.
 	for (const FAccountUserPlatformInfo& Info : PlatformInfos)
@@ -774,6 +791,7 @@ void FOnlineAsyncTaskAccelByteLogin::OnLoginSuccess()
 		TArray<FAccelByteLinkedUserInfo> LinkedPlatformUsers;
 
 		LinkedUserInfo.DisplayName = Info.PlatformDisplayName;
+		LinkedUserInfo.PlatformType = FAccelByteUtilities::GetUEnumValueFromString<EAccelBytePlatformType>(Info.PlatformId);
 		LinkedUserInfo.PlatformId = Info.PlatformId;
 		LinkedUserInfo.AvatarUrl = Info.PlatformAvatarUrl;
 		LinkedPlatformUsers.Add(LinkedUserInfo);
@@ -781,12 +799,29 @@ void FOnlineAsyncTaskAccelByteLogin::OnLoginSuccess()
 		// Add each platform user to the related account.
 		Account->AddPlatformUser(localPlatformUser);
 
+		// Convert platform ID to a EAccelBytePlatformType and check if the platform matches our desired display name
+		// source, if so, then set the final display name
+		const EAccelBytePlatformType PlatformType = FAccelByteUtilities::GetUEnumValueFromString<EAccelBytePlatformType>(Info.PlatformId);
+		if (DisplayNameSource != EAccelBytePlatformType::None && PlatformType == DisplayNameSource)
+		{
+			DisplayName = Info.PlatformDisplayName;
+		}
+
 		// Ensure that UserCache is valid before attempting to use it, update the user cache with the linked platform user information.
 		if (UserCache.IsValid())
 		{
 			UserCache->AddLinkedPlatformInfoToCache(*UserId.Get(), LinkedPlatformUsers); 
 		}
 	}
+
+	if (DisplayName.IsEmpty())
+	{
+		// If display name is still empty after evaluating platform info, then default to account display name as a fallback
+		UE_LOG_AB(Warning, TEXT("Configured display name source '%s' was not found, reverting to default"), *FAccelByteUtilities::GetUEnumValueAsString(DisplayNameSource));
+		DisplayName = ApiClient->CredentialsRef->GetUserDisplayName();
+	}
+
+	Account->SetDisplayName(DisplayName);
 
 	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(SubsystemPin->GetIdentityInterface());
 	if (!IdentityInterface.IsValid())

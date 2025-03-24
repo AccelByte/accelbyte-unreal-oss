@@ -27,6 +27,11 @@ public:
 	FString DisplayName{};
 
 	/**
+	 * @brief Enum representing the type of platform that this link is for
+	 */
+	EAccelBytePlatformType PlatformType { EAccelBytePlatformType::None };
+
+	/**
 	 * @brief The unique identifier (PlatformId) of the user on the linked external platform.
 	 */
 	FString PlatformId{};

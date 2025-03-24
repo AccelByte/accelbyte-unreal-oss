@@ -4,7 +4,7 @@
 
 #include "OnlineAsyncTaskAccelByteSyncPlatformGooglePlay.h"
 
-#include "Core/AccelByteRegistry.h"
+
 #include "Api/AccelByteEntitlementApi.h"
 #include "Runtime/Core/Public/Misc/Base64.h"
 

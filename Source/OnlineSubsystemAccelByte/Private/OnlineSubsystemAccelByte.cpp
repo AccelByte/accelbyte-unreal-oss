@@ -35,7 +35,7 @@
 //~ Begin AccelByte Peer to Peer Includes
 #include "AccelByteNetworkUtilities.h"
 #include "Api/AccelByteLobbyApi.h"
-#include "Core/AccelByteRegistry.h"
+
 #include "Core/Platform/AccelBytePlatformHandler.h"
 #include "Models/AccelByteUserModels.h"
 #include "Models/AccelByteLobbyModels.h"
@@ -128,6 +128,13 @@ bool FOnlineSubsystemAccelByte::Init()
 	FAccelByteUtilities::LoadABConfigFallback(TEXT("OnlineSubsystemAccelByte"), TEXT("bMultipleLocalUsersEnabled"), bIsMultipleLocalUsersEnabled);
 	FAccelByteUtilities::LoadABConfigFallback(TEXT("OnlineSubsystemAccelByte"), TEXT("bNativePlatformTokenRefreshManually"), bNativePlatformTokenRefreshManually);
 	
+	FString DisplayNameSourceString{};
+	if (!FAccelByteUtilities::LoadABConfigFallback(TEXT("OnlineSubsystemAccelByte"), TEXT("DisplayNameSource"), DisplayNameSourceString))
+	{
+		DisplayNameSourceString = TEXT("default");
+	}
+	SetDisplayNameSource(DisplayNameSourceString);
+	
 	FString NativePlatformNameStr{};
 	FAccelByteUtilities::LoadABConfigFallback(TEXT("OnlineSubsystem"), TEXT("NativePlatformService"), NativePlatformNameStr);
 	NativePlatformName = FName(NativePlatformNameStr);
@@ -207,11 +214,19 @@ bool FOnlineSubsystemAccelByte::Shutdown()
 			if (LobbyMessageNotifMap.Contains(UserNum))
 			{
 				MessageNotifHandle = LobbyMessageNotifMap[UserNum];
-				ApiClient->Lobby.RemoveMessageNotifBroadcasterDelegate(MessageNotifHandle);
+				auto Lobby = ApiClient->GetLobbyApi().Pin();
+				if (Lobby.IsValid())
+				{
+					Lobby->RemoveMessageNotifBroadcasterDelegate(MessageNotifHandle);
+					ApiClient->CredentialsRef->OnTokenRefreshed().Remove(NativeTokenRefreshHandles[UserNum]);
+					LobbyMessageNotifMap.Remove(UserNum);
+					NativeTokenRefreshHandles.Remove(UserNum);		
+				}
+				else
+				{
+					UE_LOG_AB(Warning, TEXT("Invalid Lobby API from API Client"));
+				}
 			}
-			ApiClient->CredentialsRef->OnTokenRefreshed().Remove(NativeTokenRefreshHandles[UserNum]);
-			LobbyMessageNotifMap.Remove(UserNum);
-			NativeTokenRefreshHandles.Remove(UserNum);
 		}
 
 		FUniqueNetIdPtr PlayerId = IdentityInterface->GetUniquePlayerId(UserNum);
@@ -785,13 +800,25 @@ void FOnlineSubsystemAccelByte::OnLoginCallback(int32 LocalUserNum, bool bWasSuc
 
 	if (!LobbyMessageNotifMap.Contains(LocalUserNum))
 	{
-		FDelegateHandle MessageNotifDelegate = ApiClient->Lobby.AddMessageNotifDelegate(Delegate);
-		LobbyMessageNotifMap.Emplace(LocalUserNum, MessageNotifDelegate);
+		FDelegateHandle MessageNotifDelegate;
+		auto Lobby = ApiClient->GetLobbyApi().Pin();
+		if (Lobby.IsValid())
+		{
+			MessageNotifDelegate = Lobby->AddMessageNotifDelegate(Delegate);
+			LobbyMessageNotifMap.Emplace(LocalUserNum, MessageNotifDelegate);
+		}
+		else
+		{
+			UE_LOG_AB(Warning, TEXT("Invalid Lobby API from API Client"));
+		}
 	}
 
-	IdentityInterface->ConnectAccelByteLobby(LocalUserNum);
+	if (bIsAutoLobbyConnectAfterLoginSuccess && IdentityInterface.IsValid())
+	{
+		IdentityInterface->ConnectAccelByteLobby(LocalUserNum);
+	}
 
-	if(bIsAutoChatConnectAfterLoginSuccess && ChatInterface.IsValid())
+	if (bIsAutoChatConnectAfterLoginSuccess && ChatInterface.IsValid())
 	{
 		ChatInterface->Connect(LocalUserNum);
 	}
@@ -810,38 +837,42 @@ void FOnlineSubsystemAccelByte::OnLobbyConnectedCallback(int32 LocalUserNum, boo
 {
 	AccelByte::FApiClientPtr ApiClient = GetApiClient(LocalUserNum);
 	
-	if (ApiClient.IsValid())
+	if (!ApiClient.IsValid())
 	{
-		const auto Lobby = ApiClient->GetLobbyApi().Pin();
-		if (Lobby.IsValid())
-		{
-
-			const auto OnLobbyConnectionClosedDelegate = AccelByte::Api::Lobby::FConnectionClosed::CreateThreadSafeSP(AsShared()
-				, &FOnlineSubsystemAccelByte::OnLobbyConnectionClosed
-				, LocalUserNum
-				, false);
-			Lobby->SetConnectionClosedDelegate(OnLobbyConnectionClosedDelegate);
-
-			const auto OnLobbyReconnectionDelegate = Api::Lobby::FConnectSuccess::CreateThreadSafeSP(AsShared()
-				, &FOnlineSubsystemAccelByte::OnLobbyReconnected
-				, LocalUserNum);
-			Lobby->SetConnectSuccessDelegate(OnLobbyReconnectionDelegate);
-
-			const auto OnLobbyReconnectingDelegate = AccelByte::Api::Lobby::FConnectionClosed::CreateThreadSafeSP(AsShared()
-				, &FOnlineSubsystemAccelByte::OnLobbyConnectionClosed
-				, LocalUserNum
-				, true);
-			Lobby->SetReconnectingDelegate(OnLobbyReconnectingDelegate);
-
-			Lobby->OnReconnectAttemptedMulticastDelegate().AddThreadSafeSP(AsShared()
-				, &FOnlineSubsystemAccelByte::OnLobbyReconnectAttempted
-				, LocalUserNum);
-
-			Lobby->OnMassiveOutageMulticastDelegate().AddThreadSafeSP(AsShared()
-				, &FOnlineSubsystemAccelByte::OnLobbyMassiveOutageEvent
-				, LocalUserNum);
-		}
+		UE_LOG_AB(Error, TEXT("OnLobbyConnected failure, Invalid API Client"));
+		return;
 	}
+	const auto Lobby = ApiClient->GetLobbyApi().Pin();
+	if (!Lobby.IsValid())
+	{
+		UE_LOG_AB(Warning, TEXT("OnLobbyConnected failure, Invalid Lobby API from API Client"));
+		return;
+	}
+
+	const auto OnLobbyConnectionClosedDelegate = AccelByte::Api::Lobby::FConnectionClosed::CreateThreadSafeSP(AsShared()
+		, &FOnlineSubsystemAccelByte::OnLobbyConnectionClosed
+		, LocalUserNum
+		, false);
+	Lobby->SetConnectionClosedDelegate(OnLobbyConnectionClosedDelegate);
+
+	const auto OnLobbyReconnectionDelegate = Api::Lobby::FConnectSuccess::CreateThreadSafeSP(AsShared()
+		, &FOnlineSubsystemAccelByte::OnLobbyReconnected
+		, LocalUserNum);
+	Lobby->SetConnectSuccessDelegate(OnLobbyReconnectionDelegate);
+
+	const auto OnLobbyReconnectingDelegate = AccelByte::Api::Lobby::FConnectionClosed::CreateThreadSafeSP(AsShared()
+		, &FOnlineSubsystemAccelByte::OnLobbyConnectionClosed
+		, LocalUserNum
+		, true);
+	Lobby->SetReconnectingDelegate(OnLobbyReconnectingDelegate);
+
+	Lobby->OnReconnectAttemptedMulticastDelegate().AddThreadSafeSP(AsShared()
+		, &FOnlineSubsystemAccelByte::OnLobbyReconnectAttempted
+		, LocalUserNum);
+
+	Lobby->OnMassiveOutageMulticastDelegate().AddThreadSafeSP(AsShared()
+		, &FOnlineSubsystemAccelByte::OnLobbyMassiveOutageEvent
+		, LocalUserNum);
 }
 
 void FOnlineSubsystemAccelByte::OnLobbyConnectionClosed(int32 StatusCode, const FString& Reason, bool WasClean, int32 InLocalUserNum, bool bIsReconnecting)
@@ -1094,6 +1125,17 @@ AccelByte::FApiClientPtr FOnlineSubsystemAccelByte::GetApiClient(int32 LocalUser
 	}
 
 	return ApiClient;
+}
+
+FAccelByteInstanceWPtr FOnlineSubsystemAccelByte::GetAccelByteInstance() const
+{
+	// if it's valid just return the AccelByteInstance
+	if (AccelByteInstance.IsValid())
+	{
+		return AccelByteInstance;
+	}
+
+	return nullptr;
 }
 
 FString FOnlineSubsystemAccelByte::GetLanguage()
@@ -1456,36 +1498,46 @@ TOptional<IWebsocketConfigurableReconnectStrategy*> FOnlineSubsystemAccelByte::T
 	return Output;
 }
 
-FAccelByteInstanceWPtr FOnlineSubsystemAccelByte::GetAccelByteInstance()
-{
-	// if it's valid just return the AccelByteInstance
-	if(AccelByteInstance.IsValid())
-	{
-		return AccelByteInstance;
-	}
-
-	return nullptr;
-}
-
 FAccelByteInstancePtr FOnlineSubsystemAccelByte::CreateAccelByteInstance() const
 {
-	// if this is default instance, then try to check MultiRegistry first if we already have an AccelByteInstance there
-	// so AccelByte OSS and MultiRegistry is using the same AccelByteInstance. this should only apply to default Subsystem instance
-	// 1st PIE instance SubsystemName should be Context_1, standalone game should be DefaultInstance
-	if(InstanceName.ToString().Equals(TEXT("DefaultInstance")) || InstanceName.ToString().Equals(TEXT("Context_1")))
-	{
-		FAccelByteInstancePtr NewInstance = FMultiRegistry::GetAccelByteInstance().Pin();
-		if(!AccelByteInstance.IsValid())
-		{
-			NewInstance = IAccelByteUe4SdkModuleInterface::Get().CreateAccelByteInstance();
-			FMultiRegistry::SetAccelByteInstance(NewInstance.ToSharedRef());
-		}
+	return IAccelByteUe4SdkModuleInterface::Get().CreateAccelByteInstance();
+}
 
-		return NewInstance.ToSharedRef();
+EAccelBytePlatformType FOnlineSubsystemAccelByte::GetDisplayNameSource() const
+{
+	return DisplayNameSource;
+}
+
+bool FOnlineSubsystemAccelByte::SetDisplayNameSource(const FString& InDisplayNameSource)
+{
+	if (InDisplayNameSource.Equals(TEXT("default"), ESearchCase::IgnoreCase))
+	{
+		DisplayNameSource = EAccelBytePlatformType::None;
+		return true;
 	}
 
-	// if not default PIE instance, then just create a new AccelByteInstance
-	return IAccelByteUe4SdkModuleInterface::Get().CreateAccelByteInstance();
+	if (InDisplayNameSource.Equals(TEXT("native"), ESearchCase::IgnoreCase))
+	{
+		const EAccelBytePlatformType PlatformType = FAccelByteUtilities::GetUEnumValueFromString<EAccelBytePlatformType>(GetNativePlatformNameString());
+		if (PlatformType == EAccelBytePlatformType::None)
+		{
+			UE_LOG_AB(Warning, TEXT("Unable to get platform type for native platform name: %s"), *GetNativePlatformNameString());
+			return false;
+		}
+		
+		DisplayNameSource = PlatformType;
+		return true;
+	}
+
+	const EAccelBytePlatformType PlatformType = FAccelByteUtilities::GetUEnumValueFromString<EAccelBytePlatformType>(InDisplayNameSource);
+	if (PlatformType == EAccelBytePlatformType::None)
+	{
+		UE_LOG_AB(Warning, TEXT("Unable to find platform type used for display name source: %s"), *InDisplayNameSource);
+		return false;
+	}
+
+	DisplayNameSource = PlatformType;
+	return true;
 }
 
 #undef LOCTEXT_NAMESPACE

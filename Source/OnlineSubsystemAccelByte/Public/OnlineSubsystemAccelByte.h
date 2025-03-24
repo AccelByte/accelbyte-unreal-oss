@@ -13,9 +13,9 @@
 #include "Models/AccelByteUserModels.h"
 #include "AccelByteTimerObject.h"
 #include "OnlineAsyncTaskManagerAccelByte.h"
-#include "OnlineSubsystemAccelBytePackage.h"
 #include "Core/AccelByteInstance.h"
 #include "Core/AccelByteServerApiClient.h"
+#include "OnlineSubsystemAccelBytePackage.h"
 
 /** Log category for any AccelByte OSS logs, including traces */
 DECLARE_LOG_CATEGORY_EXTERN(LogAccelByteOSS, Warning, All);
@@ -260,6 +260,11 @@ public:
 	 */
 	AccelByte::FApiClientPtr GetApiClient(int32 LocalUserNum);
 
+	/**
+	 * Retrieves the weak pointer to the AccelByte instance associated with the user.
+	 */
+	FAccelByteInstanceWPtr GetAccelByteInstance() const;
+
 	FString GetLanguage();
 
 	void SetLanguage(const FString & InLanguage);
@@ -267,6 +272,24 @@ public:
 
 	FOnLocalUserNumCachedDelegate& OnLocalUserNumCached();
 	
+	
+	/**
+	 * @brief Get the configured source for display names.
+	 */
+	EAccelBytePlatformType GetDisplayNameSource() const;
+
+	/**
+	 * @brief Set the currently configured source for user display names.
+	 *
+	 * Valid values to set are:
+	 * - Default: Use the display name set on the logged in AB account
+	 * - Native: Use the display name that corresponds with the NativePlatformService configured
+	 * - A value that corresponds with the EAccelBytePlatformType enum to explicitly retrieve a platform's display name
+	 *
+	 * @return boolean that is true if the source was updated, false otherwise
+	 */
+	bool SetDisplayNameSource(const FString& InDisplayNameSource);
+
 PACKAGE_SCOPE:
 	/** Disable the default constructor, instances of the OSS are only to be managed by the factory spawned by the module */
 	FOnlineSubsystemAccelByte() = delete;
@@ -311,8 +334,7 @@ PACKAGE_SCOPE:
 	/** Create and enqueue an Epic to the task manager's ParallelTasks queue */
 	FOnlineAsyncEpicTaskAccelByte* CreateAndDispatchEpic(int32 LocalUserNum, const AccelByte::FVoidHandler& InDelegate);
 
-// To allow the automation test
-OVERRIDE_PACKAGE_SCOPE:
+PACKAGE_SCOPE:
 	/** Wrap the actual implementation to the source file to prevent function call to a forward-declared class (FOnlineAsyncEpicTaskAccelByte) */
 	void CreateAndDispatchAsyncTaskImplementation(FOnlineAsyncTaskInfo TaskInfo, FOnlineAsyncTask* CreatedTask);
 
@@ -330,7 +352,6 @@ OVERRIDE_PACKAGE_SCOPE:
 		CreateAndDispatchAsyncTaskImplementation(TaskInfo, NewTask);
 	}
 
-PACKAGE_SCOPE:
 	/** Create and queue an async task to the parallel tasks queue */
 	template <typename TOnlineAsyncTask, typename... TArguments>
 	FORCEINLINE void CreateAndDispatchAsyncTaskParallel(TArguments&&... Arguments)
@@ -474,8 +495,6 @@ PACKAGE_SCOPE:
 	 */
 	TOptional<AccelByte::IWebsocketConfigurableReconnectStrategy*> TryConfigureWebsocketConnection(int32 LocalUserNum, AccelByte::EConfigurableWebsocketServiceType Type);
 
-	FAccelByteInstanceWPtr GetAccelByteInstance();
-	
 private:
 	/**************************************************
 	 * These are boolean that is configured from the DefaultEngine.ini
@@ -614,6 +633,13 @@ private:
 	/** AccelByte instance */
 	FAccelByteInstancePtr AccelByteInstance;
 	FDelegateHandle OnPostEngineInitDelegate;
+
+	/**
+	 * @brief Platform type enum representing the source that should be used when determining the user's display name.
+	 *
+	 * If set to None, then the display name of the AB account will be used.
+	 */
+	EAccelBytePlatformType DisplayNameSource { EAccelBytePlatformType::None };
 
 	/**
 	 * @p2p Delegate handler fired when we get a successful login from the OSS on the first user. Used to initialize our network manager.

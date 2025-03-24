@@ -50,6 +50,7 @@ public class OnlineSubsystemAccelByte : ModuleRules
 			&& Target.Type != TargetType.Server)
         {
             PublicDependencyModuleNames.Add("Steamworks");
+            PublicDependencyModuleNames.Add("SteamShared");
         }
 
         PrivateDependencyModuleNames.AddRange(new string[] {
@@ -127,7 +128,7 @@ public class OnlineSubsystemAccelByte : ModuleRules
 		return true;
 	}
 
-		private static bool BuildDocs(string ModuleDirectory)
+	private static bool BuildDocs(string ModuleDirectory)
 	{
 		try
 		{

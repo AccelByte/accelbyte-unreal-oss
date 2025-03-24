@@ -22,6 +22,12 @@ typedef FOnGetWalletInfoCompleted::FDelegate FOnGetWalletInfoCompletedDelegate;
 DECLARE_MULTICAST_DELEGATE_FourParams(FOnGetWalletTransactionsCompleted, int32 /*LocalUserNum*/, bool /*bWasSuccessful*/, const TArray<FAccelByteModelsWalletTransactionInfo>& /*Response*/, const FString& /*Error*/);
 typedef FOnGetWalletTransactionsCompleted::FDelegate FOnGetWalletTransactionsCompletedDelegate;
 
+DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnWalletBalanceChangedNotification, int32 /*LocalUserNum*/, const FUniqueNetId& /*UserId*/, const FAccelByteModelsWalletBalanceChangedNotification& /*Notification*/);
+typedef FOnWalletBalanceChangedNotification::FDelegate FOnWalletBalanceChangedNotificationDelegate;
+
+DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnWalletStatusChangedNotification, int32 /*LocalUserNum*/, const FUniqueNetId& /*UserId*/, const FAccelByteModelsWalletStatusChangedNotification& /*Notification*/);
+typedef FOnWalletStatusChangedNotification::FDelegate FOnWalletStatusChangedNotificationDelegate;
+
 /**
  * Implementation of Wallet service from AccelByte services
  */
@@ -40,6 +46,12 @@ PACKAGE_SCOPE:
 	TUniqueNetIdMap <TMap<FString, TSharedRef<FAccelByteModelsWalletInfo>>> UserToWalletInfoMap;
 	/** Critical sections for thread safe operation of UserToWalletInfoMap */
 	mutable FCriticalSection WalletInfoListLock;
+
+	/**
+	 * Method used by the Identity interface to register delegates for wallet notifications to this interface to get
+	 * real-time updates from the Lobby websocket.
+	 */
+	virtual void RegisterRealTimeLobbyDelegates(int32 LocalUserNum);
 
 public:
 	virtual ~FOnlineWalletAccelByte() {};
@@ -68,6 +80,10 @@ public:
 
 	DEFINE_ONLINE_PLAYER_DELEGATE_THREE_PARAM(MAX_LOCAL_PLAYERS, OnGetWalletTransactionsCompleted, bool /*bWasSuccessful*/, const TArray<FAccelByteModelsWalletTransactionInfo>& /*Response*/, const FString& /*Error*/);
 
+	DEFINE_ONLINE_PLAYER_DELEGATE_TWO_PARAM(MAX_LOCAL_PLAYERS, OnWalletBalanceChangedNotification, const FUniqueNetId& /*UserId*/, const FAccelByteModelsWalletBalanceChangedNotification& /*Notification*/);
+
+	DEFINE_ONLINE_PLAYER_DELEGATE_TWO_PARAM(MAX_LOCAL_PLAYERS, OnWalletStatusChangedNotification, const FUniqueNetId& /*UserId*/, const FAccelByteModelsWalletStatusChangedNotification& /*Notification*/);
+
 	bool GetCurrencyList(int32 LocalUserNum, bool bAlwaysRequestToService = false);
 
 	bool GetCurrencyFromCache(const FString& CurrencyCode, FAccelByteModelsCurrencyList& OutCurrency);
@@ -93,4 +109,9 @@ protected:
 	/** Instance of the subsystem that created this interface */
 	FOnlineSubsystemAccelByteWPtr AccelByteSubsystem = nullptr;
 
+	void OnWalletBalanceChangedNotificationReceived(const FAccelByteModelsWalletBalanceChangedNotification& Response, int32 InLocalUserNum);
+	TMap<int32, FDelegateHandle> OnWalletBalanceChangedNotificationReceivedDelegateHandleMap;
+
+	void OnWalletStatusChangedNotificationReceived(const FAccelByteModelsWalletStatusChangedNotification& Response, int32 InLocalUserNum);
+	TMap<int32, FDelegateHandle> OnWalletStatusChangedNotificationReceivedDelegateHandleMap;
 };

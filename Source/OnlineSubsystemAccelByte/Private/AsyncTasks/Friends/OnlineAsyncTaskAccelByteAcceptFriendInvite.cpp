@@ -5,7 +5,7 @@
 #include "OnlineAsyncTaskAccelByteAcceptFriendInvite.h"
 #include "OnlineSubsystemAccelByte.h"
 #include "OnlineFriendsInterfaceAccelByte.h"
-#include "Core/AccelByteRegistry.h"
+
 #include "Api/AccelByteLobbyApi.h"
 #include <OnlineIdentityInterfaceAccelByte.h>
 #include "OnlinePredefinedEventInterfaceAccelByte.h"

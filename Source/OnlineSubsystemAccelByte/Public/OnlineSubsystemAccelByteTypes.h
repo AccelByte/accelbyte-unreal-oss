@@ -10,12 +10,12 @@
 #include "IPAddress.h"
 #include "OnlineSubsystemAccelByteDefines.h"
 #include "Runtime/Launch/Resources/Version.h"
-#include "OnlineSubsystemAccelBytePackage.h"
 #include "Models/AccelByteMatchmakingModels.h"
 #include "Models/AccelByteUserModels.h"
 #include "OnlineAsyncTaskManager.h"
 #include "OnlineStats.h"
 #include "Core/AccelByteBaseCredentials.h"
+#include "OnlineSubsystemAccelBytePackage.h"
 #include "OnlineSubsystemAccelByteTypes.generated.h"
 
 class FOnlineSubsystemAccelByte;
@@ -95,7 +95,8 @@ enum class EAccelByteLoginType : uint8
 	RefreshToken,
 	CachedToken,
 	Simultaneous,
-	Oculus
+	Oculus,
+	Switch
 };
 
 static EAccelBytePlatformType ConvertOSSTypeToAccelBytePlatformType(EAccelByteLoginType OSSType)

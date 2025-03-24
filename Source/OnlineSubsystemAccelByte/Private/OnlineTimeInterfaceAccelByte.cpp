@@ -4,7 +4,7 @@
 
 #include "OnlineTimeInterfaceAccelByte.h"
 #include "OnlineSubsystemUtils.h"
-#include "Core/AccelByteRegistry.h"
+
 #include "AsyncTasks/Time/OnlineAsyncTaskAccelByteGetServerTime.h"
 
 FOnlineTimeAccelByte::FOnlineTimeAccelByte(FOnlineSubsystemAccelByte* InSubsystem) 
