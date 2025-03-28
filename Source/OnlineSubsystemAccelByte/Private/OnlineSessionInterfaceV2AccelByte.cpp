@@ -9121,4 +9121,32 @@ bool FOnlineSessionV2AccelByte::UpdateDSInformation(FName SessionName
 	return true;
 }
 
+void FOnlineSessionV2AccelByte::ConnectToThirdPartyDSHub(const FString& ServerName)
+{
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("ServerName: %s"), *ServerName);
+
+	if (!IsRunningDedicatedServer())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Unable to connect to DSHub: only intended for dedicated server instances"));
+		return;
+	}
+
+	FServerApiClientPtr ServerApiClient = GetServerApiClient();
+	if (!ServerApiClient.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Unable to connect to DSHub: server API client invalid"));
+		return;
+	}
+
+	if (ServerApiClient->ServerDSHub.IsConnected())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("DSHub already connected"));
+		return;
+	}
+
+	ConnectToDSHub(ServerName);
+
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
+}
+
 #undef ONLINE_ERROR_NAMESPACE

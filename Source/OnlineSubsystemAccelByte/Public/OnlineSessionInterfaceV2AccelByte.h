@@ -1279,6 +1279,14 @@ public:
 		, FOnUpdateDSInformationComplete const& CompletionDelegate);
 
 	/**
+	 * @brief Connect to the DSHub websocket, as well as register internal callbacks relating to DSHub events. Not
+	 * intended to be called for AMS usage, RegisterServer already does this in the background as part of its logic.
+	 *
+	 * @param ServerName String representing the name of the server that we are connecting under, used to route messages in the DSHub
+	 */
+	void ConnectToThirdPartyDSHub(const FString& ServerName);
+
+	/**
 	 * Delegate fired when we have retrieved information on the session that our server is claimed by on the backend.
 	 *
 	 * @param SessionName the name that our server session is stored under

@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.13.1](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.13.1%0D0.13.0) (2025-03-28)
+
+
+### Features
+
+* **dshub:** Add method for third-party server implementations to connect to DSHub ([3248e44](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/3248e44194da7ab91cfc5b142980b06ea2e733a5))
+
 ## [0.13.0](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.13.0%0D0.12.31) (2025-03-24)
 
 
