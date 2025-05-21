@@ -366,14 +366,7 @@ void FOnlineAsyncTaskAccelByteVerifyLoginMfa::OnLoginSuccess()
 	
 	AccelByteInstance->RemoveApiClient(UserId->GetAccelByteId());
 	AccelByteInstance->RegisterApiClient(UserId->GetAccelByteId(), ApiClient);
-	if (SubsystemPin->IsMultipleLocalUsersEnabled())
-	{
-		AccelByteInstance->RemoveApiClient(FString::Printf(TEXT("%d"), LoginUserNum));
-	}
-	else
-	{
-		AccelByteInstance->RemoveApiClient();
-	}
+	AccelByteInstance->RemoveApiClient(FString::Printf(TEXT("%d"), LoginUserNum));
 
 	// Grab our user interface and kick off a task to get information about the newly logged in player from it, namely
 	// their avatar URL. No need to register a delegate to update the account from the query, the query task will check

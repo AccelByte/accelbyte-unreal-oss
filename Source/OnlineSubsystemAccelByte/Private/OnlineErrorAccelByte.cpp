@@ -30,7 +30,7 @@ FOnlineErrorAccelByte::FOnlineErrorAccelByte(EOnlineErrorResult InResult, const 
 }
 
 bool FOnlineErrorAccelByte::bIsTablesRegistered = false;
-const FString FOnlineErrorAccelByte::DefaultLanguage = TEXT("en");
+TCHAR const* FOnlineErrorAccelByte::DefaultLanguage = TEXT("en");
 FString FOnlineErrorAccelByte::Language = TEXT("");
 
 FOnlineErrorAccelByte FOnlineErrorAccelByte::CreateError(const FString& ErrorNamespace, const int32 ErrorCode, EOnlineErrorResult Result)
@@ -128,7 +128,7 @@ void FOnlineErrorAccelByte::RegisterTables()
 			Language = DefaultLanguage;
 		}
 		const FString LocalizationPath = FString::Printf(TEXT("Localization/AccelByteErrorMessages_%s.csv"), *Language);
-		const FString DefaultLangPath = FString::Printf(TEXT("Localization/AccelByteErrorMessages_%s.csv"), *DefaultLanguage);
+		const FString DefaultLangPath = FString::Printf(TEXT("Localization/AccelByteErrorMessages_%s.csv"), DefaultLanguage);
 
 		LOCTABLE_FROMFILE_ACCELBYTE(ACCELBYTE_DEFAULT_ERROR_KEY_TABLE_ID, ACCELBYTE_DEFAULT_ERROR_KEY_TABLE_NAMESPACE, DefaultLangPath);
 		LOCTABLE_FROMFILE_ACCELBYTE(ACCELBYTE_ERROR_KEY_TABLE_ID, ACCELBYTE_ERROR_KEY_TABLE_NAMESPACE, LocalizationPath);

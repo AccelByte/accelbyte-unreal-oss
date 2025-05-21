@@ -64,7 +64,7 @@ private:
 
     static FString Language;
 
-    static const FString DefaultLanguage;
+    static TCHAR const* DefaultLanguage;
 };
 
 /** must be defined to a valid namespace for using ONLINE_ERROR factory macro */

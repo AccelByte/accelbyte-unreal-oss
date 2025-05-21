@@ -649,7 +649,7 @@ bool FOnlineSessionInviteAccelByte::IsExpired()
 	return DeltaTime.GetTotalSeconds() < 1.0f;
 }
 
-const FString FOnlineSessionV2AccelByte::ServerSessionIdEnvironmentVariable = TEXT("NOMAD_META_session_id");
+TCHAR const* FOnlineSessionV2AccelByte::ServerSessionIdEnvironmentVariable = TEXT("NOMAD_META_session_id");
 
 FOnlineSessionV2AccelByte::FOnlineSessionV2AccelByte(FOnlineSubsystemAccelByte* InSubsystem)
 	: AccelByteSubsystem(InSubsystem->AsShared())

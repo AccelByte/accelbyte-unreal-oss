@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.13.2](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.13.2%0D0.13.1) (2025-05-21)
+
+
+### Features
+
+* **login:** add configurable source for user display name ([f750ef6](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/f750ef60818a62749e05cecd766a9877b2672a45))
+
+
+### Bug Fixes
+
+* add namespace to fix ambiguity in OnlinePredefinedEventInterface ([354ac06](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/354ac06d061582df18a8e6ce9d3f72bb771109ed))
+* **AsyncTask:** delegate the async task initialization to AsyncTaskManagerAccelByte & called from game thread ([105d2d1](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/105d2d12a132719f530d4392d27a52115f63886c))
+* **chat:** forcefully close Chat WebSocket by providing the boolean flag to do force cleanup when Logout is called ([df547e1](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/df547e11dcf1fa49e7ba3ad0d4f2ef3fcd4261a7))
+* **chat:** missing ChatRoomInfo when receiving private messages ([41ffacd](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/41ffacd822e03ffd676aaa6d6d51a3f4d147a998))
+* FServerApiClientPtr ambiguity causing crash on linux server build ([fd96ea6](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/fd96ea65392403cea9ef12e29a901f2c02f682cd))
+* improper assignment to nullptr ([e2a483b](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/e2a483b3f63e70175964b400960c1f76bfa33abf))
+* remove bIsMultipleLocalUsersEnabled because it supposed to no longer used after AccelByteInstance changes ([b382e5f](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/b382e5f91eec3fd9b80d8555a97e137c435d07cb))
+
 ### [0.13.1](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.13.1%0D0.13.0) (2025-03-28)
 
 

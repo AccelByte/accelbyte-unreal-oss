@@ -20,7 +20,16 @@ public:
 
 	void OnlineTick() override;
 
+	/** Due to inability to override GameTick(), we need to create this function call it from FOnlineSubsystemAccelByte::Tick */
+	void GameThreadCustomTick();
+
 	void CheckMaxParallelTasks();
+
+	/** 
+	 * Enqueue AsyncTask to a queue that will be dequeued & Initialized on GameThreadCustomTick()
+	 * To help the EpicAsyncTask Initialize() each of its' child task from a game thread.
+	 */
+	void EnqueueTaskForInitialize(FOnlineAsyncTask* TaskPtr);
 
 private:
 
@@ -28,6 +37,8 @@ private:
 	 * using explicit TWeakPtr here instead of FOnlineSubsystemAccelByteWPtr to remove cyclic dependency
 	 */
 	TWeakPtr<FOnlineSubsystemAccelByte, ESPMode::ThreadSafe> AccelByteSubsystem;
+
+	TQueue<FOnlineAsyncTask*, EQueueMode::Mpsc> AsyncTaskToBeInitialized;
 
 	/** How long Task elapsed can considered as too long*/
 	const double TaskTimeThreshold = 30.0;

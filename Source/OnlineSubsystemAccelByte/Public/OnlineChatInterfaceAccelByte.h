@@ -195,6 +195,7 @@ public:
 	const TArray<FString>& GetMembers() const;
 
 PACKAGE_SCOPE:
+	void SetTopicData(const FAccelByteModelsChatUpdateUserTopicNotif& UserTopicData);
 	void SetTopicData(const FAccelByteModelsChatTopicQueryData& InTopicData);
 	void UpdateTopicData(const FAccelByteModelsChatUpdateTopicNotif& InUpdateTopic);
 	void AddMember(const FString& UserId);

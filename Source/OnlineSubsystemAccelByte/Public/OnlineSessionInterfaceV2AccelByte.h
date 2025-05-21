@@ -278,7 +278,7 @@ struct ONLINESUBSYSTEMACCELBYTE_API FOnlineRestoredSessionAccelByte
 struct ONLINESUBSYSTEMACCELBYTE_API FOnlineSessionInviteAccelByte
 {
 	FOnlineSessionInviteAccelByte();
-	FOnlineSessionInviteAccelByte(FAccelByteTimeManagerWPtr InTimeManager);
+	FOnlineSessionInviteAccelByte(AccelByte::FAccelByteTimeManagerWPtr InTimeManager);
 	
 	/** Type of session that this invite is for */
 	EAccelByteV2SessionType SessionType{EAccelByteV2SessionType::Unknown};
@@ -299,7 +299,7 @@ struct ONLINESUBSYSTEMACCELBYTE_API FOnlineSessionInviteAccelByte
 	bool IsExpired();
 	
 private:
-	FAccelByteTimeManagerWPtr TimeManager;
+	AccelByte::FAccelByteTimeManagerWPtr TimeManager;
 };
 
 struct ONLINESUBSYSTEMACCELBYTE_API FSessionServerCheckPollItem
@@ -1594,7 +1594,7 @@ PACKAGE_SCOPE:
 	/**
 	 * Global string for the environment variable to get session ID for a spawned server.
 	 */
-	static const FString ServerSessionIdEnvironmentVariable;
+	static TCHAR const* ServerSessionIdEnvironmentVariable;
 
 	FOnlineSessionV2AccelByte(FOnlineSubsystemAccelByte* InSubsystem);
 

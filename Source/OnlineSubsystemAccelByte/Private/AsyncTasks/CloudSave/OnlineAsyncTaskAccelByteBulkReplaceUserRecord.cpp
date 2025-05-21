@@ -187,9 +187,12 @@ FBulkReplaceUserRecordMap FOnlineAsyncTaskAccelByteBulkReplaceUserRecord::Constr
 			});
 		if (NetId == nullptr)
 		{
-			*NetId = FUniqueNetIdAccelByteUser::Create(RecordResult.User_id);
+			ResultMap.Add(FUniqueNetIdAccelByteUser::Create(RecordResult.User_id), RecordResult);
 		}
-		ResultMap.Add(*NetId, RecordResult);
+		else
+		{
+			ResultMap.Add(*NetId, RecordResult);
+		}
 	}
 	return ResultMap;
 }

@@ -170,7 +170,7 @@ protected:
 					const FAccelByteInstancePtr AccelByteInstance = GetAccelByteInstance().Pin();
 					if(AccelByteInstance.IsValid())
 					{
-						const FServerApiClientPtr ApiClient = AccelByteInstance->GetServerApiClient();
+						const AccelByte::FServerApiClientPtr ApiClient = AccelByteInstance->GetServerApiClient();
 						if (ApiClient.IsValid())
 						{
 							ApiClient->ServerGameStandardEvent.SendGameStandardEventData(Payload, AccelByte::FVoidHandler::CreateThreadSafeSP(this, &FOnlineGameStandardEventAccelByte::OnSuccess, LocalUserNum, Payload->GetGameStandardEventName()), FErrorHandler::CreateThreadSafeSP(this, &FOnlineGameStandardEventAccelByte::OnError, LocalUserNum, Payload->GetGameStandardEventName()), ClientTimestamp);

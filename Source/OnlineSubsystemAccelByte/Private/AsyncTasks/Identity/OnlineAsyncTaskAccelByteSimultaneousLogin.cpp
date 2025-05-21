@@ -81,6 +81,15 @@ void FOnlineAsyncTaskAccelByteSimultaneousLogin::Initialize()
 		return;
 	}
 
+	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(SubsystemPin->GetIdentityInterface());
+	if (!IdentityInterface.IsValid())
+	{
+		ErrorStr = TEXT("login-failed-invalid-identity-interface");
+		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to login with type '%s' as the IdentityInterface is invalid!"), *AccountCredentials.Type);
+		CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState);
+		return;
+	}
+
 	FAccelByteInstancePtr AccelByteInstance = GetAccelByteInstance().Pin();
 	if(!AccelByteInstance.IsValid())
 	{
@@ -90,14 +99,25 @@ void FOnlineAsyncTaskAccelByteSimultaneousLogin::Initialize()
 		return;
 	}
 
-	if (SubsystemPin->IsMultipleLocalUsersEnabled())
+	FApiClientPtr LocalApiClient = nullptr;
+	FUniqueNetIdPtr LocalUserId = IdentityInterface->GetUniquePlayerId(LoginUserNum);
+
+	if (LocalUserId.IsValid())
 	{
-		SetApiClient(AccelByteInstance->GetApiClient(FString::Printf(TEXT("%d"), LoginUserNum)));
+		FUniqueNetIdAccelByteUserRef LocalABUserId = FUniqueNetIdAccelByteUser::CastChecked(*LocalUserId.Get());
+		if (LocalABUserId->GetAccelByteId() == AccountCredentials.Id)
+		{
+			LocalApiClient = SubsystemPin->GetApiClient(*LocalUserId.Get());
+		}
 	}
-	else
+
+	if (!LocalApiClient.IsValid())
 	{
-		SetApiClient(AccelByteInstance->GetApiClient());
+		LocalApiClient = AccelByteInstance->GetApiClient(FString::Printf(TEXT("%d"), LoginUserNum));
 	}
+	
+	SetApiClient(LocalApiClient);
+
 	API_CLIENT_CHECK_GUARD(ErrorStr);
 	const SettingsPtr Setting = ApiClient->Settings;
 	if(!Setting.IsValid())

@@ -267,7 +267,7 @@ bool FOnlineIdentityAccelByte::Logout(int32 LocalUserNum, FString Reason)
 		}
 		if (Chat->IsConnected())
 		{
-			Chat->Disconnect();
+			Chat->Disconnect(true);
 		}
 		auto TaskWPtr = User->LogoutV3(OnLogoutSuccessDelegate, OnLogoutFailedDelegate);
 		LocalUserNumToLogoutTask.Emplace(LocalUserNum, TaskWPtr);

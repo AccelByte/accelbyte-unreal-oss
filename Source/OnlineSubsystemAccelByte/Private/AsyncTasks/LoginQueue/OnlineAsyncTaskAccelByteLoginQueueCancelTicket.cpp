@@ -35,14 +35,14 @@ void FOnlineAsyncTaskAccelByteLoginQueueCancelTicket::Initialize()
 		return;
 	}
 	
-	if (SubsystemPin->IsMultipleLocalUsersEnabled())
+	FApiClientPtr LocalApiClient = SubsystemPin->GetApiClient(LoginUserNum);
+
+	if (!LocalApiClient.IsValid())
 	{
-		SetApiClient(AccelByteInstance->GetApiClient(FString::Printf(TEXT("%d"), LoginUserNum)));
+		LocalApiClient = AccelByteInstance->GetApiClient(FString::Printf(TEXT("%d"), LoginUserNum));
 	}
-	else
-	{
-		SetApiClient(AccelByteInstance->GetApiClient());
-	}
+
+	SetApiClient(LocalApiClient);
 	
 	API_FULL_CHECK_GUARD(LoginQueue, ErrorStr);
 

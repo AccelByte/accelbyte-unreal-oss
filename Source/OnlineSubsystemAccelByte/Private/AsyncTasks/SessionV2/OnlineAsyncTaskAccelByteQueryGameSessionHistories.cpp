@@ -79,6 +79,8 @@ void FOnlineAsyncTaskAccelByteQueryGameSessionHistories::TriggerDelegates()
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 
+// This end point is deprecated and will be removed on AGS 2025.4
+// Old wallet id means one currency, but now it only means one wallet, so we wanna use currency and source instead it. 
 void FOnlineAsyncTaskAccelByteQueryGameSessionHistories::QueryGameSessionHistory(const int32& Offset, const int32& Limit)
 {
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Starting query game session history, Offset: %d, Limit: %d"), Offset, Limit);

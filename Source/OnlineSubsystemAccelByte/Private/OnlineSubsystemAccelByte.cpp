@@ -125,7 +125,6 @@ bool FOnlineSubsystemAccelByte::Init()
 
 	FAccelByteUtilities::LoadABConfigFallback(TEXT("OnlineSubsystemAccelByte"), TEXT("bAutoLobbyConnectAfterLoginSuccess"), bIsAutoLobbyConnectAfterLoginSuccess);
 	FAccelByteUtilities::LoadABConfigFallback(TEXT("OnlineSubsystemAccelByte"), TEXT("bAutoChatConnectAfterLoginSuccess"), bIsAutoChatConnectAfterLoginSuccess);
-	FAccelByteUtilities::LoadABConfigFallback(TEXT("OnlineSubsystemAccelByte"), TEXT("bMultipleLocalUsersEnabled"), bIsMultipleLocalUsersEnabled);
 	FAccelByteUtilities::LoadABConfigFallback(TEXT("OnlineSubsystemAccelByte"), TEXT("bNativePlatformTokenRefreshManually"), bNativePlatformTokenRefreshManually);
 	
 	FString DisplayNameSourceString{};
@@ -464,11 +463,6 @@ bool FOnlineSubsystemAccelByte::IsAutoConnectChat() const
 	return bIsAutoChatConnectAfterLoginSuccess;
 }
 
-bool FOnlineSubsystemAccelByte::IsMultipleLocalUsersEnabled() const
-{
-	return bIsMultipleLocalUsersEnabled;
-}
-
 bool FOnlineSubsystemAccelByte::IsLocalUserNumCached() const
 {
 	return bIsLocalUserNumCached;
@@ -519,7 +513,8 @@ bool FOnlineSubsystemAccelByte::Tick(float DeltaTime)
 	
 	if (AsyncTaskManager)
 	{
-		AsyncTaskManager->GameTick();
+		AsyncTaskManager->GameTick(); //Unable to override, base function from UE AsyncTaskManager
+		AsyncTaskManager->GameThreadCustomTick(); //For own usage, tick from main thread
 	}
 
 	if (SessionInterface.IsValid())
@@ -1211,6 +1206,27 @@ void FOnlineSubsystemAccelByte::EnqueueTaskToEpic(FOnlineAsyncEpicTaskAccelByte*
 	{
 		EpicPtr->Enqueue(TaskType, TaskPtr);
 	}
+}
+
+void FOnlineSubsystemAccelByte::EnqueueTaskForInitialize(FOnlineAsyncTaskAccelByte* TaskPtr)
+{
+	if (TaskPtr == nullptr)
+	{
+		return;
+	}
+
+	FOnlineAsyncTask* UpcastTask = static_cast<FOnlineAsyncTask*>(TaskPtr);
+	if (UpcastTask == nullptr)
+	{
+		return;
+	}
+
+	if (AsyncTaskManager == nullptr)
+	{
+		return;
+	}
+
+	AsyncTaskManager->EnqueueTaskForInitialize(UpcastTask);
 }
 
 void FOnlineSubsystemAccelByte::SetNativePlatformTokenRefreshScheduler(int32 LocalUserNum, bool bEnableScheduler)

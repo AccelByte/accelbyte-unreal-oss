@@ -691,7 +691,7 @@ bool FOnlineChatAccelByte::GetLastMessages(
 	TArray<TSharedRef<FChatMessage>>* Messages = RoomIdToChatMessages->Find(RoomIdToLoad);
 	if (Messages == nullptr)
 	{
-		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to get last messages from room with ID %s as the room has no messages!"), *RoomId);
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to get last messages from room with ID %s as the room has no messages!"), *RoomIdToLoad);
 		return false;
 	}
 
@@ -785,7 +785,7 @@ void FOnlineChatAccelByte::RemoveMemberFromTopic(const FString& UserId, const FS
 
 void FOnlineChatAccelByte::AddTopic(const FAccelByteChatRoomInfoRef& ChatRoomInfo)
 {
-	TopicIdToChatRoomInfoCached.Add(ChatRoomInfo->GetRoomId(), ChatRoomInfo);
+	TopicIdToChatRoomInfoCached.Emplace(ChatRoomInfo->GetRoomId(), ChatRoomInfo);
 }
 
 void FOnlineChatAccelByte::RemoveTopic(const FString& TopicId)
@@ -822,6 +822,7 @@ void FOnlineChatAccelByte::AddChatRoomMembers(TArray<FAccelByteUserInfoRef> User
 
 void FOnlineChatAccelByte::AddChatMessage(FUniqueNetIdAccelByteUserRef AccelByteUserId, const FChatRoomId& ChatRoomId, TSharedRef<FChatMessage> ChatMessage)
 {
+	UE_LOG_AB(Verbose, TEXT("Add chat message to userId %s with room ID %s!"), *AccelByteUserId->ToDebugString(), *ChatRoomId);
 	FChatRoomIdToChatMessages& RoomIdToChatMessages = UserIdToChatRoomMessagesCached.FindOrAdd(AccelByteUserId);
 	TArray<TSharedRef<FChatMessage>>& ChatMessages = RoomIdToChatMessages.FindOrAdd(ChatRoomId);
 	ChatMessages.Add(ChatMessage);
@@ -1036,6 +1037,10 @@ void FOnlineChatAccelByte::OnAddToTopicNotification(const FAccelByteModelsChatUp
 	{
 		UE_LOG_AB(Verbose, TEXT("ChatRoomInfo not found by room ID %s!"), *AddTopicEvent.TopicId);
 		// we don't have room data locally
+
+		FAccelByteChatRoomInfoPtr RoomInfo = FAccelByteChatRoomInfo::Create();
+		RoomInfo->SetTopicData(AddTopicEvent);
+		AddTopic(RoomInfo.ToSharedRef());
 
 		const FOnChatQueryRoomByIdComplete OnQueryTopicResponse = FOnChatQueryRoomByIdComplete::CreateThreadSafeSP(SharedThis(this), &FOnlineChatAccelByte::OnQueryChatRoomById_TriggerChatRoomMemberJoin, LocalUserId, SenderUserId);
 		FOnlineAsyncTaskInfo TaskInfo;
@@ -1437,6 +1442,19 @@ bool FAccelByteChatRoomInfo::HasMember(const FString& UserId) const
 const TArray<FString>& FAccelByteChatRoomInfo::GetMembers() const
 {
 	return TopicData.Members;
+}
+
+void FAccelByteChatRoomInfo::SetTopicData(const FAccelByteModelsChatUpdateUserTopicNotif& UserTopicData)
+{
+	FAccelByteModelsChatTopicQueryData ChatTopicData{};
+
+	ChatTopicData.TopicId = UserTopicData.TopicId;
+	ChatTopicData.Name = UserTopicData.Name;
+	ChatTopicData.Type = UserTopicData.Type;
+	ChatTopicData.Members.AddUnique(UserTopicData.SenderId);
+	ChatTopicData.Members.AddUnique(UserTopicData.UserId);
+
+	SetTopicData(ChatTopicData);
 }
 
 void FAccelByteChatRoomInfo::SetTopicData(const FAccelByteModelsChatTopicQueryData& InTopicData)

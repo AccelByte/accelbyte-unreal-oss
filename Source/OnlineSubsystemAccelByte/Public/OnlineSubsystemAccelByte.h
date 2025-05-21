@@ -416,6 +416,9 @@ PACKAGE_SCOPE:
 	void EnqueueTaskToEpic(FOnlineAsyncEpicTaskAccelByte* EpicPtr, FOnlineAsyncTaskAccelByte* TaskPtr, ETypeOfOnlineAsyncTask TaskType);
 	void EnqueueTaskToEpic(FOnlineAsyncTaskAccelByte* TaskPtr, ETypeOfOnlineAsyncTask TaskType);
 
+	/** Need to be passed to AsyncTaskManager that has ability to AsyncTask->Initialize() from main thread */
+	void EnqueueTaskForInitialize(FOnlineAsyncTaskAccelByte* TaskPtr);
+
 #if WITH_DEV_AUTOMATION_TESTS
 	/**
 	 * Add a single exec test to the list of active exec tests that this subsystem instance is managing.
@@ -475,8 +478,6 @@ PACKAGE_SCOPE:
 	bool IsAutoConnectLobby() const;
 
 	bool IsAutoConnectChat() const;
-	
-	bool IsMultipleLocalUsersEnabled() const;
 
 	bool IsLocalUserNumCached() const;
 
@@ -501,7 +502,6 @@ private:
 	 */
 	bool bIsAutoLobbyConnectAfterLoginSuccess = false;
 	bool bIsAutoChatConnectAfterLoginSuccess = false;
-	bool bIsMultipleLocalUsersEnabled = false;
 	bool bNativePlatformTokenRefreshManually = false;
 
 	/***************************************************/

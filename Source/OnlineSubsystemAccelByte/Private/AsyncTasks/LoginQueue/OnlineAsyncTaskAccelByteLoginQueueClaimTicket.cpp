@@ -44,15 +44,15 @@ void FOnlineAsyncTaskAccelByteLoginQueueClaimTicket::Initialize()
 		return;
 	}
 	
-	if (SubsystemPin->IsMultipleLocalUsersEnabled())
+	FApiClientPtr LocalApiClient = SubsystemPin->GetApiClient(LoginUserNum);
+
+	if (!LocalApiClient.IsValid())
 	{
-		SetApiClient(AccelByteInstance->GetApiClient(FString::Printf(TEXT("%d"), LoginUserNum)));
-	}
-	else
-	{
-		SetApiClient(AccelByteInstance->GetApiClient());
+		LocalApiClient = AccelByteInstance->GetApiClient(FString::Printf(TEXT("%d"), LoginUserNum));
 	}
 
+	SetApiClient(LocalApiClient);
+	
 	if (!IsApiClientValid())
 	{
 		AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Unable to claim access token, ApiClient is invalid"));

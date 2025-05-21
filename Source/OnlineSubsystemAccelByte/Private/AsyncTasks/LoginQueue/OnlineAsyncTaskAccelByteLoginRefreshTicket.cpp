@@ -37,14 +37,14 @@ void FOnlineAsyncTaskAccelByteLoginRefreshTicket::Initialize()
 		return;
 	}
 	
-	if (SubsystemPin->IsMultipleLocalUsersEnabled())
+	FApiClientPtr LocalApiClient = SubsystemPin->GetApiClient(LoginUserNum);
+
+	if (!LocalApiClient.IsValid())
 	{
-		SetApiClient(AccelByteInstance->GetApiClient(FString::Printf(TEXT("%d"), LoginUserNum)));
+		LocalApiClient = AccelByteInstance->GetApiClient(FString::Printf(TEXT("%d"), LoginUserNum));
 	}
-	else
-	{
-		SetApiClient(AccelByteInstance->GetApiClient());
-	}
+
+	SetApiClient(LocalApiClient);
 	
 	OnRefreshTicketSuccessHandler = TDelegateUtils<THandler<FAccelByteModelsLoginQueueTicketInfo>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteLoginRefreshTicket::OnRefreshTicketSuccess);
 	OnRefreshTicketErrorHandler = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteLoginRefreshTicket::OnRefreshTicketError);

@@ -6,7 +6,6 @@
 #include "CoreMinimal.h"
 #include "OnlineSubsystemAccelByte.h"
 #include "OnlineBaseAnalyticsInterfaceAccelByte.h"
-
 #include "Models/AccelBytePredefinedEventModels.h"
 #include "OnlineSubsystemAccelBytePackage.h"
 
@@ -81,10 +80,10 @@ public:
 
 		if (!IsRunningDedicatedServer())
 		{
-			const auto ApiClient = AccelByteSubsystemPtr->GetApiClient(LocalUserNum);
+			const AccelByte::FApiClientPtr ApiClient = AccelByteSubsystemPtr->GetApiClient(LocalUserNum);
 			if (ApiClient.IsValid())
 			{
-				const auto PredefinedEvent = ApiClient->GetPredefinedEventApi().Pin();
+				const AccelByte::Api::PredefinedEventPtr PredefinedEvent = ApiClient->GetPredefinedEventApi().Pin();
 				if (PredefinedEvent.IsValid())
 				{
 					PredefinedEvent->SendPredefinedEventData(Payload, AccelByte::FVoidHandler::CreateThreadSafeSP(this, &FOnlinePredefinedEventAccelByte::OnSuccess, LocalUserNum, Payload->GetPreDefinedEventName()), FErrorHandler::CreateThreadSafeSP(this, &FOnlinePredefinedEventAccelByte::OnError, LocalUserNum, Payload->GetPreDefinedEventName()), ClientTimestamp);
@@ -96,7 +95,7 @@ public:
 			const FAccelByteInstancePtr AccelByteInstance = GetAccelByteInstance().Pin();
 			if(AccelByteInstance.IsValid())
 			{
-				const FServerApiClientPtr ServerApiClient = AccelByteInstance->GetServerApiClient();
+				const AccelByte::FServerApiClientPtr ServerApiClient = AccelByteInstance->GetServerApiClient();
 				if (ServerApiClient.IsValid())
 				{
 					ServerApiClient->ServerPredefinedEvent.SendPredefinedEventData(Payload, AccelByte::FVoidHandler::CreateThreadSafeSP(this, &FOnlinePredefinedEventAccelByte::OnSuccess, LocalUserNum, Payload->GetPreDefinedEventName()), FErrorHandler::CreateThreadSafeSP(this, &FOnlinePredefinedEventAccelByte::OnError, LocalUserNum, Payload->GetPreDefinedEventName()), ClientTimestamp);

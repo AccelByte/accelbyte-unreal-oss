@@ -6,6 +6,8 @@
 #include "OnlineSubsystemTypes.h"
 #include "OnlineSubsystemUtils.h"
 
+using namespace AccelByte;
+
 bool FOnlinePredefinedEventAccelByte::GetFromSubsystem(const IOnlineSubsystem* Subsystem, FOnlinePredefinedEventAccelBytePtr& OutInterfaceInstance)
 {
 	const FOnlineSubsystemAccelByte* ABSubsystem = static_cast<const FOnlineSubsystemAccelByte*>(Subsystem);

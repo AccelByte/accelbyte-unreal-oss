@@ -89,7 +89,12 @@ void FOnlineAsyncEpicTaskAccelByte::Tick()
 
 		if (CurrentTask->GetCurrentState() == EAccelByteAsyncTaskState::Uninitialized)
 		{
-			CurrentTask->Initialize();
+			if (!SubsystemPin.IsValid())
+			{
+				continue;
+			}
+			//Send to AsyncTaskManager
+			SubsystemPin->EnqueueTaskForInitialize(CurrentTask);
 		}
 		else if (!bIsTimeout)
 		{
