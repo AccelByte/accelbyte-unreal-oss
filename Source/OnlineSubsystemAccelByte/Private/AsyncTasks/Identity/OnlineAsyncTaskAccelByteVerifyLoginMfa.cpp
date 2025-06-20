@@ -8,6 +8,7 @@
 #include "OnlineSessionInterfaceV2AccelByte.h"
 #include "OnlineUserInterfaceAccelByte.h"
 #include "AsyncTasks/LoginQueue/OnlineAsyncTaskAccelByteLoginQueue.h"
+#include "OnlineSubsystemAccelByteConfig.h"
 
 using namespace AccelByte;
 
@@ -29,8 +30,6 @@ void FOnlineAsyncTaskAccelByteVerifyLoginMfa::Initialize()
 	Super::Initialize();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("LoginUserNum: %d"), LoginUserNum);
-
-	GConfig->GetInt(TEXT("OnlineSubsystemAccelByte"), TEXT("LoginQueuePresentationThreshold"), LoginQueuePresentationThreshold, GEngineIni);
 
 	FAccelByteInstancePtr AccelByteInstance = GetAccelByteInstance().Pin();
 	if(!AccelByteInstance.IsValid())
@@ -158,6 +157,13 @@ void FOnlineAsyncTaskAccelByteVerifyLoginMfa::OnVerifyLoginSuccess(const FAccelB
 		CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState);
 		AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Failed to queue login ticket, Identity interface is invalid!"));
 		return;
+	}
+
+	int64 LoginQueuePresentationThreshold{};
+	FOnlineSubsystemAccelByteConfigPtr Config = SubsystemPin->GetConfig();
+	if (Config.IsValid())
+	{
+		LoginQueuePresentationThreshold = Config->GetLoginQueuePresentationThresholdSeconds().GetValue();
 	}
 
 	// Only trigger login queued delegate if estimated waiting time is above presentation threshold

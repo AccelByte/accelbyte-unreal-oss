@@ -49,6 +49,7 @@
 #include "OnlineSubsystemAccelByteUtils.h"
 #include "Core/AccelByteEntitlementTokenGenerator.h"
 #include "Interfaces/IPluginManager.h"
+#include "OnlineSubsystemAccelByteConfig.h"
 
 #if WITH_DEV_AUTOMATION_TESTS
 #include "ExecTests/ExecTestBase.h"
@@ -61,16 +62,38 @@ using namespace AccelByte;
 
 void FOnlineSubsystemAccelByte::OnPostEngineInit()
 {
-	if(!AccelByteInstance.IsValid())
+	if (!AccelByteInstance.IsValid())
 	{
 		AccelByteInstance = CreateAccelByteInstance();
 	}
 
+	// Check if we have not already initialized the config instance. If so, then we want to do so now that reflected
+	// enums have populated. Additionally, dump the loaded config to the log for ease of debugging.
+	if (!Config->IsInitialized())
+	{
+		Config->Init();
+		Config->Dump();
+	}
+
 	FCoreDelegates::OnPostEngineInit.Remove(OnPostEngineInitDelegate);
+	
+	UE_LOG_AB(Log, TEXT("OnlineSubsystemAccelByte version: %s"), *FAccelByteUtilities::GetPluginVersionOnlineSubsystemAccelByte());
 }
 
 bool FOnlineSubsystemAccelByte::Init()
 {
+	// Create configuration instance, but do not initialize it yet.
+	Config = MakeShared<FOnlineSubsystemAccelByteConfig, ESPMode::ThreadSafe>();
+
+	// Initialize configuration if UObject subsystem is initialized. If not, then the config will init in
+	// OnPostEngineInit. This is to avoid crashes when the using reflected enums in config.
+	if (UObjectInitialized() && !Config->IsInitialized())
+	{
+		// UObject subsystem is ready. Initialize the config and dump values to log for ease of debugging.
+		Config->Init();
+		Config->Dump();
+	}
+
 	// Create each shared instance of our interface implementations, passing in ourselves as the parent
 #if AB_USE_V2_SESSIONS
 	SessionInterface = MakeShared<FOnlineSessionV2AccelByte, ESPMode::ThreadSafe>(this);
@@ -108,7 +131,7 @@ bool FOnlineSubsystemAccelByte::Init()
 	VoiceChatInterface = MakeShared<FAccelByteVoiceChat, ESPMode::ThreadSafe>(this);
 	PredefinedEventInterface = MakeShared<FOnlinePredefinedEventAccelByte, ESPMode::ThreadSafe>(this);
 	GameStandardEventInterface = MakeShared<FOnlineGameStandardEventAccelByte, ESPMode::ThreadSafe>(this);
-	
+
 	// Create an async task manager and a thread for the manager to process tasks on
 	AsyncTaskManager = MakeShared<FOnlineAsyncTaskManagerAccelByte, ESPMode::ThreadSafe>(this);
 	AsyncTaskManagerThread.Reset(FRunnableThread::Create(AsyncTaskManager.Get(), *FString::Printf(TEXT("OnlineAsyncTaskThread %s"), *InstanceName.ToString())));
@@ -122,25 +145,6 @@ bool FOnlineSubsystemAccelByte::Init()
 		IdentityInterface->AddOnConnectLobbyCompleteDelegate_Handle(UserNum
 			, FOnConnectLobbyCompleteDelegate::CreateThreadSafeSP(AsShared(), &FOnlineSubsystemAccelByte::OnLobbyConnectedCallback));
 	}
-
-	FAccelByteUtilities::LoadABConfigFallback(TEXT("OnlineSubsystemAccelByte"), TEXT("bAutoLobbyConnectAfterLoginSuccess"), bIsAutoLobbyConnectAfterLoginSuccess);
-	FAccelByteUtilities::LoadABConfigFallback(TEXT("OnlineSubsystemAccelByte"), TEXT("bAutoChatConnectAfterLoginSuccess"), bIsAutoChatConnectAfterLoginSuccess);
-	FAccelByteUtilities::LoadABConfigFallback(TEXT("OnlineSubsystemAccelByte"), TEXT("bNativePlatformTokenRefreshManually"), bNativePlatformTokenRefreshManually);
-	
-	FString DisplayNameSourceString{};
-	if (!FAccelByteUtilities::LoadABConfigFallback(TEXT("OnlineSubsystemAccelByte"), TEXT("DisplayNameSource"), DisplayNameSourceString))
-	{
-		DisplayNameSourceString = TEXT("default");
-	}
-	SetDisplayNameSource(DisplayNameSourceString);
-	
-	FString NativePlatformNameStr{};
-	FAccelByteUtilities::LoadABConfigFallback(TEXT("OnlineSubsystem"), TEXT("NativePlatformService"), NativePlatformNameStr);
-	NativePlatformName = FName(NativePlatformNameStr);
-
-	FString SecondaryPlatformNameStr{};
-	FAccelByteUtilities::LoadABConfigFallback(TEXT("OnlineSubsystemAccelByte"), TEXT("SecondaryPlatformName"), SecondaryPlatformNameStr);
-	SecondaryPlatformName = FName(SecondaryPlatformNameStr);
 
 	PluginInitializedTime = FDateTime::UtcNow();
 
@@ -278,6 +282,7 @@ bool FOnlineSubsystemAccelByte::Shutdown()
 	PredefinedEventInterface.Reset();
 	GameStandardEventInterface.Reset();
 	IdentityInterface.Reset();
+	Config.Reset();
 
 	if (OnPreExitDelegate.IsValid())
 	{
@@ -441,6 +446,11 @@ FOnlineGameStandardEventAccelBytePtr FOnlineSubsystemAccelByte::GetGameStandardE
 	return GameStandardEventInterface;
 }
 
+FOnlineSubsystemAccelByteConfigPtr FOnlineSubsystemAccelByte::GetConfig() const
+{
+	return Config;
+}
+
 #if (ENGINE_MAJOR_VERSION == 4 && ENGINE_MINOR_VERSION <= 25)
 IOnlineTurnBasedPtr FOnlineSubsystemAccelByte::GetTurnBasedInterface() const
 {
@@ -455,12 +465,22 @@ IOnlineTournamentPtr FOnlineSubsystemAccelByte::GetTournamentInterface() const
 
 bool FOnlineSubsystemAccelByte::IsAutoConnectLobby() const
 {
-	return bIsAutoLobbyConnectAfterLoginSuccess;
+	if (!Config.IsValid())
+	{
+		return false;
+	}
+
+	return Config->GetAutoConnectLobbyAfterLoginSuccess().GetValue();
 }
 
 bool FOnlineSubsystemAccelByte::IsAutoConnectChat() const
 {
-	return bIsAutoChatConnectAfterLoginSuccess;
+	if (!Config.IsValid())
+	{
+		return false;
+	}
+
+	return Config->GetAutoConnectChatAfterLoginSuccess().GetValue();
 }
 
 bool FOnlineSubsystemAccelByte::IsLocalUserNumCached() const
@@ -555,22 +575,22 @@ bool FOnlineSubsystemAccelByte::IsNativeSubsystemSupported(const FName& NativeSu
 	return LoginType != EAccelByteLoginType::None;
 }
 
-FString FOnlineSubsystemAccelByte::GetNativePlatformNameString()
+FString FOnlineSubsystemAccelByte::GetNativePlatformNameString() const
 {
 	return GetNativePlatformName().ToString();
 }
 
-FName FOnlineSubsystemAccelByte::GetNativePlatformName()
+FName FOnlineSubsystemAccelByte::GetNativePlatformName() const
 {
-	if (!NativePlatformSubsystemNameOverride.IsNone())
+	if (!Config.IsValid())
 	{
-		return NativePlatformSubsystemNameOverride;
+		return {};
 	}
 
-	return NativePlatformName;
+	return Config->GetNativePlatformName().GetValue();
 }
 
-FString FOnlineSubsystemAccelByte::GetNativeAppId()
+FString FOnlineSubsystemAccelByte::GetNativeAppId() const
 {
 	IOnlineSubsystem* NativeSubsystem = GetNativePlatformSubsystem();
 	if (NativeSubsystem == nullptr)
@@ -643,7 +663,7 @@ void FOnlineSubsystemAccelByte::CreateAndDispatchAsyncTaskImplementation(FOnline
 	}
 }
 
-bool FOnlineSubsystemAccelByte::IsUpcomingEpicAlreadySet()
+bool FOnlineSubsystemAccelByte::IsUpcomingEpicAlreadySet() const
 {
 	return EpicForUpcomingTask != nullptr;
 }
@@ -668,13 +688,13 @@ void FOnlineSubsystemAccelByte::ResetParentTaskHasBeenSet()
 	ParentTaskForUpcomingTask = nullptr;
 }
 
-bool FOnlineSubsystemAccelByte::GetAccelBytePlatformTypeFromAuthType(const FString& InAuthType, EAccelBytePlatformType& Result)
+bool FOnlineSubsystemAccelByte::GetAccelBytePlatformTypeFromAuthType(const FString& InAuthType, EAccelBytePlatformType& Result) const
 {
 	Result = FOnlineSubsystemAccelByteUtils::GetAccelBytePlatformTypeFromAuthType(InAuthType);
 	return Result != EAccelBytePlatformType::None;
 }
 
-FString FOnlineSubsystemAccelByte::GetAccelBytePlatformStringFromAuthType(const FString& InAuthType)
+FString FOnlineSubsystemAccelByte::GetAccelBytePlatformStringFromAuthType(const FString& InAuthType) const
 {
 	EAccelBytePlatformType PlatformType = FOnlineSubsystemAccelByteUtils::GetAccelBytePlatformTypeFromAuthType(InAuthType);
 
@@ -686,7 +706,7 @@ FString FOnlineSubsystemAccelByte::GetAccelBytePlatformStringFromAuthType(const 
 	return FAccelByteUtilities::GetPlatformString(PlatformType);
 }
 
-FString FOnlineSubsystemAccelByte::GetNativeSubsystemNameFromAccelBytePlatformString(const FString& InAccelBytePlatform)
+FString FOnlineSubsystemAccelByte::GetNativeSubsystemNameFromAccelBytePlatformString(const FString& InAccelBytePlatform) const
 {
 	if (InAccelBytePlatform.Equals(TEXT("steam"), ESearchCase::IgnoreCase))
 	{
@@ -724,7 +744,7 @@ FString FOnlineSubsystemAccelByte::GetNativeSubsystemNameFromAccelBytePlatformSt
 	return TEXT("");
 }
 
-FString FOnlineSubsystemAccelByte::GetNativePlatformTypeAsString()
+FString FOnlineSubsystemAccelByte::GetNativePlatformTypeAsString() const
 {
 	IOnlineSubsystem* NativeSubsystem = GetNativePlatformSubsystem();
 	if (NativeSubsystem == nullptr)
@@ -735,12 +755,12 @@ FString FOnlineSubsystemAccelByte::GetNativePlatformTypeAsString()
 	return GetAccelBytePlatformStringFromAuthType(GetNativePlatformNameString());
 }
 
-FString FOnlineSubsystemAccelByte::GetSimplifiedNativePlatformName()
+FString FOnlineSubsystemAccelByte::GetSimplifiedNativePlatformName() const
 {
 	return GetSimplifiedNativePlatformName(GetNativePlatformNameString());
 }
 
-FString FOnlineSubsystemAccelByte::GetSimplifiedNativePlatformName(const FString& PlatformName)
+FString FOnlineSubsystemAccelByte::GetSimplifiedNativePlatformName(const FString& PlatformName) const
 {
 	if (PlatformName.Equals(TEXT("gdk"), ESearchCase::IgnoreCase) 
 		|| PlatformName.Equals(TEXT("live"), ESearchCase::IgnoreCase))
@@ -808,12 +828,12 @@ void FOnlineSubsystemAccelByte::OnLoginCallback(int32 LocalUserNum, bool bWasSuc
 		}
 	}
 
-	if (bIsAutoLobbyConnectAfterLoginSuccess && IdentityInterface.IsValid())
+	if (IsAutoConnectLobby() && IdentityInterface.IsValid())
 	{
 		IdentityInterface->ConnectAccelByteLobby(LocalUserNum);
 	}
 
-	if (bIsAutoChatConnectAfterLoginSuccess && ChatInterface.IsValid())
+	if (IsAutoConnectChat() && ChatInterface.IsValid())
 	{
 		ChatInterface->Connect(LocalUserNum);
 	}
@@ -1133,7 +1153,7 @@ FAccelByteInstanceWPtr FOnlineSubsystemAccelByte::GetAccelByteInstance() const
 	return nullptr;
 }
 
-FString FOnlineSubsystemAccelByte::GetLanguage()
+FString FOnlineSubsystemAccelByte::GetLanguage() const
 {
 	return Language;
 }
@@ -1229,10 +1249,8 @@ void FOnlineSubsystemAccelByte::EnqueueTaskForInitialize(FOnlineAsyncTaskAccelBy
 	AsyncTaskManager->EnqueueTaskForInitialize(UpcastTask);
 }
 
-void FOnlineSubsystemAccelByte::SetNativePlatformTokenRefreshScheduler(int32 LocalUserNum, bool bEnableScheduler)
+void FOnlineSubsystemAccelByte::SetNativePlatformTokenRefreshScheduler(int32 LocalUserNum)
 {
-	bNativePlatformTokenRefreshManually = !bEnableScheduler;
-
 	//No matter what, either enable or disable scheduler
 	//We still need to remove delegate
 	auto ApiClient = GetApiClient(LocalUserNum);
@@ -1248,7 +1266,13 @@ void FOnlineSubsystemAccelByte::SetNativePlatformTokenRefreshScheduler(int32 Loc
 		NativeTokenRefreshHandles.Remove(LocalUserNum);
 	}
 
-	if (!bEnableScheduler)
+	if (!Config.IsValid())
+	{
+		UE_LOG_AB(Warning, TEXT("Config is not valid."));
+		return;
+	}
+
+	if (!Config->GetEnableManualNativePlatformTokenRefresh().GetValue())
 	{
 		UE_LOG_AB(Warning, TEXT("Refresh Native Platform Token Scheduler is disabled."));
 		return;
@@ -1273,8 +1297,8 @@ void FOnlineSubsystemAccelByte::SetNativePlatformTokenRefreshScheduler(int32 Loc
 		//Special handling since it can't do multiple AutoLogin()
 		//Scheduler to automatically detect whether a refresh occur or not
 		float InitialQuickCheckMs = 10000.f;
-		int EosRefreshOccurrenceTrackerIntervalMs = 60 * 1000; //1 minute
-		FAccelByteUtilities::GetValueFromCommandLineSwitch(TEXT("EosRefreshOccurrenceTrackerIntervalMs"), EosRefreshOccurrenceTrackerIntervalMs);
+		int32 EosRefreshOccurrenceTrackerIntervalMs = Config->GetEOSRefreshIntervalMilliseconds().GetValue();
+
 		EOSRefreshTrackerDelegate = FTimerDelegate::CreateLambda([this, LocalUserNum, EosRefreshOccurrenceTrackerIntervalMs]()
 			{
 				if (this == nullptr)
@@ -1381,16 +1405,14 @@ void FOnlineSubsystemAccelByte::NativePlatformTokenRefreshScheduler(int32 LocalU
 		NativeTokenRefreshHandles.Remove(LocalUserNum);
 	}
 
-	//Check the configuration again if there's a change in the runtime
-	GConfig->GetBool(TEXT("OnlineSubsystemAccelByte"), TEXT("bNativePlatformTokenRefreshManually"), bNativePlatformTokenRefreshManually, GEngineIni);
-
-	if (bNativePlatformTokenRefreshManually)
+	// Check the configuration again if there's a change at runtime
+	if (!Config->GetEnableManualNativePlatformTokenRefresh().GetValue())
 	{
 		UE_LOG_AB(Log, TEXT("Native Platform Token is NOT automatically refreshed. Please handle it manually by using AccelByte's IdentityInterface->RefreshPlatformToken() ."));
 		return;
 	}
 
-	SetNativePlatformTokenRefreshScheduler(LocalUserNum, true);
+	SetNativePlatformTokenRefreshScheduler(LocalUserNum);
 
 	UE_LOG_AB(Log, TEXT("Successfully set scheduler to refresh the Native Platform Token. "));
 }
@@ -1420,42 +1442,42 @@ void FOnlineSubsystemAccelByte::OnPresenceChanged(EAccelBytePlatformType Platfor
 
 FName FOnlineSubsystemAccelByte::GetSecondaryPlatformSubsystemName() const
 {
-	if (!SecondaryPlatformSubsystemNameOverride.IsNone())
+	if (!Config.IsValid())
 	{
-		return SecondaryPlatformSubsystemNameOverride;
+		return {};
 	}
 
-	return SecondaryPlatformName;
+	return Config->GetSecondaryPlatformName().GetValue();
 }
 
 void FOnlineSubsystemAccelByte::SetNativePlatformSubsystemNameOverride(FName InOverrideName)
 {
-	NativePlatformSubsystemNameOverride = InOverrideName;
+	if (!Config.IsValid())
+	{
+		return;
+	}
+
+	Config->GetNativePlatformName().SetValue(InOverrideName);
 }
 
 void FOnlineSubsystemAccelByte::SetSecondaryPlatformSubsystemNameOverride(FName InOverrideName)
 {
-	SecondaryPlatformSubsystemNameOverride = InOverrideName;
+	if (!Config.IsValid())
+	{
+		return;
+	}
+
+	Config->GetSecondaryPlatformName().SetValue(InOverrideName);
 }
 
 IOnlineSubsystem* FOnlineSubsystemAccelByte::GetNativePlatformSubsystem() const
 {
-	if (!NativePlatformSubsystemNameOverride.IsNone())
-	{
-		return IOnlineSubsystem::Get(NativePlatformSubsystemNameOverride);
-	}
-
-	return IOnlineSubsystem::Get(NativePlatformName);
+	return IOnlineSubsystem::Get(GetNativePlatformName());
 }
 
 IOnlineSubsystem* FOnlineSubsystemAccelByte::GetSecondaryPlatformSubsystem() const
 {
-	if (!SecondaryPlatformSubsystemNameOverride.IsNone())
-	{
-		return IOnlineSubsystem::Get(SecondaryPlatformSubsystemNameOverride);
-	}
-
-	return IOnlineSubsystem::Get(SecondaryPlatformName);
+	return IOnlineSubsystem::Get(GetSecondaryPlatformSubsystemName());
 }
 
 TOptional<IWebsocketConfigurableReconnectStrategy*> FOnlineSubsystemAccelByte::TryConfigureWebsocketConnection(int32 LocalUserNum, EConfigurableWebsocketServiceType Type)
@@ -1521,38 +1543,17 @@ FAccelByteInstancePtr FOnlineSubsystemAccelByte::CreateAccelByteInstance() const
 
 EAccelBytePlatformType FOnlineSubsystemAccelByte::GetDisplayNameSource() const
 {
-	return DisplayNameSource;
+	if (!Config.IsValid())
+	{
+		return EAccelBytePlatformType::None;
+	}
+
+	return Config->GetDisplayNameSource().GetValue();
 }
 
 bool FOnlineSubsystemAccelByte::SetDisplayNameSource(const FString& InDisplayNameSource)
 {
-	if (InDisplayNameSource.Equals(TEXT("default"), ESearchCase::IgnoreCase))
-	{
-		DisplayNameSource = EAccelBytePlatformType::None;
-		return true;
-	}
-
-	if (InDisplayNameSource.Equals(TEXT("native"), ESearchCase::IgnoreCase))
-	{
-		const EAccelBytePlatformType PlatformType = FAccelByteUtilities::GetUEnumValueFromString<EAccelBytePlatformType>(GetNativePlatformNameString());
-		if (PlatformType == EAccelBytePlatformType::None)
-		{
-			UE_LOG_AB(Warning, TEXT("Unable to get platform type for native platform name: %s"), *GetNativePlatformNameString());
-			return false;
-		}
-		
-		DisplayNameSource = PlatformType;
-		return true;
-	}
-
-	const EAccelBytePlatformType PlatformType = FAccelByteUtilities::GetUEnumValueFromString<EAccelBytePlatformType>(InDisplayNameSource);
-	if (PlatformType == EAccelBytePlatformType::None)
-	{
-		UE_LOG_AB(Warning, TEXT("Unable to find platform type used for display name source: %s"), *InDisplayNameSource);
-		return false;
-	}
-
-	DisplayNameSource = PlatformType;
+	Config->GetDisplayNameSource().SetValueFromString(InDisplayNameSource);
 	return true;
 }
 

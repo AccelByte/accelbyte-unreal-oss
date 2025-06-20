@@ -45,12 +45,6 @@ private:
 	/** Error code produced if request errors out */
 	FString ErrorCode;
 
-	/** Set from DefaultEngine.ini, will only notify in queue if estimated time is above presentation threshold */
-	int32 PresentationThreshold;
-
-	/** Flag from DefaultEngine.ini that allows users to manually claim the ticket. Default value is false. */
-	bool bManualClaimLoginQueueTicket = false;
-	
 	THandler<FAccelByteModelsLoginQueueTicketInfo> OnPollTicketRefreshedHandler;
 	THandler<FOnlineErrorAccelByte> OnPollStoppedHandler;
 

@@ -79,11 +79,11 @@
 #include "AsyncTasks/SessionV2/OnlineAsyncTaskAccelByteUpdateLeaderSessionV2Storage.h"
 #include "AsyncTasks/SessionV2/OnlineAsyncTaskAccelByteUpdateMemberSessionV2Storage.h"
 #include "AsyncTasks/SessionV2/OnlineTaskAccelByteRevokeV2GameCode.h"
-#include "AsyncTasks/SessionV2/OnlineAsyncTaskAccelByteQueryGameSessionHistories.h"
 #include "AsyncTasks/SessionV2/OnlineAsyncTaskAccelByteKickV2GameSession.h"
 #include "AsyncTasks/Server/OnlineAsyncTaskAccelByteServerKickV2GameSession.h"
 #include "AsyncTasks/SessionV2/OnlineAsyncTaskAccelByteRefreshV2ActiveSessions.h"
 #include "AsyncTasks/SessionV2/OnlineAsyncTaskAccelByteRefreshActiveSessions.h"
+#include "OnlineSubsystemAccelByteConfig.h"
 
 using namespace AccelByte;
 
@@ -654,46 +654,6 @@ TCHAR const* FOnlineSessionV2AccelByte::ServerSessionIdEnvironmentVariable = TEX
 FOnlineSessionV2AccelByte::FOnlineSessionV2AccelByte(FOnlineSubsystemAccelByte* InSubsystem)
 	: AccelByteSubsystem(InSubsystem->AsShared())
 {
-	// Get matchmaking check poll configs from DefaultEngine.ini
-	bool bConfigMatchmakingDetailCheckEnabled {false};
-	const bool bConfigMatchmakingDetailCheckEnabledExist = FAccelByteUtilities::LoadABConfigFallback(TEXT("OnlineSubsystemAccelByte"), TEXT("bEnableMatchTicketCheck"), bConfigMatchmakingDetailCheckEnabled);
-	SetMatchTicketCheckEnabled(bConfigMatchmakingDetailCheckEnabledExist ? bConfigMatchmakingDetailCheckEnabled : bMatchmakingDetailCheckEnabled);
-
-	int32 ConfigMatchTicketCheckInitialDelay {};
-	const bool bConfigMatchTicketCheckInitialDelayExist = FAccelByteUtilities::LoadABConfigFallback(TEXT("OnlineSubsystemAccelByte"), TEXT("MatchTicketCheckInitialDelay"), ConfigMatchTicketCheckInitialDelay);
-	SetMatchTicketCheckInitialDelay(bConfigMatchTicketCheckInitialDelayExist ? ConfigMatchTicketCheckInitialDelay : MatchTicketCheckInitialDelay);
-
-	int32 ConfigMatchTicketCheckPollInterval {};
-	const bool bConfigMatchTicketCheckIntervalExist = FAccelByteUtilities::LoadABConfigFallback(TEXT("OnlineSubsystemAccelByte"), TEXT("MatchTicketCheckPollInterval"), ConfigMatchTicketCheckPollInterval);
-	SetMatchTicketCheckPollInterval(bConfigMatchTicketCheckIntervalExist ? ConfigMatchTicketCheckPollInterval :  MatchTicketCheckPollInterval);
-
-	
-	// Get session server check poll configs from DefaultEngine.ini
-	bool bConfigSessionServerCheckPollEnabled {false};
-	const bool bConfigSessionServerCheckPollEnabledExist = FAccelByteUtilities::LoadABConfigFallback(TEXT("OnlineSubsystemAccelByte"), TEXT("bEnableSessionServerCheckPolling"), bConfigSessionServerCheckPollEnabled);
-	SetSessionServerCheckPollEnabled(bConfigSessionServerCheckPollEnabledExist ? bConfigSessionServerCheckPollEnabled : bSessionServerCheckPollEnabled);
-
-	int32 ConfigSessionServerCheckPollInitialDelay {};
-	const bool bConfigSessionServerCheckPollInitialDelayExist = FAccelByteUtilities::LoadABConfigFallback(TEXT("OnlineSubsystemAccelByte"), TEXT("SessionServerCheckPollInitialDelay"), ConfigSessionServerCheckPollInitialDelay);
-	SetSessionServerCheckPollInitialDelay(bConfigSessionServerCheckPollInitialDelayExist ? ConfigSessionServerCheckPollInitialDelay : SessionServerCheckPollInitialDelay);
-
-	int32 ConfigSessionServerCheckPollInterval {};
-	const bool bConfigSessionServerCheckPollIIntervalExist = FAccelByteUtilities::LoadABConfigFallback(TEXT("OnlineSubsystemAccelByte"), TEXT("SessionServerCheckPollInterval"), ConfigSessionServerCheckPollInterval);
-	SetSessionServerCheckPollInterval(bConfigSessionServerCheckPollIIntervalExist ? ConfigSessionServerCheckPollInterval : SessionServerCheckPollInterval);
-
-	
-	// Get session invite check poll configs from DefaultEngine.ini
-	bool bConfigSessionInviteCheckPollEnabled {false};
-	const bool bConfigSessionInviteCheckPollEnabledExist = FAccelByteUtilities::LoadABConfigFallback(TEXT("OnlineSubsystemAccelByte"), TEXT("bEnableSessionInviteCheckPolling"), bConfigSessionInviteCheckPollEnabled);
-	SetSessionInviteCheckPollEnabled(bConfigSessionInviteCheckPollEnabledExist ? bConfigSessionInviteCheckPollEnabled : bSessionInviteCheckPollEnabled);
-
-	int32 ConfigSessionInviteCheckPollInitialDelay {};
-	const bool bConfigSessionInviteCheckPollInitialDelayExist = FAccelByteUtilities::LoadABConfigFallback(TEXT("OnlineSubsystemAccelByte"), TEXT("SessionInviteCheckPollInitialDelay"), ConfigSessionInviteCheckPollInitialDelay);
-	SetSessionInviteCheckPollInitialDelay(bConfigSessionInviteCheckPollInitialDelayExist ? ConfigSessionInviteCheckPollInitialDelay : SessionInviteCheckPollInitialDelay);
-
-	int32 ConfigSessionInviteCheckPollInterval {};
-	const bool bConfigSessionInviteCheckPollIntervalExist = FAccelByteUtilities::LoadABConfigFallback(TEXT("OnlineSubsystemAccelByte"), TEXT("SessionInviteCheckPollInterval"), ConfigSessionInviteCheckPollInterval);
-	SetSessionInviteCheckPollInterval(bConfigSessionInviteCheckPollIntervalExist ? ConfigSessionInviteCheckPollInterval : SessionInviteCheckPollInterval);
 }
 
 FOnlineSessionV2AccelByte::~FOnlineSessionV2AccelByte()
@@ -751,12 +711,6 @@ bool FOnlineSessionV2AccelByte::GetFromWorld(const UWorld* World, FOnlineSession
 
 void FOnlineSessionV2AccelByte::Init()
 {
-	if (FAccelByteUtilities::LoadABConfigFallback(TEXT("OnlineSubsystemAccelByte"), TEXT("bManualRegisterServer"), bManualRegisterServer) == false)
-	{
-		// If the configuration field not found
-		bManualRegisterServer = false;
-	}
-
 	if (IsRunningDedicatedServer())
 	{
 		const FOnServerReceivedSessionDelegate OnServerReceivedSessionDelegate = FOnServerReceivedSessionDelegate::CreateThreadSafeSP(SharedThis(this), &FOnlineSessionV2AccelByte::OnServerReceivedSessionComplete_Internal);
@@ -767,7 +721,6 @@ void FOnlineSessionV2AccelByte::Init()
 
 	OnSessionServerCheckGetSessionDelegate = FOnSingleSessionResultCompleteDelegate::CreateThreadSafeSP(AsShared(), &FOnlineSessionV2AccelByte::OnSessionServerCheckGetSession);
 	OnSessionInviteCheckGetSessionDelegate = FOnSingleSessionResultCompleteDelegate::CreateThreadSafeSP(AsShared(), &FOnlineSessionV2AccelByte::OnSessionInviteCheckGetSession);
-
 }
 
 void FOnlineSessionV2AccelByte::UpdateSessionEntries()
@@ -1103,14 +1056,36 @@ void FOnlineSessionV2AccelByte::FinalizeStartMatchmakingComplete()
 
 void FOnlineSessionV2AccelByte::StartMatchTicketCheckPoll()
 {
-	NextMatchmakingDetailPollTime = FDateTime::UtcNow() + FTimespan::FromSeconds(MatchTicketCheckInitialDelay);
+	int64 InitialDelaySeconds { 30 };
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (AccelByteSubsystemPtr.IsValid())
+	{
+		FOnlineSubsystemAccelByteConfigPtr Config = AccelByteSubsystemPtr->GetConfig();
+		if (Config.IsValid())
+		{
+			InitialDelaySeconds = Config->GetMatchTicketPollStartDelaySeconds().GetValue();
+		}
+	}
+
+	NextMatchmakingDetailPollTime = FDateTime::UtcNow() + FTimespan::FromSeconds(InitialDelaySeconds);
 
 	UE_LOG_AB(VeryVerbose, TEXT("Start match ticket check poll, current time %s, next poll time %s"), *FDateTime::UtcNow().ToString(), *NextMatchmakingDetailPollTime.ToString());
 }
 
 void FOnlineSessionV2AccelByte::SetMatchTicketCheckPollToNextPollTime()
 {
-	NextMatchmakingDetailPollTime = FDateTime::UtcNow() + FTimespan::FromSeconds(MatchTicketCheckPollInterval);
+	int64 IntervalSeconds { 15 };
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (AccelByteSubsystemPtr.IsValid())
+	{
+		FOnlineSubsystemAccelByteConfigPtr Config = AccelByteSubsystemPtr->GetConfig();
+		if (Config.IsValid())
+		{
+			IntervalSeconds = Config->GetMatchTicketPollIntervalSeconds().GetValue();
+		}
+	}
+
+	NextMatchmakingDetailPollTime = FDateTime::UtcNow() + FTimespan::FromSeconds(IntervalSeconds);
 	UE_LOG_AB(VeryVerbose, TEXT("Set match ticket check next poll, current time %s, next poll time %s"), *FDateTime::UtcNow().ToString(), *NextMatchmakingDetailPollTime.ToString());
 }
 
@@ -1173,21 +1148,28 @@ void FOnlineSessionV2AccelByte::CheckMatchmakingProgress()
 		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("AccelByte system is invalid, skip checking matchmaking progress"));
 		return;
 	}
+
+	FOnlineSubsystemAccelByteConfigPtr Config = AccelByteSubsystemPtr->GetConfig();
+	if (!Config.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("AccelByte config is invalid, skip checking matchmaking progress"));
+		return;
+	}
 	
 	// matchmaking check is disabled, early exit
-	if(!bMatchmakingDetailCheckEnabled)
+	if (!Config->GetEnableMatchTicketPolling().GetValue())
 	{
 		return;
 	}
 	
 	// We are currently not matchmaking, early exit
-	if(!CurrentMatchmakingSearchHandle.IsValid())
+	if (!CurrentMatchmakingSearchHandle.IsValid())
 	{
 		return;
 	}
 
 	// Not the time to trigger match detail polling, early exit
-	if(FDateTime::UtcNow() < NextMatchmakingDetailPollTime || NextMatchmakingDetailPollTime == FDateTime(0))
+	if (FDateTime::UtcNow() < NextMatchmakingDetailPollTime || NextMatchmakingDetailPollTime == FDateTime(0))
 	{
 		return;
 	}
@@ -1240,15 +1222,28 @@ void FOnlineSessionV2AccelByte::SendSessionInviteNotif(int32 LocalUserNum, const
 void FOnlineSessionV2AccelByte::StartSessionInviteCheckPoll(const FUniqueNetIdPtr& SearchingPlayerId,
 	const FString& SessionId)
 {
-	FScopeLock ScopeLock(&SessionInviteCheckTimesLock);
+	int64 InitialDelaySeconds{30};
 
-	FSessionInviteCheckPollItem PollItem;
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (AccelByteSubsystemPtr.IsValid())
+	{
+		FOnlineSubsystemAccelByteConfigPtr Config = AccelByteSubsystemPtr->GetConfig();
+		if (Config.IsValid())
+		{
+			InitialDelaySeconds = Config->GetSessionInvitePollStartDelaySeconds().GetValue();
+		}
+	}
+
+	FSessionInviteCheckPollItem PollItem{};
 	PollItem.SessionId = SessionId;
 	PollItem.SearchingPlayerId = SearchingPlayerId;
-	PollItem.NextPollTime = FDateTime::UtcNow()+ FTimespan::FromSeconds(SessionInviteCheckPollInitialDelay);
+	PollItem.NextPollTime = FDateTime::UtcNow()+ FTimespan::FromSeconds(InitialDelaySeconds);
 	
-	SessionInviteCheckPollTimes.Emplace(PollItem);
-	
+	{
+		FScopeLock ScopeLock(&SessionInviteCheckTimesLock);
+		SessionInviteCheckPollTimes.Emplace(PollItem);
+	}
+
 	UE_LOG_AB(VeryVerbose, TEXT("Start session invite check poll for session id %s, user %s, current time %s, next poll time %s"),
 		*SessionId, *SearchingPlayerId->ToDebugString(), *FDateTime::UtcNow().ToString(), *PollItem.NextPollTime.ToString())
 }
@@ -1256,14 +1251,27 @@ void FOnlineSessionV2AccelByte::StartSessionInviteCheckPoll(const FUniqueNetIdPt
 void FOnlineSessionV2AccelByte::SetSessionInviteCheckPollNextPollTime(const FUniqueNetIdPtr& SearchingPlayerId,
 	const FString& SessionId)
 {
-	FScopeLock ScopeLock(&SessionInviteCheckTimesLock);
+	int64 IntervalSeconds{15};
 
-	FSessionInviteCheckPollItem PollItem;
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (AccelByteSubsystemPtr.IsValid())
+	{
+		FOnlineSubsystemAccelByteConfigPtr Config = AccelByteSubsystemPtr->GetConfig();
+		if (Config.IsValid())
+		{
+			IntervalSeconds = Config->GetSessionInvitePollIntervalSeconds().GetValue();
+		}
+	}
+
+	FSessionInviteCheckPollItem PollItem{};
 	PollItem.SessionId = SessionId;
 	PollItem.SearchingPlayerId = SearchingPlayerId;
-	PollItem.NextPollTime = FDateTime::UtcNow()+ FTimespan::FromSeconds(SessionInviteCheckPollInterval);
+	PollItem.NextPollTime = FDateTime::UtcNow()+ FTimespan::FromSeconds(IntervalSeconds);
 	
-	SessionInviteCheckPollTimes.Emplace(PollItem);
+	{
+		FScopeLock ScopeLock(&SessionInviteCheckTimesLock);
+		SessionInviteCheckPollTimes.Emplace(PollItem);
+	}
 
 	UE_LOG_AB(VeryVerbose, TEXT("Set session invite check poll for session id %s, user %s, current time %s, next poll time %s"),
 		*SessionId, *SearchingPlayerId->ToDebugString(), *FDateTime::UtcNow().ToString(), *PollItem.NextPollTime.ToString())
@@ -1356,14 +1364,27 @@ void FOnlineSessionV2AccelByte::OnSessionInviteCheckGetSession(int32 LocalUserNu
 
 void FOnlineSessionV2AccelByte::StartSessionServerCheckPoll(const FUniqueNetIdPtr& SearchingPlayerId, const FName SessionName)
 {
-	FScopeLock ScopeLock(&SessionServerCheckTimesLock);
+	int64 InitialDelaySeconds{30};
 
-	FSessionServerCheckPollItem PollItem;
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (AccelByteSubsystemPtr.IsValid())
+	{
+		FOnlineSubsystemAccelByteConfigPtr Config = AccelByteSubsystemPtr->GetConfig();
+		if (Config.IsValid())
+		{
+			InitialDelaySeconds = Config->GetServerInfoPollStartDelaySeconds().GetValue();
+		}
+	}
+
+	FSessionServerCheckPollItem PollItem{};
 	PollItem.SessionName = SessionName;
 	PollItem.SearchingPlayerId = SearchingPlayerId;
-	PollItem.NextPollTime = FDateTime::UtcNow()+ FTimespan::FromSeconds(SessionServerCheckPollInitialDelay);
+	PollItem.NextPollTime = FDateTime::UtcNow()+ FTimespan::FromSeconds(InitialDelaySeconds);
 	
-	SessionServerCheckPollTimes.Emplace(PollItem);
+	{
+		FScopeLock ScopeLock(&SessionServerCheckTimesLock);
+		SessionServerCheckPollTimes.Emplace(PollItem);
+	}
 	
 	UE_LOG_AB(VeryVerbose, TEXT("Start session server check poll for session name %s, user %s, current time %s, next poll time %s"),
 		*SessionName.ToString(), *SearchingPlayerId->ToDebugString(), *FDateTime::UtcNow().ToString(), *PollItem.NextPollTime.ToString())
@@ -1371,14 +1392,27 @@ void FOnlineSessionV2AccelByte::StartSessionServerCheckPoll(const FUniqueNetIdPt
 
 void FOnlineSessionV2AccelByte::SetSessionServerCheckPollNextPollTime(const FUniqueNetIdPtr& SearchingPlayerId, const FName SessionName)
 {
-	FScopeLock ScopeLock(&SessionServerCheckTimesLock);
+	int64 IntervalSeconds{15};
 
-	FSessionServerCheckPollItem PollItem;
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (AccelByteSubsystemPtr.IsValid())
+	{
+		FOnlineSubsystemAccelByteConfigPtr Config = AccelByteSubsystemPtr->GetConfig();
+		if (Config.IsValid())
+		{
+			IntervalSeconds = Config->GetServerInfoPollIntervalSeconds().GetValue();
+		}
+	}
+
+	FSessionServerCheckPollItem PollItem{};
 	PollItem.SessionName = SessionName;
 	PollItem.SearchingPlayerId = SearchingPlayerId;
-	PollItem.NextPollTime = FDateTime::UtcNow()+ FTimespan::FromSeconds(SessionServerCheckPollInterval);
+	PollItem.NextPollTime = FDateTime::UtcNow()+ FTimespan::FromSeconds(IntervalSeconds);
 	
-	SessionServerCheckPollTimes.Emplace(PollItem);
+	{
+		FScopeLock ScopeLock(&SessionServerCheckTimesLock);
+		SessionServerCheckPollTimes.Emplace(PollItem);
+	}
 
 	UE_LOG_AB(VeryVerbose, TEXT("Set session server check poll for session name %s, user %s, current time %s, next poll time %s"),
 		*SessionName.ToString(), *SearchingPlayerId->ToDebugString(), *FDateTime::UtcNow().ToString(), *PollItem.NextPollTime.ToString())
@@ -1477,15 +1511,22 @@ void FOnlineSessionV2AccelByte::OnSessionServerCheckGetSession(int LocalUserNum,
 
 void FOnlineSessionV2AccelByte::CheckSessionServerProgress()
 {
-	if(!bSessionServerCheckPollEnabled)
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
 	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(VeryVerbose, TEXT("Failed to send session server as our AccelByte subsystem is invalid"));
 		return;
 	}
 
-	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
-	if(!AccelByteSubsystemPtr.IsValid())
+	FOnlineSubsystemAccelByteConfigPtr Config = AccelByteSubsystemPtr->GetConfig();
+	if (!Config.IsValid())
 	{
-		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(VeryVerbose, TEXT("Failed to send session server as our AccelByte subsystem is invalid"));
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(VeryVerbose, TEXT("Failed to send session server as our AccelByte config is invalid"));
+		return;
+	}
+
+	if (!Config->GetEnableServerInfoPolling().GetValue())
+	{
 		return;
 	}
 
@@ -1525,15 +1566,22 @@ void FOnlineSessionV2AccelByte::CheckSessionServerProgress()
 
 void FOnlineSessionV2AccelByte::CheckSessionInviteAfterMatchFound()
 {
-	if(!bSessionInviteCheckPollEnabled)
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
 	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(VeryVerbose, TEXT("Failed to check session invite as our AccelByte subsystem is invalid"));
 		return;
 	}
 
-	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
-	if(!AccelByteSubsystemPtr.IsValid())
+	FOnlineSubsystemAccelByteConfigPtr Config = AccelByteSubsystemPtr->GetConfig();
+	if (!Config.IsValid())
 	{
-		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(VeryVerbose, TEXT("Failed to send session invite as our AccelByte subsystem is invalid"));
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(VeryVerbose, TEXT("Failed to check session invite as our AccelByte config is invalid"));
+		return;
+	}
+
+	if (!Config->GetEnableSessionInvitePolling().GetValue())
+	{
 		return;
 	}
 
@@ -4415,124 +4463,326 @@ bool FOnlineSessionV2AccelByte::CancelSessionInvite(const FUniqueNetId& LocalUse
 
 void FOnlineSessionV2AccelByte::SetMatchTicketCheckEnabled(const bool Enabled)
 {
-	bMatchmakingDetailCheckEnabled = Enabled;
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		return;
+	}
+
+	FOnlineSubsystemAccelByteConfigPtr Config = AccelByteSubsystemPtr->GetConfig();
+	if (!Config.IsValid())
+	{
+		return;
+	}
+
+	Config->GetEnableMatchTicketPolling().SetValue(Enabled);
 }
 
 bool FOnlineSessionV2AccelByte::GetMatchTicketCheckEnabled() const
 {
-	return bMatchmakingDetailCheckEnabled;
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		// Returning true as that is the default
+		return true;
+	}
+
+	FOnlineSubsystemAccelByteConfigPtr Config = AccelByteSubsystemPtr->GetConfig();
+	if (!Config.IsValid())
+	{
+		// Returning true as that is the default
+		return true;
+	}
+
+	return Config->GetEnableMatchTicketPolling().GetValue();
 }
 
 void FOnlineSessionV2AccelByte::SetMatchTicketCheckInitialDelay(const int32 Sec)
 {
-	if(Sec < 0)
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
 	{
-		UE_LOG_AB(Warning, TEXT("Setting match ticket status check initial time to %d sec, value must be 0 and above"), Sec);
 		return;
 	}
 
-	MatchTicketCheckInitialDelay = Sec;
+	FOnlineSubsystemAccelByteConfigPtr Config = AccelByteSubsystemPtr->GetConfig();
+	if (!Config.IsValid())
+	{
+		return;
+	}
+
+	Config->GetMatchTicketPollStartDelaySeconds().SetValue(Sec);
 }
 
 int32 FOnlineSessionV2AccelByte::GetMatchTicketCheckInitialDelay() const
 {
-	return MatchTicketCheckInitialDelay;
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		// Returning 30 as that is the intended default
+		return 30;
+	}
+
+	FOnlineSubsystemAccelByteConfigPtr Config = AccelByteSubsystemPtr->GetConfig();
+	if (!Config.IsValid())
+	{
+		// Returning 30 as that is the intended default
+		return 30;
+	}
+
+	return Config->GetMatchTicketPollStartDelaySeconds().GetValue();
 }
 
 void FOnlineSessionV2AccelByte::SetMatchTicketCheckPollInterval(const int32 Sec)
 {
-	if(Sec < 0)
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
 	{
-		UE_LOG_AB(Warning, TEXT("Setting match ticket status check poll delay to %d sec, value must be 0 and above"), Sec);
 		return;
 	}
 
-	MatchTicketCheckPollInterval = Sec;
+	FOnlineSubsystemAccelByteConfigPtr Config = AccelByteSubsystemPtr->GetConfig();
+	if (!Config.IsValid())
+	{
+		return;
+	}
+
+	Config->GetMatchTicketPollIntervalSeconds().SetValue(Sec);
 }
 
 int32 FOnlineSessionV2AccelByte::GetMatchTicketCheckPollInterval() const
 {
-	return MatchTicketCheckPollInterval;
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		// Returning 30 as that is the intended default
+		return 30;
+	}
+
+	FOnlineSubsystemAccelByteConfigPtr Config = AccelByteSubsystemPtr->GetConfig();
+	if (!Config.IsValid())
+	{
+		// Returning 30 as that is the intended default
+		return 30;
+	}
+
+	return Config->GetMatchTicketPollIntervalSeconds().GetValue();
 }
 
 void FOnlineSessionV2AccelByte::SetSessionServerCheckPollEnabled(bool Enabled)
 {
-	bSessionServerCheckPollEnabled = Enabled;
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		return;
+	}
+
+	FOnlineSubsystemAccelByteConfigPtr Config = AccelByteSubsystemPtr->GetConfig();
+	if (!Config.IsValid())
+	{
+		return;
+	}
+
+	Config->GetEnableServerInfoPolling().SetValue(Enabled);
 }
 
 bool FOnlineSessionV2AccelByte::GetSessionServerCheckPollEnabled() const
 {
-	return bSessionServerCheckPollEnabled;
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		// Returning true as that is the intended default
+		return true;
+	}
+
+	FOnlineSubsystemAccelByteConfigPtr Config = AccelByteSubsystemPtr->GetConfig();
+	if (!Config.IsValid())
+	{
+		// Returning true as that is the intended default
+		return true;
+	}
+
+	return Config->GetEnableServerInfoPolling().GetValue();
 }
 
 void FOnlineSessionV2AccelByte::SetSessionServerCheckPollInitialDelay(int32 Sec)
 {
-	if(Sec < 0)
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
 	{
 		return;
 	}
 
-	SessionServerCheckPollInitialDelay = Sec;
+	FOnlineSubsystemAccelByteConfigPtr Config = AccelByteSubsystemPtr->GetConfig();
+	if (!Config.IsValid())
+	{
+		return;
+	}
+
+	Config->GetServerInfoPollStartDelaySeconds().SetValue(Sec);
 }
 
 int32 FOnlineSessionV2AccelByte::GetSessionServerCheckPollInitialDelay() const
 {
-	return SessionServerCheckPollInitialDelay;
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		// Returning 30 as that is the intended default
+		return 30;
+	}
+
+	FOnlineSubsystemAccelByteConfigPtr Config = AccelByteSubsystemPtr->GetConfig();
+	if (!Config.IsValid())
+	{
+		// Returning 30 as that is the intended default
+		return 30;
+	}
+
+	return Config->GetServerInfoPollStartDelaySeconds().GetValue();
 }
 
 void FOnlineSessionV2AccelByte::SetSessionServerCheckPollInterval(int32 Sec)
 {
-	if(Sec < 0)
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
 	{
 		return;
 	}
 
-	SessionServerCheckPollInterval = Sec;
+	FOnlineSubsystemAccelByteConfigPtr Config = AccelByteSubsystemPtr->GetConfig();
+	if (!Config.IsValid())
+	{
+		return;
+	}
+
+	Config->GetServerInfoPollIntervalSeconds().SetValue(Sec);
 }
 
 int32 FOnlineSessionV2AccelByte::GetSessionServerCheckPollInterval() const
 {
-	return SessionServerCheckPollInterval;
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		// Returning 15 as that is the intended default
+		return 15;
+	}
+
+	FOnlineSubsystemAccelByteConfigPtr Config = AccelByteSubsystemPtr->GetConfig();
+	if (!Config.IsValid())
+	{
+		// Returning 15 as that is the intended default
+		return 15;
+	}
+
+	return Config->GetServerInfoPollIntervalSeconds().GetValue();
 }
 
 void FOnlineSessionV2AccelByte::SetSessionInviteCheckPollEnabled(bool Enabled)
 {
-	bSessionInviteCheckPollEnabled = Enabled;
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		return;
+	}
+
+	FOnlineSubsystemAccelByteConfigPtr Config = AccelByteSubsystemPtr->GetConfig();
+	if (!Config.IsValid())
+	{
+		return;
+	}
+
+	Config->GetEnableSessionInvitePolling().SetValue(Enabled);
 }
 
 bool FOnlineSessionV2AccelByte::GetSessionInviteCheckPollEnabled() const
 {
-	return bSessionInviteCheckPollEnabled;
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		// Returning true as that is the intended default
+		return true;
+	}
+
+	FOnlineSubsystemAccelByteConfigPtr Config = AccelByteSubsystemPtr->GetConfig();
+	if (!Config.IsValid())
+	{
+		// Returning true as that is the intended default
+		return true;
+	}
+
+	return Config->GetEnableSessionInvitePolling().GetValue();
 }
 
 void FOnlineSessionV2AccelByte::SetSessionInviteCheckPollInitialDelay(int32 Sec)
 {
-	if(Sec < 0)
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
 	{
 		return;
 	}
 
-	SessionInviteCheckPollInitialDelay = Sec;
+	FOnlineSubsystemAccelByteConfigPtr Config = AccelByteSubsystemPtr->GetConfig();
+	if (!Config.IsValid())
+	{
+		return;
+	}
+
+	Config->GetSessionInvitePollStartDelaySeconds().SetValue(Sec);
 }
 
 int32 FOnlineSessionV2AccelByte::GetSessionInviteCheckPollInitialDelay() const
 {
-	return SessionInviteCheckPollInitialDelay;
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		// Returning 30 as that is the intended default
+		return 30;
+	}
+
+	FOnlineSubsystemAccelByteConfigPtr Config = AccelByteSubsystemPtr->GetConfig();
+	if (!Config.IsValid())
+	{
+		// Returning 30 as that is the intended default
+		return 30;
+	}
+
+	return Config->GetSessionInvitePollStartDelaySeconds().GetValue();
 }
 
 void FOnlineSessionV2AccelByte::SetSessionInviteCheckPollInterval(int32 Sec)
 {
-	if(Sec < 0)
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
 	{
 		return;
 	}
 
-	SessionInviteCheckPollInterval = Sec;
+	FOnlineSubsystemAccelByteConfigPtr Config = AccelByteSubsystemPtr->GetConfig();
+	if (!Config.IsValid())
+	{
+		return;
+	}
+
+	return Config->GetSessionInvitePollIntervalSeconds().SetValue(Sec);
 }
 
 int32 FOnlineSessionV2AccelByte::GetSessionInviteCheckPollInterval() const
 {
-	return SessionInviteCheckPollInterval;
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		// Returning 15 as that is the intended default
+		return 15;
+	}
+
+	FOnlineSubsystemAccelByteConfigPtr Config = AccelByteSubsystemPtr->GetConfig();
+	if (!Config.IsValid())
+	{
+		// Returning 15 as that is the intended default
+		return 15;
+	}
+
+	return Config->GetSessionInvitePollIntervalSeconds().GetValue();
 }
 
 bool FOnlineSessionV2AccelByte::FindSessionByStringId(const FUniqueNetId& SearchingUserId
@@ -5343,7 +5593,7 @@ void FOnlineSessionV2AccelByte::RegisterServer(FName SessionName, const FOnRegis
 	if(!ServerApiClientPtr.IsValid())
 	{
 		Delegate.ExecuteIfBound(false);
-		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Attempt to RegisterServer failed, ServerApiClient is invalid"));
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Attempt to RegisterServer failed, ServerApiClient is invalid"));
 		return;
 	}
 
@@ -5351,7 +5601,7 @@ void FOnlineSessionV2AccelByte::RegisterServer(FName SessionName, const FOnRegis
 	if(!Utilities.IsValid())
 	{
 		Delegate.ExecuteIfBound(false);
-		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Attempt to RegisterServer failed, Utilities is invalid"));
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Attempt to RegisterServer failed, Utilities is invalid"));
 		return;
 	}
 
@@ -5366,7 +5616,21 @@ void FOnlineSessionV2AccelByte::RegisterServer(FName SessionName, const FOnRegis
 		break;
 	}
 
-	if (bManualRegisterServer)
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Attempt to RegisterServer failed, subsystem is invalid"));
+		return;
+	}
+
+	FOnlineSubsystemAccelByteConfigPtr Config = AccelByteSubsystemPtr->GetConfig();
+	if (!Config.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Attempt to RegisterServer failed, config is invalid"));
+		return;
+	}
+
+	if (Config->GetEnableManualServerRegistration().GetValue())
 	{
 		ResetWarningReminderForServerSendReady();
 		const float WarningDelaySeconds = SendServerReadyWarningInMinutes * 60.0f;
@@ -5939,57 +6203,6 @@ bool FOnlineSessionV2AccelByte::SetSessionMaxPlayerCount(FOnlineSession* Session
 	return true;
 }
 
-void FOnlineSessionV2AccelByte::QueryGameSessionHistory(int32 LocalUserNum, EAccelByteGeneralSortBy const& SortBy, FPagedQuery const& Page)
-{
-	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("LocalUserNum: %d"), LocalUserNum);
-
-	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
-	if(!AccelByteSubsystemPtr.IsValid())
-	{
-		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to query game session history as our AccelByte subsystem is invalid"));
-		return;
-	}
-
-	if (IsRunningDedicatedServer())
-	{
-		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Failed to query game session history from dedicated server or admin endpoint since it is not supported yet"));
-
-		AccelByteSubsystemPtr->ExecuteNextTick([SessionInterface = SharedThis(this)]() {
-			SessionInterface->TriggerOnQueryGameSessionHistoryCompleteDelegates({}, ONLINE_ERROR(EOnlineErrorResult::InvalidParams));
-			});
-
-		return;
-	}
-
-	IOnlineIdentityPtr IdentityInterface = AccelByteSubsystemPtr->GetIdentityInterface();
-	if (!ensure(IdentityInterface.IsValid()))
-	{
-		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to query game session history as AccelByte identity interface is invalid!"));
-
-		AccelByteSubsystemPtr->ExecuteNextTick([SessionInterface = SharedThis(this)]() {
-			SessionInterface->TriggerOnQueryGameSessionHistoryCompleteDelegates({}, ONLINE_ERROR(EOnlineErrorResult::InvalidParams));
-			});
-
-		return;
-	}
-
-	FUniqueNetIdPtr PlayerId = IdentityInterface->GetUniquePlayerId(LocalUserNum);
-	if (!ensure(PlayerId.IsValid()))
-	{
-		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to query game session history as we could not get a unique ID from player index %d!"), LocalUserNum);
-
-		AccelByteSubsystemPtr->ExecuteNextTick([SessionInterface = SharedThis(this)]() {
-			SessionInterface->TriggerOnQueryGameSessionHistoryCompleteDelegates({}, ONLINE_ERROR(EOnlineErrorResult::InvalidParams));
-			});
-
-		return;
-	}
-
-	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteQueryGameSessionHistories>(AccelByteSubsystemPtr.Get(), LocalUserNum, SortBy, Page);
-
-	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
-}
-
 bool FOnlineSessionV2AccelByte::RefreshSession(const FName& SessionName, const FOnRefreshSessionComplete& Delegate)
 {
 	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("SessionName: %s"), *SessionName.ToString());
@@ -6282,7 +6495,9 @@ bool FOnlineSessionV2AccelByte::UpdatePartySessionStorageWithPastSessionInfo(FUn
 		return false;
 	}
 
-	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteUpdateReservedPartyStorage>(AccelByteSubsystemPtr.Get(), UserUniqueNetId, this->PartySessionStorageLocalUserManager.ExtractCacheToWriteToPartyStorage(Session->LocalOwnerId));
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteUpdateReservedPartyStorage>(AccelByteSubsystemPtr.Get()
+		, UserUniqueNetId
+		, PartySessionStorageLocalUserManager.ExtractCacheToWriteToPartyStorage(Session->LocalOwnerId));
 
 	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Created async task to update party attribute with past session info on backend!"));
 	return true;
@@ -8677,8 +8892,8 @@ bool FOnlineSessionV2AccelByte::HandleAutoJoinGameSession(const FAccelByteModels
 		return false;
 	}
 
-	this->PartySessionStorageLocalUserManager.PastSessionManager.InsertPastSessionID(LocalUserId, GameSession.ID);
-
+	PartySessionStorageLocalUserManager.PastSessionManager.InsertPastSessionID(LocalUserId, GameSession.ID);
+	UpdatePartySessionStorageWithPastSessionInfo(UserUniqueNetId);
 	TriggerOnJoinSessionCompleteDelegates(SessionName, EOnJoinSessionCompleteResult::Success);
 
 	if (bHasDsError)

@@ -5,6 +5,7 @@
 #include "OnlineAsyncTaskAccelByteCreateBackfillTicket.h"
 #include "OnlineSubsystemAccelByteSessionSettings.h"
 #include "AsyncTasks/OnlineAsyncTaskAccelByteUtils.h"
+#include "Core/AccelByteServerApiClient.h"
 
 FOnlineAsyncTaskAccelByteCreateBackfillTicket::FOnlineAsyncTaskAccelByteCreateBackfillTicket(FOnlineSubsystemAccelByte* const InABInterface, const FName& InSessionName, const FString& InMatchPool, const FOnCreateBackfillTicketComplete& InDelegate)
 	: FOnlineAsyncTaskAccelByte(InABInterface, INVALID_CONTROLLERID, ASYNC_TASK_FLAG_BIT(EAccelByteAsyncTaskFlags::ServerTask))

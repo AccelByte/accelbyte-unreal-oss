@@ -6,6 +6,8 @@
 #include "OnlineSubsystemAccelByteInternalHelpers.h"
 #include "OnlineSubsystemTypes.h"
 #include "OnlineSubsystemUtils.h"
+#include "OnlineSubsystemAccelByteConfig.h"
+#include "Core/AccelByteServerApiClient.h"
 
 bool FOnlineGameStandardEventAccelByte::GetFromSubsystem(const IOnlineSubsystem* Subsystem, FOnlineGameStandardEventAccelBytePtr& OutInterfaceInstance)
 {
@@ -36,53 +38,43 @@ bool FOnlineGameStandardEventAccelByte::SetEventSendInterval(int32 InLocalUserNu
 {
 	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("Set GameStandardEvent Send Interval for LocalUserNum: %d"), InLocalUserNum);
 
-	bool bIsSuccess = false;
-	if (bIsHaveSettingInterval)
+	int64 IntervalSeconds { 1 * 60 };
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (AccelByteSubsystemPtr.IsValid())
 	{
-		if (IsRunningDedicatedServer())
+		FOnlineSubsystemAccelByteConfigPtr Config = AccelByteSubsystemPtr->GetConfig();
+		if (Config.IsValid())
 		{
-			const FAccelByteInstancePtr AccelByteInstance = GetAccelByteInstance().Pin();
-			if(AccelByteInstance.IsValid())
-			{
-				const FServerApiClientPtr ServerApiClient = AccelByteInstance->GetServerApiClient();
-				if (ServerApiClient.IsValid())
-				{
-					ServerApiClient->ServerGameStandardEvent.SetBatchFrequency(FTimespan::FromSeconds(SettingInterval));
-					bIsSuccess = true;
-				}
-			}
+			IntervalSeconds = Config->GetGameStandardEventSendIntervalSeconds().GetValue();
 		}
-		else
-		{
-			FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
-			if (!AccelByteSubsystemPtr.IsValid())
-			{
-				AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
-			}
-			else
-			{
-				const auto ApiClient = AccelByteSubsystemPtr->GetApiClient(InLocalUserNum);
-				if (ApiClient.IsValid())
-				{
-					const auto GameStandardEvent = ApiClient->GetGameStandardEventApi().Pin();
-					if (GameStandardEvent.IsValid())
-					{
-						GameStandardEvent->SetBatchFrequency(FTimespan::FromSeconds(SettingInterval));
-						bIsSuccess = true;
-					}
-				}
-			}
-		}
+	}
+
+	const int64* CachedIntervalSeconds = SetEventIntervalMap.Find(InLocalUserNum);
+	if (CachedIntervalSeconds != nullptr && *CachedIntervalSeconds == IntervalSeconds)
+	{
+		// No need to update as our cached value matches our currently configured value, return success
+		return true;
+	}
+
+	bool bSuccessful{};
+	if (IsRunningDedicatedServer())
+	{
+		bSuccessful = ServerSetEventSendInterval(IntervalSeconds);
 	}
 	else
 	{
-		bIsSuccess = true;
+		bSuccessful = ClientSetEventSendInterval(InLocalUserNum, IntervalSeconds);
 	}
 
-	SetEventIntervalMap.Add(InLocalUserNum, bIsSuccess);
+	if (bSuccessful)
+	{
+		// Only store new cached value if the call was successful
+		int64& NewCachedIntervalSeconds = SetEventIntervalMap.FindOrAdd(InLocalUserNum);
+		NewCachedIntervalSeconds = IntervalSeconds;
+	}
 
-	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Set GameStandardEvent Send Interval is finished with status (Success: %s)"), LOG_BOOL_FORMAT(bIsSuccess));
-	return bIsSuccess;
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Set GameStandardEvent Send Interval is finished with status (Success: %s)"), LOG_BOOL_FORMAT(bSuccessful));
+	return bSuccessful;
 }
 
 void FOnlineGameStandardEventAccelByte::SendCachedEvent(int32 InLocalUserNum, const TSharedPtr<FAccelByteModelsTelemetryBody> & CachedEvent)
@@ -943,4 +935,59 @@ bool FOnlineGameStandardEventAccelByte::SendMatchInfoEndedEvent(int32 LocalUserN
 	}
 	Optional.Winner = Winner.ToString();
 	return SendMatchInfoEndedEvent(LocalUserNum, MatchInfoId, EndReason, Optional);
+}
+
+bool FOnlineGameStandardEventAccelByte::ClientSetEventSendInterval(int32 LocalUserNum, int64 IntervalSeconds)
+{
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT(""));
+
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to set event send interval: AccelByte subsystem is invalid"));
+		return false;
+	}
+
+	const auto ApiClient = AccelByteSubsystemPtr->GetApiClient(LocalUserNum);
+	if (!ApiClient.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to set event send interval: API client is invalid"));
+		return false;
+	}
+
+	const auto GameStandardEvent = ApiClient->GetGameStandardEventApi().Pin();
+	if (!GameStandardEvent.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to set event send interval: GameStandardEvent API is invalid"));
+		return false;
+	}
+
+	GameStandardEvent->SetBatchFrequency(FTimespan::FromSeconds(IntervalSeconds));
+
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
+	return true;
+}
+
+bool FOnlineGameStandardEventAccelByte::ServerSetEventSendInterval(int64 IntervalSeconds)
+{
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT(""));
+
+	const FAccelByteInstancePtr AccelByteInstance = GetAccelByteInstance().Pin();
+	if (!AccelByteInstance.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to set event send interval: AccelByte instance is invalid"));
+		return false;
+	}
+
+	const AccelByte::FServerApiClientPtr ServerApiClient = AccelByteInstance->GetServerApiClient();
+	if (!ServerApiClient.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to set event send interval: server API client is invalid"));
+		return false;
+	}
+
+	ServerApiClient->ServerGameStandardEvent.SetBatchFrequency(FTimespan::FromSeconds(IntervalSeconds));
+
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
+	return true;
 }

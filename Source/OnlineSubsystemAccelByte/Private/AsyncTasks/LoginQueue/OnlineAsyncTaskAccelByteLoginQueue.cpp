@@ -4,6 +4,7 @@
 
 #include "OnlineAsyncTaskAccelByteLoginQueue.h"
 #include "OnlineAsyncTaskAccelByteLoginQueueClaimTicket.h"
+#include "OnlineSubsystemAccelByteConfig.h"
 
 using namespace AccelByte;
 
@@ -14,7 +15,6 @@ FOnlineAsyncTaskAccelByteLoginQueue::FOnlineAsyncTaskAccelByteLoginQueue(FOnline
 	: FOnlineAsyncTaskAccelByte(InABInterface)
 	, LoginUserNum(InLoginUserNum)
 	, Ticket(InTicket)
-	, PresentationThreshold(0)
 {
 	LocalUserNum = INVALID_CONTROLLERID;
 	bShouldUseTimeout = false;
@@ -28,9 +28,6 @@ void FOnlineAsyncTaskAccelByteLoginQueue::Initialize()
 	Super::Initialize();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("LocalUserNum: %d, TicketId: %s"), LoginUserNum, *Ticket.Ticket);
-
-	GConfig->GetInt(TEXT("OnlineSubsystemAccelByte"), TEXT("LoginQueuePresentationThreshold"), PresentationThreshold, GEngineIni);
-	GConfig->GetBool(TEXT("OnlineSubsystemAccelByte"), TEXT("bEnableManualClaimLoginQueue"), bManualClaimLoginQueueTicket, GEngineIni);
 
 	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(SubsystemPin->GetIdentityInterface());
 	if(!IdentityInterface.IsValid())
@@ -110,12 +107,25 @@ void FOnlineAsyncTaskAccelByteLoginQueue::OnPollTicketRefreshed(const FAccelByte
 		CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState);
 		return;
 	}
+	
+	int64 PresentationThreshold{0};
+	FOnlineSubsystemAccelByteConfigPtr Config = SubsystemPin->GetConfig();
+	if (Config.IsValid())
+	{
+		PresentationThreshold = Config->GetLoginQueuePresentationThresholdSeconds().GetValue();
+	}
 
 	// only trigger ticket status updated when estimated wait time is above presentation threshold
 	if(InTicket.EstimatedWaitingTimeInSeconds > PresentationThreshold)
 	{
 		IdentityInterface->TriggerAccelByteOnLoginTicketStatusUpdatedDelegates(LoginUserNum, true, InTicket,
 			ONLINE_ERROR_ACCELBYTE(ErrorCode, EOnlineErrorResult::Success));
+	}
+
+	bool bManualClaimLoginQueueTicket { false };
+	if (Config.IsValid())
+	{
+		bManualClaimLoginQueueTicket = Config->GetEnableManualLoginQueueClaim().GetValue();
 	}
 
 	if(InTicket.Position == 0)

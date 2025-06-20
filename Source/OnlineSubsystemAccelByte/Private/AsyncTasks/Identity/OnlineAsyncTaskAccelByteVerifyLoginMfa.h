@@ -55,9 +55,6 @@ private:
 	FDelegateHandle OnLoginQueueClaimTicketCompleteDelegateHandle;
 	FAccelByteOnLoginQueueClaimTicketCompleteDelegate OnLoginQueueClaimTicketCompleteDelegate;
 	void OnLoginQueueTicketClaimed(int32 InLoginUserNum, bool bWasClaimSuccessful, const FErrorOAuthInfo& ErrorObject);
-	
-	/** Set from DefaultEngine.ini, will only notify in queue if estimated time is above presentation threshold */
-	int32 LoginQueuePresentationThreshold{0};
 
 	/** Flag indicating if login is in queue. */
 	bool bLoginInQueue{false};

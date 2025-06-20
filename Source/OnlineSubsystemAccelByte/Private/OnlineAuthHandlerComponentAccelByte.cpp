@@ -9,6 +9,7 @@
 #include "Net/Core/Misc/PacketAudit.h"
 #include "Misc/AES.h"
 #include "OnlineSubsystemUtils.h"
+#include "OnlineSubsystemAccelByteConfig.h"
 
 using namespace AccelByte;
 
@@ -138,15 +139,11 @@ void FAuthHandlerComponentAccelByte::Clear()
 
 void FAuthHandlerComponentAccelByte::LoadSettings()
 {
-	if (FAccelByteUtilities::LoadABConfigFallback(TEXT("OnlineSubsystemAccelByte"), TEXT("EnabledEncryption"), bEnabledEncryption))
+	if (OnlineSubsystem->GetConfig().IsValid() && OnlineSubsystem->GetConfig()->GetEnableAuthHandlerEncryption().GetValue())
 	{
-		if (bEnabledEncryption)
-		{
-			UE_LOG_AB(Warning, TEXT("AUTH HANDLER: (%s) Enabled encryption for all packets.(AES-CBC-256 and HMAC-SHA-256)"), ((Handler->Mode == Handler::Mode::Server) ? TEXT("DS") : TEXT("CL")));
-			EncryptorPacket = &FAuthHandlerComponentAccelByte::EncryptAES;
-			DecryptorPacket = &FAuthHandlerComponentAccelByte::DecryptAES;
-		}
-		return;
+		UE_LOG_AB(Warning, TEXT("AUTH HANDLER: (%s) Enabled encryption for all packets.(AES-CBC-256 and HMAC-SHA-256)"), ((Handler->Mode == Handler::Mode::Server) ? TEXT("DS") : TEXT("CL")));
+		EncryptorPacket = &FAuthHandlerComponentAccelByte::EncryptAES;
+		DecryptorPacket = &FAuthHandlerComponentAccelByte::DecryptAES;
 	}
 }
 

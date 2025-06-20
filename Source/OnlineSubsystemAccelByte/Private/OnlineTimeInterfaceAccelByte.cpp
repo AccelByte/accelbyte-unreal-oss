@@ -4,8 +4,8 @@
 
 #include "OnlineTimeInterfaceAccelByte.h"
 #include "OnlineSubsystemUtils.h"
-
 #include "AsyncTasks/Time/OnlineAsyncTaskAccelByteGetServerTime.h"
+#include "Core/ServerTime/AccelByteTimeManager.h"
 
 FOnlineTimeAccelByte::FOnlineTimeAccelByte(FOnlineSubsystemAccelByte* InSubsystem) 
 #if ENGINE_MAJOR_VERSION >= 5
@@ -62,7 +62,7 @@ FString FOnlineTimeAccelByte::GetLastServerUtcTime()
 		return TEXT("");
 	}
 
-	FAccelByteTimeManagerPtr TimeManager = AccelByteInstance->GetTimeManager().Pin();
+	AccelByte::FAccelByteTimeManagerPtr TimeManager = AccelByteInstance->GetTimeManager().Pin();
 	if(!TimeManager.IsValid())
 	{
 		return TEXT("");
@@ -86,7 +86,7 @@ FString FOnlineTimeAccelByte::GetCurrentServerUtcTime()
 		return TEXT("");
 	}
 
-	const FAccelByteTimeManagerPtr TimeManager = AccelByteInstance->GetTimeManager().Pin();
+	const AccelByte::FAccelByteTimeManagerPtr TimeManager = AccelByteInstance->GetTimeManager().Pin();
 	if(!TimeManager.IsValid())
 	{
 		return TEXT("");

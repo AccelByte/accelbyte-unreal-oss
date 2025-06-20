@@ -551,19 +551,6 @@ private:
 	FOnlineSubsystemAccelByte* Subsystem;
 
 	/**
-	 * Should the user cache take staleness into account? If false, users in cache will never become stale
-	 * and their data will never be queried after the initial request. Staleness checks are enabled by default.
-	 */
-	bool bEnableStalenessChecking { true };
-
-	/**
-	 * Amount of time in seconds that a user's cached data will be considered stale. Once this time is reached, any
-	 * future call to query that user's data will result in a new request. By default, a user's cached data is stale
-	 * after ten minutes.
-	 */
-	double TimeUntilStaleSeconds { 600.0 };
-
-	/**
 	 * Default constructor deleted, as we only want to be able to have an instance owned by a subsystem
 	 */
 	FOnlineUserCacheAccelByte() = delete;

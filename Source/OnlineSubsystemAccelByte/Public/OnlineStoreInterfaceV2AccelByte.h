@@ -116,7 +116,7 @@ public:
 	{
 		return Purchasable;
 	}
-		
+
 	/** Sale Configuration of the Offer */
 	FAccelByteModelsItemSaleConfig SaleConfig{};
 
@@ -129,46 +129,57 @@ public:
 	/** Customized offer properties **/
 	FJsonObject Ext{};
 
-	void SetItem(const FAccelByteModelsItemInfo& Item)
+	void SetItem(const FAccelByteModelsItemInfo& InItem)
 	{
-		OfferId = Item.ItemId;
-		NumericPrice = Item.RegionData[0].DiscountedPrice;
-		RegularPrice = Item.RegionData[0].Price;
-		CurrencyCode = Item.RegionData[0].CurrencyCode;
-		if (Item.RegionData[0].CurrencyType == EAccelByteItemCurrencyType::VIRTUAL)
+		Item = InItem;
+		OfferId = InItem.ItemId;
+		NumericPrice = InItem.RegionData[0].DiscountedPrice;
+		RegularPrice = InItem.RegionData[0].Price;
+		CurrencyCode = InItem.RegionData[0].CurrencyCode;
+		if (InItem.RegionData[0].CurrencyType == EAccelByteItemCurrencyType::VIRTUAL)
 		{
-			PriceText = FText::Format(FTextFormat::FromString("{0} {1}"), FText::AsNumber(Item.RegionData[0].DiscountedPrice), FText::FromString(Item.RegionData[0].CurrencyCode));
-			RegularPriceText = FText::Format(FTextFormat::FromString("{0} {1}"), FText::AsNumber(Item.RegionData[0].Price), FText::FromString(Item.RegionData[0].CurrencyCode));
+			PriceText = FText::Format(FTextFormat::FromString("{0} {1}"), FText::AsNumber(InItem.RegionData[0].DiscountedPrice), FText::FromString(InItem.RegionData[0].CurrencyCode));
+			RegularPriceText = FText::Format(FTextFormat::FromString("{0} {1}"), FText::AsNumber(InItem.RegionData[0].Price), FText::FromString(InItem.RegionData[0].CurrencyCode));
 		}
-		Title = FText::FromString(Item.Title);
-		RegionData = Item.RegionData;
-		Language = Item.Language;
-		Sku = Item.Sku;
-		Flexible = Item.Flexible;
-		Sellable = Item.Sellable;
-		Stackable = Item.Stackable;
-		Purchasable = Item.Purchasable;
-		Listable = Item.Listable;
-		SectionExclusive = Item.SectionExclusive;
-		SaleConfig = Item.SaleConfig;
-		LootBoxConfig = Item.LootBoxConfig;
-		OptionBoxConfig = Item.OptionBoxConfig;
-		if (Item.Images.Num() > 0)
+		Title = FText::FromString(InItem.Title);
+		RegionData = InItem.RegionData;
+		Language = InItem.Language;
+		Sku = InItem.Sku;
+		Flexible = InItem.Flexible;
+		Sellable = InItem.Sellable;
+		Stackable = InItem.Stackable;
+		Purchasable = InItem.Purchasable;
+		Listable = InItem.Listable;
+		SectionExclusive = InItem.SectionExclusive;
+		SaleConfig = InItem.SaleConfig;
+		LootBoxConfig = InItem.LootBoxConfig;
+		OptionBoxConfig = InItem.OptionBoxConfig;
+		if (InItem.Images.Num() > 0)
 		{
-			DynamicFields.Add(TEXT("IconUrl"), Item.Images[0].ImageUrl);
+			DynamicFields.Add(TEXT("IconUrl"), InItem.Images[0].ImageUrl);
 		}
-		DynamicFields.Add(TEXT("Region"), Item.Region);
-		DynamicFields.Add(TEXT("IsConsumable"), Item.EntitlementType == EAccelByteEntitlementType::CONSUMABLE ? TEXT("true") : TEXT("false"));
-		DynamicFields.Add(TEXT("Category"), Item.CategoryPath);
-		DynamicFields.Add(TEXT("Name"), Item.Name);
-		DynamicFields.Add(TEXT("ItemType"), FAccelByteUtilities::GetUEnumValueAsString(Item.ItemType));
-		DynamicFields.Add(TEXT("Sku"), Item.Sku);
-		if (Item.ItemType == EAccelByteItemType::COINS)
+		DynamicFields.Add(TEXT("Region"), InItem.Region);
+		DynamicFields.Add(TEXT("IsConsumable"), InItem.EntitlementType == EAccelByteEntitlementType::CONSUMABLE ? TEXT("true") : TEXT("false"));
+		DynamicFields.Add(TEXT("Category"), InItem.CategoryPath);
+		DynamicFields.Add(TEXT("Name"), InItem.Name);
+		DynamicFields.Add(TEXT("ItemType"), FAccelByteUtilities::GetUEnumValueAsString(InItem.ItemType));
+		DynamicFields.Add(TEXT("Sku"), InItem.Sku);
+		if (InItem.ItemType == EAccelByteItemType::COINS)
 		{
-			DynamicFields.Add(TEXT("TargetCurrencyCode"), Item.TargetCurrencyCode);
+			DynamicFields.Add(TEXT("TargetCurrencyCode"), InItem.TargetCurrencyCode);
 		}
-		Ext = *Item.Ext.JsonObject;
+		Ext = *InItem.Ext.JsonObject;
 	}
+
+	const FAccelByteModelsItemInfo& GetItemInfo() const
+	{
+		return Item;
+	}
+
+private:
+	/** Internal item configuration structure. */
+	FAccelByteModelsItemInfo Item{};
+
 };
 typedef TSharedRef<FOnlineStoreOfferAccelByte> FOnlineStoreOfferAccelByteRef;
 

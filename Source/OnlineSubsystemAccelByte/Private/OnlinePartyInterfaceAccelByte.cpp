@@ -722,8 +722,6 @@ bool FOnlinePartySystemAccelByte::GetFromWorld(const UWorld* World, FOnlineParty
 
 void FOnlinePartySystemAccelByte::Init()
 {
-	// Grab whether or not V2 sessions are enabled, will enable warnings for this interface if so
-	GConfig->GetBool(TEXT("OnlineSubsystemAccelByte"), AB_USE_V2_SESSIONS_CONFIG_KEY, bUsingV2Sessions, GEngineIni);
 }
 
 TSharedPtr<FOnlinePartyAccelByte> FOnlinePartySystemAccelByte::GetFirstPartyForUser(const TSharedRef<const FUniqueNetIdAccelByteUser>& UserId)

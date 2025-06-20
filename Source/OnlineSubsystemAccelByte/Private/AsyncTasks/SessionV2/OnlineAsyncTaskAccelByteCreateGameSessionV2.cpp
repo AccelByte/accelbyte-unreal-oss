@@ -7,6 +7,7 @@
 #if ENGINE_MAJOR_VERSION >= 5
 #include "Online/OnlineSessionNames.h"
 #endif // ENGINE_MAJOR_VERSION >= 5
+#include "Core/AccelByteTypeConverter.h"
 #include "OnlineSessionInterfaceV2AccelByte.h"
 #include "OnlinePredefinedEventInterfaceAccelByte.h"
 #include "OnlineSessionSettingsAccelByte.h"
@@ -136,7 +137,7 @@ void FOnlineAsyncTaskAccelByteCreateGameSessionV2::Initialize()
 	if (NewSessionSettings.Get(SETTING_SESSION_TEAMS, AutoJoinUserIDs))
 	{
 		FAccelByteModelsV2GameSessionTeamsSetting TeamsSetting;
-		FJsonObjectConverter::JsonObjectStringToUStruct(AutoJoinUserIDs, &TeamsSetting);
+		FAccelByteJsonConverter::JsonObjectStringToUStruct(AutoJoinUserIDs, &TeamsSetting);
 
 		CreateRequest.Teams = TeamsSetting.Teams;
 		NewSessionSettings.Remove(SETTING_SESSION_TEAMS);

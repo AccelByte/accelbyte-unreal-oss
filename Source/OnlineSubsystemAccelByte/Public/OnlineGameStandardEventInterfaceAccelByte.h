@@ -23,7 +23,6 @@ PACKAGE_SCOPE:
 	FOnlineGameStandardEventAccelByte(FOnlineSubsystemAccelByte* InSubsystem)
 		: FOnlineBaseAnalyticsAccelByte(InSubsystem)
 	{
-		bIsHaveSettingInterval = GConfig->GetInt(TEXT("OnlineSubsystemAccelByte"), TEXT("SendGameStandardEventInterval"), SettingInterval, GEngineIni);
 	}
 
 public:
@@ -207,5 +206,8 @@ protected:
 
 private:
 	virtual bool SetEventSendInterval(int32 InLocalUserNum) override;
+	bool ClientSetEventSendInterval(int32 LocalUserNum, int64 IntervalSeconds);
+	bool ServerSetEventSendInterval(int64 IntervalSeconds);
+
 	virtual void SendCachedEvent(int32 InLocalUserNum, const TSharedPtr<FAccelByteModelsTelemetryBody> & CachedEvent) override;
 };

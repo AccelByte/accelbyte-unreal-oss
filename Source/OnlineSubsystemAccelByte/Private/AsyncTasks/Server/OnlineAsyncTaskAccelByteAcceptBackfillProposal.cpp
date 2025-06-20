@@ -5,6 +5,7 @@
 #include "OnlineAsyncTaskAccelByteAcceptBackfillProposal.h"
 #include "OnlineSubsystemAccelByteSessionSettings.h"
 #include "OnlinePredefinedEventInterfaceAccelByte.h"
+#include "Core/AccelByteServerApiClient.h"
 
 FOnlineAsyncTaskAccelByteAcceptBackfillProposal::FOnlineAsyncTaskAccelByteAcceptBackfillProposal(FOnlineSubsystemAccelByte* const InABInterface, const FName& InSessionName, const FAccelByteModelsV2MatchmakingBackfillProposalNotif& InProposal, FAccelByteModelsV2MatchmakingBackfillAcceptanceOptionalParam const& InOptionalParameter, bool bInStopBackfilling, const FOnAcceptBackfillProposalComplete& InDelegate)
 	: FOnlineAsyncTaskAccelByte(InABInterface, INVALID_CONTROLLERID, ASYNC_TASK_FLAG_BIT(EAccelByteAsyncTaskFlags::ServerTask))

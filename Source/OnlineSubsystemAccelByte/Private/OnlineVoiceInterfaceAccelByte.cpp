@@ -14,6 +14,7 @@
 #include "OnlineIdentityInterfaceAccelByte.h"
 #include "OnlineSessionInterfaceV2AccelByte.h"
 #include "OnlineSubsystemAccelByteInternalHelpers.h"
+#include "OnlineSubsystemAccelByteConfig.h"
 
 FOnlineVoiceAccelByte::FOnlineVoiceAccelByte(FOnlineSubsystemAccelByte* InSubsystem)
 #if ENGINE_MAJOR_VERSION >= 5
@@ -25,7 +26,18 @@ FOnlineVoiceAccelByte::FOnlineVoiceAccelByte(FOnlineSubsystemAccelByte* InSubsys
 
 bool FOnlineVoiceAccelByte::Init()
 {
-	GConfig->GetBool(TEXT("OnlineSubsystem"), TEXT("bHasVoiceEnabled"), bIsEnabled, GEngineIni);
+	// #NOTE Normally, we would want to check config directly to allow for on the fly changing of values. However, for
+	// voice the system would need to be reinitialized. So for this case, just check during init.
+	FOnlineSubsystemAccelBytePtr SubsystemPin = AccelByteSubsystem.Pin();
+	if (SubsystemPin.IsValid())
+	{
+		FOnlineSubsystemAccelByteConfigPtr Config = SubsystemPin->GetConfig();
+		if (Config.IsValid())
+		{
+			bIsEnabled = Config->GetVoiceEnabled().GetValue();
+		}
+	}
+
 	return FOnlineVoiceImpl::Init();
 }
 

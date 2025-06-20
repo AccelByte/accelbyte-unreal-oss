@@ -26,6 +26,7 @@
 #include "AsyncTasks/Chat/OnlineAsyncTaskAccelByteGetUserChatConfiguration.h"
 #include "AsyncTasks/Chat/OnlineAsyncTaskAccelByteSetUserChatConfiguration.h"
 #include "AsyncTasks/Chat/OnlineAsyncTaskAccelByteChatReportMessage.h"
+#include "OnlineSubsystemAccelByteConfig.h"
 
 using namespace AccelByte;
 
@@ -124,9 +125,15 @@ bool FOnlineChatAccelByte::Connect(int32 LocalUserNum)
 		return false;
 	}
 	
+	bool bIsAutoCheckMaximumLimitChatMessage { false };
+	FOnlineSubsystemAccelByteConfigPtr Config = AccelByteSubsystemPtr->GetConfig();
+	if (Config.IsValid())
+	{
+		bIsAutoCheckMaximumLimitChatMessage = Config->GetAutoCheckMaximumChatMessageLimit().GetValue();
+	}
+	
 	// If auto check max limit message config is true, then get the config first from backend
-	bool bIsAutoCheckMaximumLimitChatMessage{false};
-	if (FAccelByteUtilities::LoadABConfigFallback(TEXT("OnlineSubsystemAccelByte"), TEXT("bIsAutoCheckMaximumLimitChatMessage"), bIsAutoCheckMaximumLimitChatMessage) && bIsAutoCheckMaximumLimitChatMessage)
+	if (bIsAutoCheckMaximumLimitChatMessage)
 	{
 		AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskSerial<FOnlineAsyncTaskAccelByteChatGetConfig>(AccelByteSubsystemPtr.Get(), *LocalUserId.Get());
 		AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskSerial<FOnlineAsyncTaskAccelByteConnectChat>(AccelByteSubsystemPtr.Get(), *LocalUserId.Get());
@@ -135,6 +142,7 @@ bool FOnlineChatAccelByte::Connect(int32 LocalUserNum)
 	{
 		AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteConnectChat>(AccelByteSubsystemPtr.Get(), *LocalUserId.Get());
 	}
+
 	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Dispatching async task to attempt to connect chat!"));
 	return true;
 }

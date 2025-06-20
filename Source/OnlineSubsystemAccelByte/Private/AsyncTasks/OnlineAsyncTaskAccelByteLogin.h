@@ -147,9 +147,6 @@ protected:
 	 */
 	bool bLoginInQueue = false;
 
-	/** Set from DefaultEngine.ini, will only notify in queue if estimated time is above presentation threshold */
-	int32 LoginQueuePresentationThreshold{0};
-
 	FDelegateHandle LoginCompletedHandle;
 
 #if defined(STEAM_SDK_VER) && !UE_SERVER

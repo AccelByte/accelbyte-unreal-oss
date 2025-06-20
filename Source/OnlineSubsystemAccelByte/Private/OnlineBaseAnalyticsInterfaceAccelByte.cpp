@@ -145,7 +145,7 @@ void FOnlineBaseAnalyticsAccelByte::SetDelegatesAndInterval(int32 LocalUserNum)
 	{
 		return;
 	}
-	
+
 	if (LocalUserNum < 0)
 	{
 		LocalUserNum = GetLocalUserNumCached();
@@ -153,7 +153,7 @@ void FOnlineBaseAnalyticsAccelByte::SetDelegatesAndInterval(int32 LocalUserNum)
 	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystemPtr->GetIdentityInterface());
 	if (IdentityInterface.IsValid())
 	{
-		if (!SetEventIntervalMap.Find(LocalUserNum) && LocalUserNum != -1)
+		if (LocalUserNum >= 0)
 		{
 			SetEventSendInterval(LocalUserNum);
 		}

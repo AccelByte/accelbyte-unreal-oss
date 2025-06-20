@@ -7,7 +7,7 @@
 #include "OnlineSubsystemUtils.h"
 #include "OnlineSubsystemAccelByteInternalHelpers.h"
 #include "OnlineIdentityInterfaceAccelByte.h"
-
+#include "OnlineSubsystemAccelByteConfig.h"
 
 using namespace AccelByte;
 
@@ -39,51 +39,32 @@ bool FOnlineAnalyticsAccelByte::GetFromWorld(const UWorld* World
 	return GetFromSubsystem(Subsystem, OutInterfaceInstance);
 }
 
-bool FOnlineAnalyticsAccelByte::SetTelemetrySendInterval(int32 InLocalUserNum)
+bool FOnlineAnalyticsAccelByte::SetTelemetrySendInterval(int32 LocalUserNum)
 {
-	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("Set Telemetry Send Interval for LocalUserNum: %d"), InLocalUserNum);
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("Set Telemetry Send Interval for LocalUserNum: %d"), LocalUserNum);
 
-	bool bIsSuccess = false;
-	int32 SendTelemetryEventIntervalInSeconds;
-	if (GConfig->GetInt(TEXT("OnlineSubsystemAccelByte"), TEXT("SendTelemetryEventIntervalInSeconds"), SendTelemetryEventIntervalInSeconds, GEngineIni))
+	int64 IntervalSeconds { 5 };
+	
+	const FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (AccelByteSubsystemPtr.IsValid())
 	{
-		if (IsRunningDedicatedServer())
+		FOnlineSubsystemAccelByteConfigPtr Config = AccelByteSubsystemPtr->GetConfig();
+		if (Config.IsValid())
 		{
-			const FAccelByteInstancePtr AccelByteInstance = GetAccelByteInstance().Pin();
-			if(AccelByteInstance.IsValid())
-			{
-				const FServerApiClientPtr ServerApiClient = AccelByteInstance->GetServerApiClient();
-				if (ServerApiClient.IsValid())
-				{
-					ServerApiClient->ServerGameTelemetry.SetBatchFrequency(FTimespan::FromSeconds(SendTelemetryEventIntervalInSeconds));
-					bIsSuccess = true;
-				}
-			}
-		}
-		else
-		{
-			const FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
-			if(!AccelByteSubsystemPtr.IsValid())
-			{
-				AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Failed to set telemetry send interval, AccelByteSubsystem ptr is invalid"));
-				return false;
-			}
-			
-			const auto ApiClient = AccelByteSubsystemPtr->GetApiClient(InLocalUserNum);
-			if (ApiClient.IsValid())
-			{
-				const auto GameTelemetry = ApiClient->GetGameTelemetryApi().Pin();
-				if (GameTelemetry.IsValid())
-				{
-					GameTelemetry->SetBatchFrequency(FTimespan::FromSeconds(SendTelemetryEventIntervalInSeconds));
-					bIsSuccess = true;
-				}
-			}
+			IntervalSeconds = Config->GetSendTelemetryEventIntervalSeconds().GetValue();
 		}
 	}
 
-	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Set Telemetry Send Interval is finished with status (Success: %s)"), LOG_BOOL_FORMAT(bIsSuccess));
-	return bIsSuccess;
+	if (IsRunningDedicatedServer())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
+		return ServerSetTelemetrySendInterval(LocalUserNum, IntervalSeconds);
+	}
+	else
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
+		return ClientSetTelemetrySendInterval(LocalUserNum, IntervalSeconds);
+	}
 }
 
 bool FOnlineAnalyticsAccelByte::SetTelemetryImmediateEventList(int32 InLocalUserNum, TArray<FString> const& EventNames)
@@ -261,4 +242,59 @@ FAccelByteInstanceWPtr FOnlineAnalyticsAccelByte::GetAccelByteInstance() const
 bool FOnlineAnalyticsAccelByte::IsValidTelemetry(FAccelByteModelsTelemetryBody const& TelemetryBody)
 {
 	return TelemetryBody.Payload.IsValid() && !TelemetryBody.EventName.IsEmpty();
+}
+
+bool FOnlineAnalyticsAccelByte::ClientSetTelemetrySendInterval(int32 LocalUserNum, int64 IntervalSeconds)
+{
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT(""));
+
+	const FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to set telemetry send interval: AccelByte subsystem is invalid"));
+		return false;
+	}
+			
+	const FApiClientPtr ApiClient = AccelByteSubsystemPtr->GetApiClient(LocalUserNum);
+	if (!ApiClient.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to set telemetry send interval: API client is invalid"));
+		return false;
+	}
+
+	const auto GameTelemetry = ApiClient->GetGameTelemetryApi().Pin();
+	if (!GameTelemetry.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to set telemetry send interval: Game Telemetry API is invalid"));
+		return false;
+	}
+
+	GameTelemetry->SetBatchFrequency(FTimespan::FromSeconds(IntervalSeconds));
+
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
+	return true;
+}
+
+bool FOnlineAnalyticsAccelByte::ServerSetTelemetrySendInterval(int32, int64 IntervalSeconds)
+{
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT(""));
+
+	const FAccelByteInstancePtr AccelByteInstance = GetAccelByteInstance().Pin();
+	if (!AccelByteInstance.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to set telemetry send interval: AccelByte instance is invalid"));
+		return false;
+	}
+
+	const FServerApiClientPtr ServerApiClient = AccelByteInstance->GetServerApiClient();
+	if (!ServerApiClient.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to set telemetry send interval: server API client is invalid"));
+		return false;
+	}
+
+	ServerApiClient->ServerGameTelemetry.SetBatchFrequency(FTimespan::FromSeconds(IntervalSeconds));
+
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
+	return true;
 }

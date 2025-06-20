@@ -59,9 +59,10 @@ protected:
 	/** Instance of the subsystem that created this interface */
 	FOnlineSubsystemAccelByteWPtr AccelByteSubsystem = nullptr;
 	
-	bool bIsHaveSettingInterval;
-	int32 SettingInterval;
-	TMap<int32, bool> SetEventIntervalMap;
+	/**
+	 * Mapping of local user index to number of seconds to batch events before sending them.
+	 */
+	TMap<int32, int64> SetEventIntervalMap{};
 
 	/** Add Event to cache, used in case of the user is not logged in yet */
 	void AddToCache(int32 LocalUserNum, const TSharedPtr<FAccelByteModelsTelemetryBody>& Cache);

@@ -595,12 +595,6 @@ protected:
 	bool bIsAcceptingCustomGameInvitation = false;
 
 private:
-	/**
-	 * Whether or not we are using V2 sessions currently in the OSS. If we are, then all methods in this interface will
-	 * warn and short circuit since this is for V1 parties.
-	 */
-	bool bUsingV2Sessions = false;
-
 	/** Delegate handler for when we receive a party invite */
 	void OnReceivedPartyInviteNotification(const FAccelByteModelsPartyGetInvitedNotice& Notification, TSharedRef<const FUniqueNetIdAccelByteUser> UserId);
 

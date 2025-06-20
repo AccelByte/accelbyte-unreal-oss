@@ -166,7 +166,7 @@ if(!AccelByteInstance.IsValid()) \
 	return;\
 } \
 \
-const FServerApiClientPtr ServerApiClient = AccelByteInstance->GetServerApiClient(); \
+const AccelByte::FServerApiClientPtr ServerApiClient = AccelByteInstance->GetServerApiClient(); \
 if(!ServerApiClient.IsValid()) \
 { \
 	RaiseGenericServerError(__VA_ARGS__);\

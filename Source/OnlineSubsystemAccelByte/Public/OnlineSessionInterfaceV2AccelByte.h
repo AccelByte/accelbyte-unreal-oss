@@ -555,9 +555,6 @@ typedef FOnServerQueryGameSessionsComplete::FDelegate FOnServerQueryGameSessions
 DECLARE_MULTICAST_DELEGATE_TwoParams(FOnServerQueryPartySessionsComplete, const FAccelByteModelsV2PaginatedPartyQueryResult& /*PartySessionsQueryResult*/, const FOnlineError& /*ErrorInfo*/)
 typedef FOnServerQueryPartySessionsComplete::FDelegate FOnServerQueryPartySessionsCompleteDelegate;
 
-DECLARE_MULTICAST_DELEGATE_TwoParams(FOnQueryGameSessionHistoryComplete, const TArray<FAccelByteModelsGameSessionHistoriesData>& /*SessionHistoriesResult*/, const FOnlineError& /*ErrorInfo*/)
-typedef FOnQueryGameSessionHistoryComplete::FDelegate FOnQueryGameSessionHistoryCompleteDelegate;
-
 DECLARE_MULTICAST_DELEGATE_TwoParams(FOnPromoteGameSessionLeaderComplete, const FUniqueNetId& /*PromotedUserId*/, const FOnlineErrorAccelByte& /*Result*/);
 typedef FOnPromoteGameSessionLeaderComplete::FDelegate FOnPromoteGameSessionLeaderCompleteDelegate;
 
@@ -883,11 +880,6 @@ public:
 	 * for this to take effect on backend.
 	 */
 	bool SetSessionMaxPlayerCount(FOnlineSession* Session, int32 NewMaxPlayerCount) const;
-
-	/**
-	 * Method to query a list of session history data from backend for current user.
-	 */
-	void QueryGameSessionHistory(int32 LocalUserNum, EAccelByteGeneralSortBy const& SortBy, FPagedQuery const& Page);
 
 	/**
 	 * Method to manually refresh a session's data from the backend. Use to reconcile state between client and backend if
@@ -1427,11 +1419,6 @@ public:
 	DEFINE_ONLINE_DELEGATE_TWO_PARAM(OnServerQueryPartySessionsComplete, const FAccelByteModelsV2PaginatedPartyQueryResult& /*PartySessionsQueryResult*/, const FOnlineError& /*ErrorInfo*/)
 
 	/**
-	 * Delegate fired when query session histories complete
-	 */
-	DEFINE_ONLINE_DELEGATE_TWO_PARAM(OnQueryGameSessionHistoryComplete, const TArray<FAccelByteModelsGameSessionHistoriesData>& /*SessionHistoriesResult*/, const FOnlineError& /*ErrorInfo*/)
-
-	/**
 	 * Delegate fired when get my active match ticket complete,
 	 * SearchHandle will be invalid if no active ticket is found.
 	 */
@@ -1561,29 +1548,6 @@ PACKAGE_SCOPE:
 	 * Intended to be used for trigger manual poll matchmaking progress. 
 	 */
 	FDateTime NextMatchmakingDetailPollTime{0};
-
-	/**
-	 * enable match ticket details check polling.
-	 */
-	bool bMatchmakingDetailCheckEnabled{true};
-
-	/**
-	 * Delay time for polling match ticket details from success start matchmaking to first match ticket polling start
-	 */
-	int32 MatchTicketCheckInitialDelay{30};
-
-	/**
-	 * Delay time for polling match ticket details 
-	 */
-	int32 MatchTicketCheckPollInterval{15};
-
-	bool bSessionServerCheckPollEnabled{true};
-	int32 SessionServerCheckPollInitialDelay{30};
-	int32 SessionServerCheckPollInterval{15};
-
-	bool bSessionInviteCheckPollEnabled{true};
-	int32 SessionInviteCheckPollInitialDelay{30};
-	int32 SessionInviteCheckPollInterval{15};
 	
 	mutable FCriticalSection SessionServerCheckTimesLock;
 	TArray<FSessionServerCheckPollItem> SessionServerCheckPollTimes;
@@ -2080,17 +2044,6 @@ private:
 
 	/** Time in seconds that we clear the array of canceled ticket IDs (default to five minutes) */
 	double ClearCanceledTicketIdsTimeInSeconds {300.0};
-
-	/**
-	* It decides whether the GameServer is automatically register itself or should be done manually. 
-	* Value depends to the configuration in the DefaultEngine.ini
-	* Section: [OnlineSubsystemAccelByte]
-	* Key: bManualRegisterServer (boolean)
-	* Effect TRUE: Developer is required to manually call the SendServerReady() after perform RegisterServer()
-	* Effect FALSE: Automatically handled & there is no need to call SendServerReady() after perform the RegisterServer()
-	* Default behavior: if not specified then FALSE
-	*/
-	bool bManualRegisterServer {false};
 
 	/** Hold instance to identity interface so we destroy session interface first before identity interface */
 	FOnlineIdentityAccelBytePtr InstanceIdentityInterface;

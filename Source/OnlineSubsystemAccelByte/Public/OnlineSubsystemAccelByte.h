@@ -68,6 +68,8 @@ class FOnlineAsyncTaskManagerAccelByte;
 
 struct FAccelByteModelsNotificationMessage;
 
+class FOnlineSubsystemAccelByteConfig;
+
 /** Shared pointer to the AccelByte implementation of the Session interface */
 #if AB_USE_V2_SESSIONS
 typedef TSharedPtr<FOnlineSessionV2AccelByte, ESPMode::ThreadSafe> FOnlineSessionAccelBytePtr;
@@ -158,6 +160,7 @@ typedef TSharedPtr<FOnlineGameStandardEventAccelByte, ESPMode::ThreadSafe> FOnli
 typedef TSharedPtr<IVoiceChat, ESPMode::ThreadSafe> IVoiceChatPtr;
 typedef TSharedPtr<IVoiceChatUser, ESPMode::ThreadSafe> IVoiceChatUserPtr;
 typedef TSharedPtr<FAccelByteVoiceChat, ESPMode::ThreadSafe> FAccelByteVoiceChatPtr;
+typedef TSharedPtr<FOnlineSubsystemAccelByteConfig, ESPMode::ThreadSafe> FOnlineSubsystemAccelByteConfigPtr;
 
 class ONLINESUBSYSTEMACCELBYTE_API FOnlineSubsystemAccelByte final
 	: public FOnlineSubsystemImpl
@@ -199,6 +202,7 @@ public:
 	virtual IOnlineVoicePtr GetVoiceInterface() const override;
 	virtual FOnlinePredefinedEventAccelBytePtr GetPredefinedEventInterface() const;
 	virtual FOnlineGameStandardEventAccelBytePtr GetGameStandardEventInterface() const;
+	virtual FOnlineSubsystemAccelByteConfigPtr GetConfig() const;
 	IVoiceChatPtr GetVoiceChatInterface();
 
 #if (ENGINE_MAJOR_VERSION == 4 && ENGINE_MINOR_VERSION <= 25)
@@ -230,17 +234,17 @@ public:
 	/**
 	 * Get the associated native platform subsystem name as a string, used for same platform checks
 	 */
-	FString GetNativePlatformNameString();
+	FString GetNativePlatformNameString() const;
 
 	/**
 	 * Get the associated native platform subsystem name as an FName
 	 */
-	FName GetNativePlatformName();
+	FName GetNativePlatformName() const;
 
 	/**
 	 * Get the app ID associated with this application from the native subsystem, or empty if no native subsystem is found.
 	 */
-	FString GetNativeAppId();
+	FString GetNativeAppId() const;
 	
 	void ResetLocalUserNumCached();
 	void SetLocalUserNumCached(int32 InLocalUserNum);
@@ -265,7 +269,7 @@ public:
 	 */
 	FAccelByteInstanceWPtr GetAccelByteInstance() const;
 
-	FString GetLanguage();
+	FString GetLanguage() const;
 
 	void SetLanguage(const FString & InLanguage);
 
@@ -321,6 +325,7 @@ PACKAGE_SCOPE:
 		, VoiceInterface(nullptr)
 		, PredefinedEventInterface(nullptr)
 		, GameStandardEventInterface(nullptr)
+		, Config(nullptr)
 		, Language(FGenericPlatformMisc::GetDefaultLanguage())
 		, AccelBytePluginList(TArray<FString>
 			{
@@ -390,7 +395,7 @@ PACKAGE_SCOPE:
 	FCriticalSection* GetUpcomingParentTaskLock() { return &UpcomingTaskParentLock; }
 	
 	/** To check the whether an Epic already set or not */
-	bool IsUpcomingEpicAlreadySet();
+	bool IsUpcomingEpicAlreadySet() const;
 
 	/** Register an Epic to the subsystem.
 	* Therefore, every upcoming task created will be considered as sub-task of this Epic.
@@ -437,7 +442,7 @@ PACKAGE_SCOPE:
 	 * the return boolean value
 	 * @return a boolean that is true if a match is found, and false otherwise
 	 */
-	bool GetAccelBytePlatformTypeFromAuthType(const FString& InAuthType, EAccelBytePlatformType& Result);
+	bool GetAccelBytePlatformTypeFromAuthType(const FString& InAuthType, EAccelBytePlatformType& Result) const;
 
 	/**
 	 * Attempt to get the corresponding AccelByte backend platform name from an OSS auth type string
@@ -445,35 +450,35 @@ PACKAGE_SCOPE:
 	 * @param InAuthType FName corresponding to the type of the UniqueId that you want to get a platform type for
 	 * @return String matching auth type, or blank if none corresponds
 	 */
-	FString GetAccelBytePlatformStringFromAuthType(const FString& InAuthType);
+	FString GetAccelBytePlatformStringFromAuthType(const FString& InAuthType) const;
 
 	/**
 	 * Convert an AccelByte platform type string to a string that represents the native subsystem name that it is associated with.
 	 */
-	FString GetNativeSubsystemNameFromAccelBytePlatformString(const FString& InAccelBytePlatform);
+	FString GetNativeSubsystemNameFromAccelBytePlatformString(const FString& InAccelBytePlatform) const;
 
 	/**
 	 * Gets the current native platform type as a string
 	 */
-	FString GetNativePlatformTypeAsString();
+	FString GetNativePlatformTypeAsString() const;
 
 	/**
 	 * Gets a simplified string for the native platform subsystem that is active.
 	 * Ex. if we are on GDK, then "xbox" will be returned.
 	 */
-	FString GetSimplifiedNativePlatformName();
+	FString GetSimplifiedNativePlatformName() const;
 
 	/**
 	 * Gets a simplified string from the platform name passed in.
 	 * Ex. if we are on GDK, then "xbox" will be returned.
 	 */
-	FString GetSimplifiedNativePlatformName(const FString& PlatformName);
+	FString GetSimplifiedNativePlatformName(const FString& PlatformName) const;
 
 	/**
 	 * To override the NativePlatformTokenRefreshScheduler conveniently if want to avoid the DefaultEngine.ini configuration.
 	 * Default behavior is already enabled.
 	 */
-	void SetNativePlatformTokenRefreshScheduler(int32 LocalUserNum, bool bEnableScheduler);
+	void SetNativePlatformTokenRefreshScheduler(int32 LocalUserNum);
 
 	bool IsAutoConnectLobby() const;
 
@@ -497,15 +502,6 @@ PACKAGE_SCOPE:
 	TOptional<AccelByte::IWebsocketConfigurableReconnectStrategy*> TryConfigureWebsocketConnection(int32 LocalUserNum, AccelByte::EConfigurableWebsocketServiceType Type);
 
 private:
-	/**************************************************
-	 * These are boolean that is configured from the DefaultEngine.ini
-	 */
-	bool bIsAutoLobbyConnectAfterLoginSuccess = false;
-	bool bIsAutoChatConnectAfterLoginSuccess = false;
-	bool bNativePlatformTokenRefreshManually = false;
-
-	/***************************************************/
-
 	bool bIsInitializedEventSent = false;
 	FDateTime PluginInitializedTime;
 
@@ -597,6 +593,9 @@ private:
 	/** Shared instance of our game standard event implementation */
 	FOnlineGameStandardEventAccelBytePtr GameStandardEventInterface;
 
+	/** Shared instance of the central subsystem config */
+	FOnlineSubsystemAccelByteConfigPtr Config{};
+
 	/** Thread spawned to run the FOnlineAsyncTaskManagerAccelBytePtr instance */
 	TUniquePtr<FRunnableThread> AsyncTaskManagerThread;
 	IVoiceChatPtr VoiceChatInterface;
@@ -633,13 +632,6 @@ private:
 	/** AccelByte instance */
 	FAccelByteInstancePtr AccelByteInstance;
 	FDelegateHandle OnPostEngineInitDelegate;
-
-	/**
-	 * @brief Platform type enum representing the source that should be used when determining the user's display name.
-	 *
-	 * If set to None, then the display name of the AB account will be used.
-	 */
-	EAccelBytePlatformType DisplayNameSource { EAccelBytePlatformType::None };
 
 	/**
 	 * @p2p Delegate handler fired when we get a successful login from the OSS on the first user. Used to initialize our network manager.
@@ -686,12 +678,6 @@ private:
 	 */
 	void NativePlatformTokenRefreshScheduler(int32 LocalUserNum);
 	void OnPresenceChanged(EAccelBytePlatformType PlatformType, const FString& PlatformUserId, EAvailability AvailabilityState);
-	
-	FName NativePlatformName{};
-	FName SecondaryPlatformName{};
-
-	FName NativePlatformSubsystemNameOverride{};
-	FName SecondaryPlatformSubsystemNameOverride{};
 
 	TMap<int32, FDelegateHandle> NativeTokenRefreshHandles;
 #pragma endregion

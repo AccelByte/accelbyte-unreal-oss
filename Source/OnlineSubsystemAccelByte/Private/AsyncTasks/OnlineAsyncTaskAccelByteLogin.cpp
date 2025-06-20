@@ -18,6 +18,7 @@
 #include "OnlineSubsystemAccelByteUtils.h"
 #include "LoginQueue/OnlineAsyncTaskAccelByteLoginQueue.h"
 #include "Core/Platform/AccelBytePlatformHandler.h"
+#include "OnlineSubsystemAccelByteConfig.h"
 
 using namespace AccelByte;
 
@@ -85,8 +86,6 @@ void FOnlineAsyncTaskAccelByteLogin::Initialize()
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("LocalUserNum: %d"), LoginUserNum);
 	
-	GConfig->GetInt(TEXT("OnlineSubsystemAccelByte"), TEXT("LoginQueuePresentationThreshold"), LoginQueuePresentationThreshold, GEngineIni);
-
 	TRY_PIN_SUBSYSTEM();
 
 	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(SubsystemPin->GetIdentityInterface());
@@ -888,6 +887,13 @@ void FOnlineAsyncTaskAccelByteLogin::OnLoginSuccessV4(const FAccelByteModelsLogi
 		CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState);
 		AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Failed to queue login ticket, Identity interface is invalid!"));
 		return;
+	}
+
+	int64 LoginQueuePresentationThreshold{};
+	FOnlineSubsystemAccelByteConfigPtr Config = SubsystemPin->GetConfig();
+	if (Config.IsValid())
+	{
+		LoginQueuePresentationThreshold = Config->GetLoginQueuePresentationThresholdSeconds().GetValue();
 	}
 
 	// initialize login queue here so LoginUserNum-Ticket map is filled when we trigger OnLoginQueuedDelegate

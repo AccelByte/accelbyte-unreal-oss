@@ -10,7 +10,7 @@
 #include "OnlineSubsystemAccelByteModule.h"
 #include "OnlineSubsystemAccelByteDefines.h"
 #include "Misc/Base64.h"
-#include "JsonObjectConverter.h"
+#include "Core/AccelByteTypeConverter.h"
 
 void FNotificationMessageManager::PublishToTopic(FString const& InTopic, const FAccelByteModelsNotificationMessage& InMessage, int32 InLocalUserNum)
 {
@@ -299,7 +299,7 @@ FUniqueNetIdAccelByteUserRef FUniqueNetIdAccelByteUser::Create(FString const& In
 	FAccelByteUniqueIdComposite CompositeId{};
 
 	const bool bIsEncodedCompositeString = FBase64::Decode(InNetIdStr, DecodedString) &&
-		FJsonObjectConverter::JsonObjectStringToUStruct(DecodedString, &CompositeId, 0, 0);
+		FAccelByteJsonConverter::JsonObjectStringToUStruct(DecodedString, &CompositeId);
 	if (!bIsEncodedCompositeString)
 	{
 		return Create(FAccelByteUniqueIdComposite(InNetIdStr));
@@ -382,7 +382,7 @@ bool FUniqueNetIdAccelByteUser::IsValid() const
 	}
 
 	FAccelByteUniqueIdComposite DecodedComposite;
-	if (!FJsonObjectConverter::JsonObjectStringToUStruct(JSONString, &DecodedComposite, 0, 0))
+	if (!FAccelByteJsonConverter::JsonObjectStringToUStruct(JSONString, &DecodedComposite))
 	{
 		UE_LOG_AB(VeryVerbose, TEXT("UniqueID validity test failed: unable to decode JSON composite object with string value of '%s'!"), *JSONString);
 		return false;
@@ -507,7 +507,7 @@ void FUniqueNetIdAccelByteUser::DecodeIDElements()
 		return;
 	}
 
-	if (!FJsonObjectConverter::JsonObjectStringToUStruct(JSONString, &CompositeStructure, 0, 0))
+	if (!FAccelByteJsonConverter::JsonObjectStringToUStruct(JSONString, &CompositeStructure))
 	{
 		UE_LOG_AB(Warning, TEXT("Failed to get JSON object for AccelByte composite ID from decoded string value of '%s'!"), *JSONString);
 		return;

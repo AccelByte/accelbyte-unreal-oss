@@ -17,6 +17,7 @@
 #include "OnlineWalletInterfaceAccelByte.h"
 #include "OnlineEntitlementsInterfaceAccelByte.h"
 #include "Core/AccelByteEntitlementTokenGenerator.h"
+#include "OnlineSubsystemAccelByteConfig.h"
 
 using namespace AccelByte;
 
@@ -238,9 +239,16 @@ void FOnlineAsyncTaskAccelByteConnectLobby::UnbindDelegates()
 
 TSharedPtr<IAccelByteTokenGenerator> FOnlineAsyncTaskAccelByteConnectLobby::CreateTokenGenerator()
 {
+	TRY_PIN_SUBSYSTEM(nullptr);
+
 	// Check if game is using entitlement gate feature
-	bool bEnableEntitlementGateCheck{false};
-	FAccelByteUtilities::LoadABConfigFallback(TEXT("OnlineSubsystemAccelByte"), TEXT("bEnableEntitlementGateCheck"), bEnableEntitlementGateCheck, GEngineIni);
+	bool bEnableEntitlementGateCheck { false };
+	FOnlineSubsystemAccelByteConfigPtr Config = SubsystemPin->GetConfig();
+	if (Config.IsValid())
+	{
+		bEnableEntitlementGateCheck = Config->GetEnableEntitlementGateCheck().GetValue();
+	}
+
 	if (!bEnableEntitlementGateCheck)
 	{
 		return nullptr;
@@ -248,9 +256,12 @@ TSharedPtr<IAccelByteTokenGenerator> FOnlineAsyncTaskAccelByteConnectLobby::Crea
 
 	AccelByte::FTokenGeneratorParams Params{};
 
-	GConfig->GetArray(TEXT("OnlineSubsystemAccelByte"), TEXT("EntitlementGateCheckSkus"), Params.Skus, GEngineIni);
-	GConfig->GetArray(TEXT("OnlineSubsystemAccelByte"), TEXT("EntitlementGateCheckItemIds"), Params.ItemIds, GEngineIni);
-	GConfig->GetArray(TEXT("OnlineSubsystemAccelByte"), TEXT("EntitlementGateCheckAppIds"), Params.AppIds, GEngineIni);
+	if (Config.IsValid())
+	{
+		Params.Skus = Config->GetEntitlementGateCheckSkus().GetValue();
+		Params.ItemIds = Config->GetEntitlementGateCheckItemIds().GetValue();
+		Params.AppIds = Config->GetEntitlementGateCheckAppIds().GetValue();
+	}
 
 	if (IsApiClientValid()) {
 		auto apiClient = GetApiClientInternal();

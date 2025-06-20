@@ -11,6 +11,7 @@
 #include "AsyncTasks/User/OnlineAsyncTaskAccelByteQueryUserProfile.h"
 #include "OnlineUserInterfaceAccelByte.h"
 #include "OnlineSubsystemUtils.h"
+#include "OnlineSubsystemAccelByteConfig.h"
 
 FAccelByteUserPlatformLinkInformation::FAccelByteUserPlatformLinkInformation
 	(const FString& InUserId /*= TEXT("")*/)
@@ -183,22 +184,6 @@ FOnlineUserCacheAccelByte::FOnlineUserCacheAccelByte(FOnlineSubsystemAccelByte* 
 
 void FOnlineUserCacheAccelByte::Init()
 {
-	if (!FAccelByteUtilities::LoadABConfigFallback(TEXT("OnlineSubsystemAccelByte")
-		, TEXT("bEnableStalenessChecking")
-		, bEnableStalenessChecking))
-	{
-		UE_LOG_AB(Verbose, TEXT("'bEnableStalenessChecking' is not specified in DefaultEngine.ini, or on command line. Defaulting to '%s'."), LOG_BOOL_FORMAT(bEnableStalenessChecking));
-	}
-
-	// Using int here as 'LoadABConfigFallback' does not have an override for double values
-	int32 TimeUntilStaleSecondsInt { static_cast<int32>(TimeUntilStaleSeconds) };
-	if (!FAccelByteUtilities::LoadABConfigFallback(TEXT("OnlineSubsystemAccelByte")
-		, TEXT("TimeUntilStaleSeconds")
-		, TimeUntilStaleSecondsInt))
-	{
-		UE_LOG_AB(Verbose, TEXT("'TimeUntilStaleSeconds' is not specified in DefaultEngine.ini, or on command line. Defaulting to %d seconds."), TimeUntilStaleSecondsInt);
-	}
-	TimeUntilStaleSeconds = static_cast<double>(TimeUntilStaleSecondsInt);
 }
 
 bool FOnlineUserCacheAccelByte::GetFromSubsystem(const IOnlineSubsystem* Subsystem, FOnlineUserCacheAccelBytePtr& OutInterfaceInstance)
@@ -291,6 +276,13 @@ bool FOnlineUserCacheAccelByte::IsUserCached(const FAccelByteUniqueIdComposite& 
 
 void FOnlineUserCacheAccelByte::GetQueryAndCacheArrays(const TArray<FString>& AccelByteIds, TArray<FString>& UsersToQuery, TArray<FAccelByteUserInfoRef>& UsersInCache)
 {
+	bool bEnableStalenessChecking { true };
+	FOnlineSubsystemAccelByteConfigPtr Config = Subsystem->GetConfig();
+	if (Config.IsValid())
+	{
+		bEnableStalenessChecking = Config->GetEnableStalenessChecking().GetValue();
+	}
+
 	for (const FString& AccelByteId : AccelByteIds)
 	{
 		const FAccelByteUserInfoRef* FoundCachedUser = AccelByteIdToUserInfoMap.Find(AccelByteId);
@@ -491,22 +483,46 @@ TSharedPtr<const FAccelByteUserInfo, ESPMode::ThreadSafe> FOnlineUserCacheAccelB
 
 bool FOnlineUserCacheAccelByte::IsStalenessCheckEnabled() const
 {
-	return bEnableStalenessChecking;
+	FOnlineSubsystemAccelByteConfigPtr Config = Subsystem->GetConfig();
+	if (!Config.IsValid())
+	{
+		return true;
+	}
+
+	return Config->GetEnableStalenessChecking().GetValue();
 }
 
 double FOnlineUserCacheAccelByte::GetTimeUntilStaleSeconds() const
 {
-	return TimeUntilStaleSeconds;
+	FOnlineSubsystemAccelByteConfigPtr Config = Subsystem->GetConfig();
+	if (!Config.IsValid())
+	{
+		return 10.0 * 60.0;
+	}
+
+	return Config->GetTimeUntilStaleSeconds().GetValue();
 }
 
 void FOnlineUserCacheAccelByte::SetStalenessCheckEnabled(bool bInEnableStalenessChecking)
 {
-	bEnableStalenessChecking = bInEnableStalenessChecking;
+	FOnlineSubsystemAccelByteConfigPtr Config = Subsystem->GetConfig();
+	if (!Config.IsValid())
+	{
+		return;
+	}
+
+	Config->GetEnableStalenessChecking().SetValue(bInEnableStalenessChecking);
 }
 
 void FOnlineUserCacheAccelByte::SetTimeUntilStaleSeconds(double InTimeUntilStaleSeconds)
 {
-	TimeUntilStaleSeconds = InTimeUntilStaleSeconds;
+	FOnlineSubsystemAccelByteConfigPtr Config = Subsystem->GetConfig();
+	if (!Config.IsValid())
+	{
+		return;
+	}
+
+	Config->GetTimeUntilStaleSeconds().SetValue(InTimeUntilStaleSeconds);
 }
 
 bool FOnlineUserCacheAccelByte::SetUserDataAsStale(const FUniqueNetId& UserUniqueId)

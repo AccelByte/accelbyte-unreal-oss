@@ -64,7 +64,7 @@ void FOnlineAsyncTaskAccelByteResetUserStats::Initialize()
 	ELoginStatus::Type LoginStatus;
 	if (!IsRunningDedicatedServer())
 	{
-		if (UserId.Get()->IsValid())
+		if (UserId.IsValid())
 		{
 			LoginStatus = IdentityInterface->GetLoginStatus(*UserId.Get());
 		}

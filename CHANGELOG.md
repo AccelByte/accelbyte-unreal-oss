@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.13.3](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.13.3%0D0.13.2) (2025-06-20)
+
+
+### Features
+
+* **config:** create new configuration class to centralize all OSS config ([49ec974](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/49ec9743d89403feb4abcac62564df5dbaeedcbe))
+* **version:** print version on module initialization ([a51b794](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/a51b7945fd6eb4cc3095b0f34c4de2cbdc9ad92d))
+
+
+### Bug Fixes
+
+* **AutoJoin:** missing function call to update party storage in order to exclude past session ([6a902d1](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/6a902d1ac801d1cb2eaf6b3aaee94a335b640a1d))
+* change JsonConverter to AccelByteJsonConverter to prevent crashes when enum values are not found ([24c8176](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/24c8176f619db8ab39d8339c894b1c7048b26c93))
+* **compile:** fix compile errors with non unity build ([70b7f3c](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/70b7f3c134e53515f34c68d3787a690e452a4457))
+* **config:** add initialization of config instance to init if engine is already initialized ([f518646](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/f51864609a7bec6c2967a0854d29a4fac74aad28))
+* initialize config when subsystem initialized ([a48912f](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/a48912fcdec031d9206d90bb593f0b2e08117897))
+* **Statistic:** incorrect method to check UserId validity ([a066ca7](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/a066ca7ecd7512848d4d1680a815a404ade0881c))
+* **store:** expose item struct getter for store offer class ([66e565e](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/66e565e357a65306981b329d7d626366102a0825))
+
 ### [0.13.2](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.13.2%0D0.13.1) (2025-05-21)
 
 

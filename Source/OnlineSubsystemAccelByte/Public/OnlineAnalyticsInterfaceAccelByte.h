@@ -121,4 +121,14 @@ private:
 	 * @return boolean that is true if the telemetry object is valid
 	 */
 	static bool IsValidTelemetry(FAccelByteModelsTelemetryBody const& TelemetryBody);
+
+	/**
+	 * Set telemetry send interval for game clients.
+	 */
+	bool ClientSetTelemetrySendInterval(int32 LocalUserNum, int64 IntervalSeconds);
+
+	/**
+	 * Set telemetry send interval for dedicated servers.
+	 */
+	bool ServerSetTelemetrySendInterval(int32 LocalUserNum, int64 IntervalSeconds);
 };
