@@ -227,8 +227,13 @@ EAccelByteLoginType FOnlineSubsystemAccelByteUtils::GetAccelByteLoginTypeFromNat
 	{
 		return EAccelByteLoginType::Google;
 	}
+#if ENGINE_MAJOR_VERSION <= 5 && ENGINE_MINOR_VERSION < 6 || ENGINE_MAJOR_VERSION == 4
 	else if (SubsystemStr.Equals(TEXT("SWITCH"), ESearchCase::IgnoreCase)
 		|| SubsystemStr.Equals(SWITCH_SUBSYSTEM.ToString(), ESearchCase::IgnoreCase))
+#else
+	else if (SubsystemStr.Equals(TEXT("SWITCH"), ESearchCase::IgnoreCase)
+		|| SubsystemStr.Equals(NINTENDO_SUBSYSTEM.ToString(), ESearchCase::IgnoreCase))
+#endif // ENGINE_MAJOR_VERSION <= 5 && ENGINE_MINOR_VERSION < 6
 	{
 		return EAccelByteLoginType::Switch;
 	}
@@ -242,6 +247,36 @@ EAccelByteLoginType FOnlineSubsystemAccelByteUtils::GetAccelByteLoginTypeFromNat
 
 	UE_LOG_AB(Warning, TEXT("Failed to convert subsystem '%s' to a usable login type for the AccelByte OSS! Most likely this subsystem is unsupported"), *SubsystemStr);
 	return EAccelByteLoginType::None;
+}
+
+EAccelByteLoginType FOnlineSubsystemAccelByteUtils::GetAccelByteLoginTypeFromPlatformType(EAccelBytePlatformType PlatformType)
+{
+	switch (PlatformType)
+	{
+	case EAccelBytePlatformType::Steam:
+		return EAccelByteLoginType::Steam;
+	case EAccelBytePlatformType::PS4:
+		return EAccelByteLoginType::PS4;
+	case EAccelBytePlatformType::PS4CrossGen:
+	case EAccelBytePlatformType::PS5:
+		return EAccelByteLoginType::PS5;
+	case EAccelBytePlatformType::PSPC:
+		return EAccelByteLoginType::PSPC;
+	case EAccelBytePlatformType::Live:
+		return EAccelByteLoginType::Xbox;
+	case EAccelBytePlatformType::EpicGames:
+		return EAccelByteLoginType::EOS;
+	case EAccelBytePlatformType::Nintendo:
+		return EAccelByteLoginType::Switch;
+	case EAccelBytePlatformType::Oculus:
+		return EAccelByteLoginType::Oculus;
+	case EAccelBytePlatformType::Apple:
+		return EAccelByteLoginType::Apple;
+	case EAccelBytePlatformType::GooglePlayGames:
+		return EAccelByteLoginType::GooglePlayGames;
+	default:
+		return EAccelByteLoginType::None;
+	}
 }
 
 EAccelBytePlatformType FOnlineSubsystemAccelByteUtils::GetAccelBytePlatformTypeFromAuthType(const FString& InAuthType)

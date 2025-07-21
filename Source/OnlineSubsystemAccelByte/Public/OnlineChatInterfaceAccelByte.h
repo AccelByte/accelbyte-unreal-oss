@@ -489,7 +489,9 @@ public:
 	 * Note: Party chat only available when TextChat configuration is true
 	 */
 	static FString PartyV1IdToChatTopicId(const FString &PartyId);
+	
 	/**
+	 * [DEPRECATED] Unreliable method to obtain the topic ID and might be different from backend's sorting result.
 	 * Convert User Id to personal Topic Id
 	 * To be able to send personal chat, personal topic need to be created first
 	 */
@@ -505,10 +507,20 @@ public:
 	 */
 
 	bool IsJoinedTopic(const FString &UserId, const FString &TopicId);
+
 	/**
 	 * Check if user has personal chat topic to target user
 	 */
 	bool HasPersonalChat(const FString& FromUserId, const FString& ToUserId);
+
+	/**
+	 * Get user's personal chat topic to target user
+	 * 
+	 * @param FromUserId
+	 * @param ToUserId
+	 * @return TOptional<FString> Value will be set if personal chat is found
+	 */
+	TOptional<FString> GetPersonalChatTopicId(const FString& FromUserId, const FString& ToUserId);
 	//~ End Chat Utility functions
 
 	/**

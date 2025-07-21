@@ -126,11 +126,21 @@ void FOnlineAsyncTaskAccelByteQueryStatsUsers::Initialize()
 		else
 		{
 			API_FULL_CHECK_GUARD(Statistic, ErrorMessage);
-			Statistic->GetUserStatItems(AccelByteUserId
+			if(UserId->GetAccelByteId() == AccelByteUserId)
+			{
+				Statistic->GetMyStatItems(StatNames
+				, {}
+				, OnGetUserStatItemsSuccessHandler
+				, OnError);
+			}
+			else
+			{
+				Statistic->GetUserStatItems(AccelByteUserId
 				, StatNames
 				, {}
 				, OnGetUserStatItemsSuccessHandler
 				, OnError);
+			}
 		}
 	}
 

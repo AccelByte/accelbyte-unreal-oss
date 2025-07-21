@@ -208,7 +208,7 @@ void FOnlineAsyncEpicTaskAccelByte::Enqueue(ETypeOfOnlineAsyncTask TaskType, FOn
 		{
 			if (NodePtr->GetValue().Num() == 0)
 			{
-				NodePtr->GetNextNode();
+				(void)NodePtr->GetNextNode();
 				continue;
 			}
 

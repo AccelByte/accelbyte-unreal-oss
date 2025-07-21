@@ -107,6 +107,7 @@ static EAccelBytePlatformType ConvertOSSTypeToAccelBytePlatformType(EAccelByteLo
 		return EAccelBytePlatformType::Live;
 	case EAccelByteLoginType::PS4:
 		return EAccelBytePlatformType::PS4;
+	case EAccelByteLoginType::PS4CrossGen:
 	case EAccelByteLoginType::PS5:
 		return EAccelBytePlatformType::PS5;
 	case EAccelByteLoginType::PSPC:
@@ -1128,6 +1129,8 @@ private:
 	bool bIsConnectedToLobby{false};
 
 	bool bIsConnectedToChat{false};
+
+	mutable FCriticalSection PlatformUsersLock{};
 };
 
 UENUM(BlueprintType)

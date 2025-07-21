@@ -628,6 +628,7 @@ void FOnlineAsyncTaskAccelByteLogin::PerformLogin(const FOnlineAccountCredential
 			AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sending async task to login with PS4 auth token from native online subsystem."));
 			PlatformId = FAccelByteUtilities::GetUEnumValueAsString(EAccelBytePlatformType::PS4);
 			break;
+		case EAccelByteLoginType::PS4CrossGen:
 		case EAccelByteLoginType::PS5:
 			User->LoginWithOtherPlatformV4(EAccelBytePlatformType::PS5, Credentials.Token, OnLoginSuccessDelegate, OnLoginErrorOAuthDelegate, bCreateHeadlessAccount,  AccountCredentials.OptionalParams);
 			AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sending async task to login with PS5 auth token from native online subsystem."));
@@ -984,7 +985,11 @@ void FOnlineAsyncTaskAccelByteLogin::Tick()
 	API_CLIENT_CHECK_GUARD();
 	if(ApiClient->CredentialsRef->IsSessionValid())
 	{
-		OnLoginSuccess();
+		auto SelfOnLoginSuccessDelegate = TDelegateUtils<FVoidHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteLogin::OnLoginSuccess);
+		AsyncTask(ENamedThreads::GameThread, [SelfOnLoginSuccessDelegate]()
+			{
+				SelfOnLoginSuccessDelegate.ExecuteIfBound();
+			});
 	}
 }
 

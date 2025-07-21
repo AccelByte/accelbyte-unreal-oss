@@ -2,6 +2,29 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.13.4](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.13.4%0D0.13.3) (2025-07-21)
+
+
+### Features
+
+* add fscopelock for thread safe ([5048365](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/50483656ae53a4d9fbcbd9576b45eecfb896ccb8))
+* add utilities to get native login type based on platform type ([4d45c78](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/4d45c78c2cd9272cf8c0c271f62d4b38e771d818))
+* **DSHub:** add a delegate to listen if the connection to the DS hub is failed to established ([d82765c](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/d82765c91a4a3f502d870d0211cd0f36b15c3007))
+* support for ue5.6 ([7dbbeae](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/7dbbeaec28919673c40f3c9a6ef977f95ea3f608))
+
+
+### Bug Fixes
+
+* add support to list self stat items when dispatching FOnlineAsyncTaskAccelByteQueryStatsUsers ([6e53edc](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/6e53edc5c44ad0774b25e76cdc54358d343734e0))
+* **chat:** change the personal chat topic ID management ([833b220](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/833b220d364323dbdd362c93e2c73e3fc43f00a1))
+* **chat:** prevent breaking change, retain the missing function, and adding deprecation log ([475d84c](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/475d84c0574d76060addd919e56f327b3a739e1d))
+* make sure that AccelByteOnLobbyConnectionClosedDelegates will always be called inside FOnlineSubsystemAccelByte::OnLobbyConnectionClosed ([547bdff](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/547bdffc2858c7dfc57f9921ec6fbfc7ce45e33b))
+
+
+### Documentations
+
+* update supported engine versions ([f44531b](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/f44531befc966c83110ca203d708054b195c6b3f))
+
 ### [0.13.3](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.13.3%0D0.13.2) (2025-06-20)
 
 

@@ -904,6 +904,8 @@ void FOnlineSubsystemAccelByte::OnLobbyConnectionClosed(int32 StatusCode, const 
 	if (!LocalUserId.IsValid())
 	{
 		UE_LOG_AB(Warning, TEXT("Error due to Local User is invalid"));
+		auto InvalidId = FUniqueNetIdAccelByteUser::Invalid();
+		IdentityInterface->TriggerAccelByteOnLobbyConnectionClosedDelegates(InLocalUserNum, *InvalidId, StatusCode, Reason, WasClean);
 		return;
 	}
 
@@ -911,6 +913,8 @@ void FOnlineSubsystemAccelByte::OnLobbyConnectionClosed(int32 StatusCode, const 
 	if (!UserAccount.IsValid())
 	{
 		UE_LOG_AB(Warning, TEXT("Error due to User Account is invalid"));
+		auto InvalidId = FUniqueNetIdAccelByteUser::Invalid();
+		IdentityInterface->TriggerAccelByteOnLobbyConnectionClosedDelegates(InLocalUserNum, *InvalidId, StatusCode, Reason, WasClean);
 		return;
 	}
 

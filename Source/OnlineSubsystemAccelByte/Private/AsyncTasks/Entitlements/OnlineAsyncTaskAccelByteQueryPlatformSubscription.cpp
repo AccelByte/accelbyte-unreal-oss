@@ -47,7 +47,7 @@ void FOnlineAsyncTaskAccelByteQueryPlatformSubscription::Initialize()
 	if (PlatformSync == EAccelBytePlatformSync::OTHER)
 	{
 		CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
-		ErrorMessage = FString::Printf(TEXT("Current plugin version does not support %s platform yet."), &NativeSubsystemName);
+		ErrorMessage = FString::Printf(TEXT("Current plugin version does not support %s platform yet."), *NativeSubsystemName);
 		return;
 	}
 

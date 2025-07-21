@@ -31,8 +31,6 @@ void FOnlineAsyncTaskAccelByteChatSendPersonalChat::Initialize()
 	
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 
-	RoomId = FOnlineChatAccelByte::PersonalChatTopicId(UserId->GetAccelByteId(), RecipientId->GetAccelByteId());
-
 	FOnlineChatAccelBytePtr ChatInterface;
 	if(!ensure(FOnlineChatAccelByte::GetFromSubsystem(SubsystemPin.Get(),  ChatInterface)))
 	{
@@ -41,8 +39,11 @@ void FOnlineAsyncTaskAccelByteChatSendPersonalChat::Initialize()
 		return;
 	}
 
-	if (ChatInterface->HasPersonalChat(UserId->GetAccelByteId(), RecipientId->GetAccelByteId()))
+	auto RoomIdFromInterface = ChatInterface->GetPersonalChatTopicId(UserId->GetAccelByteId(), RecipientId->GetAccelByteId());
+
+	if (RoomIdFromInterface.IsSet())
 	{
+		RoomId = RoomIdFromInterface.GetValue();
 		SendPersonalChat();
 	}
 	else
@@ -175,6 +176,7 @@ void FOnlineAsyncTaskAccelByteChatSendPersonalChat::OnCreatePersonalTopicSuccess
 	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("TopicId: %s"), *Response.TopicId);
+	RoomId = Response.TopicId;
 
 	FOnlineChatAccelBytePtr ChatInterface;
 	if (ensure(FOnlineChatAccelByte::GetFromSubsystem(SubsystemPin.Get(),  ChatInterface)))

@@ -12,6 +12,9 @@ delegates, and is also designed to  be modular by grouping similar service-speci
 - [x] Unreal Engine 5.1.x
 - [x] Unreal Engine 5.2.x
 - [x] Unreal Engine 5.3.x
+- [x] Unreal Engine 5.4.x
+- [x] Unreal Engine 5.5.x
+- [x] Unreal Engine 5.6.x (Beta)
 
 ## Dependencies
 AccelByte OSS have some dependencies to another Plugins/Modules, such as the following:
@@ -20,4 +23,4 @@ AccelByte OSS have some dependencies to another Plugins/Modules, such as the fol
 2. AccelByte Cloud Network Utilities ([link](https://github.com/AccelByte/accelbyte-unreal-network-utilities)):
    a library that comprises network functionalities to communicate between game clients for P2P networking.
 ## Documentation
-The setup and implementation guideline are available in [our portal](https://docs.accelbyte.io/gaming-services/sdk-tools/sdk-guides/ags-oss-for-ue/).
+The setup and implementation guideline are available in [our portal](https://docs.accelbyte.io/gaming-services/knowledge-base/sdk-tools/sdk-guides/ags-oss-for-ue/).

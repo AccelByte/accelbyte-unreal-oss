@@ -181,6 +181,7 @@ bool FOnlineIdentityAccelByte::Login(int32 LocalUserNum, const FOnlineAccountCre
 			, LocalUserNum
 			, AccountCredentials
 			, AccountCredentials.bCreateHeadlessAccount);
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Dispatching async task to attempt to simultaneous login!"));
 	}
 	else
 	{
@@ -799,7 +800,7 @@ bool FOnlineIdentityAccelByte::AuthenticateAccelByteServer(const FOnAuthenticate
 	return false;
 #endif
 
-#if UE_SERVER || UE_EDITOR
+#if (defined(UE_SERVER) && UE_SERVER) || (defined(UE_EDITOR) && UE_EDITOR)
 	if (!bIsServerAuthenticated && !bIsAuthenticatingServer)
 	{
 		bIsAuthenticatingServer = true;

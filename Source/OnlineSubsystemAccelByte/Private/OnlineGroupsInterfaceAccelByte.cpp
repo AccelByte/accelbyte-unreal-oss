@@ -625,7 +625,7 @@ void FOnlineGroupsAccelByte::DeclineUser(const FUniqueNetId& ContextUserId, cons
 
 void FOnlineGroupsAccelByte::InviteUser(const FUniqueNetId& InviterUserId, const FUniqueNetId& InvitedUserId, const FAccelByteGroupsInfo& InGroupInfo, const FOnGroupsRequestCompleted& OnCompleted)
 {
-	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("InviterUserId: %d, InvitedUserId: %s"), *InviterUserId.ToDebugString(), *InvitedUserId.ToDebugString());
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("InviterUserId: %s, InvitedUserId: %s"), *InviterUserId.ToDebugString(), *InvitedUserId.ToDebugString());
 
 	if (!VerifyGroupInfo(InGroupInfo))
 		return;

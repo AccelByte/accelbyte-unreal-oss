@@ -786,6 +786,8 @@ FString FUserOnlineAccountAccelByte::GetDisplayName(const FString& Platform) con
 		return DisplayName;
 	}
 
+	FScopeLock Lock(&PlatformUsersLock);
+
 	// Attempt to find matching platform type in linked accounts
 	const FOnlinePlatformUserAccelByte* FoundPlatformUser = PlatformUsers.Find(Platform);
 	if (FoundPlatformUser == nullptr)
@@ -928,12 +930,16 @@ void FUserOnlineAccountAccelByte::AddPlatformUser(const FOnlinePlatformUserAccel
 	// Assuming PlatformUser has a GetPlatformId method that returns a unique ID for each platform user
 	FString Key = PlatformUser.GetPlatformId(); 
 
+	FScopeLock Lock(&PlatformUsersLock);
+
 	// Add the PlatformUser to the map with Key as its identifier
 	PlatformUsers.Add(Key, PlatformUser);
 }
 
 const FOnlinePlatformUserAccelByte* FUserOnlineAccountAccelByte::GetPlatformUser(const FString& PlatformId) const
 {
+	FScopeLock Lock(&PlatformUsersLock);
+
 	// Find returns a pointer to the value type (FOnlinePlatformUserAccelByte) in the map
 	const FOnlinePlatformUserAccelByte* FoundUser = PlatformUsers.Find(PlatformId);
 	if (FoundUser != nullptr)

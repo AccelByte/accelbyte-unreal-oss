@@ -35,7 +35,9 @@ void FOnlineAsyncTaskAccelByteSendV2GameSessionInvite::Initialize()
 	}
 	else
 	{
-		AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Recipient ID: %s"), *RecipientId->GetAccelByteId());
+		UE_LOG_AB(Warning, TEXT("Failed to send session invite as game server is not allowed to send a public game session invite. "));
+		CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
+		return;
 	}
 
 	// First, check if the player is currently in a game session of given SessionName, if we're not, then we shouldn't do this
@@ -57,8 +59,7 @@ void FOnlineAsyncTaskAccelByteSendV2GameSessionInvite::Initialize()
 	}
 	else
 	{
-		SERVER_API_CLIENT_CHECK_GUARD();
-		ServerApiClient->ServerSession.SendGameSessionInvite(SessionId, RecipientId->GetAccelByteId(), OnSendGameSessionInviteSuccessDelegate, OnSendGameSessionInviteErrorDelegate);
+		// Do nothing, already caught by the checking above IsRunningDedicatedServer()
 	}
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
@@ -77,10 +78,6 @@ void FOnlineAsyncTaskAccelByteSendV2GameSessionInvite::Finalize()
 		if (!IsRunningDedicatedServer())
 		{
 			PredefinedEventInterface->SendEvent(LocalUserNum, MakeShared<FAccelByteModelsMPV2GameSessionInvitedPayload>(GameSessionInvitedPayload));
-		}
-		else
-		{
-			PredefinedEventInterface->SendEvent(-1, MakeShared<FAccelByteModelsMPV2GameSessionInvitedPayload>(GameSessionInvitedPayload));
 		}
 	}
 }

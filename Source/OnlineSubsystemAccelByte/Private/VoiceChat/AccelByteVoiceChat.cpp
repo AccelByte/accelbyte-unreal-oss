@@ -360,6 +360,7 @@ void FAccelByteVoiceChat::Set3DPosition(const FString& ChannelName, const FVecto
 }
 #endif
 
+#if ENGINE_MAJOR_VERSION <= 5 && ENGINE_MINOR_VERSION < 6 || ENGINE_MAJOR_VERSION == 4
 void FAccelByteVoiceChat::Set3DPosition(const FString& ChannelName, const FVector& SpeakerPosition, const FVector& ListenerPosition, const FVector& ListenerForwardDirection, const FVector& ListenerUpDirection)
 {
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >=4
@@ -370,6 +371,7 @@ void FAccelByteVoiceChat::Set3DPosition(const FString& ChannelName, const FVecto
 	GetVoiceChatUser()->Set3DPosition(ChannelName, SpeakerPosition, ListenerPosition, ListenerForwardDirection, ListenerUpDirection);
 #endif
 }
+#endif // ENGINE_MAJOR_VERSION <= 5 && ENGINE_MINOR_VERSION < 6
 
 TArray<FString> FAccelByteVoiceChat::GetChannels() const
 {
@@ -504,19 +506,31 @@ void FAccelByteVoiceChat::StopRecording(FDelegateHandle Handle)
 	GetVoiceChatUser()->StopRecording(Handle);
 }
 
+#if (ENGINE_MAJOR_VERSION <= 5 && ENGINE_MINOR_VERSION < 6) || ENGINE_MAJOR_VERSION == 4
 FDelegateHandle FAccelByteVoiceChat::RegisterOnVoiceChatAfterCaptureAudioReadDelegate(const FOnVoiceChatAfterCaptureAudioReadDelegate::FDelegate& Delegate)
 {
 	return GetVoiceChatUser()->RegisterOnVoiceChatAfterCaptureAudioReadDelegate(Delegate);
 }
 
-void FAccelByteVoiceChat::UnregisterOnVoiceChatAfterCaptureAudioReadDelegate(FDelegateHandle Handle)
-{
-	GetVoiceChatUser()->UnregisterOnVoiceChatAfterCaptureAudioReadDelegate(Handle);
-}
-
 FDelegateHandle FAccelByteVoiceChat::RegisterOnVoiceChatBeforeCaptureAudioSentDelegate(const FOnVoiceChatBeforeCaptureAudioSentDelegate::FDelegate& Delegate)
 {
 	return GetVoiceChatUser()->RegisterOnVoiceChatBeforeCaptureAudioSentDelegate(Delegate);
+}
+#else
+FDelegateHandle FAccelByteVoiceChat::RegisterOnVoiceChatAfterCaptureAudioReadDelegate(const FOnVoiceChatAfterCaptureAudioReadDelegate2::FDelegate& Delegate)
+{
+	return GetVoiceChatUser()->RegisterOnVoiceChatAfterCaptureAudioReadDelegate(Delegate);
+}
+
+FDelegateHandle FAccelByteVoiceChat::RegisterOnVoiceChatBeforeCaptureAudioSentDelegate(const FOnVoiceChatBeforeCaptureAudioSentDelegate2::FDelegate& Delegate)
+{
+	return GetVoiceChatUser()->RegisterOnVoiceChatBeforeCaptureAudioSentDelegate(Delegate);
+}
+#endif
+
+void FAccelByteVoiceChat::UnregisterOnVoiceChatAfterCaptureAudioReadDelegate(FDelegateHandle Handle)
+{
+	GetVoiceChatUser()->UnregisterOnVoiceChatAfterCaptureAudioReadDelegate(Handle);
 }
 
 void FAccelByteVoiceChat::UnregisterOnVoiceChatBeforeCaptureAudioSentDelegate(FDelegateHandle Handle)

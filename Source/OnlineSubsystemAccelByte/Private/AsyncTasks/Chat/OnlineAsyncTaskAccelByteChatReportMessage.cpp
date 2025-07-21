@@ -75,7 +75,7 @@ void FOnlineAsyncTaskAccelByteChatReportMessage::OnReportMessageSuccess(const FA
 
 void FOnlineAsyncTaskAccelByteChatReportMessage::OnReportMessageError(int32 ErrorCode, const FString& ErrorMessage)
 {
-	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("UserId: %d"), *UserId->GetAccelByteId());
+	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("UserId: %s"), *UserId->GetAccelByteId());
 
 	OnlineError = ONLINE_ERROR(EOnlineErrorResult::RequestFailure, FString::FromInt(ErrorCode), FText::FromString(TEXT("report-chat-message-failed")));
 	CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);

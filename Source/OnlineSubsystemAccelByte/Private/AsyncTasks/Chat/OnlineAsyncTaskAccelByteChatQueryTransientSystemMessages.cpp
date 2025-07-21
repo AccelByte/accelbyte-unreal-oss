@@ -52,7 +52,7 @@ void FOnlineAsyncTaskAccelByteChatQueryTransientSystemMessages::TriggerDelegates
 
 void FOnlineAsyncTaskAccelByteChatQueryTransientSystemMessages::OnQuerySystemMessagesSuccess(const FAccelByteModelsQuerySystemMessagesResponse& Response)
 {
-	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("UserId: %d"), *UserId->GetAccelByteId());
+	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("UserId: %s"), *UserId->GetAccelByteId());
 
 	for (const auto& MessagesResponse : Response.Data)
 	{
@@ -69,7 +69,7 @@ void FOnlineAsyncTaskAccelByteChatQueryTransientSystemMessages::OnQuerySystemMes
 
 void FOnlineAsyncTaskAccelByteChatQueryTransientSystemMessages::OnQuerySystemMessagesError(int32 ErrorCode, const FString& ErrorMessage)
 {
-	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("UserId: %d"), *UserId->GetAccelByteId());
+	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("UserId: %s"), *UserId->GetAccelByteId());
 	OnlineError = ONLINE_ERROR(EOnlineErrorResult::RequestFailure, FString::FromInt(ErrorCode), FText::FromString(ErrorMessage));
 	CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Failed to query system messages, ErrorCode: %d, ErrorMessage: %s"), ErrorCode, *ErrorMessage);

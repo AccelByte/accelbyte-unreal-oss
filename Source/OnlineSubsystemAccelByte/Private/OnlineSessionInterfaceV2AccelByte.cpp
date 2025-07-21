@@ -5026,6 +5026,12 @@ bool FOnlineSessionV2AccelByte::SendSessionInviteToFriend(const FUniqueNetId& Lo
 	EAccelByteV2SessionType SessionType = GetSessionTypeFromSettings(Session->SessionSettings);
 	if (SessionType == EAccelByteV2SessionType::GameSession)
 	{
+		if (IsRunningDedicatedServer())
+		{
+			AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to send session invite as game server is not allowed to send a public game session invite. "));
+			return false;
+		}
+
 		AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskSerial<FOnlineAsyncTaskAccelByteSendV2GameSessionInvite>(AccelByteSubsystemPtr.Get(), LocalUserId, SessionName, Friend);
 		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Sending invite to player for game session!"));
 		return true;
@@ -8079,6 +8085,9 @@ void FOnlineSessionV2AccelByte::ConnectToDSHub(const FString& ServerName)
 
 	const AccelByte::GameServerApi::FConnectionClosed OnDSHubConnectionClosedNotificationDelegate = AccelByte::GameServerApi::FConnectionClosed::CreateThreadSafeSP(SharedThis(this), &FOnlineSessionV2AccelByte::OnDSHubConnectionClosedNotification);
 	ServerApiClient->ServerDSHub.SetOnConnectionClosed(OnDSHubConnectionClosedNotificationDelegate);
+	
+	const AccelByte::GameServerApi::FConnectError OnDSHubFailedToConnectDelegate = AccelByte::GameServerApi::FConnectError::CreateThreadSafeSP(SharedThis(this), &FOnlineSessionV2AccelByte::OnDSHubFailedToConnect);
+	ServerApiClient->ServerDSHub.SetOnConnectError(OnDSHubFailedToConnectDelegate);
 
 	ServerApiClient->ServerDSHub.OnReconnectAttemptedMulticastDelegate().AddThreadSafeSP(SharedThis(this), &FOnlineSessionV2AccelByte::OnDSHubReconnectAttempted);
 
@@ -8115,6 +8124,7 @@ void FOnlineSessionV2AccelByte::DisconnectFromDSHub()
 	ServerApiClient->ServerDSHub.SetOnV2SessionEndedNotificationDelegate(AccelByte::GameServerApi::FOnV2SessionEndedNotification());
 	ServerApiClient->ServerDSHub.SetOnConnectSuccess(AccelByte::GameServerApi::FConnectSuccess());
 	ServerApiClient->ServerDSHub.SetOnConnectionClosed(AccelByte::GameServerApi::FConnectionClosed());
+	ServerApiClient->ServerDSHub.SetOnConnectError(AccelByte::GameServerApi::FConnectError());
 	
 	// Finally, disconnect the DS hub websocket
 	ServerApiClient->ServerDSHub.Disconnect();
@@ -8323,6 +8333,11 @@ void FOnlineSessionV2AccelByte::OnDSHubConnectSuccessNotification()
 		DSHubConnectedPayload.PodName = ServerApiClient->ServerDSM.GetServerName();
 		PredefinedEventInterface->SendEvent(-1, MakeShared<FAccelByteModelsDSHubConnectedPayload>(DSHubConnectedPayload));
 	}
+}
+
+void FOnlineSessionV2AccelByte::OnDSHubFailedToConnect(const FString& Reason)
+{
+	TriggerAccelByteOnDSHubFailedToConnectDelegates(Reason);
 }
 
 void FOnlineSessionV2AccelByte::OnDSHubConnectionClosedNotification(int32 StatusCode, const FString & Reason, bool bWasClean)

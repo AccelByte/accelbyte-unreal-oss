@@ -685,9 +685,10 @@ bool FOnlineChatAccelByte::GetLastMessages(
 	FString RoomIdToLoad = RoomId;
 
 	// Check if the room id is the user id, so it will load personal chat message
-	if(HasPersonalChat(AccelByteUserId->GetAccelByteId(), RoomId))
+	auto OptionalRoomIdToLoad = GetPersonalChatTopicId(AccelByteUserId->GetAccelByteId(), RoomId);
+	if(OptionalRoomIdToLoad.IsSet())
 	{
-		RoomIdToLoad = PersonalChatTopicId(AccelByteUserId->GetAccelByteId(), RoomId);
+		RoomIdToLoad = OptionalRoomIdToLoad.GetValue();
 	}
 
 	FChatRoomIdToChatMessages* RoomIdToChatMessages = UserIdToChatRoomMessagesCached.Find(AccelByteUserId);
@@ -743,7 +744,10 @@ FString FOnlineChatAccelByte::PartyV1IdToChatTopicId(const FString& PartyId)
 
 FString FOnlineChatAccelByte::PersonalChatTopicId(const FString& FromUserId, const FString& ToUserId)
 {
-	TArray<FString> UserIds = {FromUserId, ToUserId};
+	FReport::LogDeprecated(FString(__FUNCTION__),
+		TEXT("PersonalChatTopicId is deprecated - unreliable method to obtain the topic ID and might be different from backend's sorting result. Please use FOnlineChatAccelByte::GetPersonalChatTopicId."));
+
+	TArray<FString> UserIds = { FromUserId, ToUserId };
 	UserIds.Sort();
 	return FString::Printf(TEXT("#%s,%s"), *UserIds[0], *UserIds[1]);
 }
@@ -777,9 +781,22 @@ bool FOnlineChatAccelByte::IsJoinedTopic(const FString& UserId, const FString& T
 
 bool FOnlineChatAccelByte::HasPersonalChat(const FString& FromUserId, const FString& ToUserId)
 {
-	const FString TopicId = PersonalChatTopicId(FromUserId, ToUserId);
-	const FAccelByteChatRoomInfoRef* ChatRoomInfo = TopicIdToChatRoomInfoCached.Find(TopicId);
-	return ChatRoomInfo != nullptr;
+	return GetPersonalChatTopicId(FromUserId, ToUserId).IsSet();
+}
+
+TOptional<FString> FOnlineChatAccelByte::GetPersonalChatTopicId(const FString& FromUserId, const FString& ToUserId)
+{
+	TSet<FString> KeyResult{};
+	auto KeyCount = TopicIdToChatRoomInfoCached.GetKeys(KeyResult);
+	for (const auto& Key : KeyResult)
+	{
+		if (Key.Contains(FromUserId, ESearchCase::IgnoreCase) && Key.Contains(ToUserId, ESearchCase::IgnoreCase))
+		{
+			return Key;
+		}
+	}
+
+	return {};
 }
 
 void FOnlineChatAccelByte::RemoveMemberFromTopic(const FString& UserId, const FString& TopicId)

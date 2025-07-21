@@ -600,6 +600,9 @@ typedef FAccelByteOnDSHubReconnectAttempted::FDelegate FAccelByteOnDSHubReconnec
 DECLARE_MULTICAST_DELEGATE_OneParam(FAccelByteOnDSHubMassiveOutageEvent, const AccelByte::FMassiveOutageInfo& /*Reconnect exhaustion info*/);
 typedef FAccelByteOnDSHubMassiveOutageEvent::FDelegate FAccelByteOnDSHubMassiveOutageEventDelegate;
 
+DECLARE_MULTICAST_DELEGATE_OneParam(FAccelByteOnDSHubFailedToConnect, const FString& /*Message*/);
+typedef FAccelByteOnDSHubFailedToConnect::FDelegate FAccelByteOnDSHubFailedToConnectDelegate;
+
 DECLARE_MULTICAST_DELEGATE_TwoParams(FOnPartySessionCreated, const FUniqueNetId& /*LocalUserId*/, const FOnlineSession& /*Session*/);
 typedef FOnPartySessionCreated::FDelegate FOnPartySessionCreatedDelegate;
 
@@ -1506,6 +1509,11 @@ public:
 	 * Called when the DSHub websocket has been disconnected for longer than usual and can't be reconnected yet
 	 */
 	DEFINE_ONLINE_DELEGATE_ONE_PARAM(AccelByteOnDSHubMassiveOutageEvent, const AccelByte::FMassiveOutageInfo& /*Info*/);
+	
+	/**
+	 * Called when the DSHub websocket connection failed to established
+	 */
+	DEFINE_ONLINE_DELEGATE_ONE_PARAM(AccelByteOnDSHubFailedToConnect, const FString& /*Info*/);
 
 #if (ENGINE_MAJOR_VERSION == 4 && ENGINE_MINOR_VERSION <= 25)
 	/**
@@ -2118,6 +2126,7 @@ private:
 	void OnV2DsSessionMemberChangedNotification(const FAccelByteModelsV2GameSession& Notification);
 	void OnV2DsSessionEndedNotification(const FAccelByteModelsSessionEndedNotification& Notification);
 	void OnDSHubConnectSuccessNotification();
+	void OnDSHubFailedToConnect(const FString& Reason);
 	void OnDSHubConnectionClosedNotification(int32 StatusCode, const FString& Reason, bool bWasClean);
 	void OnDSHubReconnectAttempted(const AccelByte::FReconnectAttemptInfo& Info);
 	void OnDSHubMassiveOutageEvent(const AccelByte::FMassiveOutageInfo& Info);

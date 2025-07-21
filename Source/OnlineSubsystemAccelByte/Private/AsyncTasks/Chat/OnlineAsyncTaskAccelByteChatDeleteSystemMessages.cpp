@@ -54,7 +54,7 @@ void FOnlineAsyncTaskAccelByteChatDeleteSystemMessages::TriggerDelegates()
 
 void FOnlineAsyncTaskAccelByteChatDeleteSystemMessages::OnDeleteSystemMessagesSuccess(const FAccelByteModelsDeleteSystemMessagesResponse& Response)
 {
-	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("UserId: %d"), *UserId->GetAccelByteId());
+	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("UserId: %s"), *UserId->GetAccelByteId());
 	OnlineError = ONLINE_ERROR(EOnlineErrorResult::Success, FString(), FText());
 	CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
@@ -62,7 +62,7 @@ void FOnlineAsyncTaskAccelByteChatDeleteSystemMessages::OnDeleteSystemMessagesSu
 
 void FOnlineAsyncTaskAccelByteChatDeleteSystemMessages::OnDeleteSystemMessagesError(int32 ErrorCode, const FString& ErrorMessage)
 {
-	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("UserId: %d"), *UserId->GetAccelByteId());
+	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("UserId: %s"), *UserId->GetAccelByteId());
 	OnlineError = ONLINE_ERROR(EOnlineErrorResult::RequestFailure, FString::FromInt(ErrorCode), FText::FromString(TEXT("delete-system-messages-failed")));
 	CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Failed to delete system messages, ErrorCode: %d, ErrorMessage: %s"), ErrorCode, *ErrorMessage);

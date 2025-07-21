@@ -55,7 +55,7 @@ void FOnlineAsyncTaskAccelByteChatUpdateSystemMessages::TriggerDelegates()
 void FOnlineAsyncTaskAccelByteChatUpdateSystemMessages::OnUpdateSystemMessagesSuccess(
 	const FAccelByteModelsUpdateSystemMessagesResponse& Response)
 {
-	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("UserId: %d"), *UserId->GetAccelByteId());
+	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("UserId: %s"), *UserId->GetAccelByteId());
 	OnlineError = ONLINE_ERROR(EOnlineErrorResult::Success, FString(), FText());
 	CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
@@ -63,7 +63,7 @@ void FOnlineAsyncTaskAccelByteChatUpdateSystemMessages::OnUpdateSystemMessagesSu
 
 void FOnlineAsyncTaskAccelByteChatUpdateSystemMessages::OnUpdateSystemMessagesError(int32 ErrorCode, const FString& ErrorMessage)
 {
-	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("UserId: %d"), *UserId->GetAccelByteId());
+	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("UserId: %s"), *UserId->GetAccelByteId());
 	OnlineError = ONLINE_ERROR(EOnlineErrorResult::RequestFailure, FString::FromInt(ErrorCode), FText::FromString(ErrorMessage));
 	CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Failed to update system messages, ErrorCode: %d, ErrorMessage: %s"), ErrorCode, *ErrorMessage);
