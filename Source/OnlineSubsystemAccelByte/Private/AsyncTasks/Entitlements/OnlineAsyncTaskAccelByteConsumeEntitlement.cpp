@@ -1,4 +1,4 @@
-﻿#include "OnlineAsyncTaskAccelByteConsumeEntitlement.h"
+#include "OnlineAsyncTaskAccelByteConsumeEntitlement.h"
 
 #include "OnlineEntitlementsInterfaceAccelByte.h"
 #include "Interfaces/OnlineEntitlementsInterface.h"

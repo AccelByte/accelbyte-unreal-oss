@@ -1,4 +1,4 @@
-﻿#include "OnlineAsyncTaskAccelByteServerKickV2GameSession.h"
+#include "OnlineAsyncTaskAccelByteServerKickV2GameSession.h"
 
 using namespace AccelByte;
 

@@ -1,4 +1,4 @@
-﻿#include "OnlineAsyncTaskAccelByteGetUserEntitlementHistory.h"
+#include "OnlineAsyncTaskAccelByteGetUserEntitlementHistory.h"
 
 #include "OnlineEntitlementsInterfaceAccelByte.h"
 #include "Interfaces/OnlineEntitlementsInterface.h"
