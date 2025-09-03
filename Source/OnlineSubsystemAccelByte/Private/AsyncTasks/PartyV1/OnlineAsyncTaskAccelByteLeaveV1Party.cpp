@@ -2,10 +2,14 @@
 // This is licensed software from AccelByte Inc, for limitations
 // and restrictions contact your company contract manager.
 
+#if 1 // MMv1 Deprecation
+
 #include "OnlineAsyncTaskAccelByteLeaveV1Party.h"
 #include "OnlineSubsystemAccelByte.h"
 #include "OnlinePartyInterfaceAccelByte.h"
 #include "OnlineSessionInterfaceV1AccelByte.h"
+
+#include "Core/AccelByteReport.h"
 
 using namespace AccelByte;
 
@@ -16,6 +20,8 @@ FOnlineAsyncTaskAccelByteLeaveV1Party::FOnlineAsyncTaskAccelByteLeaveV1Party(FOn
 	, Delegate(InDelegate)
 	, CompletionResult(ELeavePartyCompletionResult::LeavePending)
 {
+	FReport::LogDeprecated(FString(__FUNCTION__),
+		TEXT("Party V1 functionality is deprecated and replaced by Party V2. For more information, see https://docs.accelbyte.io/gaming-services/services/play/party/"));
 	UserId = FUniqueNetIdAccelByteUser::CastChecked(InLocalUserId);
 }
 
@@ -155,3 +161,4 @@ void FOnlineAsyncTaskAccelByteLeaveV1Party::OnLeavePartyResponse(const FAccelByt
 
 	UE_LOG(LogAccelByteOSSParty, Verbose, TEXT("Left party '%s'!"), *PartyId->ToString());
 }
+#endif

@@ -3,6 +3,7 @@
 // and restrictions contact your company contract manager.
 
 #pragma once
+#if 1 // MMv1 Deprecation
 
 #include "AsyncTasks/OnlineAsyncTaskAccelByte.h"
 #include "AsyncTasks/OnlineAsyncTaskAccelByteUtils.h"
@@ -40,3 +41,4 @@ private:
 
 	bool bShouldRefreshOnlineData;
 };
+#endif

@@ -6,7 +6,10 @@
 
 using namespace AccelByte;
 
-FOnlineAsyncTaskAccelByteGenerateNewV2GameCode::FOnlineAsyncTaskAccelByteGenerateNewV2GameCode(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InLocalUserId, const FName& InSessionName, const FOnGenerateNewPartyCodeComplete& InDelegate)
+FOnlineAsyncTaskAccelByteGenerateNewV2GameCode::FOnlineAsyncTaskAccelByteGenerateNewV2GameCode(FOnlineSubsystemAccelByte* const InABInterface
+	, const FUniqueNetId& InLocalUserId
+	, const FName& InSessionName
+	, const FOnGenerateNewPartyCodeComplete& InDelegate)
 	: FOnlineAsyncTaskAccelByte(InABInterface)
 	, SessionName(InSessionName)
 	, Delegate(InDelegate)
@@ -16,11 +19,20 @@ FOnlineAsyncTaskAccelByteGenerateNewV2GameCode::FOnlineAsyncTaskAccelByteGenerat
 
 void FOnlineAsyncTaskAccelByteGenerateNewV2GameCode::Initialize()
 {
-	TRY_PIN_SUBSYSTEM();
-
 	Super::Initialize();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("UserId: %s; SessionName: %s"), *UserId->ToDebugString(), *SessionName.ToString());
+
+	TRY_PIN_SUBSYSTEM();
+
+	TOptional<bool> IsDS = SubsystemPin->IsDedicatedServer(LocalUserNum);
+
+	if (!IsDS.IsSet())
+	{
+		CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
+		AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
+		return;
+	}
 
 	FOnlineSessionV2AccelBytePtr SessionInterface = nullptr;
 	AB_ASYNC_TASK_VALIDATE(FOnlineSessionV2AccelByte::GetFromSubsystem(SubsystemPin.Get(),  SessionInterface), "Failed to get session interface for generating game code!");
@@ -34,7 +46,7 @@ void FOnlineAsyncTaskAccelByteGenerateNewV2GameCode::Initialize()
 	OnGenerateNewCodeSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsV2GameSession>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteGenerateNewV2GameCode::OnGenerateNewCodeSuccess);
 	OnGenerateNewCodeErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteGenerateNewV2GameCode::OnGenerateNewCodeError);;
 
-	if(IsRunningDedicatedServer())
+	if (IsDS.GetValue())
 	{
 		SERVER_API_CLIENT_CHECK_GUARD();
 		ServerApiClient->ServerSession.GenerateNewGameSessionCode(SessionId, OnGenerateNewCodeSuccessDelegate, OnGenerateNewCodeErrorDelegate);

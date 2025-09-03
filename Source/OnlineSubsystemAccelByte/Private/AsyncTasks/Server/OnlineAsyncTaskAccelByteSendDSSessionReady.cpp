@@ -3,18 +3,17 @@
 // and restrictions contact your company contract manager.
 
 #include "OnlineAsyncTaskAccelByteSendDSSessionReady.h"
+#include "OnlineSessionInterfaceV2AccelByte.h"
 
 using namespace AccelByte;
 
 #define ONLINE_ERROR_NAMESPACE "FOnlineAsyncTaskAccelByteSendDSReady"
 
-FOnlineAsyncTaskAccelByteSendDSSessionReady::FOnlineAsyncTaskAccelByteSendDSSessionReady(	FOnlineSubsystemAccelByte* const InABInterface, bool bInIsServerReady)
+FOnlineAsyncTaskAccelByteSendDSSessionReady::FOnlineAsyncTaskAccelByteSendDSSessionReady(FOnlineSubsystemAccelByte* const InABInterface
+	, bool bInIsServerReady)
 	: FOnlineAsyncTaskAccelByte(InABInterface, INVALID_CONTROLLERID, ASYNC_TASK_FLAG_BIT(EAccelByteAsyncTaskFlags::ServerTask))
 	, bIsServerReady(bInIsServerReady)
 {
-	TRY_PIN_SUBSYSTEM_CONSTRUCTOR()
-
-	FOnlineSessionV2AccelByte::GetFromSubsystem(SubsystemPin.Get(), SessionInterface);
 }
 
 void FOnlineAsyncTaskAccelByteSendDSSessionReady::Initialize()
@@ -23,7 +22,11 @@ void FOnlineAsyncTaskAccelByteSendDSSessionReady::Initialize()
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 
-	if (!IsRunningDedicatedServer())
+	TRY_PIN_SUBSYSTEM();
+
+	TOptional<bool> IsDS = SubsystemPin->IsDedicatedServer(LocalUserNum);
+
+	if (!IsDS.IsSet() || !IsDS.GetValue())
 	{
 		ErrorText = FText::FromString(TEXT("send-ds-ready-not-a-server"));
 		OnlineError = ONLINE_ERROR(EOnlineErrorResult::RequestFailure, FString(), ErrorText);
@@ -32,6 +35,7 @@ void FOnlineAsyncTaskAccelByteSendDSSessionReady::Initialize()
 		return;
 	}
 
+	auto SessionInterface = SubsystemPin->GetSessionInterface();
 	if (!SessionInterface.IsValid())
 	{
 		ErrorText = FText::FromString(TEXT("send-ds-ready-failed-session-interface-invalid"));
@@ -69,6 +73,9 @@ void FOnlineAsyncTaskAccelByteSendDSSessionReady::TriggerDelegates()
 {
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s, ErrorMessage: %s"), LOG_BOOL_FORMAT(bWasSuccessful), *ErrorText.ToString());
 
+	TRY_PIN_SUBSYSTEM();
+
+	auto SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(SubsystemPin->GetSessionInterface());
 	if (SessionInterface.IsValid())
 	{
 		SessionInterface->TriggerOnSendDSSessionReadyCompleteDelegates(OnlineError);

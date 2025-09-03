@@ -3,6 +3,7 @@
 // and restrictions contact your company contract manager.
 
 #pragma once
+#if 1 // MMv1 Deprecation
 
 #include "CoreMinimal.h"
 #include "Runtime/Launch/Resources/Version.h"
@@ -315,6 +316,11 @@ PACKAGE_SCOPE:
 	void RegisterRealTimeLobbyDelegates(int32 LocalUserNum);
 
 	/**
+	 * Added to prevent compile failure if Session V2 is not enabled. This function does nothing.
+	 */
+	void UnbindLobbyMulticastDelegate();
+
+	/**
 	 * Method fired when a session result is created for either matchmaking or a waiting area. Will notify proper delegates.
 	 */
 	void OnSessionResultCreateSuccess(const FOnlineSessionSearchResult& Result);
@@ -505,3 +511,5 @@ public:
 };
 
 typedef TSharedPtr<FOnlineSessionV1AccelByte, ESPMode::ThreadSafe> FOnlineSessionV1AccelBytePtr;
+
+#endif

@@ -11,8 +11,6 @@
 
 struct FAccelByteModelsChatQueryTopicResponse;
 
-DECLARE_DELEGATE_ThreeParams(FOnChatQueryRoomComplete, bool /*bWasSuccessful*/, TArray<FAccelByteChatRoomInfoRef> /*Result*/, int32 /*LocalUserNum*/);
-
 class FOnlineAsyncTaskAccelByteChatQueryRoom
 	: public FOnlineAsyncTaskAccelByte
 	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteChatQueryRoom, ESPMode::ThreadSafe>

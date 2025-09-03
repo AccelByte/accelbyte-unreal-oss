@@ -524,7 +524,7 @@ void FUniqueNetIdAccelByteUser::DecodeIDElements()
 #pragma endregion // FUniquneNetIdAccelByteUser
 
 #pragma region FOnlineSessionInfoAccelByte
-
+#if 1 // MMv1 Deprecation
 FOnlineSessionInfoAccelByteV1::FOnlineSessionInfoAccelByteV1()
 	: FOnlineSessionInfo()
 	, HostAddr(ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM)->CreateInternetAddr())
@@ -714,7 +714,7 @@ int32 FOnlineSessionInfoAccelByteV1::GetP2PChannel()
 {
 	return P2PChannel;
 }
-
+#endif // MMv1 Deprecation
 #pragma endregion // FOnlineSessionInfoAccelByte
 
 #pragma region FUserOnlineAccountAccelByte

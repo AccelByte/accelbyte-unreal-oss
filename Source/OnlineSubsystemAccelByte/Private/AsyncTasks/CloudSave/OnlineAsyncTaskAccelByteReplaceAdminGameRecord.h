@@ -16,7 +16,11 @@ class FOnlineAsyncTaskAccelByteReplaceAdminGameRecord
 	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteReplaceAdminGameRecord, ESPMode::ThreadSafe>
 {
 public:
-	FOnlineAsyncTaskAccelByteReplaceAdminGameRecord(FOnlineSubsystemAccelByte* const InABInterface, int32 InLocalUserNum, const FString& InKey, const FJsonObject& InGameRecordObj, const FTTLConfig& TTLConfig);
+	FOnlineAsyncTaskAccelByteReplaceAdminGameRecord(FOnlineSubsystemAccelByte* const InABInterface
+		, int32 InLocalUserNum
+		, FString const& InKey
+		, FJsonObject const& InGameRecordObj
+		, FTTLConfig const& TTLConfig);
 
 	virtual void Initialize() override;
 	virtual void TriggerDelegates() override;
@@ -33,20 +37,14 @@ private:
 	/**
 	 * Delegate handler for when replace game record succeed
 	 */
-	void OnReplaceAdminGameRecordSuccess(const FAccelByteModelsAdminGameRecord& Result);
+	void OnReplaceAdminGameRecordSuccess(FAccelByteModelsAdminGameRecord const& Result);
 	THandler<FAccelByteModelsAdminGameRecord> OnReplaceAdminGameRecordSuccessDelegate;
 
 	/**
 	 * Delegate handler for when get game record fails
 	 */
-	void OnReplaceAdminGameRecordError(int32 ErrorCode, const FString& ErrorMessage);
+	void OnReplaceAdminGameRecordError(int32 ErrorCode, FString const& ErrorMessage);
 	FErrorHandler OnReplaceAdminGameRecordErrorDelegate;
-
-	/**
-	 * String representing the error code that occurred
-	 */
-	FText ErrorStr;
-	FString ErrorCode;
 
 	/**
 	 * String representing the record key to get

@@ -4,10 +4,10 @@
 
 #include "OnlineAsyncTaskAccelByteSendReadyToAMS.h"
 #include "OnlineSubsystemAccelByte.h"
-#if AB_USE_V2_SESSIONS
-#include "OnlineSessionInterfaceV2AccelByte.h"
-#else
+#if !AB_USE_V2_SESSIONS
 #include "OnlineSessionInterfaceV1AccelByte.h"
+#else
+#include "OnlineSessionInterfaceV2AccelByte.h"
 #endif
 
 using namespace AccelByte;

@@ -1,11 +1,14 @@
 // Copyright (c) 2022 AccelByte Inc. All Rights Reserved.
 // This is licensed software from AccelByte Inc, for limitations
 // and restrictions contact your company contract manager.
+#if 1 // MMv1 Deprecation
 
 #include "OnlineAsyncTaskAccelByteUpdateV1GameSession.h"
 #include "OnlineSubsystemAccelByte.h"
 #include "OnlineIdentityInterfaceAccelByte.h"
 #include "AsyncTasks/OnlineAsyncTaskAccelByte.h"
+
+#include "Core/AccelByteReport.h"
 
 FOnlineAsyncTaskAccelByteUpdateV1GameSession::FOnlineAsyncTaskAccelByteUpdateV1GameSession(FOnlineSubsystemAccelByte* const InABInterface, FName InSessionName, FOnlineSessionSettings& InUpdatedSessionSettings, uint32 InCurrentPlayer, bool InBShouldRefreshOnlineData)
     : FOnlineAsyncTaskAccelByte(InABInterface, true)
@@ -14,6 +17,8 @@ FOnlineAsyncTaskAccelByteUpdateV1GameSession::FOnlineAsyncTaskAccelByteUpdateV1G
     , CurrentPlayer(InCurrentPlayer)
     , bShouldRefreshOnlineData(InBShouldRefreshOnlineData)
 {
+    AccelByte::FReport::LogDeprecated(FString(__FUNCTION__),
+		TEXT("Session V1 functionality is deprecated and replaced by Session V2. For more information, see https://docs.accelbyte.io/gaming-services/services/play/session/"));
     TRY_PIN_SUBSYSTEM_CONSTRUCTOR()
 
     LocalUserNum = SubsystemPin->GetLocalUserNumCached();
@@ -73,3 +78,4 @@ void FOnlineAsyncTaskAccelByteUpdateV1GameSession::TriggerDelegates()
 
     AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
+#endif

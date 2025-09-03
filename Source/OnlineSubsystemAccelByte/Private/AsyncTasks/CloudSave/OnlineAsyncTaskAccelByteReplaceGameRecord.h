@@ -16,7 +16,12 @@ class FOnlineAsyncTaskAccelByteReplaceGameRecord
 	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteReplaceGameRecord, ESPMode::ThreadSafe>
 {
 public:
-	FOnlineAsyncTaskAccelByteReplaceGameRecord(FOnlineSubsystemAccelByte* const InABInterface, int32 InLocalUserNum, const FString& InKey, ESetByMetadataRecord SetBy, const FJsonObject& InGameRecordObj, const FTTLConfig& TTLConfig);
+	FOnlineAsyncTaskAccelByteReplaceGameRecord(FOnlineSubsystemAccelByte* const InABInterface
+		, int32 InLocalUserNum
+		, FString const& InKey
+		, ESetByMetadataRecord SetBy
+		, FJsonObject const& InGameRecordObj
+		, FTTLConfig const& TTLConfig);
 
 	virtual void Initialize() override;
 	virtual void Finalize() override;
@@ -40,14 +45,9 @@ private:
 	/**
 	 * Delegate handler for when get game record fails
 	 */
-	void OnReplaceGameRecordError(int32 ErrorCode, const FString& ErrorMessage);
+	void OnReplaceGameRecordError(int32 ErrorCode
+		, FString const& ErrorMessage);
 	FErrorHandler OnReplaceGameRecordErrorDelegate;
-
-	/**
-	 * String representing the error code that occurred
-	 */
-	FText ErrorStr;
-	FString ErrorCode;
 
 	/**
 	 * String representing the record key to get

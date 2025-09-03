@@ -3,6 +3,7 @@
 // and restrictions contact your company contract manager.
 
 #pragma once
+#if 1 // MMv1 Deprecation
 
 #include "AsyncTasks/OnlineAsyncTaskAccelByte.h"
 #include "AsyncTasks/OnlineAsyncTaskAccelByteUtils.h"
@@ -16,7 +17,11 @@ class FOnlineAsyncTaskAccelByteRemoveUserFromV1Session
 public:
 
 	/** Task to remove user from session in the channel */
-	FOnlineAsyncTaskAccelByteRemoveUserFromV1Session(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InLocalUserId, const FString& InChannelName, const FString& InMatchId, const FOnRemoveUserFromSessionComplete& InDelegate = FOnRemoveUserFromSessionComplete());
+	FOnlineAsyncTaskAccelByteRemoveUserFromV1Session(FOnlineSubsystemAccelByte* const InABInterface
+		, const FUniqueNetId& InTargetUserId
+		, const FString& InChannelName
+		, const FString& InMatchId
+		, const FOnRemoveUserFromSessionComplete& InDelegate = FOnRemoveUserFromSessionComplete());
 
 	virtual void Initialize() override;
 	virtual void TriggerDelegates() override;
@@ -32,6 +37,7 @@ private:
 
 	FString ChannelName;
 	FString MatchId;
+	FUniqueNetIdAccelByteUserPtr TargetUserId;
 	FOnRemoveUserFromSessionComplete Delegate;
 	FVoidHandler OnRemoveUserFromSessionSuccessDelegate;
 	FErrorHandler OnRemoveUserFromSessionErrorDelegate;
@@ -51,3 +57,4 @@ private:
 	void OnAuthenticateServerComplete(bool bAuthenticationSuccessful);
 
 };
+#endif

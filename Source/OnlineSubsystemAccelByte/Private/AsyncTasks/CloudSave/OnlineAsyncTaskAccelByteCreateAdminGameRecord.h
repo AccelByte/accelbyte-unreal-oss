@@ -16,7 +16,12 @@ class FOnlineAsyncTaskAccelByteCreateAdminGameRecord
 	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteCreateAdminGameRecord, ESPMode::ThreadSafe>
 {
 public:
-	FOnlineAsyncTaskAccelByteCreateAdminGameRecord(FOnlineSubsystemAccelByte* const InABInterface, int32 InLocalUserNum, const FString& InKey, const FJsonObject& InGameRecordObj, const TArray<FString> InTags, const FTTLConfig& TTLConfig);
+	FOnlineAsyncTaskAccelByteCreateAdminGameRecord(FOnlineSubsystemAccelByte* const InABInterface
+		, int32 InLocalUserNum
+		, FString const& InKey
+		, FJsonObject const& InGameRecordObj
+		, TArray<FString> const& InTags
+		, FTTLConfig const& TTLConfig);
 
 	virtual void Initialize() override;
 	virtual void TriggerDelegates() override;
@@ -41,12 +46,6 @@ private:
 	 */
 	void OnCreateAdminGameRecordError(int32 ErrorCode, const FString& ErrorMessage);
 	FErrorHandler OnCreateAdminGameRecordErrorDelegate;
-
-	/**
-	 * String representing the error code that occurred
-	 */
-	FText ErrorStr;
-	FString ErrorCode;
 
 	/**
 	 * String representing the record key to get

@@ -8,35 +8,42 @@
 
 using namespace AccelByte;
 
-FOnlineAsyncTaskAccelByteRefreshV2GameSession::FOnlineAsyncTaskAccelByteRefreshV2GameSession(FOnlineSubsystemAccelByte* const InABInterface, const FName& InSessionName, const FOnRefreshSessionComplete& InDelegate)
+FOnlineAsyncTaskAccelByteRefreshV2GameSession::FOnlineAsyncTaskAccelByteRefreshV2GameSession(FOnlineSubsystemAccelByte* const InABInterface
+	, const FUniqueNetId& InLocalUserId
+	, const FName& InSessionName
+	, const FOnRefreshSessionComplete& InDelegate
+	, bool IsDedicatedServer /* = false */)
 	// Initialize as a server task if we are running a server task, as this doubles as a server task. Otherwise, use no flags 
-	: FOnlineAsyncTaskAccelByte(InABInterface, INVALID_CONTROLLERID, (IsRunningDedicatedServer()) ? ASYNC_TASK_FLAG_BIT(EAccelByteAsyncTaskFlags::ServerTask) : ASYNC_TASK_FLAG_BIT(EAccelByteAsyncTaskFlags::None))
+	: FOnlineAsyncTaskAccelByte(InABInterface
+		, INVALID_CONTROLLERID
+		, IsDedicatedServer ? ASYNC_TASK_FLAG_BIT(EAccelByteAsyncTaskFlags::ServerTask) : ASYNC_TASK_FLAG_BIT(EAccelByteAsyncTaskFlags::None))
 	, SessionName(InSessionName)
 	, Delegate(InDelegate)
 {
 	TRY_PIN_SUBSYSTEM_CONSTRUCTOR()
 
-	if (!IsRunningDedicatedServer())
+	if (!IsDedicatedServer)
 	{
-		IOnlineSessionPtr SessionInterface = SubsystemPin->GetSessionInterface();
-		if (ensure(SessionInterface.IsValid()))
-		{
-			FNamedOnlineSession* Session = SessionInterface->GetNamedSession(SessionName);
-			if (ensure(Session != nullptr))
-			{
-				UserId = FUniqueNetIdAccelByteUser::CastChecked(Session->LocalOwnerId.ToSharedRef());
-			}
-		}
+		UserId = FUniqueNetIdAccelByteUser::CastChecked(InLocalUserId);
 	}
 }
 
 void FOnlineAsyncTaskAccelByteRefreshV2GameSession::Initialize()
 {
-	TRY_PIN_SUBSYSTEM();
-
 	Super::Initialize();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("SessionName: %s"), *SessionName.ToString());
+
+	TRY_PIN_SUBSYSTEM();
+
+	TOptional<bool> IsDS = SubsystemPin->IsDedicatedServer(LocalUserNum);
+
+	if (!IsDS.IsSet())
+	{
+		CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
+		AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
+		return;
+	}
 
 	const TSharedPtr<FOnlineSessionV2AccelByte, ESPMode::ThreadSafe> SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(SubsystemPin->GetSessionInterface());
 	check(SessionInterface.IsValid());
@@ -50,7 +57,7 @@ void FOnlineAsyncTaskAccelByteRefreshV2GameSession::Initialize()
 	// Send the API call based on whether we are a server or a client
 	OnRefreshGameSessionSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsV2GameSession>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteRefreshV2GameSession::OnRefreshGameSessionSuccess);
 	OnRefreshGameSessionErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteRefreshV2GameSession::OnRefreshGameSessionError);;
-	if (IsRunningDedicatedServer())
+	if (IsDS.GetValue())
 	{
 		SERVER_API_CLIENT_CHECK_GUARD();
 		ServerApiClient->ServerSession.GetGameSessionDetails(SessionId, OnRefreshGameSessionSuccessDelegate, OnRefreshGameSessionErrorDelegate);

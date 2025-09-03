@@ -16,7 +16,17 @@ class FOnlineAsyncTaskAccelByteCreateGameSessionV2
 public:
 
 	/** Constructor to setup the RegisterPlayers task */
-	FOnlineAsyncTaskAccelByteCreateGameSessionV2(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InHostingPlayerId, const FName& InSessionName, const FOnlineSessionSettings& InNewSessionSettings);
+	FOnlineAsyncTaskAccelByteCreateGameSessionV2(FOnlineSubsystemAccelByte* const InABInterface
+		, const FUniqueNetId& InHostingPlayerId
+		, const FName& InSessionName
+		, const FOnlineSessionSettings& InNewSessionSettings
+		, bool IsDedicatedServer = false);
+
+	FOnlineAsyncTaskAccelByteCreateGameSessionV2(FOnlineSubsystemAccelByte* const InABInterface
+		, int32 InLocalUserNum
+		, const FName& InSessionName
+		, const FOnlineSessionSettings& InNewSessionSettings
+		, bool IsDedicatedServer = false);
 
 	virtual void Initialize() override;
 	virtual void Finalize() override;

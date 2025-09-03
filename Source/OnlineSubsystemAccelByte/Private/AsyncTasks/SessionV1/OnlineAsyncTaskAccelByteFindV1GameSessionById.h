@@ -3,6 +3,7 @@
 // and restrictions contact your company contract manager.
 #pragma once
 
+#if 1 // MMv1 Deprecation
 #include "AsyncTasks/OnlineAsyncTaskAccelByte.h"
 #include "AsyncTasks/OnlineAsyncTaskAccelByteUtils.h"
 #include "OnlineSubsystemAccelByteTypes.h"
@@ -15,7 +16,17 @@ class FOnlineAsyncTaskAccelByteFindV1GameSessionById
 {
 public:
 
-	FOnlineAsyncTaskAccelByteFindV1GameSessionById(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InSearchingPlayerId, const FUniqueNetId& InSessionId, const FOnSingleSessionResultCompleteDelegate& InDelegate);
+	FOnlineAsyncTaskAccelByteFindV1GameSessionById(FOnlineSubsystemAccelByte* const InABInterface
+		, const FUniqueNetId& InSearchingPlayerId
+		, const FUniqueNetId& InSessionId
+		, const FOnSingleSessionResultCompleteDelegate& InDelegate
+		, bool IsDedidcatedServer = false);
+
+	FOnlineAsyncTaskAccelByteFindV1GameSessionById(FOnlineSubsystemAccelByte* const InABInterface
+		, int32 InLocalUserNum
+		, const FUniqueNetId& InSessionId
+		, const FOnSingleSessionResultCompleteDelegate& InDelegate
+		, bool IsDedidcatedServer = false);
 
 	virtual void Initialize() override;
 	virtual void Finalize() override;
@@ -55,3 +66,4 @@ private:
 	FErrorHandler OnGetGameSessionDetailsErrorDelegate;
 	void OnGetGameSessionDetailsError(int32 ErrorCode, const FString& ErrorMessage);	
 };
+#endif

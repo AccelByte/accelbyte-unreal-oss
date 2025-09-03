@@ -17,7 +17,11 @@ class FOnlineAsyncTaskAccelByteUpdateGameSessionV2
 {
 public:
 
-	FOnlineAsyncTaskAccelByteUpdateGameSessionV2(FOnlineSubsystemAccelByte* const InABInterface, const FName& InSessionName, const FOnlineSessionSettings& InNewSessionSettings);
+	FOnlineAsyncTaskAccelByteUpdateGameSessionV2(FOnlineSubsystemAccelByte* const InABInterface
+		, int32 InLocalUserNum
+		, const FName& InSessionName
+		, const FOnlineSessionSettings& InNewSessionSettings
+		, bool IsDedicatedServer = false);
 
 	virtual void Initialize() override;
 	virtual void Finalize() override;

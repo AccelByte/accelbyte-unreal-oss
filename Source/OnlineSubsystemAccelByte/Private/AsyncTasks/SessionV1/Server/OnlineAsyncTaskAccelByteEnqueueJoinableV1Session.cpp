@@ -1,6 +1,8 @@
 // Copyright (c) 2022 AccelByte Inc. All Rights Reserved.
 // This is licensed software from AccelByte Inc, for limitations
 // and restrictions contact your company contract manager.
+#if 1 // MMv1 Deprecation
+
 #include "OnlineAsyncTaskAccelByteEnqueueJoinableV1Session.h"
 #include "OnlineSubsystemAccelByteTypes.h"
 #include "OnlineSessionSettings.h"
@@ -9,6 +11,8 @@
 
 #include "Core/AccelByteError.h"
 
+#include "Core/AccelByteReport.h"
+
 using namespace AccelByte;
 
 FOnlineAsyncTaskAccelByteEnqueueJoinableV1Session::FOnlineAsyncTaskAccelByteEnqueueJoinableV1Session(FOnlineSubsystemAccelByte* const InABInterface, const FName& InSessionName, const FOnEnqueueJoinableSessionComplete& InDelegate)
@@ -16,6 +20,8 @@ FOnlineAsyncTaskAccelByteEnqueueJoinableV1Session::FOnlineAsyncTaskAccelByteEnqu
 	, SessionName(InSessionName)
 	, Delegate(InDelegate)
 {
+	FReport::LogDeprecated(FString(__FUNCTION__),
+		TEXT("Session V1 functionality is deprecated and replaced by Session V2. For more information, see https://docs.accelbyte.io/gaming-services/services/play/session/"));
 }
 
 void FOnlineAsyncTaskAccelByteEnqueueJoinableV1Session::Initialize()
@@ -100,3 +106,4 @@ void FOnlineAsyncTaskAccelByteEnqueueJoinableV1Session::OnEnqueueJoinableSession
 	UE_LOG_AB(Warning, TEXT("Failed to enqueue joinable session for '%s' to DSM! Error code: %d; Error message: %s"), *SessionName.ToString(), ErrorCode, *ErrorMessage);
 	CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
 }
+#endif

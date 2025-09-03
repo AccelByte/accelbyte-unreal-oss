@@ -30,135 +30,144 @@ void FOnlineAsyncTaskAccelByteSyncDLC::Initialize()
 
 	const FName NativeSubsystemName = SubsystemPin->GetNativePlatformName();
 
+	// Rely to the native subsystem name as a way to differentiate which platform is it
+	EAccelByteLoginType LoginType = FOnlineSubsystemAccelByteUtils::GetAccelByteLoginTypeFromNativeSubsystem(NativeSubsystemName);
+
 	API_FULL_CHECK_GUARD(Entitlement, Error);
-	// Use the respective API sync depending on the platform user is on
-#ifdef STEAM_SUBSYSTEM
-	if (NativeSubsystemName == STEAM_SUBSYSTEM)
+
+	switch (LoginType)
 	{
-		Entitlement->SyncSteamDLC(OnSuccessDelegate, OnErrorDelegate);
-		AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
-		return;
+		case EAccelByteLoginType::Steam:
+		{
+			Entitlement->SyncSteamDLC(OnSuccessDelegate, OnErrorDelegate);
+			AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
+			return;
+		}
+
+		case EAccelByteLoginType::Xbox:
+		{
+			FAccelByteModelsXBoxDLCSync XboxDLCSync;
+
+			IOnlineSubsystem* PlatformSubsystem = SubsystemPin->GetNativePlatformSubsystem();
+			if (PlatformSubsystem == nullptr)
+			{
+				CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState);
+				return;
+			}
+
+			IOnlineIdentityPtr PlatformIdentityInt = PlatformSubsystem->GetIdentityInterface();
+			if (!PlatformIdentityInt.IsValid())
+			{
+				CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState);
+				return;
+			}
+
+			// Get user's platform user id 
+			FUniqueNetIdPtr PlatformUniqueId = UserId->GetPlatformUniqueId();
+			if (!PlatformUniqueId.IsValid())
+			{
+				CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState);
+				return;
+			}
+
+			TSharedPtr<FUserOnlineAccount> UserAccount = PlatformIdentityInt->GetUserAccount(PlatformUniqueId.ToSharedRef().Get());
+			XboxDLCSync.XstsToken = UserAccount->GetAccessToken();
+
+			Entitlement->SyncXBoxDLC(XboxDLCSync, OnSuccessDelegate, OnErrorDelegate);
+			AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
+			return;
+		}
+
+		case EAccelByteLoginType::PS4:
+		case EAccelByteLoginType::PS4CrossGen:
+		{
+			FAccelByteModelsPlayStationDLCSync PSSyncModel;
+
+			int32 ServiceLabel = 0;
+			const FOnlineStoreV2AccelBytePtr StoreInt = StaticCastSharedPtr<FOnlineStoreV2AccelByte>(SubsystemPin->GetStoreV2Interface());
+			if (StoreInt.IsValid())
+			{
+				ServiceLabel = StoreInt->GetServiceLabel();
+			}
+
+			if (ServiceLabel == 0)
+			{
+				CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState);
+				return;
+			}
+
+			PSSyncModel.ServiceLabel = ServiceLabel;
+
+			Entitlement->SyncPSNDLC(PSSyncModel, OnSuccessDelegate, OnErrorDelegate);
+			AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
+			return;
+		}
+
+		case EAccelByteLoginType::PS5:
+		{
+			FAccelByteModelsPlayStationDLCSync PSSyncModel;
+
+			int32 ServiceLabel = 0;
+			const FOnlineStoreV2AccelBytePtr StoreInt = StaticCastSharedPtr<FOnlineStoreV2AccelByte>(SubsystemPin->GetStoreV2Interface());
+			if (StoreInt.IsValid())
+			{
+				ServiceLabel = StoreInt->GetServiceLabel();
+			}
+
+			if (ServiceLabel == 0)
+			{
+				CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState);
+				return;
+			}
+
+			PSSyncModel.ServiceLabel = ServiceLabel;
+
+			Entitlement->SyncPSNDLC(PSSyncModel, OnSuccessDelegate, OnErrorDelegate);
+			AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
+			return;
+		}
+
+		case EAccelByteLoginType::EOS:
+		{
+			FString EpicGamesJwtToken = TEXT("");
+			IOnlineSubsystem* PlatformSubsystem = SubsystemPin->GetNativePlatformSubsystem();
+			if (PlatformSubsystem == nullptr)
+			{
+				CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState);
+				return;
+			}
+
+			IOnlineIdentityPtr IdentityInterface = PlatformSubsystem->GetIdentityInterface();
+			if (!IdentityInterface.IsValid())
+			{
+				CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState);
+				return;
+			}
+
+			// Get user's platform user id 
+			FUniqueNetIdPtr UserIdPtr = IdentityInterface->GetUniquePlayerId(LocalUserNum);
+			if (!UserIdPtr.IsValid())
+			{
+				CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState);
+				return;
+			}
+
+			TSharedPtr<FUserOnlineAccount> UserAccount = IdentityInterface->GetUserAccount(UserIdPtr.ToSharedRef().Get());
+			EpicGamesJwtToken = UserAccount->GetAccessToken();
+
+			Entitlement->SyncEpicGameDurableItems(EpicGamesJwtToken, OnSuccessDelegate, OnErrorDelegate);
+			AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
+			return;
+		}
+		
+		default:
+		{
+			Error = TEXT("Sync DLC failed due to inability to identify the current native platform running in the game.");
+			UE_LOG_AB(Warning, TEXT("%s"), *Error);
+			CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
+			return;
+		}
 	}
-#endif
-#ifdef GDK_SUBSYSTEM
-	if (NativeSubsystemName == GDK_SUBSYSTEM)
-	{
-		FAccelByteModelsXBoxDLCSync XboxDLCSync;
-
-		IOnlineSubsystem* PlatformSubsystem = SubsystemPin->GetNativePlatformSubsystem();
-		if (PlatformSubsystem == nullptr)
-		{
-			CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState);
-			return;
-		}
-
-		IOnlineIdentityPtr PlatformIdentityInt = PlatformSubsystem->GetIdentityInterface();
-		if (!PlatformIdentityInt.IsValid())
-		{
-			CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState);
-			return;
-		}
-
-		// Get user's platform user id 
-		FUniqueNetIdPtr PlatformUniqueId = UserId->GetPlatformUniqueId();
-		if (!PlatformUniqueId.IsValid())
-		{
-			CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState);
-			return;
-		}
-
-		TSharedPtr<FUserOnlineAccount> UserAccount = PlatformIdentityInt->GetUserAccount(PlatformUniqueId.ToSharedRef().Get());
-		XboxDLCSync.XstsToken = UserAccount->GetAccessToken();
-
-		Entitlement->SyncXBoxDLC(XboxDLCSync, OnSuccessDelegate, OnErrorDelegate);
-		AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
-		return;
-	}
-#endif
-#ifdef PS4_SUBSYSTEM
-	if (NativeSubsystemName == PS4_SUBSYSTEM)
-	{
-		FAccelByteModelsPlayStationDLCSync PSSyncModel;
-
-		int32 ServiceLabel = 0;
-		const FOnlineStoreV2AccelBytePtr StoreInt = StaticCastSharedPtr<FOnlineStoreV2AccelByte>(SubsystemPin->GetStoreV2Interface());
-		if (StoreInt.IsValid())
-		{
-			ServiceLabel = StoreInt->GetServiceLabel();
-		}
-
-		if (ServiceLabel == 0)
-		{
-			CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState);
-			return;
-		}
-
-		PSSyncModel.ServiceLabel = ServiceLabel;
-
-		Entitlement->SyncPSNDLC(PSSyncModel, OnSuccessDelegate, OnErrorDelegate);
-		AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
-		return;
-	}
-#endif
-#ifdef PS5_SUBSYSTEM
-	if (NativeSubsystemName == PS5_SUBSYSTEM)
-	{
-		FAccelByteModelsPlayStationDLCSync PSSyncModel;
-
-		int32 ServiceLabel = 0;
-		const FOnlineStoreV2AccelBytePtr StoreInt = StaticCastSharedPtr<FOnlineStoreV2AccelByte>(SubsystemPin->GetStoreV2Interface());
-		if (StoreInt.IsValid())
-		{
-			ServiceLabel = StoreInt->GetServiceLabel();
-		}
-
-		if (ServiceLabel == 0)
-		{
-			CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState);
-			return;
-		}
-
-		PSSyncModel.ServiceLabel = ServiceLabel;
-
-		Entitlement->SyncPSNDLC(PSSyncModel, OnSuccessDelegate, OnErrorDelegate);
-		AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
-		return;
-	}
-#endif
-#ifdef EOS_SUBSYSTEM
-	if (NativeSubsystemName == EOS_SUBSYSTEM)
-	{
-		FString EpicGamesJwtToken = TEXT("");
-		IOnlineSubsystem* PlatformSubsystem = SubsystemPin->GetNativePlatformSubsystem();
-		if (PlatformSubsystem == nullptr)
-		{
-			CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState);
-			return;
-		}
-
-		IOnlineIdentityPtr IdentityInterface = PlatformSubsystem->GetIdentityInterface();
-		if (!IdentityInterface.IsValid())
-		{
-			CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState);
-			return;
-		}
-
-		// Get user's platform user id 
-		FUniqueNetIdPtr UserIdPtr = IdentityInterface->GetUniquePlayerId(LocalUserNum);
-		if (!UserIdPtr.IsValid())
-		{
-			CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState);
-			return;
-		}
-
-		TSharedPtr<FUserOnlineAccount> UserAccount = IdentityInterface->GetUserAccount(UserIdPtr.ToSharedRef().Get());
-		EpicGamesJwtToken = UserAccount->GetAccessToken();
-
-		Entitlement->SyncEpicGameDurableItems(EpicGamesJwtToken, OnSuccessDelegate, OnErrorDelegate);
-		AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
-		return;
-	}
-#endif
 }
 
 void FOnlineAsyncTaskAccelByteSyncDLC::TriggerDelegates()

@@ -1,4 +1,4 @@
-// Copyright (c) 2022 AccelByte Inc. All Rights Reserved.
+// Copyright (c) 2025 AccelByte Inc. All Rights Reserved.
 // This is licensed software from AccelByte Inc, for limitations
 // and restrictions contact your company contract manager.
 #pragma once
@@ -16,8 +16,8 @@ class UWorld;
 DECLARE_MULTICAST_DELEGATE_FourParams(FOnGetCurrencyListCompleted, int32 /*LocalUserNum*/, bool /*bWasSuccessful*/, const TArray<FAccelByteModelsCurrencyList>& /*Response*/, const FString& /*Error*/);
 typedef FOnGetCurrencyListCompleted::FDelegate FOnGetCurrencyListCompletedDelegate;
 
-DECLARE_MULTICAST_DELEGATE_FourParams(FOnGetWalletInfoCompleted, int32 /*LocalUserNum*/, bool /*bWasSuccessful*/, const FAccelByteModelsWalletInfo& /*Response*/, const FString& /*Error*/);
-typedef FOnGetWalletInfoCompleted::FDelegate FOnGetWalletInfoCompletedDelegate;
+DECLARE_MULTICAST_DELEGATE_FourParams(FOnGetWalletInfoV2Completed, int32 /*LocalUserNum*/, bool /*bWasSuccessful*/, const FAccelByteModelsWalletInfoResponse& /*Response*/, const FString& /*Error*/);
+typedef FOnGetWalletInfoV2Completed::FDelegate FOnGetWalletInfoV2CompletedDelegate;
 
 DECLARE_MULTICAST_DELEGATE_FourParams(FOnGetWalletTransactionsCompleted, int32 /*LocalUserNum*/, bool /*bWasSuccessful*/, const TArray<FAccelByteModelsWalletTransactionInfo>& /*Response*/, const FString& /*Error*/);
 typedef FOnGetWalletTransactionsCompleted::FDelegate FOnGetWalletTransactionsCompletedDelegate;
@@ -29,23 +29,23 @@ DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnWalletStatusChangedNotification, int32
 typedef FOnWalletStatusChangedNotification::FDelegate FOnWalletStatusChangedNotificationDelegate;
 
 /**
- * Implementation of Wallet service from AccelByte services
+ * Implementation of Wallet V2 service from AccelByte services
  */
-class ONLINESUBSYSTEMACCELBYTE_API FOnlineWalletAccelByte : public TSharedFromThis<FOnlineWalletAccelByte, ESPMode::ThreadSafe>
+class ONLINESUBSYSTEMACCELBYTE_API FOnlineWalletV2AccelByte : public TSharedFromThis<FOnlineWalletV2AccelByte, ESPMode::ThreadSafe>
 {
 PACKAGE_SCOPE:
 
 	/** Constructor that is invoked by the Subsystem instance to create a user cloud instance */
-	FOnlineWalletAccelByte(FOnlineSubsystemAccelByte* InSubsystem);
+	FOnlineWalletV2AccelByte(FOnlineSubsystemAccelByte* InSubsystem);
 
 	TMap<FString, TSharedRef<FAccelByteModelsCurrencyList>> CurrencyCodeToCurrencyListMap;
 	/** Critical sections for thread safe operation of CurrencyCodeToCurrencyListMap */
 	mutable FCriticalSection CurrencyListLock;
 
 	/*Map of WalletInfo of each user*/
-	TUniqueNetIdMap <TMap<FString, TSharedRef<FAccelByteModelsWalletInfo>>> UserToWalletInfoMap;
+	TUniqueNetIdMap <TMap<FString, TSharedRef<FAccelByteModelsWalletInfoResponse>>> UserToWalletInfoMapV2;
 	/** Critical sections for thread safe operation of UserToWalletInfoMap */
-	mutable FCriticalSection WalletInfoListLock;
+	mutable FCriticalSection WalletInfoListLockV2;
 
 	/**
 	 * Method used by the Identity interface to register delegates for wallet notifications to this interface to get
@@ -54,7 +54,7 @@ PACKAGE_SCOPE:
 	virtual void RegisterRealTimeLobbyDelegates(int32 LocalUserNum);
 
 public:
-	virtual ~FOnlineWalletAccelByte() {};
+	virtual ~FOnlineWalletV2AccelByte() {};
 
 	/**
 	 * Convenience method to get an instance of this interface from the subsystem associated with the world passed in.
@@ -63,7 +63,7 @@ public:
 	 * @param OutInterfaceInstance Instance of the interface that we got from the subsystem, or nullptr if not found
 	 * @returns boolean that is true if we could get an instance of the interface, false otherwise
 	 */
-	static bool GetFromWorld(const UWorld* World, TSharedPtr<FOnlineWalletAccelByte, ESPMode::ThreadSafe>& OutInterfaceInstance);
+	static bool GetFromWorld(const UWorld* World, TSharedPtr<FOnlineWalletV2AccelByte, ESPMode::ThreadSafe>& OutInterfaceInstance);
 
 	/**
 	 * Convenience method to get an instance of this interface from the subsystem passed in.
@@ -72,11 +72,11 @@ public:
 	 * @param OutInterfaceInstance Instance of the interface that we got from the subsystem, or nullptr if not found
 	 * @returns boolean that is true if we could get an instance of the interface, false otherwise
 	 */
-	static bool GetFromSubsystem(const IOnlineSubsystem* Subsystem, TSharedPtr<FOnlineWalletAccelByte, ESPMode::ThreadSafe>& OutInterfaceInstance);
+	static bool GetFromSubsystem(const IOnlineSubsystem* Subsystem, TSharedPtr<FOnlineWalletV2AccelByte, ESPMode::ThreadSafe>& OutInterfaceInstance);
 
 	DEFINE_ONLINE_PLAYER_DELEGATE_THREE_PARAM(MAX_LOCAL_PLAYERS, OnGetCurrencyListCompleted, bool /*bWasSuccessful*/, const TArray<FAccelByteModelsCurrencyList>& /*Response*/, const FString& /*Error*/);
 
-	DEFINE_ONLINE_PLAYER_DELEGATE_THREE_PARAM(MAX_LOCAL_PLAYERS, OnGetWalletInfoCompleted, bool /*bWasSuccessful*/, const FAccelByteModelsWalletInfo& /*Response*/, const FString& /*Error*/);
+	DEFINE_ONLINE_PLAYER_DELEGATE_THREE_PARAM(MAX_LOCAL_PLAYERS, OnGetWalletInfoV2Completed, bool /*bWasSuccessful*/, const FAccelByteModelsWalletInfoResponse& /*Response*/, const FString& /*Error*/);
 
 	DEFINE_ONLINE_PLAYER_DELEGATE_THREE_PARAM(MAX_LOCAL_PLAYERS, OnGetWalletTransactionsCompleted, bool /*bWasSuccessful*/, const TArray<FAccelByteModelsWalletTransactionInfo>& /*Response*/, const FString& /*Error*/);
 
@@ -92,19 +92,17 @@ public:
 
 	void AddCurrencyToList(const FString& CurrencyCode, const TSharedRef<FAccelByteModelsCurrencyList>& InCurrencyList);
 	
-	bool GetWalletInfoByCurrencyCode(int32 LocalUserNum, const FString& CurrencyCode, bool bAlwaysRequestToService = false);
-
 	bool GetWalletInfoByCurrencyCodeV2(int32 LocalUserNum, const FString& CurrencyCode, bool bAlwaysRequestToService = false);
 
-	bool GetWalletInfoFromCache(int32 LocalUserNum, const FString& CurrencyCode, FAccelByteModelsWalletInfo& OutWalletInfo);
+	bool GetWalletInfoFromCacheV2(int32 LocalUserNum, const FString& CurrencyCode, FAccelByteModelsWalletInfoResponse& OutWalletInfo);
 
-	void AddWalletInfoToList(int32 LocalUserNum, const FString& CurrencyCode, const TSharedRef<FAccelByteModelsWalletInfo>& InWalletInfo);
+	void AddWalletInfoToListV2(int32 LocalUserNum, const FString& CurrencyCode, const TSharedRef<FAccelByteModelsWalletInfoResponse>& InWalletInfo);
 
 	bool ListWalletTransactionsByCurrencyCode(int32 LocalUserNum, const FString& CurrencyCode, int32 Offset = 0, int32 Limit = 20);
 
 protected:
 	/** Hidden default constructor, the constructor that takes in a subsystem instance should be used instead. */
-	FOnlineWalletAccelByte()
+	FOnlineWalletV2AccelByte()
 		: AccelByteSubsystem(nullptr)
 	{}
 

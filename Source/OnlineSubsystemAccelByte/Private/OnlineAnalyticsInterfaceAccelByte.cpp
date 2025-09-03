@@ -214,10 +214,10 @@ bool FOnlineAnalyticsAccelByte::IsUserLoggedIn(const int32 InLocalUserNum) const
 	{
 		if (IsRunningDedicatedServer())
 		{
-			#if AB_USE_V2_SESSIONS
-				return IdentityInterface->GetLoginStatus(InLocalUserNum) == ELoginStatus::LoggedIn;
-			#else
+			#if !AB_USE_V2_SESSIONS
 				return IdentityInterface->IsServerAuthenticated();
+			#else
+				return IdentityInterface->GetLoginStatus(InLocalUserNum) == ELoginStatus::LoggedIn;
 			#endif
 		}
 

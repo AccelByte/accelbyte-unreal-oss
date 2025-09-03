@@ -2,6 +2,8 @@
 // This is licensed software from AccelByte Inc, for limitations
 // and restrictions contact your company contract manager.
 
+#if 1 // MMv1 Deprecation
+
 #include "OnlineAsyncTaskAccelByteRegisterDedicatedV1Session.h"
 #include "Runtime/Launch/Resources/Version.h"
 #include "Engine/Engine.h"
@@ -18,6 +20,8 @@
 #include "SocketSubsystem.h"
 #include "Core/AccelByteUtilities.h"
 
+#include "Core/AccelByteReport.h"
+
 using namespace AccelByte;
 
 FOnlineAsyncTaskAccelByteRegisterDedicatedV1Session::FOnlineAsyncTaskAccelByteRegisterDedicatedV1Session(FOnlineSubsystemAccelByte* const InABInterface, int32 InHostingPlayerNum, FName InSessionName, const FOnlineSessionSettings& InNewSessionSettings, bool InRegisterToSessionBrowser)
@@ -27,6 +31,8 @@ FOnlineAsyncTaskAccelByteRegisterDedicatedV1Session::FOnlineAsyncTaskAccelByteRe
 	, NewSessionSettings(InNewSessionSettings)
 	, bRegisterToServerBrowser(InRegisterToSessionBrowser)
 {
+	FReport::LogDeprecated(FString(__FUNCTION__),
+		TEXT("Session V1 functionality is deprecated and replaced by Session V2. For more information, see https://docs.accelbyte.io/gaming-services/services/play/session/"));
 }
 
 void FOnlineAsyncTaskAccelByteRegisterDedicatedV1Session::Initialize()
@@ -399,3 +405,4 @@ void FOnlineAsyncTaskAccelByteRegisterDedicatedV1Session::RegisterCreatedGameSes
 	ServerApiClient->ServerDSM.RegisterServerGameSession(SessionId, GameMode, OnSessionRegisterSuccess, OnSessionRegisterFailed);
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sent off async task to register created dedicated game session"));
 }
+#endif

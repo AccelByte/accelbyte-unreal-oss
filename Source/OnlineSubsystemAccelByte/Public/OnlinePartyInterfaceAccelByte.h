@@ -2,6 +2,7 @@
 // This is licensed software from AccelByte Inc, for limitations
 // and restrictions contact your company contract manager.
 #pragma once
+#if 1 // MMv1 Deprecation
 
 #include "CoreMinimal.h"
 #include "Runtime/Launch/Resources/Version.h"
@@ -630,3 +631,4 @@ private:
 	void OnPromotedLeaderGetPartyCode(bool bWasSuccessful, const FString& PartyCode, const TSharedRef<const FUniqueNetIdAccelByteUser>& UserId, const FString& PartyId);
 
 };
+#endif

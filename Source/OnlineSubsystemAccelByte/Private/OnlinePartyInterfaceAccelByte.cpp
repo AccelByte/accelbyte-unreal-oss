@@ -1,6 +1,7 @@
 // Copyright (c) 2022 AccelByte Inc. All Rights Reserved.
 // This is licensed software from AccelByte Inc, for limitations
 // and restrictions contact your company contract manager.
+#if 1 // MMv1 Deprecation
 
 #include "OnlinePartyInterfaceAccelByte.h"
 #include "Runtime/Launch/Resources/Version.h"
@@ -22,6 +23,8 @@
 #include "AsyncTasks/PartyV1/OnlineAsyncTaskAccelByteAddJoinedV1PartyMember.h"
 #include "AsyncTasks/PartyV1/OnlineAsyncTaskAccelByteGetV1PartyCode.h"
 #include "OnlineSubsystemUtils.h"
+#include "Core/AccelByteReport.h"
+
 
 // Some delegates require reasons as to why the delegate might have failed, for this case, this is a constant for when
 // we do not support the current method that the developer is attempting to call
@@ -29,11 +32,11 @@
 
 bool WarnForUsingV1PartyWithV2Sessions()
 {
-#if AB_USE_V2_SESSIONS
+#if !AB_USE_V2_SESSIONS
+	return false;
+#else
 	UE_LOG_AB(Warning, TEXT("Tried to use party calls in FOnlinePartySystemAccelByte while using V2 sessions! Party logic has moved from the party interface to the session interface while using V2 sessions. Please update to using session interface for party management!"));
 	return true;
-#else
-	return false;
 #endif
 }
 
@@ -83,6 +86,8 @@ FOnlinePartyAccelByte::FOnlinePartyAccelByte(const TSharedRef<FOnlinePartySystem
 	, PartyConfiguration(MakeShared<const FPartyConfiguration>(InPartyConfiguration))
 	, PartyData(InPartyData)
 {
+	AccelByte::FReport::LogDeprecated(FString(__FUNCTION__),
+		TEXT("Party V1 functionality is deprecated and replaced by Party V2. For more information, see https://docs.accelbyte.io/gaming-services/services/play/party/"));
 	SetState(EPartyState::Active);
 	LeaderId = InLeaderId;
 }
@@ -699,6 +704,8 @@ FOnlinePartySystemAccelByte::FOnlinePartySystemAccelByte(FOnlineSubsystemAccelBy
 	: AccelByteSubsystem(InSubsystem->AsShared())
 #endif
 {
+	AccelByte::FReport::LogDeprecated(FString(__FUNCTION__),
+		TEXT("Party V1 functionality is deprecated and replaced by Party V2. For more information, see https://docs.accelbyte.io/gaming-services/services/play/party/"));
 	Init();
 }
 
@@ -2303,3 +2310,4 @@ void FOnlinePartySystemAccelByte::DumpPartyState()
 }
 
 #undef ONLINE_ERROR_NAMESPACE
+#endif

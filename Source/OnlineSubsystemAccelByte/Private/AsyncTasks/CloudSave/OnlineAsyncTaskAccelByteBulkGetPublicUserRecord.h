@@ -16,7 +16,10 @@ class FOnlineAsyncTaskAccelByteBulkGetPublicUserRecord
 	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteBulkGetPublicUserRecord, ESPMode::ThreadSafe>
 {
 public:
-	FOnlineAsyncTaskAccelByteBulkGetPublicUserRecord(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InLocalUserId, const FString& InKey, const TArray<FString>& InUserIds);
+	FOnlineAsyncTaskAccelByteBulkGetPublicUserRecord(FOnlineSubsystemAccelByte* const InABInterface
+		, int32 InLocalUserNum
+		, FString const& InKey
+		, TArray<FString> const& InUserIds);
 
 	virtual void Initialize() override;
 	virtual void Finalize() override;
@@ -40,13 +43,8 @@ private:
 	/**
 	 * Delegate handler for when get another user record fails
 	 */
-	void OnBulkGetPublicUserRecordError(int32 Code, const FString& ErrorMessage);
+	void OnBulkGetPublicUserRecordError(int32 Code, FString const& ErrorMessage);
 	FErrorHandler OnBulkGetPublicUserRecordErrorDelegate;
-
-	/**
-	 * String representing the error code that occurred
-	 */
-	FString ErrorStr;
 
 	/**
 	 * String representing the record key to get
@@ -57,8 +55,6 @@ private:
 	 * String representing another user id
 	 */
 	TArray<FString> UserIds;
-
-	FString ErrorCode;
 
 	FListAccelByteModelsUserRecord ListUserRecord;
 };

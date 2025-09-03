@@ -250,7 +250,7 @@ void FOnlineAsyncTaskAccelByteStartV2Matchmaking::ObtainPartyStorageExcludedSess
 		}
 		else if (SearchHandle.Get().GameSessionExclusion.CurrentType == FAccelByteModelsGameSessionExcludedSession::ExclusionType::N_PAST_SESSION)
 		{
-			auto ExcessToRemove = PastSessionIDs.Num() - SearchHandle.Get().GameSessionExclusion.ExcludedPastSessionCount;
+			int32 ExcessToRemove = PastSessionIDs.Num() - static_cast<int32>(SearchHandle.Get().GameSessionExclusion.ExcludedPastSessionCount);
 			if (ExcessToRemove > 0)
 			{
 #if ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION >= 5

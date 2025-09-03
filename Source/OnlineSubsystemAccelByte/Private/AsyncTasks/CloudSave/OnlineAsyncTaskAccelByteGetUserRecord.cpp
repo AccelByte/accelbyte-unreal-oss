@@ -12,17 +12,16 @@ using namespace AccelByte;
 
 #define ONLINE_ERROR_NAMESPACE "FOnlineAsyncTaskAccelByteGetUserRecord"
 
-FOnlineAsyncTaskAccelByteGetUserRecord::FOnlineAsyncTaskAccelByteGetUserRecord(FOnlineSubsystemAccelByte* const InABInterface, const int32 InLocalUserNum, const FUniqueNetId& InLocalUserId, const FString& InKey, bool IsPublic, const FString& InRecordUserId)
-	: FOnlineAsyncTaskAccelByte(InABInterface)
+FOnlineAsyncTaskAccelByteGetUserRecord::FOnlineAsyncTaskAccelByteGetUserRecord(FOnlineSubsystemAccelByte* const InABInterface
+	, int32 InLocalUserNum
+	, FString const& InKey
+	, bool IsPublic
+	, FString const& InRecordUserId)
+	: FOnlineAsyncTaskAccelByte(InABInterface, InLocalUserNum)
 	, Key(InKey)
 	, RecordUserId(InRecordUserId)
 	, IsPublicRecord(IsPublic)
 {
-	if (!IsRunningDedicatedServer())
-	{
-		UserId = FUniqueNetIdAccelByteUser::CastChecked(InLocalUserId);
-	}
-	LocalUserNum = InLocalUserNum;
 }
 
 void FOnlineAsyncTaskAccelByteGetUserRecord::Initialize()
@@ -33,32 +32,45 @@ void FOnlineAsyncTaskAccelByteGetUserRecord::Initialize()
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Getting user record, UserId: %s"), *RecordUserId);
 
-	OnGetUserRecordsSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsUserRecord>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteGetUserRecord::OnGetUserRecordsSuccess);
-	OnGetUserRecordsErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteGetUserRecord::OnGetUserRecordsError);
-	
+	TOptional<bool> IsDS = SubsystemPin->IsDedicatedServer(LocalUserNum);
+	if (!IsDS.IsSet())
+	{
+		TaskOnlineError = EOnlineErrorResult::NotImplemented;
+		TaskErrorCode = FString::Printf(TEXT("%d"), AccelByte::ErrorCodes::StatusBadRequest);
+		TaskErrorStr = TEXT("request-failed-get-user-record-error");
+		CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
+		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to get user record, not implemented"));
+		return;
+	}
+
 	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(SubsystemPin->GetIdentityInterface());
 	if (!IdentityInterface.IsValid())
 	{
-		ErrorCode = FString::Printf(TEXT("%d"), ErrorCodes::StatusUnauthorized);
-		ErrorStr = (TEXT("request-failed-get-user-record-error"));
+		TaskOnlineError = EOnlineErrorResult::MissingInterface;
+		TaskErrorCode = FString::Printf(TEXT("%d"), ErrorCodes::StatusBadRequest);
+		TaskErrorStr = TEXT("request-failed-get-user-record-error");
 		CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
 		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to get user record, identity interface is invalid!"));
 		return;
 	}
 
-	auto LoginStatus = UserId.IsValid() ? IdentityInterface->GetLoginStatus(*UserId) : IdentityInterface->GetLoginStatus(LocalUserNum);
+	auto LoginStatus = IdentityInterface->GetLoginStatus(LocalUserNum);
 	if (LoginStatus != ELoginStatus::LoggedIn)
 	{
-		ErrorCode = FString::Printf(TEXT("%d"), ErrorCodes::StatusUnauthorized);
-		ErrorStr = (TEXT("request-failed-get-user-record-error"));
+		TaskOnlineError = EOnlineErrorResult::InvalidAuth;
+		TaskErrorCode = FString::Printf(TEXT("%d"), ErrorCodes::StatusUnauthorized);
+		TaskErrorStr = TEXT("request-failed-get-user-record-error");
 		CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
-		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to get game user, not logged in!"));
+		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to get user record, not logged in!"));
 		return;
 	}
 
-	if (IsRunningDedicatedServer())
+	OnGetUserRecordsSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsUserRecord>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteGetUserRecord::OnGetUserRecordsSuccess);
+	OnGetUserRecordsErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteGetUserRecord::OnGetUserRecordsError);
+		
+	if (IsDS.GetValue())
 	{
-		SERVER_API_CLIENT_CHECK_GUARD(ErrorStr);
+		SERVER_API_CLIENT_CHECK_GUARD(TaskErrorStr);
 		
 		if (IsPublicRecord)
 		{
@@ -77,20 +89,30 @@ void FOnlineAsyncTaskAccelByteGetUserRecord::Initialize()
 		}
 		if (IsPublicRecord)
 		{
-			API_FULL_CHECK_GUARD(CloudSave,ErrorStr);
+			API_FULL_CHECK_GUARD(CloudSave, TaskErrorStr);
 			CloudSave->GetPublicUserRecord(Key, RecordUserId, OnGetUserRecordsSuccessDelegate, OnGetUserRecordsErrorDelegate);
 		}
 		else
 		{
+			if (!UserId.IsValid())
+			{
+				TaskOnlineError = EOnlineErrorResult::InvalidUser;
+				TaskErrorCode = FString::Printf(TEXT("%d"), ErrorCodes::StatusUnauthorized);
+				TaskErrorStr = TEXT("request-failed-get-user-record-error");
+				CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
+				AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("User is not found at user index '%d'!"), LocalUserNum);
+				return;
+			}
 			if (RecordUserId == *UserId->GetAccelByteId())
 			{
-				API_FULL_CHECK_GUARD(CloudSave,ErrorStr);
+				API_FULL_CHECK_GUARD(CloudSave, TaskErrorStr);
 				CloudSave->GetUserRecord(Key, OnGetUserRecordsSuccessDelegate, OnGetUserRecordsErrorDelegate);
 			}
 			else
 			{
-				ErrorCode = FString::Printf(TEXT("%d"), ErrorCodes::StatusUnauthorized);
-				ErrorStr = (TEXT("request-failed-get-user-record-error"));
+				TaskOnlineError = EOnlineErrorResult::RequestFailure;
+				TaskErrorCode = FString::Printf(TEXT("%d"), ErrorCodes::StatusUnauthorized);
+				TaskErrorStr = TEXT("request-failed-get-user-record-error");
 				CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
 				AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Game client can't get another user's private records!"));
 				return;
@@ -112,13 +134,13 @@ void FOnlineAsyncTaskAccelByteGetUserRecord::TriggerDelegates()
 	{
 		if (bWasSuccessful)
 		{
-			CloudSaveInterface->TriggerOnGetUserRecordCompletedDelegates(LocalUserNum, ONLINE_ERROR(EOnlineErrorResult::Success), Key, UserRecord);
+			CloudSaveInterface->TriggerOnGetUserRecordCompletedDelegates(LocalUserNum, ONLINE_ERROR(TaskOnlineError), Key, UserRecord);
 		}
 		else
 		{
 			UserRecord.Key = Key;
 			UserRecord.UserId = RecordUserId;
-			CloudSaveInterface->TriggerOnGetUserRecordCompletedDelegates(LocalUserNum, ONLINE_ERROR(EOnlineErrorResult::RequestFailure, ErrorCode, FText::FromString(ErrorStr)), Key, UserRecord);
+			CloudSaveInterface->TriggerOnGetUserRecordCompletedDelegates(LocalUserNum, ONLINE_ERROR(TaskOnlineError, TaskErrorCode, FText::FromString(TaskErrorStr)), Key, UserRecord);
 		}
 	}
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
@@ -155,15 +177,17 @@ void FOnlineAsyncTaskAccelByteGetUserRecord::Finalize()
 void FOnlineAsyncTaskAccelByteGetUserRecord::OnGetUserRecordsSuccess(const FAccelByteModelsUserRecord& Result)
 {
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
+	TaskOnlineError = EOnlineErrorResult::Success;
 	UserRecord = Result;
 	CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Request to get user '%s' record Success!"), *RecordUserId);
 }
 
-void FOnlineAsyncTaskAccelByteGetUserRecord::OnGetUserRecordsError(int32 Code, const FString& ErrorMessage)
+void FOnlineAsyncTaskAccelByteGetUserRecord::OnGetUserRecordsError(int32 Code, FString const& ErrorMessage)
 {
-	ErrorCode = FString::Printf(TEXT("%d"), Code);
-	ErrorStr = (TEXT("request-failed-get-user-record-error"));
+	TaskOnlineError = EOnlineErrorResult::RequestFailure;
+	TaskErrorCode = FString::Printf(TEXT("%d"), Code);
+	TaskErrorStr = TEXT("request-failed-get-user-record-error");
 	UE_LOG_AB(Warning, TEXT("Failed to get user record! Error Code: %d; Error Message: %s"), Code, *ErrorMessage);
 	CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
 }

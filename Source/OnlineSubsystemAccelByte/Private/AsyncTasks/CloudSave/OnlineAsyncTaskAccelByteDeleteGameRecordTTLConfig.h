@@ -15,7 +15,9 @@ class FOnlineAsyncTaskAccelByteDeleteGameRecordTTLConfig
 	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteDeleteGameRecordTTLConfig, ESPMode::ThreadSafe>
 {
 public:
-	FOnlineAsyncTaskAccelByteDeleteGameRecordTTLConfig(FOnlineSubsystemAccelByte* const InABInterface, const FString& InKey, int32 LocalUserNum);
+	FOnlineAsyncTaskAccelByteDeleteGameRecordTTLConfig(FOnlineSubsystemAccelByte* const InABInterface
+		, int32 LocalUserNum
+		, FString const& InKey);
 
 	virtual void Initialize() override;
 	virtual void TriggerDelegates() override;
@@ -38,14 +40,10 @@ private:
 	/**
 	 * Delegate handler for when delete ttl config of game record fails
 	 */
-	void OnDeleteGameRecordTTLConfigError(int32 ErrorCode, const FString& ErrorMessage);
-	FErrorHandler OnDeleteGameRecordTTLConfigErrorDelegate;
+	void OnDeleteGameRecordTTLConfigError(int32 ErrorCode
+		, FString const& ErrorMessage);
 
-	/**
-	 * String representing the error code that occurred
-	 */
-	FString ErrorStr{};
-	FString ErrorCode{};
+	FErrorHandler OnDeleteGameRecordTTLConfigErrorDelegate;
 
 	/**
 	 * String representing the record key to delete

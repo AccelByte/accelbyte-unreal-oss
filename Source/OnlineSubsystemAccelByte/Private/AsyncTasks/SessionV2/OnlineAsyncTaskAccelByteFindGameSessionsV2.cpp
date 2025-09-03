@@ -37,10 +37,11 @@ EAccelByteV2SessionQueryComparisonOp OSSComparisonOpToAccelByteOp(const EOnlineC
 	return EAccelByteV2SessionQueryComparisonOp::EQUAL;
 }
 
-FOnlineAsyncTaskAccelByteFindGameSessionsV2::FOnlineAsyncTaskAccelByteFindGameSessionsV2(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InSearchingPlayerId, const TSharedRef<FOnlineSessionSearch>& InSearchSettings)
+FOnlineAsyncTaskAccelByteFindGameSessionsV2::FOnlineAsyncTaskAccelByteFindGameSessionsV2(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InSearchingPlayerId, const TSharedRef<FOnlineSessionSearch>& InSearchSettings, FAccelByteModelsV2GameSessionQueryFilter InQueryFilter)
 	: FOnlineAsyncTaskAccelByte(InABInterface, true)
 	, SearchSettings(InSearchSettings)
 	, ResultsRemaining(SearchSettings->MaxSearchResults)
+	, QueryFilter(InQueryFilter)
 {
 	// #TODO #SESSIONv2 Make this support the custom timeout value from the search settings handle eventually...
 	UserId = FUniqueNetIdAccelByteUser::CastChecked(InSearchingPlayerId);
@@ -53,6 +54,7 @@ void FOnlineAsyncTaskAccelByteFindGameSessionsV2::Initialize()
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("UserId: %s"), *UserId->ToDebugString());
 
 	QueryStruct = FAccelByteModelsV2GameSessionQuery();
+
 	for (const TPair<FName, FOnlineSessionSearchParam>& SearchParam : SearchSettings->QuerySettings.SearchParams)
 	{
 		// Do not include the session type in the query!
@@ -123,6 +125,22 @@ void FOnlineAsyncTaskAccelByteFindGameSessionsV2::QueryResultsPage(int32 Offset)
 
 	const int32 Limit = FMath::Min(ResultsRemaining, ResultsPerPage);
 	API_FULL_CHECK_GUARD(Session);
+
+	switch (QueryFilter.GameSessionAvailability)
+	{
+	case EAccelByteV2QueryGameSessionAvailability::AvailableSessionOnly:
+		//do nothing, by default the service only return available only if we not specifying
+		break;
+	case EAccelByteV2QueryGameSessionAvailability::FullSessionOnly:
+		QueryStruct.JsonWrapper.JsonObject->SetStringField(TEXT("availability"), TEXT("full"));
+		break;
+	case EAccelByteV2QueryGameSessionAvailability::AllSession:
+		QueryStruct.JsonWrapper.JsonObject->SetStringField(TEXT("availability"), TEXT("all"));
+		break;
+	default:
+		break;
+	}
+
 	Session->QueryGameSessions(QueryStruct, OnQueryGameSessionsSuccessDelegate, OnQueryGameSessionsErrorDelegate, Offset, Limit);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

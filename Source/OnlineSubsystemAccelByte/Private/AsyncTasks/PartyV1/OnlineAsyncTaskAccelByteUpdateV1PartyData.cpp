@@ -1,12 +1,15 @@
 // Copyright (c) 2022 AccelByte Inc. All Rights Reserved.
 // This is licensed software from AccelByte Inc, for limitations
 // and restrictions contact your company contract manager.
+#if 1 // MMv1 Deprecation
 
 #include "OnlineAsyncTaskAccelByteUpdateV1PartyData.h"
 #include "OnlineSubsystemAccelByte.h"
 
 #include "Api/AccelByteLobbyApi.h"
 #include "OnlinePartyInterfaceAccelByte.h"
+
+#include "Core/AccelByteReport.h"
 
 using namespace AccelByte;
 
@@ -16,6 +19,8 @@ FOnlineAsyncTaskAccelByteUpdateV1PartyData::FOnlineAsyncTaskAccelByteUpdateV1Par
 	, Namespace(InNamespace)
 	, PartyData(MakeShared<FOnlinePartyData>(InPartyData))
 {
+	FReport::LogDeprecated(FString(__FUNCTION__),
+		TEXT("Party V1 functionality is deprecated and replaced by Party V2. For more information, see https://docs.accelbyte.io/gaming-services/services/play/party/"));
 	UserId = FUniqueNetIdAccelByteUser::CastChecked(InLocalUserId);
 }
 
@@ -106,3 +111,4 @@ void FOnlineAsyncTaskAccelByteUpdateV1PartyData::OnWritePartyStorageError(int32 
 	UE_LOG_AB(Warning, TEXT("Failed to write party storage for party '%s'! Error code: %d; Error message: %s"), *PartyId->ToString(), ErrorCode, *ErrorMessage);
 	CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
 }
+#endif

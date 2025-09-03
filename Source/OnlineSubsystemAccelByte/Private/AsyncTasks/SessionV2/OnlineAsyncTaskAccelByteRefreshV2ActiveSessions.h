@@ -31,11 +31,6 @@ protected:
 	}
 
 private:
-	
-	/**
-	 * LocalUserNum that requested to Refresh Active Session
-	 */
-	int32 LocalUserNum = 0;
 
 	/**
 	 * Sessions to refreshed

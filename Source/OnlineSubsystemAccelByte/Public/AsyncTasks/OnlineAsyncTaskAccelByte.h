@@ -7,6 +7,7 @@
 #include "OnlineSubsystemAccelByteModule.h"
 #include "OnlineSubsystemAccelByteInternalHelpers.h"
 #include "OnlineSubsystemAccelByteTypes.h"
+#include "OnlineError.h"
 #include "Engine/LocalPlayer.h"
 #include "OnlineIdentityInterfaceAccelByte.h"
 #include "OnlineSubsystemAccelByte.h"
@@ -120,10 +121,11 @@ enum class EAccelByteAsyncTaskFlags : uint8
 {
 	None = 0, // Special state for having no flags set on the task
 	UseTimeout = 1, // Whether to track the task with a timeout that will automatically end once the time limit is reached
-	ServerTask = 2 // Whether this is a server async task, meaning that we won't have API clients to retrieve
+	ServerTask = 2, // Whether this is a server async task, meaning that we won't have API clients to retrieve
+	AllFlags
 };
 
-#define ASYNC_TASK_FLAG_BIT(Flag) static_cast<uint8>(Flag)
+#define ASYNC_TASK_FLAG_BIT(Flag) (1 << static_cast<uint8>(Flag))
 
 class FOnlineAsyncEpicTaskAccelByte;
 /**
@@ -183,13 +185,16 @@ if(!AccelByteInstance.IsValid()) \
 } \
 
 #define TRY_PIN_SUBSYSTEM_RAW(bCompleteTaskIfInvalid, .../*returned variable if the SubsystemPin invalid*/) \
-auto SubsystemPin = AccelByteSubsystem.Pin();\
-if (!SubsystemPin.IsValid())\
-{\
-	if (!bIsComplete && bCompleteTaskIfInvalid)\
-	{ CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState); }\
-	return __VA_ARGS__;\
-}\
+auto SubsystemPin = AccelByteSubsystem.Pin(); \
+if (!SubsystemPin.IsValid()) \
+{ \
+	if (!bIsComplete && bCompleteTaskIfInvalid) \
+	{ \
+		TaskOnlineError = EOnlineErrorResult::MissingInterface; \
+		CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState); \
+	} \
+	return __VA_ARGS__; \
+} \
 
 #define TRY_PIN_SUBSYSTEM(.../*returned variable if the SubsystemPin invalid*/) TRY_PIN_SUBSYSTEM_RAW(true, __VA_ARGS__)
 
@@ -207,9 +212,11 @@ public:
 	 * @param InABSubsystem A pointer to AccelByte OnlineSubsystem instance
 	 * @param bInShouldUseTimeout Whether any child of this task will by default use a timeout mechanism on Tick
 	 */
-	explicit FOnlineAsyncTaskAccelByte(FOnlineSubsystemAccelByte *const InABSubsystem
+	explicit FOnlineAsyncTaskAccelByte(FOnlineSubsystemAccelByte* const InABSubsystem
 		, bool bInShouldUseTimeout = true)
-		: FOnlineAsyncTaskAccelByte(InABSubsystem, INVALID_CONTROLLERID, (bInShouldUseTimeout) ? ASYNC_TASK_FLAG_BIT(EAccelByteAsyncTaskFlags::UseTimeout) : ASYNC_TASK_FLAG_BIT(EAccelByteAsyncTaskFlags::None))
+		: FOnlineAsyncTaskAccelByte(InABSubsystem
+			, INVALID_CONTROLLERID
+			, (bInShouldUseTimeout) ? ASYNC_TASK_FLAG_BIT(EAccelByteAsyncTaskFlags::UseTimeout) : ASYNC_TASK_FLAG_BIT(EAccelByteAsyncTaskFlags::None))
 	{
 	}
 	
@@ -222,10 +229,12 @@ public:
 	 * @param InLocalUserNum Local User Index
 	 * @param bInShouldUseTimeout Whether any child of this task will by default use a timeout mechanism on Tick
 	 */
-	explicit FOnlineAsyncTaskAccelByte(FOnlineSubsystemAccelByte *const InABSubsystem
+	explicit FOnlineAsyncTaskAccelByte(FOnlineSubsystemAccelByte* const InABSubsystem
 		, int32 InLocalUserNum
 		, bool bInShouldUseTimeout = true)
-		: FOnlineAsyncTaskAccelByte(InABSubsystem, InLocalUserNum, (bInShouldUseTimeout) ? ASYNC_TASK_FLAG_BIT(EAccelByteAsyncTaskFlags::UseTimeout) : ASYNC_TASK_FLAG_BIT(EAccelByteAsyncTaskFlags::None))
+		: FOnlineAsyncTaskAccelByte(InABSubsystem
+			, InLocalUserNum
+			, (bInShouldUseTimeout) ? ASYNC_TASK_FLAG_BIT(EAccelByteAsyncTaskFlags::UseTimeout) : ASYNC_TASK_FLAG_BIT(EAccelByteAsyncTaskFlags::None))
 	{
 	}
 
@@ -238,10 +247,13 @@ public:
 	 * @param InLocalUserNum Local User Index
 	 * @param InFlags Flags whether any child of this task will by default use a timeout mechanism on Tick
 	 */
-	explicit FOnlineAsyncTaskAccelByte(FOnlineSubsystemAccelByte *const InABSubsystem
+	explicit FOnlineAsyncTaskAccelByte(FOnlineSubsystemAccelByte* const InABSubsystem
 		, int32 InLocalUserNum
-		, uint8 InFlags)
-		: FOnlineAsyncTaskAccelByte(InABSubsystem, InLocalUserNum, InFlags, nullptr)
+		, int32 InFlags)
+		: FOnlineAsyncTaskAccelByte(InABSubsystem
+			, InLocalUserNum
+			, InFlags
+			, nullptr)
 	{
 	}
 
@@ -255,9 +267,9 @@ public:
 	 * @param InFlags Flags whether any child of this task will by default use a timeout mechanism on Tick
 	 * @param InLockKey Key lock to hold while this async task is alive
 	 */
-	explicit FOnlineAsyncTaskAccelByte(FOnlineSubsystemAccelByte *const InABSubsystem
+	explicit FOnlineAsyncTaskAccelByte(FOnlineSubsystemAccelByte* const InABSubsystem
 		, int32 InLocalUserNum
-		, uint8 InFlags
+		, int32 InFlags
 		, TSharedPtr<FAccelByteKey> InLockKey);
 
 	/**
@@ -306,7 +318,7 @@ public:
 
 		// Do not attempt to get API clients for server async tasks, as servers do not have API client support.
 		// We also don't need to get the corresponding user ID for the server, as server's don't have user IDs.
-		if (!HasFlag(EAccelByteAsyncTaskFlags::ServerTask))
+		if (!BitFlags[static_cast<uint8>(EAccelByteAsyncTaskFlags::ServerTask)])
 		{
 			if (LocalUserNum != INVALID_CONTROLLERID)
 			{
@@ -319,6 +331,15 @@ public:
 
 			// Get corresponding UserId or LocalUserNum for player that started this task
 			GetOtherUserIdentifiers();
+		}
+		else
+		{
+			TRY_PIN_SUBSYSTEM();
+			if (LocalUserNum == INVALID_CONTROLLERID)
+			{
+				LocalUserNum = SubsystemPin->GetLocalUserNumCached();
+			}
+			UserId = nullptr;
 		}
 	}
 
@@ -396,6 +417,15 @@ protected:
 	/** Enum representing the state that a task has finished in */
 	EAccelByteAsyncTaskCompleteState CompleteState = EAccelByteAsyncTaskCompleteState::Incomplete;
 
+	/** Enum representing the online error result of a task */
+	EOnlineErrorResult TaskOnlineError = EOnlineErrorResult::Unknown;
+
+	/** String representing the error code that occurred */
+	FString TaskErrorCode{};
+
+	/** String representing the error message that occurred */
+	FString TaskErrorStr{};
+
 	/** Whether this task requires a timeout to be used, will be set up through the constructor for the task */
 	bool bShouldUseTimeout = false;
 
@@ -421,7 +451,9 @@ protected:
 	FUniqueNetIdAccelByteUserPtr UserId = nullptr;
 
 	/** Flags associated with this async task */
-	uint8 Flags = 0;
+	int32 Flags = 0;
+
+	TBitArray<FDefaultBitArrayAllocator> BitFlags;
 
 	/** The address of the parent task if the current task is a nested async call  */
 	FOnlineAsyncTaskAccelByte* ParentTask = nullptr;
@@ -481,8 +513,9 @@ protected:
 
 	void RaiseGenericError()
 	{
-		FString ErrorStr = TEXT("request-to-obtain-valid-apiclient");
-		UE_LOG_AB(Warning, TEXT("%s"), *ErrorStr);
+		TaskOnlineError = EOnlineErrorResult::RequestFailure;
+		TaskErrorStr = TEXT("request-to-obtain-valid-apiclient");
+		UE_LOG_AB(Warning, TEXT("%s"), *TaskErrorStr);
 		CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState);
 	}
 
@@ -513,8 +546,9 @@ protected:
 
 	void RaiseGenericServerError()
 	{
-		FString ErrorStr = TEXT("request-to-obtain-valid-serverapiclient");
-		UE_LOG_AB(Warning, TEXT("%s"), *ErrorStr);
+		TaskOnlineError = EOnlineErrorResult::RequestFailure;
+		TaskErrorStr = TEXT("request-to-obtain-valid-serverapiclient");
+		UE_LOG_AB(Warning, TEXT("%s"), *TaskErrorStr);
 		CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState);
 	}
 
@@ -542,27 +576,22 @@ protected:
 	/**
 	 * Method called when this async task has timed out. Use to add custom timeout functionality.
 	 */
-	virtual void OnTaskTimedOut() {}
+	virtual void OnTaskTimedOut() { };
 
 	/**
 	 * Gets an API client instance for a user specified by either index or ID.
 	 */
 	virtual AccelByte::FApiClientPtr GetApiClient(int32 InLocalUserNum)
 	{
-		TRY_PIN_SUBSYSTEM(nullptr)
+		TRY_PIN_SUBSYSTEM(nullptr);
 
-		if (ApiClientInternal.IsValid())
+		AccelByte::FApiClientPtr ApiClient = GetApiClientInternal();
+		if (!ApiClient.IsValid())
 		{
-			return ApiClientInternal;
+			ApiClient = SubsystemPin->GetApiClient(InLocalUserNum);
+			ApiClientInternal = ApiClient;
 		}
-
-		if (Subsystem == nullptr)
-		{
-			return nullptr;
-		}
-
-		ApiClientInternal = SubsystemPin->GetApiClient(InLocalUserNum);
-		return ApiClientInternal;
+		return ApiClient;
 	}
 
 	/**
@@ -570,20 +599,20 @@ protected:
 	 */
 	virtual AccelByte::FApiClientPtr GetApiClient(FUniqueNetIdAccelByteUserRef const& InUserId)
 	{
-		TRY_PIN_SUBSYSTEM(nullptr)
+		TRY_PIN_SUBSYSTEM(nullptr);
 
-		if (ApiClientInternal.IsValid())
+		AccelByte::FApiClientPtr ApiClient = GetApiClientInternal();
+		if (!ApiClient.IsValid())
 		{
-			return ApiClientInternal;
+			ApiClient = SubsystemPin->GetApiClient(InUserId.Get());
+			ApiClientInternal = ApiClient;
 		}
-
-		ApiClientInternal = SubsystemPin->GetApiClient(InUserId.Get());
-		return ApiClientInternal;
+		return ApiClient;
 	}
 
 	virtual FAccelByteInstanceWPtr GetAccelByteInstance()
 	{
-		TRY_PIN_SUBSYSTEM(nullptr)
+		TRY_PIN_SUBSYSTEM(nullptr);
 
 		return SubsystemPin->GetAccelByteInstance();
 	}
@@ -595,7 +624,7 @@ protected:
 	 */
 	AccelByte::FApiClientPtr GetApiClientInternal()
 	{
-		return ApiClientInternal;
+		return ApiClientInternal.Pin();
 	}
 
 	/**
@@ -611,7 +640,8 @@ protected:
 	 */
 	bool IsApiClientValid()
 	{
-		return ApiClientInternal.IsValid();
+		AccelByte::FApiClientPtr ApiClient = GetApiClientInternal();
+		return ApiClient.IsValid();
 	}
 
 	/**
@@ -661,8 +691,13 @@ protected:
 	 */
 	bool HasFlag(const EAccelByteAsyncTaskFlags& Flag) const
 	{
-		uint8 FlagBit = static_cast<uint8>(Flag);
-		return (Flags & FlagBit) == FlagBit;
+		return HasFlag(static_cast<uint8>(Flag));
+	}
+
+	bool HasFlag(uint8 FlagBit) const
+	{
+		int32 SelectedFlag = 1 << FlagBit;
+		return (Flags & SelectedFlag) == SelectedFlag;
 	}
 
 	/** 
@@ -674,7 +709,7 @@ protected:
 
 private:
 	/** API client that should be used for this task, use API_CLIENT_CHECK_GUARD() to get a valid instance */
-	AccelByte::FApiClientPtr ApiClientInternal;
+	AccelByte::FApiClientWPtr ApiClientInternal;
 
 	/** Forcefully redefintion of Subsystem to prevent the child task accessing parent's public FOnlineAsyncTaskBasic::Subsystem T* raw pointer */
 	FOnlineSubsystemAccelByte* Subsystem;

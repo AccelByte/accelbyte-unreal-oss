@@ -1,12 +1,15 @@
 // Copyright (c) 2022 AccelByte Inc. All Rights Reserved.
 // This is licensed software from AccelByte Inc, for limitations
 // and restrictions contact your company contract manager.
+#if 1 // MMv1 Deprecation
 
 #include "OnlineAsyncTaskAccelByteKickV1PartyMember.h"
 #include "OnlinePartyInterfaceAccelByte.h"
 #include "OnlineSessionInterfaceV1AccelByte.h"
 
 #include "Api/AccelByteLobbyApi.h"
+
+#include "Core/AccelByteReport.h"
 
 using namespace AccelByte;
 
@@ -16,6 +19,8 @@ FOnlineAsyncTaskAccelByteKickV1PartyMember::FOnlineAsyncTaskAccelByteKickV1Party
 	, TargetMemberId(FUniqueNetIdAccelByteUser::CastChecked(InTargetMemberId))
 	, Delegate(InDelegate)
 {
+	FReport::LogDeprecated(FString(__FUNCTION__),
+		TEXT("Party V1 functionality is deprecated and replaced by Party V2. For more information, see https://docs.accelbyte.io/gaming-services/services/play/party/"));
 	UserId = FUniqueNetIdAccelByteUser::CastChecked(InLocalUserId);
 }
 
@@ -124,3 +129,4 @@ void FOnlineAsyncTaskAccelByteKickV1PartyMember::OnKickPartyMemberResponse(const
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Successfully kicked member '%s' from party '%s'!"), *TargetMemberId->ToDebugString(), *PartyId->ToString());
 }
+#endif

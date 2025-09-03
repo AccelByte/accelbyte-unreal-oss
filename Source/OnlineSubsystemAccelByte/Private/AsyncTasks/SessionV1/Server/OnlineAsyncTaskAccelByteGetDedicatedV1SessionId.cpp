@@ -2,11 +2,14 @@
 // This is licensed software from AccelByte Inc, for limitations
 // and restrictions contact your company contract manager.
 
+#if 1 // MMv1 Deprecation
 #include "OnlineAsyncTaskAccelByteGetDedicatedV1SessionId.h"
 #include "OnlineSessionSettings.h"
 #include "Interfaces/OnlineSessionInterface.h"
 
 #include "GameServerApi/AccelByteServerDSMApi.h"
+
+#include "Core/AccelByteReport.h"
 
 using namespace AccelByte;
 
@@ -14,6 +17,8 @@ FOnlineAsyncTaskAccelByteGetDedicatedV1SessionId::FOnlineAsyncTaskAccelByteGetDe
 	: FOnlineAsyncTaskAccelByte(InABInterface)
 	, SessionName(InSessionName)
 {
+	FReport::LogDeprecated(FString(__FUNCTION__),
+		TEXT("Session V1 functionality is deprecated and replaced by Session V2. For more information, see https://docs.accelbyte.io/gaming-services/services/play/session/"));
 }
 
 void FOnlineAsyncTaskAccelByteGetDedicatedV1SessionId::Initialize()
@@ -102,3 +107,4 @@ void FOnlineAsyncTaskAccelByteGetDedicatedV1SessionId::OnGetSessionIdError(int32
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Failed to get session ID from backend for session '%s'! Error code: %d; Error message: %s"), *SessionName.ToString(), ErrorCode, *ErrorMessage);
 }
+#endif

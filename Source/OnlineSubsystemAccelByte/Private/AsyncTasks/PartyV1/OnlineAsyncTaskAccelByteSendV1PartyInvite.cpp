@@ -1,12 +1,14 @@
 // Copyright (c) 2022 AccelByte Inc. All Rights Reserved.
 // This is licensed software from AccelByte Inc, for limitations
 // and restrictions contact your company contract manager.
+#if 1 // MMv1 Deprecation
 
 #include "OnlineAsyncTaskAccelByteSendV1PartyInvite.h"
 #include "OnlineSubsystemAccelByte.h"
 #include "OnlinePartyInterfaceAccelByte.h"
 #include "Api/AccelByteLobbyApi.h"
 
+#include "Core/AccelByteReport.h"
 
 using namespace AccelByte;
 
@@ -17,6 +19,8 @@ FOnlineAsyncTaskAccelByteSendV1PartyInvite::FOnlineAsyncTaskAccelByteSendV1Party
 	, Delegate(InDelegate)
 	, RecipientId(FUniqueNetIdAccelByteUser::Invalid())
 {
+	FReport::LogDeprecated(FString(__FUNCTION__),
+		TEXT("Party V1 functionality is deprecated and replaced by Party V2. For more information, see https://docs.accelbyte.io/gaming-services/services/play/party/"));
 	UserId = FUniqueNetIdAccelByteUser::CastChecked(InLocalUserId);
 }
 
@@ -111,3 +115,4 @@ void FOnlineAsyncTaskAccelByteSendV1PartyInvite::OnPartyInviteResponse(const FAc
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
+#endif

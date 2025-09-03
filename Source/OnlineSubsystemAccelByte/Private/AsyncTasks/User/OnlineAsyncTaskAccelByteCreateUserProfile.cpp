@@ -156,6 +156,8 @@ void FOnlineAsyncTaskAccelByteCreateUserProfile::CreateUserProfile()
 	// NOTE(Afif, 08/02/2021): Use FInternationalization to get current language inside the OS culture.
 	FAccelByteModelsUserProfileCreateRequest CreateRequest;
 	CreateRequest.Language = FInternationalization::Get().GetCurrentLanguage()->GetName();
+	FInternationalization::Get().IsCultureRemapped(CreateRequest.Language, &CreateRequest.Language);
+
 	CreateRequest.Timezone = FOnlineSubsystemAccelByteUtils::GetLocalTimeOffsetFromUTC();
 	Account->GetUserAttribute(ACCELBYTE_ACCOUNT_GAME_AVATAR_URL, CreateRequest.AvatarUrl);
 	Account->GetUserAttribute(ACCELBYTE_ACCOUNT_GAME_AVATAR_URL, CreateRequest.AvatarSmallUrl);

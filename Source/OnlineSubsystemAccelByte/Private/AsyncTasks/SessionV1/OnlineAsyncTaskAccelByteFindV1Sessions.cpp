@@ -1,7 +1,7 @@
 // Copyright (c) 2022 AccelByte Inc. All Rights Reserved.
 // This is licensed software from AccelByte Inc, for limitations
 // and restrictions contact your company contract manager.
-
+#if 1 // MMv1 Deprecation
 #include "OnlineAsyncTaskAccelByteFindV1Sessions.h"
 #include "Runtime/Launch/Resources/Version.h"
 #if ENGINE_MAJOR_VERSION >= 5
@@ -12,12 +12,16 @@
 #include "Misc/DefaultValueHelper.h"
 #include "OnlineSubsystemAccelByteDefines.h"
 
+#include "Core/AccelByteReport.h"
+
 using namespace AccelByte;
 
 FOnlineAsyncTaskAccelByteFindV1Sessions::FOnlineAsyncTaskAccelByteFindV1Sessions(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InSearchingPlayerId, const TSharedRef<FOnlineSessionSearch>& InSearchSettings)
 	: FOnlineAsyncTaskAccelByte(InABInterface, true)
 	, SearchSettings(InSearchSettings)
 {
+	FReport::LogDeprecated(FString(__FUNCTION__),
+		TEXT("Session V1 functionality is deprecated and replaced by Session V2. For more information, see https://docs.accelbyte.io/gaming-services/services/play/session/"));
 	UserId = FUniqueNetIdAccelByteUser::CastChecked(InSearchingPlayerId);
 }
 
@@ -125,3 +129,4 @@ void FOnlineAsyncTaskAccelByteFindV1Sessions::OnSessionBrowserFindSuccess(const 
 
 	CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
 }
+#endif

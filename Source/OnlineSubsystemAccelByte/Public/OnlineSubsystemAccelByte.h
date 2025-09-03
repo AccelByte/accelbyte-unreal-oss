@@ -44,6 +44,7 @@ class FOnlineStoreV2AccelByte;
 class FOnlinePurchaseAccelByte;
 class FOnlineAgreementAccelByte;
 class FOnlineWalletAccelByte;
+class FOnlineWalletV2AccelByte;
 class FOnlineCloudSaveAccelByte;
 class FOnlineTimeAccelByte;
 class FOnlineAnalyticsAccelByte;
@@ -71,10 +72,10 @@ struct FAccelByteModelsNotificationMessage;
 class FOnlineSubsystemAccelByteConfig;
 
 /** Shared pointer to the AccelByte implementation of the Session interface */
-#if AB_USE_V2_SESSIONS
-typedef TSharedPtr<FOnlineSessionV2AccelByte, ESPMode::ThreadSafe> FOnlineSessionAccelBytePtr;
-#else
+#if !AB_USE_V2_SESSIONS
 typedef TSharedPtr<FOnlineSessionV1AccelByte, ESPMode::ThreadSafe> FOnlineSessionAccelBytePtr;
+#else
+typedef TSharedPtr<FOnlineSessionV2AccelByte, ESPMode::ThreadSafe> FOnlineSessionAccelBytePtr;
 #endif
 
 /** Shared pointer to the AccelByte implementation of the Identity interface */
@@ -97,10 +98,10 @@ typedef TSharedPtr<FOnlinePresenceAccelByte, ESPMode::ThreadSafe> FOnlinePresenc
 
 /** Shared pointer to the AccelByte implementation of the friends interface */
 typedef TSharedPtr<FOnlineFriendsAccelByte, ESPMode::ThreadSafe> FOnlineFriendsAccelBytePtr;
-
+#if 1 // MMv1 Deprecation
 /** Shared pointer to the AccelByte implementation of the party system interface */
 typedef TSharedPtr<FOnlinePartySystemAccelByte, ESPMode::ThreadSafe> FOnlinePartySystemAccelBytePtr;
-
+#endif
 /** Shared pointer to the AccelByte user store */
 typedef TSharedPtr<FOnlineUserCacheAccelByte, ESPMode::ThreadSafe> FOnlineUserCacheAccelBytePtr;
 
@@ -121,6 +122,9 @@ typedef TSharedPtr<FOnlineAgreementAccelByte, ESPMode::ThreadSafe> FOnlineAgreem
 
 /** Shared pointer to the AccelByte Wallet */
 typedef TSharedPtr<FOnlineWalletAccelByte, ESPMode::ThreadSafe> FOnlineWalletAccelBytePtr;
+
+/** Shared pointer to the AccelByte Wallet V2 */
+typedef TSharedPtr<FOnlineWalletV2AccelByte, ESPMode::ThreadSafe> FOnlineWalletV2AccelBytePtr;
 
 /** Shared pointer to the AccelByte Cloud Save */
 typedef TSharedPtr<FOnlineCloudSaveAccelByte, ESPMode::ThreadSafe> FOnlineCloudSaveAccelBytePtr;
@@ -191,6 +195,7 @@ public:
 	virtual IOnlineAchievementsPtr GetAchievementsInterface() const override;
 	virtual FOnlineAgreementAccelBytePtr GetAgreementInterface() const;
 	virtual FOnlineWalletAccelBytePtr GetWalletInterface() const;
+	virtual FOnlineWalletV2AccelBytePtr GetWalletV2Interface() const;
 	virtual FOnlineCloudSaveAccelBytePtr GetCloudSaveInterface() const; 
 	virtual IOnlineTimePtr GetTimeInterface() const override;
 	virtual FOnlineAnalyticsAccelBytePtr GetAnalyticsInterface() const;
@@ -294,6 +299,27 @@ public:
 	 */
 	bool SetDisplayNameSource(const FString& InDisplayNameSource);
 
+	/**
+	 * @brief Retrieve the flag if the instance is running as dedicated server
+	 * 
+	 * @return boolean that is true if the instance is running or logged in as dedicated server
+	 */
+	TOptional<bool> IsDedicatedServer(int32 LocalUserNum) const;
+
+	/**
+	 * @brief Retrieve the state of the runing instance.
+	 * 
+	 * @return EAccelByteState
+	 */
+	EAccelByteState GetRunningState(int32 LocalUserNum) const;
+
+	/**
+	 * @brief Set the state of the running instance.
+	 *
+	 * @return EAccelByteState
+	 */
+	void SetRunningState(int32 LocalUserNum, EAccelByteState NewState);
+
 PACKAGE_SCOPE:
 	/** Disable the default constructor, instances of the OSS are only to be managed by the factory spawned by the module */
 	FOnlineSubsystemAccelByte() = delete;
@@ -311,7 +337,9 @@ PACKAGE_SCOPE:
 		, UserInterface(nullptr)
 		, UserCloudInterface(nullptr)
 		, FriendsInterface(nullptr)
+#if 1 // MMv1 Deprecation
 		, PartyInterface(nullptr)
+#endif
 		, PresenceInterface(nullptr)
 		, UserCache(nullptr)
 		, AsyncTaskManager(nullptr)
@@ -530,9 +558,10 @@ private:
 	/** Shared instance of our friends interface implementation */
 	FOnlineFriendsAccelBytePtr FriendsInterface;
 
+#if 1 // MMv1 Deprecation
 	/** Shared instance of our party system interface implementation */
 	FOnlinePartySystemAccelBytePtr PartyInterface;
-
+#endif
 	/** Shared instance of our presence interface implementation */
 	FOnlinePresenceAccelBytePtr PresenceInterface;
 
@@ -556,6 +585,9 @@ private:
 
 	/** Shared instance of our wallet interface implementation */
 	FOnlineWalletAccelBytePtr WalletInterface;
+
+	/** Shared instance of our wallet V2 interface implementation */
+	FOnlineWalletV2AccelBytePtr WalletV2Interface;
 
 	/** Shared instance of our cloud save interface implementation */
 	FOnlineCloudSaveAccelBytePtr CloudSaveInterface;
@@ -669,6 +701,9 @@ private:
 	FDelegateHandle OnPreExitDelegate;
 
 	TMap<int32, FDelegateHandle> LobbyMessageNotifMap;
+
+	TMap<int32, EAccelByteState> RunningStates;
+	mutable FRWLock RunningStatesLock;
 
 #pragma region PLATFORM_RELATED
 	/**

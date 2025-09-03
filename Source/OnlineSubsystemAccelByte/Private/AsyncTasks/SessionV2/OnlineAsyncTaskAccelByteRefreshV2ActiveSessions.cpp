@@ -7,12 +7,13 @@
 
 using namespace AccelByte;
 
-FOnlineAsyncTaskAccelByteRefreshV2ActiveSessions::FOnlineAsyncTaskAccelByteRefreshV2ActiveSessions(FOnlineSubsystemAccelByte* const InABInterface,
-	const int32 InLocalUserNum,
-	const TArray<FName>& InSessionNames,
-	bool bOnReconnectedRefreshSessionDelegates)
-	: FOnlineAsyncTaskAccelByte(InABInterface)
-	, LocalUserNum(InLocalUserNum)
+FOnlineAsyncTaskAccelByteRefreshV2ActiveSessions::FOnlineAsyncTaskAccelByteRefreshV2ActiveSessions(FOnlineSubsystemAccelByte* const InABInterface
+	, const int32 InLocalUserNum
+	, const TArray<FName>& InSessionNames
+	, bool bOnReconnectedRefreshSessionDelegates)
+	: FOnlineAsyncTaskAccelByte(InABInterface
+		, InLocalUserNum
+		, ASYNC_TASK_FLAG_BIT(EAccelByteAsyncTaskFlags::UseTimeout) + ASYNC_TASK_FLAG_BIT(EAccelByteAsyncTaskFlags::ServerTask))
 	, SessionNames(InSessionNames)
 	, bTriggerOnReconnectedRefreshSessionDelegates(bOnReconnectedRefreshSessionDelegates)
 {
@@ -20,11 +21,19 @@ FOnlineAsyncTaskAccelByteRefreshV2ActiveSessions::FOnlineAsyncTaskAccelByteRefre
 
 void FOnlineAsyncTaskAccelByteRefreshV2ActiveSessions::Initialize()
 {
-	TRY_PIN_SUBSYSTEM();
-
 	Super::Initialize();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Total Session Nums: %d"), SessionNames.Num());
+
+	TRY_PIN_SUBSYSTEM();
+
+	TOptional<bool> IsDS = SubsystemPin->IsDedicatedServer(LocalUserNum);
+
+	if (!IsDS.IsSet())
+	{
+		CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
+		return;
+	}
 
 	const TSharedPtr<FOnlineSessionV2AccelByte, ESPMode::ThreadSafe> SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(SubsystemPin->GetSessionInterface());
 	check(SessionInterface.IsValid());
@@ -45,7 +54,7 @@ void FOnlineAsyncTaskAccelByteRefreshV2ActiveSessions::Initialize()
 			UE_LOG_AB(Warning, TEXT("Could not update session as the session's type is neither Game nor Party!"))
 			bIsRefreshSession = false;
 		}
-		else if (SessionType == EAccelByteV2SessionType::PartySession && IsRunningDedicatedServer())
+		else if (SessionType == EAccelByteV2SessionType::PartySession && IsDS.GetValue())
 		{
 			UE_LOG_AB(Warning, TEXT("Game servers are not able to refresh party sessions!"))
 			bIsRefreshSession = false;

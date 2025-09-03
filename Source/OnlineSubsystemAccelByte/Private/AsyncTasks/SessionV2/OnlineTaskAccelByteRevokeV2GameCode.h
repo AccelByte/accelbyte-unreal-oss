@@ -17,7 +17,11 @@ class FOnlineAsyncTaskAccelByteRevokeV2GameCode
 {
 public:
 
-	FOnlineAsyncTaskAccelByteRevokeV2GameCode(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InLocalUserId, const FName& InSessionName, const FOnRevokeGameCodeComplete& InDelegate);
+	FOnlineAsyncTaskAccelByteRevokeV2GameCode(FOnlineSubsystemAccelByte* const InABInterface
+		, const FUniqueNetId& InLocalUserId
+		, const FName& InSessionName
+		, const FOnRevokeGameCodeComplete& InDelegate
+		, bool IsDedicatedServer = false);
 
 	virtual void Initialize() override;
 	virtual void Finalize() override;

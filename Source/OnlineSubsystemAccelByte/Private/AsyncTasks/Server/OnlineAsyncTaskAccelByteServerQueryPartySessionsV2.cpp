@@ -8,8 +8,13 @@ using namespace AccelByte;
 
 #define ONLINE_ERROR_NAMESPACE "FOnlineAsyncTaskAccelByteServerQueryPartySessionsV2"
 
-FOnlineAsyncTaskAccelByteServerQueryPartySessionsV2::FOnlineAsyncTaskAccelByteServerQueryPartySessionsV2(FOnlineSubsystemAccelByte* const InABInterface, const FAccelByteModelsV2QueryPartiesRequest& InRequest, int64 InOffset, int64 InLimit)
-	: FOnlineAsyncTaskAccelByte(InABInterface, INVALID_CONTROLLERID, ASYNC_TASK_FLAG_BIT(EAccelByteAsyncTaskFlags::ServerTask))
+FOnlineAsyncTaskAccelByteServerQueryPartySessionsV2::FOnlineAsyncTaskAccelByteServerQueryPartySessionsV2(FOnlineSubsystemAccelByte* const InABInterface
+	, const FAccelByteModelsV2QueryPartiesRequest& InRequest
+	, int64 InOffset
+	, int64 InLimit)
+	: FOnlineAsyncTaskAccelByte(InABInterface
+		, INVALID_CONTROLLERID
+		, ASYNC_TASK_FLAG_BIT(EAccelByteAsyncTaskFlags::ServerTask))
 	, Request(InRequest), Offset(InOffset), Limit(InLimit)
 {
 }
@@ -20,7 +25,11 @@ void FOnlineAsyncTaskAccelByteServerQueryPartySessionsV2::Initialize()
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 
-	if (!IsRunningDedicatedServer())
+	TRY_PIN_SUBSYSTEM();
+
+	TOptional<bool> IsDS = SubsystemPin->IsDedicatedServer(LocalUserNum);
+
+	if (!IsDS.IsSet() || !IsDS.GetValue())
 	{
 		ErrorText = FText::FromString(TEXT("server-query-party-session-v2-not-a-server"));
 		OnlineError = ONLINE_ERROR(EOnlineErrorResult::RequestFailure, FString(), ErrorText);
@@ -41,12 +50,12 @@ void FOnlineAsyncTaskAccelByteServerQueryPartySessionsV2::Initialize()
 
 void FOnlineAsyncTaskAccelByteServerQueryPartySessionsV2::TriggerDelegates()
 {
-	TRY_PIN_SUBSYSTEM();
-
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s, ErrorMessage: %s"), LOG_BOOL_FORMAT(bWasSuccessful), *ErrorText.ToString());
 
-	FOnlineSessionV2AccelBytePtr SessionInterface = nullptr;
-	if (!ensureAlways(FOnlineSessionV2AccelByte::GetFromSubsystem(SubsystemPin.Get(), SessionInterface)))
+	TRY_PIN_SUBSYSTEM();
+
+	FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(SubsystemPin->GetSessionInterface());
+	if (!ensureAlways(SessionInterface.IsValid()))
 	{
 		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to get session interface instance from online subsystem!"));
 		return;

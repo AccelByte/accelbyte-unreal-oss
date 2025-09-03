@@ -3,6 +3,7 @@
 // and restrictions contact your company contract manager.
 
 #include "OnlineAsyncTaskAccelByteLoginServer.h"
+#include "OnlineSubsystemAccelByteTypes.h"
 #include "GameServerApi/AccelByteServerOauth2Api.h"
 #include "OnlineIdentityInterfaceAccelByte.h"
 
@@ -58,7 +59,7 @@ void FOnlineAsyncTaskAccelByteLoginServer::TriggerDelegates()
     TRY_PIN_SUBSYSTEM();
 
     AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
-	
+
     const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(SubsystemPin->GetIdentityInterface());
 	if (!ensure(IdentityInterface.IsValid()))
 	{
@@ -100,6 +101,8 @@ void FOnlineAsyncTaskAccelByteLoginServer::OnLoginServerSuccess()
             IdentityInterface->AddNewAuthenticatedUser(LocalUserNum, UserId.ToSharedRef(), Account.ToSharedRef()); 
         }
     }  
+
+    SubsystemPin->SetRunningState(LocalUserNum, EAccelByteState::Server);
 
     CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
 

@@ -2,22 +2,44 @@
 // This is licensed software from AccelByte Inc, for limitations
 // and restrictions contact your company contract manager.
 
+#if 1 // MMv1 Deprecation
 #include "OnlineAsyncTaskAccelByteFindV1GameSessionById.h"
 #include "OnlineSessionInterfaceV1AccelByte.h"
 
+#include "Core/AccelByteReport.h"
+
 using namespace AccelByte;
 
-FOnlineAsyncTaskAccelByteFindV1GameSessionById::FOnlineAsyncTaskAccelByteFindV1GameSessionById(
-	FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InSearchingPlayerId,
-	const FUniqueNetId& InSessionId, const FOnSingleSessionResultCompleteDelegate& InDelegate):
-	FOnlineAsyncTaskAccelByte(InABInterface, INVALID_CONTROLLERID, (IsRunningDedicatedServer()) ? ASYNC_TASK_FLAG_BIT(EAccelByteAsyncTaskFlags::ServerTask) : ASYNC_TASK_FLAG_BIT(EAccelByteAsyncTaskFlags::None))
+FOnlineAsyncTaskAccelByteFindV1GameSessionById::FOnlineAsyncTaskAccelByteFindV1GameSessionById(FOnlineSubsystemAccelByte* const InABInterface
+	, const FUniqueNetId& InSearchingPlayerId
+	, const FUniqueNetId& InSessionId
+	, const FOnSingleSessionResultCompleteDelegate& InDelegate
+	, bool IsDedicatedServer /*= false*/)
+	: FOnlineAsyncTaskAccelByte(InABInterface
+		, INVALID_CONTROLLERID
+		, IsDedicatedServer ? ASYNC_TASK_FLAG_BIT(EAccelByteAsyncTaskFlags::ServerTask) : ASYNC_TASK_FLAG_BIT(EAccelByteAsyncTaskFlags::None))
 	, SessionId(FUniqueNetIdAccelByteResource::CastChecked(InSessionId))
 	, Delegate(InDelegate)
 {
-	if (!IsRunningDedicatedServer())
+	FReport::LogDeprecated(FString(__FUNCTION__),
+		TEXT("Session V1 functionality is deprecated and replaced by Session V2. For more information, see https://docs.accelbyte.io/gaming-services/services/play/session/"));
+	if (!IsDedicatedServer)
 	{
 		UserId = FUniqueNetIdAccelByteUser::CastChecked(InSearchingPlayerId.AsShared());
 	}
+}
+
+FOnlineAsyncTaskAccelByteFindV1GameSessionById::FOnlineAsyncTaskAccelByteFindV1GameSessionById(FOnlineSubsystemAccelByte* const InABInterface
+	, int32 InLocalUserNum
+	, const FUniqueNetId& InSessionId
+	, const FOnSingleSessionResultCompleteDelegate& InDelegate
+	, bool IsDedicatedServer /*= false*/)
+	: FOnlineAsyncTaskAccelByte(InABInterface
+		, InLocalUserNum
+		, IsDedicatedServer ? ASYNC_TASK_FLAG_BIT(EAccelByteAsyncTaskFlags::ServerTask) : ASYNC_TASK_FLAG_BIT(EAccelByteAsyncTaskFlags::None))
+	, SessionId(FUniqueNetIdAccelByteResource::CastChecked(InSessionId))
+	, Delegate(InDelegate)
+{
 }
 
 void FOnlineAsyncTaskAccelByteFindV1GameSessionById::Initialize()
@@ -26,19 +48,27 @@ void FOnlineAsyncTaskAccelByteFindV1GameSessionById::Initialize()
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("SessionId: %s"), *SessionId->ToDebugString());
 
+	TRY_PIN_SUBSYSTEM();
+
 	// Send the API call based on whether we are a server or a client
 	OnGetGameSessionDetailsSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsSessionBrowserData>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteFindV1GameSessionById::OnGetGameSessionDetailsSuccess);
 	OnGetGameSessionDetailsErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteFindV1GameSessionById::OnGetGameSessionDetailsError);;
-	if (IsRunningDedicatedServer())
+
+	TOptional<bool> IsDS = SubsystemPin->IsDedicatedServer(LocalUserNum);
+
+	if (IsDS.IsSet())
 	{
-		SERVER_API_CLIENT_CHECK_GUARD();
-		
-		ServerApiClient->ServerSessionBrowser.GetGameSessionBySessionId(SessionId->ToString(), OnGetGameSessionDetailsSuccessDelegate, OnGetGameSessionDetailsErrorDelegate);
-	}
-	else
-	{
-		API_FULL_CHECK_GUARD(SessionBrowser);
-		SessionBrowser->GetGameSession(SessionId->ToString(), OnGetGameSessionDetailsSuccessDelegate, OnGetGameSessionDetailsErrorDelegate);
+		if (IsDS.GetValue())
+		{
+			SERVER_API_CLIENT_CHECK_GUARD();
+
+			ServerApiClient->ServerSessionBrowser.GetGameSessionBySessionId(SessionId->ToString(), OnGetGameSessionDetailsSuccessDelegate, OnGetGameSessionDetailsErrorDelegate);
+		}
+		else
+		{
+			API_FULL_CHECK_GUARD(SessionBrowser);
+			SessionBrowser->GetGameSession(SessionId->ToString(), OnGetGameSessionDetailsSuccessDelegate, OnGetGameSessionDetailsErrorDelegate);
+		}
 	}
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
@@ -91,3 +121,4 @@ void FOnlineAsyncTaskAccelByteFindV1GameSessionById::OnGetGameSessionDetailsErro
 	UE_LOG_AB(Warning, TEXT("Failed to find game session with ID '%s'! Error code: %d; Error message: %s"), *SessionId->ToString(), ErrorCode, *ErrorMessage);
 	CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
 }
+#endif

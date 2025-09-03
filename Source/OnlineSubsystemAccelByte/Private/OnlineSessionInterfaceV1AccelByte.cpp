@@ -2,6 +2,8 @@
 // This is licensed software from AccelByte Inc, for limitations
 // and restrictions contact your company contract manager.
 
+#if 1 // MMv1 Deprecation
+
 #include "OnlineSessionInterfaceV1AccelByte.h"
 #include "Runtime/Launch/Resources/Version.h"
 #if ENGINE_MAJOR_VERSION == 5
@@ -32,6 +34,7 @@
 #include "OnlinePredefinedEventInterfaceAccelByte.h"
 
 #include "Core/AccelByteError.h"
+#include "Core/AccelByteReport.h"
 #include "AsyncTasks/SessionV1/OnlineAsyncTaskAccelByteStartV1Matchmaking.h"
 #include "AsyncTasks/SessionV1/OnlineAsyncTaskAccelByteRegisterPlayerV1.h"
 #include "AsyncTasks/SessionV1/OnlineAsyncTaskAccelByteUnregisterPlayerV1.h"
@@ -74,11 +77,15 @@ FOnlineSessionV1AccelByte::FOnlineSessionV1AccelByte(FOnlineSubsystemAccelByte* 
 	: AccelByteSubsystem(InSubsystem->AsShared())
 	, SessionSearchHandle(nullptr)
 {
+	FReport::LogDeprecated(FString(__FUNCTION__),
+		TEXT("Session V1 functionality is deprecated and replaced by Session V2. For more information, see https://docs.accelbyte.io/gaming-services/services/play/session/"));
 }
 
 bool FOnlineSessionV1AccelByte::GetFromSubsystem(const IOnlineSubsystem* Subsystem, FOnlineSessionV1AccelBytePtr& OutInterfaceInstance)
 {
 #if !AB_USE_V2_SESSIONS
+	FReport::LogDeprecated(FString(__FUNCTION__),
+	TEXT("FOnlineSessionV1AccelByte is deprecated - please use FOnlineSessionV2AccelByte for the replacement"));
 	OutInterfaceInstance = StaticCastSharedPtr<FOnlineSessionV1AccelByte>(Subsystem->GetSessionInterface());
 	return OutInterfaceInstance.IsValid();
 #else
@@ -96,7 +103,8 @@ bool FOnlineSessionV1AccelByte::GetFromWorld(const UWorld* World, FOnlineSession
 		OutInterfaceInstance = nullptr;
 		return false;
 	}
-
+	FReport::LogDeprecated(FString(__FUNCTION__),
+	TEXT("FOnlineSessionV1AccelByte is deprecated - please use FOnlineSessionV2AccelByte for the replacement"));
 	return GetFromSubsystem(Subsystem, OutInterfaceInstance);
 #else
 	OutInterfaceInstance = nullptr;
@@ -991,8 +999,6 @@ bool FOnlineSessionV1AccelByte::CancelMatchmaking(const FUniqueNetId& SearchingP
 		}
 
 		// We will then want to send a party notification to tell other party members that we've canceled matchmaking
-		FString Topic = PARTYNOTIF_PARTY_LEADER_CANCEL_MATCHMAKING;		// Customization changed notification
-		FString Payload = PartyLeaderIdString;							// UserId of the party leader just in case the receiving party members need it 
 	});
 	Lobby->SetCancelMatchmakingResponseDelegate(OnCancelMatchmakingSuccess);
 
@@ -1052,6 +1058,12 @@ bool FOnlineSessionV1AccelByte::FindSessionById(const FUniqueNetId& SearchingUse
 {
 	// @todo not supported by SDK yet, in subsequent version that we will upgrade to as soon as released
 	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("SearchingPlayerId: %s; SessionId: %s"), *SearchingUserId.ToDebugString(), *SessionId.ToDebugString());
+	
+	if (!SearchingUserId.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to find session as the UserId is invalid"));
+		return false;
+	}
 
 	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
 	if(!AccelByteSubsystemPtr.IsValid())
@@ -1060,9 +1072,26 @@ bool FOnlineSessionV1AccelByte::FindSessionById(const FUniqueNetId& SearchingUse
 		return false;
 	}
 
-	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteFindV1GameSessionById>(AccelByteSubsystemPtr.Get(), SearchingUserId, SessionId, CompletionDelegate);
+	IOnlineIdentityPtr IdentityInterface = AccelByteSubsystemPtr->GetIdentityInterface();
+	if (ensure(IdentityInterface.IsValid()))
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to find session as the Identityinterface is invalid!"));
+		return false;
+	}
 
-	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Sent off async task to find session with ID '%s'!"), *SessionId.ToDebugString());
+	FOnlineIdentityAccelBytePtr ABIdentity = StaticCastSharedPtr<FOnlineIdentityAccelByte>(IdentityInterface);
+	int32 LocalUserNum = INVALID_CONTROLLERID;
+	if (ABIdentity->GetLocalUserNum(SearchingUserId, LocalUserNum))
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Sent off async task to find session with ID '%s'!"), *SessionId.ToDebugString());
+		AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteFindV1GameSessionById>(AccelByteSubsystemPtr.Get()
+			, LocalUserNum
+			, SessionId
+			, CompletionDelegate);
+		return true;
+	}
+
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Failed to find session with ID '%s'!"), *SessionId.ToDebugString());
 	return false;
 }
 
@@ -1557,6 +1586,9 @@ void FOnlineSessionV1AccelByte::RegisterRealTimeLobbyDelegates(int32 LocalUserNu
 	Lobby->SetMatchmakingNotifDelegate(OnMatchmakingNotificationReceivedDelegate);
 	Lobby->SetDsNotifDelegate(OnDedicatedServerNotificationReceivedDelegate);
 }
+
+void FOnlineSessionV1AccelByte::UnbindLobbyMulticastDelegate()
+{}
 
 void FOnlineSessionV1AccelByte::OnSessionResultCreateSuccess(const FOnlineSessionSearchResult& Result)
 {
@@ -2250,3 +2282,4 @@ bool FOnlineSessionV1AccelByte::ConstructGameSessionFromBackendSessionModel(
 	Session.SessionInfo = SessionInfo;
 	return true;
 }
+#endif

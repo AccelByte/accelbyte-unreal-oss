@@ -16,7 +16,9 @@ class FOnlineAsyncTaskAccelByteBulkGetUserRecord
 	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteBulkGetUserRecord, ESPMode::ThreadSafe>
 {
 public:
-	FOnlineAsyncTaskAccelByteBulkGetUserRecord(FOnlineSubsystemAccelByte* const InABInterface, const FString& InKey, const TArray<FUniqueNetIdAccelByteUserRef>& InUniqueNetIds);
+	FOnlineAsyncTaskAccelByteBulkGetUserRecord(FOnlineSubsystemAccelByte* const InABInterface
+		, FString const& InKey
+		, TArray<FUniqueNetIdAccelByteUserRef> const& InUniqueNetIds);
 
 	virtual void Initialize() override;
 	virtual void Finalize() override;
@@ -31,30 +33,22 @@ protected:
 
 private:
 
+	void BulkGetUserRecords(FString const& InKey);
+
 	/**
 	 * Delegate handler for when get user record succeed
 	 */
-	void OnGetUserRecordsSuccess(const TArray<FAccelByteModelsUserRecord>& Result);
+	void OnGetUserRecordsSuccess(TArray<FAccelByteModelsUserRecord> const& Result);
 	THandler<TArray<FAccelByteModelsUserRecord>> OnGetUserRecordsSuccessDelegate;
 
 	/**
 	 * Delegate handler for when get user record fails
 	 */
-	void OnGetUserRecordsError(int32 ErrorCode, const FString& ErrorMessage);
+	void OnGetUserRecordsError(int32 ErrorCode, FString const& ErrorMessage);
 	FErrorHandler OnGetUserRecordsErrorDelegate;
 
-	TArray<FString> ConvertUniqueNetIdsToAccelByteIds();
-	FBulkGetUserRecordMap ConstructBulkGetRecordResponseModel(const TArray<FAccelByteModelsUserRecord>& Result);
-
-	/**
-	 * String representing the error code that occurred
-	 */
-	FString ErrorStr{};
-
-	/**
-	 * String representing the error message that occurred
-	 */
-	FString ErrorCode{};
+	TArray<FString> ConvertUniqueNetIdsToAccelByteIds(int32 Limit);
+	FBulkGetUserRecordMap ConstructBulkGetRecordResponseModel(TArray<FAccelByteModelsUserRecord> const& Result);
 
 	/**
 	 * String representing the record key to get
@@ -71,10 +65,10 @@ private:
 	 */
 	FBulkGetUserRecordMap UserRecords{};
 
-	/*
-	 * Counter to manage the iteration based on total users
+	/**
+	 *  
 	 */
-	FThreadSafeCounter RequestCount{0};
+	int32 Offset = 0;
 
 	/*
 	 * Integer to store the maximum total of users in one request

@@ -17,27 +17,56 @@
 
 using namespace AccelByte;
 
-FOnlineAsyncTaskAccelByteCreateGameSessionV2::FOnlineAsyncTaskAccelByteCreateGameSessionV2(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InHostingPlayerId, const FName& InSessionName, const FOnlineSessionSettings& InNewSessionSettings)
+FOnlineAsyncTaskAccelByteCreateGameSessionV2::FOnlineAsyncTaskAccelByteCreateGameSessionV2(FOnlineSubsystemAccelByte* const InABInterface
+	, const FUniqueNetId& InHostingPlayerId
+	, const FName& InSessionName
+	, const FOnlineSessionSettings& InNewSessionSettings
+	, bool IsDedicatedServer /* = false */)
 	// Initialize as a server task if we are running a dedicated server, as this doubles as a server task. Otherwise, use
 	// no flags to indicate that it's a client task.
-	: FOnlineAsyncTaskAccelByte(InABInterface, INVALID_CONTROLLERID, (IsRunningDedicatedServer()) ? ASYNC_TASK_FLAG_BIT(EAccelByteAsyncTaskFlags::ServerTask) : ASYNC_TASK_FLAG_BIT(EAccelByteAsyncTaskFlags::None))
+	: FOnlineAsyncTaskAccelByte(InABInterface
+		, INVALID_CONTROLLERID
+		, IsDedicatedServer ? ASYNC_TASK_FLAG_BIT(EAccelByteAsyncTaskFlags::ServerTask) : ASYNC_TASK_FLAG_BIT(EAccelByteAsyncTaskFlags::None))
 	, SessionName(InSessionName)
 	, NewSessionSettings(InNewSessionSettings)
 {
-	if (!IsRunningDedicatedServer())
+	if (!IsDedicatedServer)
 	{
 		// If we are not running a DS, then we would need a valid user ID before making the call
 		UserId = FUniqueNetIdAccelByteUser::CastChecked(InHostingPlayerId);
 	}
 }
 
+FOnlineAsyncTaskAccelByteCreateGameSessionV2::FOnlineAsyncTaskAccelByteCreateGameSessionV2(FOnlineSubsystemAccelByte* const InABInterface
+	, int32 InLocalUserNum
+	, const FName& InSessionName
+	, const FOnlineSessionSettings& InNewSessionSettings
+	, bool IsDedicatedServer /* = false */)
+	// Initialize as a server task if we are running a dedicated server, as this doubles as a server task. Otherwise, use
+	// no flags to indicate that it's a client task.
+	: FOnlineAsyncTaskAccelByte(InABInterface
+		, InLocalUserNum
+		, IsDedicatedServer ? ASYNC_TASK_FLAG_BIT(EAccelByteAsyncTaskFlags::ServerTask) : ASYNC_TASK_FLAG_BIT(EAccelByteAsyncTaskFlags::None))
+	, SessionName(InSessionName)
+	, NewSessionSettings(InNewSessionSettings)
+{
+}
+
 void FOnlineAsyncTaskAccelByteCreateGameSessionV2::Initialize()
 {
-	TRY_PIN_SUBSYSTEM();
-
 	Super::Initialize();
 
-	if (!IsRunningDedicatedServer())
+	TRY_PIN_SUBSYSTEM();
+
+	TOptional<bool> IsDS = SubsystemPin->IsDedicatedServer(LocalUserNum);
+	if (!IsDS.IsSet())
+	{
+		AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Failed to initialize with HostingPlayerId: %s; SessionName: %s"), *UserId->ToDebugString(), *SessionName.ToString());
+		CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
+		return;
+	}
+
+	if (!IsDS.GetValue())
 	{
 		// If we are not running a DS, then we should log the ID of the user requesting a session be created, as well as the
 		// local name of the session that will be stored in the interface.
@@ -150,7 +179,7 @@ void FOnlineAsyncTaskAccelByteCreateGameSessionV2::Initialize()
 
 	OnCreateGameSessionSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsV2GameSession>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteCreateGameSessionV2::OnCreateGameSessionSuccess);
 	OnCreateGameSessionErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteCreateGameSessionV2::OnCreateGameSessionError);;
-	if (!IsRunningDedicatedServer())
+	if (!IsDS.GetValue())
 	{
 		API_FULL_CHECK_GUARD(Session);
 		Session->CreateGameSession(CreateRequest, OnCreateGameSessionSuccessDelegate, OnCreateGameSessionErrorDelegate);
@@ -192,14 +221,19 @@ void FOnlineAsyncTaskAccelByteCreateGameSessionV2::Finalize()
 		{
 			FAccelByteModelsMPV2GameSessionCreatedPayload GameSessionCreatedPayload{};
 			GameSessionCreatedPayload.GameSessionId = CreatedGameSession.ID;
-			if (!IsRunningDedicatedServer())
+
+			TOptional<bool> IsDS = SubsystemPin->IsDedicatedServer(LocalUserNum);
+			if (IsDS.IsSet())
 			{
-				GameSessionCreatedPayload.UserId = UserId.IsValid() ? UserId->GetAccelByteId() : TEXT("");
-				PredefinedEventInterface->SendEvent(LocalUserNum, MakeShared<FAccelByteModelsMPV2GameSessionCreatedPayload>(GameSessionCreatedPayload));
-			}
-			else
-			{
-				PredefinedEventInterface->SendEvent(-1, MakeShared<FAccelByteModelsMPV2GameSessionCreatedPayload>(GameSessionCreatedPayload));
+				if (!IsDS.GetValue())
+				{
+					GameSessionCreatedPayload.UserId = UserId.IsValid() ? UserId->GetAccelByteId() : TEXT("");
+					PredefinedEventInterface->SendEvent(LocalUserNum, MakeShared<FAccelByteModelsMPV2GameSessionCreatedPayload>(GameSessionCreatedPayload));
+				}
+				else
+				{
+					PredefinedEventInterface->SendEvent(-1, MakeShared<FAccelByteModelsMPV2GameSessionCreatedPayload>(GameSessionCreatedPayload));
+				}
 			}
 		}
 	}

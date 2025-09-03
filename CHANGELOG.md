@@ -2,6 +2,38 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.13.5](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.13.5%0D0.13.4) (2025-09-02)
+
+
+### Features
+
+* **Achievement:** bulk unlock achievement ([d648b83](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/d648b83276989ef1247fadb6f94001f028c40085))
+* Add new state based on Login result ([477987d](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/477987d0f0021dad6945d437a880ffb8da0dd370))
+* add QueryChatRoom to manually in case the auto query failed during connection process ([ff0adec](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/ff0adec6c5f6f0c13211a947d375f9af2148a445))
+* **GameSession:** add FindEntireGameSession function to allow query unfiltered game session (which mean including full game session) ([88e1343](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/88e13431dfd135c7372c888d79b2137cc5cbb0ad))
+* introduce wallet v2 interface ([0f33de6](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/0f33de6947d43175666384b23e098bf197f1e307))
+
+
+### Bug Fixes
+
+* **chat:** reorder the delegate attachment after query chat completed ([5807c46](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/5807c46f9e2b385ffc8e07694e9b56739bc1bad8))
+* crash when calling RefreshSession() from game server ([46ce825](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/46ce8254001867e3f53b8e2aa90fc0a84cfb1b37))
+* **entitlement:** remove the dependency to the platform subsystem preprocessor definition ([02ff0c6](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/02ff0c6d8cd5c4b58b8420c85031c61ee4fbc5b6))
+* minor fix to follow UE 4.27 rule ([9f9a10a](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/9f9a10a155e230c61bd17956186075b09c87828d))
+* move TriggerOnConnectChatCompleteDelegates to after RegisterChatDelegates ([d8937a6](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/d8937a66c78f21b865f2c5101cc6100bac6c33b4))
+* **Session:** Fix missing disconnected players in the JoinedMembers data ([58a5525](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/58a55250b46790023a3194bac15b4b5ee0bd0dac))
+* **SessionV1:** add unbind delegate function to make it equal with the SessionV2 interface and prevent compile error ([5a1e575](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/5a1e57581a9762b2e3526ca2bf878746a0e465b0))
+* take into account remapped culture when launching FOnlineAsyncTaskAccelByteCreateUserProfile ([74573e5](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/74573e53d9ce4c6f762b1cd47a3a8127be6284ff))
+* underflow issue in FOnlineAsyncTaskAccelByteStartV2Matchmaking ([4db4271](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/4db4271a7fe5433131da46df8a44ccfd6233bc39))
+
+
+### Refactors
+
+* **AccelByteAsyncTask:** changed ApiClient to use WeakPtr and some other refactors ([34443d1](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/34443d18a6d413ee5926b0dad15a0f3c4c0d89a5))
+* **CloudSave:** changed IsRunningDedicatedServer to use AccelByte state from Login result ([c563954](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/c56395441c0ea76bdf6a4cc7c0e80084d0d94820))
+* mmv1 and partyv1 deprecation ([8da3954](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/8da3954f7bb01e13c1c35ef89a5ac3017fbe8a51))
+* **Session:** changed IsRunningDedicatedServer to use AccelByte state from Login result ([f9382f1](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/f9382f12b9dc5fab8996992a9ee0a4e3a728fee2))
+
 ### [0.13.4](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.13.4%0D0.13.3) (2025-07-21)
 
 

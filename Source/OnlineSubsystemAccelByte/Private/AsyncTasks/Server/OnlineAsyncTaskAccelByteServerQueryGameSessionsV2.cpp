@@ -8,8 +8,13 @@ using namespace AccelByte;
 
 #define ONLINE_ERROR_NAMESPACE "FOnlineAsyncTaskAccelByteServerQueryGameSessionV2"
 
-FOnlineAsyncTaskAccelByteServerQueryGameSessionsV2::FOnlineAsyncTaskAccelByteServerQueryGameSessionsV2(FOnlineSubsystemAccelByte* const InABInterface, const FAccelByteModelsV2ServerQueryGameSessionsRequest& InRequest, int64 InOffset, int64 InLimit)
-	: FOnlineAsyncTaskAccelByte(InABInterface, INVALID_CONTROLLERID, ASYNC_TASK_FLAG_BIT(EAccelByteAsyncTaskFlags::ServerTask))
+FOnlineAsyncTaskAccelByteServerQueryGameSessionsV2::FOnlineAsyncTaskAccelByteServerQueryGameSessionsV2(FOnlineSubsystemAccelByte* const InABInterface
+	, const FAccelByteModelsV2ServerQueryGameSessionsRequest& InRequest
+	, int64 InOffset
+	, int64 InLimit)
+	: FOnlineAsyncTaskAccelByte(InABInterface
+		, INVALID_CONTROLLERID
+		, ASYNC_TASK_FLAG_BIT(EAccelByteAsyncTaskFlags::ServerTask))
 	, Request(InRequest), Offset(InOffset), Limit(InLimit)
 {
 }
@@ -20,7 +25,11 @@ void FOnlineAsyncTaskAccelByteServerQueryGameSessionsV2::Initialize()
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 
-	if (!IsRunningDedicatedServer())
+	TRY_PIN_SUBSYSTEM();
+
+	TOptional<bool> IsDS = SubsystemPin->IsDedicatedServer(LocalUserNum);
+
+	if (!IsDS.IsSet() || !IsDS.GetValue())
 	{
 		ErrorText = FText::FromString(TEXT("server-query-game-session-v2-not-a-server"));
 		OnlineError = ONLINE_ERROR(EOnlineErrorResult::RequestFailure, FString(), ErrorText);
@@ -29,7 +38,7 @@ void FOnlineAsyncTaskAccelByteServerQueryGameSessionsV2::Initialize()
 		return;
 	}
 
-	SERVER_API_CLIENT_CHECK_GUARD()
+	SERVER_API_CLIENT_CHECK_GUARD();
 
 	OnQuerySuccess = TDelegateUtils<THandler<FAccelByteModelsV2PaginatedGameSessionQueryResult>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteServerQueryGameSessionsV2::OnQueryGameSessionsSuccess);
 	OnQueryFailed = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteServerQueryGameSessionsV2::OnQueryGameSessionsFailed);

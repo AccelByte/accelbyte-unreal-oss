@@ -1,12 +1,14 @@
 // Copyright (c) 2022 AccelByte Inc. All Rights Reserved.
 // This is licensed software from AccelByte Inc, for limitations
 // and restrictions contact your company contract manager.
+#if 1 // MMv1 Deprecation
 
 #include "OnlineAsyncTaskAccelByteUnregisterPlayerV1.h"
 #include "OnlineSubsystemAccelByte.h"
 #include "OnlineIdentityInterfaceAccelByte.h"
 #include "OnlineSubsystemAccelByteUtils.h"
 
+#include "Core/AccelByteReport.h"
 
 using namespace AccelByte;
 
@@ -15,6 +17,8 @@ FOnlineAsyncTaskAccelByteUnregisterPlayersV1::FOnlineAsyncTaskAccelByteUnregiste
 	, SessionName(InSessionName)
 	, Players(InPlayers)
 {
+	FReport::LogDeprecated(FString(__FUNCTION__),
+		TEXT("Session V1 functionality is deprecated and replaced by Session V2. For more information, see https://docs.accelbyte.io/gaming-services/services/play/session/"));
 	TRY_PIN_SUBSYSTEM_CONSTRUCTOR()
 
 	LocalUserNum = SubsystemPin->GetLocalUserNumCached();
@@ -143,3 +147,4 @@ void FOnlineAsyncTaskAccelByteUnregisterPlayersV1::OnUnregisterPlayerFromSession
 	PendingPlayerUnregistrations.Decrement();
 	SetLastUpdateTimeToCurrentTime();
 }
+#endif

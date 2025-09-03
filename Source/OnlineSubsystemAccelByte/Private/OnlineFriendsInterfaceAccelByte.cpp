@@ -1092,10 +1092,10 @@ bool FOnlineFriendsAccelByte::QueryRecentPlayers(const FUniqueNetId& UserId, con
 	FOnlineAsyncTaskInfo TaskInfo;
 	TaskInfo.bCreateEpicForThis = true;
 	TaskInfo.Type = ETypeOfOnlineAsyncTask::Parallel;
-#if AB_USE_V2_SESSIONS
-	AccelByteSubsystemPtr->CreateAndDispatchAsyncTask<FOnlineAsyncTaskAccelByteV2GetRecentPlayer>(TaskInfo, AccelByteSubsystemPtr.Get(), UserId, Namespace);
-#else
+#if !AB_USE_V2_SESSIONS
 	AccelByteSubsystemPtr->CreateAndDispatchAsyncTask<FOnlineAsyncTaskAccelByteGetRecentPlayer>(TaskInfo, AccelByteSubsystemPtr.Get(), UserId, Namespace);
+#else
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTask<FOnlineAsyncTaskAccelByteV2GetRecentPlayer>(TaskInfo, AccelByteSubsystemPtr.Get(), UserId, Namespace);
 #endif
 	return true;
 }
@@ -1117,16 +1117,16 @@ bool FOnlineFriendsAccelByte::QueryRecentTeamPlayers(int32 LocalUserNum, const F
 		return false;
 	}
 
-#if AB_USE_V2_SESSIONS
-	FOnlineAsyncTaskInfo TaskInfo;
-	TaskInfo.bCreateEpicForThis = true;
-	TaskInfo.Type = ETypeOfOnlineAsyncTask::Parallel;
-	AccelByteSubsystemPtr->CreateAndDispatchAsyncTask<FOnlineAsyncTaskAccelByteV2GetRecentTeamPlayer>(TaskInfo, AccelByteSubsystemPtr.Get(), LocalUserNum, UserId, Namespace);
-#else
+#if !AB_USE_V2_SESSIONS
 	AccelByteSubsystemPtr->ExecuteNextTick([this, &Namespace, &LocalUserNum]() {
 		TriggerOnQueryRecentTeamPlayersCompleteDelegates(LocalUserNum, Namespace, false, TEXT("recent-team-players-invalid-request"));
 	});
 	return false;
+#else
+	FOnlineAsyncTaskInfo TaskInfo;
+	TaskInfo.bCreateEpicForThis = true;
+	TaskInfo.Type = ETypeOfOnlineAsyncTask::Parallel;
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTask<FOnlineAsyncTaskAccelByteV2GetRecentTeamPlayer>(TaskInfo, AccelByteSubsystemPtr.Get(), LocalUserNum, UserId, Namespace);
 #endif
 	return true;
 }

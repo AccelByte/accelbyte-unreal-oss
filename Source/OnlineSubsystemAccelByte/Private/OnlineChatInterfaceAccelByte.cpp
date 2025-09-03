@@ -27,6 +27,7 @@
 #include "AsyncTasks/Chat/OnlineAsyncTaskAccelByteSetUserChatConfiguration.h"
 #include "AsyncTasks/Chat/OnlineAsyncTaskAccelByteChatReportMessage.h"
 #include "OnlineSubsystemAccelByteConfig.h"
+#include "Misc/Optional.h"
 
 using namespace AccelByte;
 
@@ -762,10 +763,12 @@ EAccelByteChatRoomType FOnlineChatAccelByte::GetChatRoomType(const FString& Topi
 	{
 		return EAccelByteChatRoomType::PARTY_V2;
 	}
+#if 1 // MMv1 Deprecation
 	else if (TopicId.StartsWith(TEXT("pv1.")))
 	{
 		return EAccelByteChatRoomType::PARTY_V1;
 	}
+#endif
 	else if (TopicId.StartsWith(TEXT("#")))
 	{
 		return EAccelByteChatRoomType::PERSONAL;
@@ -873,9 +876,9 @@ FAccelByteChatRoomMemberRef FOnlineChatAccelByte::GetAccelByteChatRoomMember(con
 	return Member;
 }
 
-void FOnlineChatAccelByte::RegisterChatDelegates(const FUniqueNetId& PlayerId)
+void FOnlineChatAccelByte::RegisterChatDelegates(int32 LocalUserNum)
 {
-	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("PlayerId: %s"), *PlayerId.ToDebugString());
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("LocalUserNum: %d"), LocalUserNum);
 
 	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
 	if (!AccelByteSubsystemPtr.IsValid())
@@ -891,24 +894,17 @@ void FOnlineChatAccelByte::RegisterChatDelegates(const FUniqueNetId& PlayerId)
 		return;
 	}
 
-	int32 LocalUserNum = 0;
-	if (!ensure(IdentityInterface->GetLocalUserNum(PlayerId, LocalUserNum)))
-	{
-		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to register notifications for session updates as we could not get a local user index for player with ID '%s'!"), *PlayerId.ToDebugString());
-		return;
-	}
-
-	AccelByte::FApiClientPtr ApiClient = AccelByteSubsystemPtr->GetApiClient(PlayerId);
+	AccelByte::FApiClientPtr ApiClient = AccelByteSubsystemPtr->GetApiClient(LocalUserNum);
 	if (!ensure(ApiClient.IsValid()))
 	{
-		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to register notifications for session updates as player '%s' has an invalid API client!"), *PlayerId.ToDebugString());
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to register notifications for session updates as player user num '%d' has an invalid API client!"), LocalUserNum);
 		return;
 	}
 
 	const auto Chat = ApiClient->GetChatApi().Pin();
 	if (!ensure(Chat.IsValid()))
 	{
-		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to register notifications for session updates as player '%s' has an invalid Chat API!"), *PlayerId.ToDebugString());
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to register notifications for session updates as player user num '%d' has an invalid Chat API!"), LocalUserNum);
 		return;
 	}
 
@@ -959,19 +955,70 @@ void FOnlineChatAccelByte::RegisterChatDelegates(const FUniqueNetId& PlayerId)
 	Chat->OnMassiveOutageMulticastDelegate().AddThreadSafeSP(SharedThis(this), &FOnlineChatAccelByte::OnChatMassiveOutageEvent, LocalUserNum);
 	//~ End Chat Notifications
 
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
+}
+
+bool FOnlineChatAccelByte::QueryChatRoom(const FUniqueNetId& PlayerId, const FAccelByteModelsChatQueryTopicRequest& Request, const FOnChatQueryRoomComplete& OnComplete)
+{
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("PlayerId: %s"), *PlayerId.ToDebugString());
+
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to query chat room, AccelByteSubsystemPtr.Get() is invalid"));
+		return false;
+	}
+	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystemPtr->GetIdentityInterface());
+	if (!ensure(IdentityInterface.IsValid()))
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to query chat room, Identity Interface is invalid!"));
+		return false;
+	}
+	TSharedPtr<FUserOnlineAccount> UserAccount = IdentityInterface->GetUserAccount(PlayerId);
+	if (!UserAccount.IsValid())
+	{
+		const FString ErrorStr = TEXT("chat-connect-failed-user-account-invalid");
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to query chat room, User Account is invalid!"));
+		return false;
+	}
+	const TSharedPtr<FUserOnlineAccountAccelByte> UserAccountAccelByte = StaticCastSharedPtr<FUserOnlineAccountAccelByte>(UserAccount);
+	if (!UserAccountAccelByte->IsConnectedToChat())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to query chat room, Chat Interface is disconnected!"));
+		return false;
+	}
+
+	FOnlineAsyncTaskInfo TaskInfo;
+	TaskInfo.Type = ETypeOfOnlineAsyncTask::Parallel;
+	TaskInfo.bCreateEpicForThis = true;
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTask<FOnlineAsyncTaskAccelByteChatQueryRoom>(TaskInfo, AccelByteSubsystemPtr.Get(), PlayerId, Request, OnComplete);
+
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
+	return true;
+}
+
+void FOnlineChatAccelByte::QueryRoomAfterChatConnectEstablished(const FUniqueNetId& PlayerId)
+{
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("PlayerId: %s"), *PlayerId.ToDebugString());
+
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelByteSubsystemPtr.Get() is invalid"));
+		return;
+	}
+
 	// Cache topic data
 	FAccelByteModelsChatQueryTopicRequest QueryTopicRequest;
 	// TODO: get all topic data if the user has more that 200 topics (should be working for most of cases now)
 	QueryTopicRequest.Offset = 0;
 	QueryTopicRequest.Limit = 200;
-	const FOnChatQueryRoomComplete OnQueryTopicResponse = FOnChatQueryRoomComplete::CreateThreadSafeSP(SharedThis(this), &FOnlineChatAccelByte::OnQueryChatRoomInfoComplete);
+	const FOnChatQueryRoomComplete OnQueryTopicResponse = FOnChatQueryRoomComplete::CreateThreadSafeSP(SharedThis(this), &FOnlineChatAccelByte::OnQueryChatRoomInfoCompleteAfterConnectionEstablished);
 
 	FOnlineAsyncTaskInfo TaskInfo;
 	TaskInfo.Type = ETypeOfOnlineAsyncTask::Parallel;
 	TaskInfo.bCreateEpicForThis = true;
 	AccelByteSubsystemPtr->CreateAndDispatchAsyncTask<FOnlineAsyncTaskAccelByteChatQueryRoom>(TaskInfo, AccelByteSubsystemPtr.Get(), PlayerId, QueryTopicRequest, OnQueryTopicResponse);
-
-	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
 }
 
 void FOnlineChatAccelByte::OnChatDisconnectedNotification(const FAccelByteModelsChatDisconnectNotif& DisconnectEvent, int32 LocalUserNum)
@@ -1304,9 +1351,42 @@ void FOnlineChatAccelByte::OnChatMassiveOutageEvent(const FMassiveOutageInfo& In
 	TriggerAccelByteOnChatMassiveOutageEventDelegates(InLocalUserNum, Info);
 }
 
-void FOnlineChatAccelByte::OnQueryChatRoomInfoComplete(bool bWasSuccessful, TArray<FAccelByteChatRoomInfoRef> RoomList, int32 LocalUserNum)
+void FOnlineChatAccelByte::OnQueryChatRoomInfoCompleteAfterConnectionEstablished(bool bWasSuccessful, TArray<FAccelByteChatRoomInfoRef> RoomList, int32 LocalUserNum)
 {
 	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("Room length %d"), RoomList.Num());
+	
+	RegisterChatDelegates(LocalUserNum);
+
+	FString ErrorStr;
+	if(bWasSuccessful)
+	{	
+		ErrorStr = TEXT("");
+	}
+	else
+	{
+		ErrorStr = TEXT("chat-connect-partial-failure-unable-to-query-rooms");
+	}
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelByteSubsystemPtr.Get() is invalid"));
+		return;
+	}
+
+	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystemPtr->GetIdentityInterface());
+	if (!ensure(IdentityInterface.IsValid()))
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to handle received chat notification as our identity interface is invalid!"));
+		return;
+	}
+
+	const FUniqueNetIdPtr LocalUserId = IdentityInterface->GetUniquePlayerId(LocalUserNum);
+	if (!LocalUserId.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to handle received chat notification as LocalUserId is invalid!"));
+		return;
+	}
+	TriggerOnConnectChatCompleteDelegates(LocalUserNum, true, *LocalUserId.Get(), ErrorStr);
 
 	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
 }
@@ -1498,7 +1578,9 @@ void FAccelByteChatRoomInfo::SetTopicData(const FAccelByteModelsChatTopicQueryDa
 	switch (RoomType) {
 	case EAccelByteChatRoomType::PERSONAL:
 	case EAccelByteChatRoomType::PARTY_V2:
+#if 1 // MMv1 Deprecation
 	case EAccelByteChatRoomType::PARTY_V1:
+#endif
 	case EAccelByteChatRoomType::SESSION_V2:
 		// auto create room should be private and cannot be joined
 		bIsPrivate = true;

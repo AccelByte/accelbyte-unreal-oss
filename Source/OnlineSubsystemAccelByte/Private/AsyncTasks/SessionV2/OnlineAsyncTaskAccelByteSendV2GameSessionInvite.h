@@ -17,7 +17,10 @@ class FOnlineAsyncTaskAccelByteSendV2GameSessionInvite
 {
 public:
 
-	FOnlineAsyncTaskAccelByteSendV2GameSessionInvite(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InLocalUserId, const FName& InSessionName, const FUniqueNetId& InRecipientId);
+	FOnlineAsyncTaskAccelByteSendV2GameSessionInvite(FOnlineSubsystemAccelByte* const InABInterface
+		, const FUniqueNetId& InLocalUserId
+		, const FName& InSessionName
+		, const FUniqueNetId& InRecipientId);
 
 	virtual void Initialize() override;
 	virtual void Finalize() override;

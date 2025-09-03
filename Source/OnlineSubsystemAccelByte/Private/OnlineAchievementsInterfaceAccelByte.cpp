@@ -1,11 +1,13 @@
-﻿// Copyright (c) 2023 AccelByte Inc. All Rights Reserved.
+﻿// Copyright (c) 2023-2025 AccelByte Inc. All Rights Reserved.
 // This is licensed software from AccelByte Inc, for limitations
 // and restrictions contact your company contract manager.
+
 #include "OnlineAchievementsInterfaceAccelByte.h"
 #include "OnlineSubsystemUtils.h"
 #include "AsyncTasks/Achievement/OnlineAsyncTaskAccelByteQueryAchievement.h"
 #include "AsyncTasks/Achievement/OnlineAsyncTaskAccelByteQueryUserAchievements.h"
 #include "AsyncTasks/Achievement/OnlineAsyncTaskAccelByteSendPSNEvents.h"
+#include "AsyncTasks/Achievement/OnlineAsyncTaskAccelByteBulkUnlockAchievement.h"
 
 using namespace AccelByte;
 
@@ -222,4 +224,59 @@ void FOnlineAchievementsAccelByte::SendPSNEvents(const FAccelByteModelsAchieveme
 	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteSendPSNEvents>(AccelByteSubsystemPtr.Get()
 		, Request
 		, CompletionDelegate);
+}
+
+void FOnlineAchievementsAccelByte::UnlockAchievementBulkOperation(const FUniqueNetId& UserID, TArray<FString> AchievementCodes, const FOnBulkAchievementUnlockDelegate& OperationResponseDelegate)
+{
+	const FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Failed to send psn events, AccelByteSubsystem ptr is invalid"));
+		return;
+	}
+
+	FAccelByteModelsAchievementBulkUnlockRequest Request;
+	Request.AchievementCodes = AchievementCodes;
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteBulkUnlockAchievement>(AccelByteSubsystemPtr.Get()
+		, UserID
+		, false
+		, Request
+		, OperationResponseDelegate);
+}
+
+void FOnlineAchievementsAccelByte::UnlockAchievementBulkOperationByGameServer(const FUniqueNetId& UserID, TArray<FString> AchievementCodes, const FOnBulkAchievementUnlockDelegate& OperationResponseDelegate)
+{
+	const FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Failed to send psn events, AccelByteSubsystem ptr is invalid"));
+		return;
+	}
+
+	FAccelByteModelsAchievementBulkUnlockRequest Request;
+	Request.AchievementCodes = AchievementCodes;
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteBulkUnlockAchievement>(AccelByteSubsystemPtr.Get()
+		, UserID
+		, true
+		, Request
+		, OperationResponseDelegate);
+}
+
+void FOnlineAchievementsAccelByte::UnlockAchievementBulkOperationByGameServer(const FString& AccelByteUserID, TArray<FString> AchievementCodes, const FOnBulkAchievementUnlockDelegate& OperationResponseDelegate)
+{
+	auto ABUniqueNetId = FUniqueNetIdAccelByteUser::Create(AccelByteUserID);
+	if (!ABUniqueNetId.Get().IsValid())
+	{
+		UE_LOG_AB(Warning, TEXT("Unable to perform bulk operation against targeted AccelByteUserID. NetId is not valid."));
+		return;
+	}
+
+	FUniqueNetIdRef UniqueNetId = StaticCastSharedRef<const FUniqueNetId>(FUniqueNetIdAccelByteUser::Create(AccelByteUserID));
+	if(!UniqueNetId.Get().IsValid())
+	{
+		UE_LOG_AB(Warning, TEXT("Unable to perform bulk operation against targeted AccelByteUserID. NetId is not valid."));
+		return;
+	}
+
+	UnlockAchievementBulkOperationByGameServer(UniqueNetId.Get(), AchievementCodes, OperationResponseDelegate);
 }

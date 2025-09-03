@@ -2,6 +2,7 @@
 // This is licensed software from AccelByte Inc, for limitations
 // and restrictions contact your company contract manager.
 #pragma once
+#if 1 // MMv1 Deprecation
 
 #include "AsyncTasks/OnlineAsyncTaskAccelByte.h"
 #include "AsyncTasks/OnlineAsyncTaskAccelByteUtils.h"
@@ -136,3 +137,4 @@ private:
 	virtual void OnTaskTimedOut() override;
 };
 
+#endif

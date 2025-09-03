@@ -16,7 +16,11 @@ class FOnlineAsyncTaskAccelByteGetUserRecord
 	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteGetUserRecord, ESPMode::ThreadSafe>
 {
 public:
-	FOnlineAsyncTaskAccelByteGetUserRecord(FOnlineSubsystemAccelByte* const InABInterface, const int32 InLocalUserNum, const FUniqueNetId& InLocalUserId, const FString& InKey, bool IsPublic, const FString& InRecordUserId = TEXT(""));
+	FOnlineAsyncTaskAccelByteGetUserRecord(FOnlineSubsystemAccelByte* const InABInterface
+		, int32 InLocalUserNum
+		, FString const& InKey
+		, bool IsPublic
+		, FString const& InRecordUserId = TEXT(""));
 
 	virtual void Initialize() override;
 	virtual void Finalize() override;
@@ -40,14 +44,8 @@ private:
 	/**
 	 * Delegate handler for when get user record fails
 	 */
-	void OnGetUserRecordsError(int32 ErrorCode, const FString& ErrorMessage);
+	void OnGetUserRecordsError(int32 ErrorCode, FString const& ErrorMessage);
 	FErrorHandler OnGetUserRecordsErrorDelegate;
-
-	/**
-	 * String representing the error code that occurred
-	 */
-	FString ErrorStr;
-	FString ErrorCode;
 
 	/**
 	 * String representing the record key to get

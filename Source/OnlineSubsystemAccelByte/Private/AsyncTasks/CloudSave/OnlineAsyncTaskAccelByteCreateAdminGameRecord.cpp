@@ -14,8 +14,15 @@ using namespace AccelByte;
 
 #define ONLINE_ERROR_NAMESPACE "FOnlineAsyncTaskAccelByteCreateAdminGameRecord"
 
-FOnlineAsyncTaskAccelByteCreateAdminGameRecord::FOnlineAsyncTaskAccelByteCreateAdminGameRecord(FOnlineSubsystemAccelByte* const InABInterface, int32 InLocalUserNum, const FString& InKey, const FJsonObject& InGameRecordObj, const TArray<FString> InTags, const FTTLConfig& InTTLConfig)
-	: FOnlineAsyncTaskAccelByte(InABInterface)
+FOnlineAsyncTaskAccelByteCreateAdminGameRecord::FOnlineAsyncTaskAccelByteCreateAdminGameRecord(FOnlineSubsystemAccelByte* const InABInterface
+	, int32 InLocalUserNum
+	, FString const& InKey
+	, FJsonObject const& InGameRecordObj
+	, TArray<FString> const& InTags
+	, FTTLConfig const& InTTLConfig)
+	: FOnlineAsyncTaskAccelByte(InABInterface
+		, InLocalUserNum
+		, ASYNC_TASK_FLAG_BIT(EAccelByteAsyncTaskFlags::UseTimeout) + ASYNC_TASK_FLAG_BIT(EAccelByteAsyncTaskFlags::ServerTask))
 	, Key(InKey)
 	, GameRecordObj(InGameRecordObj)
 	, Tags(InTags)
@@ -32,13 +39,12 @@ void FOnlineAsyncTaskAccelByteCreateAdminGameRecord::Initialize()
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Creating game record, LocalUserNum: %d"), LocalUserNum);
 
-	OnCreateAdminGameRecordSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsAdminGameRecord>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteCreateAdminGameRecord::OnCreateAdminGameRecordSuccess);
-	OnCreateAdminGameRecordErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteCreateAdminGameRecord::OnCreateAdminGameRecordError);
-
-	if (!IsRunningDedicatedServer())
+	TOptional<bool> IsDS = SubsystemPin->IsDedicatedServer(LocalUserNum);
+	if (!IsDS.IsSet() || !IsDS.GetValue())
 	{
-		ErrorCode = FString::Printf(TEXT("%d"), ErrorCodes::StatusBadRequest);
-		ErrorStr = FText::FromString(TEXT("request-failed-create-admin-game-record-error"));
+		TaskOnlineError = EOnlineErrorResult::NotImplemented;
+		TaskErrorCode = FString::Printf(TEXT("%d"), ErrorCodes::StatusBadRequest);
+		TaskErrorStr = TEXT("request-failed-create-admin-game-record-error");
 		CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
 		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to create game record, access denied!"));
 		return;
@@ -47,8 +53,9 @@ void FOnlineAsyncTaskAccelByteCreateAdminGameRecord::Initialize()
 	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(SubsystemPin->GetIdentityInterface());
 	if (!IdentityInterface.IsValid())
 	{
-		ErrorCode = FString::Printf(TEXT("%d"), ErrorCodes::StatusUnauthorized);
-		ErrorStr = FText::FromString(TEXT("request-failed-create-admin-game-record-error"));
+		TaskOnlineError = EOnlineErrorResult::MissingInterface;
+		TaskErrorCode = FString::Printf(TEXT("%d"), ErrorCodes::StatusUnauthorized);
+		TaskErrorStr = TEXT("request-failed-create-admin-game-record-error");
 		CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
 		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to create admin game record, identity interface is invalid!"));
 		return;
@@ -56,16 +63,26 @@ void FOnlineAsyncTaskAccelByteCreateAdminGameRecord::Initialize()
 
 	if (IdentityInterface->GetLoginStatus(LocalUserNum) != ELoginStatus::LoggedIn)
 	{
-		ErrorCode = FString::Printf(TEXT("%d"), ErrorCodes::StatusUnauthorized);
-		ErrorStr = FText::FromString(TEXT("request-failed-create-admin-game-record-error"));
+		TaskOnlineError = EOnlineErrorResult::AccessDenied;
+		TaskErrorCode = FString::Printf(TEXT("%d"), ErrorCodes::StatusUnauthorized);
+		TaskErrorStr = TEXT("request-failed-create-admin-game-record-error");
 		CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
 		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to create admin game record, not logged in!"));
 		return;
 	}
 
-	SERVER_API_CLIENT_CHECK_GUARD(ErrorStr);
+	SERVER_API_CLIENT_CHECK_GUARD(TaskErrorStr);
+
+	OnCreateAdminGameRecordSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsAdminGameRecord>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteCreateAdminGameRecord::OnCreateAdminGameRecordSuccess);
+	OnCreateAdminGameRecordErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteCreateAdminGameRecord::OnCreateAdminGameRecordError);
+
 	
-	ServerApiClient->ServerCloudSave.CreateAdminGameRecord(Key, GameRecordObj, OnCreateAdminGameRecordSuccessDelegate, OnCreateAdminGameRecordErrorDelegate, Tags, TTLConfig);
+	ServerApiClient->ServerCloudSave.CreateAdminGameRecord(Key
+		, GameRecordObj
+		, OnCreateAdminGameRecordSuccessDelegate
+		, OnCreateAdminGameRecordErrorDelegate
+		, Tags
+		, TTLConfig);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
@@ -85,7 +102,7 @@ void FOnlineAsyncTaskAccelByteCreateAdminGameRecord::TriggerDelegates()
 		}
 		else
 		{
-			CloudSaveInterface->TriggerOnModifyAdminGameRecordCompletedDelegates(ONLINE_ERROR(EOnlineErrorResult::RequestFailure, ErrorCode, ErrorStr),Key);
+			CloudSaveInterface->TriggerOnModifyAdminGameRecordCompletedDelegates(ONLINE_ERROR(TaskOnlineError, TaskErrorCode, FText::FromString(TaskErrorStr)),Key);
 		}
 	}
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
@@ -108,8 +125,9 @@ void FOnlineAsyncTaskAccelByteCreateAdminGameRecord::OnCreateAdminGameRecordSucc
 
 void FOnlineAsyncTaskAccelByteCreateAdminGameRecord::OnCreateAdminGameRecordError(int32 Code, const FString& ErrorMessage)
 {
-	ErrorCode = FString::Printf(TEXT("%d"), Code);
-	ErrorStr = FText::FromString(TEXT("request-failed-create-admin-game-record-error"));
+	TaskOnlineError = EOnlineErrorResult::RequestFailure;
+	TaskErrorCode = FString::Printf(TEXT("%d"), Code);
+	TaskErrorStr = TEXT("request-failed-create-admin-game-record-error");
 	UE_LOG_AB(Warning, TEXT("Failed to create admin game record! Error Code: %d; Error Message: %s"), Code, *ErrorMessage);
 	CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
 }

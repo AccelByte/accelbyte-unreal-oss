@@ -49,7 +49,7 @@ struct MockAsyncTaskParameter
 };
 
 class ONLINESUBSYSTEMACCELBYTE_API FMockAsyncTaskAccelByte
-	: public  FOnlineAsyncTaskAccelByte
+	: public FOnlineAsyncTaskAccelByte
 	, public AccelByte::TSelfPtr<FMockAsyncTaskAccelByte, ESPMode::ThreadSafe>
 {
 public:

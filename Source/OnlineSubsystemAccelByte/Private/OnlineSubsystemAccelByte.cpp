@@ -16,6 +16,7 @@
 #include "OnlineUserCacheAccelByte.h"
 #include "OnlineAgreementInterfaceAccelByte.h"
 #include "OnlineWalletInterfaceAccelByte.h"
+#include "OnlineWalletV2InterfaceAccelByte.h"
 #include "OnlineCloudSaveInterfaceAccelByte.h"
 #include "OnlineTimeInterfaceAccelByte.h"
 #include "OnlineAnalyticsInterfaceAccelByte.h"
@@ -95,11 +96,11 @@ bool FOnlineSubsystemAccelByte::Init()
 	}
 
 	// Create each shared instance of our interface implementations, passing in ourselves as the parent
-#if AB_USE_V2_SESSIONS
+#if !AB_USE_V2_SESSIONS
+	SessionInterface = MakeShared<FOnlineSessionV1AccelByte, ESPMode::ThreadSafe>(this);
+#else
 	SessionInterface = MakeShared<FOnlineSessionV2AccelByte, ESPMode::ThreadSafe>(this);
 	StaticCastSharedPtr<FOnlineSessionV2AccelByte>(SessionInterface)->Init();
-#else
-	SessionInterface = MakeShared<FOnlineSessionV1AccelByte, ESPMode::ThreadSafe>(this);
 #endif
 
 	IdentityInterface = MakeShared<FOnlineIdentityAccelByte, ESPMode::ThreadSafe>(this);
@@ -107,7 +108,9 @@ bool FOnlineSubsystemAccelByte::Init()
 	UserInterface = MakeShared<FOnlineUserAccelByte, ESPMode::ThreadSafe>(this);
 	UserCloudInterface = MakeShared<FOnlineUserCloudAccelByte, ESPMode::ThreadSafe>(this);
 	FriendsInterface = MakeShared<FOnlineFriendsAccelByte, ESPMode::ThreadSafe>(this);
+#if 1 // MMv1 Deprecation
 	PartyInterface = MakeShared<FOnlinePartySystemAccelByte, ESPMode::ThreadSafe>(this);
+#endif
 	PresenceInterface = MakeShared<FOnlinePresenceAccelByte, ESPMode::ThreadSafe>(this);
 
 	UserCache = MakeShared<FOnlineUserCacheAccelByte, ESPMode::ThreadSafe>(this);
@@ -115,6 +118,7 @@ bool FOnlineSubsystemAccelByte::Init()
 
 	AgreementInterface = MakeShared<FOnlineAgreementAccelByte, ESPMode::ThreadSafe>(this);
 	WalletInterface = MakeShared<FOnlineWalletAccelByte, ESPMode::ThreadSafe>(this);
+	WalletV2Interface = MakeShared<FOnlineWalletV2AccelByte, ESPMode::ThreadSafe>(this);
 	CloudSaveInterface = MakeShared<FOnlineCloudSaveAccelByte, ESPMode::ThreadSafe>(this);
 	EntitlementsInterface = MakeShared<FOnlineEntitlementsAccelByte, ESPMode::ThreadSafe>(this);
 	StoreV2Interface = MakeShared<FOnlineStoreV2AccelByte, ESPMode::ThreadSafe>(this);
@@ -253,7 +257,9 @@ bool FOnlineSubsystemAccelByte::Shutdown()
 	LogoutDelegates.Empty();
 
 	// Reset all of our references to our shared interfaces to effectively destroy them if nothing else is using the memory
+#if 1 // MMv1 Deprecation
 	PartyInterface.Reset();
+#endif
 	PresenceInterface.Reset();
 	FriendsInterface.Reset();
 	UserCloudInterface.Reset();
@@ -263,6 +269,7 @@ bool FOnlineSubsystemAccelByte::Shutdown()
 	UserCache.Reset();
 	AgreementInterface.Reset();
 	WalletInterface.Reset();
+	WalletV2Interface.Reset();
 	EntitlementsInterface.Reset();
 	StoreV2Interface.Reset();
 	PurchaseInterface.Reset();
@@ -335,7 +342,11 @@ IOnlineUserCloudPtr FOnlineSubsystemAccelByte::GetUserCloudInterface() const
 
 IOnlinePartyPtr FOnlineSubsystemAccelByte::GetPartyInterface() const
 {
+#if 1 // MMv1 Deprecation
 	return PartyInterface;
+#else
+	return nullptr;
+#endif
 }
 
 IOnlinePresencePtr FOnlineSubsystemAccelByte::GetPresenceInterface() const 
@@ -376,6 +387,11 @@ FOnlineAgreementAccelBytePtr FOnlineSubsystemAccelByte::GetAgreementInterface() 
 FOnlineWalletAccelBytePtr FOnlineSubsystemAccelByte::GetWalletInterface() const
 {
 	return WalletInterface;
+}
+
+FOnlineWalletV2AccelBytePtr FOnlineSubsystemAccelByte::GetWalletV2Interface() const
+{
+	return WalletV2Interface;
 }
 
 FOnlineCloudSaveAccelBytePtr FOnlineSubsystemAccelByte::GetCloudSaveInterface() const
@@ -894,9 +910,9 @@ void FOnlineSubsystemAccelByte::OnLobbyConnectionClosed(int32 StatusCode, const 
 {
 	UE_LOG_AB(Warning, TEXT("Lobby connection closed. Reason '%s' Code : '%d'"), *Reason, StatusCode);
 
-	if (!IdentityInterface.IsValid() || !PartyInterface.IsValid())
+	if (!IdentityInterface.IsValid())
 	{
-		UE_LOG_AB(Warning, TEXT("Error due to either IdentityInterface or PartyInterface is invalid"));
+		UE_LOG_AB(Warning, TEXT("Error due to invalid IdentityInterface"));
 		return;
 	}
 
@@ -941,7 +957,7 @@ void FOnlineSubsystemAccelByte::OnLobbyConnectionClosed(int32 StatusCode, const 
 		TSharedPtr<FUniqueNetIdAccelByteUser const> LocalUserIdAccelByte = StaticCastSharedPtr<FUniqueNetIdAccelByteUser const>(IdentityInterface->GetUniquePlayerId(InLocalUserNum));
 
 		// make sure user is valid (still logged in) before removing party in party interface
-		if (LocalUserIdAccelByte.IsValid())
+		if (LocalUserIdAccelByte.IsValid() && PartyInterface.IsValid())
 		{
 			PartyInterface->RemovePartyFromInterface(LocalUserIdAccelByte.ToSharedRef());
 		}
@@ -1559,6 +1575,35 @@ bool FOnlineSubsystemAccelByte::SetDisplayNameSource(const FString& InDisplayNam
 {
 	Config->GetDisplayNameSource().SetValueFromString(InDisplayNameSource);
 	return true;
+}
+
+TOptional<bool> FOnlineSubsystemAccelByte::IsDedicatedServer(int32 LocalUserNum) const
+{
+	TOptional<bool> Result;
+	{
+		EAccelByteState RunningState = GetRunningState((LocalUserNum == INVALID_CONTROLLERID) ? 0 : LocalUserNum);
+		Result = RunningState == EAccelByteState::Server;
+	}
+	return Result;
+}
+
+EAccelByteState FOnlineSubsystemAccelByte::GetRunningState(int32 LocalUserNum) const
+{
+	EAccelByteState Result = EAccelByteState::Undefined;
+	{
+		FReadScopeLock ReadLock(RunningStatesLock);
+		if (RunningStates.Contains(LocalUserNum))
+		{
+			Result = RunningStates[LocalUserNum];
+		}
+	}
+	return Result;
+}
+
+void FOnlineSubsystemAccelByte::SetRunningState(int32 LocalUserNum, EAccelByteState NewState)
+{
+	FWriteScopeLock WriteLock(RunningStatesLock);
+	RunningStates.Emplace(LocalUserNum, NewState);
 }
 
 #undef LOCTEXT_NAMESPACE

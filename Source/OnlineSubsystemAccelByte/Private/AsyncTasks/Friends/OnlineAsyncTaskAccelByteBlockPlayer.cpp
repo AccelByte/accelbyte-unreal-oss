@@ -7,6 +7,10 @@
 #include "OnlineFriendsInterfaceAccelByte.h"
 #include "OnlinePartyInterfaceAccelByte.h"
 #include "OnlinePredefinedEventInterfaceAccelByte.h"
+#if !AB_USE_V2_SESSIONS
+#else
+#include "OnlineSessionInterfaceV2AccelByte.h"
+#endif
 
 #include "Api/AccelByteLobbyApi.h"
 #include "OnlineUserCacheAccelByte.h"
@@ -75,7 +79,6 @@ void FOnlineAsyncTaskAccelByteBlockPlayer::Finalize()
 	{
 		FriendsInterface->RemoveFriendFromList(LocalUserNum, PlayerId);
 	}
-
 	// We will want to then perform actions on the party depending on party role
 	PerformBlockedPlayerPartyOperation();
 
@@ -163,15 +166,9 @@ void FOnlineAsyncTaskAccelByteBlockPlayer::PerformBlockedPlayerPartyOperation()
 		return;
 	}
 
+#if !AB_USE_V2_SESSIONS
 	const FOnlinePartySystemAccelBytePtr PartyInterface = StaticCastSharedPtr<FOnlinePartySystemAccelByte>(SubsystemPin->GetPartyInterface());
 	if (!PartyInterface.IsValid())
-	{
-		return;
-	}
-
-	// NOTE @Damar : FUniqueId public constructor will be deprecated, changed to Create method
-	FUniqueNetIdAccelByteUserPtr AccelByteUserId = FUniqueNetIdAccelByteUser::TryCast(LocalUserId.ToSharedRef());
-	if (!AccelByteUserId.IsValid())
 	{
 		return;
 	}
@@ -181,7 +178,7 @@ void FOnlineAsyncTaskAccelByteBlockPlayer::PerformBlockedPlayerPartyOperation()
 	{
 		return;
 	}
-	
+
 	// Check if the user is in a multi-user party
 	TArray<FOnlinePartyMemberConstRef> CurrentMembers = UserParty->GetAllMembers();
 	if (CurrentMembers.Num() > 1)
@@ -211,4 +208,41 @@ void FOnlineAsyncTaskAccelByteBlockPlayer::PerformBlockedPlayerPartyOperation()
 			}
 		}
 	}
+#else
+	const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(SubsystemPin->GetSessionInterface());
+	if (!SessionInterface.IsValid())
+	{
+		return;
+	}
+
+	auto PartySession = SessionInterface->GetPartySession();
+	if (!PartySession)
+	{
+		return;
+	}
+
+	// Check if the user is in a multi-user party
+	auto CurrentMembers = PartySession->RegisteredPlayers;
+	if (CurrentMembers.Num() > 1)
+	{
+		for (auto const& PartyMember : CurrentMembers)
+		{
+			TSharedRef<const FUniqueNetIdAccelByteUser> PartyMemberCompositeId = FUniqueNetIdAccelByteUser::CastChecked(PartyMember);
+			if (PartyMemberCompositeId->GetAccelByteId() == PlayerId->GetAccelByteId())
+			{
+				if (PartySession->bHosting)
+				{
+					// If this user blocks a player who is currently in the same party as the user, and is the party leader, then kick the blocked player
+					SessionInterface->KickPlayer(*LocalUserId, PartySession->SessionName, *PartyMemberCompositeId);
+				}
+				else
+				{
+					// If this user blocks a player who is currently in the same party as the user, and is just a member aka not party leader, then leave the party
+					SessionInterface->LeaveSession(*LocalUserId.Get(), SessionInterface->GetSessionTypeFromSettings(PartySession->SessionSettings), PartySession->GetSessionIdStr());
+					break;
+				}
+			}
+		}
+	}
+#endif
 }

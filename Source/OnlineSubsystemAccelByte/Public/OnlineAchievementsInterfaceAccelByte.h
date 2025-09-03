@@ -19,6 +19,12 @@ using FUserIdToUserAchievementMap = TMap<TSharedRef<const FUniqueNetIdAccelByteU
 
 DECLARE_DELEGATE_TwoParams(FOnSendPSNEventsCompleteDelegate, bool /*bWasSuccessful*/, FAccelByteModelsAchievementBulkCreatePSNEventResponse /*Response*/);
 
+/**
+ * Delegate fired when bulk achievement have been unlocked
+ */
+DECLARE_MULTICAST_DELEGATE_TwoParams(FOnBulkAchievementUnlocked, const FUniqueNetId&, const TArray<FAccelByteModelsAchievementBulkUnlockRespone>&);
+typedef FOnBulkAchievementUnlocked::FDelegate FOnBulkAchievementUnlockDelegate;
+
 class ONLINESUBSYSTEMACCELBYTE_API FOnlineAchievementsAccelByte
 	: public IOnlineAchievements
 	, public TSharedFromThis<FOnlineAchievementsAccelByte, ESPMode::ThreadSafe>
@@ -120,6 +126,26 @@ public:
 	 */
 	void SendPSNEvents(const FAccelByteModelsAchievementBulkCreatePSNEventRequest& Request
 		, const FOnSendPSNEventsCompleteDelegate& CompletionDelegate);
+
+	/**
+	 * @brief Unlock multiple achievement for current user
+	 * 
+	 * @param UserID Current local user that will unlock its achievement.
+	 * @param AchievementCodes Collection of achievement code that will be unlocked for the targete user.
+	 * @param OperationResponseDelegate Delegate that inform the result of the operation, consists an array of result.
+	 */
+
+	void UnlockAchievementBulkOperation(const FUniqueNetId& UserID, TArray<FString> AchievementCodes, const FOnBulkAchievementUnlockDelegate& OperationResponseDelegate);
+
+	/**
+	 * @brief Game server perform unlock multiple achievement for the specified user.
+	 * 
+	 * @param UserID Targeted user operation.
+	 * @param AchievementCodes Collection of achievement code that will be unlocked for the targete user.
+	 * @param OperationResponseDelegate Delegate that inform the result of the operation, consists an array of result.
+	 */
+	void UnlockAchievementBulkOperationByGameServer(const FUniqueNetId& UserID, TArray<FString> AchievementCodes, const FOnBulkAchievementUnlockDelegate& OperationResponseDelegate);
+	void UnlockAchievementBulkOperationByGameServer(const FString& AccelByteUserID, TArray<FString> AchievementCodes, const FOnBulkAchievementUnlockDelegate& OperationResponseDelegate);
 
 protected:
 	FOnlineSubsystemAccelByteWPtr AccelByteSubsystem;

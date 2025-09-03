@@ -21,16 +21,15 @@ FOnlineAsyncTaskAccelByteBulkReplaceUserRecord::FOnlineAsyncTaskAccelByteBulkRep
 void FOnlineAsyncTaskAccelByteBulkReplaceUserRecord::Initialize()
 {
 	Super::Initialize();
-
+	TRY_PIN_SUBSYSTEM();
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("replacing user record"));
 
-	OnReplaceUserRecordSuccessDelegate = TDelegateUtils<THandler<TArray<FAccelByteModelsBulkReplaceUserRecordResponse>>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteBulkReplaceUserRecord::OnReplaceUserRecordsSuccess);
-	OnReplaceUserRecordErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteBulkReplaceUserRecord::OnReplaceUserRecordsError);
-	
-	if (!IsRunningDedicatedServer())
+	TOptional<bool> IsDS = SubsystemPin->IsDedicatedServer(LocalUserNum);
+	if (!IsDS.IsSet() || !IsDS.GetValue())
 	{
-		ErrorCode = FString::Printf(TEXT("%d"), ErrorCodes::StatusBadRequest);
-		ErrorStr = TEXT("request-failed-replace-user-record-error");
+		TaskOnlineError = EOnlineErrorResult::NotImplemented;
+		TaskErrorCode = FString::Printf(TEXT("%d"), ErrorCodes::StatusBadRequest);
+		TaskErrorStr = TEXT("request-failed-replace-user-record-error");
 		CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
 		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to replace user record, access denied!"));
 		return;
@@ -38,8 +37,9 @@ void FOnlineAsyncTaskAccelByteBulkReplaceUserRecord::Initialize()
 
 	if (Request.Num() <= 0)
 	{
-		ErrorCode = FString::Printf(TEXT("%d"), ErrorCodes::StatusBadRequest);
-		ErrorStr = TEXT("request-failed-replace-user-record-error");
+		TaskOnlineError = EOnlineErrorResult::InvalidParams;
+		TaskErrorCode = FString::Printf(TEXT("%d"), ErrorCodes::StatusBadRequest);
+		TaskErrorStr = TEXT("request-failed-replace-user-record-error");
 		CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
 		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to replace user record, request empty!"));
 		return;
@@ -47,8 +47,9 @@ void FOnlineAsyncTaskAccelByteBulkReplaceUserRecord::Initialize()
 
 	if (Request.Num() > MaxUserIdsLimit)
 	{
-		ErrorCode = FString::Printf(TEXT("%d"), ErrorCodes::StatusBadRequest);
-		ErrorStr = TEXT("request-failed-replace-user-record-error");
+		TaskOnlineError = EOnlineErrorResult::InvalidParams;
+		TaskErrorCode = FString::Printf(TEXT("%d"), ErrorCodes::InvalidRequest);
+		TaskErrorStr = TEXT("request-failed-replace-user-record-error");
 		CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
 		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to replace user record, request exceed limit!"));
 		return;
@@ -56,7 +57,10 @@ void FOnlineAsyncTaskAccelByteBulkReplaceUserRecord::Initialize()
 
 	const auto ReplaceRequest = ConstructBulkReplaceRequestModel();
 
-	SERVER_API_CLIENT_CHECK_GUARD(ErrorStr);
+	SERVER_API_CLIENT_CHECK_GUARD(TaskErrorStr);
+
+	OnReplaceUserRecordSuccessDelegate = TDelegateUtils<THandler<TArray<FAccelByteModelsBulkReplaceUserRecordResponse>>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteBulkReplaceUserRecord::OnReplaceUserRecordsSuccess);
+	OnReplaceUserRecordErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteBulkReplaceUserRecord::OnReplaceUserRecordsError);
 
 	TArray<FAccelByteModelsBulkReplaceUserRecordRequestDetail> ProcessedIds{};
 
@@ -116,7 +120,7 @@ void FOnlineAsyncTaskAccelByteBulkReplaceUserRecord::TriggerDelegates()
 		}
 		else
 		{
-			CloudSaveInterface->TriggerOnBulkReplaceUserRecordCompletedDelegates(ONLINE_ERROR(EOnlineErrorResult::RequestFailure, ErrorCode, FText::FromString(ErrorStr)), Key, Result);
+			CloudSaveInterface->TriggerOnBulkReplaceUserRecordCompletedDelegates(ONLINE_ERROR(TaskOnlineError, TaskErrorCode, FText::FromString(TaskErrorStr)), Key, Result);
 		}
 	}
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
@@ -139,8 +143,9 @@ void FOnlineAsyncTaskAccelByteBulkReplaceUserRecord::OnReplaceUserRecordsSuccess
 
 void FOnlineAsyncTaskAccelByteBulkReplaceUserRecord::OnReplaceUserRecordsError(int32 Code, const FString& ErrorMessage)
 {
-	ErrorCode = FString::Printf(TEXT("%d"), Code);
-	ErrorStr = TEXT("request-failed-replace-user-record-error");
+	TaskOnlineError = EOnlineErrorResult::RequestFailure;
+	TaskErrorCode = FString::Printf(TEXT("%d"), Code);
+	TaskErrorStr = TEXT("request-failed-replace-user-record-error");
 	UE_LOG_AB(Warning, TEXT("Failed to replace user record! Error Code: %d; Error Message: %s"), Code, *ErrorMessage);
 
 	for (const auto& Record : Request)

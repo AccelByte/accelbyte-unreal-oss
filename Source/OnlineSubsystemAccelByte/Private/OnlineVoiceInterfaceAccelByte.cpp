@@ -86,7 +86,9 @@ void FOnlineVoiceAccelByte::RegisterTalker(const FUniqueNetIdRef Player, const F
 
 	RegisterTalker(Player);
 
-#if AB_USE_V2_SESSIONS
+#if !AB_USE_V2_SESSIONS
+// Empty statement, do nothing.
+#else
 	TSharedPtr<FOnlineSessionInfoAccelByteV2> SessionInfo = StaticCastSharedPtr<FOnlineSessionInfoAccelByteV2>(SessionName.SessionInfo);
 	if (!SessionInfo.IsValid())
 	{
@@ -141,7 +143,9 @@ bool FOnlineVoiceAccelByte::IsVoiceEnabled()
 
 int32 FOnlineVoiceAccelByte::GetPlayerTeamIndex(TArray<FAccelByteModelsV2GameSessionTeam> Teams, const FUniqueNetIdRef UserId)
 {
-#if AB_USE_V2_SESSIONS
+#if !AB_USE_V2_SESSIONS
+// Empty statement, do nothing.
+#else
 	FUniqueNetIdAccelByteUserRef Id = FUniqueNetIdAccelByteUser::CastChecked(UserId);
 	if (Id->IsValid())
 	{

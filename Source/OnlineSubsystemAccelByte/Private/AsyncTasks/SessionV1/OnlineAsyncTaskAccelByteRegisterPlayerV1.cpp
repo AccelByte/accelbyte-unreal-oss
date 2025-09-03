@@ -2,34 +2,41 @@
 // This is licensed software from AccelByte Inc, for limitations
 // and restrictions contact your company contract manager.
 
+#if 1 // MMv1 Deprecation
 #include "OnlineAsyncTaskAccelByteRegisterPlayerV1.h"
 #include "OnlineSubsystemAccelByte.h"
 #include "OnlineIdentityInterfaceAccelByte.h"
 #include "OnlineSubsystemAccelByteUtils.h"
 #include "OnlineUserCacheAccelByte.h"
 
+#include "Core/AccelByteReport.h"
 
 using namespace AccelByte;
 
-FOnlineAsyncTaskAccelByteRegisterPlayersV1::FOnlineAsyncTaskAccelByteRegisterPlayersV1(FOnlineSubsystemAccelByte* const InABInterface, const FName& InSessionName, const TArray<TSharedRef<const FUniqueNetId>>& InPlayers, bool InBWasInvited, bool InBIsSpectator)
-	: FOnlineAsyncTaskAccelByte(InABInterface, true)
+FOnlineAsyncTaskAccelByteRegisterPlayersV1::FOnlineAsyncTaskAccelByteRegisterPlayersV1(FOnlineSubsystemAccelByte* const InABInterface
+	, const FName& InSessionName
+	, const TArray<TSharedRef<const FUniqueNetId>>& InPlayers
+	, bool InBWasInvited
+	, bool InBIsSpectator)
+	: FOnlineAsyncTaskAccelByte(InABInterface
+		, INVALID_CONTROLLERID
+		, ASYNC_TASK_FLAG_BIT(EAccelByteAsyncTaskFlags::UseTimeout) + ASYNC_TASK_FLAG_BIT(EAccelByteAsyncTaskFlags::ServerTask))
 	, SessionName(InSessionName)
 	, Players(InPlayers)
 	, bWasInvited(InBWasInvited)
 	, bIsSpectator(InBIsSpectator)
 {
-	TRY_PIN_SUBSYSTEM_CONSTRUCTOR()
-
-	LocalUserNum = SubsystemPin->GetLocalUserNumCached();
+	FReport::LogDeprecated(FString(__FUNCTION__),
+		TEXT("Session V1 functionality is deprecated and replaced by Session V2. For more information, see https://docs.accelbyte.io/gaming-services/services/play/session/"));
 }
 
 void FOnlineAsyncTaskAccelByteRegisterPlayersV1::Initialize()
 {
-	TRY_PIN_SUBSYSTEM();
-
 	Super::Initialize();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("SessionName: %s"), *SessionName.ToString());
+
+	TRY_PIN_SUBSYSTEM();
 
 	if (Players.Num() <= 0)
 	{
@@ -94,15 +101,18 @@ void FOnlineAsyncTaskAccelByteRegisterPlayersV1::TriggerDelegates()
 
 void FOnlineAsyncTaskAccelByteRegisterPlayersV1::GetAllUserInformation()
 {
+	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
+
 	TRY_PIN_SUBSYSTEM();
 
-	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 	SetLastUpdateTimeToCurrentTime();
+
+	TOptional<bool> IsDS = SubsystemPin->IsDedicatedServer(LocalUserNum);
 
 	// #NOTE (Maxwell): This method should only retrieve user information if this is a client side register players call.
 	// Server normally does not need to know detailed player information, however clients need display names and other
 	// meta for in-game purposes. In addition, on a server build this call _will_ crash. Thus only run this on server builds...
-	if (!IsRunningDedicatedServer())
+	if (IsDS.IsSet() && !IsDS.GetValue())
 	{
 		FOnlineUserCacheAccelBytePtr UserStore = SubsystemPin->GetUserCache();
 		if (!UserStore.IsValid())
@@ -129,6 +139,8 @@ void FOnlineAsyncTaskAccelByteRegisterPlayersV1::GetAllUserInformation()
 void FOnlineAsyncTaskAccelByteRegisterPlayersV1::RegisterAllPlayers()
 {
 	TRY_PIN_SUBSYSTEM();
+
+	TOptional<bool> IsDS = SubsystemPin->IsDedicatedServer(LocalUserNum);
 
 	SetLastUpdateTimeToCurrentTime();
 
@@ -169,15 +181,19 @@ void FOnlineAsyncTaskAccelByteRegisterPlayersV1::RegisterAllPlayers()
 		const FErrorHandler OnRegisterPlayerErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteRegisterPlayersV1::OnRegisterPlayerError, Player->GetAccelByteId(), PlayerIndex);
 		// NOTE(damar): SessionId with dashes is custom match (?)
 		bool bIsCustomMatch = SessionId.Contains(TEXT("-"));
-		if(bIsCustomMatch)
+		if (bIsCustomMatch && IsDS.IsSet())
 		{
-#if UE_SERVER
-			SERVER_API_CLIENT_CHECK_GUARD();
-			ServerApiClient->ServerSessionBrowser.RegisterPlayer(SessionId, Player->GetAccelByteId(), bIsSpectator, OnRegisterPlayerSuccessDelegate, OnRegisterPlayerErrorDelegate);
-#else
-			API_FULL_CHECK_GUARD(SessionBrowser);
-			SessionBrowser->RegisterPlayer(SessionId, Player->GetAccelByteId(), bIsSpectator, OnRegisterPlayerSuccessDelegate, OnRegisterPlayerErrorDelegate);
-#endif
+
+			if (IsDS.GetValue())
+			{
+				SERVER_API_CLIENT_CHECK_GUARD();
+				ServerApiClient->ServerSessionBrowser.RegisterPlayer(SessionId, Player->GetAccelByteId(), bIsSpectator, OnRegisterPlayerSuccessDelegate, OnRegisterPlayerErrorDelegate);
+			}
+			else
+			{
+				API_FULL_CHECK_GUARD(SessionBrowser);
+				SessionBrowser->RegisterPlayer(SessionId, Player->GetAccelByteId(), bIsSpectator, OnRegisterPlayerSuccessDelegate, OnRegisterPlayerErrorDelegate);
+			}
 		}
 		else
 		{
@@ -204,3 +220,4 @@ void FOnlineAsyncTaskAccelByteRegisterPlayersV1::OnRegisterPlayerError(int32 Err
 	PendingPlayerRegistrations.Decrement();
 	SetLastUpdateTimeToCurrentTime();
 }
+#endif

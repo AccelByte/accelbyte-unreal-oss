@@ -13,7 +13,9 @@ FOnlineAsyncTaskAccelByteUpdateDSInformation::FOnlineAsyncTaskAccelByteUpdateDSI
 	, FName InSessionName
 	, FAccelByteModelsGameSessionUpdateDSInformationRequest const& InNewDSInformation
 	, FOnUpdateDSInformationComplete const& InCompletionDelegate)
-	: FOnlineAsyncTaskAccelByte(InABInterface, INVALID_CONTROLLERID, ASYNC_TASK_FLAG_BIT(EAccelByteAsyncTaskFlags::ServerTask))
+	: FOnlineAsyncTaskAccelByte(InABInterface
+		, INVALID_CONTROLLERID
+		, ASYNC_TASK_FLAG_BIT(EAccelByteAsyncTaskFlags::ServerTask))
 	, SessionName(InSessionName)
 	, NewDSInformation(InNewDSInformation)
 	, CompletionDelegate(InCompletionDelegate)
@@ -26,9 +28,11 @@ void FOnlineAsyncTaskAccelByteUpdateDSInformation::Initialize()
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 
-	TRY_PIN_SUBSYSTEM()
+	TRY_PIN_SUBSYSTEM();
 
-	if (!IsRunningDedicatedServer())
+	TOptional<bool> IsDS = SubsystemPin->IsDedicatedServer(LocalUserNum);
+
+	if (!IsDS.IsSet() || !IsDS.GetValue())
 	{
 		const FText ErrorText = FText::FromString(TEXT("update-ds-information-not-a-server"));
 		OnlineError = ONLINE_ERROR(EOnlineErrorResult::RequestFailure, FString(), ErrorText);

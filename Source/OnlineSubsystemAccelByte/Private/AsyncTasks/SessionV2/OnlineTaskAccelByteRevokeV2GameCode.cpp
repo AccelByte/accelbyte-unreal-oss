@@ -6,8 +6,14 @@
 
 using namespace AccelByte;
 
-FOnlineAsyncTaskAccelByteRevokeV2GameCode::FOnlineAsyncTaskAccelByteRevokeV2GameCode(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InLocalUserId, const FName& InSessionName, const FOnRevokeGameCodeComplete& InDelegate)
-	: FOnlineAsyncTaskAccelByte(InABInterface)
+FOnlineAsyncTaskAccelByteRevokeV2GameCode::FOnlineAsyncTaskAccelByteRevokeV2GameCode(FOnlineSubsystemAccelByte* const InABInterface
+	, const FUniqueNetId& InLocalUserId
+	, const FName& InSessionName
+	, const FOnRevokeGameCodeComplete& InDelegate
+	, bool IsDedicatedServer /* = false */)
+	: FOnlineAsyncTaskAccelByte(InABInterface
+		, INVALID_CONTROLLERID
+		, IsDedicatedServer ? ASYNC_TASK_FLAG_BIT(EAccelByteAsyncTaskFlags::ServerTask) : ASYNC_TASK_FLAG_BIT(EAccelByteAsyncTaskFlags::None))
 	, SessionName(InSessionName)
 	, Delegate(InDelegate)
 {
@@ -16,11 +22,19 @@ FOnlineAsyncTaskAccelByteRevokeV2GameCode::FOnlineAsyncTaskAccelByteRevokeV2Game
 
 void FOnlineAsyncTaskAccelByteRevokeV2GameCode::Initialize()
 {
-	TRY_PIN_SUBSYSTEM();
-
 	Super::Initialize();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("UserId: %s; SessionName: %s"), *UserId->ToDebugString(), *SessionName.ToString());
+
+	TRY_PIN_SUBSYSTEM();
+
+	TOptional<bool> IsDS = SubsystemPin->IsDedicatedServer(LocalUserNum);
+
+	if (!IsDS.IsSet())
+	{
+		CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
+		return;
+	}
 
 	FOnlineSessionV2AccelBytePtr SessionInterface = nullptr;
 	AB_ASYNC_TASK_VALIDATE(FOnlineSessionV2AccelByte::GetFromSubsystem(SubsystemPin.Get(), SessionInterface), "Failed to get session interface for revoking game code!");
@@ -34,7 +48,7 @@ void FOnlineAsyncTaskAccelByteRevokeV2GameCode::Initialize()
 	OnRevokeCodeSuccessDelegate = TDelegateUtils<FVoidHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteRevokeV2GameCode::OnRevokeCodeSuccess);
 	OnRevokeCodeErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteRevokeV2GameCode::OnRevokeCodeError);;
 
-	if(IsRunningDedicatedServer())
+	if (IsDS.GetValue())
 	{
 		SERVER_API_CLIENT_CHECK_GUARD();
 		ServerApiClient->ServerSession.RevokeGameSessionCode(SessionId, OnRevokeCodeSuccessDelegate, OnRevokeCodeErrorDelegate);

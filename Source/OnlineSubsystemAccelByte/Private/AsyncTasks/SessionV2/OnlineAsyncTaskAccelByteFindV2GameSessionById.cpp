@@ -7,20 +7,42 @@
 
 using namespace AccelByte;
 
-FOnlineAsyncTaskAccelByteFindV2GameSessionById::FOnlineAsyncTaskAccelByteFindV2GameSessionById(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InSearchingPlayerId, const FUniqueNetId& InSessionId, const FOnSingleSessionResultCompleteDelegate& InDelegate, const TSharedPtr<FAccelByteKey> InLockKey /* = nullptr */)
+FOnlineAsyncTaskAccelByteFindV2GameSessionById::FOnlineAsyncTaskAccelByteFindV2GameSessionById(FOnlineSubsystemAccelByte* const InABInterface
+	, const FUniqueNetId& InSearchingPlayerId
+	, const FUniqueNetId& InSessionId
+	, const FOnSingleSessionResultCompleteDelegate& InDelegate
+	, const TSharedPtr<FAccelByteKey> InLockKey /* = nullptr */
+	, bool IsDedicatedServer /* = false */)
 	// Initialize as a server task if we are running a dedicated server, as this doubles as a server task. Otherwise, use
 	// no flags to indicate that it is a client task.
 	: FOnlineAsyncTaskAccelByte(InABInterface
 		, INVALID_CONTROLLERID
-		, IsRunningDedicatedServer() ? ASYNC_TASK_FLAG_BIT(EAccelByteAsyncTaskFlags::ServerTask) : ASYNC_TASK_FLAG_BIT(EAccelByteAsyncTaskFlags::None)
+		, IsDedicatedServer ? ASYNC_TASK_FLAG_BIT(EAccelByteAsyncTaskFlags::ServerTask) : ASYNC_TASK_FLAG_BIT(EAccelByteAsyncTaskFlags::None)
 		, InLockKey)
 	, SessionId(FUniqueNetIdAccelByteResource::CastChecked(InSessionId))
 	, Delegate(InDelegate)
 {
-	if (!IsRunningDedicatedServer())
+	if (!IsDedicatedServer)
 	{
 		UserId = FUniqueNetIdAccelByteUser::CastChecked(InSearchingPlayerId.AsShared());
 	}
+}
+
+FOnlineAsyncTaskAccelByteFindV2GameSessionById::FOnlineAsyncTaskAccelByteFindV2GameSessionById(FOnlineSubsystemAccelByte* const InABInterface
+	, int32 InLocalUserNum
+	, const FUniqueNetId& InSessionId
+	, const FOnSingleSessionResultCompleteDelegate& InDelegate
+	, const TSharedPtr<FAccelByteKey> InLockKey /* = nullptr */
+	, bool IsDedicatedServer /* = false */)
+	// Initialize as a server task if we are running a dedicated server, as this doubles as a server task. Otherwise, use
+	// no flags to indicate that it is a client task.
+	: FOnlineAsyncTaskAccelByte(InABInterface
+		, InLocalUserNum
+		, IsDedicatedServer ? ASYNC_TASK_FLAG_BIT(EAccelByteAsyncTaskFlags::ServerTask) : ASYNC_TASK_FLAG_BIT(EAccelByteAsyncTaskFlags::None)
+		, InLockKey)
+	, SessionId(FUniqueNetIdAccelByteResource::CastChecked(InSessionId))
+	, Delegate(InDelegate)
+{
 }
 
 void FOnlineAsyncTaskAccelByteFindV2GameSessionById::Initialize()
@@ -29,27 +51,38 @@ void FOnlineAsyncTaskAccelByteFindV2GameSessionById::Initialize()
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("SessionId: %s"), *SessionId->ToDebugString());
 
+	TRY_PIN_SUBSYSTEM();
+
 	// Send the API call based on whether we are a server or a client
 	OnGetGameSessionDetailsSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsV2GameSession>>::CreateThreadSafeSelfPtr(this
 		, &FOnlineAsyncTaskAccelByteFindV2GameSessionById::OnGetGameSessionDetailsSuccess);
 	OnGetGameSessionDetailsErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this
 		, &FOnlineAsyncTaskAccelByteFindV2GameSessionById::OnGetGameSessionDetailsError);;
 	
-	if (IsRunningDedicatedServer())
+	TOptional<bool> IsDS = SubsystemPin->IsDedicatedServer(LocalUserNum);
+
+	if (IsDS.IsSet())
 	{
-		SERVER_API_CLIENT_CHECK_GUARD();
-		ServerApiClient->ServerSession.GetGameSessionDetails(SessionId->ToString(), OnGetGameSessionDetailsSuccessDelegate, OnGetGameSessionDetailsErrorDelegate);
-	}
-	else
-	{
-		if (IsApiClientValid())
+		if (IsDS.GetValue())
 		{
-			API_FULL_CHECK_GUARD(Session);
-			Session->GetGameSessionDetails(SessionId->ToString(), OnGetGameSessionDetailsSuccessDelegate, OnGetGameSessionDetailsErrorDelegate);
+			SERVER_API_CLIENT_CHECK_GUARD();
+			ServerApiClient->ServerSession.GetGameSessionDetails(SessionId->ToString()
+				, OnGetGameSessionDetailsSuccessDelegate
+				, OnGetGameSessionDetailsErrorDelegate);
 		}
 		else
 		{
-			CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
+			if (IsApiClientValid())
+			{
+				API_FULL_CHECK_GUARD(Session);
+				Session->GetGameSessionDetails(SessionId->ToString()
+					, OnGetGameSessionDetailsSuccessDelegate
+					, OnGetGameSessionDetailsErrorDelegate);
+			}
+			else
+			{
+				CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
+			}
 		}
 	}
 

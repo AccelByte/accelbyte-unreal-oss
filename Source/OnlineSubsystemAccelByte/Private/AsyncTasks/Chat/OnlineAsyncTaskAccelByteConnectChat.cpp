@@ -66,7 +66,7 @@ void FOnlineAsyncTaskAccelByteConnectChat::TriggerDelegates()
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
 
 	const FOnlineChatAccelBytePtr ChatInterface = StaticCastSharedPtr<FOnlineChatAccelByte>(SubsystemPin->GetChatInterface());
-	if (ChatInterface.IsValid())
+	if (ChatInterface.IsValid() && !bWasSuccessful)
 	{
 		ChatInterface->TriggerOnConnectChatCompleteDelegates(LocalUserNum, bWasSuccessful, *UserId.Get(), ErrorStr);
 	}
@@ -108,11 +108,11 @@ void FOnlineAsyncTaskAccelByteConnectChat::OnChatConnectSuccess()
 	const TSharedPtr<FUserOnlineAccountAccelByte> UserAccountAccelByte = StaticCastSharedPtr<FUserOnlineAccountAccelByte>(UserAccount);
 	UserAccountAccelByte->SetConnectedToChat(true);
 
-	// set chat delegates to interface events
+	// set chat delegates to interface events AFTER complete the QueryRoom
 	const FOnlineChatAccelBytePtr ChatInterface = StaticCastSharedPtr<FOnlineChatAccelByte>(SubsystemPin->GetChatInterface());
 	if (ChatInterface.IsValid())
 	{
-		ChatInterface->RegisterChatDelegates(UserId.ToSharedRef().Get());
+		ChatInterface->QueryRoomAfterChatConnectEstablished(UserId.ToSharedRef().Get());
 	}
 
 	CompleteTask(EAccelByteAsyncTaskCompleteState::Success);

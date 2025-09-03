@@ -12,8 +12,10 @@ using namespace AccelByte;
 
 #define ONLINE_ERROR_NAMESPACE "FOnlineAsyncTaskAccelByteBulkGetUserRecord"
 
-FOnlineAsyncTaskAccelByteBulkGetUserRecord::FOnlineAsyncTaskAccelByteBulkGetUserRecord(FOnlineSubsystemAccelByte* const InABInterface, const FString& InKey, const TArray<FUniqueNetIdAccelByteUserRef>& InUniqueNetIds)
-	:FOnlineAsyncTaskAccelByte(InABInterface)
+FOnlineAsyncTaskAccelByteBulkGetUserRecord::FOnlineAsyncTaskAccelByteBulkGetUserRecord(FOnlineSubsystemAccelByte* const InABInterface
+	, FString const& InKey
+	, TArray<FUniqueNetIdAccelByteUserRef> const& InUniqueNetIds)
+	: FOnlineAsyncTaskAccelByte(InABInterface, INVALID_CONTROLLERID, ASYNC_TASK_FLAG_BIT(EAccelByteAsyncTaskFlags::ServerTask))
 	, Key(InKey)
 	, UniqueNetIds(InUniqueNetIds)
 {}
@@ -22,57 +24,56 @@ void FOnlineAsyncTaskAccelByteBulkGetUserRecord::Initialize()
 {
 	Super::Initialize();
 
-	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Getting user record"));
+	TRY_PIN_SUBSYSTEM();
 
-	OnGetUserRecordsSuccessDelegate = TDelegateUtils<THandler<TArray<FAccelByteModelsUserRecord>>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteBulkGetUserRecord::OnGetUserRecordsSuccess);
-	OnGetUserRecordsErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteBulkGetUserRecord::OnGetUserRecordsError);
-	
-	if (!IsRunningDedicatedServer())
-	{
-		ErrorCode = FString::Printf(TEXT("%d"), ErrorCodes::StatusBadRequest);
-		ErrorStr = TEXT("request-failed-get-user-record-error");
-		CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
-		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to get user record, access denied!"));
-		return;
-	}
+	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Getting user record"));
 
 	if (UniqueNetIds.Num() <= 0)
 	{
-		ErrorCode = FString::Printf(TEXT("%d"), ErrorCodes::StatusBadRequest);
-		ErrorStr = TEXT("request-failed-get-user-record-error");
+		TaskOnlineError = EOnlineErrorResult::RequestFailure;
+		TaskErrorCode = FString::Printf(TEXT("%d"), ErrorCodes::StatusBadRequest);
+		TaskErrorStr = TEXT("request-failed-get-user-record-error");
 		CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
 		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to get user record, userId empty!"));
 		return;
 	}
 
-
-	if (UniqueNetIds.Num() > MaxUserIdsLimit)
+	TOptional<bool> IsDS = SubsystemPin->IsDedicatedServer(LocalUserNum);
+	if (!IsDS.IsSet() || !IsDS.GetValue())
 	{
-		ErrorCode = FString::Printf(TEXT("%d"), ErrorCodes::StatusBadRequest);
-		ErrorStr = TEXT("request-failed-get-user-record-error");
+		TaskOnlineError = EOnlineErrorResult::NotImplemented;
+		TaskErrorCode = FString::Printf(TEXT("%d"), ErrorCodes::StatusBadRequest);
+		TaskErrorStr = TEXT("request-failed-not-implemented");
 		CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
-		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to get user record, userIds exceed limit!"));
+		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to get user record, not implemented!"));
 		return;
 	}
 
-	const auto ABUserIds = ConvertUniqueNetIdsToAccelByteIds();
-
-	SERVER_API_CLIENT_CHECK_GUARD(ErrorStr);
-	
-	TArray<FString> ProcessedIds{};
-	for (int i =0 ; i < ABUserIds.Num(); i++)
+	const IOnlineIdentityPtr IdentityInterface = SubsystemPin->GetIdentityInterface();
+	if (!IdentityInterface.IsValid())
 	{
-		ProcessedIds.Add(ABUserIds[i]);
-		if (ProcessedIds.Num() >= GameServerApi::ServerCloudSave::BulkMaxUserCount || (i == (ABUserIds.Num()-1)))
-		{
-			const auto Ids = ProcessedIds;
-			ServerApiClient->ServerCloudSave.BulkGetUserRecord(Key, Ids, OnGetUserRecordsSuccessDelegate, OnGetUserRecordsErrorDelegate);
-			{
-				RequestCount.Increment();
-			}
-			ProcessedIds.Reset();
-		}
+		TaskOnlineError = EOnlineErrorResult::MissingInterface;
+		TaskErrorCode = FString::Printf(TEXT("%d"), ErrorCodes::StatusBadRequest);
+		TaskErrorStr = TEXT("request-failed-missing-interface");
+		CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
+		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to get user record, missing interface!"));
+		return;
 	}
+
+	if (IdentityInterface->GetLoginStatus(LocalUserNum) != ELoginStatus::LoggedIn)
+	{
+		TaskOnlineError = EOnlineErrorResult::AccessDenied;
+		TaskErrorCode = FString::Printf(TEXT("%d"), ErrorCodes::StatusUnauthorized);
+		TaskErrorStr = TEXT("request-failed-unauthorized");
+		CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Server not authorized'!"));
+		return;
+	}
+
+	OnGetUserRecordsSuccessDelegate = TDelegateUtils<THandler<TArray<FAccelByteModelsUserRecord>>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteBulkGetUserRecord::OnGetUserRecordsSuccess);
+	OnGetUserRecordsErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteBulkGetUserRecord::OnGetUserRecordsError);
+
+	BulkGetUserRecords(Key);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
@@ -91,7 +92,7 @@ void FOnlineAsyncTaskAccelByteBulkGetUserRecord::TriggerDelegates()
 		}
 		else
 		{
-			CloudSaveInterface->TriggerOnBulkGetUserRecordCompletedDelegates(ONLINE_ERROR(EOnlineErrorResult::RequestFailure, ErrorCode, FText::FromString(ErrorStr)), Key, FBulkGetUserRecordMap{});
+			CloudSaveInterface->TriggerOnBulkGetUserRecordCompletedDelegates(ONLINE_ERROR(TaskOnlineError, TaskErrorCode, FText::FromString(TaskErrorStr)), Key, FBulkGetUserRecordMap{});
 		}
 	}
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
@@ -127,43 +128,63 @@ void FOnlineAsyncTaskAccelByteBulkGetUserRecord::Finalize()
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 
+void FOnlineAsyncTaskAccelByteBulkGetUserRecord::BulkGetUserRecords(FString const& InKey)
+{
+	TArray<FString> ABUserIds = ConvertUniqueNetIdsToAccelByteIds(GameServerApi::ServerCloudSave::BulkMaxUserCount);
+
+	SERVER_API_CLIENT_CHECK_GUARD(TaskErrorStr);
+
+	if (Offset > 0 && ABUserIds.Num() > 0)
+	{
+		ServerApiClient->ServerCloudSave.BulkGetUserRecord(InKey, ABUserIds, OnGetUserRecordsSuccessDelegate, OnGetUserRecordsErrorDelegate);
+	}
+	else
+	{
+		int32 Code = static_cast<int32>(AccelByte::ErrorCodes::StatusBadRequest);
+		TaskOnlineError = EOnlineErrorResult::RequestFailure;
+		TaskErrorCode = FString::Printf(TEXT("%d"), Code);
+		TaskErrorStr = (TEXT("request-failed-get-user-record-error"));
+		OnGetUserRecordsErrorDelegate.ExecuteIfBound(Code, TEXT("Request failed empty userIds"));
+	}
+}
+
 void FOnlineAsyncTaskAccelByteBulkGetUserRecord::OnGetUserRecordsSuccess(const TArray<FAccelByteModelsUserRecord>& Result)
 {
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 	UserRecords.Append(ConstructBulkGetRecordResponseModel(Result));
+
+	if (Offset < UniqueNetIds.Num())
 	{
-		RequestCount.Decrement();
-		if (RequestCount.GetValue() <= 0)
-		{
-			CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
-		}
+		BulkGetUserRecords(Key);
+	}
+	else
+	{
+		CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
 	}
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Request to get user record Success!"));
 }
 
-void FOnlineAsyncTaskAccelByteBulkGetUserRecord::OnGetUserRecordsError(int32 Code, const FString& ErrorMessage)
+void FOnlineAsyncTaskAccelByteBulkGetUserRecord::OnGetUserRecordsError(int32 Code, FString const& ErrorMessage)
 {
-	ErrorCode = FString::Printf(TEXT("%d"), Code);
-	ErrorStr = (TEXT("request-failed-get-user-record-error"));
+	TaskOnlineError = EOnlineErrorResult::RequestFailure;
+	TaskErrorCode = FString::Printf(TEXT("%d"), Code);
+	TaskErrorStr = (TEXT("request-failed-get-user-record-error"));
 	UE_LOG_AB(Warning, TEXT("Failed to get user record! Error Code: %d; Error Message: %s"), Code, *ErrorMessage);
 
-	{
-		RequestCount.Decrement();
-		if (RequestCount.GetValue() <= 0)
-		{
-			//Still return success with 0 data
-			CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
-		}
-	}
+	//Still return success with 0 data
+	CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
 }
 
-TArray<FString> FOnlineAsyncTaskAccelByteBulkGetUserRecord::ConvertUniqueNetIdsToAccelByteIds()
+TArray<FString> FOnlineAsyncTaskAccelByteBulkGetUserRecord::ConvertUniqueNetIdsToAccelByteIds(int32 Limit)
 {
 	TArray<FString> ABUserIds;
-	for (const auto& NetId : UniqueNetIds)
+	for (int32 Index = Offset, Count = 0; Index < UniqueNetIds.Num() && Count < Limit; Index++, Count++)
 	{
+		FUniqueNetIdAccelByteUserRef NetId = UniqueNetIds[Index];
 		ABUserIds.Add(NetId->GetAccelByteId());
+		Offset = Index;
 	}
+	Offset++;
 	return ABUserIds;
 }
 

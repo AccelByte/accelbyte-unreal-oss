@@ -24,7 +24,7 @@ void FOnlineAsyncTaskAccelByteSyncPlatformPurchase::Initialize()
 	Super::Initialize();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
-	EAccelBytePlatformSync PlatformEnum = GetNavitePlatformSyncType();
+	EAccelBytePlatformSync PlatformEnum = GetNativePlatformSyncType();
 
 	FVoidHandler OnSyncPlatformPurchaseSuccessDelegate = TDelegateUtils<FVoidHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteSyncPlatformPurchase::OnSyncPlatformPurchaseSuccess);
 	FErrorHandler OnSyncPlatformPurchaseErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteSyncPlatformPurchase::OnSyncPlatformPurchaseError);
@@ -56,56 +56,42 @@ void FOnlineAsyncTaskAccelByteSyncPlatformPurchase::OnSyncPlatformPurchaseError(
 	CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
 }
 
-EAccelBytePlatformSync FOnlineAsyncTaskAccelByteSyncPlatformPurchase::GetNavitePlatformSyncType()
+EAccelBytePlatformSync FOnlineAsyncTaskAccelByteSyncPlatformPurchase::GetNativePlatformSyncType()
 {
 	TRY_PIN_SUBSYSTEM(EAccelBytePlatformSync::OTHER)
 
 	FName PlatformName = SubsystemPin->GetNativePlatformName();
-#ifdef STEAM_SUBSYSTEM
-	if (PlatformName == STEAM_SUBSYSTEM)
+
+	// Rely to the native subsystem name as a way to differentiate which platform is it
+	EAccelByteLoginType LoginType = FOnlineSubsystemAccelByteUtils::GetAccelByteLoginTypeFromNativeSubsystem(PlatformName);
+
+	switch (LoginType)
 	{
-		return EAccelBytePlatformSync::STEAM;
-	}
-#endif
-#ifdef EOS_SUBSYSTEM
-	if (PlatformName == EOS_SUBSYSTEM)
-	{
-		return EAccelBytePlatformSync::EPIC_GAMES;
-	}
-#endif
-#ifdef GDK_SUBSYSTEM
-	if (PlatformName == GDK_SUBSYSTEM)
-	{
-		return EAccelBytePlatformSync::XBOX_LIVE;
-	}
-#endif
-#ifdef PS4_SUBSYSTEM
-	if (PlatformName == PS4_SUBSYSTEM)
-	{
-		if (EntitlementSyncBase.ServiceLabel == 0)
+		case EAccelByteLoginType::Steam:
+			return EAccelBytePlatformSync::STEAM;
+
+		case EAccelByteLoginType::EOS:
+			return EAccelBytePlatformSync::EPIC_GAMES;
+
+		case EAccelByteLoginType::Xbox:
+			return EAccelBytePlatformSync::XBOX_LIVE;
+		
+		case EAccelByteLoginType::PS4:
+		case EAccelByteLoginType::PS4CrossGen:
+		case EAccelByteLoginType::PS5:
 		{
-			const FOnlineStoreV2AccelBytePtr StoreInt = StaticCastSharedPtr<FOnlineStoreV2AccelByte>(SubsystemPin->GetStoreV2Interface());
-			if (StoreInt.IsValid())
+			if (EntitlementSyncBase.ServiceLabel == 0)
 			{
-				EntitlementSyncBase.ServiceLabel = StoreInt->GetServiceLabel();
+				const FOnlineStoreV2AccelBytePtr StoreInt = StaticCastSharedPtr<FOnlineStoreV2AccelByte>(SubsystemPin->GetStoreV2Interface());
+				if (StoreInt.IsValid())
+				{
+					EntitlementSyncBase.ServiceLabel = StoreInt->GetServiceLabel();
+				}
 			}
+			return EAccelBytePlatformSync::PLAYSTATION;
 		}
-		return EAccelBytePlatformSync::PLAYSTATION;
+
+		default:
+			return EAccelBytePlatformSync::OTHER;
 	}
-#endif
-#ifdef PS5_SUBSYSTEM
-	if (PlatformName == PS5_SUBSYSTEM)
-	{
-		if (EntitlementSyncBase.ServiceLabel == 0)
-		{
-			const FOnlineStoreV2AccelBytePtr StoreInt = StaticCastSharedPtr<FOnlineStoreV2AccelByte>(SubsystemPin->GetStoreV2Interface());
-			if (StoreInt.IsValid())
-			{
-				EntitlementSyncBase.ServiceLabel = StoreInt->GetServiceLabel();
-			}
-		}
-		return EAccelBytePlatformSync::PLAYSTATION;
-	}
-#endif
-	return EAccelBytePlatformSync::OTHER;
 }

@@ -3,6 +3,7 @@
 // and restrictions contact your company contract manager.
 
 #pragma once
+#if 1 // MMv1 Deprecation
 
 #include "AsyncTasks/OnlineAsyncTaskAccelByte.h"
 #include "AsyncTasks/OnlineAsyncTaskAccelByteUtils.h"
@@ -79,3 +80,4 @@ private:
 	void OnRegisterPlayerError(int32 ErrorCode, const FString& ErrorMessage, FString PlayerId, int32 Index);
 
 };
+#endif

@@ -7,20 +7,40 @@
 
 using namespace AccelByte;
 
-FOnlineAsyncTaskAccelByteFindV2PartyById::FOnlineAsyncTaskAccelByteFindV2PartyById(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InSearchingPlayerId, const FUniqueNetId& InSessionId, const FOnSingleSessionResultCompleteDelegate& InDelegate, const TSharedPtr<FAccelByteKey> InLockKey /* = nullptr */)
-	// Initialize as a server task if we are running a dedicated server, as this doubles as a server task. Otherwise, use
-	// no flags to indicate that it is a client task.	
+// Initialize as a server task if we are running a dedicated server, as this doubles as a server task. Otherwise, use
+// no flags to indicate that it is a client task.	
+FOnlineAsyncTaskAccelByteFindV2PartyById::FOnlineAsyncTaskAccelByteFindV2PartyById(FOnlineSubsystemAccelByte* const InABInterface
+	, FUniqueNetId const& InSearchingPlayerId
+	, FUniqueNetId const& InSessionId
+	, FOnSingleSessionResultCompleteDelegate const& InDelegate
+	, TSharedPtr<FAccelByteKey> InLockKey /* = nullptr */
+	, bool IsDedicatedServer /* = false */)
 	: FOnlineAsyncTaskAccelByte(InABInterface
 		, INVALID_CONTROLLERID
-		, IsRunningDedicatedServer() ? ASYNC_TASK_FLAG_BIT(EAccelByteAsyncTaskFlags::ServerTask) : ASYNC_TASK_FLAG_BIT(EAccelByteAsyncTaskFlags::None)
+		, IsDedicatedServer ? ASYNC_TASK_FLAG_BIT(EAccelByteAsyncTaskFlags::ServerTask) : ASYNC_TASK_FLAG_BIT(EAccelByteAsyncTaskFlags::None)
 		, InLockKey)
 	, SessionId(FUniqueNetIdAccelByteResource::CastChecked(InSessionId))
 	, Delegate(InDelegate)
 {
-	if (!IsRunningDedicatedServer())
+	if (!IsDedicatedServer)
 	{
 		UserId = FUniqueNetIdAccelByteUser::CastChecked(InSearchingPlayerId);
 	}
+}
+
+FOnlineAsyncTaskAccelByteFindV2PartyById::FOnlineAsyncTaskAccelByteFindV2PartyById(FOnlineSubsystemAccelByte* const InABInterface
+	, int32 InLocalUserNum
+	, FUniqueNetId const& InSessionId
+	, FOnSingleSessionResultCompleteDelegate const& InDelegate
+	, TSharedPtr<FAccelByteKey> InLockKey /* = nullptr */
+	, bool IsDedicatedServer /* = false */)
+	: FOnlineAsyncTaskAccelByte(InABInterface
+		, InLocalUserNum
+		, IsDedicatedServer ? ASYNC_TASK_FLAG_BIT(EAccelByteAsyncTaskFlags::ServerTask) : ASYNC_TASK_FLAG_BIT(EAccelByteAsyncTaskFlags::None)
+		, InLockKey)
+	, SessionId(FUniqueNetIdAccelByteResource::CastChecked(InSessionId))
+	, Delegate(InDelegate)
+{
 }
 
 void FOnlineAsyncTaskAccelByteFindV2PartyById::Initialize()
@@ -29,25 +49,41 @@ void FOnlineAsyncTaskAccelByteFindV2PartyById::Initialize()
 
     AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("SessionId: %s"), *SessionId->ToDebugString());
 
+	TRY_PIN_SUBSYSTEM();
+
 	OnGetPartySessionDetailsSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsV2PartySession>>::CreateThreadSafeSelfPtr(this
 		, &FOnlineAsyncTaskAccelByteFindV2PartyById::OnGetPartySessionDetailsSuccess);
 	OnGetPartySessionDetailsErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this
 		, &FOnlineAsyncTaskAccelByteFindV2PartyById::OnGetPartySessionDetailsError);
 
-	if (IsRunningDedicatedServer())
-	{
-		SERVER_API_CLIENT_CHECK_GUARD();
+	TOptional<bool> IsDS = SubsystemPin->IsDedicatedServer(LocalUserNum);
 
-		ServerApiClient->ServerSession.GetPartyDetails(SessionId->ToString()
-			, OnGetPartySessionDetailsSuccessDelegate
-			, OnGetPartySessionDetailsErrorDelegate);
+	if (IsDS.IsSet())
+	{
+		if (IsDS.GetValue())
+		{
+			SERVER_API_CLIENT_CHECK_GUARD();
+
+			ServerApiClient->ServerSession.GetPartyDetails(SessionId->ToString()
+				, OnGetPartySessionDetailsSuccessDelegate
+				, OnGetPartySessionDetailsErrorDelegate);
+		}
+		else
+		{
+			API_FULL_CHECK_GUARD(Session);
+			Session->GetPartyDetails(SessionId->ToString()
+				, OnGetPartySessionDetailsSuccessDelegate
+				, OnGetPartySessionDetailsErrorDelegate);
+		}
 	}
 	else
 	{
-		API_FULL_CHECK_GUARD(Session);
-		Session->GetPartyDetails(SessionId->ToString()
-			, OnGetPartySessionDetailsSuccessDelegate
-			, OnGetPartySessionDetailsErrorDelegate);
+		TaskOnlineError = EOnlineErrorResult::NotImplemented;
+		TaskErrorCode = FString::Printf(TEXT("%d"), ErrorCodes::StatusBadRequest);
+		TaskErrorStr = TEXT("request-failed-not-implemented");
+		CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
+		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to get user record, access denied!"));
+		return;
 	}
 
     AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
@@ -55,9 +91,8 @@ void FOnlineAsyncTaskAccelByteFindV2PartyById::Initialize()
 
 void FOnlineAsyncTaskAccelByteFindV2PartyById::Finalize()
 {
-	TRY_PIN_SUBSYSTEM();
-
     AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
+	TRY_PIN_SUBSYSTEM();
 
 	if (bWasSuccessful)
 	{

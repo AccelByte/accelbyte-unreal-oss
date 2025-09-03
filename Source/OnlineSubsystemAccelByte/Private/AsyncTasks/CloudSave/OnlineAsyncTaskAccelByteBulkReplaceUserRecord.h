@@ -47,16 +47,6 @@ private:
 	FBulkReplaceUserRecordMap ConstructBulkReplaceResponseModel(const TArray<FAccelByteModelsBulkReplaceUserRecordResponse>& Response);
 
 	/**
-	 * String representing the error code that occurred
-	 */
-	FString ErrorStr{};
-
-	/**
-	 * String representing the error message that occurred
-	 */
-	FString ErrorCode{};
-
-	/**
 	 * String representing the record key to delete
 	 */
 	FString Key{};

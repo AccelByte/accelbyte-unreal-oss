@@ -2,6 +2,8 @@
 // This is licensed software from AccelByte Inc, for limitations
 // and restrictions contact your company contract manager.
 
+#if 1 // MMv1 Deprecation
+
 #include "OnlineAsyncTaskAccelByteStartV1Matchmaking.h"
 #include "Runtime/Launch/Resources/Version.h"
 #if ENGINE_MAJOR_VERSION >= 5
@@ -18,6 +20,8 @@
 #include "OnlineSubsystemAccelByteUtils.h"
 #include "OnlineUserInterfaceAccelByte.h"
 
+#include "Core/AccelByteReport.h"
+
 using namespace AccelByte;
 
 /**
@@ -32,6 +36,8 @@ FOnlineAsyncTaskAccelByteStartV1Matchmaking::FOnlineAsyncTaskAccelByteStartV1Mat
 	, NewSessionSettings(InNewSessionSettings)
 	, SearchSettings(InSearchSettings)
 {
+	FReport::LogDeprecated(FString(__FUNCTION__),
+		TEXT("Matchmaking V1 functionality is deprecated and replaced by Matchmaking V2. For more information, see https://docs.accelbyte.io/gaming-services/services/play/matchmaking/matchmaking-version-comparison/"));
 	// #NOTE(Maxwell): Use the first local player ID that initated matchmaking as the one that we are starting a matchmaking request for
 	if (LocalPlayers.IsValidIndex(0))
 	{
@@ -229,3 +235,4 @@ void FOnlineAsyncTaskAccelByteStartV1Matchmaking::OnStartMatchmakingResponseRece
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
+#endif

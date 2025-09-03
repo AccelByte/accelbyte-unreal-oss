@@ -68,6 +68,14 @@ private:
  */
 bool ONLINESUBSYSTEMACCELBYTE_API IsAccelByteIDValid(FString const& AccelByteId);
 
+UENUM(BlueprintType)
+enum class EAccelByteState : uint8
+{
+	Undefined = 0,
+	Client,
+	Server,
+};
+
 /**
  * @brief Enum representing the types of authentication that the Identity interface can use with the AccelByte backend.
  * Will automatically be determined by the OSS, or derived from another OSSs auth type.
@@ -133,10 +141,12 @@ static EAccelBytePlatformType ConvertOSSTypeToAccelBytePlatformType(EAccelByteLo
 	}
 }
 
+#if 1 // MMv1 Deprecation
 enum class EAccelBytePartyType : uint32
 {
 	PRIMARY_PARTY = 1
 };
+#endif
 
 /**
  * @brief Enum representing the types of chat room
@@ -147,7 +157,9 @@ enum class EAccelByteChatRoomType : uint8
 	NORMAL,
 	PERSONAL,
 	PARTY_V2, // Party from session service
+#if 1 // MMv1 Deprecation
 	PARTY_V1, // Party form lobby service
+#endif
 	SESSION_V2,
 };
 
@@ -655,6 +667,7 @@ struct ONLINESUBSYSTEMACCELBYTE_API TUserUniqueIdConstSharedRefMapKeyFuncs
 	}
 };
 
+#if 1 // MMv1 Deprecation
 /**
  * Array of user IDs corresponding to players in a party in this session
  */
@@ -807,6 +820,7 @@ private:
 
 	FAccelByteModelsMatchmakingResult SessionResult;
 };
+#endif // MMv1 Deprecation
 
 /**
  * Attribute key for a stored user account's publisher level avatar

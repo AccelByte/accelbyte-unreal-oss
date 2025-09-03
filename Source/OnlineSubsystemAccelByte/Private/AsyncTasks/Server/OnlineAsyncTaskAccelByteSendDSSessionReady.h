@@ -35,9 +35,6 @@ private:
 	/** Online error information in case any error happen. */
 	FOnlineError OnlineError;
 
-	/** Session interface for this user. */
-	FOnlineSessionV2AccelBytePtr SessionInterface;
-
 	/** Handler when send ds ready success. */
 	FVoidHandler OnSendDSReadySuccessDelegate;
 	void OnSendDSReadySuccess();

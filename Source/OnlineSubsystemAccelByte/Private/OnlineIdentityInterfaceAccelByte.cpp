@@ -316,7 +316,12 @@ bool FOnlineIdentityAccelByte::AutoLogin(int32 LocalUserNum)
 
 	if (IsRunningDedicatedServer())
 	{
-#if AB_USE_V2_SESSIONS
+#if !AB_USE_V2_SESSIONS
+		// #NOTE For compatibility reasons, V1 sessions still won't support auto login, since those tasks already have a way
+		// to authenticate a server.
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("AutoLogin does not work with AccelByte servers, server login is done automatically during registration."));
+		return false;
+#else
 		// Servers have a custom authentication flow where we just associate them with user index zero. Async task code for
 		// servers should not access the identity interface, this is basically just implemented to fit the flow of a dedicated
 		// server on Unreal closely.
@@ -346,11 +351,6 @@ bool FOnlineIdentityAccelByte::AutoLogin(int32 LocalUserNum)
 			AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteLoginServer>(AccelByteSubsystemPtr.Get(), LocalUserNum);
 		}
 		return true;
-#else
-		// #NOTE For compatibility reasons, V1 sessions still won't support auto login, since those tasks already have a way
-		// to authenticate a server.
-		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("AutoLogin does not work with AccelByte servers, server login is done automatically during registration."));
-		return false;
 #endif
 	}
 
@@ -787,7 +787,9 @@ bool FOnlineIdentityAccelByte::AuthenticateAccelByteServer(const FOnAuthenticate
 {
 	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
 
-#if AB_USE_V2_SESSIONS
+#if !AB_USE_V2_SESSIONS
+// Empty statement, do nothing.
+#else
 	UE_LOG_AB(Warning, TEXT("FOnlineIdentityAccelByte::AuthenticateAccelByteServer is deprecated with V2 sessions. Servers should be authenticated through AutoLogin!"));
 	
 	if (AccelByteSubsystemPtr.IsValid())
@@ -938,7 +940,9 @@ void FOnlineIdentityAccelByte::OnLogout(const int32 LocalUserNum, bool bWasSucce
 {
 	SetLoginStatus(LocalUserNum, ELoginStatus::NotLoggedIn);
 
-#if AB_USE_V2_SESSIONS
+#if !AB_USE_V2_SESSIONS
+// Empty statement, do nothing.
+#else
 	// Signal to the session interface that a player has logged out to clean the local cache
 	FOnlineSessionV2AccelBytePtr SessionInterface{};
 	const TSharedRef<const FUniqueNetId>* LocalPlayerId = LocalUserNumToNetIdMap.Find(LocalUserNum);

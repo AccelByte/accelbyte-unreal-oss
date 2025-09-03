@@ -11,10 +11,11 @@ using namespace AccelByte;
 
 #define ONLINE_ERROR_NAMESPACE "FOnlineAsyncTaskAccelByteDeleteGameRecordTTLConfig"
 
-FOnlineAsyncTaskAccelByteDeleteGameRecordTTLConfig::FOnlineAsyncTaskAccelByteDeleteGameRecordTTLConfig(FOnlineSubsystemAccelByte* const InABInterface, const FString& InKey, int32 InLocalUserNum)
-	: FOnlineAsyncTaskAccelByte(InABInterface)
+FOnlineAsyncTaskAccelByteDeleteGameRecordTTLConfig::FOnlineAsyncTaskAccelByteDeleteGameRecordTTLConfig(FOnlineSubsystemAccelByte* const InABInterface
+	, int32 InLocalUserNum
+	, FString const& InKey)
+	: FOnlineAsyncTaskAccelByte(InABInterface, InLocalUserNum)
 	, Key(InKey)
-	, LocalUserNum(InLocalUserNum)
 {
 }
 
@@ -26,18 +27,43 @@ void FOnlineAsyncTaskAccelByteDeleteGameRecordTTLConfig::Initialize()
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Deleting ttl config of game record, LocalUserNum: %d"), LocalUserNum);
 
+	TOptional<bool> IsDS = SubsystemPin->IsDedicatedServer(LocalUserNum);
+	if (!IsDS.IsSet() || !IsDS.GetValue())
+	{
+		TaskOnlineError = EOnlineErrorResult::NotImplemented;
+		TaskErrorCode = FString::Printf(TEXT("%d"), ErrorCodes::StatusBadRequest);
+		TaskErrorStr = TEXT("request-failed-create-admin-game-record-error");
+		CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
+		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to create game record, access denied!"));
+		return;
+	}
+
+	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(SubsystemPin->GetIdentityInterface());
+	if (!IdentityInterface.IsValid())
+	{
+		TaskOnlineError = EOnlineErrorResult::MissingInterface;
+		TaskErrorCode = FString::Printf(TEXT("%d"), ErrorCodes::StatusUnauthorized);
+		TaskErrorStr = TEXT("request-failed-create-admin-game-record-error");
+		CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
+		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to create admin game record, identity interface is invalid!"));
+		return;
+	}
+
+	if (IdentityInterface->GetLoginStatus(LocalUserNum) != ELoginStatus::LoggedIn)
+	{
+		TaskOnlineError = EOnlineErrorResult::AccessDenied;
+		TaskErrorCode = FString::Printf(TEXT("%d"), ErrorCodes::StatusUnauthorized);
+		TaskErrorStr = TEXT("request-failed-create-admin-game-record-error");
+		CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
+		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to create admin game record, not logged in!"));
+		return;
+	}
+
+	SERVER_API_CLIENT_CHECK_GUARD(TaskErrorStr);
+
 	OnDeleteGameRecordTTLConfigSuccessDelegate = TDelegateUtils<FVoidHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteDeleteGameRecordTTLConfig::OnDeleteGameRecordTTLConfigSuccess);
 	OnDeleteGameRecordTTLConfigErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteDeleteGameRecordTTLConfig::OnDeleteGameRecordTTLConfigError);
 
-	FAccelByteInstancePtr AccelByteInstance = SubsystemPin->GetAccelByteInstance().Pin();
-	if(!AccelByteInstance.IsValid())
-	{
-		CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState);
-		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("AccelByteInstance is invalid"));
-		return;
-	}
-	
-	const FServerApiClientPtr ServerApiClient = AccelByteInstance->GetServerApiClient();
 	ServerApiClient->ServerCloudSave.DeleteGameRecordTTLConfig(Key, OnDeleteGameRecordTTLConfigSuccessDelegate, OnDeleteGameRecordTTLConfigErrorDelegate);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
@@ -58,7 +84,7 @@ void FOnlineAsyncTaskAccelByteDeleteGameRecordTTLConfig::TriggerDelegates()
 		}
 		else
 		{
-			CloudSaveInterface->TriggerOnDeleteGameRecordTTLConfigCompletedDelegates(ONLINE_ERROR(EOnlineErrorResult::RequestFailure, ErrorCode, FText::FromString(ErrorStr)), Key);
+			CloudSaveInterface->TriggerOnDeleteGameRecordTTLConfigCompletedDelegates(ONLINE_ERROR(TaskOnlineError, TaskErrorCode, FText::FromString(TaskErrorStr)), Key);
 		}
 	}
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
@@ -73,8 +99,9 @@ void FOnlineAsyncTaskAccelByteDeleteGameRecordTTLConfig::OnDeleteGameRecordTTLCo
 
 void FOnlineAsyncTaskAccelByteDeleteGameRecordTTLConfig::OnDeleteGameRecordTTLConfigError(int32 Code, const FString& ErrorMessage)
 {
-	ErrorCode = FString::Printf(TEXT("%d"), Code);
-	ErrorStr = TEXT("request-failed-delete-ttl-config-of-game-record");
+	TaskOnlineError = EOnlineErrorResult::RequestFailure;
+	TaskErrorCode = FString::Printf(TEXT("%d"), Code);
+	TaskErrorStr = TEXT("request-failed-delete-ttl-config-of-game-record");
 	UE_LOG_AB(Warning, TEXT("Failed to delete ttl config of game record! Error Code: %d; Error Message: %s"), Code, *ErrorMessage);
 	CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
 }

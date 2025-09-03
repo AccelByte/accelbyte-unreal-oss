@@ -16,7 +16,10 @@ class FOnlineAsyncTaskAccelByteGetAdminGameRecord
 	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteGetAdminGameRecord, ESPMode::ThreadSafe>
 {
 public:
-	FOnlineAsyncTaskAccelByteGetAdminGameRecord(FOnlineSubsystemAccelByte* const InABInterface, int32 InLocalUserNum, const FString& InKey, bool bInAlwaysRequestToService);
+	FOnlineAsyncTaskAccelByteGetAdminGameRecord(FOnlineSubsystemAccelByte* const InABInterface
+		, int32 InLocalUserNum
+		, const FString& InKey
+		, bool bInAlwaysRequestToService);
 
 	virtual void Initialize() override;
 	virtual void TriggerDelegates() override;
@@ -41,12 +44,6 @@ private:
 	 */
 	void OnGetAdminGameRecordError(int32 ErrorCode, const FString& ErrorMessage);
 	FErrorHandler OnGetAdminGameRecordErrorDelegate;
-
-	/**
-	 * String representing the error code that occurred
-	 */
-	FString ErrorStr;
-	FString ErrorCode;
 
 	/**
 	 * String representing the record key to get

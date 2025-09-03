@@ -2,31 +2,45 @@
 // This is licensed software from AccelByte Inc, for limitations
 // and restrictions contact your company contract manager.
 
+#if 1 // MMv1 Deprecation
+
 #include "OnlineAsyncTaskAccelByteRemoveUserFromV1Session.h"
 #include "OnlineSubsystemAccelByte.h"
 #include "OnlineIdentityInterfaceAccelByte.h"
 #include "Core/AccelByteUtilities.h"
 
+#include "Core/AccelByteReport.h"
+
 using namespace AccelByte;
 
-FOnlineAsyncTaskAccelByteRemoveUserFromV1Session::FOnlineAsyncTaskAccelByteRemoveUserFromV1Session(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InLocalUserId, const FString& InChannelName, const FString& InMatchId, const FOnRemoveUserFromSessionComplete& InDelegate)
-	: FOnlineAsyncTaskAccelByte(InABInterface)
+FOnlineAsyncTaskAccelByteRemoveUserFromV1Session::FOnlineAsyncTaskAccelByteRemoveUserFromV1Session(FOnlineSubsystemAccelByte* const InABInterface
+	, const FUniqueNetId& InTargetUserId
+	, const FString& InChannelName
+	, const FString& InMatchId
+	, const FOnRemoveUserFromSessionComplete& InDelegate)
+	: FOnlineAsyncTaskAccelByte(InABInterface
+		, INVALID_CONTROLLERID
+		, ASYNC_TASK_FLAG_BIT(EAccelByteAsyncTaskFlags::UseTimeout) + ASYNC_TASK_FLAG_BIT(EAccelByteAsyncTaskFlags::ServerTask))
 	, ChannelName(InChannelName)
 	, MatchId(InMatchId)
 	, Delegate(InDelegate)
 {
-	UserId = FUniqueNetIdAccelByteUser::CastChecked(InLocalUserId);
+	FReport::LogDeprecated(FString(__FUNCTION__),
+		TEXT("Session V1 functionality is deprecated and replaced by Session V2. For more information, see https://docs.accelbyte.io/gaming-services/services/play/session/"));
+	TargetUserId = FUniqueNetIdAccelByteUser::CastChecked(InTargetUserId);
 }
 
 void FOnlineAsyncTaskAccelByteRemoveUserFromV1Session::Initialize()
 {
-	TRY_PIN_SUBSYSTEM();
-
 	Super::Initialize();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("ChannelName: %s"), *ChannelName);
 
-	if (!IsRunningDedicatedServer())
+	TRY_PIN_SUBSYSTEM();
+
+	TOptional<bool> IsDS = SubsystemPin->IsDedicatedServer(LocalUserNum);
+
+	if (!IsDS.IsSet() || !IsDS.GetValue())
 	{
 		CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
 		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to remove user from session as the current game instance is not a dedicated server!"));
@@ -99,3 +113,4 @@ void FOnlineAsyncTaskAccelByteRemoveUserFromV1Session::OnRemoveUserFromSessionEr
 	CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
 }
 
+#endif

@@ -8,15 +8,14 @@
 
 using namespace AccelByte;
 
-FOnlineAsyncTaskAccelByteV2GetRecentTeamPlayer::FOnlineAsyncTaskAccelByteV2GetRecentTeamPlayer(FOnlineSubsystemAccelByte* const InABInterface, int32 InLocalUserNum, const FUniqueNetId& InPlayerId, const FString& InNamespace)
-	: FOnlineAsyncTaskAccelByte(InABInterface)
+FOnlineAsyncTaskAccelByteV2GetRecentTeamPlayer::FOnlineAsyncTaskAccelByteV2GetRecentTeamPlayer(FOnlineSubsystemAccelByte* const InABInterface
+	, int32 InLocalUserNum
+	, const FUniqueNetId& InPlayerId
+	, const FString& InNamespace)
+	: FOnlineAsyncTaskAccelByte(InABInterface, InLocalUserNum)
 	, Namespace(InNamespace)
 {
-	LocalUserNum = InLocalUserNum;
-	if (!IsRunningDedicatedServer())
-	{
-		UserId = FUniqueNetIdAccelByteUser::CastChecked(InPlayerId);
-	}
+	UserId = FUniqueNetIdAccelByteUser::CastChecked(InPlayerId);
 }
 
 void FOnlineAsyncTaskAccelByteV2GetRecentTeamPlayer::Initialize()

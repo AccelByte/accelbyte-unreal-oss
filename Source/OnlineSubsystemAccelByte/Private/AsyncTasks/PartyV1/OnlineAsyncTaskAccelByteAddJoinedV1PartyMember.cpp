@@ -1,11 +1,13 @@
 // Copyright (c) 2022 AccelByte Inc. All Rights Reserved.
 // This is licensed software from AccelByte Inc, for limitations
 // and restrictions contact your company contract manager.
-
+#if 1 // MMv1 Deprecation
 #include "OnlineAsyncTaskAccelByteAddJoinedV1PartyMember.h"
 #include "OnlineSubsystemAccelByte.h"
 #include "OnlinePartyInterfaceAccelByte.h"
 #include "OnlineUserCacheAccelByte.h"
+
+#include "Core/AccelByteReport.h"
 
 using namespace AccelByte;
 
@@ -14,6 +16,8 @@ FOnlineAsyncTaskAccelByteAddJoinedV1PartyMember::FOnlineAsyncTaskAccelByteAddJoi
 	, Party(InParty)
 	, JoinedAccelByteId(InJoinedAccelByteId)
 {
+	FReport::LogDeprecated(FString(__FUNCTION__),
+		TEXT("Party V1 functionality is deprecated and replaced by Party V2. For more information, see https://docs.accelbyte.io/gaming-services/services/play/party/"));
 	UserId = InLocalUserId;
 }
 
@@ -93,3 +97,4 @@ void FOnlineAsyncTaskAccelByteAddJoinedV1PartyMember::OnQueryJoinedPartyMemberCo
 
 	bHasRetrievedMemberInfo = true;
 }
+#endif

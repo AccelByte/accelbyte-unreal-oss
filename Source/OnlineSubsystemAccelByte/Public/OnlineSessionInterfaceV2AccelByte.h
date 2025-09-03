@@ -704,6 +704,12 @@ public:
 #endif
 	//~ End IOnlineSession overrides
 
+	// Query game session with additional filter
+	bool FindGameSessions(int32 SearchingPlayerNum, const TSharedRef<FOnlineSessionSearch>& SearchSettings, FAccelByteModelsV2GameSessionQueryFilter QueryFilter);
+
+	// Query game session with additional filter
+	bool FindGameSessions(const FUniqueNetId& SearchingPlayerId, const TSharedRef<FOnlineSessionSearch>& SearchSettings, FAccelByteModelsV2GameSessionQueryFilter QueryFilter);
+
 	/**
 	 * Query for any pending invites that the player passed in has yet to respond to.
 	 */
@@ -1245,6 +1251,20 @@ public:
 	 * @return true if operation to find session has started, false otherwise
 	 */
 	bool FindSessionByStringId(const FUniqueNetId& SearchingUserId
+		, const EAccelByteV2SessionType& SessionType
+		, const FString& SessionId
+		, const FOnSingleSessionResultCompleteDelegate& CompletionDelegate);
+
+	/**
+	 * @brief Find a game or party session by its ID.
+	 *
+	 * @param LocalUserNum Index of user that is attempting
+	 * @param SessionType Type of session to search for
+	 * @param SessionId String representation of the session ID being searched for
+	 * @param CompletionDelegate Delegate fired after the operation to find the given session completes
+	 * @return true if operation to find session has started, false otherwise
+	 */
+	bool FindSessionByStringId(int32 LocalUserNum
 		, const EAccelByteV2SessionType& SessionType
 		, const FString& SessionId
 		, const FOnSingleSessionResultCompleteDelegate& CompletionDelegate);

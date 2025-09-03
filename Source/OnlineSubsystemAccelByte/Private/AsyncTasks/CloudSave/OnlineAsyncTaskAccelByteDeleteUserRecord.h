@@ -16,7 +16,10 @@ class FOnlineAsyncTaskAccelByteDeleteUserRecord
 	, public AccelByte::TSelfPtr<FOnlineAsyncTaskAccelByteDeleteUserRecord, ESPMode::ThreadSafe>
 {
 public:
-	FOnlineAsyncTaskAccelByteDeleteUserRecord(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InLocalUserId, const FString& InKey, int32 LocalUserNum, const FString& InTargetUserId);
+	FOnlineAsyncTaskAccelByteDeleteUserRecord(FOnlineSubsystemAccelByte* const InABInterface
+		, int32 LocalUserNum
+		, FString const& InKey
+		, FString const& InTargetUserId);
 
 	virtual void Initialize() override;
 	virtual void Finalize() override;
@@ -40,14 +43,10 @@ private:
 	/**
 	 * Delegate handler for when delete user record fails
 	 */
-	void OnDeleteUserRecordError(int32 ErrorCode, const FString& ErrorMessage);
-	FErrorHandler OnDeleteUserRecordErrorDelegate;
+	void OnDeleteUserRecordError(int32 ErrorCode
+		, FString const& ErrorMessage);
 
-	/**
-	 * String representing the error code that occurred
-	 */
-	FString ErrorStr{};
-	FString ErrorCode{};
+	FErrorHandler OnDeleteUserRecordErrorDelegate;
 
 	/**
 	 * String representing the record key to delete
@@ -58,9 +57,4 @@ private:
 	 * Target AccelByte User Id for server to call the request
 	 */
 	FString TargetUserId{};
-
-	/**
-	 * Current Local User Number
-	 */
-	int32 LocalUserNum = 0;
 };

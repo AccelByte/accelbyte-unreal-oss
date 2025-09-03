@@ -48,7 +48,7 @@ private:
 	 */
 	void OnSyncPlatformPurchaseError(int32 ErrorCode, const FString& ErrorMessage);
 
-	EAccelBytePlatformSync GetNavitePlatformSyncType();
+	EAccelBytePlatformSync GetNativePlatformSyncType();
 
 	FString Error;
 };

@@ -19,7 +19,19 @@ class FOnlineAsyncTaskAccelByteFindV2PartyById
 {
 public:
 
-	FOnlineAsyncTaskAccelByteFindV2PartyById(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InSearchingPlayerId, const FUniqueNetId& InSessionId, const FOnSingleSessionResultCompleteDelegate& InDelegate, TSharedPtr<FAccelByteKey> InLockKey = nullptr);
+	FOnlineAsyncTaskAccelByteFindV2PartyById(FOnlineSubsystemAccelByte* const InABInterface
+		, FUniqueNetId const& InSearchingPlayerId
+		, FUniqueNetId const& InSessionId
+		, FOnSingleSessionResultCompleteDelegate const& InDelegate
+		, TSharedPtr<FAccelByteKey> InLockKey = nullptr
+		, bool IsDedicatedServer = false);
+
+	FOnlineAsyncTaskAccelByteFindV2PartyById(FOnlineSubsystemAccelByte* const InABInterface
+		, int32 InLocalUserNum
+		, FUniqueNetId const& InSessionId
+		, FOnSingleSessionResultCompleteDelegate const& InDelegate
+		, TSharedPtr<FAccelByteKey> InLockKey = nullptr
+		, bool IsDedicatedServer = false);
 
     virtual void Initialize() override;
 	virtual void Finalize() override;

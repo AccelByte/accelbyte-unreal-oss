@@ -19,7 +19,7 @@ class FOnlineAsyncTaskAccelByteFindGameSessionsV2
 {
 public:
 
-	FOnlineAsyncTaskAccelByteFindGameSessionsV2(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InSearchingPlayerId, const TSharedRef<FOnlineSessionSearch>& InSearchSettings);
+	FOnlineAsyncTaskAccelByteFindGameSessionsV2(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InSearchingPlayerId, const TSharedRef<FOnlineSessionSearch>& InSearchSettings, FAccelByteModelsV2GameSessionQueryFilter InQueryFilter);
 
 	virtual void Initialize() override;
 	virtual void Tick() override;
@@ -45,6 +45,9 @@ private:
 
 	/** Amount of sessions that we are trying to fill in the search results */
 	int32 ResultsRemaining = 0;
+	
+	/** Additional query filter*/
+	FAccelByteModelsV2GameSessionQueryFilter QueryFilter{};
 
 	/**
 	 * Query a single page of results. On complete if we need more results and have not reached the end, we will query another page.

@@ -9,7 +9,10 @@ using namespace AccelByte;
 
 #define ONLINE_ERROR_NAMESPACE "FOnlineAsyncTaskAccelBytePromoteV2GameSessionLeader"
 
-FOnlineAsyncTaskAccelBytePromoteV2GameSessionLeader::FOnlineAsyncTaskAccelBytePromoteV2GameSessionLeader(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InLocalUserId, const FString& InSessionId,	const FUniqueNetId& InTargetMemberId)
+FOnlineAsyncTaskAccelBytePromoteV2GameSessionLeader::FOnlineAsyncTaskAccelBytePromoteV2GameSessionLeader(FOnlineSubsystemAccelByte* const InABInterface
+	, const FUniqueNetId& InLocalUserId
+	, const FString& InSessionId
+	, const FUniqueNetId& InTargetMemberId)
 	: FOnlineAsyncTaskAccelByte(InABInterface)
 	, SessionId(InSessionId)
 	, TargetMemberId(FUniqueNetIdAccelByteUser::CastChecked(InTargetMemberId))
@@ -71,23 +74,28 @@ void FOnlineAsyncTaskAccelBytePromoteV2GameSessionLeader::TriggerDelegates()
 
 bool FOnlineAsyncTaskAccelBytePromoteV2GameSessionLeader::PromoteGameSessionLeader()
 {
-	TRY_PIN_SUBSYSTEM(false)
-
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("LocalUserNum: %d"), LocalUserNum);
 
+	TRY_PIN_SUBSYSTEM(false);
+
+	TOptional<bool> IsDS = SubsystemPin->IsDedicatedServer(LocalUserNum);
+	if (!IsDS.IsSet())
+	{
+		OnlineError = FOnlineErrorAccelByte::CreateError(ONLINE_ERROR_NAMESPACE, TEXT("promote-game-session-leader-failed"), EOnlineErrorResult::NotImplemented);
+		return false;
+	}
 	const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(SubsystemPin->GetSessionInterface());
 
 	if (!SessionInterface.IsValid())
 	{
 		OnlineError = FOnlineErrorAccelByte::CreateError(ONLINE_ERROR_NAMESPACE, TEXT("promote-game-session-leader-failed-session-interface-invalid"), EOnlineErrorResult::MissingInterface);
-
 		return false;
 	}
 
 	OnPromoteGameSessionLeaderSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsV2GameSession>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelBytePromoteV2GameSessionLeader::OnPromoteGameSessionLeaderSuccess);
 	OnPromoteGameSessionLeaderErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelBytePromoteV2GameSessionLeader::OnPromoteGameSessionLeaderError);;
 
-	if (IsRunningDedicatedServer())
+	if (IsDS.GetValue())
 	{
 		FAccelByteInstancePtr AccelByteInstance = GetAccelByteInstance().Pin();
 		if(!AccelByteInstance.IsValid())

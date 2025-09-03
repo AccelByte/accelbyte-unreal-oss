@@ -2,6 +2,8 @@
 // This is licensed software from AccelByte Inc, for limitations
 // and restrictions contact your company contract manager.
 
+#if 1 // MMv1 Deprecation
+
 #include "OnlineAsyncTaskAccelByteGetRecentPlayer.h"
 #include "OnlineSubsystemAccelByte.h"
 #include "OnlineFriendsInterfaceAccelByte.h"
@@ -11,12 +13,16 @@
 #include "Interfaces/OnlineUserInterface.h"
 #include "Models/AccelByteSessionBrowserModels.h"
 
+#include "Core/AccelByteReport.h"
+
 using namespace AccelByte;
 
 FOnlineAsyncTaskAccelByteGetRecentPlayer::FOnlineAsyncTaskAccelByteGetRecentPlayer(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InUserId, const FString &InNamespace)
 	: FOnlineAsyncTaskAccelByte(InABInterface)
 	, Namespace(InNamespace)
 {
+	FReport::LogDeprecated(FString(__FUNCTION__),
+		TEXT("The session browser is deprecated and replaced by game sessions. For more information, see https://docs.accelbyte.io/gaming-services/services/play/peer-to-peer-via-relay-server/"));
 	UserId = FUniqueNetIdAccelByteUser::CastChecked(InUserId);
 }
 
@@ -116,3 +122,4 @@ void FOnlineAsyncTaskAccelByteGetRecentPlayer::OnQueryRecentPlayersComplete(bool
 	}
 }
 
+#endif

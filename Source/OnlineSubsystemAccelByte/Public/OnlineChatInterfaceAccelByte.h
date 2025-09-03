@@ -25,6 +25,15 @@ struct FAccelByteChatRoomConfig {
 	FString FriendlyName;
 };
 
+class FAccelByteChatMessage;
+class FAccelByteChatRoomInfo;
+class FAccelByteChatRoomMember;
+
+using FAccelByteChatRoomInfoRef = TSharedRef<FAccelByteChatRoomInfo>;
+using FAccelByteChatRoomInfoPtr = TSharedPtr<FAccelByteChatRoomInfo>;
+using FAccelByteChatRoomMemberRef = TSharedRef<FAccelByteChatRoomMember>;
+using FAccelByteChatRoomMemberPtr = TSharedPtr<FAccelByteChatRoomMember>;
+
 //~ Begin custom delegates
 DECLARE_MULTICAST_DELEGATE_FourParams(FOnConnectChatComplete, int32 /*LocalUserNum*/, bool /*bWasSuccessful*/, const FUniqueNetId& /*UserId*/, const FString& /*Error*/);
 typedef FOnConnectChatComplete::FDelegate FOnConnectChatCompleteDelegate;
@@ -100,16 +109,9 @@ typedef FOnSetUserChatConfigurationComplete::FDelegate FOnSetUserChatConfigurati
 
 DECLARE_DELEGATE_FourParams(FOnReportChatMessageComplete, const FUniqueNetId& /*UserId*/, bool /*bWasSuccessful*/, const FChatMessage& /*ReportedMessage*/, FAccelByteModelsReportingSubmitResponse /*ReportResponse*/);
 
+DECLARE_DELEGATE_ThreeParams(FOnChatQueryRoomComplete, bool /*bWasSuccessful*/, TArray<FAccelByteChatRoomInfoRef> /*Result*/, int32 /*LocalUserNum*/);
+
 //~ End custom delegates
-
-class FAccelByteChatMessage;
-class FAccelByteChatRoomInfo;
-class FAccelByteChatRoomMember;
-
-typedef TSharedRef<FAccelByteChatRoomInfo> FAccelByteChatRoomInfoRef;
-typedef TSharedPtr<FAccelByteChatRoomInfo> FAccelByteChatRoomInfoPtr;
-typedef TSharedRef<FAccelByteChatRoomMember> FAccelByteChatRoomMemberRef;
-typedef TSharedPtr<FAccelByteChatRoomMember> FAccelByteChatRoomMemberPtr;
 
 using FChatRoomIdToChatMessages = TMap<FChatRoomId, TArray<TSharedRef<FChatMessage>>>;
 using FUserIdToRoomChatMessages = TMap<TSharedRef<const FUniqueNetIdAccelByteUser>, FChatRoomIdToChatMessages, FDefaultSetAllocator, TUserUniqueIdConstSharedRefMapKeyFuncs<FChatRoomIdToChatMessages>>;
@@ -521,6 +523,17 @@ public:
 	 * @return TOptional<FString> Value will be set if personal chat is found
 	 */
 	TOptional<FString> GetPersonalChatTopicId(const FString& FromUserId, const FString& ToUserId);
+
+	/**
+	* Manually query chat room
+	* This function spawn AsyncTask to query room and will call OnQueryComplete once finishes.
+	* 
+	* @param PlayerId
+	* @param Request
+	* @param OnComplete
+	* @return bool Will return true if the AsyncTask was successfully launched, false otherwise.
+	*/
+	bool QueryChatRoom(const FUniqueNetId& PlayerId, const FAccelByteModelsChatQueryTopicRequest& Request, const FOnChatQueryRoomComplete& OnComplete);
 	//~ End Chat Utility functions
 
 	/**
@@ -634,7 +647,13 @@ public:
 	DEFINE_ONLINE_PLAYER_DELEGATE_TWO_PARAM(MAX_LOCAL_PLAYERS, OnSetUserChatConfigurationComplete, const FAccelByteSetUserChatConfigurationResponse& /*UserChatConfiguration*/, const FOnlineError& /*ErrorInfo*/)
 	
 PACKAGE_SCOPE:
-	void RegisterChatDelegates(const FUniqueNetId& PlayerId);
+	/**
+	* Need to be performed by FOnlineAsyncTaskAccelByteConnectChat after success.
+	* This function spawn AsyncTask to query room and after complete, the interface will call RegisterChatDelegates
+	*/
+	void QueryRoomAfterChatConnectEstablished(const FUniqueNetId& PlayerId);
+
+	void RegisterChatDelegates(int32 LocalUserNum);
 
 	//~ Begin Utility functions
 	/**
@@ -693,7 +712,7 @@ private:
 	//~ End Chat Notification Handlers
 
 	//~ Begin Chat Internal Handlers
-	void OnQueryChatRoomInfoComplete(bool bWasSuccessful, TArray<FAccelByteChatRoomInfoRef> RoomList, int32 LocalUserNum);
+	void OnQueryChatRoomInfoCompleteAfterConnectionEstablished(bool bWasSuccessful, TArray<FAccelByteChatRoomInfoRef> RoomList, int32 LocalUserNum);
 	void OnQueryChatMemberInfo_TriggerChatRoomMemberJoin(bool bIsSuccessful, TArray<FAccelByteUserInfoRef> UsersQueried, FString RoomId, FUniqueNetIdPtr UserId, FUniqueNetIdPtr MemberId);
 	void OnQueryChatRoomById_TriggerChatRoomMemberJoin(bool bWasSuccessful, FAccelByteChatRoomInfoPtr RoomInfo, int32 LocalUserNum, FUniqueNetIdPtr UserId, FUniqueNetIdPtr MemberId);
 	//~ End Chat Internal Handlers
