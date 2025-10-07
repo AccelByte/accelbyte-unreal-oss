@@ -221,6 +221,22 @@ public:
 #endif // !UE_BUILD_SHIPPING
 	//~ End  IOnlineStats Interface
 
+	/**
+	 * Query a user's stats with tags
+	 *
+	 * @param LocalUserNum Index of user(or server) to query as
+	 * @param StatsUser User to get stats for
+	 * @param StatsNames Stats to get stats for all specified users
+	 * @param Tags Tags
+	 * @param Delegate Called when the user's stats have finished being requested and are now available, or when we fail to retrieve the user's stats
+	 */
+	virtual void QueryStats(const int32 LocalUserNum
+		, const FUniqueNetIdRef StatsUser
+		, const TArray<FString>& StatsNames
+		, const TArray<FString>& Tags
+		, const FOnlineStatsQueryUserStatsComplete& Delegate
+		, EAccelByteStatisticSortBy SortBy = EAccelByteStatisticSortBy::NONE);
+
 	// Statistic Utils
 
 	/**

@@ -1,4 +1,4 @@
-// Copyright (c) 2022 AccelByte Inc. All Rights Reserved.
+// Copyright (c) 2022 - 2025 AccelByte Inc. All Rights Reserved.
 // This is licensed software from AccelByte Inc, for limitations
 // and restrictions contact your company contract manager.
 
@@ -11,6 +11,7 @@
 using namespace AccelByte;
 
 #define ONLINE_ERROR_NAMESPACE "FOnlineStatsSystemAccelByte"
+#define BATCH_QUERY_LIMIT 100
 
 FOnlineAsyncTaskAccelByteQueryStatsUsers::FOnlineAsyncTaskAccelByteQueryStatsUsers(FOnlineSubsystemAccelByte *const InABInterface
 	, FUniqueNetIdRef const InLocalUserId
@@ -23,7 +24,11 @@ FOnlineAsyncTaskAccelByteQueryStatsUsers::FOnlineAsyncTaskAccelByteQueryStatsUse
 	, Delegate(InDelegate)
 	, CountUsers(InStatsUsers.Num())
 {
-	if (!IsRunningDedicatedServer() && InLocalUserId->IsValid())
+	TRY_PIN_SUBSYSTEM();
+	TOptional<bool> IsDS = SubsystemPin->IsDedicatedServer(LocalUserNum);
+	bool bIsGameClient = (IsDS.IsSet() && !IsDS.GetValue()); //Is GameClient
+
+	if (bIsGameClient && InLocalUserId->IsValid())
 	{
 		UserId = FUniqueNetIdAccelByteUser::CastChecked(InLocalUserId);
 	}
@@ -52,12 +57,64 @@ FOnlineAsyncTaskAccelByteQueryStatsUsers::FOnlineAsyncTaskAccelByteQueryStatsUse
 	}
 }
 
+FOnlineAsyncTaskAccelByteQueryStatsUsers::FOnlineAsyncTaskAccelByteQueryStatsUsers(FOnlineSubsystemAccelByte* const InABInterface
+	, FUniqueNetIdRef const InLocalUserId
+	, TArray<FUniqueNetIdRef> const& InStatsUsers
+	, TArray<FString> const& InStatNames
+	, TArray<FString> const& InTags
+	, EAccelByteStatisticSortBy InSortBy
+	, FOnlineStatsQueryUsersStatsComplete const& InDelegate)
+	: FOnlineAsyncTaskAccelByte(InABInterface, true)
+	, StatsUsers(InStatsUsers)
+	, StatNames(InStatNames)
+	, Tags(InTags)
+	, SortBy(InSortBy)
+	, Delegate(InDelegate)
+	, CountUsers(InStatsUsers.Num())
+{
+	TRY_PIN_SUBSYSTEM();
+	TOptional<bool> IsDS = SubsystemPin->IsDedicatedServer(LocalUserNum);
+	bool bIsGameClient = (IsDS.IsSet() && !IsDS.GetValue()); //Is GameClient
+
+	if (bIsGameClient && InLocalUserId->IsValid())
+	{
+		UserId = FUniqueNetIdAccelByteUser::CastChecked(InLocalUserId);
+	}
+
+	if (CountUsers < 0)
+	{
+		CountUsers = 0;
+	}
+}
+
+FOnlineAsyncTaskAccelByteQueryStatsUsers::FOnlineAsyncTaskAccelByteQueryStatsUsers(FOnlineSubsystemAccelByte* const InABInterface
+	, int32 InLocalUserNum
+	, TArray<FUniqueNetIdRef> const& InStatsUsers
+	, TArray<FString> const& InStatNames
+	, TArray<FString> const& InTags
+	, EAccelByteStatisticSortBy InSortBy
+	, FOnlineStatsQueryUsersStatsComplete const& InDelegate)
+	: FOnlineAsyncTaskAccelByte(InABInterface, InLocalUserNum, true)
+	, LocalUserNum(InLocalUserNum)
+	, StatsUsers(InStatsUsers)
+	, StatNames(InStatNames)
+	, Tags(InTags)
+	, SortBy(InSortBy)
+	, Delegate(InDelegate)
+	, CountUsers(InStatsUsers.Num())
+{
+	if (CountUsers < 0)
+	{
+		CountUsers = 0;
+	}
+}
+
 void FOnlineAsyncTaskAccelByteQueryStatsUsers::Initialize()
 {
 	TRY_PIN_SUBSYSTEM();
 
 	Super::Initialize();
-	
+
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 
 	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(SubsystemPin->GetIdentityInterface());
@@ -70,7 +127,11 @@ void FOnlineAsyncTaskAccelByteQueryStatsUsers::Initialize()
 	}
 
 	ELoginStatus::Type LoginStatus;
-	if (!IsRunningDedicatedServer())
+
+	TOptional<bool> IsDS = SubsystemPin->IsDedicatedServer(LocalUserNum);
+	bool bIsGameClient = (IsDS.IsSet() && !IsDS.GetValue()); //Is GameClient
+
+	if (bIsGameClient)
 	{
 		if (UserId.IsValid())
 		{
@@ -88,7 +149,7 @@ void FOnlineAsyncTaskAccelByteQueryStatsUsers::Initialize()
 	{
 		LoginStatus = IdentityInterface->GetLoginStatus(LocalUserNum);
 	}
-	
+
 	if (LoginStatus != ELoginStatus::LoggedIn)
 	{
 		ErrorMessage = TEXT("request-failed-query-stats-user-error-not-logged-in");
@@ -114,38 +175,44 @@ void FOnlineAsyncTaskAccelByteQueryStatsUsers::Initialize()
 		OnError = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this
 			, &FOnlineAsyncTaskAccelByteQueryStatsUsers::OnGetUsersStatsItemsError);
 
-		if (IsRunningDedicatedServer())
+		if (!bIsGameClient)
 		{
 			SERVER_API_CLIENT_CHECK_GUARD();
 			ServerApiClient->ServerStatistic.GetUserStatItems(AccelByteUserId
 				, StatNames
-				, {}
+				, Tags
 				, OnGetUserStatItemsSuccessHandler
-				, OnError);
+				, OnError
+				, BATCH_QUERY_LIMIT
+				, 0
+				, SortBy);
 		}
 		else
 		{
 			API_FULL_CHECK_GUARD(Statistic, ErrorMessage);
-			if(UserId->GetAccelByteId() == AccelByteUserId)
+			if (UserId->GetAccelByteId() == AccelByteUserId)
 			{
 				Statistic->GetMyStatItems(StatNames
-				, {}
-				, OnGetUserStatItemsSuccessHandler
-				, OnError);
+					, Tags
+					, OnGetUserStatItemsSuccessHandler
+					, OnError);
 			}
 			else
 			{
 				Statistic->GetUserStatItems(AccelByteUserId
-				, StatNames
-				, {}
-				, OnGetUserStatItemsSuccessHandler
-				, OnError);
+					, StatNames
+					, Tags
+					, OnGetUserStatItemsSuccessHandler
+					, OnError
+					, BATCH_QUERY_LIMIT
+					, 0
+					, SortBy);
 			}
 		}
-	}
 
-	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
-} 
+		AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
+	}
+}
 
 void FOnlineAsyncTaskAccelByteQueryStatsUsers::Finalize()
 {
@@ -154,6 +221,40 @@ void FOnlineAsyncTaskAccelByteQueryStatsUsers::Finalize()
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
 	Super::Finalize();
 
+	for (const TPair<FString, TArray<FAccelByteModelsUserStatItemInfo>>& UserStatPair : UserStatsRaw)
+	{
+		TMap<FString, FVariantData> StatCodes;
+		for (const auto& Stats : UserStatPair.Value)
+		{
+			FString Key = Stats.StatCode;
+			FVariantData Value = Stats.Value;
+			StatCodes.Add(Key, Value);
+		}
+
+		for (const auto& StatsUser : StatsUsers)
+		{
+			const FUniqueNetIdAccelByteUserRef ABStatsUser = FUniqueNetIdAccelByteUser::CastChecked(StatsUser);
+			if (ABStatsUser->GetAccelByteId() == UserStatPair.Key)
+			{
+				OnlineUsersStatsPairs.Add(MakeShared<FOnlineStatsUserStats>(StatsUser, StatCodes));
+				break;
+			}
+		}
+
+		const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = SubsystemPin->GetPredefinedEventInterface();
+		if (bWasSuccessful && PredefinedEventInterface.IsValid())
+		{
+			TSharedPtr<FAccelByteModelsUserStatItemGetItemsByCodesPayload> UserStatItemGetItemsByCodesPayload = MakeShared<FAccelByteModelsUserStatItemGetItemsByCodesPayload>();
+			for (const auto& StatItem : UserStatPair.Value)
+			{
+				UserStatItemGetItemsByCodesPayload->UserId = StatItem.userId;
+				UserStatItemGetItemsByCodesPayload->StatCodes.Add(StatItem.StatCode);
+			}
+
+			PredefinedEventInterface->SendEvent(LocalUserNum, UserStatItemGetItemsByCodesPayload.ToSharedRef());
+		}
+	}
+
 	const FOnlineStatisticAccelBytePtr StatisticInterface = StaticCastSharedPtr<FOnlineStatisticAccelByte>(SubsystemPin->GetStatsInterface());
 	if (StatisticInterface.IsValid())
 	{
@@ -161,19 +262,6 @@ void FOnlineAsyncTaskAccelByteQueryStatsUsers::Finalize()
 		{
 			StatisticInterface->EmplaceStats(UserStatsPair);
 		}
-	}
-
-	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = SubsystemPin->GetPredefinedEventInterface();
-	if (bWasSuccessful && PredefinedEventInterface.IsValid())
-	{
-		TSharedPtr<FAccelByteModelsUserStatItemGetItemsByCodesPayload> UserStatItemGetItemsByCodesPayload = MakeShared<FAccelByteModelsUserStatItemGetItemsByCodesPayload>();
-		for (const auto& StatItem : QueryUserStatItemResponse.Data)
-		{
-			UserStatItemGetItemsByCodesPayload->UserId = StatItem.userId;
-			UserStatItemGetItemsByCodesPayload->StatCodes.Add(StatItem.StatCode);
-		}
-
-		PredefinedEventInterface->SendEvent(LocalUserNum, UserStatItemGetItemsByCodesPayload.ToSharedRef());
 	}
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
@@ -201,33 +289,95 @@ void FOnlineAsyncTaskAccelByteQueryStatsUsers::Tick()
 	}
 }
 
-void FOnlineAsyncTaskAccelByteQueryStatsUsers::OnGetUserStatItemsSuccess(FAccelByteModelsUserStatItemPagingSlicedResult const& Result)
+void FOnlineAsyncTaskAccelByteQueryStatsUsers::QueryNextPage(const FAccelByteModelsUserStatItemPagingSlicedResult& NextPage)
 {
-	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("")); 
-
-	QueryUserStatItemResponse = Result;
-
-	if (Result.Data.Num() > 0)
+	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
+	int32 Offset = -1;
+	int32 Count = -1;
+	FString UrlOut;
+	FString Params;
+	NextPage.Paging.Next.Split(TEXT("?"), &UrlOut, &Params);
+	if (!Params.IsEmpty())
 	{
-		TMap<FString, FVariantData> StatCodes;
-		for (const auto& Stats : Result.Data)
+		TArray<FString> ParamsArray;
+		Params.ParseIntoArray(ParamsArray, TEXT("&"));
+		for (const FString& Param : ParamsArray)
 		{
-			FString Key = Stats.StatCode;
-			FVariantData Value = Stats.Value;
-			StatCodes.Add(Key, Value);
+			FString Key;
+			FString Value;
+			Param.Split(TEXT("="), &Key, &Value);
+			if (Key.Equals(TEXT("offset"), ESearchCase::IgnoreCase) && Value.IsNumeric())
+			{
+				Offset = FCString::Atoi(*Value);
+			}
+			else if (Key.Equals(TEXT("limit"), ESearchCase::IgnoreCase) && Value.IsNumeric())
+			{
+				Count = FCString::Atoi(*Value);
+			}
 		}
 
-		for (const auto& StatsUser : StatsUsers)
+		if (Offset == -1 || Count == -1)
 		{
-			const FUniqueNetIdAccelByteUserRef ABStatsUser = FUniqueNetIdAccelByteUser::CastChecked(StatsUser);
-			if (ABStatsUser->GetAccelByteId() == Result.Data[0].userId)
-			{
-				OnlineUsersStatsPairs.Add(MakeShared<FOnlineStatsUserStats>(StatsUser, StatCodes));
-			}
+			CountUsers--;
+			AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Failing to get Next Page! No offset or limit parameter in the URL!"));
+			return;
 		}
 	}
 
-	if (CountUsers > 0)
+	Count = FMath::Min(Count, BATCH_QUERY_LIMIT);
+
+	OnGetUserStatItemsSuccessHandler = TDelegateUtils<THandler<FAccelByteModelsUserStatItemPagingSlicedResult>>::CreateThreadSafeSelfPtr(this
+		, &FOnlineAsyncTaskAccelByteQueryStatsUsers::OnGetUserStatItemsSuccess);
+	OnError = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this
+		, &FOnlineAsyncTaskAccelByteQueryStatsUsers::OnGetUsersStatsItemsError);
+
+	TRY_PIN_SUBSYSTEM();
+	TOptional<bool> IsDS = SubsystemPin->IsDedicatedServer(LocalUserNum);
+	bool bIsGameClient = (IsDS.IsSet() && !IsDS.GetValue()); //Is GameClient
+
+	if (!bIsGameClient)
+	{
+		SERVER_API_CLIENT_CHECK_GUARD(ErrorMessage);
+
+		ServerApiClient->ServerStatistic.GetUserStatItems(NextPage.Data[0].userId
+			, StatNames
+			, Tags
+			, OnGetUserStatItemsSuccessHandler
+			, OnError
+			, Count
+			, Offset
+			, SortBy);
+	}
+	else
+	{
+		API_FULL_CHECK_GUARD(Statistic, ErrorMessage);
+
+		Statistic->GetUserStatItems(NextPage.Data[0].userId
+			, StatNames
+			, Tags
+			, OnGetUserStatItemsSuccessHandler
+			, OnError
+			, Count
+			, Offset
+			, SortBy);
+	}
+	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
+}
+
+void FOnlineAsyncTaskAccelByteQueryStatsUsers::OnGetUserStatItemsSuccess(FAccelByteModelsUserStatItemPagingSlicedResult const& Result)
+{
+	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
+
+	if (Result.Data.Num() > 0)
+	{
+		UserStatsRaw.FindOrAdd(Result.Data[0].userId).Append(Result.Data);
+	}
+
+	if (!Result.Paging.Next.IsEmpty())
+	{
+		QueryNextPage(Result);
+	}
+	else if (Result.Paging.Next.IsEmpty() && CountUsers > 0)
 	{
 		CountUsers--;
 	}
@@ -246,7 +396,13 @@ void FOnlineAsyncTaskAccelByteQueryStatsUsers::OnGetUsersStatsItemsError(int32 C
 		, Code
 		, *ErrMsg);
 	//continue until all users queried
+	// missing decrement the user count?
+	if (CountUsers > 0)
+	{
+		CountUsers--;
+	}
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 
+#undef BATCH_QUERY_LIMIT
 #undef ONLINE_ERROR_NAMESPACE

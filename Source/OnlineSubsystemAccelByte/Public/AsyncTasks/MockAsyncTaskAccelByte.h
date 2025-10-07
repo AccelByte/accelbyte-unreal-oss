@@ -15,22 +15,25 @@
 
 class FMockAsyncTaskAccelByte;
 
+using FMockAsyncTaskAccelBytePtr = TSharedPtr<FMockAsyncTaskAccelByte, ESPMode::ThreadSafe>;
+using FMockAsyncTaskAccelByteRef = TSharedRef<FMockAsyncTaskAccelByte, ESPMode::ThreadSafe>;
+using FMockAsyncTaskAccelByteWPtr = TWeakPtr<FMockAsyncTaskAccelByte, ESPMode::ThreadSafe>;
+
 #define FMockAsyncTaskDone AccelByte::THandler<FOnlineError>
 
 /** Parameter used to create a Mock async task and 
   * Simplify the process to bind delegate
   * Simplify the way to retrieve the task pointer and epic pointer
  **/
-struct MockAsyncTaskParameter
+struct MockAsyncTaskParameter 
+	: public TSharedFromThis<MockAsyncTaskParameter, ESPMode::ThreadSafe>
 {
+public:
 	// Called when the task complete
 	AccelByte::THandler<FOnlineError> TaskCompleteDelegate;
 	
 	// Action will be done on Initialize(), to create child task that will be done through critical section
 	AccelByte::FVoidHandler CreateChildDelegate;
-	
-	// Pointer to this task, will be set by the task itself
-	FMockAsyncTaskAccelByte* TaskPtr = nullptr;
 	
 	// Pointer to this task's Epic
 	FOnlineAsyncEpicTaskAccelByte* EpicPtr = nullptr;
@@ -44,9 +47,16 @@ struct MockAsyncTaskParameter
 	// Task/Node name
 	FString TaskName = {};
 
+	// Task/Node name
+	FString ParentName = {};
+
 	/// The parent task will rely to this to compare it with ChildReportComplete count
 	uint32 ChildCount = 0;
 };
+
+using MockAsyncTaskParameterPtr = TSharedPtr<MockAsyncTaskParameter, ESPMode::ThreadSafe>;
+using MockAsyncTaskParameterRef = TSharedRef<MockAsyncTaskParameter, ESPMode::ThreadSafe>;
+using MockAsyncTaskParameterWPtr = TWeakPtr<MockAsyncTaskParameter, ESPMode::ThreadSafe>;
 
 class ONLINESUBSYSTEMACCELBYTE_API FMockAsyncTaskAccelByte
 	: public FOnlineAsyncTaskAccelByte
@@ -75,16 +85,24 @@ public:
 
 	FOnlineAsyncEpicTaskAccelByte* GetEpic() { return this->Epic; }
 
-	FString& GetTaskNamePublic() { return Parameter.TaskName; }
+	FString GetTaskNamePublic() const
+	{
+		return GetTaskName(); 
+	}
 
 protected:
 
 	virtual const FString GetTaskName() const override
 	{
-		return Parameter.TaskName;
+		FString TaskName = TEXT("");
+		if (Parameter.IsValid() && !Parameter->TaskName.IsEmpty())
+		{
+			TaskName = Parameter->TaskName;
+		}
+		return TaskName;
 	}
 
-	MockAsyncTaskParameter& Parameter;
+	MockAsyncTaskParameterPtr Parameter;
 
 	FString ErrorCode;
 	FString ErrorMessage;

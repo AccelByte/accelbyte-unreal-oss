@@ -25,6 +25,22 @@ public:
 		, TArray<FString> const& InStatNames
 		, FOnlineStatsQueryUsersStatsComplete const& InDelegate);
 
+	FOnlineAsyncTaskAccelByteQueryStatsUsers(FOnlineSubsystemAccelByte* const InABInterface
+		, FUniqueNetIdRef const InLocalUserId
+		, TArray<FUniqueNetIdRef> const& InStatsUsers
+		, TArray<FString> const& InStatNames
+		, TArray<FString> const& Tags
+		, EAccelByteStatisticSortBy InSortBy
+		, FOnlineStatsQueryUsersStatsComplete const& InDelegate);
+
+	FOnlineAsyncTaskAccelByteQueryStatsUsers(FOnlineSubsystemAccelByte* const InABInterface
+		, int32 InLocalUserNum
+		, TArray<FUniqueNetIdRef> const& InStatsUsers
+		, TArray<FString> const& InStatNames
+		, TArray<FString> const& InTags
+		, EAccelByteStatisticSortBy InSortBy
+		, FOnlineStatsQueryUsersStatsComplete const& InDelegate);
+
 	virtual void Initialize() override;
 	virtual void Finalize() override;
 	virtual void TriggerDelegates() override;
@@ -37,6 +53,8 @@ protected:
 		return TEXT("FOnlineAsyncTaskAccelByteQueryStatsUsers");
 	}
 
+	void QueryNextPage(const FAccelByteModelsUserStatItemPagingSlicedResult& NextPage);
+
 private:
 	void OnGetUserStatItemsSuccess(FAccelByteModelsUserStatItemPagingSlicedResult const& Result);
 
@@ -45,11 +63,13 @@ private:
 	FErrorHandler OnError;
 	TArray<TSharedRef<const FOnlineStatsUserStats>> OnlineUsersStatsPairs;
 	THandler<FAccelByteModelsUserStatItemPagingSlicedResult> OnGetUserStatItemsSuccessHandler;
-	FAccelByteModelsUserStatItemPagingSlicedResult QueryUserStatItemResponse;
-	
+	TMap<FString, TArray<FAccelByteModelsUserStatItemInfo>> UserStatsRaw;
+
 	int32 LocalUserNum;
 	TArray<FUniqueNetIdRef> StatsUsers;
 	TArray<FString> StatNames;
+	TArray<FString> Tags;
+	EAccelByteStatisticSortBy SortBy = EAccelByteStatisticSortBy::NONE;
 	FOnlineStatsQueryUsersStatsComplete Delegate;
 
 	TArray<FString> AccelByteUserIds;

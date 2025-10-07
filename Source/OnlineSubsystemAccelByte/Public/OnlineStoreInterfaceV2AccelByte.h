@@ -358,6 +358,13 @@ public:
 	 */
 	virtual void QueryStorefront(const FUniqueNetId& UserId, const FString& StoreId, const FString& ViewId, const FString& Region, const EAccelBytePlatformMapping& Platform, const FOnQueryStorefrontComplete& Delegate);
 
+	/**
+	* @brief Get all cached store section.
+	*
+	* @param UserId The UniqueNetId of current user.
+	* @param OutSections Output of cached store sections.
+	*/
+	virtual void GetAllSections(const FUniqueNetId& UserId, TArray<TSharedRef<FAccelByteModelsSectionInfo, ESPMode::ThreadSafe>>& OutSections);
 
 protected:
 	/** Instance of the subsystem that created this interface */

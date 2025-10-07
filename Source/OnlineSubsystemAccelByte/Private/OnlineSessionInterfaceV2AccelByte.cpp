@@ -2192,8 +2192,9 @@ void FOnlineSessionV2AccelByte::FinalizeCreateGameSession(const FName& SessionNa
 
 	// Populate session code regardless of session joinablity since all session can be joined by code
 	NewSession->SessionSettings.Set(SETTING_SESSION_CODE, BackendSessionInfo.Code);
-	
-	if (!IsRunningDedicatedServer())
+	int32 LocalUserNum = AccelByteSubsystemPtr->GetLocalUserNumCached();
+	TOptional<bool> IsDS = AccelByteSubsystemPtr->IsDedicatedServer(LocalUserNum);
+	if (IsDS.IsSet() && !IsDS.GetValue())
 	{
 		if (!ensure(NewSession->LocalOwnerId.IsValid()))
 		{
@@ -6794,7 +6795,7 @@ TArray<FString> FOnlineSessionV2AccelByte::ExtractExcludedSessionFromPartySessio
 		// Resize to N-Past Session count
 		if (SearchHandle.GameSessionExclusion.CurrentType == FAccelByteModelsGameSessionExcludedSession::ExclusionType::N_PAST_SESSION)
 		{
-			int32 ExcessToRemove = SessionIDs.Num() - SearchHandle.GameSessionExclusion.ExcludedPastSessionCount;
+			int32 ExcessToRemove = SessionIDs.Num() - static_cast<int32>(SearchHandle.GameSessionExclusion.ExcludedPastSessionCount);
 			if (ExcessToRemove > 0)
 			{
 #if ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION >= 5

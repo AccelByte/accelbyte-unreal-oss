@@ -18,6 +18,7 @@
 #include "OnlineWalletInterfaceAccelByte.h"
 #include "OnlineWalletV2InterfaceAccelByte.h"
 #include "OnlineCloudSaveInterfaceAccelByte.h"
+#include "OnlineBinaryCloudSaveInterfaceAccelByte.h"
 #include "OnlineTimeInterfaceAccelByte.h"
 #include "OnlineAnalyticsInterfaceAccelByte.h"
 #include "OnlineStatisticInterfaceAccelByte.h"
@@ -120,6 +121,7 @@ bool FOnlineSubsystemAccelByte::Init()
 	WalletInterface = MakeShared<FOnlineWalletAccelByte, ESPMode::ThreadSafe>(this);
 	WalletV2Interface = MakeShared<FOnlineWalletV2AccelByte, ESPMode::ThreadSafe>(this);
 	CloudSaveInterface = MakeShared<FOnlineCloudSaveAccelByte, ESPMode::ThreadSafe>(this);
+	BinaryCloudSaveInterface = MakeShared<FOnlineBinaryCloudSaveAccelByte, ESPMode::ThreadSafe>(this);
 	EntitlementsInterface = MakeShared<FOnlineEntitlementsAccelByte, ESPMode::ThreadSafe>(this);
 	StoreV2Interface = MakeShared<FOnlineStoreV2AccelByte, ESPMode::ThreadSafe>(this);
 	PurchaseInterface = MakeShared<FOnlinePurchaseAccelByte, ESPMode::ThreadSafe>(this);
@@ -397,6 +399,11 @@ FOnlineWalletV2AccelBytePtr FOnlineSubsystemAccelByte::GetWalletV2Interface() co
 FOnlineCloudSaveAccelBytePtr FOnlineSubsystemAccelByte::GetCloudSaveInterface() const
 {
 	return CloudSaveInterface;
+}
+
+FOnlineBinaryCloudSaveAccelBytePtr FOnlineSubsystemAccelByte::GetBinaryCloudSaveInterface() const
+{
+	return BinaryCloudSaveInterface;
 }
 
 IOnlineTimePtr FOnlineSubsystemAccelByte::GetTimeInterface() const

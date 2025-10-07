@@ -4,6 +4,7 @@
 
 #pragma once
 #include "OnlineSubsystemAccelByte.h"
+#include "Api/AccelByteChatApi.h"
 #include "AsyncTasks/OnlineAsyncTaskAccelByte.h"
 #include "AsyncTasks/OnlineAsyncTaskAccelByteUtils.h"
 

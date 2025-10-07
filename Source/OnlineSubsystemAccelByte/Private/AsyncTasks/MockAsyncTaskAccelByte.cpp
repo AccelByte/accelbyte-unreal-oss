@@ -17,17 +17,21 @@ FMockAsyncTaskAccelByte::FMockAsyncTaskAccelByte(
 	MockAsyncTaskParameter& InParameter,
 	bool bInShouldUseTimeout)
 	: FOnlineAsyncTaskAccelByte(InABSubsystem, bInShouldUseTimeout)
-	, Parameter(InParameter)
+	, Parameter(InParameter.AsShared())
 	, ErrorCode(TEXT(""))
 	, ErrorMessage(TEXT(""))
 {
-	Super::TaskTimeoutInSeconds = Parameter.TimeoutLimitSeconds;
-	Parameter.TaskPtr = this;
+	Super::TaskTimeoutInSeconds = Parameter->TimeoutLimitSeconds;
 }
 
 void FMockAsyncTaskAccelByte::TriggerDelegates()
 {
 	Super::TriggerDelegates();
+
+	if (!Parameter.IsValid())
+	{
+		return;
+	}
 
 	EOnlineErrorResult Result = ((bWasSuccessful) ? EOnlineErrorResult::Success : EOnlineErrorResult::RequestFailure);
 
@@ -44,12 +48,17 @@ void FMockAsyncTaskAccelByte::TriggerDelegates()
 	}
 
 	auto ReturnedDelegateValue = ONLINE_ERROR(Result, ErrorCode, FText::FromString(ErrorMessage));
-	Parameter.TaskCompleteDelegate.ExecuteIfBound(ReturnedDelegateValue);
+	Parameter->TaskCompleteDelegate.ExecuteIfBound(ReturnedDelegateValue);
 }
 
 void FMockAsyncTaskAccelByte::Tick()
 {
-	if (this->Epic == nullptr && (FPlatformTime::Seconds() - this->LastTaskUpdateInSeconds) >= Parameter.CompletionTime)
+	if (!Parameter.IsValid())
+	{
+		return;
+	}
+
+	if (this->Epic == nullptr && (FPlatformTime::Seconds() - this->LastTaskUpdateInSeconds) >= Parameter->CompletionTime)
 	{
 		CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
 		return;
@@ -59,14 +68,14 @@ void FMockAsyncTaskAccelByte::Tick()
 		CompleteTask(EAccelByteAsyncTaskCompleteState::TimedOut);
 		return;
 	}
-	if (Parameter.ChildCount == 0 && this->DeltaTickAccumulation >= Parameter.CompletionTime)
+	if (Parameter->ChildCount == 0 && this->DeltaTickAccumulation >= Parameter->CompletionTime)
 	{
 		CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
 		return;
 	}
-	if (Parameter.ChildCount == ChildCompleteReportedCount.GetValue()
-		&& Parameter.ChildCount > 0
-		&& this->DeltaTickAccumulation >= Parameter.CompletionTime)
+	if (Parameter->ChildCount == ChildCompleteReportedCount.GetValue()
+		&& Parameter->ChildCount > 0
+		&& this->DeltaTickAccumulation >= Parameter->CompletionTime)
 	{
 		CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
 		return;
@@ -75,9 +84,13 @@ void FMockAsyncTaskAccelByte::Tick()
 
 void FMockAsyncTaskAccelByte::Initialize()
 {
-	Parameter.EpicPtr = this->Epic;
 	FOnlineAsyncTaskAccelByte::Initialize();
-	FOnlineAsyncTaskAccelByte::ExecuteCriticalSectionAction(Parameter.CreateChildDelegate);
+	
+	if (Parameter.IsValid())
+	{
+		Parameter->EpicPtr = this->Epic;
+		FOnlineAsyncTaskAccelByte::ExecuteCriticalSectionAction(Parameter->CreateChildDelegate);
+	}
 };
 
 #undef ONLINE_ERROR_NAMESPACE 

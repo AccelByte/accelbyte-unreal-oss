@@ -28,6 +28,7 @@
 #include "AsyncTasks/User/OnlineAsyncTaskAccelByteGetUserPlatformLinks.h"
 #include "OnlineSubsystemUtils.h"
 #include "AsyncTasks/User/OnlineAsyncTaskAccelByteValidateUserInput.h"
+#include "AsyncTasks/User/OnlineAsyncTaskAccelByteQueryUserIdsMapping.h"
 
 #define ONLINE_ERROR_NAMESPACE "FOnlineUserAccelByte"
 
@@ -562,6 +563,23 @@ void FOnlineUserAccelByte::ValidateUserInput(int32 LocalUserNum, const FUserInpu
 	
 	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteValidateUserInput>
 		(AccelByteSubsystemPtr.Get(), LocalUserNum, UserInputValidationRequest);
+}
+
+bool FOnlineUserAccelByte::QueryUserIdsMapping(const FUniqueNetId& UserId, const FString& DisplayNameOrEmail, const FOnQueryUserIdsMappingComplete& Delegate, int32 Offset, int32 Limit)
+{
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("UserId: %s; Display Name or Email to Query: %s"), *UserId.ToDebugString(), *DisplayNameOrEmail);
+
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return false;
+	}
+
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteQueryUserIdsMapping>(AccelByteSubsystemPtr.Get(), UserId, DisplayNameOrEmail, Delegate, Offset, Limit);
+
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("Created and dispatched async task to query user ID for display name or email '%s'!"), *DisplayNameOrEmail);
+	return true;
 }
 
 #undef ONLINE_ERROR_NAMESPACE

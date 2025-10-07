@@ -6,14 +6,13 @@
 
 #include "OnlineChatInterfaceAccelByte.h"
 #include "OnlinePredefinedEventInterfaceAccelByte.h"
-
+#include "Api/AccelByteChatApi.h"
 #include "AsyncTasks/OnlineAsyncTaskAccelByteUtils.h"
 
 using namespace AccelByte;
 
-FOnlineAsyncTaskAccelByteConnectChat::FOnlineAsyncTaskAccelByteConnectChat(
-	FOnlineSubsystemAccelByte* const InABInterface,
-	const FUniqueNetId& InLocalUserId)
+FOnlineAsyncTaskAccelByteConnectChat::FOnlineAsyncTaskAccelByteConnectChat(FOnlineSubsystemAccelByte* const InABInterface
+	, FUniqueNetId const& InLocalUserId)
 	: FOnlineAsyncTaskAccelByte(InABInterface)
 {
 	UserId = FUniqueNetIdAccelByteUser::CastChecked(InLocalUserId);
@@ -27,11 +26,18 @@ void FOnlineAsyncTaskAccelByteConnectChat::Initialize()
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("UserId: %s"), *UserId->ToDebugString());
 
 	// Create delegates for successfully as well as unsuccessfully connecting to the AccelByte lobby websocket
+	API_FULL_CHECK_GUARD(Chat, ErrorStr);
+
+	if (Chat->IsConnected() || Chat->IsReconnecting())
+	{
+		OnChatConnectSuccess();
+		return;
+	}
+
 	OnChatConnectSuccessDelegate = TDelegateUtils<AccelByte::Api::Chat::FChatConnectSuccess>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteConnectChat::OnChatConnectSuccess);
 	OnChatConnectErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteConnectChat::OnChatConnectError);
-
 	OnChatDisconnectedNotifDelegate = TDelegateUtils<AccelByte::Api::Chat::FChatDisconnectNotif>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteConnectChat::OnChatDisconnectedNotif);
-	API_FULL_CHECK_GUARD(Chat, ErrorStr);
+
 	Chat->SetDisconnectNotifDelegate(OnChatDisconnectedNotifDelegate);
 
 	// Send off a request to connect to the lobby websocket, as well as connect our delegates for doing so

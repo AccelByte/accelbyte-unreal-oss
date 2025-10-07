@@ -2,6 +2,32 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.13.6](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.13.6%0D0.13.5) (2025-10-07)
+
+
+### Features
+
+* adding thread safety to OnlineChatInterface ([0aaeb46](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/0aaeb461e7fecfa50db1b8d2a9ac4e19a81d5a10))
+* JSC-4435 implementing binary record interface on the oss ([3e693a0](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/3e693a0875be127a0aafa1ca60a3c930925f4bdd))
+
+
+### Bug Fixes
+
+* **AsyncTask:** fix FOnlineAsyncTaskAccelByteQueryStatsUsers passing empty array of tags ([4a4d2e9](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/4a4d2e98bc9133fad6e92214c795fd2ead68343e))
+* **AsyncTask:** prevent FOnlineAsyncTaskAccelByteReadLeaderboards from complete early due to ticking completion condition ([70a9c34](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/70a9c3481cff3f2aba90ac4c96c610c09a500ac0))
+* Compile error with 4.27 ([d40a1a8](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/d40a1a89b7d2522cbefe6a2c9d46d7cb4ca8a2e9))
+* crash when calling RefreshSession() from game server ([10db3d1](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/10db3d1130ddccfed023f4679f726f8d948a5d46))
+* multi thread issues ([a674949](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/a67494913c7786b21cd2ead8a4dd3b69796a1af2))
+* Prevent connecting to WebSocket when the state is reconnecting ([b91b7a3](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/b91b7a311b41f038022202dc7e6743c2f6402e7f))
+* prevent possible buffer underflow error ([8e3e263](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/8e3e263e5c1b2197f6c2b2f01ebb0786c38b0ef0))
+* replace IsRunningDedicatedServer with IsDS ([9832fee](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/9832fee2fe937640cc5f468cb870665c0078a8e4))
+* underflow issue in FOnlineAsyncTaskAccelByteStartV2Matchmaking ([582a2ec](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/582a2ec3a9612e56b00defc1bdff47f1d01ac8d5))
+
+
+### Refactors
+
+* **MockAsynctask:** Refactor Parameter object as SharedPtr object to prevent crashes ([18d0ad3](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/18d0ad317ac702cc01a4d65db4cb984dd5709be2))
+
 ### [0.13.5](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.13.5%0D0.13.4) (2025-09-02)
 
 

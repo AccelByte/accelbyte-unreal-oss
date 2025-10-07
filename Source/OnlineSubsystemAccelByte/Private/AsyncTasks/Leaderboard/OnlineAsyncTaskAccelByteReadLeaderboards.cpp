@@ -1,9 +1,10 @@
-// Copyright (c) 2023 AccelByte Inc. All Rights Reserved.
+// Copyright (c) 2023 - 2025 AccelByte Inc. All Rights Reserved.
 // This is licensed software from AccelByte Inc, for limitations
 // and restrictions contact your company contract manager.
 
 #include "OnlineAsyncTaskAccelByteReadLeaderboards.h"
 #include "OnlinePredefinedEventInterfaceAccelByte.h"
+#include "OnlineUserInterfaceAccelByte.h"
 
 using namespace AccelByte;
 
@@ -60,6 +61,15 @@ void FOnlineAsyncTaskAccelByteReadLeaderboards::Initialize()
 		return;
 	}
 
+	const FOnlineUserAccelBytePtr UserInterface = StaticCastSharedPtr<FOnlineUserAccelByte>(SubsystemPin->GetUserInterface());
+	if (!UserInterface.IsValid())
+	{
+		ErrorMessage = TEXT("request-failed-read-leaderboards-error-user-invalid");
+		CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
+		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to save leaderboard, User Interface is invalid!"));
+		return;
+	}
+
 	ELoginStatus::Type LoginStatus;
 	LoginStatus = IdentityInterface->GetLoginStatus(LocalUserNum);
 
@@ -70,49 +80,40 @@ void FOnlineAsyncTaskAccelByteReadLeaderboards::Initialize()
 		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to read leaderboards, user not logged in!"));
 		return;
 	}
-
-	// Iterate Every 20 Friends and Each Iteration AccelByteUsers Decrase
-	while (AccelByteUsers.Num() > 0)
+	
+	TOptional<bool> IsDS = SubsystemPin->IsDedicatedServer(LocalUserNum);
+	if (IsDS.IsSet() && IsDS.GetValue()) // Is DedicatedServer
 	{
-		IDsToProcess = FMath::Min(LeaderboardUserIdsLimit, AccelByteUsers.Num());
-
-		FriendsUserIds.Empty();
-		CurrentProcessedUsers.Empty();
-
-		OnReadLeaderboardsSuccessHandler = TDelegateUtils<THandler<FAccelByteModelsBulkUserRankingDataV3>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteReadLeaderboards::OnReadLeaderboardsSuccess);
-		OnReadLeaderboardsFailedHandler = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteReadLeaderboards::OnReadLeaderboardsFailed);
-
-		// Take the user ids, with the maximum number of 20
-		for (int32 i = 0; i < IDsToProcess; i++)
-		{
-			TSharedRef<const FUniqueNetIdAccelByteUser> ABUser = FUniqueNetIdAccelByteUser::CastChecked(AccelByteUsers[i]);
-
-			FriendsUserIds.Add(ABUser->GetAccelByteId());
-			CurrentProcessedUsers.Add(ABUser->GetAccelByteId(), ABUser);
-		}
-
-		// Call the endpoint using the stored user ids.
-		if (!IsRunningDedicatedServer())
-		{
-			API_FULL_CHECK_GUARD(Leaderboard, ErrorMessage);
-
-#if ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION >= 5
-			// LeaderboardName is an FString type in 5.5 and above
-			Leaderboard->GetBulkUserRankingV3(FriendsUserIds, LeaderboardObject->LeaderboardName, OnReadLeaderboardsSuccessHandler, OnReadLeaderboardsFailedHandler);
-#else
-			Leaderboard->GetBulkUserRankingV3(FriendsUserIds, LeaderboardObject->LeaderboardName.ToString(), OnReadLeaderboardsSuccessHandler, OnReadLeaderboardsFailedHandler);
-#endif // ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION >= 5
-
-			CountRequests++;
-		}
-		else
-		{
-			AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to read leaderboards as this endpoint is not yet supported for dedicated server!"));
-			CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState);
-		}
-
-		AccelByteUsers.RemoveAt(0, IDsToProcess);
+		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to read leaderboards as this endpoint is not yet supported for dedicated server!"));
+		CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState);
+		return;
 	}
+	
+	// Get user info first, we need the display name
+	TArray<FUniqueNetIdRef> UserAccountMissing;
+	for(const FUniqueNetIdRef& AbId : AccelByteUsers)
+	{
+		TSharedPtr<FUserOnlineAccount> UserAccount = IdentityInterface->GetUserAccount(AbId);
+		if(!UserAccount.IsValid())
+		{
+			UserAccountMissing.Add(AbId);
+		}
+	}
+
+	if(UserAccountMissing.Num() > 0)
+	{
+		bQueryUserAccountMissingRequired = true;
+
+		// Query the user profile first
+		auto QueryUserProfileCompleted = TDelegateUtils<FOnQueryUserProfileCompleteDelegate>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteReadLeaderboards::OnQueryUserProfileCompleted, UserInterface);
+
+		UserInterface->AddOnQueryUserProfileCompleteDelegate_Handle(LocalUserNum, QueryUserProfileCompleted);
+		UserInterface->QueryUserProfile(LocalUserNum, UserAccountMissing);
+		AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
+		return;
+	}
+
+	QueryLeaderboard();
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
@@ -175,10 +176,66 @@ void FOnlineAsyncTaskAccelByteReadLeaderboards::Tick()
 {
 	Super::Tick();
 
+	// AsyncTask should be continue if query is required AND it's not complete yet
+	if (bQueryUserAccountMissingRequired && !bQueryUserAccountMissingCompleted)
+	{
+		return;
+	}
+
 	if (CountRequests == 0)
 	{
 		CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
 	}
+}
+
+void FOnlineAsyncTaskAccelByteReadLeaderboards::QueryLeaderboard()
+{
+	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("QueryLeaderboard"));
+	
+	// Iterate Every 20 Friends and Each Iteration AccelByteUsers Decrease
+	while (AccelByteUsers.Num() > 0)
+	{
+		IDsToProcess = FMath::Min(LeaderboardUserIdsLimit, AccelByteUsers.Num());
+
+		FriendsUserIds.Empty();
+		CurrentProcessedUsers.Empty();
+
+		OnReadLeaderboardsSuccessHandler = TDelegateUtils<THandler<FAccelByteModelsBulkUserRankingDataV3>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteReadLeaderboards::OnReadLeaderboardsSuccess);
+		OnReadLeaderboardsFailedHandler = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteReadLeaderboards::OnReadLeaderboardsFailed);
+
+		// Take the user ids, with the maximum number of 20
+		for (int32 i = 0; i < IDsToProcess; i++)
+		{
+			TSharedRef<const FUniqueNetIdAccelByteUser> ABUser = FUniqueNetIdAccelByteUser::CastChecked(AccelByteUsers[i]);
+
+			FriendsUserIds.Add(ABUser->GetAccelByteId());
+			CurrentProcessedUsers.Add(ABUser->GetAccelByteId(), ABUser);
+		}
+
+		TRY_PIN_SUBSYSTEM();
+
+		// Call the endpoint using the stored user ids.
+		TOptional<bool> IsDS = SubsystemPin->IsDedicatedServer(LocalUserNum);
+		if (IsDS.IsSet() && !IsDS.GetValue()) //Is GameClient
+		{
+			API_FULL_CHECK_GUARD(Leaderboard, ErrorMessage);
+#if ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION >= 5
+			// LeaderboardName is an FString type in 5.5 and above
+			Leaderboard->GetBulkUserRankingV3(FriendsUserIds, LeaderboardObject->LeaderboardName, OnReadLeaderboardsSuccessHandler, OnReadLeaderboardsFailedHandler);
+#else
+			Leaderboard->GetBulkUserRankingV3(FriendsUserIds, LeaderboardObject->LeaderboardName.ToString(), OnReadLeaderboardsSuccessHandler, OnReadLeaderboardsFailedHandler);
+#endif // ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION >= 5
+			CountRequests++;
+		}
+		else
+		{
+			AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to read leaderboards as this endpoint is not yet supported for dedicated server!"));
+			CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState);
+		}
+
+		AccelByteUsers.RemoveAt(0, IDsToProcess);
+	}
+	AB_OSS_ASYNC_TASK_TRACE_END(TEXT("QueryLeaderboard"));
 }
 
 void FOnlineAsyncTaskAccelByteReadLeaderboards::OnReadLeaderboardsSuccess(FAccelByteModelsBulkUserRankingDataV3 const& Result)
@@ -306,6 +363,39 @@ void FOnlineAsyncTaskAccelByteReadLeaderboards::OnReadLeaderboardsSuccess(FAccel
 		CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
 	}
 
+	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
+}
+
+void FOnlineAsyncTaskAccelByteReadLeaderboards::OnQueryUserProfileCompleted(int32 _LocalUserNum, bool bSuccessful, const TArray<FUniqueNetIdRef>& _UserIds, const FOnlineError& _Error, FOnlineUserAccelBytePtr UserAccelByte)
+{
+	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Query User Profile Completed"));
+	bQueryUserAccountMissingCompleted = true;
+
+	if (UserAccelByte.IsValid())
+	{
+		UserAccelByte->ClearOnQueryUserProfileCompleteDelegates(LocalUserNum, this);
+	}
+
+	if (!UserAccelByte.IsValid())
+	{
+		TaskOnlineError = EOnlineErrorResult::RequestFailure;
+		TaskErrorStr = TEXT("invalid-user-interface-pointer-unable-to-proceed");
+		AB_OSS_ASYNC_TASK_TRACE_END(TEXT("%s"), *TaskErrorStr);
+		CompleteTask(EAccelByteAsyncTaskCompleteState::Incomplete);
+		return;
+	}
+	
+	if (!bSuccessful)
+	{
+		TaskOnlineError = EOnlineErrorResult::RequestFailure;
+		TaskErrorStr = TEXT("failed-to-query-user-profile-before-query-leaderboard");
+		AB_OSS_ASYNC_TASK_TRACE_END(TEXT("%s"), *TaskErrorStr);
+		CompleteTask(EAccelByteAsyncTaskCompleteState::Incomplete);
+		return;
+	}
+
+	QueryLeaderboard();
+	
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 

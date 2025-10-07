@@ -23,7 +23,9 @@ using namespace AccelByte;
 
 #define ONLINE_ERROR_NAMESPACE "FOnlineAccelByteLobbyConnect"
 
-FOnlineAsyncTaskAccelByteConnectLobby::FOnlineAsyncTaskAccelByteConnectLobby(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InLocalUserId, const bool InSuppressConnectSuccessIfAlreadyConnected)
+FOnlineAsyncTaskAccelByteConnectLobby::FOnlineAsyncTaskAccelByteConnectLobby(FOnlineSubsystemAccelByte* const InABInterface
+	, FUniqueNetId const& InLocalUserId
+	, const bool InSuppressConnectSuccessIfAlreadyConnected)
 	: FOnlineAsyncTaskAccelByte(InABInterface)
 	, SuppressConnectSuccessIfAlreadyConnected(InSuppressConnectSuccessIfAlreadyConnected)
 {
@@ -37,7 +39,7 @@ void FOnlineAsyncTaskAccelByteConnectLobby::Initialize()
 
 	API_FULL_CHECK_GUARD(Lobby, ErrorStr);
 	
-	if (Lobby->IsConnected())
+	if (Lobby->IsConnected() || Lobby->IsReconnecting())
 	{
 		if (SuppressConnectSuccessIfAlreadyConnected)
 		{

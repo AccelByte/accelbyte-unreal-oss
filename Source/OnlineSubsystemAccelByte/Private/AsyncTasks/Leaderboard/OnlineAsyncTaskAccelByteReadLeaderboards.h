@@ -43,8 +43,13 @@ protected:
 
 private:
 
+	void QueryLeaderboard();
 	THandler<FAccelByteModelsBulkUserRankingDataV3> OnReadLeaderboardsSuccessHandler;
 	void OnReadLeaderboardsSuccess(FAccelByteModelsBulkUserRankingDataV3 const& Result);
+
+	bool bQueryUserAccountMissingRequired = false;
+	bool bQueryUserAccountMissingCompleted = false;
+	void OnQueryUserProfileCompleted(int32 LocalUserNum, bool bSuccessful, const TArray<FUniqueNetIdRef>& UserIds, const FOnlineError& Error, FOnlineUserAccelBytePtr UserAccelByte);
 
 	FErrorHandler OnReadLeaderboardsFailedHandler;
 	void OnReadLeaderboardsFailed(int32 Code, FString const& ErrMsg);

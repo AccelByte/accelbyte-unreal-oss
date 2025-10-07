@@ -458,6 +458,43 @@ void FOnlineStatisticAccelByte::ResetStats(const FUniqueNetIdRef StatsUserId)
 }
 #endif
 
+void FOnlineStatisticAccelByte::QueryStats(const int32 LocalUserNum, const FUniqueNetIdRef StatsUser
+	, const TArray<FString>& StatsNames, const TArray<FString>& Tags, const FOnlineStatsQueryUserStatsComplete& Delegate
+	, EAccelByteStatisticSortBy SortBy)
+{
+	UE_LOG_ONLINE_STATS(Display, TEXT("FOnlineStatisticAccelByte::QueryStats"));
+
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return;
+	}
+
+	TArray<FUniqueNetIdRef> StatsUserList{ StatsUser };
+
+	auto QueryUsersStatsDelegate = FOnlineStatsQueryUsersStatsComplete::CreateLambda(
+		[Delegate](const FOnlineError& ResultState, const TArray<TSharedRef<const FOnlineStatsUserStats>>& UsersStatsResult)
+		{
+			if (ResultState.bSucceeded && UsersStatsResult.Num() > 0)
+			{
+				Delegate.ExecuteIfBound(ResultState, UsersStatsResult[0]);
+			}
+			else
+			{
+				Delegate.ExecuteIfBound(ResultState, nullptr);
+			}
+		});
+
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteQueryStatsUsers>(AccelByteSubsystemPtr.Get()
+		, LocalUserNum
+		, StatsUserList
+		, StatsNames
+		, Tags
+		, SortBy
+		, QueryUsersStatsDelegate);
+}
+
 EAccelByteStatisticUpdateStrategy FOnlineStatisticAccelByte::ConvertUpdateStrategy(FOnlineStatUpdate::EOnlineStatModificationType Strategy)
 {
 	switch (Strategy)

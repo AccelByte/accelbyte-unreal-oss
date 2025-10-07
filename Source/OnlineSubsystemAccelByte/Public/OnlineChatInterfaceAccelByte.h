@@ -175,6 +175,7 @@ PACKAGE_SCOPE:
 private:
 	FUniqueNetIdRef UserId;
 	FString Nickname;
+	mutable FRWLock lock;
 };
 
 class ONLINESUBSYSTEMACCELBYTE_API FAccelByteChatRoomInfo : public FChatRoomInfo
@@ -208,6 +209,7 @@ PACKAGE_SCOPE:
 	bool bIsJoined{};
 	FChatRoomConfig RoomConfig;
 	FAccelByteModelsChatTopicQueryData TopicData;
+	mutable FRWLock lock;
 };
 
 class ONLINESUBSYSTEMACCELBYTE_API FOnlineChatAccelByte : public IOnlineChat, public TSharedFromThis<FOnlineChatAccelByte, ESPMode::ThreadSafe>
@@ -711,6 +713,11 @@ private:
 	void OnChatMassiveOutageEvent(const AccelByte::FMassiveOutageInfo& Info, int32 InLocalUserNum);
 	//~ End Chat Notification Handlers
 
+
+	//internal not threaad safe function
+	FAccelByteChatRoomMemberRef GetAccelByteChatRoomMember_nolock(const FString& UserId);
+	void AddTopic_nolock(const FAccelByteChatRoomInfoRef &ChatRoomInfo);
+
 	//~ Begin Chat Internal Handlers
 	void OnQueryChatRoomInfoCompleteAfterConnectionEstablished(bool bWasSuccessful, TArray<FAccelByteChatRoomInfoRef> RoomList, int32 LocalUserNum);
 	void OnQueryChatMemberInfo_TriggerChatRoomMemberJoin(bool bIsSuccessful, TArray<FAccelByteUserInfoRef> UsersQueried, FString RoomId, FUniqueNetIdPtr UserId, FUniqueNetIdPtr MemberId);
@@ -725,7 +732,10 @@ private:
 	FUserIdToRoomChatMessages UserIdToChatRoomMessagesCached;
 
 	/** Cache maximum chat message length*/
-	int32 MaxChatMessageLength{INDEX_NONE};
+	std::atomic<int32> MaxChatMessageLength{INDEX_NONE};
+
+	// thread safety
+	mutable FRWLock lock;
 
 	bool UpdateUserAccount(int32 LocalUserNum);
 	void SendDisconnectPredefinedEvent(int32 StatusCode, int32 LocalUserNum);

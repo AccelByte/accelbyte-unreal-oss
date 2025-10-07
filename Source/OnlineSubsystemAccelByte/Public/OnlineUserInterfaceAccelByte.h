@@ -82,6 +82,8 @@ typedef FOnCheckUserAccountAvailabilityComplete::FDelegate FOnCheckUserAccountAv
 DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnValidateUserInputComplete, const FUserInputValidationResponse& /*UserInputValidationResponse*/, bool /*bWasSuccessful*/, const FOnlineError & /*OnlineError*/);
 typedef FOnValidateUserInputComplete::FDelegate FOnValidateUserInputCompleteDelegate;
 
+DECLARE_DELEGATE_FiveParams(FOnQueryUserIdsMappingComplete, bool /*bWasSuccessful*/, const FUniqueNetId& /*UserId*/, const FString& /*SearchDisplayName*/, const TArray<TSharedRef<const FUniqueNetIdAccelByteUser>>& /*FoundUsers*/, const FString& /*Error*/);
+
 class ONLINESUBSYSTEMACCELBYTE_API FOnlineUserAccelByte : public IOnlineUser, public TSharedFromThis<FOnlineUserAccelByte, ESPMode::ThreadSafe>
 {
 public:
@@ -251,7 +253,12 @@ public:
 	 */
 	DEFINE_ONLINE_DELEGATE_THREE_PARAM(OnValidateUserInputComplete, const FUserInputValidationResponse& /*UserInputValidationResponse*/, bool /*bWasSuccessful*/, const FOnlineError & /*OnlineError*/);
 	void ValidateUserInput(int32 LocalUserNum, const FUserInputValidationRequest& UserInputValidationRequest);
-	
+
+	/*
+	 * Query users based on DisplayNameOrEmail, support multiple results.
+	 */
+	virtual bool QueryUserIdsMapping(const FUniqueNetId& UserId, const FString& DisplayNameOrEmail, const FOnQueryUserIdsMappingComplete& Delegate = FOnQueryUserIdsMappingComplete(), int32 Offset = 0, int32 Limit = 100);
+
 PACKAGE_SCOPE:
 
 #if WITH_DEV_AUTOMATION_TESTS

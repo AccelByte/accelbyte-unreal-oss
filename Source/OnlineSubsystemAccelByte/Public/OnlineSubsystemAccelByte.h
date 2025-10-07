@@ -46,6 +46,7 @@ class FOnlineAgreementAccelByte;
 class FOnlineWalletAccelByte;
 class FOnlineWalletV2AccelByte;
 class FOnlineCloudSaveAccelByte;
+class FOnlineBinaryCloudSaveAccelByte;
 class FOnlineTimeAccelByte;
 class FOnlineAnalyticsAccelByte;
 class FOnlineStatisticAccelByte;
@@ -129,6 +130,9 @@ typedef TSharedPtr<FOnlineWalletV2AccelByte, ESPMode::ThreadSafe> FOnlineWalletV
 /** Shared pointer to the AccelByte Cloud Save */
 typedef TSharedPtr<FOnlineCloudSaveAccelByte, ESPMode::ThreadSafe> FOnlineCloudSaveAccelBytePtr;
 
+/** Shared pointer to the AccelByte Cloud Save */
+typedef TSharedPtr<FOnlineBinaryCloudSaveAccelByte, ESPMode::ThreadSafe> FOnlineBinaryCloudSaveAccelBytePtr;
+
 /** Shared pointer to the AccelByte Time */
 typedef TSharedPtr<FOnlineTimeAccelByte, ESPMode::ThreadSafe> FOnlineTimeAccelBytePtr;
 
@@ -197,6 +201,7 @@ public:
 	virtual FOnlineWalletAccelBytePtr GetWalletInterface() const;
 	virtual FOnlineWalletV2AccelBytePtr GetWalletV2Interface() const;
 	virtual FOnlineCloudSaveAccelBytePtr GetCloudSaveInterface() const; 
+	virtual FOnlineBinaryCloudSaveAccelBytePtr GetBinaryCloudSaveInterface() const; 
 	virtual IOnlineTimePtr GetTimeInterface() const override;
 	virtual FOnlineAnalyticsAccelBytePtr GetAnalyticsInterface() const;
 	virtual IOnlineStatsPtr GetStatsInterface() const override;
@@ -591,6 +596,9 @@ private:
 
 	/** Shared instance of our cloud save interface implementation */
 	FOnlineCloudSaveAccelBytePtr CloudSaveInterface;
+
+	/** Shared instance of our cloud save interface implementation */
+	FOnlineBinaryCloudSaveAccelBytePtr BinaryCloudSaveInterface;
 
 	/** Shared instance of our time interface implementation */
 	FOnlineTimeAccelBytePtr TimeInterface;

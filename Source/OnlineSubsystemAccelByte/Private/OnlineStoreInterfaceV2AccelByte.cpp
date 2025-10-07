@@ -453,6 +453,17 @@ void FOnlineStoreV2AccelByte::QueryStorefront(const FUniqueNetId& UserId, const 
 	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteQueryStorefront>(AccelByteSubsystemPtr.Get(), UserId, StoreId, ViewId, Region, Platform, Delegate);
 }
 
+void FOnlineStoreV2AccelByte::GetAllSections(const FUniqueNetId& UserId, TArray<TSharedRef<FAccelByteModelsSectionInfo, ESPMode::ThreadSafe>>& OutSections)
+{
+	const TSharedRef<const FUniqueNetIdAccelByteUser> SharedUserId = FUniqueNetIdAccelByteUser::CastChecked(UserId);
+	FScopeLock ScopeLock(&SectionsLock);
+	FPlayerStorefrontData* PlayerStorefrontData = StorefrontData.Find(SharedUserId);
+	if (PlayerStorefrontData)
+	{
+		PlayerStorefrontData->Sections.GenerateValueArray(OutSections);
+	}
+}
+
 void FOnlineStoreV2AccelByte::QueryPlatformOfferBySku(const FUniqueNetId& UserId, const TArray<FString>& Skus, const FOnQueryOnlineStoreOffersComplete& Delegate)
 {
 	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("UserId: %s"), *UserId.ToDebugString());

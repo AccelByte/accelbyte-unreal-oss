@@ -288,7 +288,7 @@ bool FOnlineChatAccelByte::SendRoomChat(const FUniqueNetId& UserId, const FChatR
 	{
 		if (MsgBody.Len() > MaxChatMessageLength)
 		{
-			AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Unable to send room chat as the message body is more than limit of %d characters"), MaxChatMessageLength);
+			AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Unable to send room chat as the message body is more than limit of %d characters"), MaxChatMessageLength.load());
 			return false;
 		}
 	}
@@ -316,7 +316,7 @@ bool FOnlineChatAccelByte::SendPrivateChat(const FUniqueNetId& UserId, const FUn
 	{
 		if (MsgBody.Len() > MaxChatMessageLength)
 		{
-			AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Unable to send room chat as the message body is more than limit of %d characters"), MaxChatMessageLength);
+			AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Unable to send room chat as the message body is more than limit of %d characters"), MaxChatMessageLength.load());
 			return false;
 		}
 	}
@@ -592,6 +592,7 @@ bool FOnlineChatAccelByte::IsChatAllowed(const FUniqueNetId& UserId, const FUniq
 
 void FOnlineChatAccelByte::GetJoinedRooms(const FUniqueNetId& UserId, TArray<FChatRoomId>& OutRooms)
 {
+	FRWScopeLock scope_lock(lock, FRWScopeLockType::SLT_ReadOnly);
 	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("UserId: %s"), *UserId.ToDebugString());
 
 	const FUniqueNetIdAccelByteUserRef AccelByteUserId = FUniqueNetIdAccelByteUser::CastChecked(UserId);
@@ -609,6 +610,7 @@ void FOnlineChatAccelByte::GetJoinedRooms(const FUniqueNetId& UserId, TArray<FCh
 
 TSharedPtr<FChatRoomInfo> FOnlineChatAccelByte::GetRoomInfo(const FUniqueNetId& UserId, const FChatRoomId& RoomId)
 {
+	FRWScopeLock scope_lock(lock, FRWScopeLockType::SLT_ReadOnly);
 	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("UserId: %s, RoomId: %s"), *UserId.ToDebugString(), *RoomId);
 
 	FAccelByteChatRoomInfoRef* RoomInfo = TopicIdToChatRoomInfoCached.Find(RoomId);
@@ -625,6 +627,7 @@ TSharedPtr<FChatRoomInfo> FOnlineChatAccelByte::GetRoomInfo(const FUniqueNetId& 
 
 bool FOnlineChatAccelByte::GetMembers(const FUniqueNetId& UserId, const FChatRoomId& RoomId, TArray<TSharedRef<FChatRoomMember>>& OutMembers)
 {
+	FRWScopeLock scope_lock(lock, FRWScopeLockType::SLT_Write);
 	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("UserId: %s, RoomId: %s"), *UserId.ToDebugString(), *RoomId);
 
 	const FAccelByteChatRoomInfoRef* RoomInfo = TopicIdToChatRoomInfoCached.Find(RoomId);
@@ -637,7 +640,7 @@ bool FOnlineChatAccelByte::GetMembers(const FUniqueNetId& UserId, const FChatRoo
 	const TArray<FString>& Members = (*RoomInfo)->GetMembers();
 	for (const auto& MemberAccelByteId : Members)
 	{
-		FAccelByteChatRoomMemberRef RoomMember = GetAccelByteChatRoomMember(MemberAccelByteId);
+		FAccelByteChatRoomMemberRef RoomMember = GetAccelByteChatRoomMember_nolock(MemberAccelByteId);
 		OutMembers.Add(RoomMember);
 	}
 
@@ -651,6 +654,7 @@ TSharedPtr<FChatRoomMember> FOnlineChatAccelByte::GetMember(
 	const FChatRoomId& RoomId,
 	const FUniqueNetId& MemberId)
 {
+	FRWScopeLock scope_lock(lock, FRWScopeLockType::SLT_Write);
 	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("UserId: %s, RoomId: %s, MemberId: %s"), *UserId.ToDebugString(), *RoomId, *MemberId.ToDebugString());
 
 	const FUniqueNetIdAccelByteUserRef AccelByteUserId = FUniqueNetIdAccelByteUser::CastChecked(UserId);
@@ -671,7 +675,7 @@ TSharedPtr<FChatRoomMember> FOnlineChatAccelByte::GetMember(
 
 	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
 
-	return GetAccelByteChatRoomMember(AccelByteId);
+	return GetAccelByteChatRoomMember_nolock(AccelByteId);
 }
 
 bool FOnlineChatAccelByte::GetLastMessages(
@@ -691,7 +695,8 @@ bool FOnlineChatAccelByte::GetLastMessages(
 	{
 		RoomIdToLoad = OptionalRoomIdToLoad.GetValue();
 	}
-
+	
+	FRWScopeLock scope_lock(lock, FRWScopeLockType::SLT_ReadOnly);
 	FChatRoomIdToChatMessages* RoomIdToChatMessages = UserIdToChatRoomMessagesCached.Find(AccelByteUserId);
 	if (RoomIdToChatMessages == nullptr)
 	{
@@ -778,6 +783,7 @@ EAccelByteChatRoomType FOnlineChatAccelByte::GetChatRoomType(const FString& Topi
 
 bool FOnlineChatAccelByte::IsJoinedTopic(const FString& UserId, const FString& TopicId)
 {
+	FRWScopeLock scope_lock(lock, FRWScopeLockType::SLT_ReadOnly);
 	const FAccelByteChatRoomInfoRef* ChatRoomInfo = TopicIdToChatRoomInfoCached.Find(TopicId);
 	return ChatRoomInfo != nullptr && (*ChatRoomInfo)->HasMember(UserId);
 }
@@ -789,6 +795,7 @@ bool FOnlineChatAccelByte::HasPersonalChat(const FString& FromUserId, const FStr
 
 TOptional<FString> FOnlineChatAccelByte::GetPersonalChatTopicId(const FString& FromUserId, const FString& ToUserId)
 {
+	FRWScopeLock scope_lock(lock, FRWScopeLockType::SLT_ReadOnly);
 	TSet<FString> KeyResult{};
 	auto KeyCount = TopicIdToChatRoomInfoCached.GetKeys(KeyResult);
 	for (const auto& Key : KeyResult)
@@ -804,6 +811,7 @@ TOptional<FString> FOnlineChatAccelByte::GetPersonalChatTopicId(const FString& F
 
 void FOnlineChatAccelByte::RemoveMemberFromTopic(const FString& UserId, const FString& TopicId)
 {
+	FRWScopeLock scope_lock(lock, FRWScopeLockType::SLT_ReadOnly);
 	const FAccelByteChatRoomInfoRef* ChatRoomInfo = TopicIdToChatRoomInfoCached.Find(TopicId);
 	if (ChatRoomInfo != nullptr)
 	{
@@ -813,16 +821,24 @@ void FOnlineChatAccelByte::RemoveMemberFromTopic(const FString& UserId, const FS
 
 void FOnlineChatAccelByte::AddTopic(const FAccelByteChatRoomInfoRef& ChatRoomInfo)
 {
+	FRWScopeLock scope_lock(lock, FRWScopeLockType::SLT_Write);
+	AddTopic_nolock(ChatRoomInfo);
+}
+
+void FOnlineChatAccelByte::AddTopic_nolock(const FAccelByteChatRoomInfoRef &ChatRoomInfo)
+{
 	TopicIdToChatRoomInfoCached.Emplace(ChatRoomInfo->GetRoomId(), ChatRoomInfo);
 }
 
 void FOnlineChatAccelByte::RemoveTopic(const FString& TopicId)
 {
+	FRWScopeLock scope_lock(lock, FRWScopeLockType::SLT_Write);
 	TopicIdToChatRoomInfoCached.Remove(TopicId);
 }
 
 FAccelByteChatRoomInfoPtr FOnlineChatAccelByte::GetTopic(const FString& TopicId)
 {
+	FRWScopeLock scope_lock(lock, FRWScopeLockType::SLT_ReadOnly);
 	const FAccelByteChatRoomInfoRef* ChatRoomInfo = TopicIdToChatRoomInfoCached.Find(TopicId);
 	if (ChatRoomInfo != nullptr)
 	{
@@ -833,6 +849,7 @@ FAccelByteChatRoomInfoPtr FOnlineChatAccelByte::GetTopic(const FString& TopicId)
 
 void FOnlineChatAccelByte::AddChatRoomMembers(TArray<FAccelByteUserInfoRef> Users)
 {
+	FRWScopeLock scope_lock(lock, FRWScopeLockType::SLT_Write);
 	for (const auto& UserInfo : Users)
 	{
 		const FAccelByteChatRoomMemberRef* RoomMemberPtr = UserIdToChatRoomMemberCached.Find(UserInfo->Id->GetAccelByteId());
@@ -850,6 +867,7 @@ void FOnlineChatAccelByte::AddChatRoomMembers(TArray<FAccelByteUserInfoRef> User
 
 void FOnlineChatAccelByte::AddChatMessage(FUniqueNetIdAccelByteUserRef AccelByteUserId, const FChatRoomId& ChatRoomId, TSharedRef<FChatMessage> ChatMessage)
 {
+	FRWScopeLock scope_lock(lock, FRWScopeLockType::SLT_Write);
 	UE_LOG_AB(Verbose, TEXT("Add chat message to userId %s with room ID %s!"), *AccelByteUserId->ToDebugString(), *ChatRoomId);
 	FChatRoomIdToChatMessages& RoomIdToChatMessages = UserIdToChatRoomMessagesCached.FindOrAdd(AccelByteUserId);
 	TArray<TSharedRef<FChatMessage>>& ChatMessages = RoomIdToChatMessages.FindOrAdd(ChatRoomId);
@@ -862,6 +880,12 @@ void FOnlineChatAccelByte::AddChatMessage(FUniqueNetIdAccelByteUserRef AccelByte
 }
 
 FAccelByteChatRoomMemberRef FOnlineChatAccelByte::GetAccelByteChatRoomMember(const FString& UserId)
+{
+	FRWScopeLock scope_lock(lock, FRWScopeLockType::SLT_Write);
+	return GetAccelByteChatRoomMember_nolock(UserId);
+}
+
+FAccelByteChatRoomMemberRef FOnlineChatAccelByte::GetAccelByteChatRoomMember_nolock(const FString& UserId)
 {
 	FAccelByteChatRoomMemberRef* RoomMember = UserIdToChatRoomMemberCached.Find(UserId);
 	if (RoomMember != nullptr)
@@ -1077,6 +1101,7 @@ void FOnlineChatAccelByte::OnRemoveFromTopicNotification(const FAccelByteModelsC
 
 void FOnlineChatAccelByte::OnAddToTopicNotification(const FAccelByteModelsChatUpdateUserTopicNotif& AddTopicEvent, int32 LocalUserNum)
 {
+	FRWScopeLock scope_lock(lock, FRWScopeLockType::SLT_ReadOnly);
 	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("TopicId: %s"), *AddTopicEvent.TopicId);
 
 	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
@@ -1112,7 +1137,7 @@ void FOnlineChatAccelByte::OnAddToTopicNotification(const FAccelByteModelsChatUp
 
 		FAccelByteChatRoomInfoPtr RoomInfo = FAccelByteChatRoomInfo::Create();
 		RoomInfo->SetTopicData(AddTopicEvent);
-		AddTopic(RoomInfo.ToSharedRef());
+		AddTopic_nolock(RoomInfo.ToSharedRef());
 
 		const FOnChatQueryRoomByIdComplete OnQueryTopicResponse = FOnChatQueryRoomByIdComplete::CreateThreadSafeSP(SharedThis(this), &FOnlineChatAccelByte::OnQueryChatRoomById_TriggerChatRoomMemberJoin, LocalUserId, SenderUserId);
 		FOnlineAsyncTaskInfo TaskInfo;
@@ -1220,6 +1245,7 @@ void FOnlineChatAccelByte::OnReceivedChatNotification(const FAccelByteModelsChat
 
 void FOnlineChatAccelByte::OnUpdateTopicNotification(const FAccelByteModelsChatUpdateTopicNotif& UpdateTopicNotif, int32 LocalUserNum)
 {
+	FRWScopeLock scope_lock(lock, FRWScopeLockType::SLT_ReadOnly);
 	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("TopicId: %s"), *UpdateTopicNotif.TopicId);
 
 	FAccelByteChatRoomInfoRef* RoomInfoPtr = TopicIdToChatRoomInfoCached.Find(UpdateTopicNotif.TopicId);
@@ -1468,16 +1494,19 @@ FAccelByteChatRoomMemberRef FAccelByteChatRoomMember::Create(const FUniqueNetIdA
 
 const FUniqueNetIdRef& FAccelByteChatRoomMember::GetUserId() const
 {
+	FRWScopeLock scope_lock(lock, FRWScopeLockType::SLT_ReadOnly);
 	return UserId;
 }
 
 const FString& FAccelByteChatRoomMember::GetNickname() const
 {
+	FRWScopeLock scope_lock(lock, FRWScopeLockType::SLT_ReadOnly);
 	return Nickname;
 }
 
 void FAccelByteChatRoomMember::SetNickname(const FString& InNickname)
 {
+	FRWScopeLock scope_lock(lock, FRWScopeLockType::SLT_Write);
 	Nickname = InNickname;
 }
 
@@ -1489,31 +1518,37 @@ bool FAccelByteChatRoomMember::HasNickname() const
 
 const FChatRoomId& FAccelByteChatRoomInfo::GetRoomId() const
 {
+	FRWScopeLock scope_lock(lock, FRWScopeLockType::SLT_ReadOnly);
 	return TopicData.TopicId;
 }
 
 const FUniqueNetIdRef& FAccelByteChatRoomInfo::GetOwnerId() const
 {
+	FRWScopeLock scope_lock(lock, FRWScopeLockType::SLT_ReadOnly);
 	return OwnerId;
 }
 
 const FString& FAccelByteChatRoomInfo::GetSubject() const
 {
+	FRWScopeLock scope_lock(lock, FRWScopeLockType::SLT_ReadOnly);
 	return TopicData.Name;
 }
 
 bool FAccelByteChatRoomInfo::IsPrivate() const
 {
+	FRWScopeLock scope_lock(lock, FRWScopeLockType::SLT_ReadOnly);
 	return bIsPrivate;
 }
 
 bool FAccelByteChatRoomInfo::IsJoined() const
 {
+	FRWScopeLock scope_lock(lock, FRWScopeLockType::SLT_ReadOnly);
 	return bIsJoined;
 }
 
 const FChatRoomConfig& FAccelByteChatRoomInfo::GetRoomConfig() const
 {
+	FRWScopeLock scope_lock(lock, FRWScopeLockType::SLT_ReadOnly);
 	return RoomConfig;
 }
 
@@ -1564,6 +1599,7 @@ void FAccelByteChatRoomInfo::SetTopicData(const FAccelByteModelsChatUpdateUserTo
 
 void FAccelByteChatRoomInfo::SetTopicData(const FAccelByteModelsChatTopicQueryData& InTopicData)
 {
+	FRWScopeLock scope_lock(lock, FRWScopeLockType::SLT_Write);
 	TopicData = InTopicData;
 
     // NOTE: actually the topic don't have an owner, so we set first member as the owner
@@ -1598,16 +1634,19 @@ void FAccelByteChatRoomInfo::SetTopicData(const FAccelByteModelsChatTopicQueryDa
 
 void FAccelByteChatRoomInfo::UpdateTopicData(const FAccelByteModelsChatUpdateTopicNotif& InUpdateTopic)
 {
+	FRWScopeLock scope_lock(lock, FRWScopeLockType::SLT_Write);
 	TopicData.Name = InUpdateTopic.Name;
 }
 
 void FAccelByteChatRoomInfo::AddMember(const FString& UserId)
 {
+	FRWScopeLock scope_lock(lock, FRWScopeLockType::SLT_Write);
 	TopicData.Members.AddUnique(UserId);
 }
 
 void FAccelByteChatRoomInfo::RemoveMember(const FString& UserId)
 {
+	FRWScopeLock scope_lock(lock, FRWScopeLockType::SLT_Write);
 	TopicData.Members.Remove(UserId);
 }
 
