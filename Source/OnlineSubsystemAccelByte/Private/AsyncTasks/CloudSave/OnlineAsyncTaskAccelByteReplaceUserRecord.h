@@ -66,9 +66,4 @@ private:
 	 * Target AccelByte User Id for server to call the request
 	 */
 	FString TargetUserId{};
-
-	/**
-	 * Current Local User Number
-	 */
-	int32 LocalUserNum = 0;
 };

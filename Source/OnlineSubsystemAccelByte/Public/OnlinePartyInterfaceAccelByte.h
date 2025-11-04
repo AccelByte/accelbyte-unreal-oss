@@ -13,6 +13,9 @@
 #include "OnlineUserCacheAccelByte.h"
 #include "OnlineSubsystemAccelBytePackage.h"
 
+/** Log category for extra logging regarding parties */
+DECLARE_LOG_CATEGORY_EXTERN(LogAccelByteOSSParty, Warning, All);
+
 // #NOTE (Voltaire) Define flags/markers for party notifications so that party members can process payload accordingly 
 #define PARTYNOTIF_CUSTOMIZATION_CHANGED TEXT("Customization Changed")
 #define PARTYNOTIF_PARTY_LEADER_JOINED_CUSTOM_GAME TEXT("Party Leader Joined Custom Game")

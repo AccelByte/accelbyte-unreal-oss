@@ -5,6 +5,9 @@
 #include "OnlineAsyncTaskAccelByteBulkUnlockAchievement.h"
 #include "OnlineAchievementsInterfaceAccelByte.h"
 #include "OnlinePredefinedEventInterfaceAccelByte.h"
+#include "OnlineSubsystemAccelByteLog.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteLog.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteHelpers.h"
 
 FOnlineAsyncTaskAccelByteBulkUnlockAchievement::FOnlineAsyncTaskAccelByteBulkUnlockAchievement(
 	FOnlineSubsystemAccelByte* const InSubsystem,

@@ -8,6 +8,7 @@
 #include "OnlineSubsystemAccelByteTypes.h"
 #include "OnlineSessionInterfaceV2AccelByte.h"
 #include "Models/AccelByteSessionModels.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteHelpers.h"
 
 /**
  * Async task to refresh local party session data with data from the backend

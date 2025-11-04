@@ -49,9 +49,4 @@ private:
 	 * String representing the record key to delete
 	 */
 	FString Key{};
-
-	/**
-	 * Current Local User Number
-	 */
-	int32 LocalUserNum = 0;
 };

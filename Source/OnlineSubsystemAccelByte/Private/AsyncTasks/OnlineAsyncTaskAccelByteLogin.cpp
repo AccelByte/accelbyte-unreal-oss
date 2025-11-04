@@ -19,6 +19,9 @@
 #include "LoginQueue/OnlineAsyncTaskAccelByteLoginQueue.h"
 #include "Core/Platform/AccelBytePlatformHandler.h"
 #include "OnlineSubsystemAccelByteConfig.h"
+#include "OnlineSubsystemAccelByteLog.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteLog.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteHelpers.h"
 
 using namespace AccelByte;
 

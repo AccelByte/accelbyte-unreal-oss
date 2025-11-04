@@ -20,9 +20,14 @@
 #include "AsyncTasks/BinaryCloudSave/OnlineAsyncTaskAccelByteGetGameBinaryRecord.h"
 #include "AsyncTasks/BinaryCloudSave/OnlineAsyncTaskAccelByteBulkGetGameBinaryRecords.h"
 #include "AsyncTasks/BinaryCloudSave/OnlineAsyncTaskAccelByteBulkQueryGameBinaryRecords.h"
+#include "AsyncTasks/BinaryCloudSave/OnlineAsyncTaskAccelByteQueryGameBinaryRecords.h"
+#include "AsyncTasks/BinaryCloudSave/OnlineAsyncTaskAccelByteCreateGameBinaryRecord.h"
+#include "AsyncTasks/BinaryCloudSave/OnlineAsyncTaskAccelByteUpdateGameBinaryRecord.h"
+#include "AsyncTasks/BinaryCloudSave/OnlineAsyncTaskAccelByteDeleteGameBinaryRecord.h"
+#include "AsyncTasks/BinaryCloudSave/OnlineAsyncTaskAccelByteDeleteGameBinaryRecordTTLConfig.h"
+#include "AsyncTasks/BinaryCloudSave/OnlineAsyncTaskAccelByteUpdateGameBinaryRecordMetadata.h"
+#include "AsyncTasks/BinaryCloudSave/OnlineAsyncTaskAccelByteRequestGameBinaryRecordPresignedUrl.h"
 #include "OnlineError.h"
-#include "AsyncTasks/CloudSave/OnlineAsyncTaskAccelByteDeleteAdminGameRecordTTLConfig.h"
-#include "AsyncTasks/CloudSave/OnlineAsyncTaskAccelByteDeleteGameRecordTTLConfig.h"
 
 using namespace AccelByte;
 
@@ -73,12 +78,16 @@ bool FOnlineBinaryCloudSaveAccelByte::SaveUserBinaryRecord(int32 LocalUserNum, F
 	return true;
 }
 
-bool FOnlineBinaryCloudSaveAccelByte::SaveUserBinaryRecord(int32 LocalUserNum, FString const &Key, EAccelByteFileType FileType, bool bIsPublic) {
+bool FOnlineBinaryCloudSaveAccelByte::SaveUserBinaryRecord(int32 LocalUserNum
+	, FString const &Key
+	, EAccelByteFileType FileType, bool bIsPublic) 
+{
 	FString FileTypeString = FAccelByteUtilities::GetUEnumValueAsString(FileType);
 	return SaveUserBinaryRecord(LocalUserNum, Key, FileTypeString, bIsPublic);
 }
 
-bool FOnlineBinaryCloudSaveAccelByte::GetCurrentUserBinaryRecord(int32 LocalUserNum, FString const& Key)
+bool FOnlineBinaryCloudSaveAccelByte::GetCurrentUserBinaryRecord(int32 LocalUserNum
+	, FString const& Key)
 {
 	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("LocalUserNum: %d"), LocalUserNum);
 
@@ -95,7 +104,9 @@ bool FOnlineBinaryCloudSaveAccelByte::GetCurrentUserBinaryRecord(int32 LocalUser
 	return true;
 }
 
-bool FOnlineBinaryCloudSaveAccelByte::GetPublicUserBinaryRecord(int32 LocalUserNum, FString const& Key, FString const& User)
+bool FOnlineBinaryCloudSaveAccelByte::GetPublicUserBinaryRecord(int32 LocalUserNum
+	, FString const& Key
+	, FString const& User)
 {
 	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("LocalUserNum: %d"), LocalUserNum);
 
@@ -113,7 +124,8 @@ bool FOnlineBinaryCloudSaveAccelByte::GetPublicUserBinaryRecord(int32 LocalUserN
 	return true;
 }
 
-bool FOnlineBinaryCloudSaveAccelByte::BulkGetCurrentUserBinaryRecords(int32 LocalUserNum, TArray<FString> const& Keys)
+bool FOnlineBinaryCloudSaveAccelByte::BulkGetCurrentUserBinaryRecords(int32 LocalUserNum
+	, TArray<FString> const& Keys)
 {
 	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("LocalUserNum: %d"), LocalUserNum);
 
@@ -130,7 +142,9 @@ bool FOnlineBinaryCloudSaveAccelByte::BulkGetCurrentUserBinaryRecords(int32 Loca
 	return true;
 }
 
-bool FOnlineBinaryCloudSaveAccelByte::BulkGetPublicUserBinaryRecords(int32 LocalUserNum, const TArray<FString>& Keys, FString const& UserId)
+bool FOnlineBinaryCloudSaveAccelByte::BulkGetPublicUserBinaryRecords(int32 LocalUserNum
+	, const TArray<FString>& Keys
+	, FString const& UserId)
 {
 	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("LocalUserNum: %d"), LocalUserNum);
 
@@ -148,7 +162,9 @@ bool FOnlineBinaryCloudSaveAccelByte::BulkGetPublicUserBinaryRecords(int32 Local
 	return true;
 }
 
-bool FOnlineBinaryCloudSaveAccelByte::BulkGetPublicUserBinaryRecords(int32 LocalUserNum, FString const& Key, const TArray<FString>& UserIds)
+bool FOnlineBinaryCloudSaveAccelByte::BulkGetPublicUserBinaryRecords(int32 LocalUserNum
+	, FString const& Key
+	, const TArray<FString>& UserIds)
 {
 	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("LocalUserNum: %d"), LocalUserNum);
 
@@ -166,7 +182,10 @@ bool FOnlineBinaryCloudSaveAccelByte::BulkGetPublicUserBinaryRecords(int32 Local
 	return true;
 }
 
-bool FOnlineBinaryCloudSaveAccelByte::BulkQueryCurrentUserBinaryRecords(int32 LocalUserNum, FString const& Query, int32 const& Offset, int32 const& Limit)
+bool FOnlineBinaryCloudSaveAccelByte::BulkQueryCurrentUserBinaryRecords(int32 LocalUserNum
+	, FString const& Query
+	, int32 const& Offset
+	, int32 const& Limit)
 {
 	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("LocalUserNum: %d"), LocalUserNum);
 
@@ -185,7 +204,10 @@ bool FOnlineBinaryCloudSaveAccelByte::BulkQueryCurrentUserBinaryRecords(int32 Lo
 	return true;
 }
 
-bool FOnlineBinaryCloudSaveAccelByte::BulkQueryPublicUserBinaryRecords(int32 LocalUserNum, FString const& UserId, int32 const& Offset, int32 const& Limit)
+bool FOnlineBinaryCloudSaveAccelByte::BulkQueryPublicUserBinaryRecords(int32 LocalUserNum
+	, FString const& UserId
+	, int32 const& Offset
+	, int32 const& Limit)
 {
 	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("LocalUserNum: %d"), LocalUserNum);
 
@@ -204,7 +226,10 @@ bool FOnlineBinaryCloudSaveAccelByte::BulkQueryPublicUserBinaryRecords(int32 Loc
 	return true;
 }
 
-bool FOnlineBinaryCloudSaveAccelByte::UpdateUserBinaryRecordFile(int32 LocalUserNum, FString const& Key, FString const& FileType, FString const& FileLocation)
+bool FOnlineBinaryCloudSaveAccelByte::UpdateUserBinaryRecordFile(int32 LocalUserNum
+	, FString const& Key
+	, FString const& FileType
+	, FString const& FileLocation)
 {
 	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("LocalUserNum: %d"), LocalUserNum);
 
@@ -223,13 +248,18 @@ bool FOnlineBinaryCloudSaveAccelByte::UpdateUserBinaryRecordFile(int32 LocalUser
 	return true;
 }
 
-bool FOnlineBinaryCloudSaveAccelByte::UpdateUserBinaryRecordFile(int32 LocalUserNum, FString const& Key, EAccelByteFileType ContentType, FString const& FileLocation)
+bool FOnlineBinaryCloudSaveAccelByte::UpdateUserBinaryRecordFile(int32 LocalUserNum
+	, FString const& Key
+	, EAccelByteFileType ContentType
+	, FString const& FileLocation)
 {
 	FString FileTypeString = FAccelByteUtilities::GetUEnumValueAsString(ContentType);
 	return UpdateUserBinaryRecordFile(LocalUserNum, Key, FileTypeString, FileLocation);
 }
 
-bool FOnlineBinaryCloudSaveAccelByte::UpdateUserBinaryRecordMetadata(int32 LocalUserNum, FString const& Key, bool bIsPublic)
+bool FOnlineBinaryCloudSaveAccelByte::UpdateUserBinaryRecordMetadata(int32 LocalUserNum
+	, FString const& Key
+	, bool bIsPublic)
 {
 	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("LocalUserNum: %d"), LocalUserNum);
 
@@ -264,7 +294,9 @@ bool FOnlineBinaryCloudSaveAccelByte::DeleteUserBinaryRecord(int32 LocalUserNum,
 	return true;
 }
 
-bool FOnlineBinaryCloudSaveAccelByte::RequestUserBinaryRecordPresignedUrl(int32 LocalUserNum, FString const& Key, FString const& FileType)
+bool FOnlineBinaryCloudSaveAccelByte::RequestUserBinaryRecordPresignedUrl(int32 LocalUserNum
+	, FString const& Key
+	, FString const& FileType)
 {
 	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("LocalUserNum: %d"), LocalUserNum);
 
@@ -282,13 +314,16 @@ bool FOnlineBinaryCloudSaveAccelByte::RequestUserBinaryRecordPresignedUrl(int32 
 	return true;
 }
 
-bool FOnlineBinaryCloudSaveAccelByte::RequestUserBinaryRecordPresignedUrl(int32 LocalUserNum, FString const& Key, EAccelByteFileType FileType)
+bool FOnlineBinaryCloudSaveAccelByte::RequestUserBinaryRecordPresignedUrl(int32 LocalUserNum
+	, FString const& Key
+	, EAccelByteFileType FileType)
 {
 	FString FileTypeString = FAccelByteUtilities::GetUEnumValueAsString(FileType);
 	return RequestUserBinaryRecordPresignedUrl(LocalUserNum, Key, FileTypeString);
 }
 
-bool FOnlineBinaryCloudSaveAccelByte::GetGameBinaryRecord(int32 LocalUserNum, FString const& Key)
+bool FOnlineBinaryCloudSaveAccelByte::GetGameBinaryRecord(int32 LocalUserNum
+	, FString const& Key)
 {
 	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("LocalUserNum: %d"), LocalUserNum);
 
@@ -305,7 +340,8 @@ bool FOnlineBinaryCloudSaveAccelByte::GetGameBinaryRecord(int32 LocalUserNum, FS
 	return true;
 }
 
-bool FOnlineBinaryCloudSaveAccelByte::BulkGetGameBinaryRecords(int32 LocalUserNum, TArray<FString> const& Keys)
+bool FOnlineBinaryCloudSaveAccelByte::BulkGetGameBinaryRecords(int32 LocalUserNum
+	, TArray<FString> const& Keys)
 {
 	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("LocalUserNum: %d"), LocalUserNum);
 
@@ -322,7 +358,10 @@ bool FOnlineBinaryCloudSaveAccelByte::BulkGetGameBinaryRecords(int32 LocalUserNu
 	return true;
 }
 
-bool FOnlineBinaryCloudSaveAccelByte::BulkQueryGameBinaryRecords(int32 LocalUserNum, FString const& Query, int32 const& Offset, int32 const& Limit)
+bool FOnlineBinaryCloudSaveAccelByte::BulkQueryGameBinaryRecords(int32 LocalUserNum
+	, FString const& Query
+	, int32 const& Offset
+	, int32 const& Limit)
 {
 	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("LocalUserNum: %d"), LocalUserNum);
 
@@ -338,6 +377,152 @@ bool FOnlineBinaryCloudSaveAccelByte::BulkQueryGameBinaryRecords(int32 LocalUser
 		, Query
 		, Offset
 		, Limit);
+	return true;
+}
+
+bool FOnlineBinaryCloudSaveAccelByte::QueryGameBinaryRecords(int32 LocalUserNum
+	, FString const& Query
+	, int32 Offset
+	, int32 Limit) 
+{
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("LocalUserNum: %d"), LocalUserNum);
+
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return false;
+	}
+
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteQueryGameBinaryRecords>(AccelByteSubsystemPtr.Get()
+		, LocalUserNum
+		, Query
+		, Offset
+		, Limit);
+	return true;
+}
+
+bool FOnlineBinaryCloudSaveAccelByte::CreateGameBinaryRecord(int32 LocalUserNum
+	, FString const& Key
+	, EAccelByteFileType FileType
+	, ESetByMetadataRecord SetBy
+	, FTTLConfig const& TTLConfig)
+{
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("LocalUserNum: %d"), LocalUserNum);
+
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return false;
+	}
+
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteCreateGameBinaryRecord>(AccelByteSubsystemPtr.Get()
+		, LocalUserNum
+		, Key
+		, FileType
+		, SetBy
+		, TTLConfig);
+	return true;
+}
+
+bool FOnlineBinaryCloudSaveAccelByte::UpdateGameBinaryRecord(int32 LocalUserNum
+	, FString const& Key
+	, EAccelByteFileType ContentType
+	, FString const& FileLocation) 
+{
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("LocalUserNum: %d"), LocalUserNum);
+
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return false;
+	}
+
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteUpdateGameBinaryRecord>(AccelByteSubsystemPtr.Get()
+		, LocalUserNum
+		, Key
+		, ContentType
+		, FileLocation);
+	return true;
+}
+
+bool FOnlineBinaryCloudSaveAccelByte::DeleteGameBinaryRecord(int32 LocalUserNum
+	, FString const& Key) 
+{
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("LocalUserNum: %d"), LocalUserNum);
+
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return false;
+	}
+
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteDeleteGameBinaryRecord>(AccelByteSubsystemPtr.Get()
+		, LocalUserNum
+		, Key);
+	return true;
+}
+
+bool FOnlineBinaryCloudSaveAccelByte::DeleteGameBinaryRecordTTLConfig(int32 LocalUserNum
+	, FString const& Key) 
+{
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("LocalUserNum: %d"), LocalUserNum);
+
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return false;
+	}
+
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteDeleteGameBinaryRecordTTLConfig>(AccelByteSubsystemPtr.Get()
+		, LocalUserNum
+		, Key);
+	return true;
+}
+
+bool FOnlineBinaryCloudSaveAccelByte::UpdateGameBinaryRecordMetadata(int32 LocalUserNum
+	, FString const& Key
+	, ESetByMetadataRecord SetBy
+	, FTTLConfig const& TTLConfig) 
+{
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("LocalUserNum: %d"), LocalUserNum);
+
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return false;
+	}
+
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteUpdateGameBinaryRecordMetadata>(AccelByteSubsystemPtr.Get()
+		, LocalUserNum
+		, Key
+		, SetBy
+		, TTLConfig);
+	return true;
+}
+
+bool FOnlineBinaryCloudSaveAccelByte::RequestGameBinaryRecordPresignedUrl(int32 LocalUserNum
+	, FString const& Key
+	, EAccelByteFileType FileType) 
+{
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("LocalUserNum: %d"), LocalUserNum);
+
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return false;
+	}
+
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteRequestGameBinaryRecordPresignedUrl>(AccelByteSubsystemPtr.Get()
+		, LocalUserNum
+		, Key
+		, FileType);
 	return true;
 }
 

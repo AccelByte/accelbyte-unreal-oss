@@ -4,6 +4,8 @@
 
 #include "OnlineAsyncTaskAccelByteUpdateMemberStatus.h"
 #include "GameServerApi/AccelByteServerSessionApi.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteLog.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteHelpers.h"
 
 
 using namespace AccelByte;

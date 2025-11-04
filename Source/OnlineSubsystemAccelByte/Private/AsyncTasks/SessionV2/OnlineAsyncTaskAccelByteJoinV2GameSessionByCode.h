@@ -7,6 +7,7 @@
 #include "AsyncTasks/OnlineAsyncTaskAccelByteUtils.h"
 #include "OnlineSubsystemAccelByteTypes.h"
 #include "OnlineSessionInterfaceV2AccelByte.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteHelpers.h"
 
 /**
  * Attempt to join a game session using a code. Will pass to the regular join party endpoint if successful.

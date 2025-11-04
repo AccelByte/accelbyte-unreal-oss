@@ -5,6 +5,8 @@
 #include "OnlineAsyncTaskAccelByteSyncPlatformFriend.h"
 #include "OnlineFriendsInterfaceAccelByte.h"
 #include "Core/Platform/AccelBytePlatformHandler.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteLog.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteHelpers.h"
 
 #define ONLINE_ERROR_NAMESPACE "FOnlineAsyncTaskAccelByteSyncPlatformFriend"
 

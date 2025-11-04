@@ -49,7 +49,7 @@ private:
 
 	bool bQueryUserAccountMissingRequired = false;
 	bool bQueryUserAccountMissingCompleted = false;
-	void OnQueryUserProfileCompleted(int32 LocalUserNum, bool bSuccessful, const TArray<FUniqueNetIdRef>& UserIds, const FOnlineError& Error, FOnlineUserAccelBytePtr UserAccelByte);
+	void OnQueryMissingUsersCompleted(bool bWasSuccessful, TArray<FAccelByteUserInfoRef> Result);
 
 	FErrorHandler OnReadLeaderboardsFailedHandler;
 	void OnReadLeaderboardsFailed(int32 Code, FString const& ErrMsg);
@@ -60,12 +60,13 @@ private:
 	bool bUseCycle = false;
 	FString CycleIdValue;
 	int32 CountRequests = 0;
-	TArray<FUniqueNetIdRef> AccelByteUsers;
+	const TArray<FUniqueNetIdRef> AccelByteUsers;
 	FOnlineLeaderboardReadRef LeaderboardObject;
-	int32 IDsToProcess;
-	TArray<FString> FriendsUserIds;
 	TMap<FString, FUniqueNetIdPtr> CurrentProcessedUsers;
 	TMap<FString, FVariantData> Stats;
 	FString ErrorCode;
 	FString ErrorMessage;
+
+	// Prevent racing condition due to async response from query Leaderboard
+	FCriticalSection OnReadLeaderboardSuccessMtx;
 };

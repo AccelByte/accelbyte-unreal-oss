@@ -7,6 +7,9 @@
 #include "OnlineBinaryCloudSaveInterfaceAccelByte.h"
 #include "OnlinePredefinedEventInterfaceAccelByte.h"
 #include "OnlineError.h"
+#include "OnlineSubsystemAccelByteLog.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteLog.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteHelpers.h"
 
 using namespace AccelByte;
 
@@ -52,7 +55,7 @@ void FOnlineAsyncTaskAccelByteUpdateUserBinaryRecordMetadata::Initialize()
 		TaskErrorCode = FString::Printf(TEXT("%d"), ErrorCodes::StatusBadRequest);
 		TaskErrorStr = TEXT("request-failed-not-implemented");
 		CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
-		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to query public user binary record, access denied!"));
+		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to update user binary record, access denied!"));
 		return;
 	}
 
@@ -93,7 +96,8 @@ void FOnlineAsyncTaskAccelByteUpdateUserBinaryRecordMetadata::Initialize()
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 
-void FOnlineAsyncTaskAccelByteUpdateUserBinaryRecordMetadata::Finalize() {
+void FOnlineAsyncTaskAccelByteUpdateUserBinaryRecordMetadata::Finalize() 
+{
 	TRY_PIN_SUBSYSTEM();
 
 	Super::Finalize();

@@ -4,15 +4,17 @@
 
 #include "OnlineAsyncTaskAccelByteValidateUserInput.h"
 #include "OnlineUserInterfaceAccelByte.h"
+#include "OnlineSubsystemAccelByteLog.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteLog.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteHelpers.h"
 
 using namespace AccelByte;
 
 #define ONLINE_ERROR_NAMESPACE "FOnlineUserSystemAccelByte"
 
 FOnlineAsyncTaskAccelByteValidateUserInput::FOnlineAsyncTaskAccelByteValidateUserInput(FOnlineSubsystemAccelByte* const InABSubsystem, int32 InLocalUserNum, const FUserInputValidationRequest& InUserInputValidationRequest)
-	: FOnlineAsyncTaskAccelByte(InABSubsystem),
-	UserInputValidationRequest(InUserInputValidationRequest),
-	LocalUserNum(InLocalUserNum)
+	: FOnlineAsyncTaskAccelByte(InABSubsystem, InLocalUserNum),
+	UserInputValidationRequest(InUserInputValidationRequest)
 {}
 
 void FOnlineAsyncTaskAccelByteValidateUserInput::Initialize()

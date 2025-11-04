@@ -7,6 +7,7 @@
 #include "AsyncTasks/OnlineAsyncTaskAccelByteUtils.h"
 #include "OnlineSubsystemAccelByteTypes.h"
 #include "Interfaces/OnlineSessionInterface.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteHelpers.h"
 
 /**
  * Task to send a request to backend that we wish to join the session associated with SessionName

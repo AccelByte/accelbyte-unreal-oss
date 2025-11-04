@@ -12,6 +12,7 @@
 #include "AsyncTasks/Purchase/MetaQuest/OnlineAsyncTaskAccelByteGetMetaQuestPurchasedProducts.h"
 #include "AsyncTasks/Purchase/Steam/OnlineAsyncTaskAccelByteCheckoutSteamInventory.h"
 #include "OnlineSubsystemUtils.h"
+#include "OnlineSubsystemAccelByteLog.h"
 
 FOnlinePurchaseAccelByte::FOnlinePurchaseAccelByte(FOnlineSubsystemAccelByte* InSubsystem)
 #if ENGINE_MAJOR_VERSION >= 5

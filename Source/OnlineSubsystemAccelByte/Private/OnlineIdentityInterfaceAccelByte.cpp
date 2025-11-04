@@ -49,6 +49,7 @@
 #include "AsyncTasks/Identity/OnlineAsyncTaskAccelByteUpdatePassword.h"
 #include "AsyncTasks/Identity/OnlineAsyncTaskAccelByteVerifyLoginMfa.h"
 #include "AsyncTasks/LoginQueue/OnlineAsyncTaskAccelByteLoginQueueClaimTicket.h"
+#include "OnlineSubsystemAccelByteLog.h"
 
 using namespace AccelByte;
 
@@ -959,6 +960,24 @@ void FOnlineIdentityAccelByte::OnLogout(const int32 LocalUserNum, bool bWasSucce
 	// Signal to game client that log out has completed
 	TriggerOnLogoutCompleteDelegates(LocalUserNum, bWasSuccessful);
 	TriggerAccelByteOnLogoutCompleteDelegates(LocalUserNum, bWasSuccessful, ONLINE_ERROR_ACCELBYTE(bWasSuccessful? TEXT("") : TEXT("error-failed-to-logout"), bWasSuccessful? EOnlineErrorResult::Success : EOnlineErrorResult::RequestFailure));
+
+	//Unbind Event before user removed/deleted
+	{
+		AccelByte::FApiClientPtr ApiClient = GetApiClient(LocalUserNum);
+		if (ApiClient.IsValid())
+		{
+			const auto Lobby = ApiClient->GetLobbyApi().Pin();
+			if (Lobby.IsValid())
+			{
+				Lobby->UnbindEvent();
+			}
+			const auto Chat = ApiClient->GetLobbyApi().Pin();
+			if (Chat.IsValid())
+			{
+				Chat->UnbindEvent();
+			}
+		}
+	}
 
 	if (bWasSuccessful)
 	{

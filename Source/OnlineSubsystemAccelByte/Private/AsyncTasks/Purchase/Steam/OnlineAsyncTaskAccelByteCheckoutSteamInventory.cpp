@@ -3,6 +3,8 @@
 // and restrictions contact your company contract manager.
 
 #include "OnlineAsyncTaskAccelByteCheckoutSteamInventory.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteLog.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteHelpers.h"
 
 #define ONLINE_ERROR_NAMESPACE "FOnlineAsyncTaskAccelByteCheckoutSteamInventory"
 
@@ -172,6 +174,8 @@ void FOnlineAsyncTaskAccelByteCheckoutSteamInventory::OnSteamInventoryReady()
 
 	// Purchase is complete at this point, so complete the task
 	CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
+
+	OnlineError = ONLINE_ERROR(EOnlineErrorResult::Success);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }

@@ -17,6 +17,7 @@
 #include "AsyncTasks/Entitlements/OnlineAsyncTaskAccelByteSyncMetaQuestIAP.h"
 #include "AsyncTasks/Entitlements/OnlineAsyncTaskAccelByteSyncSteamIAPTransaction.h"
 #include "AsyncTasks/Entitlements/OnlineAsyncTaskAccelByteSyncSteamAbnormalIAPTransaction.h"
+#include "OnlineSubsystemAccelByteLog.h"
 
 #pragma region FOnlineEntitlementAccelByte Methods
 bool FOnlineEntitlementAccelByte::GetAttribute(const FString& AttrName, FString& OutAttrValue) const

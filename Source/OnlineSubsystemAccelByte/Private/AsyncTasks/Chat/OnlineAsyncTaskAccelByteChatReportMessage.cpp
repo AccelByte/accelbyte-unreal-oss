@@ -4,6 +4,8 @@
 
 #include "OnlineAsyncTaskAccelByteChatReportMessage.h"
 #include "Api/AccelByteReportingApi.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteLog.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteHelpers.h"
 
 using namespace AccelByte;
 

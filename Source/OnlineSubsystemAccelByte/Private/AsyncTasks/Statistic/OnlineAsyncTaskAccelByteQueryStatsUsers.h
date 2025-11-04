@@ -65,7 +65,6 @@ private:
 	THandler<FAccelByteModelsUserStatItemPagingSlicedResult> OnGetUserStatItemsSuccessHandler;
 	TMap<FString, TArray<FAccelByteModelsUserStatItemInfo>> UserStatsRaw;
 
-	int32 LocalUserNum;
 	TArray<FUniqueNetIdRef> StatsUsers;
 	TArray<FString> StatNames;
 	TArray<FString> Tags;

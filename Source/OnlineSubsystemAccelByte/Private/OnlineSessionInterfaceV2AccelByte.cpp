@@ -87,6 +87,7 @@
 
 // STL
 #include <algorithm>
+#include "OnlineSubsystemAccelByteLog.h"
 
 using namespace AccelByte;
 

@@ -7,6 +7,7 @@
 #include "AsyncTasks/OnlineAsyncTaskAccelByteUtils.h"
 #include "OnlineSubsystemAccelByteTypes.h"
 #include "OnlineSessionInterfaceV2AccelByte.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteHelpers.h"
 
 /**
  * Revoke the party code currently associated with the given party session

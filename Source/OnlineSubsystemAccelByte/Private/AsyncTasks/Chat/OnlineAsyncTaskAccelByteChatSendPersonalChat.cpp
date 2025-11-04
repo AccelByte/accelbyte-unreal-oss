@@ -6,6 +6,9 @@
 
 #include "OnlineChatInterfaceAccelByte.h"
 #include "OnlinePredefinedEventInterfaceAccelByte.h"
+#include "OnlineSubsystemAccelByteLog.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteLog.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteHelpers.h"
 
 #define ONLINE_ERROR_NAMESPACE "FOnlineAsyncTaskAccelByteChatSendPersonalChat"
 

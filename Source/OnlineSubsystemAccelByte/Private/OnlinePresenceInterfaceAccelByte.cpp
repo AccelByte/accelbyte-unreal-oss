@@ -11,6 +11,7 @@
 #include "AsyncTasks/User/OnlineAsyncTaskAccelByteSetUserPresence.h"
 #include "OnlineSubsystemUtils.h"
 #include "AsyncTasks/User/OnlineAsyncTaskAccelByteBulkQueryUserPresence.h"
+#include "OnlineSubsystemAccelByteLog.h"
 
 FOnlinePresenceAccelByte::FOnlinePresenceAccelByte(FOnlineSubsystemAccelByte* InSubsystem) 
 #if ENGINE_MAJOR_VERSION >= 5

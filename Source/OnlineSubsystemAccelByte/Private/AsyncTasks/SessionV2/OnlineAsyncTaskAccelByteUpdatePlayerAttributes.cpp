@@ -6,6 +6,8 @@
 #include "OnlineIdentityInterfaceAccelByte.h"
 #include "Serialization/JsonSerializer.h"
 #include "Serialization/JsonWriter.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteLog.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteHelpers.h"
 
 using namespace AccelByte;
 

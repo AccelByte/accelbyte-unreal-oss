@@ -7,6 +7,9 @@
 #include "OnlineBinaryCloudSaveInterfaceAccelByte.h"
 #include "OnlinePredefinedEventInterfaceAccelByte.h"
 #include "OnlineError.h"
+#include "OnlineSubsystemAccelByteLog.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteLog.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteHelpers.h"
 
 using namespace AccelByte;
 
@@ -43,7 +46,7 @@ void FOnlineAsyncTaskAccelByteGetGameBinaryRecord::Initialize()
 	OnErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteGetGameBinaryRecord::OnError);
 
 	TOptional<bool> IsDS = SubsystemPin->IsDedicatedServer(LocalUserNum);
-	if (!IsDS.IsSet() || IsDS.GetValue())
+	if (!IsDS.IsSet())
 	{
 		TaskOnlineError = EOnlineErrorResult::NotImplemented;
 		TaskErrorCode = FString::Printf(TEXT("%d"), ErrorCodes::StatusBadRequest);
@@ -74,18 +77,26 @@ void FOnlineAsyncTaskAccelByteGetGameBinaryRecord::Initialize()
 		return;
 	}
 
-	if (!UserId.IsValid())
+	if (IsDS.GetValue())
 	{
-		TaskOnlineError = EOnlineErrorResult::InvalidUser;
-		TaskErrorCode = FString::Printf(TEXT("%d"), ErrorCodes::StatusUnauthorized);
-		TaskErrorStr = ONLINE_TASK_ERROR;
-		CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
-		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("User is not found at user index '%d'!"), LocalUserNum);
-		return;
+		SERVER_API_CLIENT_CHECK_GUARD();
+		ServerApiClient->ServerBinaryCloudSave.GetGameBinaryRecord(Key, OnSuccessDelegate, OnErrorDelegate);
 	}
+	else
+	{
+		if (!UserId.IsValid())
+		{
+			TaskOnlineError = EOnlineErrorResult::InvalidUser;
+			TaskErrorCode = FString::Printf(TEXT("%d"), ErrorCodes::StatusUnauthorized);
+			TaskErrorStr = ONLINE_TASK_ERROR;
+			CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
+			AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("User is not found at user index '%d'!"), LocalUserNum);
+			return;
+		}
 
-	API_FULL_CHECK_GUARD(BinaryCloudSave, TaskErrorStr);
-	BinaryCloudSave->GetGameBinaryRecord(Key, OnSuccessDelegate, OnErrorDelegate);
+		API_FULL_CHECK_GUARD(BinaryCloudSave, TaskErrorStr);
+		BinaryCloudSave->GetGameBinaryRecord(Key, OnSuccessDelegate, OnErrorDelegate);
+	}
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
@@ -126,7 +137,14 @@ void FOnlineAsyncTaskAccelByteGetGameBinaryRecord::OnSuccess(FAccelByteModelsGam
 	TaskOnlineError = EOnlineErrorResult::Success;
 	Result = InResult;
 	CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
-	AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Request to get game binary record for user '%s' Success!"), *UserId->ToDebugString());
+	if (UserId.IsValid())
+	{
+		AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Request to get game binary record for user '%s' Success!"), *UserId->ToDebugString());
+	}
+	else
+	{
+		AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Request to get game binary record Success!"));
+	}
 }
 
 void FOnlineAsyncTaskAccelByteGetGameBinaryRecord::OnError(int32 Code, const FString& ErrorMessage)

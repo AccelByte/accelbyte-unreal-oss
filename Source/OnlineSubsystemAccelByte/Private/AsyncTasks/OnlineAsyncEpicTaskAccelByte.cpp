@@ -5,6 +5,7 @@
 #include "AsyncTasks/OnlineAsyncEpicTaskAccelByte.h"
 #include "Kismet/GameplayStatics.h"
 #include "Engine/GameEngine.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteHelpers.h"
 
 double FOnlineAsyncEpicTaskAccelByte::GetWorldDelta()
 {

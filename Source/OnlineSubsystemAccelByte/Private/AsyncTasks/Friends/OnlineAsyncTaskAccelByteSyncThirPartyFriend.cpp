@@ -1,10 +1,12 @@
-﻿// Copyright (c) 2023 AccelByte Inc. All Rights Reserved.
+﻿// Copyright (c) 2023 - 2025 AccelByte Inc. All Rights Reserved.
 // This is licensed software from AccelByte Inc, for limitations
 // and restrictions contact your company contract manager.
 
 #include "OnlineAsyncTaskAccelByteSyncThirPartyFriend.h"
 
 #include "OnlineSubsystemAccelByteUtils.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteLog.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteHelpers.h"
 
 using namespace AccelByte;
 
@@ -130,7 +132,30 @@ void FOnlineAsyncTaskAccelByteSyncThirPartyFriend::OnReadNativeFriendListComplet
 		TArray<FString> OtherPlatformUserIds;
 		for (const auto& NativeFriend : OutNativeFriends)
 		{
-			OtherPlatformUserIds.Add(NativeFriend->GetUserId()->ToString());
+			if (NativeSubSystem->GetSubsystemName().IsEqual(EOS_SUBSYSTEM))
+			{
+				// Default/original behavior
+				FString EpicSpecificEntry = NativeFriend->GetUserId()->ToString();
+
+				FString EpicAccountId{};
+				FString EpicPUID{};
+				NativeFriend->GetUserId()->ToString().Split(TEXT("|"), &EpicAccountId, &EpicPUID);
+
+				if (!EpicAccountId.IsEmpty())
+				{
+					EpicSpecificEntry = EpicAccountId;
+				}
+				else if (!EpicPUID.IsEmpty())
+				{
+					EpicSpecificEntry = EpicPUID;
+				}
+
+				OtherPlatformUserIds.Add(EpicSpecificEntry);
+			}
+			else
+			{
+				OtherPlatformUserIds.Add(NativeFriend->GetUserId()->ToString());
+			}
 		}
 
 		FAccelByteUtilities::SplitArraysToNum(OtherPlatformUserIds, 100, SplitUserIds);

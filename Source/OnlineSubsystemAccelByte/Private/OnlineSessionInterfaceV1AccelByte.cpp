@@ -49,6 +49,7 @@
 #include "AsyncTasks/SessionV1/Server/OnlineAsyncTaskAccelByteRemoveUserFromV1Session.h"
 #include "AsyncTasks/Server/OnlineAsyncTaskAccelByteBanUser.h"
 #include "AsyncTasks/SessionV1/OnlineAsyncTaskAccelByteFindV1GameSessionById.h"
+#include "OnlineSubsystemAccelByteLog.h"
 
 using namespace AccelByte;
 

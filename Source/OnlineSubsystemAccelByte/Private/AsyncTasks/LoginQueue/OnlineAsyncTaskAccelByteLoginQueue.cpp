@@ -5,6 +5,8 @@
 #include "OnlineAsyncTaskAccelByteLoginQueue.h"
 #include "OnlineAsyncTaskAccelByteLoginQueueClaimTicket.h"
 #include "OnlineSubsystemAccelByteConfig.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteLog.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteHelpers.h"
 
 using namespace AccelByte;
 

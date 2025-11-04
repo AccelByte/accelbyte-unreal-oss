@@ -29,6 +29,7 @@
 #include "OnlineSubsystemUtils.h"
 #include "AsyncTasks/User/OnlineAsyncTaskAccelByteValidateUserInput.h"
 #include "AsyncTasks/User/OnlineAsyncTaskAccelByteQueryUserIdsMapping.h"
+#include "OnlineSubsystemAccelByteLog.h"
 
 #define ONLINE_ERROR_NAMESPACE "FOnlineUserAccelByte"
 

@@ -6,6 +6,9 @@
 
 #include "OnlineAsyncTaskAccelByteStartV2Matchmaking.h"
 #include "OnlineSessionInterfaceV2AccelByte.h"
+#include "OnlineSubsystemAccelByteLog.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteLog.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteHelpers.h"
 
 FOnlineAsyncTaskAccelByteGetMyV2MatchmakingTickets::FOnlineAsyncTaskAccelByteGetMyV2MatchmakingTickets(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InPlayerId, const FName InSessionName, const FString& InMatchPool)
 	: FOnlineAsyncTaskAccelByte(InABInterface)

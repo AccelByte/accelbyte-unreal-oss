@@ -17,15 +17,6 @@
 #include "Core/AccelByteServerApiClient.h"
 #include "OnlineSubsystemAccelBytePackage.h"
 
-/** Log category for any AccelByte OSS logs, including traces */
-DECLARE_LOG_CATEGORY_EXTERN(LogAccelByteOSS, Warning, All);
-
-/** Log category for extra logging regarding parties */
-DECLARE_LOG_CATEGORY_EXTERN(LogAccelByteOSSParty, Warning, All);
-
-/** Convenience UE_LOG macro that will automatically log to LogAccelByteOSS with the specified Verbosity and Format. See UE_LOG for usage. */
-#define UE_LOG_AB(Verbosity, Format, ...) UE_LOG(LogAccelByteOSS, Verbosity, Format, ##__VA_ARGS__)
-
 #define AB_USE_V2_SESSIONS_CONFIG_KEY TEXT("bEnableV2Sessions")
 
 class FOnlineIdentityAccelByte;
@@ -130,7 +121,7 @@ typedef TSharedPtr<FOnlineWalletV2AccelByte, ESPMode::ThreadSafe> FOnlineWalletV
 /** Shared pointer to the AccelByte Cloud Save */
 typedef TSharedPtr<FOnlineCloudSaveAccelByte, ESPMode::ThreadSafe> FOnlineCloudSaveAccelBytePtr;
 
-/** Shared pointer to the AccelByte Cloud Save */
+/** Shared pointer to the AccelByte Binary Cloud Save */
 typedef TSharedPtr<FOnlineBinaryCloudSaveAccelByte, ESPMode::ThreadSafe> FOnlineBinaryCloudSaveAccelBytePtr;
 
 /** Shared pointer to the AccelByte Time */
@@ -201,7 +192,7 @@ public:
 	virtual FOnlineWalletAccelBytePtr GetWalletInterface() const;
 	virtual FOnlineWalletV2AccelBytePtr GetWalletV2Interface() const;
 	virtual FOnlineCloudSaveAccelBytePtr GetCloudSaveInterface() const; 
-	virtual FOnlineBinaryCloudSaveAccelBytePtr GetBinaryCloudSaveInterface() const; 
+	virtual FOnlineBinaryCloudSaveAccelBytePtr GetBinaryCloudSaveInterface() const;
 	virtual IOnlineTimePtr GetTimeInterface() const override;
 	virtual FOnlineAnalyticsAccelBytePtr GetAnalyticsInterface() const;
 	virtual IOnlineStatsPtr GetStatsInterface() const override;
@@ -597,7 +588,7 @@ private:
 	/** Shared instance of our cloud save interface implementation */
 	FOnlineCloudSaveAccelBytePtr CloudSaveInterface;
 
-	/** Shared instance of our cloud save interface implementation */
+	/** Shared instance of our binary cloud save interface implementation */
 	FOnlineBinaryCloudSaveAccelBytePtr BinaryCloudSaveInterface;
 
 	/** Shared instance of our time interface implementation */

@@ -8,6 +8,7 @@
 #include "OnlineSubsystemUtils.h"
 #include "Interfaces/OnlineIdentityInterface.h"
 #include "Interfaces/OnlineUserInterface.h"
+#include "OnlineSubsystemAccelByteLog.h"
 
 FExecTestQueryExternalIds::FExecTestQueryExternalIds(UWorld* InWorld, const FName& InSubsystemName, const FString& InType, const TArray<FString>& InExternalIds)
 	: FExecTestBase(InWorld, InSubsystemName)

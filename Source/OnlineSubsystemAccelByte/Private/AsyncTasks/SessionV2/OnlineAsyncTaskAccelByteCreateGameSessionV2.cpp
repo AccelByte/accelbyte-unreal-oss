@@ -14,6 +14,9 @@
 #include "OnlineSubsystemAccelByteTypes.h"
 #include "OnlineSubsystemAccelByteSessionSettings.h"
 #include "OnlineSubsystemSessionSettings.h"
+#include "OnlineSubsystemAccelByteLog.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteLog.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteHelpers.h"
 
 using namespace AccelByte;
 

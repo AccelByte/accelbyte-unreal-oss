@@ -7,6 +7,7 @@
 #include "AsyncTasks/OnlineAsyncTaskAccelByteUtils.h"
 #include "OnlineSubsystemAccelByteTypes.h"
 #include "Models/AccelByteSessionModels.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteHelpers.h"
 
 /**
  * Async task for retrieving player attributes from the session service, and updating current platform and crossplay preferences if necessary.

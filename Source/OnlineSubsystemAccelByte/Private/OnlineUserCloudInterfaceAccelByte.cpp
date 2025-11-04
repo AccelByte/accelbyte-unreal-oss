@@ -8,6 +8,7 @@
 #include "AsyncTasks/UserCloud/OnlineAsyncTaskAccelByteWriteUserFile.h"
 #include "AsyncTasks/UserCloud/OnlineAsyncTaskAccelByteDeleteUserFile.h"
 #include "OnlineSubsystemUtils.h"
+#include "OnlineSubsystemAccelByteLog.h"
 
 using namespace AccelByte;
 

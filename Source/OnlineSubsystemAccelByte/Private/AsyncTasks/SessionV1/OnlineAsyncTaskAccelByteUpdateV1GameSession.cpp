@@ -9,6 +9,9 @@
 #include "AsyncTasks/OnlineAsyncTaskAccelByte.h"
 
 #include "Core/AccelByteReport.h"
+#include "OnlineSubsystemAccelByteLog.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteLog.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteHelpers.h"
 
 FOnlineAsyncTaskAccelByteUpdateV1GameSession::FOnlineAsyncTaskAccelByteUpdateV1GameSession(FOnlineSubsystemAccelByte* const InABInterface, FName InSessionName, FOnlineSessionSettings& InUpdatedSessionSettings, uint32 InCurrentPlayer, bool InBShouldRefreshOnlineData)
     : FOnlineAsyncTaskAccelByte(InABInterface, true)

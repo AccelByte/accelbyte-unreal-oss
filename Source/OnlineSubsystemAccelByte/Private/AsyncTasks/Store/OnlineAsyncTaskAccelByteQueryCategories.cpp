@@ -5,6 +5,8 @@
 #include "OnlineAsyncTaskAccelByteQueryCategories.h"
 
 #include "OnlineStoreInterfaceV2AccelByte.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteLog.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteHelpers.h"
 
 using namespace AccelByte;
 

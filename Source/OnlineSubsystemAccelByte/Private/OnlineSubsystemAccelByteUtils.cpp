@@ -8,6 +8,7 @@
 #include "OnlineSubsystemAccelByteTypes.h"
 #include "OnlineSubsystemNames.h"
 #include "OnlineSubsystemUtils.h"
+#include "OnlineSubsystemAccelByteLog.h"
 
 FDelegateHandle FOnlineSubsystemAccelByteUtils::QueryUserHandle = FDelegateHandle();
 

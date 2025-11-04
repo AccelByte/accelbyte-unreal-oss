@@ -6,6 +6,7 @@
 #include "AsyncTasks/OnlineAsyncTaskAccelByte.h"
 #include "AsyncTasks/OnlineAsyncTaskAccelByteUtils.h"
 #include "OnlineFriendsInterfaceAccelByte.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteHelpers.h"
 
 class FOnlineAsyncTaskAccelByteSyncThirdPartyFriendV2
 	: public FOnlineAsyncTaskAccelByte

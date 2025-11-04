@@ -6,6 +6,8 @@
 #include "OnlineSubsystemAccelByte.h"
 #include "OnlineTimeInterfaceAccelByte.h"
 #include "Models/AccelByteGeneralModels.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteLog.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteHelpers.h"
 
 using namespace AccelByte;
 

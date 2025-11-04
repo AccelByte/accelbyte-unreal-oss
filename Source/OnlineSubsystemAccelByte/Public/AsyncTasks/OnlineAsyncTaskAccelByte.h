@@ -14,68 +14,6 @@
 
 #include "Core/AccelByteError.h"
 
-#define AB_OSS_ASYNC_TASK_TRACE_BEGIN_VERBOSITY(Verbosity, Format, ...) UE_LOG_AB(Verbosity, TEXT(">>> %s::%s (AsyncTask method) was called. Args: ") Format, *GetTaskName(), *FString(__func__), ##__VA_ARGS__)
-#define AB_OSS_ASYNC_TASK_TRACE_BEGIN(Format, ...) AB_OSS_ASYNC_TASK_TRACE_BEGIN_VERBOSITY(Verbose, Format, ##__VA_ARGS__)
-#define AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Verbosity, Format, ...) UE_LOG_AB(Verbosity, TEXT("<<< %s::%s (AsyncTask method) has finished execution. ") Format, *GetTaskName(), *FString(__func__), ##__VA_ARGS__)
-#define AB_OSS_ASYNC_TASK_TRACE_END(Format, ...) AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Verbose, Format, ##__VA_ARGS__)
-
-/**
- * Declares two methods for SDK delegate handlers. Use in a header file to define these for the task, and then use
- * AB_ASYNC_TASK_DEFINE_SDK_DELEGATES to define the bindings to these delegates in the async task logic.
- *
- * @param Verb Action that this delegate is handling
- */
-#define AB_ASYNC_TASK_DECLARE_SDK_DELEGATES(Verb) void On##Verb##Success(); \
-	void On##Verb##Error(int32 ErrorCode, const FString& ErrorMessage);
-
-/**
- * Declares two methods for SDK delegate handlers. Use in a header file to define these for the task, and then use
- * AB_ASYNC_TASK_DEFINE_SDK_DELEGATES to define the bindings to these delegates in the async task logic.
- * 
- * @param Verb Action that this delegate is handling
- * @param SuccessType Type that the success delegate will recieve
- */
-#define AB_ASYNC_TASK_DECLARE_SDK_DELEGATES_WITH_RESULT(Verb, SuccessType) void On##Verb##Success(const SuccessType& Result); \
-	void On##Verb##Error(int32 ErrorCode, const FString& ErrorMessage);
-
-/**
- * Defines two delegates for use in an SDK call wrapped in an async task. Success delegate will have the name
- * On{Verb}SuccessDelegate, and be bound to the On{Verb}Success method of the class. Error delegate will have
- * the name On{Verb}ErrorDelegate, and be bound to the On{Verb}Error method of the class.
- * 
- * @param AsyncTaskClass Name of the class that we are binding delegate methods to
- * @param Verb Name of the action that is being handled by the two delegates, effects the name of the final delegates
- * @param SuccessType Delegate type for the success delegate
- */
-#define AB_ASYNC_TASK_DEFINE_SDK_DELEGATES(AsyncTaskClass, Verb, SuccessType) \
-	const SuccessType On##Verb##SuccessDelegate = SuccessType::CreateRaw(this, &AsyncTaskClass::On##Verb##Success); \
-	const FErrorHandler On##Verb##ErrorDelegate = FErrorHandler::CreateRaw(this, &AsyncTaskClass::On##Verb##Error);
-
-/**
- * Convenience macro for async tasks to validate the expression evaluates to true, otherwise throwing an InvalidState error in the task.
- * This will also stop execution of the task by returning out.
- * 
- * @param Expression Expression that you want to evaluate to true, or fail the task
- * @param Message Message to log in a trace if the expression is false. This will automatically be wrapped in TEXT macro, so no need to do that manually.
- */
-#define AB_ASYNC_TASK_VALIDATE(Expression, Message, ...) if (!(Expression))   \
-{                                                                                 \
-	AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT(Message), ##__VA_ARGS__); \
-	CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState);                 \
-	return;                                                                       \
-}
-
-/**
- * Convenience macro to log a request error and fail a task.
- * 
- * @param Message Message to log for the request that failed
- * @param ErrorCode Error code for the request that failed
- * @param ErrorMessage Error message for the request that failed
- */
-#define AB_ASYNC_TASK_REQUEST_FAILED(Message, ErrorCode, ErrorMessage, ...) const FString LogString = FString::Printf(TEXT(Message), ##__VA_ARGS__); \
-	UE_LOG_AB(Warning, TEXT("%s. Error code: %d; Error message: %s"), *LogString, ErrorCode, *ErrorMessage); \
-	CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
-
 /**
  * Enum to describe what state an async task is in currently
  */
@@ -125,8 +63,6 @@ enum class EAccelByteAsyncTaskFlags : uint8
 	AllFlags
 };
 
-#define ASYNC_TASK_FLAG_BIT(Flag) (1 << static_cast<uint8>(Flag))
-
 class FOnlineAsyncEpicTaskAccelByte;
 /**
  * Base class for any async tasks created by the AccelByte OSS.
@@ -138,72 +74,9 @@ class FOnlineAsyncEpicTaskAccelByte;
  * back to interface methods, those methods may try and call AsShared on the unique ID, which will fail if it wasn't created
  * as a shared pointer.
  */
-
-#define API_CLIENT_CHECK_GUARD(...) \
-if (!IsApiClientValid())\
-{\
-	RaiseGenericError(__VA_ARGS__);\
-	return;\
-}\
-auto ApiClient = GetApiClientInternal();\
-
-#define API_CHECK_GUARD(ApiName, ...) \
-auto ApiName = ApiClient->Get##ApiName##Api().Pin(); \
-if(!ApiName.IsValid()) \
-{ \
-	RaiseGenericError(__VA_ARGS__);\
-	return;\
-} \
-
-#define API_FULL_CHECK_GUARD(ApiName, ...) \
-API_CLIENT_CHECK_GUARD(__VA_ARGS__) \
-API_CHECK_GUARD(ApiName, __VA_ARGS__) \
-
-#define SERVER_API_CLIENT_CHECK_GUARD(...) \
-FAccelByteInstancePtr AccelByteInstance = GetAccelByteInstance().Pin(); \
-if(!AccelByteInstance.IsValid()) \
-{ \
-	RaiseGenericServerError(__VA_ARGS__); \
-	AB_OSS_ASYNC_TASK_TRACE_END(TEXT("AccelByteInstance is invalid")); \
-	return;\
-} \
-\
-const AccelByte::FServerApiClientPtr ServerApiClient = AccelByteInstance->GetServerApiClient(); \
-if(!ServerApiClient.IsValid()) \
-{ \
-	RaiseGenericServerError(__VA_ARGS__);\
-	AB_OSS_ASYNC_TASK_TRACE_END(TEXT("ServerApiClient is invalid")); \
-	return;\
-} \
-
-#define TRY_PIN_ACCELBYTEINSTANCE() \
-FAccelByteInstancePtr AccelByteInstance = GetAccelByteInstance().Pin(); \
-if(!AccelByteInstance.IsValid()) \
-{ \
-	AB_OSS_ASYNC_TASK_TRACE_END(TEXT("AccelByteInstance is invalid")); \
-	return; \
-} \
-
-#define TRY_PIN_SUBSYSTEM_RAW(bCompleteTaskIfInvalid, .../*returned variable if the SubsystemPin invalid*/) \
-auto SubsystemPin = AccelByteSubsystem.Pin(); \
-if (!SubsystemPin.IsValid()) \
-{ \
-	if (!bIsComplete && bCompleteTaskIfInvalid) \
-	{ \
-		TaskOnlineError = EOnlineErrorResult::MissingInterface; \
-		CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState); \
-	} \
-	return __VA_ARGS__; \
-} \
-
-#define TRY_PIN_SUBSYSTEM(.../*returned variable if the SubsystemPin invalid*/) TRY_PIN_SUBSYSTEM_RAW(true, __VA_ARGS__)
-
-#define TRY_PIN_SUBSYSTEM_CONSTRUCTOR() TRY_PIN_SUBSYSTEM_RAW(false)
-
-class FOnlineAsyncTaskAccelByte : public FOnlineAsyncTaskBasic<FOnlineSubsystemAccelByte>
+class ONLINESUBSYSTEMACCELBYTE_API FOnlineAsyncTaskAccelByte : public FOnlineAsyncTaskBasic<FOnlineSubsystemAccelByte>
 {
 public:
-	
 	/**
 	 * Breaking const placement here as parent class has the InSubsystem defined as 'T* const'. Trying to define as 'const T*' gives error C2664.
 	 * 
@@ -213,12 +86,7 @@ public:
 	 * @param bInShouldUseTimeout Whether any child of this task will by default use a timeout mechanism on Tick
 	 */
 	explicit FOnlineAsyncTaskAccelByte(FOnlineSubsystemAccelByte* const InABSubsystem
-		, bool bInShouldUseTimeout = true)
-		: FOnlineAsyncTaskAccelByte(InABSubsystem
-			, INVALID_CONTROLLERID
-			, (bInShouldUseTimeout) ? ASYNC_TASK_FLAG_BIT(EAccelByteAsyncTaskFlags::UseTimeout) : ASYNC_TASK_FLAG_BIT(EAccelByteAsyncTaskFlags::None))
-	{
-	}
+		, bool bInShouldUseTimeout = true);
 	
 	/**
 	 * Breaking const placement here as parent class has the InSubsystem defined as 'T* const'. Trying to define as 'const T*' gives error C2664.
@@ -231,12 +99,7 @@ public:
 	 */
 	explicit FOnlineAsyncTaskAccelByte(FOnlineSubsystemAccelByte* const InABSubsystem
 		, int32 InLocalUserNum
-		, bool bInShouldUseTimeout = true)
-		: FOnlineAsyncTaskAccelByte(InABSubsystem
-			, InLocalUserNum
-			, (bInShouldUseTimeout) ? ASYNC_TASK_FLAG_BIT(EAccelByteAsyncTaskFlags::UseTimeout) : ASYNC_TASK_FLAG_BIT(EAccelByteAsyncTaskFlags::None))
-	{
-	}
+		, bool bInShouldUseTimeout = true);
 
 	/**
 	 * Breaking const placement here as parent class has the InSubsystem defined as 'T* const'. Trying to define as 'const T*' gives error C2664.
@@ -249,13 +112,7 @@ public:
 	 */
 	explicit FOnlineAsyncTaskAccelByte(FOnlineSubsystemAccelByte* const InABSubsystem
 		, int32 InLocalUserNum
-		, int32 InFlags)
-		: FOnlineAsyncTaskAccelByte(InABSubsystem
-			, InLocalUserNum
-			, InFlags
-			, nullptr)
-	{
-	}
+		, int32 InFlags);
 
 	/**
 	 * Breaking const placement here as parent class has the InSubsystem defined as 'T* const'. Trying to define as 'const T*' gives error C2664.
@@ -275,25 +132,7 @@ public:
 	/**
 	 * Simple tick override to check if we are using timeouts, and if so check the task timeout and complete the task unsuccessfully if it's over its timeout
 	 */
-	virtual void Tick() override
-	{
-		if (HasTaskTimedOut())
-		{
-			UE_LOG(LogAccelByteOSS, Warning, TEXT("Task %s has been idle for longer than %f s"), *GetTaskName(), TaskTimeoutInSeconds);
-			if (bShouldUseTimeout)
-			{
-				CompleteTask(EAccelByteAsyncTaskCompleteState::TimedOut);
-				OnTaskTimedOut();
-			}
-		}
-
-		// If we are not currently in the working state, then kick off the work we need to do for the task
-		if (CurrentState != EAccelByteAsyncTaskState::Working)
-		{
-			CurrentState = EAccelByteAsyncTaskState::Working;
-			OnTaskStartWorking();
-		}
-	}
+	virtual void Tick() override;
 
 	/* To be ticked by Epic, Delta in seconds */
 	virtual void Tick(double Delta)
@@ -306,42 +145,7 @@ public:
 	 * Basic initialize override to check if we are using timeouts, and if so update the last task update time to the
 	 * current time.
 	 */
-	virtual void Initialize() override
-	{
-		CurrentState = EAccelByteAsyncTaskState::Initializing;
-
-		// We only care about setting the last update time if we are using a timeout
-		if (bShouldUseTimeout)
-		{
-			SetLastUpdateTimeToCurrentTime();
-		}
-
-		// Do not attempt to get API clients for server async tasks, as servers do not have API client support.
-		// We also don't need to get the corresponding user ID for the server, as server's don't have user IDs.
-		if (!BitFlags[static_cast<uint8>(EAccelByteAsyncTaskFlags::ServerTask)])
-		{
-			if (LocalUserNum != INVALID_CONTROLLERID)
-			{
-				GetApiClient(LocalUserNum);
-			}
-			else if (UserId.IsValid())
-			{
-				GetApiClient(UserId.ToSharedRef());
-			}
-
-			// Get corresponding UserId or LocalUserNum for player that started this task
-			GetOtherUserIdentifiers();
-		}
-		else
-		{
-			TRY_PIN_SUBSYSTEM();
-			if (LocalUserNum == INVALID_CONTROLLERID)
-			{
-				LocalUserNum = SubsystemPin->GetLocalUserNumCached();
-			}
-			UserId = nullptr;
-		}
-	}
+	virtual void Initialize() override;
 
 	/**
 	 * Method for checking in tick whether we should consider this task as timed out, will handle locking mechanisms
@@ -480,20 +284,7 @@ protected:
 	 * we have already marked the task as completed, as well as provides context as to what may have occurred if the task
 	 * was unsuccessful.
 	 */
-	void CompleteTask(const EAccelByteAsyncTaskCompleteState& InCompleteState)
-	{
-		// We're already marked as complete, do not change this state!
-		if (bIsComplete)
-		{
-			UE_LOG_AB(Warning, TEXT("Tried to complete async task while state was already complete! Current complete state: %s; Requested complete state: %s"), *AsyncTaskCompleteStateToString(CompleteState), *AsyncTaskCompleteStateToString(InCompleteState));
-			return;
-		}
-
-		CurrentState = EAccelByteAsyncTaskState::Completed;
-		CompleteState = InCompleteState;
-		bWasSuccessful = (CompleteState == EAccelByteAsyncTaskCompleteState::Success);
-		bIsComplete = true;
-	}
+	void CompleteTask(const EAccelByteAsyncTaskCompleteState& InCompleteState);
 
 	/**
 	 * Method for updating a timeout value with the current time in seconds, handles locking mechanisms.
@@ -511,13 +302,7 @@ protected:
 	void RaiseGenericError(T Args)
 	{}
 
-	void RaiseGenericError()
-	{
-		TaskOnlineError = EOnlineErrorResult::RequestFailure;
-		TaskErrorStr = TEXT("request-to-obtain-valid-apiclient");
-		UE_LOG_AB(Warning, TEXT("%s"), *TaskErrorStr);
-		CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState);
-	}
+	void RaiseGenericError();
 
 	template<>
 	void RaiseGenericError<FString&>(FString& InErrorStrMember)
@@ -544,13 +329,7 @@ protected:
 	void RaiseGenericServerError(T Args)
 	{}
 
-	void RaiseGenericServerError()
-	{
-		TaskOnlineError = EOnlineErrorResult::RequestFailure;
-		TaskErrorStr = TEXT("request-to-obtain-valid-serverapiclient");
-		UE_LOG_AB(Warning, TEXT("%s"), *TaskErrorStr);
-		CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState);
-	}
+	void RaiseGenericServerError();
 
 	template<>
 	void RaiseGenericServerError<FString&>(FString& InErrorStrMember)
@@ -581,41 +360,14 @@ protected:
 	/**
 	 * Gets an API client instance for a user specified by either index or ID.
 	 */
-	virtual AccelByte::FApiClientPtr GetApiClient(int32 InLocalUserNum)
-	{
-		TRY_PIN_SUBSYSTEM(nullptr);
-
-		AccelByte::FApiClientPtr ApiClient = GetApiClientInternal();
-		if (!ApiClient.IsValid())
-		{
-			ApiClient = SubsystemPin->GetApiClient(InLocalUserNum);
-			ApiClientInternal = ApiClient;
-		}
-		return ApiClient;
-	}
+	virtual AccelByte::FApiClientPtr GetApiClient(int32 InLocalUserNum);
 
 	/**
 	 * Gets an API client instance for a user specified by either index or ID.
 	 */
-	virtual AccelByte::FApiClientPtr GetApiClient(FUniqueNetIdAccelByteUserRef const& InUserId)
-	{
-		TRY_PIN_SUBSYSTEM(nullptr);
+	virtual AccelByte::FApiClientPtr GetApiClient(FUniqueNetIdAccelByteUserRef const& InUserId);
 
-		AccelByte::FApiClientPtr ApiClient = GetApiClientInternal();
-		if (!ApiClient.IsValid())
-		{
-			ApiClient = SubsystemPin->GetApiClient(InUserId.Get());
-			ApiClientInternal = ApiClient;
-		}
-		return ApiClient;
-	}
-
-	virtual FAccelByteInstanceWPtr GetAccelByteInstance()
-	{
-		TRY_PIN_SUBSYSTEM(nullptr);
-
-		return SubsystemPin->GetAccelByteInstance();
-	}
+	virtual FAccelByteInstanceWPtr GetAccelByteInstance();
 
 	/**
 	 * SHOULD NOTE BE ACCESSED MANUALLY
@@ -647,39 +399,7 @@ protected:
 	/**
 	 * Get corresponding local user num or user ID for user that is performing this task
 	 */
-	void GetOtherUserIdentifiers()
-	{
-		TRY_PIN_SUBSYSTEM();
-
-		const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(SubsystemPin->GetIdentityInterface());
-		if (!IdentityInterface.IsValid())
-		{
-			return;
-		}
-
-		// If we have a local user num, then we want to get a user ID from that user num
-		if (LocalUserNum != INVALID_CONTROLLERID)
-		{
-			FUniqueNetIdPtr PlayerId = IdentityInterface->GetUniquePlayerId(LocalUserNum);
-			if (PlayerId.IsValid())
-			{
-#ifdef ONLINESUBSYSTEMACCELBYTE_PACKAGE
-				UserId = FUniqueNetIdAccelByteUser::CastChecked(PlayerId.ToSharedRef());
-#else
-				UserId = StaticCastSharedPtr<const FUniqueNetIdAccelByteUser>(PlayerId);
-#endif
-			}
-		}
-		// Otherwise, if we have a user ID, we want to get their local user num
-		else if (UserId.IsValid())
-		{
-			int32 FoundLocalUserNum;
-			if (IdentityInterface->GetLocalUserNum(UserId.ToSharedRef().Get(), FoundLocalUserNum))
-			{
-				LocalUserNum = FoundLocalUserNum;
-			}
-		}
-	}
+	void GetOtherUserIdentifiers();
 
 	/**
 	 * Handler for when the async task has officially kicked off work (i.e. when we have moved off the game thread)

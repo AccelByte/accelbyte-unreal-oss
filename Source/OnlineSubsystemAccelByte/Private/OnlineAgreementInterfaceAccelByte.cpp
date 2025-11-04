@@ -10,6 +10,7 @@
 #include "AsyncTasks/Agreement/OnlineAsyncTaskAccelByteGetLocalizedPolicyContent.h"
 #include "AsyncTasks/Agreement/OnlineAsyncTaskAccelByteAcceptAgreementPolicies.h"
 #include "OnlineSubsystemUtils.h"
+#include "OnlineSubsystemAccelByteLog.h"
 
 bool FOnlineAgreementAccelByte::GetFromSubsystem(const IOnlineSubsystem* Subsystem, FOnlineAgreementAccelBytePtr& OutInterfaceInstance)
 {

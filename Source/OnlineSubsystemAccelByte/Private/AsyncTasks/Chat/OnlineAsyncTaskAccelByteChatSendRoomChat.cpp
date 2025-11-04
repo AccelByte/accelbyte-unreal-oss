@@ -3,6 +3,9 @@
 // and restrictions contact your company contract manager.
 
 #include "OnlineAsyncTaskAccelByteChatSendRoomChat.h"
+#include "OnlineSubsystemAccelByteLog.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteLog.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteHelpers.h"
 
 #define ONLINE_ERROR_NAMESPACE "FOnlineAsyncTaskAccelByteChatSendRoomChat"
 

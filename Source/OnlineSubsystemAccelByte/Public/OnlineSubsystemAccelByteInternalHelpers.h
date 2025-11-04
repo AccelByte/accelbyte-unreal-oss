@@ -1,8 +1,14 @@
+// Copyright (c) 2021 AccelByte Inc. All Rights Reserved.
+// This is licensed software from AccelByte Inc, for limitations
+// and restrictions contact your company contract manager.
+
 /**
  * Header to be used internally by the AccelByte OSS housing macros and other such definitions helpful to the
  * development of the OSS. This header also houses the definitions for the trace logging macros used in each interface.
  */
 #pragma once
+
+#include "OnlineSubsystemAccelByteLog.h"
 
 /**
  * Quick macro to be used in UE_LOG to output a boolean condition as a string for "true" or "false"

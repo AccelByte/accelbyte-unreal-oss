@@ -6,6 +6,9 @@
 
 #include "OnlineAsyncTaskAccelByteStartV2Matchmaking.h"
 #include "OnlineSessionInterfaceV2AccelByte.h"
+#include "OnlineSubsystemAccelByteLog.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteLog.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteHelpers.h"
 
 #define ONLINE_ERROR_NAMESPACE ("FOnlineAsyncTaskAccelByteGetV2MatchmakingTicketDetails")
 

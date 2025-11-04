@@ -7,6 +7,9 @@
 
 #include "Api/AccelByteEntitlementApi.h"
 #include "Runtime/Core/Public/Misc/Base64.h"
+#include "OnlineSubsystemAccelByteLog.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteLog.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteHelpers.h"
 
 using namespace AccelByte;
 

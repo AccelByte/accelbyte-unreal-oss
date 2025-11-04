@@ -24,6 +24,7 @@
 #include "AsyncTasks/PartyV1/OnlineAsyncTaskAccelByteGetV1PartyCode.h"
 #include "OnlineSubsystemUtils.h"
 #include "Core/AccelByteReport.h"
+#include "OnlineSubsystemAccelByteLog.h"
 
 
 // Some delegates require reasons as to why the delegate might have failed, for this case, this is a constant for when

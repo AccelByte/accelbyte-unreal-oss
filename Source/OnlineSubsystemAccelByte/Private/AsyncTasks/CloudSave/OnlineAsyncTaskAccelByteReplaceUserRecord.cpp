@@ -7,6 +7,9 @@
 #include "OnlineCloudSaveInterfaceAccelByte.h"
 #include "OnlinePredefinedEventInterfaceAccelByte.h"
 #include "OnlineError.h"
+#include "OnlineSubsystemAccelByteLog.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteLog.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteHelpers.h"
 
 using namespace AccelByte;
 
@@ -18,12 +21,11 @@ FOnlineAsyncTaskAccelByteReplaceUserRecord::FOnlineAsyncTaskAccelByteReplaceUser
 	, FJsonObject const& InUserRecordObj
 	, bool IsPublic
 	, FString const& InTargetUserId)
-	: FOnlineAsyncTaskAccelByte(InABInterface)
+	: FOnlineAsyncTaskAccelByte(InABInterface, InLocalUserNum)
 	, Key(InKey)
 	, UserRecordObj(InUserRecordObj)
 	, IsPublicRecord(IsPublic)
 	, TargetUserId(InTargetUserId)
-	, LocalUserNum(InLocalUserNum)
 {
 }
 

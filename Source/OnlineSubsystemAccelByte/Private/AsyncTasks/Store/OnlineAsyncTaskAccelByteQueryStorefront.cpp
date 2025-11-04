@@ -5,6 +5,8 @@
 #include "OnlineAsyncTaskAccelByteQueryStorefront.h"
 
 #include "OnlineAsyncTaskAccelByteQueryActiveSections.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteLog.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteHelpers.h"
 
 FOnlineAsyncTaskAccelByteQueryStorefront::FOnlineAsyncTaskAccelByteQueryStorefront(FOnlineSubsystemAccelByte* const InABSubsystem, const FUniqueNetId& InUserId, const FString& InStoreId, const FString& InViewId, const FString& InRegion, const EAccelBytePlatformMapping& InPlatform, const FOnQueryStorefrontComplete& InDelegate)
 	: FOnlineAsyncTaskAccelByte(InABSubsystem)

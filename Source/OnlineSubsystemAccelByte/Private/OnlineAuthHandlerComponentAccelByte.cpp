@@ -10,6 +10,7 @@
 #include "Misc/AES.h"
 #include "OnlineSubsystemUtils.h"
 #include "OnlineSubsystemAccelByteConfig.h"
+#include "OnlineSubsystemAccelByteLog.h"
 
 using namespace AccelByte;
 

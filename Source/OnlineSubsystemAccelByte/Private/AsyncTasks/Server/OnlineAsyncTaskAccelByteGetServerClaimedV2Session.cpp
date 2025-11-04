@@ -5,6 +5,8 @@
 #include "OnlineAsyncTaskAccelByteGetServerClaimedV2Session.h"
 #include "OnlineSessionInterfaceV2AccelByte.h"
 #include "GameServerApi/AccelByteServerSessionApi.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteLog.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteHelpers.h"
 
 using namespace AccelByte;
 

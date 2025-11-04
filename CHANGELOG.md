@@ -2,6 +2,35 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.13.7](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.13.7%0D0.13.6) (2025-11-04)
+
+
+### Features
+
+* adding game binary record server interface ([14e2dd3](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/14e2dd3c57fd531011b662a5b53fc31ca58a4fc6))
+
+
+### Bug Fixes
+
+* add virtual destructor for FOnlineServerBinaryCloudSaveAccelByte ([bc262d2](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/bc262d2d66abbfd254bbaba2ac131a8b6060be74))
+* adding a callback parameter to identify the request origin ([8b9ffb2](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/8b9ffb2ea55eb976218e6dcd9970cefa9a539c28))
+* **leaderboard:** ReadLeaderboard problem on returning result and empty displayname ([80136cc](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/80136cc897e96e3140f3417eeb6c2f64568e6db3))
+* **LocalUserNum:** the child async task hides the parent member's duplicate name ([037408b](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/037408b86448aff31670f970475a12b1766843d2))
+* **Notification:** prevent incoming notification when player is logging out ([259b433](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/259b4332db2b9af86f64c52e2aad7add9a7b54bf))
+* segregate the log declaration, auxiliary helpers and class declaration of FOnlineAsyncTaskAccelByte ([59343c2](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/59343c238652ececba8cb34b060d15b84684545f))
+* **steam:** fix Steam checkout inventory finalize OnlineError on success ([120f888](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/120f888470a0fe6ef39f6c194cf369113b51855c))
+* use the correct platform user id on EOS platform ([034a20c](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/034a20c19250a185c9f511613abda31484ee3af6))
+
+
+### Builds
+
+* fix compile error due to case sensitivity ([2e7e370](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/2e7e370ca0bc6d302d2f40bd2cc8d3f383368994))
+
+
+### Refactors
+
+* move OnlineServerBinaryCloudSave into OnlineBinaryCloudSave ([1620bbe](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/1620bbef8be8a85acf1cdd837554ae4d116bbad5))
+
 ### [0.13.6](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.13.6%0D0.13.5) (2025-10-07)
 
 

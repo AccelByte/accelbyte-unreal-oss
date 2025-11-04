@@ -7,6 +7,7 @@
 #include "AsyncTasks/Leaderboard/OnlineAsyncTaskAccelByteReadLeaderboardAroundUser.h"
 #include "AsyncTasks/Leaderboard/OnlineAsyncTaskAccelByteReadLeaderboards.h"
 #include "AsyncTasks/Leaderboard/OnlineAsyncTaskAccelByteReadLeaderboardsAroundRank.h"
+#include "OnlineSubsystemAccelByteLog.h"
 
 FOnlineLeaderboardAccelByte::FOnlineLeaderboardAccelByte(FOnlineSubsystemAccelByte* InSubsystem)
 #if ENGINE_MAJOR_VERSION >= 5

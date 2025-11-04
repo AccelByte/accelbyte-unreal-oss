@@ -5,6 +5,9 @@
 #include "OnlineAsyncTaskAccelByteRefreshV2PartySession.h"
 #include "OnlineSessionInterfaceV2AccelByte.h"
 #include "Api/AccelByteSessionApi.h"
+#include "OnlineSubsystemAccelByteLog.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteLog.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteHelpers.h"
 
 FOnlineAsyncTaskAccelByteRefreshV2PartySession::FOnlineAsyncTaskAccelByteRefreshV2PartySession(FOnlineSubsystemAccelByte* const InABInterface, const FName& InSessionName, const FOnRefreshSessionComplete& InDelegate)
 	: FOnlineAsyncTaskAccelByte(InABInterface)

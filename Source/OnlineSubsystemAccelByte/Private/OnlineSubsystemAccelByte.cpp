@@ -55,6 +55,7 @@
 
 #if WITH_DEV_AUTOMATION_TESTS
 #include "ExecTests/ExecTestBase.h"
+#include "OnlineSubsystemAccelByteLog.h"
 #endif
 
 using namespace AccelByte;

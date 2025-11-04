@@ -8,6 +8,7 @@
 #include "OnlineSubsystemAccelByteTypes.h"
 #include "Models/AccelByteDSMModels.h"
 #include "Models/AccelByteSessionModels.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteHelpers.h"
 
 /**
  * Async task to get the session that has claimed this server instance

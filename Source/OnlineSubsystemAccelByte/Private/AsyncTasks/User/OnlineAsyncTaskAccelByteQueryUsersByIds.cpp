@@ -9,6 +9,9 @@
 #include "Dom/JsonObject.h"
 #include "OnlineIdentityInterfaceAccelByte.h"
 #include "Interfaces/OnlineUserInterface.h"
+#include "OnlineSubsystemAccelByteLog.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteLog.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteHelpers.h"
 
 using namespace AccelByte;
 

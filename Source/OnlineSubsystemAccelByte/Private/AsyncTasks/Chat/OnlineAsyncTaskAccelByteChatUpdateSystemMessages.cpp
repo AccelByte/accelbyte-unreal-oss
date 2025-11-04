@@ -5,6 +5,8 @@
 #include "OnlineAsyncTaskAccelByteChatUpdateSystemMessages.h"
 
 #include "OnlineChatInterfaceAccelByte.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteLog.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteHelpers.h"
 
 using namespace AccelByte;
 

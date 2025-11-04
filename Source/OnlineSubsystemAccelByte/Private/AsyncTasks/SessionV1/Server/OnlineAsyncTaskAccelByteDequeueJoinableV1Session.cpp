@@ -12,6 +12,9 @@
 #include "Interfaces/OnlineSessionInterface.h"
 
 #include "Core/AccelByteReport.h"
+#include "OnlineSubsystemAccelByteLog.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteLog.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteHelpers.h"
 
 using namespace AccelByte;
 

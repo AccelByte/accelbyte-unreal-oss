@@ -9,6 +9,9 @@
 #include "OnlinePredefinedEventInterfaceAccelByte.h"
 #include "AsyncTasks/Server/OnlineAsyncTaskAccelByteLoginServer.h"
 #include "OnlineError.h"
+#include "OnlineSubsystemAccelByteLog.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteLog.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteHelpers.h"
 
 using namespace AccelByte;
 

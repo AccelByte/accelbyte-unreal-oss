@@ -8,6 +8,9 @@
 #include "Api/AccelByteUserApi.h"
 #include "OnlineSubsystemAccelByte.h"
 #include "Models/AccelByteUserModels.h"
+#include "OnlineSubsystemAccelByteLog.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteLog.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteHelpers.h"
 
 using namespace AccelByte;
 

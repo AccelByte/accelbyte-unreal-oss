@@ -11,6 +11,7 @@
 #include "OnlineSubsystemAccelByteDefines.h"
 #include "Misc/Base64.h"
 #include "Core/AccelByteTypeConverter.h"
+#include "OnlineSubsystemAccelByteLog.h"
 
 void FNotificationMessageManager::PublishToTopic(FString const& InTopic, const FAccelByteModelsNotificationMessage& InMessage, int32 InLocalUserNum)
 {

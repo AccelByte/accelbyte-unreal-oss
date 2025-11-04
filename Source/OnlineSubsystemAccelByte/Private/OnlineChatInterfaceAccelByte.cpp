@@ -28,6 +28,7 @@
 #include "AsyncTasks/Chat/OnlineAsyncTaskAccelByteChatReportMessage.h"
 #include "OnlineSubsystemAccelByteConfig.h"
 #include "Misc/Optional.h"
+#include "OnlineSubsystemAccelByteLog.h"
 
 using namespace AccelByte;
 

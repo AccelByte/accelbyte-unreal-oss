@@ -8,6 +8,7 @@
 #include "OnlineSessionInterfaceV2AccelByte.h"
 #include "AsyncTasks/OnlineAsyncTaskAccelByteUtils.h"
 #include "Models/AccelByteMatchmakingModels.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteHelpers.h"
 
 /**
  * Task to delete a ticket used for backfilling the session provided

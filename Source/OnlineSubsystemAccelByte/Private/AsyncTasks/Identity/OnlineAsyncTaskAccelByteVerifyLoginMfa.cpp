@@ -9,6 +9,9 @@
 #include "OnlineUserInterfaceAccelByte.h"
 #include "AsyncTasks/LoginQueue/OnlineAsyncTaskAccelByteLoginQueue.h"
 #include "OnlineSubsystemAccelByteConfig.h"
+#include "OnlineSubsystemAccelByteLog.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteLog.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteHelpers.h"
 
 using namespace AccelByte;
 

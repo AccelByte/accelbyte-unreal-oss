@@ -1,4 +1,6 @@
-﻿#include "OnlineAsyncTaskAccelByteServerKickV2GameSession.h"
+#include "OnlineAsyncTaskAccelByteServerKickV2GameSession.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteLog.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteHelpers.h"
 
 using namespace AccelByte;
 

@@ -9,6 +9,9 @@
 #include "GameServerApi/AccelByteServerSessionApi.h"
 #include "Api/AccelByteSessionApi.h"
 #include "OnlineAsyncTaskAccelByteRefreshV2GameSession.h"
+#include "OnlineSubsystemAccelByteLog.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteLog.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteHelpers.h"
 
 using namespace AccelByte;
 

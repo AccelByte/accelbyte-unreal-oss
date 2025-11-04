@@ -25,6 +25,7 @@
 #include "AsyncTasks/SessionV2/OnlineAsyncTaskAccelByteV2GetRecentPlayer.h"
 #include "AsyncTasks/SessionV2/OnlineAsyncTaskAccelByteV2GetRecentTeamPlayer.h"
 #include "AsyncTasks/Friends/OnlineAsyncTaskAccelByteSyncPlatformFriend.h"
+#include "OnlineSubsystemAccelByteLog.h"
 
 #define ONLINE_ERROR_NAMESPACE "FOnlineFriendAccelByte"
 

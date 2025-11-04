@@ -12,6 +12,7 @@
 #include "OnlineUserInterfaceAccelByte.h"
 #include "OnlineSubsystemUtils.h"
 #include "OnlineSubsystemAccelByteConfig.h"
+#include "OnlineSubsystemAccelByteLog.h"
 
 FAccelByteUserPlatformLinkInformation::FAccelByteUserPlatformLinkInformation
 	(const FString& InUserId /*= TEXT("")*/)

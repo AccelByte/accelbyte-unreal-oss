@@ -8,6 +8,7 @@
 #include "AsyncTasks/Achievement/OnlineAsyncTaskAccelByteQueryUserAchievements.h"
 #include "AsyncTasks/Achievement/OnlineAsyncTaskAccelByteSendPSNEvents.h"
 #include "AsyncTasks/Achievement/OnlineAsyncTaskAccelByteBulkUnlockAchievement.h"
+#include "OnlineSubsystemAccelByteLog.h"
 
 using namespace AccelByte;
 

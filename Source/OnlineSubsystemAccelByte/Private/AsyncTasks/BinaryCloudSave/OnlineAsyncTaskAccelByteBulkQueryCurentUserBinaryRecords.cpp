@@ -7,6 +7,9 @@
 #include "OnlineBinaryCloudSaveInterfaceAccelByte.h"
 #include "OnlinePredefinedEventInterfaceAccelByte.h"
 #include "OnlineError.h"
+#include "OnlineSubsystemAccelByteLog.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteLog.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteHelpers.h"
 
 using namespace AccelByte;
 
@@ -19,8 +22,8 @@ FOnlineAsyncTaskAccelByteBulkQueryCurentUserBinaryRecords::FOnlineAsyncTaskAccel
 	, int32 const& InOffset
 	, int32 const& InLimit)
 	: FOnlineAsyncTaskAccelByte(InABInterface, InLocalUserNum)
-	, Query(InQuery),
-      Offset(InOffset)
+	, Query(InQuery)
+    , Offset(InOffset)
 	, Limit(InLimit)
 {
 }

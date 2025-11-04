@@ -27,6 +27,7 @@
 #include "Misc/ConfigCacheIni.h"
 #include "Misc/AES.h"
 #include "PacketHandler.h"
+#include "OnlineSubsystemAccelByteLog.h"
 
 using namespace UE;
 using AccelByte::FErrorHandler;

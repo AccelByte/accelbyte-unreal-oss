@@ -8,6 +8,8 @@
 #include "OnlineError.h"
 #include "OnlineIdentityInterfaceAccelByte.h"
 #include "Core/AccelByteError.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteLog.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteHelpers.h"
 
 using namespace AccelByte;
 
@@ -15,8 +17,7 @@ using namespace AccelByte;
 
 FOnlineAsyncTaskAccelByteListUserByUserId::FOnlineAsyncTaskAccelByteListUserByUserId(FOnlineSubsystemAccelByte* const InABInterface, const int32 InLocalUserNum,
 	const TArray<FString>& InUserIds)
-	: FOnlineAsyncTaskAccelByte(InABInterface, true)
-	, LocalUserNum(InLocalUserNum)
+	: FOnlineAsyncTaskAccelByte(InABInterface, InLocalUserNum, true)
 	, UserIds(InUserIds) 
 {
 	ListUserDataResult = FListUserDataResponse{};

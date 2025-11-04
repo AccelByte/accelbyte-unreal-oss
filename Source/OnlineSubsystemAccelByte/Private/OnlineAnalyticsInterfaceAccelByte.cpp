@@ -8,6 +8,7 @@
 #include "OnlineSubsystemAccelByteInternalHelpers.h"
 #include "OnlineIdentityInterfaceAccelByte.h"
 #include "OnlineSubsystemAccelByteConfig.h"
+#include "OnlineSubsystemAccelByteLog.h"
 
 using namespace AccelByte;
 

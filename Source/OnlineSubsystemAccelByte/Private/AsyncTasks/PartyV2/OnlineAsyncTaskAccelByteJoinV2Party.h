@@ -8,6 +8,7 @@
 #include "Models/AccelByteSessionModels.h"
 #include "OnlineSubsystemAccelByteTypes.h"
 #include "Interfaces/OnlineSessionInterface.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteHelpers.h"
 
 /**
  * Async Task to join a party session 

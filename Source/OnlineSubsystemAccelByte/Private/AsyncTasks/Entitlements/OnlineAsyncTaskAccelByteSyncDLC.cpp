@@ -6,6 +6,9 @@
 #include <OnlineSubsystemAccelByte.h>
 #include "Models/AccelByteEcommerceModels.h"
 #include "OnlineStoreInterfaceV2AccelByte.h"
+#include "OnlineSubsystemAccelByteLog.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteLog.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteHelpers.h"
 
 using namespace AccelByte;
 

@@ -12,6 +12,7 @@
 #include "AsyncTasks/Wallet/OnlineAsyncTaskAccelByteGetWalletTransactions.h"
 #include "OnlineSubsystemUtils.h"
 #include "Engine/World.h"
+#include "OnlineSubsystemAccelByteLog.h"
 
 FOnlineWalletV2AccelByte::FOnlineWalletV2AccelByte(FOnlineSubsystemAccelByte* InSubsystem)
 #if ENGINE_MAJOR_VERSION >= 5

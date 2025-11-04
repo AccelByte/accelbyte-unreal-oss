@@ -6,6 +6,9 @@
 #include "OnlineSessionInterfaceV2AccelByte.h"
 #include "OnlineSessionSettingsAccelByte.h"
 #include "OnlineSubsystemAccelByteSessionSettings.h"
+#include "OnlineSubsystemAccelByteLog.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteLog.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteHelpers.h"
 
 using namespace AccelByte;
 

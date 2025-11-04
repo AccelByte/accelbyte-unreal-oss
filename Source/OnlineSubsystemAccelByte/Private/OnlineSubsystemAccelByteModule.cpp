@@ -9,6 +9,7 @@
 #include "Modules/ModuleManager.h"
 #include "Interfaces/IPluginManager.h"
 #include "Core/AccelByteHttpRetryScheduler.h"
+#include "OnlineSubsystemAccelByteLog.h"
 
 DEFINE_LOG_CATEGORY(LogAccelByteOSS);
 DEFINE_LOG_CATEGORY(LogAccelByteOSSParty);

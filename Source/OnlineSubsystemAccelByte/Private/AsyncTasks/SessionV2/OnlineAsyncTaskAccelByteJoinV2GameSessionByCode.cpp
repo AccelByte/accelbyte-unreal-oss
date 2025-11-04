@@ -4,6 +4,8 @@
 
 #include "OnlineAsyncTaskAccelByteJoinV2GameSessionByCode.h"
 #include "OnlinePredefinedEventInterfaceAccelByte.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteLog.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteHelpers.h"
 
 FOnlineAsyncTaskAccelByteJoinV2GameSessionByCode::FOnlineAsyncTaskAccelByteJoinV2GameSessionByCode(FOnlineSubsystemAccelByte* const InABInterface, const FUniqueNetId& InLocalUserId, const FName& InSessionName, const FString& InPartyCode)
 	: FOnlineAsyncTaskAccelByte(InABInterface)

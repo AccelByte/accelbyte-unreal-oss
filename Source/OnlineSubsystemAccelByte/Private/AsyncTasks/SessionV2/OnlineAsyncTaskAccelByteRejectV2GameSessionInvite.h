@@ -9,6 +9,7 @@
 #include "OnlineSubsystemAccelByteTypes.h"
 #include "OnlineSessionSettings.h"
 #include "OnlineSessionInterfaceV2AccelByte.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteHelpers.h"
 
 /**
  * Async Task to reject a game session invite

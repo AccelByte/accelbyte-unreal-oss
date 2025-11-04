@@ -9,6 +9,7 @@
 #include "OnlineSubsystemAccelByteModule.h"
 #include "Interfaces/OnlineIdentityInterface.h"
 #include "OnlineSubsystemUtils.h"
+#include "OnlineSubsystemAccelByteLog.h"
 
 #define ONLINE_ERROR_NAMESPACE "FOnlineExternalUIAccelByte"
 

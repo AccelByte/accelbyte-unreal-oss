@@ -8,6 +8,7 @@
 #include "OnlineSubsystemUtils.h"
 #include "Interfaces/OnlineIdentityInterface.h"
 #include "Interfaces/OnlineUserInterface.h"
+#include "OnlineSubsystemAccelByteLog.h"
 
 FExecTestQueryUserIdMapping::FExecTestQueryUserIdMapping(UWorld* InWorld, const FName& InSubsystemName, FString InDisplayNameOrEmail)
 	: FExecTestBase(InWorld, InSubsystemName)

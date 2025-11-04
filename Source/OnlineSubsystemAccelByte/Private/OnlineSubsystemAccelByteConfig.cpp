@@ -6,6 +6,7 @@
 #include "Core/AccelByteUtilities.h"
 #include "OnlineSubsystemAccelByte.h"
 #include "OnlineSubsystemAccelByteInternalHelpers.h"
+#include "OnlineSubsystemAccelByteLog.h"
 
 template <typename T>
 struct ONLINESUBSYSTEMACCELBYTE_API TOnlineSubsystemAccelByteConfigValueConverter<TArray<T>>

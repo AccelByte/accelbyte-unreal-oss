@@ -3,6 +3,8 @@
 // and restrictions contact your company contract manager.
 
 #include "OnlineTaskAccelByteRevokeV2GameCode.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteLog.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteHelpers.h"
 
 using namespace AccelByte;
 

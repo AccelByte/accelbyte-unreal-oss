@@ -6,6 +6,8 @@
 #include "OnlineSubsystemAccelByte.h"
 #include "OnlineUserCloudInterfaceAccelByte.h"
 #include "Api/AccelByteCloudStorageApi.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteLog.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteHelpers.h"
 
 using namespace AccelByte;
 

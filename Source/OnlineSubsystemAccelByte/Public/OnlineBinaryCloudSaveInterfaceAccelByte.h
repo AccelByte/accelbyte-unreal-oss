@@ -14,7 +14,6 @@
 #include "Models/AccelByteCloudSaveModels.h"
 #include "OnlineSubsystemAccelBytePackage.h"
 
-
 DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnSaveUserBinaryRecordCompleted, int32 /*LocalUserNum*/, const FOnlineError& /*Result*/, const FString& /*Key*/);
 typedef FOnSaveUserBinaryRecordCompleted::FDelegate FOnSaveUserBinaryRecordCompletedDelegate;
 
@@ -44,6 +43,24 @@ typedef FOnBulkQueryUserBinaryRecordsCompleted::FDelegate FOnBulkQueryUserBinary
 
 DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnRequestUserBinaryRecordPresignedUrlCompleted, int32 /*LocalUserNum*/, const FOnlineError& /*Result*/, const FAccelByteModelsBinaryInfo);
 typedef FOnRequestUserBinaryRecordPresignedUrlCompleted::FDelegate FOnRequestUserBinaryRecordPresignedUrlCompletedDelegate;
+
+DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnCreateGameBinaryRecordCompleted, int32 /*LocalUserNum*/, const FOnlineError& /*Result*/, const FAccelByteModelsBinaryInfo);
+typedef FOnCreateGameBinaryRecordCompleted::FDelegate FOnCreateGameBinaryRecordCompletedDelegate;
+
+DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnDeleteGameBinaryRecordCompleted, int32 /*LocalUserNum*/, const FOnlineError& /*Result*/, const FString& /*key*/);
+typedef FOnDeleteGameBinaryRecordCompleted::FDelegate FOnDeleteGameBinaryRecordCompletedDelegate;
+
+DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnGetGameBinaryRecordCompleted, int32 /*LocalUserNum*/, const FOnlineError& /*Result*/, const FAccelByteModelsGameBinaryRecord);
+typedef FOnGetGameBinaryRecordCompleted::FDelegate FOnGetGameBinaryRecordCompletedDelegate;
+
+DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnUpdateGameBinaryRecordCompleted, int32 /*LocalUserNum*/, const FOnlineError& /*Result*/, const FAccelByteModelsGameBinaryRecord);
+typedef FOnUpdateGameBinaryRecordCompleted::FDelegate FOnUpdateGameBinaryRecordCompletedDelegate;
+
+DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnQueryGameBinaryRecordsCompleted, int32 /*LocalUserNum*/, const FOnlineError& /*Result*/, const FAccelByteModelsPaginatedGameBinaryRecords);
+typedef FOnQueryGameBinaryRecordsCompleted::FDelegate FOnQueryGameBinaryRecordsCompletedDelegate;
+
+DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnRequestGameBinaryRecordPresignedUrlCompleted, int32 /*LocalUserNum*/, const FOnlineError& /*Result*/, const FAccelByteModelsBinaryInfo);
+typedef FOnRequestGameBinaryRecordPresignedUrlCompleted::FDelegate FOnRequestGameBinaryRecordPresignedUrlCompletedDelegate;
 
 /**
  * Implementation of Cloud Save service from AccelByte services
@@ -80,17 +97,27 @@ public:
 	 */
 	static bool GetFromWorld(const UWorld* World, FOnlineBinaryCloudSaveAccelBytePtr& OutInterfaceInstance);
 
+#pragma region User Binary Record Delegates
 	DEFINE_ONLINE_PLAYER_DELEGATE_TWO_PARAM(MAX_LOCAL_PLAYERS, OnSaveUserBinaryRecordCompleted, const FOnlineError&, const FString&);
-	DEFINE_ONLINE_PLAYER_DELEGATE_TWO_PARAM(MAX_LOCAL_PLAYERS, OnDeleteUserBinaryRecordCompleted, const FOnlineError&, const FString&);
-	DEFINE_ONLINE_PLAYER_DELEGATE_TWO_PARAM(MAX_LOCAL_PLAYERS, OnBulkGetUserBinaryRecordsCompleted, const FOnlineError&, const FAccelByteModelsListUserBinaryRecords&);
 	DEFINE_ONLINE_PLAYER_DELEGATE_TWO_PARAM(MAX_LOCAL_PLAYERS, OnGetUserBinaryRecordCompleted, const FOnlineError&, const FAccelByteModelsUserBinaryRecord&);
+	DEFINE_ONLINE_PLAYER_DELEGATE_TWO_PARAM(MAX_LOCAL_PLAYERS, OnBulkGetUserBinaryRecordsCompleted, const FOnlineError&, const FAccelByteModelsListUserBinaryRecords&);
+	DEFINE_ONLINE_PLAYER_DELEGATE_TWO_PARAM(MAX_LOCAL_PLAYERS, OnBulkQueryUserBinaryRecordsCompleted, const FOnlineError&, const FAccelByteModelsPaginatedUserBinaryRecords&);
+	DEFINE_ONLINE_PLAYER_DELEGATE_TWO_PARAM(MAX_LOCAL_PLAYERS, OnUpdateUserBinaryRecordCompleted, const FOnlineError&, const FAccelByteModelsUserBinaryRecord&);
+	DEFINE_ONLINE_PLAYER_DELEGATE_TWO_PARAM(MAX_LOCAL_PLAYERS, OnDeleteUserBinaryRecordCompleted, const FOnlineError&, const FString&);
+	DEFINE_ONLINE_PLAYER_DELEGATE_TWO_PARAM(MAX_LOCAL_PLAYERS, OnRequestUserBinaryRecordPresignedUrlCompleted, const FOnlineError&, const FAccelByteModelsBinaryInfo&);
+#pragma endregion
+
+#pragma region Game Binary Record Delegates
 	DEFINE_ONLINE_PLAYER_DELEGATE_TWO_PARAM(MAX_LOCAL_PLAYERS, OnGetGameBinaryRecordCompleted, const FOnlineError&, const FAccelByteModelsGameBinaryRecord&);
+	DEFINE_ONLINE_PLAYER_DELEGATE_TWO_PARAM(MAX_LOCAL_PLAYERS, OnQueryGameBinaryRecordsCompleted, const FOnlineError&, const FAccelByteModelsPaginatedGameBinaryRecords&);
 	DEFINE_ONLINE_PLAYER_DELEGATE_TWO_PARAM(MAX_LOCAL_PLAYERS, OnBulkGetGameBinaryRecordsCompleted, const FOnlineError&, const FAccelByteModelsListGameBinaryRecords&);
 	DEFINE_ONLINE_PLAYER_DELEGATE_TWO_PARAM(MAX_LOCAL_PLAYERS, OnBulkQueryGameBinaryRecordsCompleted, const FOnlineError&, const FAccelByteModelsPaginatedGameBinaryRecords&);
-	DEFINE_ONLINE_PLAYER_DELEGATE_TWO_PARAM(MAX_LOCAL_PLAYERS, OnUpdateUserBinaryRecordCompleted, const FOnlineError&, const FAccelByteModelsUserBinaryRecord&);
-	DEFINE_ONLINE_PLAYER_DELEGATE_TWO_PARAM(MAX_LOCAL_PLAYERS, OnBulkQueryUserBinaryRecordsCompleted, const FOnlineError&, const FAccelByteModelsPaginatedUserBinaryRecords&);
-	DEFINE_ONLINE_PLAYER_DELEGATE_TWO_PARAM(MAX_LOCAL_PLAYERS, OnRequestUserBinaryRecordPresignedUrlCompleted, const FOnlineError&, const FAccelByteModelsBinaryInfo&);
-	
+	DEFINE_ONLINE_PLAYER_DELEGATE_TWO_PARAM(MAX_LOCAL_PLAYERS, OnCreateGameBinaryRecordCompleted, const FOnlineError&, const FAccelByteModelsBinaryInfo&);
+	DEFINE_ONLINE_PLAYER_DELEGATE_TWO_PARAM(MAX_LOCAL_PLAYERS, OnUpdateGameBinaryRecordCompleted, const FOnlineError&, const FAccelByteModelsGameBinaryRecord&);
+	DEFINE_ONLINE_PLAYER_DELEGATE_TWO_PARAM(MAX_LOCAL_PLAYERS, OnDeleteGameBinaryRecordCompleted, const FOnlineError&, const FString&);
+	DEFINE_ONLINE_PLAYER_DELEGATE_TWO_PARAM(MAX_LOCAL_PLAYERS, OnRequestGameBinaryRecordPresignedUrlCompleted, const FOnlineError&, const FAccelByteModelsBinaryInfo&);
+#pragma endregion
+
 	/**
 	 * @brief Save a namespace-level user binary.
 	 * If the binary doesn't exist, it will create the binary save, if already exists, it will append to the existing one.
@@ -239,6 +266,68 @@ public:
 	 */
 	bool BulkQueryGameBinaryRecords(int32 LocalUserNum, FString const& Query, int32 const& Offset = 0, int32 const& Limit = 20);
 
+	/**
+	 * @brief Bulk query game binary records.
+	 *
+	 * @param Query String that will be used to query the game's binary record keys.
+	 * @param Offset The offset of the result. Default value is 0.
+	 * @param Limit The limit of the result. Default value is 20.
+	 */
+	bool QueryGameBinaryRecords(int32 LocalUserNum, FString const& Query, int32 Offset = 0, int32 Limit = 20);
+
+	/**
+	 * @brief Create game binary records.
+	 *
+	 * @param Key Key of the binary record.
+	 * @param FileType File type of the binary (supported file types are jpeg, jpg, png, bmp, gif, mp3, webp, and bin).
+	 * @param SetBy Metadata value.
+	 * @param TTLConfig The configuration to control the action taken if the record has expired. If the action set to NONE,
+	 *		then it will not send the TTL (Time to live) meta data.
+	 *
+	 * @return AccelByteTask object to track and cancel the ongoing API operation.
+	 */
+	bool CreateGameBinaryRecord(int32 LocalUserNum, FString const& Key, EAccelByteFileType FileType, ESetByMetadataRecord SetBy, FTTLConfig const& TTLConfig = FTTLConfig{});
+
+	/**
+	 * @brief Update a game binary record file by its key.
+	 *
+	 * @param Key Key of the binary record.
+	 * @param ContentType The specific type of the binary record created.
+	 * @param FileLocation Location of the uploaded binary file.
+	 */
+	bool UpdateGameBinaryRecord(int32 LocalUserNum, FString const& Key, EAccelByteFileType ContentType, FString const& FileLocation);
+
+	/**
+	 * @brief Delete a game binary record.
+	 *
+	 * @param Key Key of the binary record.
+	 */
+	bool DeleteGameBinaryRecord(int32 LocalUserNum, FString const& Key);
+
+	/**
+	 * @brief Delete the ttl config of the game binary record.
+	 *
+	 * @param Key Key of the binary record.
+	 */
+	bool DeleteGameBinaryRecordTTLConfig(int32 LocalUserNum, FString const& Key);
+
+	/**
+	 * @brief Update a game binary record metadata by its key.
+	 *
+	 * @param Key Key of the binary record.
+	 * @param SetBy Metadata value.
+	 * @param TTLConfig The configuration to control the action taken if the record has expired. If the action set to NONE,
+	 *		then it will not send the TTL (Time to live) meta data.
+	 */
+	bool UpdateGameBinaryRecordMetadata(int32 LocalUserNum, FString const& Key, ESetByMetadataRecord SetBy, FTTLConfig const& TTLConfig = FTTLConfig{});
+
+	/**
+	 * @brief Request presigned URL to upload the binary record to s3.
+	 *
+	 * @param Key Key of the binary record.
+	 * @param FileType File type of the binary (supported file types are jpeg, jpg, png, bmp, gif, mp3, webp, and bin).
+	 */
+	bool RequestGameBinaryRecordPresignedUrl(int32 LocalUserNum, FString const& Key, EAccelByteFileType FileType);
 protected:
 	/** Hidden default constructor, the constructor that takes in a subsystem instance should be used instead. */
 	FOnlineBinaryCloudSaveAccelByte()

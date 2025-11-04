@@ -7,6 +7,7 @@
 #include "AsyncTasks/OnlineAsyncTaskAccelByteUtils.h"
 #include "OnlineAchievementsInterfaceAccelByte.h"
 #include "Models/AccelByteAchievementModels.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteHelpers.h"
 
 class FOnlineAsyncTaskAccelByteSendPSNEvents
 	: public FOnlineAsyncTaskAccelByte

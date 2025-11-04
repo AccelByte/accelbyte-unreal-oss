@@ -34,7 +34,6 @@ private:
 	FErrorHandler OnError;
 	void HandleAsyncTaskError(int32 Code, const FString& ErrMsg);
 
-	int32 LocalUserNum;
 	FString AccelByteUserId;
 	TArray<FString> UserIds{}; 
 	FListUserDataResponse ListUserDataResult; 

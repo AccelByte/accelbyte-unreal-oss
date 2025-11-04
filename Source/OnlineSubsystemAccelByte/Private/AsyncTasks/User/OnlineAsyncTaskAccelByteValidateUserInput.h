@@ -34,8 +34,6 @@ private:
 	// Input Parameter
 	FUserInputValidationRequest UserInputValidationRequest;
 
-	int32 LocalUserNum = 0;
-
 	// Output Parameter
 	FUserInputValidationResponse UserInputValidationResponse;
 };

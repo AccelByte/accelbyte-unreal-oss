@@ -7,6 +7,8 @@
 #include "OnlineIdentityInterfaceAccelByte.h"
 #include "OnlineStatisticInterfaceAccelByte.h"
 #include "OnlinePredefinedEventInterfaceAccelByte.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteLog.h"
+#include "AsyncTasks/OnlineAsyncTaskAccelByteHelpers.h"
 
 using namespace AccelByte;
 
@@ -45,7 +47,6 @@ FOnlineAsyncTaskAccelByteQueryStatsUsers::FOnlineAsyncTaskAccelByteQueryStatsUse
 	, TArray<FString> const& InStatNames
 	, FOnlineStatsQueryUsersStatsComplete const& InDelegate)
 	: FOnlineAsyncTaskAccelByte(InABInterface, InLocalUserNum, true)
-	, LocalUserNum(InLocalUserNum)
 	, StatsUsers(InStatsUsers)
 	, StatNames(InStatNames)
 	, Delegate(InDelegate)
@@ -95,7 +96,6 @@ FOnlineAsyncTaskAccelByteQueryStatsUsers::FOnlineAsyncTaskAccelByteQueryStatsUse
 	, EAccelByteStatisticSortBy InSortBy
 	, FOnlineStatsQueryUsersStatsComplete const& InDelegate)
 	: FOnlineAsyncTaskAccelByte(InABInterface, InLocalUserNum, true)
-	, LocalUserNum(InLocalUserNum)
 	, StatsUsers(InStatsUsers)
 	, StatNames(InStatNames)
 	, Tags(InTags)

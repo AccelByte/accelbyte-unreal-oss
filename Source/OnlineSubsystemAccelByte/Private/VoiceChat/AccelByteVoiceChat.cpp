@@ -8,6 +8,7 @@
 #include "OnlineSubsystemTypes.h"
 #include "VoiceChat.h"
 #include "Runtime/Launch/Resources/Version.h"
+#include "OnlineSubsystemAccelByteLog.h"
 
 FAccelByteVoiceChat::FAccelByteVoiceChat(FOnlineSubsystemAccelByte* InSubsystem)
 	: AccelByteSubsystem(InSubsystem)
