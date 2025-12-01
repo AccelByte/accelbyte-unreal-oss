@@ -24,11 +24,11 @@ public:
 	bool UnbindOnTicketRefreshed();
 	bool UnbindOnPollStopped();
 
-	virtual bool StartPoll(FOnlineSubsystemAccelByte* InSubsystem, int32 LocalUserNum, const FAccelByteModelsLoginQueueTicketInfo& InTicket);
+	virtual bool StartPoll(FOnlineSubsystemAccelBytePtr InSubsystem, int32 LocalUserNum, const FAccelByteModelsLoginQueueTicketInfo& InTicket);
 	virtual bool StopPoll();
 
 protected:
-	FOnlineSubsystemAccelByte* Subsystem {nullptr};
+	FOnlineSubsystemAccelByteWPtr Subsystem;
 	FAccelByteModelsLoginQueueTicketInfo Ticket;
 	TSharedPtr<FAccelBytePoller, ESPMode::ThreadSafe> Poller;
 	int32 ConsecutiveErrorCount {0};

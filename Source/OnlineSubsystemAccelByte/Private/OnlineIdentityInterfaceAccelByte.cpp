@@ -67,6 +67,7 @@ FOnlineIdentityAccelByte::FOnlineIdentityAccelByte(FOnlineSubsystemAccelByte* In
 
 FOnlineIdentityAccelByte::~FOnlineIdentityAccelByte()
 {
+	FReadScopeLock Lock(LocalUserNumToLogoutTaskMtx);
 	for (auto& TaskPair : LocalUserNumToLogoutTask)
 	{
 		auto TaskPtr = TaskPair.Value.Pin();
@@ -120,22 +121,30 @@ bool FOnlineIdentityAccelByte::Login(int32 LocalUserNum, const FOnlineAccountCre
 		return false;
 	}
 
-	if (LocalPlayerLoggingIn[LocalUserNum])
 	{
-		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning
-			, TEXT("Player at index '%d' is already logging in! Ignoring subsequent call to log in.")
-			, LocalUserNum);
-		// Do not trigger delegates as it could impact handlers for previous log in attempt
-		return false;
+		FWriteScopeLock Lock(LocalPlayerLoggingInMtx);
+		if (LocalPlayerLoggingIn[LocalUserNum])
+		{
+			AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning
+				, TEXT("Player at index '%d' is already logging in! Ignoring subsequent call to log in.")
+				, LocalUserNum);
+			// Do not trigger delegates as it could impact handlers for previous log in attempt
+			return false;
+		}
+		LocalPlayerLoggingIn[LocalUserNum] = true;
 	}
 
-	LocalPlayerLoggingIn[LocalUserNum] = true;
-
+	bool NetIdFound = false;
+	{
+		FReadScopeLock Lock(LocalUserNumToNetIdMapMtx);
+		NetIdFound = LocalUserNumToNetIdMap.Contains(LocalUserNum);
+	}
 	// Don't attempt to authenticate again if we are already reporting as logged in
-	if (GetLoginStatus(LocalUserNum) == ELoginStatus::LoggedIn
-		&& LocalUserNumToNetIdMap.Contains(LocalUserNum)
+	if (GetLoginStatus(LocalUserNum) == ELoginStatus::LoggedIn 
+		&& NetIdFound
 		&& (AccountCredentials.Type != FAccelByteUtilities::GetUEnumValueAsString(EAccelByteLoginType::RefreshToken)))
 	{
+
 		const FUniqueNetIdPtr LocalUserId = GetUniquePlayerId(LocalUserNum);
 		TSharedPtr<FUserOnlineAccount> UserAccount;
 		if (LocalUserId.IsValid())
@@ -148,7 +157,10 @@ bool FOnlineIdentityAccelByte::Login(int32 LocalUserNum, const FOnlineAccountCre
 		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("User already logged in at user index '%d'!"), LocalUserNum);
 		
 		// Clear log in progress flag
-		LocalPlayerLoggingIn[LocalUserNum] = false;
+		{
+			FWriteScopeLock Lock(LocalPlayerLoggingInMtx);
+			LocalPlayerLoggingIn[LocalUserNum] = false;
+		}
 
 		TriggerOnLoginChangedDelegates(LocalUserNum);
 		TriggerOnLoginCompleteDelegates(LocalUserNum, true, *LocalUserId, ErrorStr);
@@ -167,8 +179,10 @@ bool FOnlineIdentityAccelByte::Login(int32 LocalUserNum, const FOnlineAccountCre
 	if (!AccelByteSubsystemPtr.IsValid())
 	{
 		// Clear log in progress flag
-		LocalPlayerLoggingIn[LocalUserNum] = false;
-
+		{
+			FWriteScopeLock Lock(LocalPlayerLoggingInMtx);
+			LocalPlayerLoggingIn[LocalUserNum] = false;
+		}
 		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("AccelByte online subsystem is null"));
 		const FString ErrorStr = TEXT("login-failed-online-subsystem-null");
 		TriggerOnLoginChangedDelegates(LocalUserNum);
@@ -272,7 +286,10 @@ bool FOnlineIdentityAccelByte::Logout(int32 LocalUserNum, FString Reason)
 			Chat->Disconnect(true);
 		}
 		auto TaskWPtr = User->LogoutV3(OnLogoutSuccessDelegate, OnLogoutFailedDelegate);
-		LocalUserNumToLogoutTask.Emplace(LocalUserNum, TaskWPtr);
+		{
+			FWriteScopeLock Lock(LocalUserNumToLogoutTaskMtx);
+			LocalUserNumToLogoutTask.Emplace(LocalUserNum, TaskWPtr);
+		}
 	}
 	else
 	{
@@ -355,7 +372,7 @@ bool FOnlineIdentityAccelByte::AutoLogin(int32 LocalUserNum)
 #endif
 	}
 
-	FOnlineAccountCredentialsAccelByte Credentials{ bIsAutoLoginCreateHeadless };
+	FOnlineAccountCredentialsAccelByte Credentials{ bIsAutoLoginCreateHeadless.load(std::memory_order_acquire) };
 
 	// Check if we have an environment variable set named "JUSTICE_AUTHORIZATION_CODE", which if so will initiate a
 	// launcher login and reset the type to be a "launcher" login
@@ -379,7 +396,11 @@ TSharedPtr<FUserOnlineAccount> FOnlineIdentityAccelByte::GetUserAccount(const FU
 {
 	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT(""));
 
-	const TSharedRef<FUserOnlineAccount>* Account = NetIdToOnlineAccountMap.Find(UserId);
+	const TSharedRef<FUserOnlineAccount>* Account = nullptr;
+	{
+		FReadScopeLock Lock(NetIdToOnlineAccountMapMtx);
+		Account = NetIdToOnlineAccountMap.Find(UserId);
+	}
 	if (Account != nullptr)
 	{
 		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("FOnlineUserAccount found for user with NetID of '%s'!"), *UserId->ToDebugString());
@@ -420,6 +441,7 @@ TArray<TSharedPtr<FUserOnlineAccount>> FOnlineIdentityAccelByte::GetAllUserAccou
 {
 	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("N/A"));
 
+	FReadScopeLock Lock(NetIdToOnlineAccountMapMtx);
 	TArray<TSharedPtr<FUserOnlineAccount>> Result;
 	Result.Empty(NetIdToOnlineAccountMap.Num());
 
@@ -436,11 +458,14 @@ FUniqueNetIdPtr FOnlineIdentityAccelByte::GetUniquePlayerId(int32 LocalUserNum) 
 {
 	AB_OSS_PTR_INTERFACE_TRACE_BEGIN_VERBOSITY(VeryVerbose, TEXT("LocalUserNum: %d"), LocalUserNum);
 
-	const TSharedRef<const FUniqueNetId>* UserId = LocalUserNumToNetIdMap.Find(LocalUserNum);
+	const TSharedRef<const FUniqueNetId>* UserId = nullptr;
+	{
+		FReadScopeLock Lock(LocalUserNumToNetIdMapMtx);
+		UserId = LocalUserNumToNetIdMap.Find(LocalUserNum);
+	}
 	if (UserId)
 	{
 		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(VeryVerbose, TEXT("Found NetId for LocalUserNum of '%d'. ID is '%s'."), LocalUserNum, *(*UserId)->ToDebugString());
-
 		return *UserId;
 	}
 
@@ -469,7 +494,11 @@ ELoginStatus::Type FOnlineIdentityAccelByte::GetLoginStatus(int32 LocalUserNum) 
 	// #SG #NOTE (Maxwell): Changing all verbosity to VeryVerbose to prevent log spam with controllers
 	AB_OSS_PTR_INTERFACE_TRACE_BEGIN_VERBOSITY(VeryVerbose, TEXT("LocalUserNum: %d"), LocalUserNum);
 
-	const ELoginStatus::Type* FoundLoginStatus = LocalUserNumToLoginStatusMap.Find(LocalUserNum);
+	const ELoginStatus::Type* FoundLoginStatus = nullptr;
+	{
+		FReadScopeLock Lock(LocalUserNumToLoginStatusMapMtx);
+		FoundLoginStatus = LocalUserNumToLoginStatusMap.Find(LocalUserNum);
+	}
 	if (FoundLoginStatus != nullptr)
 	{
 		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(VeryVerbose, TEXT("LoginStatus: %s"), ELoginStatus::ToString(*FoundLoginStatus));
@@ -501,13 +530,18 @@ ELoginStatus::Type FOnlineIdentityAccelByte::GetLoginStatus(const FUniqueNetId& 
 void FOnlineIdentityAccelByte::SetLoginStatus(const int32 LocalUserNum, const ELoginStatus::Type NewStatus)
 {
 	const ELoginStatus::Type OldStatus = GetLoginStatus(LocalUserNum);
-	LocalUserNumToLoginStatusMap.Add(LocalUserNum, NewStatus);
-
-	if (LocalPlayerLoggingIn[LocalUserNum])
 	{
-		// This method is one of the last called when log in process completes. With this in mind, update the log in
-		// state used for duplicate prevention here.
-		LocalPlayerLoggingIn[LocalUserNum] = false;
+		FWriteScopeLock Lock(LocalUserNumToLoginStatusMapMtx);
+		LocalUserNumToLoginStatusMap.Add(LocalUserNum, NewStatus);
+	}
+	{
+		FWriteScopeLock Lock(LocalPlayerLoggingInMtx);
+		if (LocalPlayerLoggingIn[LocalUserNum])
+		{
+			// This method is one of the last called when log in process completes. With this in mind, update the log in
+			// state used for duplicate prevention here.
+			LocalPlayerLoggingIn[LocalUserNum] = false;
+		}
 	}
 
 	const FUniqueNetIdPtr LocalUserId = GetUniquePlayerId(LocalUserNum);
@@ -516,7 +550,6 @@ void FOnlineIdentityAccelByte::SetLoginStatus(const int32 LocalUserNum, const EL
 		// No need to trigger delegate 
 		return;
 	}
-
 	TriggerOnLoginStatusChangedDelegates(LocalUserNum, OldStatus, NewStatus, *LocalUserId);
 }
 
@@ -529,7 +562,7 @@ void FOnlineIdentityAccelByte::AddAuthenticatedServer(int32 LocalUserNum)
 
 void FOnlineIdentityAccelByte::FinalizeLoginQueueCancel(int32 LoginUserNum)
 {
-	FScopeLock ScopeLock(&LocalUserNumToLoginQueueTicketLock);
+	FWriteScopeLock Lock(LocalUserNumToLoginQueueTicketMapMtx);
 	LocalUserNumToLoginQueueTicketMap.Remove(LoginUserNum);
 	
 	TriggerAccelByteOnLoginQueueCanceledByUserDelegates(LoginUserNum);
@@ -537,13 +570,13 @@ void FOnlineIdentityAccelByte::FinalizeLoginQueueCancel(int32 LoginUserNum)
 
 void FOnlineIdentityAccelByte::InitializeLoginQueue(int32 LoginUserNum, const FString& TicketId)
 {
-	FScopeLock ScopeLock(&LocalUserNumToLoginQueueTicketLock);
+	FWriteScopeLock Lock(LocalUserNumToLoginQueueTicketMapMtx);
 	LocalUserNumToLoginQueueTicketMap.Emplace(LoginUserNum, TicketId);
 }
 
 void FOnlineIdentityAccelByte::FinalizeLoginQueue(int32 LoginUserNum)
 {
-	FScopeLock ScopeLock(&LocalUserNumToLoginQueueTicketLock);
+	FWriteScopeLock Lock(LocalUserNumToLoginQueueTicketMapMtx);
 	LocalUserNumToLoginQueueTicketMap.Remove(LoginUserNum);
 }
 
@@ -706,6 +739,7 @@ FPlatformUserId FOnlineIdentityAccelByte::GetPlatformUserIdFromUniqueNetId(const
 
 	// NOTE(Maxwell, 4/7/2021): This will return what is essentially the LocalUserNum, which we retrieve by iterating
 	// through all entries of the map and returning the key that has its associated value set to the UniqueId passed in.
+	FReadScopeLock Lock(LocalUserNumToNetIdMapMtx);
 	for (const auto& Entry : LocalUserNumToNetIdMap)
 	{
 		if (Entry.Value.Get() == UniqueNetId)
@@ -737,17 +771,25 @@ int32 FOnlineIdentityAccelByte::GetLocalUserNumFromPlatformUserId(FPlatformUserI
 
 bool FOnlineIdentityAccelByte::GetLocalUserNum(const FUniqueNetId& NetId, int32& OutLocalUserNum) const
 {
-	const int32* FoundLocalUserNum = NetIdToLocalUserNumMap.Find(NetId.AsShared());
+	const int32* FoundLocalUserNum = nullptr;
+	{
+		FReadScopeLock Lock(NetIdToLocalUserNumMapMtx);
+		FoundLocalUserNum = NetIdToLocalUserNumMap.Find(NetId.AsShared());
+	}
 	if (FoundLocalUserNum != nullptr)
 	{
 		OutLocalUserNum = *FoundLocalUserNum;
 		return true;
 	}
-	return false;
+	else
+	{
+		return false;
+	}
 }
 
 bool FOnlineIdentityAccelByte::GetLocalUserNumFromPlatformUserId(const FString& PlatformUserId, int32& OutLocalUserNum)
 {
+	FReadScopeLock Lock(LocalUserNumToNetIdMapMtx);
 	for (const auto& LocalUser : LocalUserNumToNetIdMap)
 	{
 		int32 InLocalUserNum = LocalUser.Key;
@@ -804,10 +846,14 @@ bool FOnlineIdentityAccelByte::AuthenticateAccelByteServer(const FOnAuthenticate
 #endif
 
 #if (defined(UE_SERVER) && UE_SERVER) || (defined(UE_EDITOR) && UE_EDITOR)
-	if (!bIsServerAuthenticated && !bIsAuthenticatingServer)
+	if (!bIsServerAuthenticated.load(std::memory_order_acquire)
+		&& !bIsAuthenticatingServer.load(std::memory_order_acquire))
 	{
-		bIsAuthenticatingServer = true;
-		ServerAuthDelegates.Add(Delegate);
+		bIsAuthenticatingServer.store(true, std::memory_order_release);
+		{
+			FWriteScopeLock Lock(ServerAuthDelegatesMtx);
+			ServerAuthDelegates.Add(Delegate);
+		}
 
 		const TSharedRef<FOnlineIdentityAccelByte, ESPMode::ThreadSafe> IdentityInterface = SharedThis(this);
 		const FVoidHandler OnLoginSuccess = FVoidHandler::CreateThreadSafeSP(IdentityInterface, &FOnlineIdentityAccelByte::OnAuthenticateAccelByteServerSuccess, LocalUserNum);
@@ -848,12 +894,13 @@ bool FOnlineIdentityAccelByte::AuthenticateAccelByteServer(const FOnAuthenticate
 	{
 		UE_LOG_AB(Warning, TEXT("Server is being or has already authenticated, skipping call!"));
 		
-		if (bIsServerAuthenticated)
+		if (bIsServerAuthenticated.load(std::memory_order_acquire))
 		{
 			Delegate.ExecuteIfBound(true);
 		}
-		else if (bIsAuthenticatingServer)
+		else if (bIsAuthenticatingServer.load(std::memory_order_acquire))
 		{
+			FWriteScopeLock Lock(ServerAuthDelegatesMtx);
 			ServerAuthDelegates.Add(Delegate);
 		}
 
@@ -875,8 +922,13 @@ bool FOnlineIdentityAccelByte::ConnectAccelByteLobby(int32 LocalUserNum)
 {
 	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("LocalUserNum: %d"), LocalUserNum);
 
+	bool NetIdFound = false;
+	{
+		FReadScopeLock Lock(LocalUserNumToNetIdMapMtx);
+		NetIdFound = LocalUserNumToNetIdMap.Contains(LocalUserNum);
+	}
 	// Don't attempt to connect again if we are already reporting as connected
-	if (GetLoginStatus(LocalUserNum) == ELoginStatus::LoggedIn && LocalUserNumToNetIdMap.Contains(LocalUserNum))
+	if (GetLoginStatus(LocalUserNum) == ELoginStatus::LoggedIn && NetIdFound)
 	{
 		const FUniqueNetIdPtr LocalUserId = GetUniquePlayerId(LocalUserNum);
 		TSharedPtr<FUserOnlineAccount> UserAccount;
@@ -924,16 +976,28 @@ bool FOnlineIdentityAccelByte::ConnectAccelByteLobby(int32 LocalUserNum)
 
 void FOnlineIdentityAccelByte::SetAutoLoginCreateHeadless(bool bInIsAutoLoginCreateHeadless)
 {
-	bIsAutoLoginCreateHeadless = bInIsAutoLoginCreateHeadless;
+	bIsAutoLoginCreateHeadless.store(bInIsAutoLoginCreateHeadless, std::memory_order_release);
 }
 
 void FOnlineIdentityAccelByte::AddNewAuthenticatedUser(int32 LocalUserNum, const TSharedRef<const FUniqueNetId>& UserId, const TSharedRef<FUserOnlineAccount>& Account)
 {
 	// Add to mappings for the user
-	LocalUserNumToNetIdMap.Emplace(LocalUserNum, UserId);
-	LocalUserNumToLoginStatusMap.Emplace(LocalUserNum, ELoginStatus::NotLoggedIn);
-	NetIdToLocalUserNumMap.Emplace(UserId, LocalUserNum);
-	NetIdToOnlineAccountMap.Emplace(UserId, Account);
+	{
+		FWriteScopeLock Lock(LocalUserNumToNetIdMapMtx);
+		LocalUserNumToNetIdMap.Emplace(LocalUserNum, UserId);
+	}
+	{
+		FWriteScopeLock Lock(LocalUserNumToLoginStatusMapMtx);
+		LocalUserNumToLoginStatusMap.Emplace(LocalUserNum, ELoginStatus::NotLoggedIn);
+	}
+	{
+		FWriteScopeLock Lock(NetIdToLocalUserNumMapMtx);
+		NetIdToLocalUserNumMap.Emplace(UserId, LocalUserNum);
+	}
+	{
+		FWriteScopeLock Lock(NetIdToOnlineAccountMapMtx);
+		NetIdToOnlineAccountMap.Emplace(UserId, Account);
+	}
 }
 
 #define ONLINE_ERROR_NAMESPACE "FOnlineAccelByteLogout"
@@ -946,7 +1010,11 @@ void FOnlineIdentityAccelByte::OnLogout(const int32 LocalUserNum, bool bWasSucce
 #else
 	// Signal to the session interface that a player has logged out to clean the local cache
 	FOnlineSessionV2AccelBytePtr SessionInterface{};
-	const TSharedRef<const FUniqueNetId>* LocalPlayerId = LocalUserNumToNetIdMap.Find(LocalUserNum);
+	const TSharedRef<const FUniqueNetId>* LocalPlayerId = nullptr;
+	{
+		FReadScopeLock Lock(LocalUserNumToNetIdMapMtx);
+		LocalPlayerId = LocalUserNumToNetIdMap.Find(LocalUserNum);
+	}
 
 	TSharedPtr<FOnlineSubsystemAccelByte, ESPMode::ThreadSafe> PinnedSubsystem = AccelByteSubsystem.Pin();
 	const bool bSessionInterfaceValid = PinnedSubsystem.IsValid() &&
@@ -984,39 +1052,58 @@ void FOnlineIdentityAccelByte::OnLogout(const int32 LocalUserNum, bool bWasSucce
 		UE_LOG_AB(Log, TEXT("Logging out with AccelByte OSS succeeded! LocalUserNum: %d"), LocalUserNum);
 		RemoveUserFromMappings(LocalUserNum);
 	}
-	LocalUserNumToLogoutTask.Remove(LocalUserNum);
+	{	
+		FWriteScopeLock Lock(LocalUserNumToLogoutTaskMtx);
+		LocalUserNumToLogoutTask.Remove(LocalUserNum);
+	}
 }
 
 void FOnlineIdentityAccelByte::OnLogoutError(int32 ErrorCode, const FString& ErrorMessage, int32 LocalUserNum)
 {
 	UE_LOG_AB(Error, TEXT("Logging out with AccelByte OSS failed! Code: %d; Message: %s"), ErrorCode, *ErrorMessage);
 	OnLogout(LocalUserNum, false);
-	LocalUserNumToLogoutTask.Remove(LocalUserNum);
+	{
+		FWriteScopeLock Lock(LocalUserNumToLogoutTaskMtx);
+		LocalUserNumToLogoutTask.Remove(LocalUserNum);
+	}
 }
 #undef ONLINE_ERROR_NAMESPACE
 
 void FOnlineIdentityAccelByte::RemoveUserFromMappings(const int32 LocalUserNum)
 {
-	const TSharedRef<const FUniqueNetId>* UniqueId = LocalUserNumToNetIdMap.Find(LocalUserNum);
-	if (UniqueId != nullptr)
+	const TSharedRef<const FUniqueNetId>* UniqueId = nullptr;
 	{
-		// Remove the account map first, and then remove the unique ID by local user num
-		const TSharedRef<const FUniqueNetIdAccelByteUser> AccelByteUser = FUniqueNetIdAccelByteUser::CastChecked(*UniqueId);
+		FReadScopeLock Lock(LocalUserNumToNetIdMapMtx);
+		UniqueId = LocalUserNumToNetIdMap.Find(LocalUserNum);
+	}
+	if (UniqueId == nullptr)
+	{
+		return;
+	}
+	// Remove the account map first, and then remove the unique ID by local user num
+	const TSharedRef<const FUniqueNetIdAccelByteUser> AccelByteUser = FUniqueNetIdAccelByteUser::CastChecked(*UniqueId);
+	{
+		FWriteScopeLock Lock(NetIdToLocalUserNumMapMtx);
 		NetIdToLocalUserNumMap.Remove(*UniqueId);
+	}
+	{
+		FWriteScopeLock Lock(NetIdToOnlineAccountMapMtx);
 		NetIdToOnlineAccountMap.Remove(*UniqueId);
+	}
 
-		FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
-		if (AccelByteSubsystemPtr.IsValid() && AccelByteSubsystemPtr->GetLocalUserNumCached() == LocalUserNum)
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (AccelByteSubsystemPtr.IsValid() && AccelByteSubsystemPtr->GetLocalUserNumCached() == LocalUserNum)
+	{
+		AccelByteSubsystemPtr->ResetLocalUserNumCached();
+
+		FAccelByteInstancePtr AccelByteInstance = AccelByteSubsystemPtr->GetAccelByteInstance().Pin();
+		if(AccelByteInstance.IsValid())
 		{
-			AccelByteSubsystemPtr->ResetLocalUserNumCached();
-
-			FAccelByteInstancePtr AccelByteInstance = AccelByteSubsystemPtr->GetAccelByteInstance().Pin();
-			if(AccelByteInstance.IsValid())
-			{
-				AccelByteInstance->RemoveApiClient(AccelByteUser->GetAccelByteId());
-			}
+			AccelByteInstance->RemoveApiClient(AccelByteUser->GetAccelByteId());
 		}
-
+	}
+	{
+		FWriteScopeLock Lock(LocalUserNumToNetIdMapMtx);
 		LocalUserNumToNetIdMap.Remove(LocalUserNum);
 	}
 }
@@ -1029,17 +1116,22 @@ void FOnlineIdentityAccelByte::OnGetNativeUserPrivilegeComplete(const FUniqueNet
 #define ONLINE_ERROR_NAMESPACE "FOnlineAccelByteLogin"
 void FOnlineIdentityAccelByte::OnAuthenticateAccelByteServerSuccess(int32 LocalUserNum)
 {
-	for (FOnAuthenticateServerComplete& Delegate : ServerAuthDelegates)
 	{
-		Delegate.ExecuteIfBound(true);
+		FReadScopeLock Lock(ServerAuthDelegatesMtx);
+		for (FOnAuthenticateServerComplete& Delegate : ServerAuthDelegates)
+		{
+			Delegate.ExecuteIfBound(true);
+		}
 	}
-
-	ServerAuthDelegates.Empty();
+	{	
+		FWriteScopeLock Lock(ServerAuthDelegatesMtx);
+		ServerAuthDelegates.Empty();
+	}
 	AddAuthenticatedServer(LocalUserNum);
 
 	// #TODO (Maxwell): This is some super nasty code to avoid duplicate server authentication, again this should just be apart of AutoLogin...
-	bIsAuthenticatingServer = false;
-	bIsServerAuthenticated = true;
+	bIsAuthenticatingServer.store(false, std::memory_order_release);
+	bIsServerAuthenticated.store(true, std::memory_order_release);
 
 	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
 	if (AccelByteSubsystemPtr.IsValid())
@@ -1055,16 +1147,21 @@ void FOnlineIdentityAccelByte::OnAuthenticateAccelByteServerError(int32 ErrorCod
 {
 	UE_LOG_AB(Warning, TEXT("Failed to authenticate server! Error code: %d; Error message: %s"), ErrorCode, *ErrorMessage);
 	
-	for (FOnAuthenticateServerComplete& Delegate : ServerAuthDelegates)
 	{
-		Delegate.ExecuteIfBound(false);
+		FReadScopeLock Lock(ServerAuthDelegatesMtx);
+		for (FOnAuthenticateServerComplete& Delegate : ServerAuthDelegates)
+		{
+			Delegate.ExecuteIfBound(false);
+		}
+	}
+	{	
+		FWriteScopeLock Lock(ServerAuthDelegatesMtx);
+		ServerAuthDelegates.Empty();
 	}
 
-	ServerAuthDelegates.Empty();
-
 	// Reset our authentication state to false as we can retry from here
-	bIsAuthenticatingServer = false;
-	bIsServerAuthenticated = false;
+	bIsAuthenticatingServer.store(false, std::memory_order_release);
+	bIsServerAuthenticated.store(false, std::memory_order_release);
 }
 #undef ONLINE_ERROR_NAMESPACE
 
@@ -1173,11 +1270,18 @@ bool FOnlineIdentityAccelByte::RefreshPlatformToken(int32 LocalUserNum, FName Su
 bool FOnlineIdentityAccelByte::CancelLoginQueue(int32 LocalUserNum)
 {
 	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("LocalUserNum: %d"), LocalUserNum);
-
-	if(!LocalUserNumToLoginQueueTicketMap.Contains(LocalUserNum))
+	FString LoginQueueTicket = TEXT("");
 	{
-		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("local user queue ticket not found"));
-		return false;
+		FReadScopeLock Lock(LocalUserNumToLoginQueueTicketMapMtx);
+		if (!LocalUserNumToLoginQueueTicketMap.Contains(LocalUserNum))
+		{
+			AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("local user queue ticket not found"));
+			return false;
+		}
+		else
+		{
+			LoginQueueTicket = LocalUserNumToLoginQueueTicketMap[LocalUserNum];
+		}
 	}
 
 	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
@@ -1186,10 +1290,10 @@ bool FOnlineIdentityAccelByte::CancelLoginQueue(int32 LocalUserNum)
 		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("AccelByte online subsystem is null"));
 		return false;
 	}
-	
+
 	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteLoginQueueCancelTicket>(AccelByteSubsystemPtr.Get()
 			, LocalUserNum
-			, LocalUserNumToLoginQueueTicketMap[LocalUserNum]);
+			, LoginQueueTicket);
 	
 	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Dispatching async task to cancel login queue!"));
 	return true;
@@ -1198,11 +1302,18 @@ bool FOnlineIdentityAccelByte::CancelLoginQueue(int32 LocalUserNum)
 bool FOnlineIdentityAccelByte::ClaimLoginQueueTicket(int32 LocalUserNum)
 {
 	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("LocalUserNum: %d"), LocalUserNum);
-
-	if (!LocalUserNumToLoginQueueTicketMap.Contains(LocalUserNum))
+	FString LoginQueueTicket = TEXT("");
 	{
-		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("local user queue ticket not found"));
-		return false;
+		FReadScopeLock Lock(LocalUserNumToLoginQueueTicketMapMtx);
+		if (!LocalUserNumToLoginQueueTicketMap.Contains(LocalUserNum))
+		{
+			AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("local user queue ticket not found"));
+			return false;
+		}
+		else
+		{
+			LoginQueueTicket = LocalUserNumToLoginQueueTicketMap[LocalUserNum];
+		}
 	}
 
 	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
@@ -1214,7 +1325,7 @@ bool FOnlineIdentityAccelByte::ClaimLoginQueueTicket(int32 LocalUserNum)
 
 	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteLoginQueueClaimTicket>(AccelByteSubsystemPtr.Get()
 		, LocalUserNum
-		, LocalUserNumToLoginQueueTicketMap[LocalUserNum]);
+		, LoginQueueTicket);
 
 	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Dispatching async task to claim login queue ticket!"));
 	return true;

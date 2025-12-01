@@ -119,6 +119,15 @@ public:
 	/** Get all session member storage. */
 	bool GetAllSessionMemberStorage(TUniqueNetIdMap<FJsonObjectWrapper>& OutStorage) const;
 
+	/** Set party storage. */
+	void SetPartyStorage(const FUniqueNetIdRef& UserId, const FJsonObjectWrapper& Data);
+
+	/** Get party storage. */
+	bool GetPartyStorage(const FUniqueNetIdRef& UserId, FJsonObjectWrapper& OutStorage) const;
+
+	/** Get all party storage. */
+	bool GetAllPartyStorage(TUniqueNetIdMap<FJsonObjectWrapper>& OutStorage) const;
+
 PACKAGE_SCOPE:
 	/**
 	 * Update the list of invited players on this session from the backend session data.
@@ -235,6 +244,9 @@ private:
 
 	/** Session members storage. */
 	TUniqueNetIdMap<FJsonObjectWrapper> SessionMembersStorages;
+
+	/** Party storage. */
+	TUniqueNetIdMap<FJsonObjectWrapper> PartyStorages;
 };
 
 /**
@@ -570,6 +582,9 @@ typedef FOnUpdateSessionLeaderStorageComplete::FDelegate FOnUpdateSessionLeaderS
 DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnUpdateSessionMemberStorageComplete, FName /*SessionName*/, const FUniqueNetId& /*UpdatedUserId*/, const FOnlineError& /*ErrorInfo*/);
 typedef FOnUpdateSessionMemberStorageComplete::FDelegate FOnUpdateSessionMemberStorageCompleteDelegate;
 
+DECLARE_MULTICAST_DELEGATE_TwoParams(FOnUpdatePartySessionStorageComplete, FName /*SessionName*/, const FOnlineError& /*ErrorInfo*/);
+typedef FOnUpdatePartySessionStorageComplete::FDelegate FOnUpdatePartySessionStorageCompleteDelegate;
+
 DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnUpdatePlayerReservedPartySessionStorageComplete, const FAccelByteModelsV2PartySessionStorageReservedData& /*Data*/, bool /*bWasSuccessful*/, const FOnlineError& /*ErrorInfo*/);
 typedef FOnUpdatePlayerReservedPartySessionStorageComplete::FDelegate FOnUpdatePlayerReservedPartySessionStorageCompleteDelegate;
 
@@ -605,6 +620,9 @@ typedef FAccelByteOnDSHubFailedToConnect::FDelegate FAccelByteOnDSHubFailedToCon
 
 DECLARE_MULTICAST_DELEGATE_TwoParams(FOnPartySessionCreated, const FUniqueNetId& /*LocalUserId*/, const FOnlineSession& /*Session*/);
 typedef FOnPartySessionCreated::FDelegate FOnPartySessionCreatedDelegate;
+
+DECLARE_MULTICAST_DELEGATE_TwoParams(FOnPartyStorageUpdateReceived, FName /*SessionName*/, const FUniqueNetId& /*UpdatedMemberId*/);
+typedef FOnPartyStorageUpdateReceived::FDelegate FOnPartyStorageUpdateReceivedDelegate;
 
 /**
  * Delegate broadcast when a session that the player is in locally has been removed on the backend. Gives the game an
@@ -1109,6 +1127,21 @@ public:
 	bool UpdateSessionMemberStorage(const FUniqueNetId& LocalUserId, FName SessionName, FJsonObjectWrapper const& Data);
 
 	/**
+	 * Update party session member storage.
+	 * User can only update or insert their own party storage (non-immutable). Can store generic JSON.
+	 * This will overwrite the current party session storage if successful.
+	 * Listen to OnUpdatePartySessionStorageComplete event for detailed information if the storage successfully updated in backend.
+	 *
+	 * NOTE: This function is specifically for party sessions and MUST be called with NAME_PartySession.
+	 * For game sessions, use UpdateSessionMemberStorage instead.
+	 *
+	 * @param LocalUserId UniqueNetId of user who will perform party session storage update.
+	 * @param Data The JSON data for updating the party session storage.
+	 * @return true if it successfully dispatch task to update the party session storage.
+	 */
+	bool UpdatePartySessionStorage(const FUniqueNetId& LocalUserId, FJsonObjectWrapper const& Data);
+
+	/**
 	 * Query the backend for active matchmaking tickets, Listen to OnGetMyActiveMatchTicketComplete for the result.
 	 * if active ticket is found, it will fill CurrentMatchmakingSearchHandle so ticket can be cancelled with CancelMatchmaking call.
 	 *
@@ -1489,6 +1522,11 @@ public:
 	DEFINE_ONLINE_DELEGATE_THREE_PARAM(OnUpdateSessionMemberStorageComplete, FName /*SessionName*/, const FUniqueNetId& /*UpdatedUserId*/, const FOnlineError& /*ErrorInfo*/);
 
 	/**
+	 * Delegate fired when party session storage has received an update
+	 */
+	DEFINE_ONLINE_DELEGATE_TWO_PARAM(OnUpdatePartySessionStorageComplete, FName /*SessionName*/, const FOnlineError& /*ErrorInfo*/);
+
+	/**
 	 * Delegate fired when send server ready completed.
 	 */
 	DEFINE_ONLINE_DELEGATE_ONE_PARAM(OnSendDSSessionReadyComplete, const FOnlineError& /*ErrorInfo*/);
@@ -1548,6 +1586,8 @@ public:
 #endif
 
 	DEFINE_ONLINE_DELEGATE_TWO_PARAM(OnPartySessionCreated, const FUniqueNetId&, const FOnlineSession&);
+
+	DEFINE_ONLINE_DELEGATE_TWO_PARAM(OnPartyStorageUpdateReceived, FName /*SessionName*/, const FUniqueNetId& /*UpdatedMemberId*/);
 
 PACKAGE_SCOPE:
 	void UnbindLobbyMulticastDelegate();
@@ -2157,6 +2197,7 @@ private:
 
 	//~ Begin Session Storage Notification Handler
 	void OnSessionStorageChangedNotification(FAccelByteModelsV2SessionStorageChangedEvent Notification, int32 LocalUserNum);
+	void OnPartyStorageChangedNotification(FAccelByteModelsV2PartyStorageChangedEvent Notification, int32 LocalUserNum);
 	//~ End Session Storage Notification Handler
 
 	//~ Begin Lobby Multicast Notification Handler

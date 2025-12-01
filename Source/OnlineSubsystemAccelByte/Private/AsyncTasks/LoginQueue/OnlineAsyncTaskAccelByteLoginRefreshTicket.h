@@ -27,9 +27,6 @@ protected:
 
 private:
 
-	/** the usernum of user who want to login*/
-	int32 LoginUserNum;
-	
 	/** Ticket ID we want to refresh */
 	FString TicketId;
 

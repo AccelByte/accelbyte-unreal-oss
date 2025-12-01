@@ -4,6 +4,7 @@
 #if 1 // MMv1 Deprecation
 
 #include "OnlinePartyInterfaceAccelByte.h"
+#include "OnlinePartyInterfaceAccelByteLog.h"
 #include "Runtime/Launch/Resources/Version.h"
 #include "OnlineSubsystemAccelByte.h"
 #include "OnlineError.h"
@@ -26,6 +27,7 @@
 #include "Core/AccelByteReport.h"
 #include "OnlineSubsystemAccelByteLog.h"
 
+DEFINE_LOG_CATEGORY(LogAccelByteOSSParty);
 
 // Some delegates require reasons as to why the delegate might have failed, for this case, this is a constant for when
 // we do not support the current method that the developer is attempting to call
@@ -1685,7 +1687,8 @@ bool FOnlinePartySystemAccelByte::JIPFromWithinParty(const FUniqueNetId& LocalUs
 	UE_LOG_AB(Warning, TEXT("FOnlinePartySystemAccelByte::JIPFromWithinParty is not supported!"));
 	return false;
 }
-
+// Only for Engines pre UE5.7
+#if ENGINE_MAJOR_VERSION == 4 || (ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION < 7)
 bool FOnlinePartySystemAccelByte::RejoinParty(const FUniqueNetId& LocalUserId, const FOnlinePartyId& PartyId, const FOnlinePartyTypeId& PartyTypeId, const TArray<TSharedRef<const FUniqueNetId>>& FormerMembers, const FOnJoinPartyComplete& Delegate /*= FOnJoinPartyComplete()*/)
 {
 	if (WarnForUsingV1PartyWithV2Sessions())
@@ -1724,7 +1727,7 @@ bool FOnlinePartySystemAccelByte::LeaveParty(const FUniqueNetId& LocalUserId, co
 	// Defaulting synchronizing leaving a party on the backend to be true, as this is most likely what a dev wishes to do
 	return LeaveParty(LocalUserId, PartyId, true, Delegate);
 }
-
+#endif
 bool FOnlinePartySystemAccelByte::LeaveParty(const FUniqueNetId& LocalUserId, const FOnlinePartyId& PartyId, bool bSynchronizeLeave, const FOnLeavePartyComplete& Delegate)
 {
 	if (WarnForUsingV1PartyWithV2Sessions())

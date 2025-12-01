@@ -784,30 +784,6 @@ private:
 	/** Disable the default constructor, as we only want to be able to construct this interface passing in the parent subsystem */
 	FOnlineIdentityAccelByte() = delete;
 
-	/** Parent subsystem that spawned this instance */
-	FOnlineSubsystemAccelByteWPtr AccelByteSubsystem;
-
-	/** Simple mapping for LocalUserNum to FUniqueNetIdAccelByte for users. Filled when users log in. */
-	TMap<int32, FUniqueNetIdRef> LocalUserNumToNetIdMap;
-
-	/** Mapping of local user indices to login statuses, used to query login status for a user */
-	TMap<int32, ELoginStatus::Type> LocalUserNumToLoginStatusMap;
-
-	/** Simple mapping for FUniqueNetIdAccelByte to LocalUserNum. Filled when users log in. */
-	TUniqueNetIdMap<int32> NetIdToLocalUserNumMap;
-	
-	/** Mapping of AccelByte net IDs to AccelByte user accounts. Filled when users log in. */
-	TUniqueNetIdMap<TSharedRef<FUserOnlineAccount>> NetIdToOnlineAccountMap;
-	
-	mutable FCriticalSection LocalUserNumToLoginQueueTicketLock;
-	
-	/** Mapping of local user indices to it's login queue ticket */
-	TMap<int32, FString> LocalUserNumToLoginQueueTicketMap;
-
-	FString LogoutReason; // Error Code for when we logged out
-
-	TMap<int32, AccelByte::FAccelByteTaskWPtr> LocalUserNumToLogoutTask;
-
 	/**
 	 * @brief Call when the user logged out.
 	 * 
@@ -836,37 +812,7 @@ private:
 	 * Handler for when our internal call to the native platform for querying user privileges completes.
 	 */
 	void OnGetNativeUserPrivilegeComplete(const FUniqueNetId& UserId, EUserPrivileges::Type Privilege, uint32 PrivilegeResults, FOnGetUserPrivilegeCompleteDelegate OriginalDelegate, TSharedRef<const FUniqueNetIdAccelByteUser> AccelByteId);
-
-	/**
-	 * Flag denoting whether or not we are currently authenticating as a server to prevent duplicate logins
-	 */
-	bool bIsAuthenticatingServer = false;
-
-	/**
-	 * Flag denoting whether or not we have successfully authenticated as a server in this instance
-	 */
-	bool bIsServerAuthenticated = false;
-
-	/**
-	 * Flag denoting whether or not we create headless account on successfully 3rd party login using AutoLogin
-	 */
-	bool bIsAutoLoginCreateHeadless = true;
-
-	/**
-	 * Array of pending server login delegates, will be all fired once login is finished
-	 */
-	TArray<FOnAuthenticateServerComplete> ServerAuthDelegates;
-
-	/**
-	 * Array of booleans reflecting whether a local player at the corresponding index is currently logging in.
-	 * Prevents double log in if already in progress.
-	 */
-#if ENGINE_MAJOR_VERSION >= 5
-	TStaticArray<bool, 4> LocalPlayerLoggingIn{InPlace, false};
-#else
-	TStaticArray<bool, 4> LocalPlayerLoggingIn{false};
-#endif
-
+	
 	/**
 	 * Handler for when we finish authenticating a server to fire off delegates
 	 */
@@ -877,4 +823,65 @@ private:
 	 */
 	void OnAuthenticateAccelByteServerError(int32 ErrorCode, const FString& ErrorMessage);
 
+private:
+	/** Parent subsystem that spawned this instance */
+	FOnlineSubsystemAccelByteWPtr AccelByteSubsystem;
+
+	/** Simple mapping for LocalUserNum to FUniqueNetIdAccelByte for users. Filled when users log in. */
+	mutable FRWLock LocalUserNumToNetIdMapMtx;
+	TMap<int32, FUniqueNetIdRef> LocalUserNumToNetIdMap;
+
+	/** Mapping of local user indices to login statuses, used to query login status for a user */
+	mutable FRWLock LocalUserNumToLoginStatusMapMtx;
+	TMap<int32, ELoginStatus::Type> LocalUserNumToLoginStatusMap;
+
+	/** Simple mapping for FUniqueNetIdAccelByte to LocalUserNum. Filled when users log in. */
+	mutable FRWLock NetIdToLocalUserNumMapMtx;
+	TUniqueNetIdMap<int32> NetIdToLocalUserNumMap;
+	
+	/** Mapping of AccelByte net IDs to AccelByte user accounts. Filled when users log in. */
+	mutable FRWLock NetIdToOnlineAccountMapMtx;
+	TUniqueNetIdMap<TSharedRef<FUserOnlineAccount>> NetIdToOnlineAccountMap;
+	
+
+	/** Mapping of local user indices to it's login queue ticket */
+	mutable FRWLock LocalUserNumToLoginQueueTicketMapMtx;
+	TMap<int32, FString> LocalUserNumToLoginQueueTicketMap;
+
+	FString LogoutReason; // Error Code for when we logged out
+
+	mutable FRWLock LocalUserNumToLogoutTaskMtx;
+	TMap<int32, AccelByte::FAccelByteTaskWPtr> LocalUserNumToLogoutTask;
+
+	/**
+	 * Array of pending server login delegates, will be all fired once login is finished
+	 */
+	mutable FRWLock ServerAuthDelegatesMtx;
+	TArray<FOnAuthenticateServerComplete> ServerAuthDelegates;
+
+	/**
+	 * Array of booleans reflecting whether a local player at the corresponding index is currently logging in.
+	 * Prevents double log in if already in progress.
+	 */
+	mutable FRWLock LocalPlayerLoggingInMtx;
+#if ENGINE_MAJOR_VERSION >= 5
+	TStaticArray<bool, 4> LocalPlayerLoggingIn{InPlace, false};
+#else
+	TStaticArray<bool, 4> LocalPlayerLoggingIn{false};
+#endif
+
+	/**
+	 * Flag denoting whether or not we are currently authenticating as a server to prevent duplicate logins
+	 */
+	std::atomic<bool> bIsAuthenticatingServer{false};
+
+	/**
+	 * Flag denoting whether or not we have successfully authenticated as a server in this instance
+	 */
+	std::atomic<bool> bIsServerAuthenticated{false};
+
+	/**
+	 * Flag denoting whether or not we create headless account on successfully 3rd party login using AutoLogin
+	 */
+	std::atomic<bool> bIsAutoLoginCreateHeadless{true};
 };

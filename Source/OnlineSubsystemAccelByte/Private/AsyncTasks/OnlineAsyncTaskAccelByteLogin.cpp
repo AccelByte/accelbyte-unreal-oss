@@ -39,12 +39,10 @@ FOnlineAsyncTaskAccelByteLogin::FOnlineAsyncTaskAccelByteLogin(FOnlineSubsystemA
 	, int32 InLocalUserNum
 	, const FOnlineAccountCredentialsAccelByte& InAccountCredentials
 	, bool bInCreateHeadlessAccount)
-	: FOnlineAsyncTaskAccelByte(InABSubsystem)
-	, LoginUserNum(InLocalUserNum)
+	: FOnlineAsyncTaskAccelByte(InABSubsystem, InLocalUserNum)
 	, AccountCredentials(InAccountCredentials)
 	, bCreateHeadlessAccount(bInCreateHeadlessAccount)
 {
-	LocalUserNum = INVALID_CONTROLLERID;
 }
 
 #if defined(STEAM_SDK_VER) && !UE_SERVER
@@ -87,7 +85,7 @@ void FOnlineAsyncTaskAccelByteLogin::Initialize()
 {
 	Super::Initialize();
 
-	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("LocalUserNum: %d"), LoginUserNum);
+	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("LocalUserNum: %d"), LocalUserNum);
 	
 	TRY_PIN_SUBSYSTEM();
 
@@ -110,7 +108,7 @@ void FOnlineAsyncTaskAccelByteLogin::Initialize()
 	}
 
 	FApiClientPtr LocalApiClient = nullptr;
-	FUniqueNetIdPtr LocalUserId = IdentityInterface->GetUniquePlayerId(LoginUserNum);
+	FUniqueNetIdPtr LocalUserId = IdentityInterface->GetUniquePlayerId(LocalUserNum);
 
 	if (LocalUserId.IsValid())
 	{
@@ -123,7 +121,7 @@ void FOnlineAsyncTaskAccelByteLogin::Initialize()
 
 	if (!LocalApiClient.IsValid())
 	{
-		LocalApiClient = AccelByteInstance->GetApiClient(FString::Printf(TEXT("%d"), LoginUserNum));
+		LocalApiClient = AccelByteInstance->GetApiClient(FString::Printf(TEXT("%d"), LocalUserNum));
 	}
 
 	SetApiClient(LocalApiClient);
@@ -210,7 +208,7 @@ void FOnlineAsyncTaskAccelByteLogin::Finalize()
 	API_CLIENT_CHECK_GUARD();
 	TRY_PIN_SUBSYSTEM();
 
-	SubsystemPin->SetLocalUserNumCached(LoginUserNum);
+	SubsystemPin->SetLocalUserNumCached(LocalUserNum);
 	const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = SubsystemPin->GetPredefinedEventInterface();
 	if (bWasSuccessful)
 	{
@@ -220,14 +218,14 @@ void FOnlineAsyncTaskAccelByteLogin::Finalize()
 		LoginSuccededPayload.PlatformUserId = ApiClient->CredentialsRef->GetPlatformUserId();
 		LoginSuccededPayload.PlatformId = PlatformId;
 		LoginSuccededPayload.DeviceId = ApiClient->GetDeviceId();
-		PredefinedEventInterface->SendEvent(LoginUserNum, MakeShared<FAccelByteModelsLoginSuccededPayload>(LoginSuccededPayload));
+		PredefinedEventInterface->SendEvent(LocalUserNum, MakeShared<FAccelByteModelsLoginSuccededPayload>(LoginSuccededPayload));
 	}
 	else
 	{
 		FAccelByteModelsLoginFailedPayload LoginFailedPayload{};
 		LoginFailedPayload.Namespace = ApiClient->CredentialsRef->GetNamespace();
 		LoginFailedPayload.PlatformId = PlatformId;
-		PredefinedEventInterface->SendEvent(LoginUserNum, MakeShared<FAccelByteModelsLoginFailedPayload>(LoginFailedPayload));
+		PredefinedEventInterface->SendEvent(LocalUserNum, MakeShared<FAccelByteModelsLoginFailedPayload>(LoginFailedPayload));
 	}
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
@@ -243,13 +241,13 @@ void FOnlineAsyncTaskAccelByteLogin::TriggerDelegates()
 	const TSharedRef<const FUniqueNetIdAccelByteUser> ReturnId = (bWasSuccessful) ? UserId.ToSharedRef() : FUniqueNetIdAccelByteUser::Invalid();
 	if (IdentityInterface.IsValid())
 	{
-		IdentityInterface->SetLoginStatus(LoginUserNum, bWasSuccessful ? ELoginStatus::LoggedIn : ELoginStatus::NotLoggedIn);
+		IdentityInterface->SetLoginStatus(LocalUserNum, bWasSuccessful ? ELoginStatus::LoggedIn : ELoginStatus::NotLoggedIn);
 		if (bWasSuccessful && IsApiClientValid() && !ApiClient->CredentialsRef->IsComply())
 		{
 			const FOnlineAgreementAccelBytePtr AgreementInt = SubsystemPin->GetAgreementInterface();
 			if (ensure(AgreementInt.IsValid()))
 			{
-				AgreementInt->TriggerOnUserNotCompliedDelegates(LoginUserNum);
+				AgreementInt->TriggerOnUserNotCompliedDelegates(LocalUserNum);
 			}
 			else
 			{
@@ -257,19 +255,19 @@ void FOnlineAsyncTaskAccelByteLogin::TriggerDelegates()
 				// Normally, this would not be a failure, but because the agreement interface is invalid and the player thus cannot
 				// ever accept the agreement, we want to at least gracefully error out.
 				ErrorStr = TEXT("login-failed-agreement-not-accepted");
-				IdentityInterface->TriggerOnLoginCompleteDelegates(LoginUserNum, false, ReturnId.Get(), ErrorStr);
+				IdentityInterface->TriggerOnLoginCompleteDelegates(LocalUserNum, false, ReturnId.Get(), ErrorStr);
 				ErrorOAuthObject.Error = ErrorStr;
 				ErrorOAuthObject.ErrorMessage= ErrorStr;
 				ErrorOAuthObject.Error_description = ErrorStr;
-				IdentityInterface->TriggerOnLoginWithOAuthErrorCompleteDelegates(LoginUserNum, false, ReturnId.Get(), ErrorOAuthObject);
-				IdentityInterface->TriggerAccelByteOnLoginCompleteDelegates(LoginUserNum, bWasSuccessful, ReturnId.Get(), ONLINE_ERROR_ACCELBYTE(ErrorStr));
+				IdentityInterface->TriggerOnLoginWithOAuthErrorCompleteDelegates(LocalUserNum, false, ReturnId.Get(), ErrorOAuthObject);
+				IdentityInterface->TriggerAccelByteOnLoginCompleteDelegates(LocalUserNum, bWasSuccessful, ReturnId.Get(), ONLINE_ERROR_ACCELBYTE(ErrorStr));
 			}
 		}
 		else
 		{
-			IdentityInterface->TriggerOnLoginCompleteDelegates(LoginUserNum, bWasSuccessful, ReturnId.Get(), ErrorStr);
-			IdentityInterface->TriggerOnLoginWithOAuthErrorCompleteDelegates(LoginUserNum, bWasSuccessful, ReturnId.Get(), ErrorOAuthObject);
-			IdentityInterface->TriggerAccelByteOnLoginCompleteDelegates(LoginUserNum, bWasSuccessful, ReturnId.Get(), ONLINE_ERROR_ACCELBYTE(FOnlineErrorAccelByte::PublicGetErrorKey(ErrorCode, ErrorStr), bWasSuccessful ? EOnlineErrorResult::Success : EOnlineErrorResult::RequestFailure));
+			IdentityInterface->TriggerOnLoginCompleteDelegates(LocalUserNum, bWasSuccessful, ReturnId.Get(), ErrorStr);
+			IdentityInterface->TriggerOnLoginWithOAuthErrorCompleteDelegates(LocalUserNum, bWasSuccessful, ReturnId.Get(), ErrorOAuthObject);
+			IdentityInterface->TriggerAccelByteOnLoginCompleteDelegates(LocalUserNum, bWasSuccessful, ReturnId.Get(), ONLINE_ERROR_ACCELBYTE(FOnlineErrorAccelByte::PublicGetErrorKey(ErrorCode, ErrorStr), bWasSuccessful ? EOnlineErrorResult::Success : EOnlineErrorResult::RequestFailure));
 		}
 	}
 
@@ -343,19 +341,19 @@ void FOnlineAsyncTaskAccelByteLogin::LoginWithSpecificSubsystem(IOnlineSubsystem
 
 	// Add login complete delegate as some log in UI sometimes call login method internally
 	FOnLoginCompleteDelegate IdentityLoginComplete = TDelegateUtils<FOnLoginCompleteDelegate>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteLogin::OnSpecificSubysystemLoginComplete, SpecificSubsystem);
-	LoginCompletedHandle = IdentityInterface->AddOnLoginCompleteDelegate_Handle(LoginUserNum, IdentityLoginComplete);
+	LoginCompletedHandle = IdentityInterface->AddOnLoginCompleteDelegate_Handle(LocalUserNum, IdentityLoginComplete);
 
 	// If the native subsystem reports not logged in, try and open the native login UI first. Native OSSes for platforms
 	// like GDK will report NotLoggedIn if there is not a user logged in on the particular controller index.
 	bool bLoginUIOpened = false;
-	const ELoginStatus::Type SubsystemLoginStatus = IdentityInterface->GetLoginStatus(LoginUserNum);
+	const ELoginStatus::Type SubsystemLoginStatus = IdentityInterface->GetLoginStatus(LocalUserNum);
 	if (SubsystemLoginStatus != ELoginStatus::LoggedIn)
 	{
 		const IOnlineExternalUIPtr NativeExternalUI = SpecificSubsystem->GetExternalUIInterface();
 		if (NativeExternalUI.IsValid() && !bRetryLoginSkipExternalUI)
 		{
 			FOnLoginUIClosedDelegate LoginUIClosed = TDelegateUtils<FOnLoginUIClosedDelegate>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteLogin::OnSpecificSubysystemLoginUIClosed, SpecificSubsystem);
-			bLoginUIOpened = NativeExternalUI->ShowLoginUI(LoginUserNum, true, false, LoginUIClosed);
+			bLoginUIOpened = NativeExternalUI->ShowLoginUI(LocalUserNum, true, false, LoginUIClosed);
 		}
 	}
 
@@ -378,7 +376,7 @@ void FOnlineAsyncTaskAccelByteLogin::LoginWithSpecificSubsystem(IOnlineSubsystem
 
 	this->ExecuteCriticalSectionAction(FVoidHandler::CreateLambda([this, AccountCredential, IdentityInterface]()
 		{
-			IdentityInterface->Login(this->LoginUserNum, AccountCredential);
+			IdentityInterface->Login(this->LocalUserNum, AccountCredential);
 		}));
 	
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sending login request to native subsystem!"));
@@ -487,7 +485,7 @@ void FOnlineAsyncTaskAccelByteLogin::OnSpecificSubysystemLoginComplete(int32 Nat
 	}
 
 	// Clear the delegate for our login as it will be invalid once this task ends
-	SpecificIdentityInterface->ClearOnLoginCompleteDelegates(LoginUserNum, this);
+	SpecificIdentityInterface->ClearOnLoginCompleteDelegates(LocalUserNum, this);
 
 	// Set the login type for this request to be the login type corresponding to the native subsystem
 	const UEnum* LoginTypeEnum = StaticEnum<EAccelByteLoginType>();
@@ -500,10 +498,10 @@ void FOnlineAsyncTaskAccelByteLogin::OnSpecificSubysystemLoginComplete(int32 Nat
 		return;
 	}
 
-	FString PlatformToken = SpecificIdentityInterface->GetAuthToken(LoginUserNum);
+	FString PlatformToken = SpecificIdentityInterface->GetAuthToken(LocalUserNum);
 	if (LoginType == EAccelByteLoginType::Google)
 	{
-		const FUniqueNetIdPtr UserIdPtr = SpecificIdentityInterface->GetUniquePlayerId(LoginUserNum);
+		const FUniqueNetIdPtr UserIdPtr = SpecificIdentityInterface->GetUniquePlayerId(LocalUserNum);
 		if (!UserIdPtr.IsValid())
 		{
 			ErrorStr = TEXT("login-failed-user-invalid-type");
@@ -731,7 +729,7 @@ void FOnlineAsyncTaskAccelByteLogin::OnLoginSuccess()
 			IOnlineIdentityPtr NativeIdentityInterface = NativeSubsystem->GetIdentityInterface();
 			if (NativeIdentityInterface.IsValid())
 			{
-				NativePlatformPlayerId = NativeIdentityInterface->GetUniquePlayerId(LoginUserNum);
+				NativePlatformPlayerId = NativeIdentityInterface->GetUniquePlayerId(LocalUserNum);
 			}
 		}
 	}
@@ -832,7 +830,7 @@ void FOnlineAsyncTaskAccelByteLogin::OnLoginSuccess()
 		return;
 	}
 		
-	IdentityInterface->AddNewAuthenticatedUser(LoginUserNum, UserId.ToSharedRef(), Account.ToSharedRef());
+	IdentityInterface->AddNewAuthenticatedUser(LocalUserNum, UserId.ToSharedRef(), Account.ToSharedRef());
 
 	FAccelByteInstancePtr AccelByteInstance = GetAccelByteInstance().Pin();
 	if(!AccelByteInstance.IsValid())
@@ -845,7 +843,7 @@ void FOnlineAsyncTaskAccelByteLogin::OnLoginSuccess()
 	
 	AccelByteInstance->RemoveApiClient(UserId->GetAccelByteId());
 	AccelByteInstance->RegisterApiClient(UserId->GetAccelByteId(), ApiClient);
-	AccelByteInstance->RemoveApiClient(FString::Printf(TEXT("%d"), LoginUserNum));
+	AccelByteInstance->RemoveApiClient(FString::Printf(TEXT("%d"), LocalUserNum));
 	
 	// Grab our user interface and kick off a task to get information about the newly logged in player from it, namely
 	// their avatar URL. No need to register a delegate to update the account from the query, the query task will check
@@ -857,8 +855,8 @@ void FOnlineAsyncTaskAccelByteLogin::OnLoginSuccess()
 	}
 
 	// Bind delegate for Query UserProfile
-	UserInterface->AddOnQueryUserProfileCompleteDelegate_Handle(LoginUserNum, FOnQueryUserProfileCompleteDelegate::CreateThreadSafeSP(UserInterface.Get(), &FOnlineUserAccelByte::PostLoginBulkGetUserProfileCompleted));
-	UserInterface->QueryUserInfo(LoginUserNum, { UserId.ToSharedRef() });
+	UserInterface->AddOnQueryUserProfileCompleteDelegate_Handle(LocalUserNum, FOnQueryUserProfileCompleteDelegate::CreateThreadSafeSP(UserInterface.Get(), &FOnlineUserAccelByte::PostLoginBulkGetUserProfileCompleted));
+	UserInterface->QueryUserInfo(LocalUserNum, { UserId.ToSharedRef() });
 
 	// If we are using V2 sessions, send a request to update stored platform data in the session service for native sync and crossplay
 #if !AB_USE_V2_SESSIONS
@@ -869,7 +867,7 @@ void FOnlineAsyncTaskAccelByteLogin::OnLoginSuccess()
 	{
 		SessionInterface->InitializePlayerAttributes(UserId.ToSharedRef().Get());	
 	}
-#endif 
+#endif
 
 	SubsystemPin->SetRunningState(LocalUserNum, EAccelByteState::Client);
 
@@ -879,7 +877,7 @@ void FOnlineAsyncTaskAccelByteLogin::OnLoginSuccess()
 
 void FOnlineAsyncTaskAccelByteLogin::OnLoginSuccessV4(const FAccelByteModelsLoginQueueTicketInfo& TicketInfo)
 {
-	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Login v4 done, LoginUserNum: %d, TicketId: %s"), LoginUserNum, *TicketInfo.Ticket);
+	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Login v4 done, LocalUserNum: %d, TicketId: %s"), LocalUserNum, *TicketInfo.Ticket);
 
 	if(TicketInfo.Ticket.IsEmpty())
 	{
@@ -904,37 +902,37 @@ void FOnlineAsyncTaskAccelByteLogin::OnLoginSuccessV4(const FAccelByteModelsLogi
 		LoginQueuePresentationThreshold = Config->GetLoginQueuePresentationThresholdSeconds().GetValue();
 	}
 
-	// initialize login queue here so LoginUserNum-Ticket map is filled when we trigger OnLoginQueuedDelegate
-	IdentityInterface->InitializeLoginQueue(LoginUserNum, TicketInfo.Ticket);
+	// initialize login queue here so LocalUserNum-Ticket map is filled when we trigger OnLoginQueuedDelegate
+	IdentityInterface->InitializeLoginQueue(LocalUserNum, TicketInfo.Ticket);
 	
 	// Only trigger login queued delegate if estimated waiting time is above presentation threshold
 	if(TicketInfo.EstimatedWaitingTimeInSeconds > LoginQueuePresentationThreshold)
 	{
-		IdentityInterface->TriggerAccelByteOnLoginQueuedDelegates(LoginUserNum, TicketInfo);
+		IdentityInterface->TriggerAccelByteOnLoginQueuedDelegates(LocalUserNum, TicketInfo);
 	}
 
 	OnLoginQueueCancelledDelegate = TDelegateUtils<FAccelByteOnLoginQueueCanceledByUserDelegate>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteLogin::OnLoginQueueCancelled);
 	OnLoginQueueCancelledDelegateHandle = IdentityInterface->AddAccelByteOnLoginQueueCanceledByUserDelegate_Handle(OnLoginQueueCancelledDelegate);
 
 	OnLoginQueueClaimTicketCompleteDelegate = TDelegateUtils<FAccelByteOnLoginQueueClaimTicketCompleteDelegate>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteLogin::OnLoginQueueTicketClaimed);
-	OnLoginQueueClaimTicketCompleteDelegateHandle = IdentityInterface->AddAccelByteOnLoginQueueClaimTicketCompleteDelegate_Handle(LoginUserNum, OnLoginQueueClaimTicketCompleteDelegate);
+	OnLoginQueueClaimTicketCompleteDelegateHandle = IdentityInterface->AddAccelByteOnLoginQueueClaimTicketCompleteDelegate_Handle(LocalUserNum, OnLoginQueueClaimTicketCompleteDelegate);
 	
 	bShouldUseTimeout = false;
 	bLoginInQueue = true;
 	this->ExecuteCriticalSectionAction(FVoidHandler::CreateLambda([this, &TicketInfo]()
 	{
 		TRY_PIN_SUBSYSTEM();
-		SubsystemPin->CreateAndDispatchAsyncTaskSerial<FOnlineAsyncTaskAccelByteLoginQueue>(SubsystemPin.Get(), LoginUserNum, TicketInfo);
+		SubsystemPin->CreateAndDispatchAsyncTaskSerial<FOnlineAsyncTaskAccelByteLoginQueue>(SubsystemPin.Get(), LocalUserNum, TicketInfo);
 	}));
 	
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 
-void FOnlineAsyncTaskAccelByteLogin::OnLoginQueueCancelled(int32 InLoginUserNum)
+void FOnlineAsyncTaskAccelByteLogin::OnLoginQueueCancelled(int32 InLocalUserNum)
 {
-	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Login queue cancelled for user %d"), LoginUserNum);
+	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Login queue cancelled for user %d"), LocalUserNum);
 
-	if(LoginUserNum != InLoginUserNum)
+	if(LocalUserNum != InLocalUserNum)
 	{
 		return;
 	}
@@ -953,13 +951,13 @@ void FOnlineAsyncTaskAccelByteLogin::OnLoginQueueCancelled(int32 InLoginUserNum)
 }
 
 
-void FOnlineAsyncTaskAccelByteLogin::OnLoginQueueTicketClaimed(int32 InLoginUserNum, bool bWasClaimSuccessful, const FErrorOAuthInfo& ErrorObject)
+void FOnlineAsyncTaskAccelByteLogin::OnLoginQueueTicketClaimed(int32 InLocalUserNum, bool bWasClaimSuccessful, const FErrorOAuthInfo& ErrorObject)
 {
-	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Login queue ticket is claimed for user %d, bWasClaimSuccessful: %s"), InLoginUserNum, bWasClaimSuccessful ? TEXT("True") : TEXT("False"));
+	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Login queue ticket is claimed for user %d, bWasClaimSuccessful: %s"), InLocalUserNum, bWasClaimSuccessful ? TEXT("True") : TEXT("False"));
 
 	bWasSuccessful = bWasClaimSuccessful;
 
-	if (LoginUserNum != InLoginUserNum)
+	if (LocalUserNum != InLocalUserNum)
 	{
 		return;
 	}
@@ -1018,7 +1016,7 @@ void FOnlineAsyncTaskAccelByteLogin::OnLoginErrorOAuth(int32 InErrorCode, const 
 
 void FOnlineAsyncTaskAccelByteLogin::OnTaskTimedOut()
 {
-	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("LocalUserNum: %d"), LoginUserNum);
+	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("LocalUserNum: %d"), LocalUserNum);
 
 	Super::OnTaskTimedOut();
 	ErrorCode = static_cast<int32>(EOnlineErrorResult::RequestFailure);

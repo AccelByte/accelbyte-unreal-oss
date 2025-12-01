@@ -56,11 +56,6 @@ protected:
 	}
 
 	/**
-	 * User number or the controller index of the player
-	 */
-	int32 LoginUserNum;
-	
-	/**
 	 * Credentials of the account that we wish to login with
 	 */
 	FOnlineAccountCredentialsAccelByte AccountCredentials;
@@ -216,12 +211,12 @@ protected:
 	FDelegateHandle OnLoginQueueCancelledDelegateHandle;
 	FAccelByteOnLoginQueueCanceledByUserDelegate OnLoginQueueCancelledDelegate;
 
-	void OnLoginQueueCancelled(int32 LoginUserNum);
+	void OnLoginQueueCancelled(int32 InLocalUserNum);
 
 	FDelegateHandle OnLoginQueueClaimTicketCompleteDelegateHandle;
 	FAccelByteOnLoginQueueClaimTicketCompleteDelegate OnLoginQueueClaimTicketCompleteDelegate;
 
-	void OnLoginQueueTicketClaimed(int32 InLoginUserNum, bool bWasClaimSuccessful, const FErrorOAuthInfo& ErrorObject);
+	void OnLoginQueueTicketClaimed(int32 InLocalUserNum, bool bWasClaimSuccessful, const FErrorOAuthInfo& ErrorObject);
 
 	bool ShouldInitiateNativePlatformLogin(FOnlineAccountCredentials const& InAccountCredentials, FName& OutSubsystemName);
 

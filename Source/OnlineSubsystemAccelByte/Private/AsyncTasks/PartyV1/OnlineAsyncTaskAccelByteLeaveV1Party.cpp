@@ -7,6 +7,7 @@
 #include "OnlineAsyncTaskAccelByteLeaveV1Party.h"
 #include "OnlineSubsystemAccelByte.h"
 #include "OnlinePartyInterfaceAccelByte.h"
+#include "OnlinePartyInterfaceAccelByteLog.h"
 #include "OnlineSessionInterfaceV1AccelByte.h"
 
 #include "Core/AccelByteReport.h"

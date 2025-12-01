@@ -2,6 +2,27 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.13.8](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.13.8%0D0.13.7) (2025-12-01)
+
+
+### Features
+
+* add beta support for UE 5.7 ([b398f63](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/b398f63134ecd2701423b9e84ba79ecca4eface4))
+* add update party session function ([026bcf2](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/026bcf2f830c44741aa4ff6da15a4976944b996a))
+* **Meta:** Meta subscription synchronization ([d9fe5eb](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/d9fe5eb0feb4808f8fd1a09982f7b996878043a2))
+
+
+### Bug Fixes
+
+* compile error in Linux ([0aa5a34](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/0aa5a3489811f1f41b0c610f2914be5ec1b12b4d))
+* compile error on UE427 ([99b4b5b](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/99b4b5b0dc2c28a7e84c9a673b865ac7f19ac9e9))
+* compile issue with unity build turned off ([b5608b7](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/b5608b7082b4338d8e02b9eeef96cee885f7fd49))
+* errorneous IsDedicatedServer method logic ([4e3d585](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/4e3d585671ec552b31a949b2a31b18e0578e98c5))
+* fix compilation error in UE 5.3 ([a2bb5e4](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/a2bb5e45d5a40127dc352622ce46871ff595232a))
+* fix the actual LocalUserNum that is not logged in ([eb6d5c2](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/eb6d5c2f3ba123efbc6a05c01ed815217a5b848d))
+* improve thread safety of FOnlineIdentityAccelByte ([cc2abe5](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/cc2abe5f91bbbc77d9718a4f47197a2551022876))
+* prevent crash when ABSubsystem is invalid when polling login queue ([2a07f54](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/2a07f54ba6c4a43e1456ba606fdf87a8ca064a22))
+
 ### [0.13.7](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.13.7%0D0.13.6) (2025-11-04)
 
 

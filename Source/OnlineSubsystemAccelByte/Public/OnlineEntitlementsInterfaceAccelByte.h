@@ -41,6 +41,9 @@ typedef FOnQueryPlatformSubscriptionComplete::FDelegate FOnQueryPlatformSubscrip
 DECLARE_MULTICAST_DELEGATE_FourParams(FOnSyncMetaQuestIAPComplete, int32 LocalUserNum /*LocalUserNum*/, const FUniqueNetId& /*UserId*/, const TArray<TSharedRef<FPurchaseReceipt>>& /*EntitlementInfos*/, const FOnlineError& /*Error*/);
 typedef FOnSyncMetaQuestIAPComplete::FDelegate FOnSyncMetaQuestIAPCompleteDelegate;
 
+DECLARE_MULTICAST_DELEGATE_FourParams(FOnSyncMetaSubscriptionComplete, int32 LocalUserNum /*LocalUserNum*/, bool /*bWasSuccessful*/, const TArray<FAccelByteModelsThirdPartySubscriptionTransactionInfo>& /*Sync result*/, const FString& /*ErrorMessage*/);
+typedef FOnSyncMetaSubscriptionComplete::FDelegate FOnSyncMetaSubscriptionCompleteDelegate;
+
 DECLARE_DELEGATE_TwoParams(FOnSyncSteamAbnormalIAPTransactionComplete, FUniqueNetId const& /*LocalUserId*/, FOnlineError /*Result*/);
 
 DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnEntitlementUpdatedNotification, int32 /*LocalUserNum*/, const FUniqueNetId& /*UserId*/, const FAccelByteModelsEntitlementUpdatedNotification& /*Notification*/);
@@ -209,6 +212,17 @@ public:
 	 */
 	void SyncDLC(const FUniqueNetId& InLocalUserId, const FOnRequestCompleted& CompletionDelegate);
 
+#pragma region Sync Platform Subscription
+	/*
+	 * Sync platform's subscription: Meta implementation
+	 * 
+	 * @param LocalUserNum LocalUserNum of user that making the call
+	 * @param FAccelByteModelsSyncOculusSubscriptionRequest Synchronize subscription request
+	 * @param CompletionDelegate Will be triggered after the request completed
+	 */
+	void SyncMetaSubscription(const FUniqueNetId& InLocalUserId, const FAccelByteModelsSyncOculusSubscriptionRequest& SyncRequest, const FOnSyncMetaSubscriptionCompleteDelegate& CompletionDelegate);
+
+#pragma endregion
 
 #pragma region Client - User Entitlement History
 

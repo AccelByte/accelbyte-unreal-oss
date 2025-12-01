@@ -77,6 +77,7 @@
 #include "AsyncTasks/SessionV2/OnlineAsyncTaskAccelBytePromoteV2GameSessionLeader.h"
 #include "AsyncTasks/SessionV2/OnlineAsyncTaskAccelByteUpdateLeaderSessionV2Storage.h"
 #include "AsyncTasks/SessionV2/OnlineAsyncTaskAccelByteUpdateMemberSessionV2Storage.h"
+#include "AsyncTasks/SessionV2/OnlineAsyncTaskAccelByteUpdatePartySessionV2Storage.h"
 #include "AsyncTasks/SessionV2/OnlineTaskAccelByteRevokeV2GameCode.h"
 #include "AsyncTasks/SessionV2/OnlineAsyncTaskAccelByteKickV2GameSession.h"
 #include "AsyncTasks/Server/OnlineAsyncTaskAccelByteServerKickV2GameSession.h"
@@ -419,6 +420,33 @@ bool FOnlineSessionInfoAccelByteV2::GetAllSessionMemberStorage(TUniqueNetIdMap<F
 	if (SessionMembersStorages.Num() > 0)
 	{
 		OutStorage = SessionMembersStorages;
+		return true;
+	}
+
+	return false;
+}
+
+void FOnlineSessionInfoAccelByteV2::SetPartyStorage(const FUniqueNetIdRef& UserId, const FJsonObjectWrapper& Data)
+{
+	PartyStorages.Add(UserId, Data);
+}
+
+bool FOnlineSessionInfoAccelByteV2::GetPartyStorage(const FUniqueNetIdRef& UserId, FJsonObjectWrapper& OutStorage) const
+{
+	if (PartyStorages.Contains(UserId) && PartyStorages[UserId].JsonObject.IsValid())
+	{
+		OutStorage = PartyStorages[UserId];
+		return true;
+	}
+
+	return false;
+}
+
+bool FOnlineSessionInfoAccelByteV2::GetAllPartyStorage(TUniqueNetIdMap<FJsonObjectWrapper>& OutStorage) const
+{
+	if (PartyStorages.Num() > 0)
+	{
+		OutStorage = PartyStorages;
 		return true;
 	}
 
@@ -1731,6 +1759,7 @@ void FOnlineSessionV2AccelByte::RegisterSessionNotificationDelegates(const FUniq
 
 	// Begin Session Storage Notifications
 	BIND_LOBBY_NOTIFICATION(SessionStorageChanged, SessionStorageChanged);
+	BIND_LOBBY_NOTIFICATION(PartyStorageChanged, PartyStorageChanged);
 	//~ End Session Storage Notifications
 
 	#undef BIND_LOBBY_NOTIFICATION
@@ -4458,6 +4487,47 @@ bool FOnlineSessionV2AccelByte::UpdateSessionMemberStorage(const FUniqueNetId& L
 	}
 
 	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteUpdateMemberSessionV2Storage>(AccelByteSubsystemPtr.Get(), LocalUserId, SessionToUpdate, Data);
+
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""))
+	return true;
+}
+
+bool FOnlineSessionV2AccelByte::UpdatePartySessionStorage(const FUniqueNetId& LocalUserId, FJsonObjectWrapper const& Data)
+{
+    AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("LocalUserId: %s; "), *LocalUserId.ToDebugString());
+
+    FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+    int32 LocalUserNum = AccelByteSubsystemPtr->GetLocalUserNumCached();
+    TOptional<bool> IsDedicatedServer = AccelByteSubsystemPtr->IsDedicatedServer(LocalUserNum);
+    bool IsDS = false;
+
+    if (IsDedicatedServer.IsSet())
+    {
+        IsDS = IsDedicatedServer.GetValue();
+    }
+
+    if (IsDS)
+    {
+        TriggerOnUpdatePartySessionStorageCompleteDelegates(NAME_PartySession, FOnlineError::CreateError(TEXT("UpdatePartySessionStorage"), EOnlineErrorResult::RequestFailure));
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Dedicated server unable to update PartySession storage"))
+		return false;
+	}
+
+	if(!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Failed to update PartySession storage as our AccelByte subsystem is invalid"));
+		return false;
+	}
+
+	const FNamedOnlineSession* SessionToUpdate = GetNamedSession(NAME_PartySession);
+	if (SessionToUpdate == nullptr)
+	{
+		TriggerOnUpdatePartySessionStorageCompleteDelegates(NAME_PartySession, FOnlineError::CreateError(TEXT("UpdatePartySessionStorage"), EOnlineErrorResult::RequestFailure));
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Unable to update party session storage as current user is not in PartySession"))
+		return false;
+	}
+
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteUpdatePartySessionV2Storage>(AccelByteSubsystemPtr.Get(), LocalUserId, SessionToUpdate, Data);
 
 	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""))
 	return true;
@@ -8674,6 +8744,31 @@ void FOnlineSessionV2AccelByte::OnSessionStorageChangedNotification(FAccelByteMo
 			SessionInfo.Get()->SetSessionMemberStorage(ActorUniqueNetId, Notification.StorageChanges);
 			TriggerOnSessionMemberStorageUpdateReceivedDelegates(Session->SessionName, ActorUniqueNetId.Get());
 		}
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
+	}
+	else
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Could not update local session storage with session storage changed event as local session info is invalid!"));
+	}
+}
+
+void FOnlineSessionV2AccelByte::OnPartyStorageChangedNotification(FAccelByteModelsV2PartyStorageChangedEvent Notification, int32 LocalUserNum)
+{
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("SessionId: %s"), *Notification.SessionID);
+
+	const FNamedOnlineSession* Session = GetNamedSessionById(Notification.SessionID);
+	if (Session == nullptr)
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Could not update local session storage with session storage changed event as we do not have the session stored locally!"));
+		return;
+	}
+
+	const TSharedPtr<FOnlineSessionInfoAccelByteV2> SessionInfo = StaticCastSharedPtr<FOnlineSessionInfoAccelByteV2>(Session->SessionInfo);
+	if (SessionInfo.IsValid())
+	{
+		const FUniqueNetIdAccelByteUserRef ActorUniqueNetId = FUniqueNetIdAccelByteUser::Create(Notification.ActorUserID);
+		SessionInfo.Get()->SetPartyStorage(ActorUniqueNetId, Notification.StorageChanges);
+		TriggerOnPartyStorageUpdateReceivedDelegates(Session->SessionName, ActorUniqueNetId.Get());
 		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
 	}
 	else

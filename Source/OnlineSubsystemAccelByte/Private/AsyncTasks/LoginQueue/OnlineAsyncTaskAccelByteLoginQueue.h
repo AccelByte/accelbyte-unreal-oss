@@ -27,11 +27,8 @@ protected:
 	{
 		return TEXT("FOnlineAsyncTaskAccelByteLoginQueue");
 	}
-	
-private:
 
-	/** user num that wants to login */
-	int32 LoginUserNum;
+private:
 
 	/** Initial ticket queue */
 	FAccelByteModelsLoginQueueTicketInfo Ticket;

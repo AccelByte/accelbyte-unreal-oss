@@ -42,9 +42,9 @@ bool FAccelByteLoginQueuePoller::UnbindOnPollStopped()
 	return true;
 }
 
-bool FAccelByteLoginQueuePoller::StartPoll(FOnlineSubsystemAccelByte* InSubsystem, int32 InLocalUserNum, const FAccelByteModelsLoginQueueTicketInfo& InTicket)
+bool FAccelByteLoginQueuePoller::StartPoll(FOnlineSubsystemAccelBytePtr InSubsystem, int32 InLocalUserNum, const FAccelByteModelsLoginQueueTicketInfo& InTicket)
 {
-	if(InSubsystem == nullptr)
+	if(!InSubsystem.IsValid())
 	{
 		UE_LOG(LogAccelByteLoginQueuePoll, Log, TEXT("Failed to start login queue polling, Subsystem cannot be nullptr"));
 		return false;
@@ -89,9 +89,14 @@ bool FAccelByteLoginQueuePoller::StopPoll()
 
 void FAccelByteLoginQueuePoller::RefreshTicket()
 {
+	auto SubsystemPin = Subsystem.Pin();
+	if(!SubsystemPin.IsValid())
+	{
+		return;
+	}
 	// Do refresh ticket here
 	RefreshTicketCompleteHandler = FOnRefreshTicketCompleteDelegate::CreateThreadSafeSP(this, &FAccelByteLoginQueuePoller::OnRefreshTicketComplete);
-	Subsystem->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteLoginRefreshTicket>(Subsystem, LocalUserNum, Ticket.Ticket, RefreshTicketCompleteHandler);
+	SubsystemPin->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteLoginRefreshTicket>(SubsystemPin.Get(), LocalUserNum, Ticket.Ticket, RefreshTicketCompleteHandler);
 }
 
 int32 FAccelByteLoginQueuePoller::CalculatePollDelay(const FAccelByteModelsLoginQueueTicketInfo& TicketInfo) const

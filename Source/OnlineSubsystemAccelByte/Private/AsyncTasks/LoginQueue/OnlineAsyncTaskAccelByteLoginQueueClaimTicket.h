@@ -27,11 +27,8 @@ protected:
 	{
 		return TEXT("FOnlineAsyncTaskAccelByteLoginQueueClaimTicket");
 	}
-	
-private:
 
-	/** user num that wants to login */
-	int32 LoginUserNum = INVALID_CONTROLLERID;
+private:
 
 	/** Ticket ID we want to claim */
 	FString TicketId{};
@@ -53,7 +50,7 @@ private:
 
 	FDelegateHandle OnLoginQueueCancelledDelegateHandle;
 	FAccelByteOnLoginQueueCanceledByUserDelegate OnLoginQueueCancelledDelegate;
-	void OnLoginQueueCancelled(int32 InLoginUserNum);
+	void OnLoginQueueCancelled(int32 InLocalUserNum);
 
 	void CleanupDelegateHandler();
 

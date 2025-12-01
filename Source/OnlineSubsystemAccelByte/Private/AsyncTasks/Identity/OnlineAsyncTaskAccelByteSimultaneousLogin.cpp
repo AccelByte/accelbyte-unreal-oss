@@ -24,7 +24,6 @@ FOnlineAsyncTaskAccelByteSimultaneousLogin::FOnlineAsyncTaskAccelByteSimultaneou
 	, bool bInCreateHeadlessAccount)
 	: FOnlineAsyncTaskAccelByteLogin(InABSubsystem, InLocalUserNum, InAccountCredentials, bInCreateHeadlessAccount)
 {
-	LocalUserNum = INVALID_CONTROLLERID;
 }
 
 bool FOnlineAsyncTaskAccelByteSimultaneousLogin::IsInitializeAllowed()
@@ -74,7 +73,7 @@ void FOnlineAsyncTaskAccelByteSimultaneousLogin::Initialize()
 	Super::Initialize();
 	CurrentAsyncTaskState = ESimultaneousLoginAsyncTaskState::Initialized;
 
-	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("LocalUserNum: %d"), LoginUserNum);
+	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("LocalUserNum: %d"), LocalUserNum);
 	
 	if (!IsInitializeAllowed())
 	{
@@ -102,7 +101,7 @@ void FOnlineAsyncTaskAccelByteSimultaneousLogin::Initialize()
 	}
 
 	FApiClientPtr LocalApiClient = nullptr;
-	FUniqueNetIdPtr LocalUserId = IdentityInterface->GetUniquePlayerId(LoginUserNum);
+	FUniqueNetIdPtr LocalUserId = IdentityInterface->GetUniquePlayerId(LocalUserNum);
 
 	if (LocalUserId.IsValid())
 	{
@@ -115,7 +114,7 @@ void FOnlineAsyncTaskAccelByteSimultaneousLogin::Initialize()
 
 	if (!LocalApiClient.IsValid())
 	{
-		LocalApiClient = AccelByteInstance->GetApiClient(FString::Printf(TEXT("%d"), LoginUserNum));
+		LocalApiClient = AccelByteInstance->GetApiClient(FString::Printf(TEXT("%d"), LocalUserNum));
 	}
 	
 	SetApiClient(LocalApiClient);
@@ -215,7 +214,7 @@ void FOnlineAsyncTaskAccelByteSimultaneousLogin::PostProcessTriggerDelegates()
 		SimultaneousLoginResult = ESimultaneousLoginResult::Success;
 	}
 
-	IdentityInterface->TriggerAccelByteOnSimultaneousLoginCompleteDelegates(LoginUserNum, bWasSuccessful, SimultaneousLoginResult, ReturnId.Get(), ErrorOAuthObject);
+	IdentityInterface->TriggerAccelByteOnSimultaneousLoginCompleteDelegates(LocalUserNum, bWasSuccessful, SimultaneousLoginResult, ReturnId.Get(), ErrorOAuthObject);
 }
 
 void FOnlineAsyncTaskAccelByteSimultaneousLogin::TriggerDelegates()

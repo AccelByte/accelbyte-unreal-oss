@@ -12,7 +12,6 @@
 #include "OnlineSubsystemAccelByteLog.h"
 
 DEFINE_LOG_CATEGORY(LogAccelByteOSS);
-DEFINE_LOG_CATEGORY(LogAccelByteOSSParty);
 
 IMPLEMENT_MODULE(FOnlineSubsystemAccelByteModule, OnlineSubsystemAccelByte);
 

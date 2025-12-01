@@ -1510,7 +1510,7 @@ IOnlineSubsystem* FOnlineSubsystemAccelByte::GetSecondaryPlatformSubsystem() con
 
 TOptional<IWebsocketConfigurableReconnectStrategy*> FOnlineSubsystemAccelByte::TryConfigureWebsocketConnection(int32 LocalUserNum, EConfigurableWebsocketServiceType Type)
 {
-	TOptional<IWebsocketConfigurableReconnectStrategy*> Output = TOptional<IWebsocketConfigurableReconnectStrategy*>();
+	auto Output = TOptional<IWebsocketConfigurableReconnectStrategy*>();
 
 	switch (Type)
 	{
@@ -1587,30 +1587,46 @@ bool FOnlineSubsystemAccelByte::SetDisplayNameSource(const FString& InDisplayNam
 
 TOptional<bool> FOnlineSubsystemAccelByte::IsDedicatedServer(int32 LocalUserNum) const
 {
-	TOptional<bool> Result;
+	EAccelByteState RunningState = GetRunningState((LocalUserNum == INVALID_CONTROLLERID) ? 0 : LocalUserNum);
+	if(RunningState == EAccelByteState::Undefined)
 	{
-		EAccelByteState RunningState = GetRunningState((LocalUserNum == INVALID_CONTROLLERID) ? 0 : LocalUserNum);
-		Result = RunningState == EAccelByteState::Server;
+		return TOptional<bool>();
 	}
-	return Result;
+	else
+	{
+		return RunningState == EAccelByteState::Server;
+	}
 }
 
 EAccelByteState FOnlineSubsystemAccelByte::GetRunningState(int32 LocalUserNum) const
 {
-	EAccelByteState Result = EAccelByteState::Undefined;
+	FReadScopeLock ReadLock(RunningStatesLock);
+	if (RunningStates.Contains(LocalUserNum))
 	{
-		FReadScopeLock ReadLock(RunningStatesLock);
-		if (RunningStates.Contains(LocalUserNum))
-		{
-			Result = RunningStates[LocalUserNum];
-		}
+		return RunningStates[LocalUserNum];
 	}
-	return Result;
+	else
+	{
+		return EAccelByteState::Undefined;
+	}
 }
 
 void FOnlineSubsystemAccelByte::SetRunningState(int32 LocalUserNum, EAccelByteState NewState)
 {
 	FWriteScopeLock WriteLock(RunningStatesLock);
+
+	// Validate LocalUserNum - fail fast if invalid
+	ensureMsgf(LocalUserNum != INVALID_CONTROLLERID,
+		TEXT("SetRunningState called with INVALID_CONTROLLERID. The caller should pass a valid LocalUserNum."));
+
+	ensureMsgf(LocalUserNum >= 0 && LocalUserNum < MAX_LOCAL_PLAYERS,
+		TEXT("SetRunningState called with invalid LocalUserNum: %d. Must be between 0 and %d."),
+		LocalUserNum, MAX_LOCAL_PLAYERS - 1);
+
+	ensureMsgf(NewState != EAccelByteState::Undefined,
+		TEXT("SetRunningState called with Undefined state for user %d"),
+		LocalUserNum);
+
 	RunningStates.Emplace(LocalUserNum, NewState);
 }
 

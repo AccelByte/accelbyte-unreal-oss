@@ -7,6 +7,7 @@
 
 #include "Api/AccelByteLobbyApi.h"
 #include "OnlinePartyInterfaceAccelByte.h"
+#include "OnlinePartyInterfaceAccelByteLog.h"
 
 #include "Core/AccelByteReport.h"
 #include "AsyncTasks/OnlineAsyncTaskAccelByteLog.h"

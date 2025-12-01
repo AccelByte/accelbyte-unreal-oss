@@ -13,14 +13,12 @@ using namespace AccelByte;
 #define ONLINE_ERROR_NAMESPACE "FOnlineAsyncTaskAccelByteLoginRefreshTicket"
 
 FOnlineAsyncTaskAccelByteLoginRefreshTicket::FOnlineAsyncTaskAccelByteLoginRefreshTicket(
-	FOnlineSubsystemAccelByte* const InABInterface, int32 InLoginUserNum, const FString& InTicketId, const FOnRefreshTicketCompleteDelegate InDelegate)
-	: FOnlineAsyncTaskAccelByte(InABInterface)
-	, LoginUserNum(InLoginUserNum)
+	FOnlineSubsystemAccelByte* const InABInterface, int32 InLocalUserNum, const FString& InTicketId, const FOnRefreshTicketCompleteDelegate InDelegate)
+	: FOnlineAsyncTaskAccelByte(InABInterface, InLocalUserNum)
 	, TicketId(InTicketId)
 	, Delegate(InDelegate)
 	, ErrorCode(0)
 {
-	LocalUserNum = INVALID_CONTROLLERID;
 }
 
 void FOnlineAsyncTaskAccelByteLoginRefreshTicket::Initialize()
@@ -29,7 +27,7 @@ void FOnlineAsyncTaskAccelByteLoginRefreshTicket::Initialize()
 
 	Super::Initialize();
 
-	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("LoginUserNum: %d"), LoginUserNum);
+	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("LocalUserNum: %d"), LocalUserNum);
 
 	FAccelByteInstancePtr AccelByteInstance = GetAccelByteInstance().Pin();
 	if(!AccelByteInstance.IsValid())
@@ -39,11 +37,11 @@ void FOnlineAsyncTaskAccelByteLoginRefreshTicket::Initialize()
 		return;
 	}
 	
-	FApiClientPtr LocalApiClient = SubsystemPin->GetApiClient(LoginUserNum);
+	FApiClientPtr LocalApiClient = SubsystemPin->GetApiClient(LocalUserNum);
 
 	if (!LocalApiClient.IsValid())
 	{
-		LocalApiClient = AccelByteInstance->GetApiClient(FString::Printf(TEXT("%d"), LoginUserNum));
+		LocalApiClient = AccelByteInstance->GetApiClient(FString::Printf(TEXT("%d"), LocalUserNum));
 	}
 
 	SetApiClient(LocalApiClient);
@@ -76,7 +74,7 @@ void FOnlineAsyncTaskAccelByteLoginRefreshTicket::TriggerDelegates()
 void FOnlineAsyncTaskAccelByteLoginRefreshTicket::OnRefreshTicketSuccess(
 	const FAccelByteModelsLoginQueueTicketInfo& TicketInfo)
 {
-	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("LoginUserNum: %d, ticketId: %s, position: %d"), LoginUserNum, *TicketInfo.Ticket, TicketInfo.Position);
+	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("LocalUserNum: %d, ticketId: %s, position: %d"), LocalUserNum, *TicketInfo.Ticket, TicketInfo.Position);
 
 	CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
 	Result = TicketInfo;
@@ -86,7 +84,7 @@ void FOnlineAsyncTaskAccelByteLoginRefreshTicket::OnRefreshTicketSuccess(
 
 void FOnlineAsyncTaskAccelByteLoginRefreshTicket::OnRefreshTicketError(int32 InErrorCode, const FString& InErrorMessage)
 {
-	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("LoginUserNum: %d, ticketId: %s, Error code %d, Message %s"), LoginUserNum, *TicketId, ErrorCode, *InErrorMessage);
+	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("LocalUserNum: %d, ticketId: %s, Error code %d, Message %s"), LocalUserNum, *TicketId, ErrorCode, *InErrorMessage);
 
 	ErrorCode = InErrorCode;
 	ErrorStr = InErrorMessage;

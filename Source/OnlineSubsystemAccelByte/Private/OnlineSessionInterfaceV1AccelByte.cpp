@@ -31,6 +31,7 @@
 #include "OnlineIdentityInterfaceAccelByte.h"
 #include "OnlineVoiceInterfaceAccelByte.h"
 #include "OnlinePartyInterfaceAccelByte.h"
+#include "OnlinePartyInterfaceAccelByteLog.h"
 #include "OnlinePredefinedEventInterfaceAccelByte.h"
 
 #include "Core/AccelByteError.h"

@@ -15,6 +15,7 @@
 #include "AsyncTasks/Entitlements/OnlineAsyncTaskAccelByteSyncIOSAppStore.h"
 #include "AsyncTasks/Entitlements/OnlineAsyncTaskAccelByteSyncMetaQuestDLC.h"
 #include "AsyncTasks/Entitlements/OnlineAsyncTaskAccelByteSyncMetaQuestIAP.h"
+#include "AsyncTasks/Entitlements/OnlineAsyncTaskAccelByteSyncMetaSubscription.h"
 #include "AsyncTasks/Entitlements/OnlineAsyncTaskAccelByteSyncSteamIAPTransaction.h"
 #include "AsyncTasks/Entitlements/OnlineAsyncTaskAccelByteSyncSteamAbnormalIAPTransaction.h"
 #include "OnlineSubsystemAccelByteLog.h"
@@ -337,6 +338,22 @@ void FOnlineEntitlementsAccelByte::SyncDLC(const FUniqueNetId& InLocalUserId, co
 	}
 	
 	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteSyncDLC>(AccelByteSubsystemPtr.Get(), InLocalUserId, CompletionDelegate);
+
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""))
+}
+
+void FOnlineEntitlementsAccelByte::SyncMetaSubscription(const FUniqueNetId& InLocalUserId, const FAccelByteModelsSyncOculusSubscriptionRequest& SyncRequest, const FOnSyncMetaSubscriptionCompleteDelegate& CompletionDelegate)
+{
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT(""))
+
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelByteSubsystem is invalid"));
+		return;
+	}
+
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteSyncMetaSubscription>(AccelByteSubsystemPtr.Get(), InLocalUserId, SyncRequest, CompletionDelegate);
 
 	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""))
 }

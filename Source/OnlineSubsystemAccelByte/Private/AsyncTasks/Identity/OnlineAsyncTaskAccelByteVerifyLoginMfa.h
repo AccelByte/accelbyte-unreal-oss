@@ -28,9 +28,6 @@ protected:
 	}
 
 private:
-	/** User number or the controller index of the player. */
-	int32 LoginUserNum;
-	
 	/** Variables used for user mfa verification. */
 	EAccelByteLoginAuthFactorType FactorType{EAccelByteLoginAuthFactorType::None};
 	FString Code{};
@@ -49,12 +46,12 @@ private:
 	/** Handler on login queue canceled. */
 	FDelegateHandle OnLoginQueueCancelledDelegateHandle;
 	FAccelByteOnLoginQueueCanceledByUserDelegate OnLoginQueueCancelledDelegate;
-	void OnLoginQueueCancelled(int32 InLoginUserNum);
+	void OnLoginQueueCancelled(int32 InLocalUserNum);
 
 	/** Handler on login queue ticket claimed. */
 	FDelegateHandle OnLoginQueueClaimTicketCompleteDelegateHandle;
 	FAccelByteOnLoginQueueClaimTicketCompleteDelegate OnLoginQueueClaimTicketCompleteDelegate;
-	void OnLoginQueueTicketClaimed(int32 InLoginUserNum, bool bWasClaimSuccessful, const FErrorOAuthInfo& ErrorObject);
+	void OnLoginQueueTicketClaimed(int32 InLocalUserNum, bool bWasClaimSuccessful, const FErrorOAuthInfo& ErrorObject);
 
 	/** Flag indicating if login is in queue. */
 	bool bLoginInQueue{false};

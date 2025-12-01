@@ -28,9 +28,6 @@ protected:
 
 private:
 
-	/** the UserNum of user who want to cancel login*/
-	int32 LoginUserNum;
-	
 	/** Ticket ID we want to cancel */
 	FString TicketId;
 

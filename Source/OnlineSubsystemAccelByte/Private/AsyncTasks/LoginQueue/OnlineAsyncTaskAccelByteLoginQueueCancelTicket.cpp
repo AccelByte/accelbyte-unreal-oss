@@ -12,20 +12,18 @@ using namespace AccelByte;
 #define ONLINE_ERROR_NAMESPACE "FOnlineAsyncTaskAccelByteLoginQueueCancelTicket"
 
 FOnlineAsyncTaskAccelByteLoginQueueCancelTicket::FOnlineAsyncTaskAccelByteLoginQueueCancelTicket(
-	FOnlineSubsystemAccelByte* const InABInterface, int32 InLoginUserNum, const FString& InTicketId)
-	: FOnlineAsyncTaskAccelByte(InABInterface)
-	, LoginUserNum(InLoginUserNum)
+	FOnlineSubsystemAccelByte* const InABInterface, int32 InLocalUserNum, const FString& InTicketId)
+	: FOnlineAsyncTaskAccelByte(InABInterface, InLocalUserNum)
 	, TicketId(InTicketId)
 	, ErrorCode(0)
 {
-	LocalUserNum = INVALID_CONTROLLERID;
 }
 
 void FOnlineAsyncTaskAccelByteLoginQueueCancelTicket::Initialize()
 {
 	TRY_PIN_SUBSYSTEM();
 
-	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("LoginUserNum: %d, ticketId: %s"), LoginUserNum, *TicketId);
+	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("LocalUserNum: %d, ticketId: %s"), LocalUserNum, *TicketId);
 
 	Super::Initialize();
 
@@ -37,11 +35,11 @@ void FOnlineAsyncTaskAccelByteLoginQueueCancelTicket::Initialize()
 		return;
 	}
 	
-	FApiClientPtr LocalApiClient = SubsystemPin->GetApiClient(LoginUserNum);
+	FApiClientPtr LocalApiClient = SubsystemPin->GetApiClient(LocalUserNum);
 
 	if (!LocalApiClient.IsValid())
 	{
-		LocalApiClient = AccelByteInstance->GetApiClient(FString::Printf(TEXT("%d"), LoginUserNum));
+		LocalApiClient = AccelByteInstance->GetApiClient(FString::Printf(TEXT("%d"), LocalUserNum));
 	}
 
 	SetApiClient(LocalApiClient);
@@ -60,7 +58,7 @@ void FOnlineAsyncTaskAccelByteLoginQueueCancelTicket::Finalize()
 {
 	TRY_PIN_SUBSYSTEM();
 
-	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("LoginUserNum: %d, ticketId: %s, bWasSuccessful: %s"), LoginUserNum, *TicketId, bWasSuccessful? TEXT("True") : TEXT("False"));
+	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("LocalUserNum: %d, ticketId: %s, bWasSuccessful: %s"), LocalUserNum, *TicketId, bWasSuccessful? TEXT("True") : TEXT("False"));
 
 	if(!bWasSuccessful)
 	{
@@ -75,7 +73,7 @@ void FOnlineAsyncTaskAccelByteLoginQueueCancelTicket::Finalize()
 		return;
 	}
 
-	IdentityInterface->FinalizeLoginQueueCancel(LoginUserNum);
+	IdentityInterface->FinalizeLoginQueueCancel(LocalUserNum);
 	
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
@@ -84,7 +82,7 @@ void FOnlineAsyncTaskAccelByteLoginQueueCancelTicket::TriggerDelegates()
 {
 	TRY_PIN_SUBSYSTEM();
 
-	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("LoginUserNum: %d, ticketId: %s, bWasSuccessful: %s"), LoginUserNum, *TicketId, bWasSuccessful? TEXT("True") : TEXT("False"));
+	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("LocalUserNum: %d, ticketId: %s, bWasSuccessful: %s"), LocalUserNum, *TicketId, bWasSuccessful? TEXT("True") : TEXT("False"));
 
 	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(SubsystemPin->GetIdentityInterface());
 	if(!IdentityInterface.IsValid())
@@ -93,7 +91,7 @@ void FOnlineAsyncTaskAccelByteLoginQueueCancelTicket::TriggerDelegates()
 		return;
 	}
 
-	IdentityInterface->TriggerAccelByteOnLoginQueueCancelCompleteDelegates(LoginUserNum, bWasSuccessful,
+	IdentityInterface->TriggerAccelByteOnLoginQueueCancelCompleteDelegates(LocalUserNum, bWasSuccessful,
 			ONLINE_ERROR_ACCELBYTE(ErrorCode, bWasSuccessful? EOnlineErrorResult::Success : EOnlineErrorResult::RequestFailure));
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
@@ -101,7 +99,7 @@ void FOnlineAsyncTaskAccelByteLoginQueueCancelTicket::TriggerDelegates()
 
 void FOnlineAsyncTaskAccelByteLoginQueueCancelTicket::OnCancelTicketSuccess()
 {
-	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("LoginUserNum: %d, ticketId: %s"), LoginUserNum, *TicketId);
+	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("LocalUserNum: %d, ticketId: %s"), LocalUserNum, *TicketId);
 
 	CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
 	
@@ -110,7 +108,7 @@ void FOnlineAsyncTaskAccelByteLoginQueueCancelTicket::OnCancelTicketSuccess()
 
 void FOnlineAsyncTaskAccelByteLoginQueueCancelTicket::OnCancelTicketError(int32 InErrorCode, const FString& InErrorMessage)
 {
-	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("LoginUserNum: %d, ticketId: %s, ErrorCode: %d, ErrorMessage %s"), LoginUserNum, *TicketId, InErrorCode, *InErrorMessage);
+	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("LocalUserNum: %d, ticketId: %s, ErrorCode: %d, ErrorMessage %s"), LocalUserNum, *TicketId, InErrorCode, *InErrorMessage);
 
 	CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
 	ErrorCode = InErrorCode;

@@ -13,12 +13,10 @@ using namespace AccelByte;
 #define ONLINE_ERROR_NAMESPACE "FOnlineAsyncTaskAccelByteLoginRefreshTicket"
 
 FOnlineAsyncTaskAccelByteLoginQueue::FOnlineAsyncTaskAccelByteLoginQueue(FOnlineSubsystemAccelByte* const InABInterface,
-	int32 InLoginUserNum, const FAccelByteModelsLoginQueueTicketInfo& InTicket)
-	: FOnlineAsyncTaskAccelByte(InABInterface)
-	, LoginUserNum(InLoginUserNum)
+	int32 InLocalUserNum, const FAccelByteModelsLoginQueueTicketInfo& InTicket)
+	: FOnlineAsyncTaskAccelByte(InABInterface, InLocalUserNum)
 	, Ticket(InTicket)
 {
-	LocalUserNum = INVALID_CONTROLLERID;
 	bShouldUseTimeout = false;
 	Poller = MakeShared<FAccelByteLoginQueuePoller, ESPMode::ThreadSafe>();
 }
@@ -29,7 +27,7 @@ void FOnlineAsyncTaskAccelByteLoginQueue::Initialize()
 
 	Super::Initialize();
 
-	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("LocalUserNum: %d, TicketId: %s"), LoginUserNum, *Ticket.Ticket);
+	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("LocalUserNum: %d, TicketId: %s"), LocalUserNum, *Ticket.Ticket);
 
 	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(SubsystemPin->GetIdentityInterface());
 	if(!IdentityInterface.IsValid())
@@ -48,7 +46,7 @@ void FOnlineAsyncTaskAccelByteLoginQueue::Initialize()
 	OnPollStoppedHandler = TDelegateUtils<THandler<FOnlineErrorAccelByte>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteLoginQueue::OnPollTicketStopped);
 	Poller->SetOnPollStopped(OnPollStoppedHandler);
 	
-	Poller->StartPoll(SubsystemPin.Get(), LoginUserNum, Ticket);
+	Poller->StartPoll(SubsystemPin, LocalUserNum, Ticket);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
@@ -90,7 +88,7 @@ void FOnlineAsyncTaskAccelByteLoginQueue::TriggerDelegates()
 		return;
 	}
 
-	IdentityInterface->TriggerAccelByteOnLoginTicketStatusUpdatedDelegates(LoginUserNum, false, {},
+	IdentityInterface->TriggerAccelByteOnLoginTicketStatusUpdatedDelegates(LocalUserNum, false, {},
 			ONLINE_ERROR_ACCELBYTE(ErrorCode, EOnlineErrorResult::RequestFailure));
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
@@ -100,7 +98,7 @@ void FOnlineAsyncTaskAccelByteLoginQueue::OnPollTicketRefreshed(const FAccelByte
 {
 	TRY_PIN_SUBSYSTEM();
 
-	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("LocalUserNum: %d, TicketId: %s"), LoginUserNum, *InTicket.Ticket);
+	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("LocalUserNum: %d, TicketId: %s"), LocalUserNum, *InTicket.Ticket);
 
 	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(SubsystemPin->GetIdentityInterface());
 	if(!IdentityInterface.IsValid())
@@ -120,7 +118,7 @@ void FOnlineAsyncTaskAccelByteLoginQueue::OnPollTicketRefreshed(const FAccelByte
 	// only trigger ticket status updated when estimated wait time is above presentation threshold
 	if(InTicket.EstimatedWaitingTimeInSeconds > PresentationThreshold)
 	{
-		IdentityInterface->TriggerAccelByteOnLoginTicketStatusUpdatedDelegates(LoginUserNum, true, InTicket,
+		IdentityInterface->TriggerAccelByteOnLoginTicketStatusUpdatedDelegates(LocalUserNum, true, InTicket,
 			ONLINE_ERROR_ACCELBYTE(ErrorCode, EOnlineErrorResult::Success));
 	}
 
@@ -134,14 +132,14 @@ void FOnlineAsyncTaskAccelByteLoginQueue::OnPollTicketRefreshed(const FAccelByte
 	{
 		if (bManualClaimLoginQueueTicket)
 		{
-			IdentityInterface->TriggerAccelByteOnLoginTicketReadyDelegates(LoginUserNum, true);
+			IdentityInterface->TriggerAccelByteOnLoginTicketReadyDelegates(LocalUserNum, true);
 		}
 		else
 		{
 			Super::ExecuteCriticalSectionAction(FVoidHandler::CreateLambda([this, &InTicket]()
 				{
 					TRY_PIN_SUBSYSTEM();
-					SubsystemPin->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteLoginQueueClaimTicket>(SubsystemPin.Get(), LoginUserNum, InTicket.Ticket);
+					SubsystemPin->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteLoginQueueClaimTicket>(SubsystemPin.Get(), LocalUserNum, InTicket.Ticket);
 				}));
 		}
 		CleanupDelegateHandler();
@@ -161,11 +159,11 @@ void FOnlineAsyncTaskAccelByteLoginQueue::OnPollTicketStopped(const FOnlineError
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
 
-void FOnlineAsyncTaskAccelByteLoginQueue::OnLoginQueueCancelled(int32 InLoginUserNum)
+void FOnlineAsyncTaskAccelByteLoginQueue::OnLoginQueueCancelled(int32 InLocalUserNum)
 {
-	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Login queue cancelled, LoginUserNum: %d, Cancelled LoginUserNum: %d"), LoginUserNum, InLoginUserNum);
+	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("Login queue cancelled, LocalUserNum: %d, Cancelled LocalUserNum: %d"), LocalUserNum, InLocalUserNum);
 
-	if(InLoginUserNum == LoginUserNum)
+	if(InLocalUserNum == LocalUserNum)
 	{
 		CleanupDelegateHandler();
 
