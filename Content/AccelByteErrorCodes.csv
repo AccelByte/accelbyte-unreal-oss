@@ -1,7 +1,0 @@
-Key,SourceString,Comment
-"0","unknown-error",""
-"14005","network-error"
-"40041","legal-failed-policy-not-found"
-"40035","legal-failed-invalid-localize-policy-version-id"
-"40045","legal-failed-user-id-needed"
-"520303","matchmakingv2-failed-ticket-not-found"
