@@ -45,18 +45,28 @@ bool FOnlineAnalyticsAccelByte::SetTelemetrySendInterval(int32 LocalUserNum)
 	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("Set Telemetry Send Interval for LocalUserNum: %d"), LocalUserNum);
 
 	int64 IntervalSeconds { 5 };
-	
+
 	const FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
-	if (AccelByteSubsystemPtr.IsValid())
+	if (!AccelByteSubsystemPtr.IsValid())
 	{
-		FOnlineSubsystemAccelByteConfigPtr Config = AccelByteSubsystemPtr->GetConfig();
-		if (Config.IsValid())
-		{
-			IntervalSeconds = Config->GetSendTelemetryEventIntervalSeconds().GetValue();
-		}
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to set telemetry send interval: AccelByte subsystem is invalid"));
+		return false;
 	}
 
-	if (IsRunningDedicatedServer())
+	FOnlineSubsystemAccelByteConfigPtr Config = AccelByteSubsystemPtr->GetConfig();
+	if (Config.IsValid())
+	{
+		IntervalSeconds = Config->GetSendTelemetryEventIntervalSeconds().GetValue();
+	}
+
+	TOptional<bool> IsDS = AccelByteSubsystemPtr->IsDedicatedServer(LocalUserNum);
+	if (!IsDS.IsSet())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to set telemetry send interval: User %d is not logged in"), LocalUserNum);
+		return false;
+	}
+
+	if (IsDS.GetValue())
 	{
 		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
 		return ServerSetTelemetrySendInterval(LocalUserNum, IntervalSeconds);
@@ -71,17 +81,31 @@ bool FOnlineAnalyticsAccelByte::SetTelemetrySendInterval(int32 LocalUserNum)
 bool FOnlineAnalyticsAccelByte::SetTelemetryImmediateEventList(int32 InLocalUserNum, TArray<FString> const& EventNames)
 {
 	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("Set Telemetry Immediate Event List for LocalUserNum: %d"), InLocalUserNum);
-	
+
 	if (!IsUserLoggedIn(InLocalUserNum) || EventNames.Num() <= 0)
 	{
 		return false;
 	}
 
+	const FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Failed to set telemetry immediate event list, AccelByteSubsystem ptr is invalid"));
+		return false;
+	}
+
+	TOptional<bool> IsDS = AccelByteSubsystemPtr->IsDedicatedServer(InLocalUserNum);
+	if (!IsDS.IsSet())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Failed to set telemetry immediate event list, User %d is not logged in"), InLocalUserNum);
+		return false;
+	}
+
 	bool bIsSuccess = false;
-	if (IsRunningDedicatedServer())
+	if (IsDS.GetValue())
 	{
 		const FAccelByteInstancePtr AccelByteInstance = GetAccelByteInstance().Pin();
-		if(AccelByteInstance.IsValid())
+		if (AccelByteInstance.IsValid())
 		{
 			const FServerApiClientPtr ServerApiClient = AccelByteInstance->GetServerApiClient();
 			if (ServerApiClient.IsValid())
@@ -93,13 +117,6 @@ bool FOnlineAnalyticsAccelByte::SetTelemetryImmediateEventList(int32 InLocalUser
 	}
 	else
 	{
-		const FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
-		if(!AccelByteSubsystemPtr.IsValid())
-		{
-			AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Failed to set telemetry immediate event list, AccelByteSubsystem ptr is invalid"));
-			return false;
-		}
-		
 		const auto ApiClient = AccelByteSubsystemPtr->GetApiClient(InLocalUserNum);
 		if (ApiClient.IsValid())
 		{
@@ -111,7 +128,7 @@ bool FOnlineAnalyticsAccelByte::SetTelemetryImmediateEventList(int32 InLocalUser
 			}
 		}
 	}
-	
+
 	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Set Telemetry Immediate Event List is finished with status (Success: %s)"), LOG_BOOL_FORMAT(bIsSuccess));
 	return bIsSuccess;
 }
@@ -126,14 +143,21 @@ bool FOnlineAnalyticsAccelByte::SetTelemetryCriticalEventList(int32 InLocalUserN
 	}
 
 	const FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
-	if(!AccelByteSubsystemPtr.IsValid())
+	if (!AccelByteSubsystemPtr.IsValid())
 	{
 		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Failed to set telemetry critical event list, AccelByteSubsystem ptr is invalid"));
 		return false;
 	}
 
+	TOptional<bool> IsDS = AccelByteSubsystemPtr->IsDedicatedServer(InLocalUserNum);
+	if (!IsDS.IsSet())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Failed to set telemetry critical event list, User %d is not logged in"), InLocalUserNum);
+		return false;
+	}
+
 	bool bIsSuccess = false;
-	if (!IsRunningDedicatedServer())
+	if (!IsDS.GetValue())
 	{
 		const auto ApiClient = AccelByteSubsystemPtr->GetApiClient(InLocalUserNum);
 		if (ApiClient.IsValid())
@@ -157,14 +181,28 @@ bool FOnlineAnalyticsAccelByte::SendTelemetryEvent(int32 InLocalUserNum
 	, FErrorHandler const& OnError)
 {
 	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("Send Telemetry Event for LocalUserNum: %d"), InLocalUserNum);
-	
+
 	bool bIsSuccess = false;
 	if (IsUserLoggedIn(InLocalUserNum) && IsValidTelemetry(TelemetryBody))
 	{
-		if (IsRunningDedicatedServer())
+		const FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+		if (!AccelByteSubsystemPtr.IsValid())
+		{
+			AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Failed to send telemetry event, AccelByteSubsystem ptr is invalid"));
+			return false;
+		}
+
+		TOptional<bool> IsDS = AccelByteSubsystemPtr->IsDedicatedServer(InLocalUserNum);
+		if (!IsDS.IsSet())
+		{
+			AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Failed to send telemetry event, User %d is not logged in"), InLocalUserNum);
+			return false;
+		}
+
+		if (IsDS.GetValue())
 		{
 			const FAccelByteInstancePtr AccelByteInstance = GetAccelByteInstance().Pin();
-			if(AccelByteInstance.IsValid())
+			if (AccelByteInstance.IsValid())
 			{
 				const FServerApiClientPtr ServerApiClient = AccelByteInstance->GetServerApiClient();
 				if (ServerApiClient.IsValid())
@@ -176,13 +214,6 @@ bool FOnlineAnalyticsAccelByte::SendTelemetryEvent(int32 InLocalUserNum
 		}
 		else
 		{
-			const FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
-			if(!AccelByteSubsystemPtr.IsValid())
-			{
-				AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Failed to send telemetry event, AccelByteSubsystem ptr is invalid"));
-				return false;
-			}
-			
 			const auto ApiClient = AccelByteSubsystemPtr->GetApiClient(InLocalUserNum);
 			if (ApiClient.IsValid())
 			{
@@ -203,29 +234,38 @@ bool FOnlineAnalyticsAccelByte::SendTelemetryEvent(int32 InLocalUserNum
 bool FOnlineAnalyticsAccelByte::IsUserLoggedIn(const int32 InLocalUserNum) const
 {
 	const FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
-	if(!AccelByteSubsystemPtr.IsValid())
+	if (!AccelByteSubsystemPtr.IsValid())
 	{
 		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Failed to check is user logged in, AccelByteSubsystem ptr is invalid"));
 		return false;
 	}
-	
-	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystemPtr->GetIdentityInterface());
-	
-	if (IdentityInterface.IsValid())
-	{
-		if (IsRunningDedicatedServer())
-		{
-			#if !AB_USE_V2_SESSIONS
-				return IdentityInterface->IsServerAuthenticated();
-			#else
-				return IdentityInterface->GetLoginStatus(InLocalUserNum) == ELoginStatus::LoggedIn;
-			#endif
-		}
 
+	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystemPtr->GetIdentityInterface());
+
+	if (!IdentityInterface.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Failed to check is user logged in, IdentityInterface is invalid"));
+		return false;
+	}
+
+	TOptional<bool> IsDS = AccelByteSubsystemPtr->IsDedicatedServer(InLocalUserNum);
+	if (!IsDS.IsSet())
+	{
+		return false;
+	}
+
+	if (IsDS.GetValue())
+	{
+		#if !AB_USE_V2_SESSIONS
+			return IdentityInterface->IsServerAuthenticated();
+		#else
+			return IdentityInterface->GetLoginStatus(InLocalUserNum) == ELoginStatus::LoggedIn;
+		#endif
+	}
+	else 
+	{
 		return IdentityInterface->GetLoginStatus(InLocalUserNum) == ELoginStatus::LoggedIn;
 	}
-	
-	return false;
 }
 
 FAccelByteInstanceWPtr FOnlineAnalyticsAccelByte::GetAccelByteInstance() const

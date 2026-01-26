@@ -27,6 +27,25 @@ void FOnlineAsyncTaskAccelByteV2GetRecentTeamPlayer::Initialize()
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("PlayerId: %s"), *UserId->ToDebugString());
 
+	TRY_PIN_SUBSYSTEM();
+
+	TOptional<bool> IsDS = SubsystemPin->IsDedicatedServer(LocalUserNum);
+	if (!IsDS.IsSet())
+	{
+		ErrorStr = TEXT("query-recent-team-players-failed-user-not-logged-in");
+		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to query recent team players, user is not logged in!"));
+		CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState);
+		return;
+	}
+
+	if (IsDS.GetValue())
+	{
+		ErrorStr = TEXT("query-recent-team-players-not-supported-on-dedicated-server");
+		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to query recent team players, operation not supported on dedicated server!"));
+		CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState);
+		return;
+	}
+
 	OnGetRecentTeamPlayersSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsV2SessionRecentPlayers>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteV2GetRecentTeamPlayer::OnGetRecentTeamPlayersSuccess);
 	OnGetRecentTeamPlayersErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteV2GetRecentTeamPlayer::OnGetRecentTeamPlayersError);
 	API_FULL_CHECK_GUARD(Session);

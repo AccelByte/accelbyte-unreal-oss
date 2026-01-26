@@ -863,7 +863,7 @@ void FOnlineAsyncTaskAccelByteLogin::OnLoginSuccess()
 // Empty statement, do nothing.
 #else
 	FOnlineSessionV2AccelBytePtr SessionInterface = nullptr;
-	if (FOnlineSessionV2AccelByte::GetFromSubsystem(SubsystemPin.Get(),  SessionInterface))
+	if (FOnlineSessionV2AccelByte::GetFromSubsystem(SubsystemPin.Get(),  SessionInterface) && ApiClient->CredentialsRef->IsComply())
 	{
 		SessionInterface->InitializePlayerAttributes(UserId.ToSharedRef().Get());	
 	}

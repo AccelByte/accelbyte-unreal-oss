@@ -655,6 +655,22 @@ PACKAGE_SCOPE:
 	*/
 	void QueryRoomAfterChatConnectEstablished(const FUniqueNetId& PlayerId);
 
+	/**
+	 * Register topology delegates (room membership changes, connection events).
+	 * Called BEFORE QueryRoomAfterChatConnectEstablished to prevent notification loss.
+	 */
+	void RegisterTopologyDelegates(int32 LocalUserNum);
+
+	/**
+	 * Register message delegates (chat content, user state changes).
+	 * Called AFTER QueryRoomAfterChatConnectEstablished to ensure display names are cached.
+	 */
+	void RegisterMessageDelegates(int32 LocalUserNum);
+
+	/**
+	 * @deprecated Use RegisterTopologyDelegates + RegisterMessageDelegates instead.
+	 * Kept for backward compatibility.
+	 */
 	void RegisterChatDelegates(int32 LocalUserNum);
 
 	//~ Begin Utility functions

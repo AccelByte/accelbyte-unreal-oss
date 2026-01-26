@@ -2,6 +2,33 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.13.9](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.13.9%0D0.13.8) (2026-01-26)
+
+
+### Features
+
+* add IsComply validation checking from credentials. Performed on AsyncTask (OnLoginSuccess & PostLoginBulkGetUserProfileCompleted) ([2564271](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/25642715d1709e61af30e88ef06492ca7b66942a))
+
+
+### Bug Fixes
+
+* add defensive code when calling UpdateInternalGameSession ([2b233e0](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/2b233e022fe6a1088d8ecea6495ade98ae31dee7))
+* async task validation for Chat Interface ([e39c87d](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/e39c87dd0b59a95f926e181ed91a384a10c4eba6))
+* async task validation for Friends Interface ([1ec89a4](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/1ec89a42938f99f62dc7fd73f66cda389cc46975))
+* async task validation for Identity Interface ([d86a7d1](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/d86a7d1cca980a826d13747d141e83528731ce32))
+* **chat:** fix sync chat topics on session reconnect by split delegate registration to prevent notification loss ([13fa9d6](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/13fa9d6e6249b2a77b5e7b3d0512e2e34073fbe7))
+* fix P2P connection when autojoin is true ([db4119c](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/db4119c28f175a76bb914efbb416c90ad64bd3f6))
+* **P2P:** wrong logic on deciding HasConnectionInfo() or not ([d0dff54](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/d0dff540dcd4bc8bbcb1e83bcfcf4a1aaab17949))
+* properly separate wallet v1 and v2 implementation ([9b9fd3a](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/9b9fd3aad7380758f4d534e76718ba6b04192bcf))
+* use IsDedicatedServer method instead of IsRunningDedicatedServer for OnlineGameStandardEventInterface ([8a36eb6](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/8a36eb660ea3caca90ff241d1c04cee69193c129))
+* use the new IsDedicatedServer() method to determine whether a user is a server or client ([2436dd8](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/2436dd8f210c8edad31dea42874abd944a58267d))
+* use the new IsDedicatedServer() method to determine whether a user is a server or client ([0a6e460](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/0a6e460f52366a02f89f73d53c27800a42ef8588))
+
+
+### Documentations
+
+* update supported engine to 5.7 as beta support ([46accb5](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/46accb55b55ea6875233e01a502a5c32e16eac59))
+
 ### [0.13.8](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.13.8%0D0.13.7) (2025-12-01)
 
 

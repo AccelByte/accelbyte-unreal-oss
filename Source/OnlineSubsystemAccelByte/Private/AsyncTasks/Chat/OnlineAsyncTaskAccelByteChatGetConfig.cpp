@@ -28,6 +28,25 @@ void FOnlineAsyncTaskAccelByteChatGetConfig::Initialize()
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("UserId: %s"), *UserId->ToDebugString());
 
+	TRY_PIN_SUBSYSTEM();
+
+	TOptional<bool> IsDS = SubsystemPin->IsDedicatedServer(LocalUserNum);
+	if (!IsDS.IsSet())
+	{
+		ErrorStr = TEXT("get-chat-config-failed-user-not-logged-in");
+		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to get chat config, user is not logged in!"));
+		CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState);
+		return;
+	}
+
+	if (IsDS.GetValue())
+	{
+		ErrorStr = TEXT("get-chat-config-not-supported-on-dedicated-server");
+		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to get chat config, operation not supported on dedicated server!"));
+		CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState);
+		return;
+	}
+
 	const AccelByte::THandler<FAccelByteModelsChatPublicConfigResponse> OnGetChatConfigSuccess =
 		TDelegateUtils<AccelByte::THandler<FAccelByteModelsChatPublicConfigResponse>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteChatGetConfig::OnGetChatConfigSuccess);
 	const AccelByte::FErrorHandler OnGetChatConfigFail =

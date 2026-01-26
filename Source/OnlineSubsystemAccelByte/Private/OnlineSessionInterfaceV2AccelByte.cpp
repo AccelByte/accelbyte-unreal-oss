@@ -1,4 +1,4 @@
-// Copyright (c) 2022 - 2024 AccelByte Inc. All Rights Reserved.
+// Copyright (c) 2022 - 2025 AccelByte Inc. All Rights Reserved.
 // This is licensed software from AccelByte Inc, for limitations
 // and restrictions contact your company contract manager.
 
@@ -303,7 +303,9 @@ bool FOnlineSessionInfoAccelByteV2::HasConnectionInfo() const
 	}
 	else if (GameSessionBackendData->Configuration.Type == EAccelByteV2SessionConfigurationServerType::P2P)
 	{
-		return !PeerId.IsEmpty();
+		bool isPeerIdEmpty = PeerId.IsEmpty();
+		int32 p2pChannelLen = P2PChannel;
+		return !isPeerIdEmpty && p2pChannelLen != 0;
 	}
 
 	return false;
@@ -1929,19 +1931,29 @@ bool FOnlineSessionV2AccelByte::CreateSession(int32 HostingPlayerNum, FName Sess
 {
 	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("SearchingPlayerNum: %d; SessionName: %s"), HostingPlayerNum, *SessionName.ToString());
 
-	if (IsRunningDedicatedServer())
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(VeryVerbose, TEXT("Failed to create session as our AccelByte subsystem is invalid"));
+		return false;
+	}
+
+	TOptional<bool> IsDS = AccelByteSubsystemPtr->IsDedicatedServer(HostingPlayerNum);
+	if (!IsDS.IsSet())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to create session, User %d is not logged in"), HostingPlayerNum);
+		AccelByteSubsystemPtr->ExecuteNextTick([SessionInterface = AsShared(), SessionName]() {
+			SessionInterface->TriggerOnCreateSessionCompleteDelegates(SessionName, false);
+		});
+		return false;
+	}
+
+	if (IsDS.GetValue())
 	{
 		// If we are trying to create a new session as a server, just pass an invalid user ID and continue. Server clients
 		// do not have user IDs.
 		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Passing to create session!"));
 		return CreateSession(FUniqueNetIdAccelByteUser::Invalid().Get(), SessionName, NewSessionSettings);
-	}
-
-	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
-	if(!AccelByteSubsystemPtr.IsValid())
-	{
-		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(VeryVerbose, TEXT("Failed to create session as our AccelByte subsystem is invalid"));
-		return false;
 	}
 
 	const IOnlineIdentityPtr IdentityInterface = AccelByteSubsystemPtr->GetIdentityInterface();
@@ -1974,20 +1986,30 @@ bool FOnlineSessionV2AccelByte::CreateSession(int32 HostingPlayerNum, FName Sess
 
 bool FOnlineSessionV2AccelByte::CreateSession(const FUniqueNetId& HostingPlayerId, FName SessionName, const FOnlineSessionSettings& NewSessionSettings)
 {
-	if (!IsRunningDedicatedServer())
-	{
-		AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("HostingPlayerId: %s; SessionName: %s"), *HostingPlayerId.ToDebugString(), *SessionName.ToString());
-	}
-	else
-	{
-		AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("SessionName: %s"), *SessionName.ToString());
-	}
-
 	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
-	if(!AccelByteSubsystemPtr.IsValid())
+	if (!AccelByteSubsystemPtr.IsValid())
 	{
 		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(VeryVerbose, TEXT("Failed to create session as our AccelByte subsystem is invalid"));
 		return false;
+	}
+
+	int32 LocalUserNum = 0;
+	FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystemPtr->GetIdentityInterface());
+	if (!IdentityInterface.IsValid() || !IdentityInterface->GetLocalUserNum(HostingPlayerId, LocalUserNum))
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("SessionName: %s"), *SessionName.ToString());
+	}
+	else
+	{
+		TOptional<bool> IsDS = AccelByteSubsystemPtr->IsDedicatedServer(LocalUserNum);
+		if (!IsDS.IsSet() || IsDS.GetValue())
+		{
+			AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("SessionName: %s"), *SessionName.ToString());
+		}
+		else
+		{
+			AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("HostingPlayerId: %s; SessionName: %s"), *HostingPlayerId.ToDebugString(), *SessionName.ToString());
+		}
 	}
 
 	// Check if we already have a session with this name, and if so bail with warning
@@ -2042,20 +2064,30 @@ bool FOnlineSessionV2AccelByte::CreateSession(const FUniqueNetId& HostingPlayerI
 
 bool FOnlineSessionV2AccelByte::CreatePartySession(const FUniqueNetId& HostingPlayerId, const FName& SessionName, const FOnlineSessionSettings& NewSessionSettings)
 {
-	if (!IsRunningDedicatedServer())
-	{
-		AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("HostingPlayerId: %s; SessionName: %s"), *HostingPlayerId.ToDebugString(), *SessionName.ToString());
-	}
-	else
-	{
-		AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("SessionName: %s"), *SessionName.ToString());
-	}
-
 	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
-	if(!AccelByteSubsystemPtr.IsValid())
+	if (!AccelByteSubsystemPtr.IsValid())
 	{
 		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(VeryVerbose, TEXT("Failed to create party session as our AccelByte subsystem is invalid"));
 		return false;
+	}
+
+	int32 LocalUserNum = 0;
+	FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystemPtr->GetIdentityInterface());
+	if (!IdentityInterface.IsValid() || !IdentityInterface->GetLocalUserNum(HostingPlayerId, LocalUserNum))
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("SessionName: %s"), *SessionName.ToString());
+	}
+	else
+	{
+		TOptional<bool> IsDS = AccelByteSubsystemPtr->IsDedicatedServer(LocalUserNum);
+		if (!IsDS.IsSet() || IsDS.GetValue())
+		{
+			AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("SessionName: %s"), *SessionName.ToString());
+		}
+		else
+		{
+			AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("HostingPlayerId: %s; SessionName: %s"), *HostingPlayerId.ToDebugString(), *SessionName.ToString());
+		}
 	}
 
 	// Create new session instance for this party that we are trying to create, and reflect state that we are creating
@@ -2064,24 +2096,25 @@ bool FOnlineSessionV2AccelByte::CreatePartySession(const FUniqueNetId& HostingPl
 
 	NewSession->bHosting = true;
 
-	const IOnlineIdentityPtr IdentityInterface = AccelByteSubsystemPtr->GetIdentityInterface();
-	if (!ensure(IdentityInterface.IsValid()))
+	const IOnlineIdentityPtr IdentityInterfacePtr = AccelByteSubsystemPtr->GetIdentityInterface();
+	if (!IdentityInterfacePtr.IsValid())
 	{
 		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to create party session as our identity interface is invalid!"));
-		
+
 		AccelByteSubsystemPtr->ExecuteNextTick([SessionInterface = AsShared(), SessionName]() {
 			SessionInterface->TriggerOnCreateSessionCompleteDelegates(SessionName, false);
 		});
-		
+
 		return false;
 	}
 
 	// Only set local and remote owner information if we are not running a dedicated server. Servers do not have a user
 	// associated with them, so we have no owning user ID, local or otherwise.
-	if (!IsRunningDedicatedServer())
+	TOptional<bool> IsDS = IdentityInterface.IsValid() ? AccelByteSubsystemPtr->IsDedicatedServer(LocalUserNum) : TOptional<bool>();
+	if (IsDS.IsSet() && !IsDS.GetValue())
 	{
 		NewSession->OwningUserId = HostingPlayerId.AsShared();
-		NewSession->OwningUserName = IdentityInterface->GetPlayerNickname(HostingPlayerId);
+		NewSession->OwningUserName = IdentityInterfacePtr->GetPlayerNickname(HostingPlayerId);
 		NewSession->LocalOwnerId = HostingPlayerId.AsShared();
 	}
 	
@@ -3120,28 +3153,42 @@ void FOnlineSessionV2AccelByte::UpdateInternalGameSession(const FName& SessionNa
 	FNamedOnlineSession* Session = GetNamedSession(SessionName);
 	if (Session == nullptr)
 	{
-		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed update internal data for game session as the session named '%s' does not exist locally!"), *SessionName.ToString());
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to update internal data for game session as the session named '%s' does not exist locally!"), *SessionName.ToString());
 		return;
 	}
 
 	const EAccelByteV2SessionType SessionType = GetSessionTypeFromSettings(Session->SessionSettings);
 	if (SessionType != EAccelByteV2SessionType::GameSession)
 	{
-		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed update internal data for game session as the session named '%s' locally is not a game session!"), *SessionName.ToString());
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to update internal data for game session as the session named '%s' locally is not a game session!"), *SessionName.ToString());
 		return;
 	}
 
 	TSharedPtr<FOnlineSessionInfoAccelByteV2> SessionInfo = StaticCastSharedPtr<FOnlineSessionInfoAccelByteV2>(Session->SessionInfo);
 	if (!SessionInfo.IsValid())
 	{
-		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed update internal data for game session as the session named '%s' locally does not have valid session info!"), *SessionName.ToString());
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to update internal data for game session as the session named '%s' locally does not have valid session info!"), *SessionName.ToString());
 		return;
 	}
 
 	TSharedPtr<FAccelByteModelsV2BaseSession> SessionData = SessionInfo->GetBackendSessionData();
 	if (!SessionData.IsValid())
 	{
-		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed update internal data for game session as the session named '%s' locally does not have valid session backend data!"), *SessionName.ToString());
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to update internal data for game session as the session named '%s' locally does not have valid session backend data!"), *SessionName.ToString());
+		return;
+	}
+
+	auto AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if(!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to update internal data for game session '%s' as ABSubsystem is not valid!"), *SessionName.ToString());
+		return;
+	}
+
+	FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystemPtr->GetIdentityInterface());
+	if(!IdentityInterface.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to update internal data for game session '%s' as Identity Interface is not valid!"), *SessionName.ToString());
 		return;
 	}
 
@@ -3166,32 +3213,41 @@ void FOnlineSessionV2AccelByte::UpdateInternalGameSession(const FName& SessionNa
 
 	UpdateSessionMembers(Session, OldMembers, bHasInvitedPlayersChanged);
 
-	const EAccelByteV2SessionConfigurationServerType NewServerType = SessionInfo->GetServerType();	
+	const EAccelByteV2SessionConfigurationServerType NewServerType = SessionInfo->GetServerType();
 
 	bIsConnectingToP2P = false;
-	
+
 	// If we have a local owner ID for this session, then check if we are switching to or from P2P
-	if (!IsRunningDedicatedServer() && Session->LocalOwnerId.IsValid())
+	// Note: Dedicated servers don't have a LocalOwnerId, so we must check validity before dereferencing
+	if (Session->LocalOwnerId.IsValid())
 	{
-		const bool bSwitchingToP2P = OldServerType != EAccelByteV2SessionConfigurationServerType::P2P && NewServerType == EAccelByteV2SessionConfigurationServerType::P2P;
-		const bool bSwitchingFromP2P = OldServerType == EAccelByteV2SessionConfigurationServerType::P2P && NewServerType != EAccelByteV2SessionConfigurationServerType::P2P;
-		const bool bIsFirstP2PJoin = NewServerType == EAccelByteV2SessionConfigurationServerType::P2P && bIsFirstJoin;
-		if (bSwitchingToP2P || bIsFirstP2PJoin)
+		int32 LocalUserNum = 0;
+		IdentityInterface->GetLocalUserNum(Session->LocalOwnerId.ToSharedRef().Get(), LocalUserNum);
+		TOptional<bool> IsDS = AccelByteSubsystemPtr->IsDedicatedServer(LocalUserNum);
+		bool bIsClient = IsDS.IsSet() && !IsDS.GetValue();
+
+		if (bIsClient)
 		{
-			// If the session's local owner is also its leader, they'll be the P2P host
-			if (Session->LocalOwnerId.IsValid() && Session->LocalOwnerId.ToSharedRef().Get() == SessionInfo->GetLeaderId().ToSharedRef().Get())
+			const bool bSwitchingToP2P = OldServerType != EAccelByteV2SessionConfigurationServerType::P2P && NewServerType == EAccelByteV2SessionConfigurationServerType::P2P;
+			const bool bSwitchingFromP2P = OldServerType == EAccelByteV2SessionConfigurationServerType::P2P && NewServerType != EAccelByteV2SessionConfigurationServerType::P2P;
+			const bool bIsFirstP2PJoin = NewServerType == EAccelByteV2SessionConfigurationServerType::P2P && bIsFirstJoin;
+			if (bSwitchingToP2P || bIsFirstP2PJoin)
 			{
-				SetupAccelByteP2PConnection(Session->LocalOwnerId.ToSharedRef().Get());
+				// If the session's local owner is also its leader, they'll be the P2P host
+				if (Session->LocalOwnerId.ToSharedRef().Get() == SessionInfo->GetLeaderId().ToSharedRef().Get())
+				{
+					SetupAccelByteP2PConnection(Session->LocalOwnerId.ToSharedRef().Get());
+				}
+				else
+				{
+					bIsConnectingToP2P = true;
+					ConnectToJoinedP2PSession(SessionName, (bIsFirstP2PJoin) ? EOnlineSessionP2PConnectedAction::Join : EOnlineSessionP2PConnectedAction::Update);
+				}
 			}
-			else
+			else if (bSwitchingFromP2P)
 			{
-				bIsConnectingToP2P = true;
-				ConnectToJoinedP2PSession(SessionName, (bIsFirstP2PJoin) ? EOnlineSessionP2PConnectedAction::Join : EOnlineSessionP2PConnectedAction::Update);
+				TeardownAccelByteP2PConnection();
 			}
-		}
-		else if (bSwitchingFromP2P)
-		{
-			TeardownAccelByteP2PConnection();
 		}
 	}
 
@@ -3215,28 +3271,28 @@ void FOnlineSessionV2AccelByte::UpdateInternalPartySession(const FName& SessionN
 	FNamedOnlineSession* Session = GetNamedSession(SessionName);
 	if (Session == nullptr)
 	{
-		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed update internal data for party session as the session named '%s' does not exist locally!"), *SessionName.ToString());
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to update internal data for party session as the session named '%s' does not exist locally!"), *SessionName.ToString());
 		return;
 	}
 
 	const EAccelByteV2SessionType SessionType = GetSessionTypeFromSettings(Session->SessionSettings);
 	if (SessionType != EAccelByteV2SessionType::PartySession)
 	{
-		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed update internal data for party session as the session named '%s' locally is not a party session!"), *SessionName.ToString());
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to update internal data for party session as the session named '%s' locally is not a party session!"), *SessionName.ToString());
 		return;
 	}
 
 	TSharedPtr<FOnlineSessionInfoAccelByteV2> SessionInfo = StaticCastSharedPtr<FOnlineSessionInfoAccelByteV2>(Session->SessionInfo);
 	if (!SessionInfo.IsValid())
 	{
-		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed update internal data for party session as the session named '%s' locally does not have valid session info!"), *SessionName.ToString());
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to update internal data for party session as the session named '%s' locally does not have valid session info!"), *SessionName.ToString());
 		return;
 	}
 
 	TSharedPtr<FAccelByteModelsV2BaseSession> SessionData = SessionInfo->GetBackendSessionData();
 	if (!SessionData.IsValid())
 	{
-		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed update internal data for game session as the session named '%s' locally does not have valid session backend data!"), *SessionName.ToString());
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to update internal data for game session as the session named '%s' locally does not have valid session backend data!"), *SessionName.ToString());
 		return;
 	}
 
@@ -3551,12 +3607,19 @@ bool FOnlineSessionV2AccelByte::DestroySession(FName SessionName, const FOnDestr
 	// Get owner log in status to determine if we are able to issue a 'LeaveSession' call for this session
 	FOnlineIdentityAccelBytePtr IdentityInterface{};
 	ELoginStatus::Type LoginStatus = ELoginStatus::NotLoggedIn;
+	int32 LocalUserNum = 0;
+	bool bIsClient = false;
 	if (Session->LocalOwnerId.IsValid() && FOnlineIdentityAccelByte::GetFromSubsystem(AccelByteSubsystemPtr.Get(), IdentityInterface))
 	{
 		LoginStatus = IdentityInterface->GetLoginStatus(Session->LocalOwnerId.ToSharedRef().Get());
+		if (IdentityInterface->GetLocalUserNum(Session->LocalOwnerId.ToSharedRef().Get(), LocalUserNum))
+		{
+			TOptional<bool> IsDS = AccelByteSubsystemPtr->IsDedicatedServer(LocalUserNum);
+			bIsClient = IsDS.IsSet() && !IsDS.GetValue();
+		}
 	}
 
-	if (!IsRunningDedicatedServer() && LoginStatus == ELoginStatus::LoggedIn)
+	if (bIsClient && LoginStatus == ELoginStatus::LoggedIn)
 	{
 		// Grab local owner ID so that we can make a call to leave session on their behalf
 		if (!ensure(Session->LocalOwnerId.IsValid()))
@@ -4062,9 +4125,15 @@ bool FOnlineSessionV2AccelByte::JoinSession(const FUniqueNetId& LocalUserId, FNa
 		}
 	}
 
-	if (!IsRunningDedicatedServer())
+	int32 LocalUserNum = 0;
+	FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystemPtr->GetIdentityInterface());
+	if (IdentityInterface.IsValid() && IdentityInterface->GetLocalUserNum(LocalUserId, LocalUserNum))
 	{
-		AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskSerial<FOnlineAsyncTaskAccelByteConnectLobby>(AccelByteSubsystemPtr.Get(), LocalUserId, true);
+		TOptional<bool> IsDS = AccelByteSubsystemPtr->IsDedicatedServer(LocalUserNum);
+		if (IsDS.IsSet() && !IsDS.GetValue())
+		{
+			AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskSerial<FOnlineAsyncTaskAccelByteConnectLobby>(AccelByteSubsystemPtr.Get(), LocalUserId, true);
+		}
 	}
 
 	EAccelByteV2SessionType SessionType = GetSessionTypeFromSettings(NewSession->SessionSettings);
@@ -4139,9 +4208,15 @@ bool FOnlineSessionV2AccelByte::JoinSession(const FUniqueNetId& LocalUserId, FNa
 	NewSession->SessionState = EOnlineSessionState::Creating;
 	NewSession->LocalOwnerId = LocalUserId.AsShared();
 
-	if (!IsRunningDedicatedServer())
+	int32 LocalUserNum = 0;
+	FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystemPtr->GetIdentityInterface());
+	if (IdentityInterface.IsValid() && IdentityInterface->GetLocalUserNum(LocalUserId, LocalUserNum))
 	{
-		AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskSerial<FOnlineAsyncTaskAccelByteConnectLobby>(AccelByteSubsystemPtr.Get(), LocalUserId, true);
+		TOptional<bool> IsDS = AccelByteSubsystemPtr->IsDedicatedServer(LocalUserNum);
+		if (IsDS.IsSet() && !IsDS.GetValue())
+		{
+			AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskSerial<FOnlineAsyncTaskAccelByteConnectLobby>(AccelByteSubsystemPtr.Get(), LocalUserId, true);
+		}
 	}
 
 	if(SessionType == EAccelByteV2SessionType::PartySession)
@@ -4432,17 +4507,34 @@ bool FOnlineSessionV2AccelByte::UpdateSessionLeaderStorage(const FUniqueNetId& L
 {
 	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("LocalUserId: %s; SessionName: %s"), *LocalUserId.ToDebugString(), *SessionName.ToString());
 
-	if (IsRunningDedicatedServer())
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
 	{
-		TriggerOnUpdateSessionLeaderStorageCompleteDelegates(SessionName, FOnlineError::CreateError(TEXT("UpdateSessionLeaderStorage"), EOnlineErrorResult::RequestFailure));
-		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Dedicated server unable to update session leader storage"))
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Failed to update session leader storage as our AccelByte subsystem is invalid"));
 		return false;
 	}
 
-	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
-	if(!AccelByteSubsystemPtr.IsValid())
+	int32 LocalUserNum = 0;
+	FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystemPtr->GetIdentityInterface());
+	if (!IdentityInterface.IsValid())
 	{
-		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Failed to update session leader storage as our AccelByte subsystem is invalid"));
+		TriggerOnUpdateSessionLeaderStorageCompleteDelegates(SessionName, FOnlineError::CreateError(TEXT("UpdateSessionLeaderStorage"), EOnlineErrorResult::RequestFailure));
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to update session leader storage, IdentityInterface is invalid"));
+		return false;
+	}
+	IdentityInterface->GetLocalUserNum(LocalUserId, LocalUserNum);
+	TOptional<bool> IsDS = AccelByteSubsystemPtr->IsDedicatedServer(LocalUserNum);
+	if (!IsDS.IsSet())
+	{
+		TriggerOnUpdateSessionLeaderStorageCompleteDelegates(SessionName, FOnlineError::CreateError(TEXT("UpdateSessionLeaderStorage"), EOnlineErrorResult::RequestFailure));
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to update session leader storage, User %d is not logged in"), LocalUserNum);
+		return false;
+	}
+
+	if (IsDS.GetValue())
+	{
+		TriggerOnUpdateSessionLeaderStorageCompleteDelegates(SessionName, FOnlineError::CreateError(TEXT("UpdateSessionLeaderStorage"), EOnlineErrorResult::RequestFailure));
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Dedicated server unable to update session leader storage"))
 		return false;
 	}
 
@@ -4464,17 +4556,34 @@ bool FOnlineSessionV2AccelByte::UpdateSessionMemberStorage(const FUniqueNetId& L
 {
 	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("LocalUserId: %s; SessionName: %s"), *LocalUserId.ToDebugString(), *SessionName.ToString());
 
-	if (IsRunningDedicatedServer())
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
 	{
-		TriggerOnUpdateSessionMemberStorageCompleteDelegates(SessionName, LocalUserId, FOnlineError::CreateError(TEXT("UpdateSessionMemberStorage"), EOnlineErrorResult::RequestFailure));
-		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Dedicated server unable to update session leader storage"))
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Failed to update session member storage as our AccelByte subsystem is invalid"));
 		return false;
 	}
 
-	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
-	if(!AccelByteSubsystemPtr.IsValid())
+	int32 LocalUserNum = 0;
+	FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystemPtr->GetIdentityInterface());
+	if (!IdentityInterface.IsValid())
 	{
-		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Failed to update session member storage as our AccelByte subsystem is invalid"));
+		TriggerOnUpdateSessionMemberStorageCompleteDelegates(SessionName, LocalUserId, FOnlineError::CreateError(TEXT("UpdateSessionMemberStorage"), EOnlineErrorResult::RequestFailure));
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to update session member storage, IdentityInterface is invalid"));
+		return false;
+	}
+	IdentityInterface->GetLocalUserNum(LocalUserId, LocalUserNum);
+	TOptional<bool> IsDS = AccelByteSubsystemPtr->IsDedicatedServer(LocalUserNum);
+	if (!IsDS.IsSet())
+	{
+		TriggerOnUpdateSessionMemberStorageCompleteDelegates(SessionName, LocalUserId, FOnlineError::CreateError(TEXT("UpdateSessionMemberStorage"), EOnlineErrorResult::RequestFailure));
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to update session member storage, User %d is not logged in"), LocalUserNum);
+		return false;
+	}
+
+	if (IsDS.GetValue())
+	{
+		TriggerOnUpdateSessionMemberStorageCompleteDelegates(SessionName, LocalUserId, FOnlineError::CreateError(TEXT("UpdateSessionMemberStorage"), EOnlineErrorResult::RequestFailure));
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Dedicated server unable to update session member storage"))
 		return false;
 	}
 
@@ -4586,16 +4695,23 @@ bool FOnlineSessionV2AccelByte::CancelSessionInvite(int32 LocalUserNum, FName Se
 {
 	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("LocalUserNum: %d; SessionName: %s; Friend: %s"), LocalUserNum, *SessionName.ToString(), *Invitee.ToDebugString());
 
-	if (IsRunningDedicatedServer())
-	{
-		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Can't cancel session invite from dedicated server"));
-		return false;
-	}
-
 	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
 	if(!AccelByteSubsystemPtr.IsValid())
 	{
 		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Failed to cancel session invite notif as our AccelByte subsystem is invalid"));
+		return false;
+	}
+
+	TOptional<bool> IsDS = AccelByteSubsystemPtr->IsDedicatedServer(LocalUserNum);
+	if (!IsDS.IsSet())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to cancel session invite, User %d is not logged in"), LocalUserNum);
+		return false;
+	}
+
+	if (IsDS.GetValue())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Can't cancel session invite from dedicated server"));
 		return false;
 	}
 
@@ -4626,16 +4742,31 @@ bool FOnlineSessionV2AccelByte::CancelSessionInvite(const FUniqueNetId& LocalUse
 {
 	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT(""))
 
-	if (IsRunningDedicatedServer())
-	{
-		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Can't cancel session invite from dedicated server"));
-		return false;
-	}
-	
 	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
 	if(!AccelByteSubsystemPtr.IsValid())
 	{
 		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Failed to cancel session invite notif as our AccelByte subsystem is invalid"));
+		return false;
+	}
+
+	int32 LocalUserNum = 0;
+	FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystemPtr->GetIdentityInterface());
+	if (!IdentityInterface.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to cancel session invite, IdentityInterface is invalid"));
+		return false;
+	}
+	IdentityInterface->GetLocalUserNum(LocalUserId, LocalUserNum);
+	TOptional<bool> IsDS = AccelByteSubsystemPtr->IsDedicatedServer(LocalUserNum);
+	if (!IsDS.IsSet())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to cancel session invite, User %d is not logged in"), LocalUserNum);
+		return false;
+	}
+
+	if (IsDS.GetValue())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Can't cancel session invite from dedicated server"));
 		return false;
 	}
 
@@ -5156,8 +5287,8 @@ bool FOnlineSessionV2AccelByte::FindFriendSession(const FUniqueNetId& LocalUserI
 		return false;
 	}
 	
-	int32 localUserNum;
-	if(!IdentityInterface->GetLocalUserNum(LocalUserId, localUserNum))
+	int32 LocalUserNum = 0;
+	if(!IdentityInterface->GetLocalUserNum(LocalUserId, LocalUserNum))
 	{
 		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to find friend session as we cannot find the local user ID controller number"));
 
@@ -5168,8 +5299,8 @@ bool FOnlineSessionV2AccelByte::FindFriendSession(const FUniqueNetId& LocalUserI
 
 	AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Find friend session is not implemented!"));
 
-	AccelByteSubsystemPtr->ExecuteNextTick([SessionInterface = SharedThis(this), localUserNum]() {
-		SessionInterface->TriggerOnFindFriendSessionCompleteDelegates(localUserNum, false, {});
+	AccelByteSubsystemPtr->ExecuteNextTick([SessionInterface = SharedThis(this), LocalUserNum]() {
+		SessionInterface->TriggerOnFindFriendSessionCompleteDelegates(LocalUserNum, false, {});
 	});
 		
 	return false;
@@ -5194,7 +5325,7 @@ bool FOnlineSessionV2AccelByte::FindFriendSession(const FUniqueNetId& LocalUserI
 		return false;
 	}
 	
-	int32 LocalUserNum;
+	int32 LocalUserNum = 0;
 	if(!IdentityInterface->GetLocalUserNum(LocalUserId, LocalUserNum))
 	{
 		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to find friend session as we cannot find the local user ID controller number"));
@@ -5217,19 +5348,26 @@ bool FOnlineSessionV2AccelByte::SendSessionInviteToFriend(int32 LocalUserNum, FN
 {
 	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("LocalUserNum: %d; SessionName: %s; Friend: %s"), LocalUserNum, *SessionName.ToString(), *Friend.ToDebugString());
 
-	if (IsRunningDedicatedServer())
-	{
-		// If we are running a dedicated server, then we just want to continue sending the invite with an invalid local user ID.
-		// Servers do not have user IDs for the authenticated client, so just fake it with the invalid ID.
-		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Sending invite to user '%s'!"), *Friend.ToDebugString());
-		return SendSessionInviteToFriend(FUniqueNetIdAccelByteUser::Invalid().Get(), SessionName, Friend);
-	}
-
 	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
 	if(!AccelByteSubsystemPtr.IsValid())
 	{
 		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to send session invite as our AccelByte subsystem is invalid"));
 		return false;
+	}
+
+	TOptional<bool> IsDS = AccelByteSubsystemPtr->IsDedicatedServer(LocalUserNum);
+	if (!IsDS.IsSet())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to send session invite, User %d is not logged in"), LocalUserNum);
+		return false;
+	}
+
+	if (IsDS.GetValue())
+	{
+		// If we are running a dedicated server, then we just want to continue sending the invite with an invalid local user ID.
+		// Servers do not have user IDs for the authenticated client, so just fake it with the invalid ID.
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Sending invite to user '%s'!"), *Friend.ToDebugString());
+		return SendSessionInviteToFriend(FUniqueNetIdAccelByteUser::Invalid().Get(), SessionName, Friend);
 	}
 
 	IOnlineIdentityPtr IdentityInterface = AccelByteSubsystemPtr->GetIdentityInterface();
@@ -5443,7 +5581,10 @@ bool FOnlineSessionV2AccelByte::RegisterPlayers(FName SessionName, const TArray<
 	FNamedOnlineSession* Session = GetNamedSession(SessionName);
 	if (Session == nullptr)
 	{
-		if (!IsRunningDedicatedServer())
+		int32 LocalUserNum = AccelByteSubsystemPtr->GetLocalUserNumCached();
+		TOptional<bool> IsDS = AccelByteSubsystemPtr->IsDedicatedServer(LocalUserNum);
+
+		if (!IsDS.IsSet() || !IsDS.GetValue())
 		{
 			// If we do not have a session with this name, and we are not running a DS, just fail the call
 			AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to register players to session as a session with name '%s' does not exist!"), *SessionName.ToString());
@@ -5478,12 +5619,29 @@ bool FOnlineSessionV2AccelByte::RegisterPlayers(FName SessionName, const TArray<
 	if (!ensure(SessionData.IsValid()))
 	{
 		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to register players to session as a backend session data does not exist!"), *SessionName.ToString());
-		
+
 		AccelByteSubsystemPtr->ExecuteNextTick([SessionInterface = SharedThis(this), Players, SessionName]() {
 			SessionInterface->TriggerOnRegisterPlayersCompleteDelegates(SessionName, Players, false);
 		});
-		
+
 		return false;
+	}
+
+	// Determine if this is a dedicated server session
+	int32 LocalUserNum = 0;
+	FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystemPtr->GetIdentityInterface());
+	bool bIsDedicatedServer = false;
+	if (Session->LocalOwnerId.IsValid() && IdentityInterface.IsValid() && IdentityInterface->GetLocalUserNum(Session->LocalOwnerId.ToSharedRef().Get(), LocalUserNum))
+	{
+		TOptional<bool> IsDS = AccelByteSubsystemPtr->IsDedicatedServer(LocalUserNum);
+		bIsDedicatedServer = IsDS.IsSet() && IsDS.GetValue();
+	}
+	else
+	{
+		// Fallback to cached LocalUserNum if no LocalOwnerId
+		LocalUserNum = AccelByteSubsystemPtr->GetLocalUserNumCached();
+		TOptional<bool> IsDS = AccelByteSubsystemPtr->IsDedicatedServer(LocalUserNum);
+		bIsDedicatedServer = IsDS.IsSet() && IsDS.GetValue();
 	}
 
 	for (const TSharedRef<const FUniqueNetId>& PlayerToAdd : Players)
@@ -5531,7 +5689,7 @@ bool FOnlineSessionV2AccelByte::RegisterPlayers(FName SessionName, const TArray<
 			}
 
 			const EAccelByteV2SessionType SessionType = GetSessionTypeFromSettings(Session->SessionSettings);
-			if (SessionType == EAccelByteV2SessionType::GameSession && !IsRunningDedicatedServer())
+			if (SessionType == EAccelByteV2SessionType::GameSession && !bIsDedicatedServer)
 			{
 				FOnlineVoiceAccelBytePtr VoiceInterface = StaticCastSharedPtr<FOnlineVoiceAccelByte>(AccelByteSubsystemPtr->GetVoiceInterface());
 				if (VoiceInterface.IsValid())
@@ -5540,7 +5698,7 @@ bool FOnlineSessionV2AccelByte::RegisterPlayers(FName SessionName, const TArray<
 				}
 			}
 
-			if (IsRunningDedicatedServer())
+			if (bIsDedicatedServer)
 			{
 				FServerApiClientPtr ServerApiClient = GetServerApiClient();
 				if(!GetServerApiClient().IsValid())
@@ -5590,7 +5748,10 @@ bool FOnlineSessionV2AccelByte::UnregisterPlayers(FName SessionName, const TArra
 	FNamedOnlineSession* Session = GetNamedSession(SessionName);
 	if (Session == nullptr)
 	{
-		if (!IsRunningDedicatedServer())
+		int32 LocalUserNum = AccelByteSubsystemPtr->GetLocalUserNumCached();
+		TOptional<bool> IsDS = AccelByteSubsystemPtr->IsDedicatedServer(LocalUserNum);
+
+		if (!IsDS.IsSet() || !IsDS.GetValue())
 		{
 			// If we are not running a server instance and there is no session, then just fail as the player needs to have one to register
 			AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to unregister players from session as a session with name '%s' does not exist!"), *SessionName.ToString());
@@ -5625,12 +5786,29 @@ bool FOnlineSessionV2AccelByte::UnregisterPlayers(FName SessionName, const TArra
 	if (!ensure(SessionData.IsValid()))
 	{
 		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to unregister players to session as a backend session data does not exist!"), *SessionName.ToString());
-		
+
 		AccelByteSubsystemPtr->ExecuteNextTick([SessionInterface = SharedThis(this), Players, SessionName]() {
 			SessionInterface->TriggerOnUnregisterPlayersCompleteDelegates(SessionName, Players, false);
 		});
-		
+
 		return false;
+	}
+
+	// Determine if this is a dedicated server session
+	int32 LocalUserNum = 0;
+	FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystemPtr->GetIdentityInterface());
+	bool bIsDedicatedServer = false;
+	if (Session->LocalOwnerId.IsValid() && IdentityInterface.IsValid() && IdentityInterface->GetLocalUserNum(Session->LocalOwnerId.ToSharedRef().Get(), LocalUserNum))
+	{
+		TOptional<bool> IsDS = AccelByteSubsystemPtr->IsDedicatedServer(LocalUserNum);
+		bIsDedicatedServer = IsDS.IsSet() && IsDS.GetValue();
+	}
+	else
+	{
+		// Fallback to cached LocalUserNum if no LocalOwnerId
+		LocalUserNum = AccelByteSubsystemPtr->GetLocalUserNumCached();
+		TOptional<bool> IsDS = AccelByteSubsystemPtr->IsDedicatedServer(LocalUserNum);
+		bIsDedicatedServer = IsDS.IsSet() && IsDS.GetValue();
 	}
 
 	for (const TSharedRef<const FUniqueNetId>& PlayerToRemove : Players)
@@ -5652,7 +5830,7 @@ bool FOnlineSessionV2AccelByte::UnregisterPlayers(FName SessionName, const TArra
 				Session->NumOpenPublicConnections++;
 			}
 
-			if (IsRunningDedicatedServer())
+			if (bIsDedicatedServer)
 			{
 				FServerApiClientPtr ServerApiClient = GetServerApiClient();
 				const FOnlinePredefinedEventAccelBytePtr PredefinedEventInterface = AccelByteSubsystemPtr->GetPredefinedEventInterface();
@@ -6193,10 +6371,25 @@ bool FOnlineSessionV2AccelByte::KickPlayer(const FUniqueNetId& LocalUserId, cons
 		return false;
 	}
 
+	int32 LocalUserNum = 0;
+	FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystemPtr->GetIdentityInterface());
+	if (!IdentityInterface.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to kick player from session, IdentityInterface is invalid"));
+		return false;
+	}
+	IdentityInterface->GetLocalUserNum(LocalUserId, LocalUserNum);
+	TOptional<bool> IsDS = AccelByteSubsystemPtr->IsDedicatedServer(LocalUserNum);
+	if (!IsDS.IsSet())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to kick player from session, User %d is not logged in"), LocalUserNum);
+		return false;
+	}
+
 	EAccelByteV2SessionType SessionType = GetSessionTypeFromSettings(Session->SessionSettings);
 	if (SessionType == EAccelByteV2SessionType::GameSession)
 	{
-		if (IsRunningDedicatedServer())
+		if (IsDS.GetValue())
 		{
 			AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteServerKickV2GameSession>(AccelByteSubsystemPtr.Get(), LocalUserId, SessionName, PlayerIdToKick, Delegate);
 		}
@@ -6566,14 +6759,14 @@ bool FOnlineSessionV2AccelByte::RefreshSession(const FName& SessionName, const F
 	}
 	else if (SessionType == EAccelByteV2SessionType::PartySession)
 	{
-		if (IsRunningDedicatedServer())
+		if (IsDS.GetValue())
 		{
 			AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Game servers are not able to refresh party sessions!"));
-			
+
 			AccelByteSubsystemPtr->ExecuteNextTick([SessionInterface = SharedThis(this), Delegate]() {
 				Delegate.ExecuteIfBound(false);
 			});
-		
+
 			return false;
 		}
 
@@ -9270,7 +9463,18 @@ bool FOnlineSessionV2AccelByte::HandleAutoJoinGameSession(const FAccelByteModels
 
 	PartySessionStorageLocalUserManager.PastSessionManager.InsertPastSessionID(LocalUserId, GameSession.ID);
 	UpdatePartySessionStorageWithPastSessionInfo(UserUniqueNetId);
-	TriggerOnJoinSessionCompleteDelegates(SessionName, EOnJoinSessionCompleteResult::Success);
+	bool bShouldConnectToP2P = false;
+	UpdateInternalGameSession(SessionName, GameSession, bShouldConnectToP2P, true);
+	// For non P2P, trigger delegate immediately
+	if (!bShouldConnectToP2P)
+	{
+		TriggerOnJoinSessionCompleteDelegates(SessionName, EOnJoinSessionCompleteResult::Success);
+	}
+	else 
+	{
+		//Trigger nothing
+		//OnJoinSessionCompleteDelegates will be triggered after P2P connection complete by OnICEConnectionComplete
+	}
 
 	if (bHasDsError)
 	{

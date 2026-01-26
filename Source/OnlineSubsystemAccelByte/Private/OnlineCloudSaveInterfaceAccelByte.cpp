@@ -239,7 +239,7 @@ bool FOnlineCloudSaveAccelByte::GetGameRecord(int32 LocalUserNum, FString const&
 		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
 		return false;
 	}
-	
+
 	FAccelByteModelsGameRecord TempGameRecord{};
 	const IOnlineIdentityPtr IdentityInterface = AccelByteSubsystemPtr->GetIdentityInterface();
 	if (!IdentityInterface.IsValid())
@@ -256,7 +256,15 @@ bool FOnlineCloudSaveAccelByte::GetGameRecord(int32 LocalUserNum, FString const&
 		return false;
 	}
 
-	if (!IsRunningDedicatedServer())
+	TOptional<bool> IsDS = AccelByteSubsystemPtr->IsDedicatedServer(LocalUserNum);
+	if (!IsDS.IsSet())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Failed to get game record, User %d is not logged in"), LocalUserNum);
+		TriggerOnGetGameRecordCompletedDelegates(LocalUserNum, ONLINE_ERROR(EOnlineErrorResult::InvalidAuth), Key, FAccelByteModelsGameRecord());
+		return false;
+	}
+
+	if (!IsDS.GetValue())
 	{
 		const FUniqueNetIdPtr LocalUserId = IdentityInterface->GetUniquePlayerId(LocalUserNum);
 		if (!LocalUserId.IsValid())
@@ -399,13 +407,6 @@ bool FOnlineCloudSaveAccelByte::GetGameRecordFromCache(FString const& Key, FAcce
 bool FOnlineCloudSaveAccelByte::ReplaceUserRecord(int32 LocalUserNum, FString const& Key, const FJsonObject& RecordRequest, bool IsPublic, const FUniqueNetIdAccelByteUserRef& TargetUserId)
 {
 	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("LocalUserNum: %d"), LocalUserNum);
-	
-	if (IsRunningDedicatedServer() && TargetUserId->GetAccelByteId() == ACCELBYTE_INVALID_ID_VALUE)
-	{
-		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Target User Id is not valid at user index '%d'!"), LocalUserNum);
-		TriggerOnReplaceUserRecordCompletedDelegates(LocalUserNum, ONLINE_ERROR(EOnlineErrorResult::InvalidParams), Key);
-		return false;
-	}
 
 	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
 	if (!AccelByteSubsystemPtr.IsValid())
@@ -429,6 +430,21 @@ bool FOnlineCloudSaveAccelByte::ReplaceUserRecord(int32 LocalUserNum, FString co
 		return false;
 	}
 
+	TOptional<bool> IsDS = AccelByteSubsystemPtr->IsDedicatedServer(LocalUserNum);
+	if (!IsDS.IsSet())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Failed to replace user record, User %d is not logged in"), LocalUserNum);
+		TriggerOnReplaceUserRecordCompletedDelegates(LocalUserNum, ONLINE_ERROR(EOnlineErrorResult::InvalidAuth), Key);
+		return false;
+	}
+
+	if (IsDS.GetValue() && TargetUserId->GetAccelByteId() == ACCELBYTE_INVALID_ID_VALUE)
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Target User Id is not valid at user index '%d'!"), LocalUserNum);
+		TriggerOnReplaceUserRecordCompletedDelegates(LocalUserNum, ONLINE_ERROR(EOnlineErrorResult::InvalidParams), Key);
+		return false;
+	}
+
 	const FUniqueNetIdPtr LocalUserId = IdentityInterface->GetUniquePlayerId(LocalUserNum);
 	if (!LocalUserId.IsValid())
 	{
@@ -437,7 +453,7 @@ bool FOnlineCloudSaveAccelByte::ReplaceUserRecord(int32 LocalUserNum, FString co
 		return false;
 	}
 
-	if (!IsRunningDedicatedServer() && TargetUserId->GetAccelByteId() != ACCELBYTE_INVALID_ID_VALUE)
+	if (!IsDS.GetValue() && TargetUserId->GetAccelByteId() != ACCELBYTE_INVALID_ID_VALUE)
 	{
 		const FUniqueNetIdAccelByteUserPtr CurrentUserId = FUniqueNetIdAccelByteUser::CastChecked(LocalUserId.ToSharedRef());
 		if (CurrentUserId->GetAccelByteId() != TargetUserId->GetAccelByteId())

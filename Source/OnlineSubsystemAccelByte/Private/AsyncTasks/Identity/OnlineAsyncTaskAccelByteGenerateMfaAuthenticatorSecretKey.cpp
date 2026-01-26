@@ -22,6 +22,29 @@ void FOnlineAsyncTaskAccelByteGenerateMfaAuthenticatorSecretKey::Initialize()
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("UserId: %s"), *UserId->ToDebugString());
 
+	TRY_PIN_SUBSYSTEM();
+
+	TOptional<bool> IsDS = SubsystemPin->IsDedicatedServer(LocalUserNum);
+	if (!IsDS.IsSet())
+	{
+		OnlineError = ONLINE_ERROR(EOnlineErrorResult::InvalidAuth
+			, FString(TEXT("generate-mfa-authenticator-secret-key-failed-user-not-logged-in"))
+			, FText::FromString(TEXT("Failed to generate MFA authenticator secret key, user is not logged in!")));
+		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to generate MFA authenticator secret key, user is not logged in!"));
+		CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState);
+		return;
+	}
+
+	if (IsDS.GetValue())
+	{
+		OnlineError = ONLINE_ERROR(EOnlineErrorResult::NotImplemented
+			, FString(TEXT("generate-mfa-authenticator-secret-key-not-supported-on-dedicated-server"))
+			, FText::FromString(TEXT("Failed to generate MFA authenticator secret key, operation not supported on dedicated server!")));
+		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to generate MFA authenticator secret key, operation not supported on dedicated server!"));
+		CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState);
+		return;
+	}
+
 	API_FULL_CHECK_GUARD(User, OnlineError);
 
 	const auto OnSuccessDelegate = TDelegateUtils<THandler<FUser2FaSecretKey>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteGenerateMfaAuthenticatorSecretKey::OnSuccess);

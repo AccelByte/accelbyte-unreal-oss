@@ -32,6 +32,23 @@ void FOnlineAsyncTaskAccelByteVerifyLoginMfa::Initialize()
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("LocalUserNum: %d"), LocalUserNum);
 
+	TOptional<bool> IsDS = SubsystemPin->IsDedicatedServer(LocalUserNum);
+	if (!IsDS.IsSet())
+	{
+		ErrorStr = TEXT("verify-login-mfa-failed-user-not-logged-in");
+		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to verify login MFA, user is not logged in!"));
+		CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState);
+		return;
+	}
+
+	if (IsDS.GetValue())
+	{
+		ErrorStr = TEXT("verify-login-mfa-not-supported-on-dedicated-server");
+		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to verify login MFA, operation not supported on dedicated server!"));
+		CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState);
+		return;
+	}
+
 	FAccelByteInstancePtr AccelByteInstance = GetAccelByteInstance().Pin();
 	if(!AccelByteInstance.IsValid())
 	{
@@ -403,7 +420,11 @@ void FOnlineAsyncTaskAccelByteVerifyLoginMfa::OnLoginSuccess()
 		return;
 	}
 
-	SessionInterface->InitializePlayerAttributes(UserId.ToSharedRef().Get());	
+	if (IsApiClientValid() && ApiClient->CredentialsRef->IsComply())
+	{
+		SessionInterface->InitializePlayerAttributes(UserId.ToSharedRef().Get());
+	}
+
 #endif 
 
 	CompleteTask(EAccelByteAsyncTaskCompleteState::Success);

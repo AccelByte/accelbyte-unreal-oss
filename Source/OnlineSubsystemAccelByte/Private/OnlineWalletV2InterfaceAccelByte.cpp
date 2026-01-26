@@ -6,10 +6,9 @@
 
 #include "OnlineIdentityInterfaceAccelByte.h"
 #include "OnlineSubsystemAccelByteInternalHelpers.h"
-#include "AsyncTasks/Wallet/OnlineAsyncTaskAccelByteGetCurrencyList.h"
-#include "AsyncTasks/Wallet/OnlineAsyncTaskAccelByteGetWalletInfo.h"
+#include "AsyncTasks/Wallet/OnlineAsyncTaskAccelByteGetCurrencyListV2.h"
 #include "AsyncTasks/Wallet/OnlineAsyncTaskAccelByteGetWalletInfoV2.h"
-#include "AsyncTasks/Wallet/OnlineAsyncTaskAccelByteGetWalletTransactions.h"
+#include "AsyncTasks/Wallet/OnlineAsyncTaskAccelByteGetWalletTransactionsV2.h"
 #include "OnlineSubsystemUtils.h"
 #include "Engine/World.h"
 #include "OnlineSubsystemAccelByteLog.h"
@@ -67,7 +66,7 @@ bool FOnlineWalletV2AccelByte::GetCurrencyList(int32 LocalUserNum, bool bAlwaysR
 			const FUniqueNetIdPtr LocalUserId = IdentityInterface->GetUniquePlayerId(LocalUserNum);
 			if (LocalUserId.IsValid())
 			{
-				AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGetCurrencyList>(AccelByteSubsystemPtr.Get(), *LocalUserId, bAlwaysRequestToService);
+				AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGetCurrencyListV2>(AccelByteSubsystemPtr.Get(), *LocalUserId, bAlwaysRequestToService);
 				AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Dispatching async task to attempt to get currency list!"));
 
 				return true;
@@ -262,7 +261,7 @@ bool FOnlineWalletV2AccelByte::ListWalletTransactionsByCurrencyCode(int32 LocalU
 			const FUniqueNetIdPtr LocalUserId = IdentityInterface->GetUniquePlayerId(LocalUserNum);
 			if (LocalUserId.IsValid())
 			{
-				AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGetWalletTransactions>(AccelByteSubsystemPtr.Get(), *LocalUserId, CurrencyCode, Offset, Limit);
+				AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGetWalletTransactionsV2>(AccelByteSubsystemPtr.Get(), *LocalUserId, CurrencyCode, Offset, Limit);
 				AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Dispatching async task to attempt to get wallet transaction list!"));
 
 				return true;

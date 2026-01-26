@@ -1078,18 +1078,13 @@ void FOnlineFriendsAccelByte::AddRecentPlayers(const FUniqueNetId& UserId, const
 
 bool FOnlineFriendsAccelByte::QueryRecentPlayers(const FUniqueNetId& UserId, const FString& Namespace)
 {
-	if (IsRunningDedicatedServer())
-	{
-		return false;
-	}
-
 	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
 	if (!AccelByteSubsystemPtr.IsValid())
 	{
 		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
 		return false;
 	}
-	
+
 	FOnlineAsyncTaskInfo TaskInfo;
 	TaskInfo.bCreateEpicForThis = true;
 	TaskInfo.Type = ETypeOfOnlineAsyncTask::Parallel;
@@ -1109,17 +1104,9 @@ bool FOnlineFriendsAccelByte::QueryRecentTeamPlayers(int32 LocalUserNum, const F
 		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
 		return false;
 	}
-	
-	if (IsRunningDedicatedServer())
-	{
-		AccelByteSubsystemPtr->ExecuteNextTick([this, &Namespace, &LocalUserNum]() {
-			TriggerOnQueryRecentTeamPlayersCompleteDelegates(LocalUserNum, Namespace, false, TEXT("recent-team-players-invalid-request"));
-		});
-		return false;
-	}
 
 #if !AB_USE_V2_SESSIONS
-	AccelByteSubsystemPtr->ExecuteNextTick([this, &Namespace, &LocalUserNum]() {
+	AccelByteSubsystemPtr->ExecuteNextTick([this, Namespace, LocalUserNum]() {
 		TriggerOnQueryRecentTeamPlayersCompleteDelegates(LocalUserNum, Namespace, false, TEXT("recent-team-players-invalid-request"));
 	});
 	return false;

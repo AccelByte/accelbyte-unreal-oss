@@ -165,7 +165,7 @@ bool FOnlineGameStandardEventAccelByte::SendMissionStartedEvent(int32 LocalUserN
 	{
 		if (IdentityInterface->GetLoginStatus(LocalUserNum) == ELoginStatus::LoggedIn)
 		{
-			if (!IsRunningDedicatedServer())
+			if (!AccelByteSubsystemPtr->IsDedicatedServer(LocalUserNum))
 			{
 				const auto ApiClient = IdentityInterface->GetApiClient(LocalUserNum);
 				const auto GameStandardEvent = ApiClient->GetGameStandardEventApi().Pin();
@@ -243,7 +243,7 @@ bool FOnlineGameStandardEventAccelByte::SendMissionStepEndedEvent(int32 LocalUse
 	{
 		if (IdentityInterface->GetLoginStatus(LocalUserNum) == ELoginStatus::LoggedIn)
 		{
-			if (!IsRunningDedicatedServer())
+			if (!AccelByteSubsystemPtr->IsDedicatedServer(LocalUserNum))
 			{
 				const auto ApiClient = IdentityInterface->GetApiClient(LocalUserNum);
 				const auto GameStandardEvent = ApiClient->GetGameStandardEventApi().Pin();
@@ -325,7 +325,7 @@ bool FOnlineGameStandardEventAccelByte::SendMissionEndedEvent(int32 LocalUserNum
 	{
 		if (IdentityInterface->GetLoginStatus(LocalUserNum) == ELoginStatus::LoggedIn)
 		{
-			if (!IsRunningDedicatedServer())
+			if (!AccelByteSubsystemPtr->IsDedicatedServer(LocalUserNum))
 			{
 				const auto ApiClient = IdentityInterface->GetApiClient(LocalUserNum);
 				const auto GameStandardEvent = ApiClient->GetGameStandardEventApi().Pin();
@@ -402,7 +402,7 @@ bool FOnlineGameStandardEventAccelByte::SendMatchInfoEvent(int32 LocalUserNum
 	{
 		if (IdentityInterface->GetLoginStatus(LocalUserNum) == ELoginStatus::LoggedIn)
 		{
-			if (!IsRunningDedicatedServer())
+			if (!AccelByteSubsystemPtr->IsDedicatedServer(LocalUserNum))
 			{
 				const auto ApiClient = IdentityInterface->GetApiClient(LocalUserNum);
 				const auto GameStandardEvent = ApiClient->GetGameStandardEventApi().Pin();
@@ -471,7 +471,7 @@ bool FOnlineGameStandardEventAccelByte::SendMatchInfoPlayerEvent(int32 LocalUser
 	{
 		if (IdentityInterface->GetLoginStatus(LocalUserNum) == ELoginStatus::LoggedIn)
 		{
-			if (!IsRunningDedicatedServer())
+			if (!AccelByteSubsystemPtr->IsDedicatedServer(LocalUserNum))
 			{
 				const auto ApiClient = IdentityInterface->GetApiClient(LocalUserNum);
 				const auto GameStandardEvent = ApiClient->GetGameStandardEventApi().Pin();
@@ -543,7 +543,7 @@ bool FOnlineGameStandardEventAccelByte::SendMatchInfoEndedEvent(int32 LocalUserN
 	{
 		if (IdentityInterface->GetLoginStatus(LocalUserNum) == ELoginStatus::LoggedIn)
 		{
-			if (!IsRunningDedicatedServer())
+			if (!AccelByteSubsystemPtr->IsDedicatedServer(LocalUserNum))
 			{
 				const auto ApiClient = IdentityInterface->GetApiClient(LocalUserNum);
 				const auto GameStandardEvent = ApiClient->GetGameStandardEventApi().Pin();
@@ -615,7 +615,7 @@ bool FOnlineGameStandardEventAccelByte::SendPopupAppearEvent(int32 LocalUserNum
 	{
 		if (IdentityInterface->GetLoginStatus(LocalUserNum) == ELoginStatus::LoggedIn)
 		{
-			if (!IsRunningDedicatedServer())
+			if (!AccelByteSubsystemPtr->IsDedicatedServer(LocalUserNum))
 			{
 				const auto ApiClient = IdentityInterface->GetApiClient(LocalUserNum);
 				const auto GameStandardEvent = ApiClient->GetGameStandardEventApi().Pin();
@@ -688,7 +688,7 @@ bool FOnlineGameStandardEventAccelByte::SendEntityLeveledEvent(int32 LocalUserNu
 		const FString UserIdStr = UserId.IsValid() ? UserId->GetAccelByteId() : TEXT("");
 		if (IdentityInterface->GetLoginStatus(LocalUserNum) == ELoginStatus::LoggedIn)
 		{
-			if (!IsRunningDedicatedServer())
+			if (!AccelByteSubsystemPtr->IsDedicatedServer(LocalUserNum))
 			{
 				const auto ApiClient = IdentityInterface->GetApiClient(LocalUserNum);
 				const auto GameStandardEvent = ApiClient->GetGameStandardEventApi().Pin();
@@ -763,7 +763,7 @@ bool FOnlineGameStandardEventAccelByte::SendEntityDeadEvent(int32 LocalUserNum
 		const FString UserIdStr = UserId.IsValid() ? UserId->GetAccelByteId() : TEXT("");
 		if (IdentityInterface->GetLoginStatus(LocalUserNum) == ELoginStatus::LoggedIn)
 		{
-			if (!IsRunningDedicatedServer())
+			if (!AccelByteSubsystemPtr->IsDedicatedServer(LocalUserNum))
 			{
 				const auto ApiClient = IdentityInterface->GetApiClient(LocalUserNum);
 				const auto GameStandardEvent = ApiClient->GetGameStandardEventApi().Pin();
@@ -845,7 +845,7 @@ bool FOnlineGameStandardEventAccelByte::SendResourceFlowEvent(int32 LocalUserNum
 	{
 		if (IdentityInterface->GetLoginStatus(LocalUserNum) == ELoginStatus::LoggedIn)
 		{
-			if (!IsRunningDedicatedServer())
+			if (!AccelByteSubsystemPtr->IsDedicatedServer(LocalUserNum))
 			{
 				const auto ApiClient = IdentityInterface->GetApiClient(LocalUserNum);
 				const auto GameStandardEvent = ApiClient->GetGameStandardEventApi().Pin();

@@ -27,6 +27,29 @@ void FOnlineAsyncTaskAccelByteSetUserChatConfiguration::Initialize()
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("UserId: %s"), *UserId->ToDebugString());
 
+	TRY_PIN_SUBSYSTEM();
+
+	TOptional<bool> IsDS = SubsystemPin->IsDedicatedServer(LocalUserNum);
+	if (!IsDS.IsSet())
+	{
+		OnlineError = ONLINE_ERROR(EOnlineErrorResult::InvalidAuth
+			, FString(TEXT("set-user-chat-configuration-failed-user-not-logged-in"))
+			, FText::FromString(TEXT("Failed to set user chat configuration, user is not logged in!")));
+		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to set user chat configuration, user is not logged in!"));
+		CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState);
+		return;
+	}
+
+	if (IsDS.GetValue())
+	{
+		OnlineError = ONLINE_ERROR(EOnlineErrorResult::NotImplemented
+			, FString(TEXT("set-user-chat-configuration-not-supported-on-dedicated-server"))
+			, FText::FromString(TEXT("Failed to set user chat configuration, operation not supported on dedicated server!")));
+		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to set user chat configuration, operation not supported on dedicated server!"));
+		CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState);
+		return;
+	}
+
 	API_FULL_CHECK_GUARD(Chat, OnlineError);
 	const auto OnSuccessDelegate = TDelegateUtils<Api::Chat::FSetUserChatConfigurationResponse>::CreateThreadSafeSelfPtr(
 		this, &FOnlineAsyncTaskAccelByteSetUserChatConfiguration::OnSetUserChatConfigurationSuccess);

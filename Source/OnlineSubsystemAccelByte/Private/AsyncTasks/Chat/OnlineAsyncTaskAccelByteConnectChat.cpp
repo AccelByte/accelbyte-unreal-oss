@@ -117,10 +117,12 @@ void FOnlineAsyncTaskAccelByteConnectChat::OnChatConnectSuccess()
 	const TSharedPtr<FUserOnlineAccountAccelByte> UserAccountAccelByte = StaticCastSharedPtr<FUserOnlineAccountAccelByte>(UserAccount);
 	UserAccountAccelByte->SetConnectedToChat(true);
 
-	// set chat delegates to interface events AFTER complete the QueryRoom
+	// Register topology delegates first (before QueryRoom) to prevent notification loss
+	// Message delegates registered after QueryRoom completes (in OnQueryChatRoomInfoCompleteAfterConnectionEstablished)
 	const FOnlineChatAccelBytePtr ChatInterface = StaticCastSharedPtr<FOnlineChatAccelByte>(SubsystemPin->GetChatInterface());
 	if (ChatInterface.IsValid())
 	{
+		ChatInterface->RegisterTopologyDelegates(LocalUserNum);
 		ChatInterface->QueryRoomAfterChatConnectEstablished(UserId.ToSharedRef().Get());
 	}
 

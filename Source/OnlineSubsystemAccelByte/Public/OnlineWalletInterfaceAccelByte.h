@@ -94,8 +94,6 @@ public:
 	
 	bool GetWalletInfoByCurrencyCode(int32 LocalUserNum, const FString& CurrencyCode, bool bAlwaysRequestToService = false);
 
-	bool GetWalletInfoByCurrencyCodeV2(int32 LocalUserNum, const FString& CurrencyCode, bool bAlwaysRequestToService = false);
-
 	bool GetWalletInfoFromCache(int32 LocalUserNum, const FString& CurrencyCode, FAccelByteModelsWalletInfo& OutWalletInfo);
 
 	void AddWalletInfoToList(int32 LocalUserNum, const FString& CurrencyCode, const TSharedRef<FAccelByteModelsWalletInfo>& InWalletInfo);

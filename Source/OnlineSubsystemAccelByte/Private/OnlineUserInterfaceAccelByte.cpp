@@ -356,7 +356,11 @@ void FOnlineUserAccelByte::PostLoginBulkGetUserProfileCompleted(int32 LocalUserN
 	const auto UserId = AccelByteSubsystemPtr->GetIdentityInterface()->GetUniquePlayerId(LocalUserNum);
 	if (UserIds.Num() == 0 && UserId.IsValid())
 	{
-		CreateUserProfile(*UserId.Get());
+		AccelByte::FApiClientPtr ApiClient = AccelByteSubsystemPtr->GetApiClient(LocalUserNum);
+		if (ApiClient.IsValid() && ApiClient->CredentialsRef->IsComply())
+		{
+			CreateUserProfile(*UserId.Get());
+		}
 	}
 
 	ClearOnQueryUserProfileCompleteDelegates(LocalUserNum, this);
