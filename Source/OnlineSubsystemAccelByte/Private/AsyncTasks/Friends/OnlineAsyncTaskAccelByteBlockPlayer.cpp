@@ -206,7 +206,11 @@ void FOnlineAsyncTaskAccelByteBlockPlayer::PerformBlockedPlayerPartyOperation()
 				TSharedRef<const FUniqueNetIdAccelByteUser> PartyMemberCompositeId = FUniqueNetIdAccelByteUser::CastChecked(PartyMember->GetUserId());
 				if (PartyMemberCompositeId->GetAccelByteId() == PlayerId->GetAccelByteId())
 				{
+#if ENGINE_MAJOR_VERSION == 4 || (ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION < 7)
 					PartyInterface->LeaveParty(*LocalUserId.Get(), UserParty->PartyId.Get());
+#else
+					PartyInterface->LeaveParty(*LocalUserId.Get(), UserParty->PartyId.Get(), true);
+#endif
 				}
 			}
 		}

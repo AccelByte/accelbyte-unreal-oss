@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.13.10](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.13.10%0D0.13.9) (2026-03-18)
+
+
+### Bug Fixes
+
+* compatibility issue with LeaveParty() when Session V1 is used ([a62d42b](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/a62d42bea2a6dbb099a7d8572acf6ba543a91aa9))
+
 ### [0.13.9](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.13.9%0D0.13.8) (2026-01-26)
 
 
