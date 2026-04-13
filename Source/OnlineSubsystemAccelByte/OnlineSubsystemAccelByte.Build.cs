@@ -40,20 +40,20 @@ public class OnlineSubsystemAccelByte : ModuleRules
 			"AccelByteNetworkUtilities"
 		});
 
-        if ((
+		if ((
 #if !UE_5_0_OR_LATER
-            Target.Platform == UnrealTargetPlatform.Win32 ||
+			Target.Platform == UnrealTargetPlatform.Win32 ||
 #endif
-            Target.Platform == UnrealTargetPlatform.Win64 ||
-            Target.Platform == UnrealTargetPlatform.Linux ||
-            Target.Platform == UnrealTargetPlatform.Mac)
+			Target.Platform == UnrealTargetPlatform.Win64 ||
+			Target.Platform == UnrealTargetPlatform.Linux ||
+			Target.Platform == UnrealTargetPlatform.Mac)
 			&& Target.Type != TargetType.Server)
-        {
-            PublicDependencyModuleNames.Add("Steamworks");
-            PublicDependencyModuleNames.Add("SteamShared");
-        }
+		{
+			PublicDependencyModuleNames.Add("Steamworks");
+			PublicDependencyModuleNames.Add("SteamShared");
+		}
 
-        PrivateDependencyModuleNames.AddRange(new string[] {
+		PrivateDependencyModuleNames.AddRange(new string[] {
 			"Core",
 			"CoreUObject",
 			"Projects",
@@ -78,8 +78,12 @@ public class OnlineSubsystemAccelByte : ModuleRules
 		});
 #endif
 
-		bool bEnableV2Sessions = false;
-		GetBoolFromEngineConfig("OnlineSubsystemAccelByte", "bEnableV2Sessions", out bEnableV2Sessions);
+		bool bEnableV2Sessions = true;
+
+		if(!GetBoolFromEngineConfigOrDefault("OnlineSubsystemAccelByte", "bEnableV2Sessions", true, out bEnableV2Sessions))
+		{
+			Console.WriteLine("[AccelByte OSS] bEnableV2Sessions not found in Engine config; defaulting to V2 (true). Set [OnlineSubsystemAccelByte] bEnableV2Sessions=False to opt out.");
+		}
 		PublicDefinitions.Add(string.Format("AB_USE_V2_SESSIONS={0}", bEnableV2Sessions ? 1 : 0));
 
 		string TargetPlatformName = Target.Platform.ToString().ToUpper();
@@ -105,7 +109,7 @@ public class OnlineSubsystemAccelByte : ModuleRules
 		}
 	}
 
-	private bool GetBoolFromEngineConfig(string Section, string Key, out bool Value)
+	private bool GetBoolFromEngineConfigOrDefault(string Section, string Key, bool Default, out bool Value)
 	{
 		ConfigHierarchy EngineConfig = ConfigCache.ReadHierarchy(ConfigHierarchyType.Engine,
 			DirectoryReference.FromFile(Target.ProjectFile),
@@ -113,14 +117,14 @@ public class OnlineSubsystemAccelByte : ModuleRules
 
 		if (EngineConfig == null)
 		{
-			Value = false;
+			Value = Default;
 			return false;
 		}
 
 		bool TempValue = false;
 		if (!EngineConfig.TryGetValue(Section, Key, out TempValue))
 		{
-			Value = false;
+			Value = Default;
 			return false;
 		}
 

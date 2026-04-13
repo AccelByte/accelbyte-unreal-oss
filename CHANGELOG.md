@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.13.11](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.13.11%0D0.13.10) (2026-04-13)
+
+
+### Features
+
+* add user profile to oss layer ([66ca479](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/66ca479b07c6be948952e7600e6bbbba6904439b))
+* **iam:** add GetInputValidations to OSS User interface ([4233325](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/4233325e3351ae38a7f904c511f79485526d79de))
+
+
+### Bug Fixes
+
+* compatibility issue with LeaveParty() when Session V1 is used ([aa5d831](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/aa5d8313748ecb0049f9e6f108dffa30c3bb9d22))
+* fixed user profile compile issue ([95648c3](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/95648c3a645bb9ea0589bcac6ebe017561ad71dd))
+* make SessionV2 the default ([640f110](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/640f1105233a8570c2f301d8bcb80a3625d9a8ce))
+* rearrange the flow on sending ready status to AMS ([60ff805](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/60ff805137c944e39aeb65a58d73cf3ab0d595b1))
+
 ### [0.13.10](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.13.10%0D0.13.9) (2026-03-18)
 
 

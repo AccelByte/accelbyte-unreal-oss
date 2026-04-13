@@ -1873,7 +1873,14 @@ PACKAGE_SCOPE:
 	 * Send ready message to AMS
 	 */
 	void SendReadyToAMS();
-
+	
+	/**
+	 * Send claim message to AMS
+	 * 
+	 * @param sessionId the session identifier of the session the DS now belongs to (can be left empty if not relevant)
+	 */
+	void SendClaimToAMS(const FString& sessionId);
+	
 	/**
 	* @brief set DS session timeout to the new number given.
 	* 

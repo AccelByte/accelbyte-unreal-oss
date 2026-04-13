@@ -22,6 +22,13 @@
 class FAccelByteUserPlatformLinkInformation;
 typedef TSharedRef<FAccelByteUserPlatformLinkInformation, ESPMode::ThreadSafe> FAccelByteUserPlatformLinkInformationRef;
 
+struct FAccelByteModelsUserProfileUpdateRequest;
+struct FAccelByteModelsUserProfileInfo;
+struct FAccelByteModelsPublicUserProfileInfo;
+struct FAccelByteModelsUserProfileUploadURLResult;
+enum class EAccelByteFileType : uint8;
+enum class EAccelByteUploadCategory : uint8;
+
 /**
  * Delegate that denotes when a user report has completed.
  *
@@ -40,6 +47,16 @@ DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnCreateUserProfileComplete, int32 /*Loc
 typedef FOnCreateUserProfileComplete::FDelegate FOnCreateUserProfileCompleteDelegate;
 
 /**
+ * Delegate used when the userProfile update request has completed
+ *
+ * @param LocalUserNum the controller number of the associated user that made the request
+ * @param bWasSuccessful true if the async action completed without error, false if there was an error
+ * @param Error information about the error condition
+ */
+DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnUpdateUserProfileComplete, int32 /*LocalUserNum*/, bool /*bWasSuccessful*/, const FOnlineError& /*Error*/);
+typedef FOnUpdateUserProfileComplete::FDelegate FOnUpdateUserProfileCompleteDelegate;
+
+/**
  * Delegate used when the userProfile query request has completed
  *
  * @param LocalUserNum the controller number of the associated user that made the request
@@ -49,6 +66,135 @@ typedef FOnCreateUserProfileComplete::FDelegate FOnCreateUserProfileCompleteDele
  */
 DECLARE_MULTICAST_DELEGATE_FourParams(FOnQueryUserProfileComplete, int32 /*LocalUserNum*/, bool /*bWasSuccessful*/, const TArray<FUniqueNetIdRef>& /*UserIds*/, const FOnlineError& /*Error*/);
 typedef FOnQueryUserProfileComplete::FDelegate FOnQueryUserProfileCompleteDelegate;
+
+/**
+ * Delegate used when the get own user profile request has completed
+ *
+ * @param LocalUserNum the controller number of the associated user that made the request
+ * @param bWasSuccessful true if the async action completed without error, false if there was an error
+ * @param ProfileInfo the complete user profile information including private data
+ * @param Error information about the error condition
+ */
+DECLARE_MULTICAST_DELEGATE_FourParams(FOnGetMyUserProfileComplete, int32 /*LocalUserNum*/, bool /*bWasSuccessful*/, const FAccelByteModelsUserProfileInfo& /*ProfileInfo*/, const FOnlineError& /*Error*/);
+typedef FOnGetMyUserProfileComplete::FDelegate FOnGetMyUserProfileCompleteDelegate;
+
+/**
+ * Delegate used when the get public user profile by PublicId request has completed
+ *
+ * @param LocalUserNum the controller number of the associated user that made the request
+ * @param bWasSuccessful true if the async action completed without error, false if there was an error
+ * @param ProfileInfo the public user profile information
+ * @param Error information about the error condition
+ */
+DECLARE_MULTICAST_DELEGATE_FourParams(FOnGetPublicUserProfileByPublicIdComplete, int32 /*LocalUserNum*/, bool /*bWasSuccessful*/, const FAccelByteModelsPublicUserProfileInfo& /*ProfileInfo*/, const FOnlineError& /*Error*/);
+typedef FOnGetPublicUserProfileByPublicIdComplete::FDelegate FOnGetPublicUserProfileByPublicIdCompleteDelegate;
+
+/**
+ * Delegate used when the get public user profile info request has completed
+ *
+ * @param LocalUserNum the controller number of the associated user that made the request
+ * @param bWasSuccessful true if the async action completed without error, false if there was an error
+ * @param ProfileInfo the public user profile information
+ * @param Error information about the error condition
+ */
+DECLARE_MULTICAST_DELEGATE_FourParams(FOnGetPublicUserProfileInfoComplete, int32 /*LocalUserNum*/, bool /*bWasSuccessful*/, const FAccelByteModelsPublicUserProfileInfo& /*ProfileInfo*/, const FOnlineError& /*Error*/);
+typedef FOnGetPublicUserProfileInfoComplete::FDelegate FOnGetPublicUserProfileInfoCompleteDelegate;
+
+/**
+ * Delegate used when the get custom attributes request has completed
+ *
+ * @param LocalUserNum the controller number of the associated user that made the request
+ * @param bWasSuccessful true if the async action completed without error, false if there was an error
+ * @param CustomAttributes the public custom attributes
+ * @param Error information about the error condition
+ */
+DECLARE_MULTICAST_DELEGATE_FourParams(FOnGetCustomAttributesComplete, int32 /*LocalUserNum*/, bool /*bWasSuccessful*/, const FJsonObjectWrapper& /*CustomAttributes*/, const FOnlineError& /*Error*/);
+typedef FOnGetCustomAttributesComplete::FDelegate FOnGetCustomAttributesCompleteDelegate;
+
+/**
+ * [DEPRECATED] GetPublicCustomAttributes has been removed due to security issues.
+ * Please use 'GetPublicUserProfileInfo(UserId)' instead, which includes
+ * CustomAttributes in the returned FAccelByteModelsPublicUserProfileInfo.
+ *
+ * @deprecated SDK function deprecated with error code 14901
+ */
+
+/**
+ * Delegate used when the update custom attributes request has completed
+ *
+ * @param LocalUserNum the controller number of the associated user that made the request
+ * @param bWasSuccessful true if the async action completed without error, false if there was an error
+ * @param UpdatedAttributes the updated public custom attributes
+ * @param Error information about the error condition
+ */
+DECLARE_MULTICAST_DELEGATE_FourParams(FOnUpdateCustomAttributesComplete, int32 /*LocalUserNum*/, bool /*bWasSuccessful*/, const FJsonObjectWrapper& /*UpdatedAttributes*/, const FOnlineError& /*Error*/);
+typedef FOnUpdateCustomAttributesComplete::FDelegate FOnUpdateCustomAttributesCompleteDelegate;
+
+/**
+ * Delegate used when the get private custom attributes request has completed
+ *
+ * @param LocalUserNum the controller number of the associated user that made the request
+ * @param bWasSuccessful true if the async action completed without error, false if there was an error
+ * @param PrivateAttributes the private custom attributes
+ * @param Error information about the error condition
+ */
+DECLARE_MULTICAST_DELEGATE_FourParams(FOnGetPrivateCustomAttributesComplete, int32 /*LocalUserNum*/, bool /*bWasSuccessful*/, const FJsonObjectWrapper& /*PrivateAttributes*/, const FOnlineError& /*Error*/);
+typedef FOnGetPrivateCustomAttributesComplete::FDelegate FOnGetPrivateCustomAttributesCompleteDelegate;
+
+/**
+ * Delegate used when the update private custom attributes request has completed
+ *
+ * @param LocalUserNum the controller number of the associated user that made the request
+ * @param bWasSuccessful true if the async action completed without error, false if there was an error
+ * @param UpdatedAttributes the updated private custom attributes
+ * @param Error information about the error condition
+ */
+DECLARE_MULTICAST_DELEGATE_FourParams(FOnUpdatePrivateCustomAttributesComplete, int32 /*LocalUserNum*/, bool /*bWasSuccessful*/, const FJsonObjectWrapper& /*UpdatedAttributes*/, const FOnlineError& /*Error*/);
+typedef FOnUpdatePrivateCustomAttributesComplete::FDelegate FOnUpdatePrivateCustomAttributesCompleteDelegate;
+
+/**
+ * Delegate used when the generate upload URL request has completed
+ *
+ * @param LocalUserNum the controller number of the associated user that made the request
+ * @param bWasSuccessful true if the async action completed without error, false if there was an error
+ * @param UploadURLResult the upload URL information including URL and access URL
+ * @param Error information about the error condition
+ */
+DECLARE_MULTICAST_DELEGATE_FourParams(FOnGenerateUploadURLComplete, int32 /*LocalUserNum*/, bool /*bWasSuccessful*/, const FAccelByteModelsUserProfileUploadURLResult& /*UploadURLResult*/, const FOnlineError& /*Error*/);
+typedef FOnGenerateUploadURLComplete::FDelegate FOnGenerateUploadURLCompleteDelegate;
+
+/**
+ * Delegate used when the generate upload URL for user content request has completed
+ *
+ * @param LocalUserNum the controller number of the associated user that made the request
+ * @param bWasSuccessful true if the async action completed without error, false if there was an error
+ * @param UploadURLResult the upload URL result containing URLs and access information
+ * @param Error information about the error condition
+ */
+DECLARE_MULTICAST_DELEGATE_FourParams(FOnGenerateUploadURLForUserContentComplete, int32 /*LocalUserNum*/, bool /*bWasSuccessful*/, const FAccelByteModelsUserProfileUploadURLResult& /*UploadURLResult*/, const FOnlineError& /*Error*/);
+typedef FOnGenerateUploadURLForUserContentComplete::FDelegate FOnGenerateUploadURLForUserContentCompleteDelegate;
+
+/**
+ * Delegate used when the bulk get public user profile infos V2 request has completed
+ *
+ * @param LocalUserNum the controller number of the associated user that made the request
+ * @param bWasSuccessful true if the async action completed without error, false if there was an error
+ * @param ProfileInfosV2 the bulk public user profile infos with NotProcessed array
+ * @param Error information about the error condition
+ */
+DECLARE_MULTICAST_DELEGATE_FourParams(FOnBulkGetPublicUserProfileInfosV2Complete, int32 /*LocalUserNum*/, bool /*bWasSuccessful*/, const FAccelByteModelsPublicUserProfileInfoV2& /*ProfileInfosV2*/, const FOnlineError& /*Error*/);
+typedef FOnBulkGetPublicUserProfileInfosV2Complete::FDelegate FOnBulkGetPublicUserProfileInfosV2CompleteDelegate;
+
+/**
+ * Delegate used when the get user profile by user ID request has completed
+ *
+ * @param LocalUserNum the controller number of the associated user that made the request
+ * @param bWasSuccessful true if the async action completed without error, false if there was an error
+ * @param UserProfileInfo the complete user profile info including private data
+ * @param Error information about the error condition
+ */
+DECLARE_MULTICAST_DELEGATE_FourParams(FOnGetUserProfileComplete, int32 /*LocalUserNum*/, bool /*bWasSuccessful*/, const FAccelByteModelsUserProfileInfo& /*UserProfileInfo*/, const FOnlineError& /*Error*/);
+typedef FOnGetUserProfileComplete::FDelegate FOnGetUserProfileCompleteDelegate;
 
 /**
  * Delegate used when the GetUserPlatformLinks has completed
@@ -81,6 +227,9 @@ typedef FOnCheckUserAccountAvailabilityComplete::FDelegate FOnCheckUserAccountAv
 
 DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnValidateUserInputComplete, const FUserInputValidationResponse& /*UserInputValidationResponse*/, bool /*bWasSuccessful*/, const FOnlineError & /*OnlineError*/);
 typedef FOnValidateUserInputComplete::FDelegate FOnValidateUserInputCompleteDelegate;
+
+DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnGetInputValidationsComplete, const FInputValidation& /*InputValidation*/, bool /*bWasSuccessful*/, const FOnlineError& /*OnlineError*/);
+typedef FOnGetInputValidationsComplete::FDelegate FOnGetInputValidationsCompleteDelegate;
 
 DECLARE_DELEGATE_FiveParams(FOnQueryUserIdsMappingComplete, bool /*bWasSuccessful*/, const FUniqueNetId& /*UserId*/, const FString& /*SearchDisplayName*/, const TArray<TSharedRef<const FUniqueNetIdAccelByteUser>>& /*FoundUsers*/, const FString& /*Error*/);
 
@@ -126,6 +275,24 @@ public:
 	DEFINE_ONLINE_PLAYER_DELEGATE_TWO_PARAM(MAX_LOCAL_PLAYERS, OnCreateUserProfileComplete, bool /*bWasSuccessful*/, const FOnlineError& /*Error*/);
 
 	/**
+	 * Starts an async task that updates the profile for the requesting user. Will trigger OnUpdateUserProfileComplete Online Delegate when Complete
+	 *
+	 * @param LocalUserNum the local user number requesting the update
+	 * @param UserId the user id requesting the update
+	 * @param UpdateRequest the profile update request containing the fields to update
+	 */
+	virtual bool UpdateUserProfile(int32 LocalUserNum, const FUniqueNetId& UserId, const FAccelByteModelsUserProfileUpdateRequest& UpdateRequest);
+
+	/**
+	 * Delegate used when the userProfile update request has completed
+	 *
+	 * @param LocalUserNum the controller number of the associated user that made the request
+	 * @param bWasSuccessful true if the async action completed without error, false if there was an error
+	 * @param Error information about the error condition
+	 */
+	DEFINE_ONLINE_PLAYER_DELEGATE_TWO_PARAM(MAX_LOCAL_PLAYERS, OnUpdateUserProfileComplete, bool /*bWasSuccessful*/, const FOnlineError& /*Error*/);
+
+	/**
 	 * Delegate used when the userProfile query request has completed
 	 *
 	 * @param LocalUserNum the controller number of the associated user that made the request
@@ -142,6 +309,238 @@ public:
 	 * @param UserIds list of users to read info about
 	 */
 	virtual bool QueryUserProfile(int32 LocalUserNum, const TArray<TSharedRef<const FUniqueNetId>>& UserIds);
+
+	/**
+	 * Starts an async task that gets the authenticated user's own complete profile including private data
+	 *
+	 * @param LocalUserNum the user requesting their own profile
+	 */
+	virtual bool GetMyUserProfile(int32 LocalUserNum);
+
+	/**
+	 * Starts an async task that gets a user's public profile using their PublicId (friend code)
+	 *
+	 * @param LocalUserNum the user requesting the query
+	 * @param PublicId the human-readable PublicId to look up
+	 */
+	virtual bool GetPublicUserProfileByPublicId(int32 LocalUserNum, const FString& PublicId);
+
+	/**
+	 * Starts an async task that gets a user's public profile using their UserId
+	 *
+	 * @param LocalUserNum the user requesting the query
+	 * @param UserId the UserId to look up
+	 */
+	virtual bool GetPublicUserProfileInfo(int32 LocalUserNum, const FString& UserId);
+
+	/**
+	 * Starts an async task that gets the authenticated user's public custom attributes
+	 *
+	 * @param LocalUserNum the user requesting their custom attributes
+	 */
+	virtual bool GetCustomAttributes(int32 LocalUserNum);
+
+	/**
+	 * [DEPRECATED] This function has been removed due to security issues.
+	 * Please use 'GetPublicUserProfileInfo(UserId)' instead, which includes
+	 * CustomAttributes in the returned FAccelByteModelsPublicUserProfileInfo.
+	 *
+	 * @deprecated SDK function deprecated with error code 14901
+	 */
+	// virtual bool GetPublicCustomAttributes(int32 LocalUserNum, const FString& UserId); // REMOVED
+
+	/**
+	 * Starts an async task that updates the authenticated user's public custom attributes
+	 *
+	 * @param LocalUserNum the user requesting to update their custom attributes
+	 * @param CustomAttributes the new custom attributes data
+	 */
+	virtual bool UpdateCustomAttributes(int32 LocalUserNum, const FJsonObject& CustomAttributes);
+
+	/**
+	 * Starts an async task that gets the authenticated user's private custom attributes
+	 *
+	 * @param LocalUserNum the user requesting their private custom attributes
+	 */
+	virtual bool GetPrivateCustomAttributes(int32 LocalUserNum);
+
+	/**
+	 * Starts an async task that updates the authenticated user's private custom attributes
+	 *
+	 * @param LocalUserNum the user requesting to update their private custom attributes
+	 * @param PrivateAttributes the new private custom attributes data
+	 */
+	virtual bool UpdatePrivateCustomAttributes(int32 LocalUserNum, const FJsonObject& PrivateAttributes);
+
+	/**
+	 * Starts an async task that generates a presigned upload URL for profile file uploads
+	 *
+	 * @param LocalUserNum the user requesting the upload URL
+	 * @param Folder the folder name for the upload (1-256 chars, no whitespace)
+	 * @param FileType the type of file to upload (jpeg, jpg, png, bmp, gif, mp3, bin, webp)
+	 */
+	virtual bool GenerateUploadURL(int32 LocalUserNum, const FString& Folder, EAccelByteFileType FileType);
+
+	/**
+	 * Starts an async task that generates an upload URL for user content with category support
+	 *
+	 * @param LocalUserNum the user requesting the upload URL
+	 * @param UserId the user ID for the content upload
+	 * @param FileType the type of file to upload (jpeg, jpg, png, bmp, gif, mp3, bin, webp)
+	 * @param Category the upload category (DEFAULT, REPORTING)
+	 */
+	virtual bool GenerateUploadURLForUserContent(int32 LocalUserNum, const FString& UserId, EAccelByteFileType FileType, EAccelByteUploadCategory Category = EAccelByteUploadCategory::DEFAULT);
+
+	/**
+	 * Starts an async task that gets bulk public user profile infos with V2 endpoint (includes NotProcessed array)
+	 *
+	 * @param LocalUserNum the user requesting the bulk profile infos
+	 * @param UserIds array of user IDs to query
+	 */
+	virtual bool BulkGetPublicUserProfileInfosV2(int32 LocalUserNum, const TArray<FString>& UserIds);
+
+	/**
+	 * Creates a user profile for the authenticated user (parameterless overload)
+	 *
+	 * @param LocalUserNum the user requesting to create their profile
+	 */
+	virtual bool CreateUserProfile(int32 LocalUserNum);
+
+	/**
+	 * Updates the authenticated user's profile (parameterless overload)
+	 *
+	 * @param LocalUserNum the user requesting to update their profile
+	 * @param UpdateRequest the profile update data
+	 */
+	virtual bool UpdateUserProfile(int32 LocalUserNum, const FAccelByteModelsUserProfileUpdateRequest& UpdateRequest);
+
+	/**
+	 * Gets a specific user's complete profile by UserId (may require admin privileges)
+	 *
+	 * @param LocalUserNum the user requesting the profile
+	 * @param UserId the user ID whose complete profile to retrieve
+	 */
+	virtual bool GetUserProfile(int32 LocalUserNum, const FString& UserId);
+
+	/**
+	 * Delegate used when the get own user profile request has completed
+	 *
+	 * @param LocalUserNum the controller number of the associated user that made the request
+	 * @param bWasSuccessful true if the async action completed without error, false if there was an error
+	 * @param ProfileInfo the complete user profile information including private data
+	 * @param Error information about the error condition
+	 */
+	DEFINE_ONLINE_PLAYER_DELEGATE_THREE_PARAM(MAX_LOCAL_PLAYERS, OnGetMyUserProfileComplete, bool /*bWasSuccessful*/, const FAccelByteModelsUserProfileInfo& /*ProfileInfo*/, const FOnlineError& /*Error*/);
+
+	/**
+	 * Delegate used when the get public user profile by PublicId request has completed
+	 *
+	 * @param LocalUserNum the controller number of the associated user that made the request
+	 * @param bWasSuccessful true if the async action completed without error, false if there was an error
+	 * @param ProfileInfo the public user profile information
+	 * @param Error information about the error condition
+	 */
+	DEFINE_ONLINE_PLAYER_DELEGATE_THREE_PARAM(MAX_LOCAL_PLAYERS, OnGetPublicUserProfileByPublicIdComplete, bool /*bWasSuccessful*/, const FAccelByteModelsPublicUserProfileInfo& /*ProfileInfo*/, const FOnlineError& /*Error*/);
+
+	/**
+	 * Delegate used when the get public user profile info request has completed
+	 *
+	 * @param LocalUserNum the controller number of the associated user that made the request
+	 * @param bWasSuccessful true if the async action completed without error, false if there was an error
+	 * @param ProfileInfo the public user profile information
+	 * @param Error information about the error condition
+	 */
+	DEFINE_ONLINE_PLAYER_DELEGATE_THREE_PARAM(MAX_LOCAL_PLAYERS, OnGetPublicUserProfileInfoComplete, bool /*bWasSuccessful*/, const FAccelByteModelsPublicUserProfileInfo& /*ProfileInfo*/, const FOnlineError& /*Error*/);
+
+	/**
+	 * Delegate used when the get custom attributes request has completed
+	 *
+	 * @param LocalUserNum the controller number of the associated user that made the request
+	 * @param bWasSuccessful true if the async action completed without error, false if there was an error
+	 * @param CustomAttributes the public custom attributes
+	 * @param Error information about the error condition
+	 */
+	DEFINE_ONLINE_PLAYER_DELEGATE_THREE_PARAM(MAX_LOCAL_PLAYERS, OnGetCustomAttributesComplete, bool /*bWasSuccessful*/, const FJsonObjectWrapper& /*CustomAttributes*/, const FOnlineError& /*Error*/);
+
+	/**
+	 * Delegate used when the get public custom attributes request has completed
+	 *
+	 * @param LocalUserNum the controller number of the associated user that made the request
+	 * @param bWasSuccessful true if the async action completed without error, false if there was an error
+	 * @param CustomAttributes the public custom attributes of the requested user
+	 * @param Error information about the error condition
+	 */
+	// DEFINE_ONLINE_PLAYER_DELEGATE_THREE_PARAM(MAX_LOCAL_PLAYERS, OnGetPublicCustomAttributesComplete, bool /*bWasSuccessful*/, const FJsonObjectWrapper& /*CustomAttributes*/, const FOnlineError& /*Error*/); // DEPRECATED - REMOVED
+
+	/**
+	 * Delegate used when the update custom attributes request has completed
+	 *
+	 * @param LocalUserNum the controller number of the associated user that made the request
+	 * @param bWasSuccessful true if the async action completed without error, false if there was an error
+	 * @param UpdatedAttributes the updated public custom attributes
+	 * @param Error information about the error condition
+	 */
+	DEFINE_ONLINE_PLAYER_DELEGATE_THREE_PARAM(MAX_LOCAL_PLAYERS, OnUpdateCustomAttributesComplete, bool /*bWasSuccessful*/, const FJsonObjectWrapper& /*UpdatedAttributes*/, const FOnlineError& /*Error*/);
+
+	/**
+	 * Delegate used when the get private custom attributes request has completed
+	 *
+	 * @param LocalUserNum the controller number of the associated user that made the request
+	 * @param bWasSuccessful true if the async action completed without error, false if there was an error
+	 * @param PrivateAttributes the private custom attributes
+	 * @param Error information about the error condition
+	 */
+	DEFINE_ONLINE_PLAYER_DELEGATE_THREE_PARAM(MAX_LOCAL_PLAYERS, OnGetPrivateCustomAttributesComplete, bool /*bWasSuccessful*/, const FJsonObjectWrapper& /*PrivateAttributes*/, const FOnlineError& /*Error*/);
+
+	/**
+	 * Delegate used when the update private custom attributes request has completed
+	 *
+	 * @param LocalUserNum the controller number of the associated user that made the request
+	 * @param bWasSuccessful true if the async action completed without error, false if there was an error
+	 * @param UpdatedAttributes the updated private custom attributes
+	 * @param Error information about the error condition
+	 */
+	DEFINE_ONLINE_PLAYER_DELEGATE_THREE_PARAM(MAX_LOCAL_PLAYERS, OnUpdatePrivateCustomAttributesComplete, bool /*bWasSuccessful*/, const FJsonObjectWrapper& /*UpdatedAttributes*/, const FOnlineError& /*Error*/);
+
+	/**
+	 * Delegate used when the generate upload URL request has completed
+	 *
+	 * @param LocalUserNum the controller number of the associated user that made the request
+	 * @param bWasSuccessful true if the async action completed without error, false if there was an error
+	 * @param UploadURLResult the upload URL information including URL and access URL
+	 * @param Error information about the error condition
+	 */
+	DEFINE_ONLINE_PLAYER_DELEGATE_THREE_PARAM(MAX_LOCAL_PLAYERS, OnGenerateUploadURLComplete, bool /*bWasSuccessful*/, const FAccelByteModelsUserProfileUploadURLResult& /*UploadURLResult*/, const FOnlineError& /*Error*/);
+
+	/**
+	 * Delegate used when the generate upload URL for user content request has completed
+	 *
+	 * @param LocalUserNum the controller number of the associated user that made the request
+	 * @param bWasSuccessful true if the async action completed without error, false if there was an error
+	 * @param UploadURLResult the upload URL result containing URLs and access information
+	 * @param Error information about the error condition
+	 */
+	DEFINE_ONLINE_PLAYER_DELEGATE_THREE_PARAM(MAX_LOCAL_PLAYERS, OnGenerateUploadURLForUserContentComplete, bool /*bWasSuccessful*/, const FAccelByteModelsUserProfileUploadURLResult& /*UploadURLResult*/, const FOnlineError& /*Error*/);
+
+	/**
+	 * Delegate used when the bulk get public user profile infos V2 request has completed
+	 *
+	 * @param LocalUserNum the controller number of the associated user that made the request
+	 * @param bWasSuccessful true if the async action completed without error, false if there was an error
+	 * @param ProfileInfosV2 the bulk public user profile infos with NotProcessed array
+	 * @param Error information about the error condition
+	 */
+	DEFINE_ONLINE_PLAYER_DELEGATE_THREE_PARAM(MAX_LOCAL_PLAYERS, OnBulkGetPublicUserProfileInfosV2Complete, bool /*bWasSuccessful*/, const FAccelByteModelsPublicUserProfileInfoV2& /*ProfileInfosV2*/, const FOnlineError& /*Error*/);
+
+	/**
+	 * Delegate used when the get user profile by user ID request has completed
+	 *
+	 * @param LocalUserNum the controller number of the associated user that made the request
+	 * @param bWasSuccessful true if the async action completed without error, false if there was an error
+	 * @param UserProfileInfo the complete user profile info including private data
+	 * @param Error information about the error condition
+	 */
+	DEFINE_ONLINE_PLAYER_DELEGATE_THREE_PARAM(MAX_LOCAL_PLAYERS, OnGetUserProfileComplete, bool /*bWasSuccessful*/, const FAccelByteModelsUserProfileInfo& /*UserProfileInfo*/, const FOnlineError& /*Error*/);
 
 	/**
 	 * Delegate used when the userProfile query request has completed
@@ -254,6 +653,17 @@ public:
 	DEFINE_ONLINE_DELEGATE_THREE_PARAM(OnValidateUserInputComplete, const FUserInputValidationResponse& /*UserInputValidationResponse*/, bool /*bWasSuccessful*/, const FOnlineError & /*OnlineError*/);
 	void ValidateUserInput(int32 LocalUserNum, const FUserInputValidationRequest& UserInputValidationRequest);
 
+	/**
+	 * Get input validation rules for the configured namespace.
+	 * The namespace is automatically retrieved from SDK settings.
+	 *
+	 * @param LocalUserNum Index of the user making the request.
+	 * @param LanguageCode Targeted language code using ISO-639.
+	 * @param bDefaultOnEmpty If true, returns default input validation when no custom rules are found.
+	 */
+	DEFINE_ONLINE_DELEGATE_THREE_PARAM(OnGetInputValidationsComplete, const FInputValidation& /*InputValidation*/, bool /*bWasSuccessful*/, const FOnlineError& /*OnlineError*/);
+	void GetInputValidations(int32 LocalUserNum, const FString& LanguageCode, bool bDefaultOnEmpty = true);
+
 	/*
 	 * Query users based on DisplayNameOrEmail, support multiple results.
 	 */
@@ -288,7 +698,8 @@ PACKAGE_SCOPE:
 	 * Delegate for after completed get user profile on login
 	 */
 	void PostLoginBulkGetUserProfileCompleted(int32 LocalUserNum, bool bWasSuccessful, const TArray<FUniqueNetIdRef>& UserIds, const FOnlineError& ErrorStr);
-	
+	/** Thread-safe helper to get delegate reference for async task creation */
+
 private:
 
 	/** Pointer to the AccelByte OSS instance that instantiated this online user interface. */

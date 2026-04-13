@@ -54,6 +54,19 @@ private:
 	void UnbindDelegates();
 
 	/**
+	 * Delegate handler fired when the DSHub WebSocket successfully connects, after AMS has connected but
+	 * before SendReadyToAMS is called. Restores session-level DSHub delegates and then sends READY to AMS.
+	 */
+	void OnDSHubConnectSuccess();
+	AccelByte::GameServerApi::FConnectSuccess OnDSHubConnectSuccessDelegate;
+
+	/**
+	 * Delegate handler fired when the DSHub WebSocket fails to connect during the startup phase.
+	 */
+	void OnDSHubConnectError(const FString& ErrorMessage);
+	AccelByte::GameServerApi::FConnectError OnDSHubConnectErrorDelegate;
+
+	/**
 	 * String representing the error code that occurred
 	 */
 	FString ErrorStr;

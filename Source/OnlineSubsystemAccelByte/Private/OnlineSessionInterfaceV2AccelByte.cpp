@@ -8986,6 +8986,28 @@ void FOnlineSessionV2AccelByte::SendReadyToAMS()
 	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
 }
 
+void FOnlineSessionV2AccelByte::SendClaimToAMS(const FString& sessionId)
+{
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("Send Claim Message to AMS"));
+
+	if (!IsRunningDedicatedServer())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
+		return;
+	}
+	FServerApiClientPtr ServerApiClient = GetServerApiClient();
+	
+	if (!ServerApiClient.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("SendClaimToAMS failed, ServerApiClient is invalid")); 
+		return;
+	}
+	
+	ServerApiClient->ServerAMS.SendClaimMessage(sessionId);
+
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
+}
+
 void FOnlineSessionV2AccelByte::SetDSTimeout(int32 NewTimeout)
 {
 	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("Send DS Timeout Message to AMS"));

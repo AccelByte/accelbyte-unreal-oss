@@ -17,6 +17,7 @@
 #include "AsyncTasks/User/OnlineAsyncTaskAccelByteQueryExternalIdMappings.h"
 #include "AsyncTasks/User/OnlineAsyncTaskAccelByteQueryUserProfile.h"
 #include "AsyncTasks/User/OnlineAsyncTaskAccelByteCreateUserProfile.h"
+#include "AsyncTasks/User/OnlineAsyncTaskAccelByteUpdateUserProfile.h"
 #include "AsyncTasks/User/OnlineAsyncTaskAccelByteListUserByUserId.h"
 #include "AsyncTasks/User/OnlineAsyncTaskAccelByteLinkOtherPlatform.h"
 #include "AsyncTasks/User/OnlineAsyncTaskAccelByteUnlinkOtherPlatform.h"
@@ -28,7 +29,20 @@
 #include "AsyncTasks/User/OnlineAsyncTaskAccelByteGetUserPlatformLinks.h"
 #include "OnlineSubsystemUtils.h"
 #include "AsyncTasks/User/OnlineAsyncTaskAccelByteValidateUserInput.h"
+#include "AsyncTasks/User/OnlineAsyncTaskAccelByteGetInputValidations.h"
 #include "AsyncTasks/User/OnlineAsyncTaskAccelByteQueryUserIdsMapping.h"
+#include "AsyncTasks/User/OnlineAsyncTaskAccelByteGetMyUserProfile.h"
+#include "AsyncTasks/User/OnlineAsyncTaskAccelByteGetPublicUserProfileByPublicId.h"
+#include "AsyncTasks/User/OnlineAsyncTaskAccelByteGetPublicUserProfileInfo.h"
+#include "AsyncTasks/User/OnlineAsyncTaskAccelByteGetCustomAttributes.h"
+// #include "AsyncTasks/User/OnlineAsyncTaskAccelByteGetPublicCustomAttributes.h" // DEPRECATED - REMOVED
+#include "AsyncTasks/User/OnlineAsyncTaskAccelByteUpdateCustomAttributes.h"
+#include "AsyncTasks/User/OnlineAsyncTaskAccelByteGetPrivateCustomAttributes.h"
+#include "AsyncTasks/User/OnlineAsyncTaskAccelByteUpdatePrivateCustomAttributes.h"
+#include "AsyncTasks/User/OnlineAsyncTaskAccelByteGenerateUploadURL.h"
+#include "AsyncTasks/User/OnlineAsyncTaskAccelByteGenerateUploadURLForUserContent.h"
+#include "AsyncTasks/User/OnlineAsyncTaskAccelByteGetUserProfile.h"
+#include "AsyncTasks/User/OnlineAsyncTaskAccelByteBulkGetPublicUserProfileInfosV2.h"
 #include "OnlineSubsystemAccelByteLog.h"
 
 #define ONLINE_ERROR_NAMESPACE "FOnlineUserAccelByte"
@@ -90,6 +104,27 @@ bool FOnlineUserAccelByte::CreateUserProfile(const FUniqueNetId& UserId)
 	return true;
 }
 
+bool FOnlineUserAccelByte::UpdateUserProfile(int32 LocalUserNum, const FUniqueNetId& UserId, const FAccelByteModelsUserProfileUpdateRequest& UpdateRequest)
+{
+	if (!UserId.IsValid())
+	{
+		return false;
+	}
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("LocalUserNum: %d; UserId: %s"), LocalUserNum, *UserId.ToDebugString());
+
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return false;
+	}
+
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteUpdateUserProfile>(AccelByteSubsystemPtr.Get(), LocalUserNum, UserId, UpdateRequest);
+
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Created and dispatched async task to update user profile!"));
+	return true;
+}
+
 bool FOnlineUserAccelByte::QueryUserProfile(int32 LocalUserNum, const TArray<TSharedRef<const FUniqueNetId>>& UserIds)
 {
 	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("LocalUserNum: %d; UserId Amount: %d"), LocalUserNum, UserIds.Num());
@@ -113,6 +148,317 @@ bool FOnlineUserAccelByte::QueryUserProfile(int32 LocalUserNum, const TArray<TSh
 	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteQueryUserProfile>(AccelByteSubsystemPtr.Get(), LocalUserNum, UserIds, OnQueryUserProfileCompleteDelegates[LocalUserNum]);
 
 	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Created and dispatched async task to query user information for %d IDs!"), UserIds.Num());
+	return true;
+}
+
+bool FOnlineUserAccelByte::GetMyUserProfile(int32 LocalUserNum)
+{
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("LocalUserNum: %d"), LocalUserNum);
+
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return false;
+	}
+
+	if (LocalUserNum < 0 || LocalUserNum >= MAX_LOCAL_PLAYERS)
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("LocalUserNum passed was out of range!"));
+		AccelByteSubsystemPtr->ExecuteNextTick([UserInterface = SharedThis(this), LocalUserNum]()
+			{
+				UserInterface->TriggerOnGetMyUserProfileCompleteDelegates(LocalUserNum, false, FAccelByteModelsUserProfileInfo{}, ONLINE_ERROR(EOnlineErrorResult::InvalidUser, TEXT("get-my-user-profile-local-user-index-out-of-range")));
+			});
+		return false;
+	}
+
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGetMyUserProfile>(AccelByteSubsystemPtr.Get(), LocalUserNum, OnGetMyUserProfileCompleteDelegates[LocalUserNum]);
+
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Created and dispatched async task to get own user profile!"));
+	return true;
+}
+
+bool FOnlineUserAccelByte::GetPublicUserProfileByPublicId(int32 LocalUserNum, const FString& PublicId)
+{
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("LocalUserNum: %d; PublicId: %s"), LocalUserNum, *PublicId);
+
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return false;
+	}
+
+	if (PublicId.IsEmpty())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("PublicId is empty!"));
+		AccelByteSubsystemPtr->ExecuteNextTick([UserInterface = SharedThis(this), LocalUserNum]()
+			{
+				UserInterface->TriggerOnGetPublicUserProfileByPublicIdCompleteDelegates(LocalUserNum, false, FAccelByteModelsPublicUserProfileInfo{}, ONLINE_ERROR(EOnlineErrorResult::InvalidParams, TEXT("get-public-user-profile-by-public-id-empty")));
+			});
+		return false;
+	}
+
+	if (LocalUserNum < 0 || LocalUserNum >= MAX_LOCAL_PLAYERS)
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("LocalUserNum passed was out of range!"));
+		AccelByteSubsystemPtr->ExecuteNextTick([UserInterface = SharedThis(this), LocalUserNum]()
+			{
+				UserInterface->TriggerOnGetPublicUserProfileByPublicIdCompleteDelegates(LocalUserNum, false, FAccelByteModelsPublicUserProfileInfo{}, ONLINE_ERROR(EOnlineErrorResult::InvalidUser, TEXT("get-public-user-profile-by-public-id-local-user-index-out-of-range")));
+			});
+		return false;
+	}
+
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGetPublicUserProfileByPublicId>(AccelByteSubsystemPtr.Get(), LocalUserNum, PublicId, OnGetPublicUserProfileByPublicIdCompleteDelegates[LocalUserNum]);
+
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Created and dispatched async task to get public user profile by PublicId!"));
+	return true;
+}
+
+bool FOnlineUserAccelByte::GetPublicUserProfileInfo(int32 LocalUserNum, const FString& UserId)
+{
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("LocalUserNum: %d; UserId: %s"), LocalUserNum, *UserId);
+
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return false;
+	}
+
+	if (UserId.IsEmpty())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("UserId is empty!"));
+		AccelByteSubsystemPtr->ExecuteNextTick([UserInterface = SharedThis(this), LocalUserNum]()
+			{
+				UserInterface->TriggerOnGetPublicUserProfileInfoCompleteDelegates(LocalUserNum, false, FAccelByteModelsPublicUserProfileInfo{}, ONLINE_ERROR(EOnlineErrorResult::InvalidParams, TEXT("get-public-user-profile-info-empty")));
+			});
+		return false;
+	}
+
+	if (LocalUserNum < 0 || LocalUserNum >= MAX_LOCAL_PLAYERS)
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("LocalUserNum passed was out of range!"));
+		AccelByteSubsystemPtr->ExecuteNextTick([UserInterface = SharedThis(this), LocalUserNum]()
+			{
+				UserInterface->TriggerOnGetPublicUserProfileInfoCompleteDelegates(LocalUserNum, false, FAccelByteModelsPublicUserProfileInfo{}, ONLINE_ERROR(EOnlineErrorResult::InvalidUser, TEXT("get-public-user-profile-info-local-user-index-out-of-range")));
+			});
+		return false;
+	}
+
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGetPublicUserProfileInfo>(AccelByteSubsystemPtr.Get(), LocalUserNum, UserId, OnGetPublicUserProfileInfoCompleteDelegates[LocalUserNum]);
+
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Created and dispatched async task to get public user profile info!"));
+	return true;
+}
+
+bool FOnlineUserAccelByte::GetCustomAttributes(int32 LocalUserNum)
+{
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("LocalUserNum: %d"), LocalUserNum);
+
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return false;
+	}
+
+	if (LocalUserNum < 0 || LocalUserNum >= MAX_LOCAL_PLAYERS)
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("LocalUserNum passed was out of range!"));
+		AccelByteSubsystemPtr->ExecuteNextTick([UserInterface = SharedThis(this), LocalUserNum]()
+			{
+				UserInterface->TriggerOnGetCustomAttributesCompleteDelegates(LocalUserNum, false, FJsonObjectWrapper{}, ONLINE_ERROR(EOnlineErrorResult::InvalidUser, TEXT("get-custom-attributes-local-user-index-out-of-range")));
+			});
+		return false;
+	}
+
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGetCustomAttributes>(AccelByteSubsystemPtr.Get(), LocalUserNum, OnGetCustomAttributesCompleteDelegates[LocalUserNum]);
+
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Created and dispatched async task to get custom attributes!"));
+	return true;
+}
+
+/*
+ * [DEPRECATED] GetPublicCustomAttributes has been removed due to security issues.
+ * Please use 'GetPublicUserProfileInfo(UserId)' instead, which includes
+ * CustomAttributes in the returned FAccelByteModelsPublicUserProfileInfo.
+ *
+ * @deprecated SDK function deprecated with error code 14901
+ */
+
+bool FOnlineUserAccelByte::UpdateCustomAttributes(int32 LocalUserNum, const FJsonObject& CustomAttributes)
+{
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("LocalUserNum: %d"), LocalUserNum);
+
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return false;
+	}
+
+	if (LocalUserNum < 0 || LocalUserNum >= MAX_LOCAL_PLAYERS)
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("LocalUserNum passed was out of range!"));
+		AccelByteSubsystemPtr->ExecuteNextTick([UserInterface = SharedThis(this), LocalUserNum]()
+			{
+				UserInterface->TriggerOnUpdateCustomAttributesCompleteDelegates(LocalUserNum, false, FJsonObjectWrapper{}, ONLINE_ERROR(EOnlineErrorResult::InvalidUser, TEXT("update-custom-attributes-local-user-index-out-of-range")));
+			});
+		return false;
+	}
+
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteUpdateCustomAttributes>(AccelByteSubsystemPtr.Get(), LocalUserNum, MakeShared<FJsonObject>(CustomAttributes), OnUpdateCustomAttributesCompleteDelegates[LocalUserNum]);
+
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Created and dispatched async task to update custom attributes!"));
+	return true;
+}
+
+bool FOnlineUserAccelByte::GetPrivateCustomAttributes(int32 LocalUserNum)
+{
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("LocalUserNum: %d"), LocalUserNum);
+
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return false;
+	}
+
+	if (LocalUserNum < 0 || LocalUserNum >= MAX_LOCAL_PLAYERS)
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("LocalUserNum passed was out of range!"));
+		AccelByteSubsystemPtr->ExecuteNextTick([UserInterface = SharedThis(this), LocalUserNum]()
+			{
+				UserInterface->TriggerOnGetPrivateCustomAttributesCompleteDelegates(LocalUserNum, false, FJsonObjectWrapper{}, ONLINE_ERROR(EOnlineErrorResult::InvalidUser, TEXT("get-private-custom-attributes-local-user-index-out-of-range")));
+			});
+		return false;
+	}
+
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGetPrivateCustomAttributes>(AccelByteSubsystemPtr.Get(), LocalUserNum, OnGetPrivateCustomAttributesCompleteDelegates[LocalUserNum]);
+
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Created and dispatched async task to get private custom attributes!"));
+	return true;
+}
+
+bool FOnlineUserAccelByte::UpdatePrivateCustomAttributes(int32 LocalUserNum, const FJsonObject& PrivateAttributes)
+{
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("LocalUserNum: %d"), LocalUserNum);
+
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return false;
+	}
+
+	if (LocalUserNum < 0 || LocalUserNum >= MAX_LOCAL_PLAYERS)
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("LocalUserNum passed was out of range!"));
+		AccelByteSubsystemPtr->ExecuteNextTick([UserInterface = SharedThis(this), LocalUserNum]()
+			{
+				UserInterface->TriggerOnUpdatePrivateCustomAttributesCompleteDelegates(LocalUserNum, false, FJsonObjectWrapper{}, ONLINE_ERROR(EOnlineErrorResult::InvalidUser, TEXT("update-private-custom-attributes-local-user-index-out-of-range")));
+			});
+		return false;
+	}
+
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteUpdatePrivateCustomAttributes>(AccelByteSubsystemPtr.Get(), LocalUserNum, MakeShared<FJsonObject>(PrivateAttributes), OnUpdatePrivateCustomAttributesCompleteDelegates[LocalUserNum]);
+
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Created and dispatched async task to update private custom attributes!"));
+	return true;
+}
+
+bool FOnlineUserAccelByte::GenerateUploadURL(int32 LocalUserNum, const FString& Folder, EAccelByteFileType FileType)
+{
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("LocalUserNum: %d; Folder: %s; FileType: %d"), LocalUserNum, *Folder, static_cast<int32>(FileType));
+
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return false;
+	}
+
+	if (Folder.IsEmpty())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Folder is empty!"));
+		AccelByteSubsystemPtr->ExecuteNextTick([UserInterface = SharedThis(this), LocalUserNum]()
+			{
+				UserInterface->TriggerOnGenerateUploadURLCompleteDelegates(LocalUserNum, false, FAccelByteModelsUserProfileUploadURLResult{}, ONLINE_ERROR(EOnlineErrorResult::InvalidParams, TEXT("generate-upload-url-folder-empty")));
+			});
+		return false;
+	}
+
+	if (FileType == EAccelByteFileType::NONE)
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("FileType is NONE!"));
+		AccelByteSubsystemPtr->ExecuteNextTick([UserInterface = SharedThis(this), LocalUserNum]()
+			{
+				UserInterface->TriggerOnGenerateUploadURLCompleteDelegates(LocalUserNum, false, FAccelByteModelsUserProfileUploadURLResult{}, ONLINE_ERROR(EOnlineErrorResult::InvalidParams, TEXT("generate-upload-url-file-type-none")));
+			});
+		return false;
+	}
+
+	if (LocalUserNum < 0 || LocalUserNum >= MAX_LOCAL_PLAYERS)
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("LocalUserNum passed was out of range!"));
+		AccelByteSubsystemPtr->ExecuteNextTick([UserInterface = SharedThis(this), LocalUserNum]()
+			{
+				UserInterface->TriggerOnGenerateUploadURLCompleteDelegates(LocalUserNum, false, FAccelByteModelsUserProfileUploadURLResult{}, ONLINE_ERROR(EOnlineErrorResult::InvalidUser, TEXT("generate-upload-url-local-user-index-out-of-range")));
+			});
+		return false;
+	}
+
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGenerateUploadURL>(AccelByteSubsystemPtr.Get(), LocalUserNum, Folder, FileType, OnGenerateUploadURLCompleteDelegates[LocalUserNum]);
+
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Created and dispatched async task to generate upload URL!"));
+	return true;
+}
+
+bool FOnlineUserAccelByte::GenerateUploadURLForUserContent(int32 LocalUserNum, const FString& UserId, EAccelByteFileType FileType, EAccelByteUploadCategory Category)
+{
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("LocalUserNum: %d; UserId: %s; FileType: %d; Category: %d"), LocalUserNum, *UserId, static_cast<int32>(FileType), static_cast<int32>(Category));
+
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return false;
+	}
+
+	if (UserId.IsEmpty())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("UserId is empty!"));
+		AccelByteSubsystemPtr->ExecuteNextTick([UserInterface = SharedThis(this), LocalUserNum]()
+			{
+				UserInterface->TriggerOnGenerateUploadURLForUserContentCompleteDelegates(LocalUserNum, false, FAccelByteModelsUserProfileUploadURLResult{}, ONLINE_ERROR(EOnlineErrorResult::InvalidParams, TEXT("generate-upload-url-for-user-content-userid-empty")));
+			});
+		return false;
+	}
+
+	if (FileType == EAccelByteFileType::NONE)
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("FileType is NONE!"));
+		AccelByteSubsystemPtr->ExecuteNextTick([UserInterface = SharedThis(this), LocalUserNum]()
+			{
+				UserInterface->TriggerOnGenerateUploadURLForUserContentCompleteDelegates(LocalUserNum, false, FAccelByteModelsUserProfileUploadURLResult{}, ONLINE_ERROR(EOnlineErrorResult::InvalidParams, TEXT("generate-upload-url-for-user-content-file-type-none")));
+			});
+		return false;
+	}
+
+	if (LocalUserNum < 0 || LocalUserNum >= MAX_LOCAL_PLAYERS)
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("LocalUserNum passed was out of range!"));
+		AccelByteSubsystemPtr->ExecuteNextTick([UserInterface = SharedThis(this), LocalUserNum]()
+			{
+				UserInterface->TriggerOnGenerateUploadURLForUserContentCompleteDelegates(LocalUserNum, false, FAccelByteModelsUserProfileUploadURLResult{}, ONLINE_ERROR(EOnlineErrorResult::InvalidUser, TEXT("generate-upload-url-for-user-content-local-user-index-out-of-range")));
+			});
+		return false;
+	}
+
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGenerateUploadURLForUserContent>(AccelByteSubsystemPtr.Get(), LocalUserNum, UserId, FileType, Category, OnGenerateUploadURLForUserContentCompleteDelegates[LocalUserNum]);
+
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Created and dispatched async task to generate upload URL for user content!"));
 	return true;
 }
 
@@ -570,6 +916,21 @@ void FOnlineUserAccelByte::ValidateUserInput(int32 LocalUserNum, const FUserInpu
 		(AccelByteSubsystemPtr.Get(), LocalUserNum, UserInputValidationRequest);
 }
 
+void FOnlineUserAccelByte::GetInputValidations(int32 LocalUserNum, const FString& LanguageCode, bool bDefaultOnEmpty)
+{
+	UE_LOG_AB(Display, TEXT("FOnlineUserAccelByte::GetInputValidations"));
+
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return;
+	}
+
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGetInputValidations>
+		(AccelByteSubsystemPtr.Get(), LocalUserNum, LanguageCode, bDefaultOnEmpty);
+}
+
 bool FOnlineUserAccelByte::QueryUserIdsMapping(const FUniqueNetId& UserId, const FString& DisplayNameOrEmail, const FOnQueryUserIdsMappingComplete& Delegate, int32 Offset, int32 Limit)
 {
 	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("UserId: %s; Display Name or Email to Query: %s"), *UserId.ToDebugString(), *DisplayNameOrEmail);
@@ -586,5 +947,143 @@ bool FOnlineUserAccelByte::QueryUserIdsMapping(const FUniqueNetId& UserId, const
 	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("Created and dispatched async task to query user ID for display name or email '%s'!"), *DisplayNameOrEmail);
 	return true;
 }
+
+bool FOnlineUserAccelByte::BulkGetPublicUserProfileInfosV2(int32 LocalUserNum, const TArray<FString>& UserIds)
+{
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("LocalUserNum: %d; UserIds count: %d"), LocalUserNum, UserIds.Num());
+
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return false;
+	}
+
+	if (UserIds.Num() == 0)
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("UserIds array is empty!"));
+		AccelByteSubsystemPtr->ExecuteNextTick([UserInterface = SharedThis(this), LocalUserNum]()
+			{
+				UserInterface->TriggerOnBulkGetPublicUserProfileInfosV2CompleteDelegates(LocalUserNum, false, FAccelByteModelsPublicUserProfileInfoV2{}, ONLINE_ERROR(EOnlineErrorResult::InvalidParams, TEXT("bulk-get-public-user-profile-infos-v2-empty-userids")));
+			});
+		return false;
+	}
+
+	if (LocalUserNum < 0 || LocalUserNum >= MAX_LOCAL_PLAYERS)
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("LocalUserNum passed was out of range!"));
+		AccelByteSubsystemPtr->ExecuteNextTick([UserInterface = SharedThis(this), LocalUserNum]()
+			{
+				UserInterface->TriggerOnBulkGetPublicUserProfileInfosV2CompleteDelegates(LocalUserNum, false, FAccelByteModelsPublicUserProfileInfoV2{}, ONLINE_ERROR(EOnlineErrorResult::InvalidUser, TEXT("bulk-get-public-user-profile-infos-v2-local-user-index-out-of-range")));
+			});
+		return false;
+	}
+
+	// Use dedicated async task for BulkGetPublicUserProfileInfosV2
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteBulkGetPublicUserProfileInfosV2>(AccelByteSubsystemPtr.Get(), LocalUserNum, UserIds, OnBulkGetPublicUserProfileInfosV2CompleteDelegates[LocalUserNum]);
+
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Created and dispatched async task to bulk get public user profile infos V2!"));
+	return true;
+}
+
+bool FOnlineUserAccelByte::CreateUserProfile(int32 LocalUserNum)
+{
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("LocalUserNum: %d"), LocalUserNum);
+
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return false;
+	}
+
+	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystemPtr->GetIdentityInterface());
+	if (!IdentityInterface.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, identity interface invalid"));
+		return false;
+	}
+
+	const TSharedPtr<const FUniqueNetId> UserId = IdentityInterface->GetUniquePlayerId(LocalUserNum);
+	if (!UserId.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, user ID not valid for LocalUserNum %d"), LocalUserNum);
+		return false;
+	}
+
+	// Delegate to existing CreateUserProfile(const FUniqueNetId& UserId) implementation
+	return CreateUserProfile(*UserId);
+}
+
+bool FOnlineUserAccelByte::UpdateUserProfile(int32 LocalUserNum, const FAccelByteModelsUserProfileUpdateRequest& UpdateRequest)
+{
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("LocalUserNum: %d"), LocalUserNum);
+
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return false;
+	}
+
+	const FOnlineIdentityAccelBytePtr IdentityInterface = StaticCastSharedPtr<FOnlineIdentityAccelByte>(AccelByteSubsystemPtr->GetIdentityInterface());
+	if (!IdentityInterface.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, identity interface invalid"));
+		return false;
+	}
+
+	const TSharedPtr<const FUniqueNetId> UserId = IdentityInterface->GetUniquePlayerId(LocalUserNum);
+	if (!UserId.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, user ID not valid for LocalUserNum %d"), LocalUserNum);
+		return false;
+	}
+
+	// Delegate to existing UpdateUserProfile(int32 LocalUserNum, const FUniqueNetId& UserId, const FAccelByteModelsUserProfileUpdateRequest& UpdateRequest) implementation
+	return UpdateUserProfile(LocalUserNum, *UserId, UpdateRequest);
+}
+
+bool FOnlineUserAccelByte::GetUserProfile(int32 LocalUserNum, const FString& UserId)
+{
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("LocalUserNum: %d; UserId: %s"), LocalUserNum, *UserId);
+
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return false;
+	}
+
+	if (UserId.IsEmpty())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("UserId is empty!"));
+		AccelByteSubsystemPtr->ExecuteNextTick([UserInterface = SharedThis(this), LocalUserNum]()
+			{
+				UserInterface->TriggerOnGetUserProfileCompleteDelegates(LocalUserNum, false, FAccelByteModelsUserProfileInfo{}, ONLINE_ERROR(EOnlineErrorResult::InvalidParams, TEXT("get-user-profile-empty-userid")));
+			});
+		return false;
+	}
+
+	if (LocalUserNum < 0 || LocalUserNum >= MAX_LOCAL_PLAYERS)
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("LocalUserNum passed was out of range!"));
+		AccelByteSubsystemPtr->ExecuteNextTick([UserInterface = SharedThis(this), LocalUserNum]()
+			{
+				UserInterface->TriggerOnGetUserProfileCompleteDelegates(LocalUserNum, false, FAccelByteModelsUserProfileInfo{}, ONLINE_ERROR(EOnlineErrorResult::InvalidUser, TEXT("get-user-profile-local-user-index-out-of-range")));
+			});
+		return false;
+	}
+
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGetUserProfile>(AccelByteSubsystemPtr.Get(), LocalUserNum, UserId, OnGetUserProfileCompleteDelegates[LocalUserNum]);
+
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Created and dispatched async task to get user profile!"));
+	return true;
+}
+
+// ========================================
+// Thread-Safe Delegate Access Helper Functions (Phase 1: Critical delegates)
+// ========================================
+
 
 #undef ONLINE_ERROR_NAMESPACE
