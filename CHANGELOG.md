@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.13.12](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.13.12%0D0.13.11) (2026-05-06)
+
+
+### Bug Fixes
+
+* **IAM:** align native platform token refresh flag (bNativePlatformTokenRefreshManually) with docs and intention ([15af94a](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/15af94a3aee5187a8b3dbb5d1ca88ecd415cf77e))
+
 ### [0.13.11](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.13.11%0D0.13.10) (2026-04-13)
 
 

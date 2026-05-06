@@ -1300,7 +1300,7 @@ void FOnlineSubsystemAccelByte::SetNativePlatformTokenRefreshScheduler(int32 Loc
 		return;
 	}
 
-	if (!Config->GetEnableManualNativePlatformTokenRefresh().GetValue())
+	if (Config->GetEnableManualNativePlatformTokenRefresh().GetValue())
 	{
 		UE_LOG_AB(Warning, TEXT("Refresh Native Platform Token Scheduler is disabled."));
 		return;
@@ -1434,7 +1434,7 @@ void FOnlineSubsystemAccelByte::NativePlatformTokenRefreshScheduler(int32 LocalU
 	}
 
 	// Check the configuration again if there's a change at runtime
-	if (!Config->GetEnableManualNativePlatformTokenRefresh().GetValue())
+	if (Config->GetEnableManualNativePlatformTokenRefresh().GetValue())
 	{
 		UE_LOG_AB(Log, TEXT("Native Platform Token is NOT automatically refreshed. Please handle it manually by using AccelByte's IdentityInterface->RefreshPlatformToken() ."));
 		return;
