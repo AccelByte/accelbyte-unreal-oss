@@ -23,6 +23,7 @@
 #include "AsyncTasks/User/OnlineAsyncTaskAccelByteUnlinkOtherPlatform.h"
 #include "AsyncTasks/User/OnlineAsyncTaskAccelByteLinkOtherPlatformId.h"
 #include "AsyncTasks/User/OnlineAsyncTaskAccelByteUnlinkOtherPlatformId.h"
+#include "AsyncTasks/User/OnlineAsyncTaskAccelByteForcePlatformLinkV3.h"
 #include "AsyncTasks/User/OnlineAsyncTaskAccelByteCheckUserAccountAvailability.h"
 #include "AsyncTasks/User/OnlineAsyncTaskAccelByteQueryUserIdMappingWithPlatform.h"
 #include "AsyncTasks/User/OnlineAsyncTaskAccelByteQueryUserIdMappingWithPlatformId.h"
@@ -834,6 +835,21 @@ void FOnlineUserAccelByte::UnlinkOtherPlatformId(const FUniqueNetId& UserId, con
 	
 	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteUnlinkOtherPlatformId>
 		(AccelByteSubsystemPtr.Get(), UserId, PlatformId);
+}
+
+void FOnlineUserAccelByte::ForcePlatformLinkV3(const FUniqueNetId& UserId, const FString& PlatformId, const FString& Ticket)
+{
+	UE_LOG_AB(Display, TEXT("FOnlineUserAccelByte::ForcePlatformLinkV3"));
+
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return;
+	}
+
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteForcePlatformLinkV3>
+		(AccelByteSubsystemPtr.Get(), UserId, PlatformId, Ticket);
 }
 
 void FOnlineUserAccelByte::CheckUserAccountAvailability(const FUniqueNetId& UserId, const FString& DisplayName, bool bIsSearchUniqueDisplayName)

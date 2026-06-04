@@ -5,12 +5,8 @@
 #include "OnlineAsyncTaskAccelByteBlockPlayer.h"
 #include "OnlineSubsystemAccelByte.h"
 #include "OnlineFriendsInterfaceAccelByte.h"
-#include "OnlinePartyInterfaceAccelByte.h"
 #include "OnlinePredefinedEventInterfaceAccelByte.h"
-#if !AB_USE_V2_SESSIONS
-#else
 #include "OnlineSessionInterfaceV2AccelByte.h"
-#endif
 
 #include "Api/AccelByteLobbyApi.h"
 #include "OnlineUserCacheAccelByte.h"
@@ -169,53 +165,6 @@ void FOnlineAsyncTaskAccelByteBlockPlayer::PerformBlockedPlayerPartyOperation()
 		return;
 	}
 
-#if !AB_USE_V2_SESSIONS
-	const FOnlinePartySystemAccelBytePtr PartyInterface = StaticCastSharedPtr<FOnlinePartySystemAccelByte>(SubsystemPin->GetPartyInterface());
-	if (!PartyInterface.IsValid())
-	{
-		return;
-	}
-
-	TSharedPtr<FOnlinePartyAccelByte> UserParty = PartyInterface->GetFirstPartyForUser(UserId.ToSharedRef());
-	if (!UserParty.IsValid())
-	{
-		return;
-	}
-
-	// Check if the user is in a multi-user party
-	TArray<FOnlinePartyMemberConstRef> CurrentMembers = UserParty->GetAllMembers();
-	if (CurrentMembers.Num() > 1)
-	{
-		if (PartyInterface->IsMemberLeader(*LocalUserId.Get(), UserParty->PartyId.Get(), *LocalUserId.Get()))
-		{
-			// If this user blocks a player who is currently in the same party as the user, and is the party leader, then kick the blocked player
-			for (FOnlinePartyMemberConstRef PartyMember : CurrentMembers)
-			{
-				TSharedRef<const FUniqueNetIdAccelByteUser> PartyMemberCompositeId = FUniqueNetIdAccelByteUser::CastChecked(PartyMember->GetUserId());
-				if (PartyMemberCompositeId->GetAccelByteId() == PlayerId->GetAccelByteId())
-				{
-					PartyInterface->KickMember(*LocalUserId.Get(), UserParty->PartyId.Get(), PlayerId.Get());
-				}
-			}
-		}
-		else
-		{
-			// If this user blocks a player who is currently in the same party as the user, and is just a member aka not party leader, then leave the party
-			for (FOnlinePartyMemberConstRef PartyMember : CurrentMembers)
-			{
-				TSharedRef<const FUniqueNetIdAccelByteUser> PartyMemberCompositeId = FUniqueNetIdAccelByteUser::CastChecked(PartyMember->GetUserId());
-				if (PartyMemberCompositeId->GetAccelByteId() == PlayerId->GetAccelByteId())
-				{
-#if ENGINE_MAJOR_VERSION == 4 || (ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION < 7)
-					PartyInterface->LeaveParty(*LocalUserId.Get(), UserParty->PartyId.Get());
-#else
-					PartyInterface->LeaveParty(*LocalUserId.Get(), UserParty->PartyId.Get(), true);
-#endif
-				}
-			}
-		}
-	}
-#else
 	const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(SubsystemPin->GetSessionInterface());
 	if (!SessionInterface.IsValid())
 	{
@@ -251,5 +200,4 @@ void FOnlineAsyncTaskAccelByteBlockPlayer::PerformBlockedPlayerPartyOperation()
 			}
 		}
 	}
-#endif
 }

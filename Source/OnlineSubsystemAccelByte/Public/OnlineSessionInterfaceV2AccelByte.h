@@ -355,6 +355,23 @@ public:
 	void SetIsP2PMatchmaking(const bool IsP2PMatchmaking);
 	void SetSearchStorage(TSharedPtr<FJsonObject> const& JsonObject);
 
+	/**
+	 * Set role preferences for role-based matchmaking.
+	 * Maps each player's AccelByte user ID to the list of roles they can fill.
+	 *
+	 * Produces the following structure under "attributes" in the match ticket:
+	 *   { "role": { "<userId>": ["role1", "role2"] } }
+	 *
+	 * @param InRolePreferences  Map from AccelByte user ID string to array of role name strings.
+	 */
+	void SetRolePreferences(TMap<FString, TArray<FString>> const& InRolePreferences);
+
+	/**
+	 * Returns the role preferences currently set on this search handle.
+	 * An empty map means no role preferences have been set.
+	 */
+	TMap<FString, TArray<FString>> const& GetRolePreferences() const;
+
 	FAccelByteModelsGameSessionExcludedSession GameSessionExclusion = FAccelByteModelsGameSessionExcludedSession::CreateNoExclusion();
 
 PACKAGE_SCOPE:
@@ -392,6 +409,14 @@ PACKAGE_SCOPE:
 	 * Flag to check if the current matchmaking is for P2P and getting the latencies from turn server list.
 	 */
 	bool bIsP2PMatchmaking{false};
+
+	/**
+	 * Role preferences for role-based matchmaking.
+	 * Consumed by FOnlineAsyncTaskAccelByteStartV2Matchmaking::CreateMatchTicket.
+	 * Stored here rather than in QuerySettings because FVariantData cannot represent
+	 * a nested JSON object.
+	 */
+	TMap<FString, TArray<FString>> RolePreferences{};
 };
 
 #if (ENGINE_MAJOR_VERSION == 4 && ENGINE_MINOR_VERSION < 26)

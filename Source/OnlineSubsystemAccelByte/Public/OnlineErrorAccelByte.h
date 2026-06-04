@@ -57,11 +57,6 @@ private:
      */
     static void RegisterTables();
 
-    /*
-     * @brief flag to indicate whether the String Tables already registered or not, only register the tables once every runtime
-     */
-    static bool bIsTablesRegistered;
-
     static FString Language;
 
     static TCHAR const* DefaultLanguage;

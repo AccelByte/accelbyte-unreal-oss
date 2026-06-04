@@ -3,7 +3,6 @@
 // and restrictions contact your company contract manager.
 
 #include "OnlineSubsystemAccelByte.h"
-#include "OnlineSessionInterfaceV1AccelByte.h"
 #include "OnlineSessionInterfaceV2AccelByte.h"
 #include "OnlineIdentityInterfaceAccelByte.h"
 #include "OnlineExternalUIInterfaceAccelByte.h"
@@ -11,7 +10,6 @@
 #include "OnlineUserCloudInterfaceAccelByte.h"
 #include "OnlineFriendsInterfaceAccelByte.h"
 #include "OnlineGroupsInterfaceAccelByte.h"
-#include "OnlinePartyInterfaceAccelByte.h"
 #include "OnlinePresenceInterfaceAccelByte.h"
 #include "OnlineUserCacheAccelByte.h"
 #include "OnlineAgreementInterfaceAccelByte.h"
@@ -98,21 +96,14 @@ bool FOnlineSubsystemAccelByte::Init()
 	}
 
 	// Create each shared instance of our interface implementations, passing in ourselves as the parent
-#if !AB_USE_V2_SESSIONS
-	SessionInterface = MakeShared<FOnlineSessionV1AccelByte, ESPMode::ThreadSafe>(this);
-#else
 	SessionInterface = MakeShared<FOnlineSessionV2AccelByte, ESPMode::ThreadSafe>(this);
 	StaticCastSharedPtr<FOnlineSessionV2AccelByte>(SessionInterface)->Init();
-#endif
 
 	IdentityInterface = MakeShared<FOnlineIdentityAccelByte, ESPMode::ThreadSafe>(this);
 	ExternalUIInterface = MakeShared<FOnlineExternalUIAccelByte, ESPMode::ThreadSafe>(this);
 	UserInterface = MakeShared<FOnlineUserAccelByte, ESPMode::ThreadSafe>(this);
 	UserCloudInterface = MakeShared<FOnlineUserCloudAccelByte, ESPMode::ThreadSafe>(this);
 	FriendsInterface = MakeShared<FOnlineFriendsAccelByte, ESPMode::ThreadSafe>(this);
-#if 1 // MMv1 Deprecation
-	PartyInterface = MakeShared<FOnlinePartySystemAccelByte, ESPMode::ThreadSafe>(this);
-#endif
 	PresenceInterface = MakeShared<FOnlinePresenceAccelByte, ESPMode::ThreadSafe>(this);
 
 	UserCache = MakeShared<FOnlineUserCacheAccelByte, ESPMode::ThreadSafe>(this);
@@ -260,9 +251,6 @@ bool FOnlineSubsystemAccelByte::Shutdown()
 	LogoutDelegates.Empty();
 
 	// Reset all of our references to our shared interfaces to effectively destroy them if nothing else is using the memory
-#if 1 // MMv1 Deprecation
-	PartyInterface.Reset();
-#endif
 	PresenceInterface.Reset();
 	FriendsInterface.Reset();
 	UserCloudInterface.Reset();
@@ -345,11 +333,11 @@ IOnlineUserCloudPtr FOnlineSubsystemAccelByte::GetUserCloudInterface() const
 
 IOnlinePartyPtr FOnlineSubsystemAccelByte::GetPartyInterface() const
 {
-#if 1 // MMv1 Deprecation
-	return PartyInterface;
-#else
+	// Party V1 (FOnlinePartySystemAccelByte) has been removed as part of the Session V1
+	// deprecation. V2 session-based party functionality is provided through the session
+	// interface (GetSessionInterface()). This returns nullptr intentionally — callers
+	// must null-check the result before use.
 	return nullptr;
-#endif
 }
 
 IOnlinePresencePtr FOnlineSubsystemAccelByte::GetPresenceInterface() const 
@@ -961,15 +949,6 @@ void FOnlineSubsystemAccelByte::OnLobbyConnectionClosed(int32 StatusCode, const 
 	int32 ClosedAbnormally = static_cast<int32>(AccelByte::EWebsocketErrorTypes::LocalClosedAbnormally);
 	FString LogoutReason = (StatusCode != ClosedAbnormally) ? Reason : TEXT("network-disconnection");
 
-#if !AB_USE_V2_SESSIONS
-		TSharedPtr<FUniqueNetIdAccelByteUser const> LocalUserIdAccelByte = StaticCastSharedPtr<FUniqueNetIdAccelByteUser const>(IdentityInterface->GetUniquePlayerId(InLocalUserNum));
-
-		// make sure user is valid (still logged in) before removing party in party interface
-		if (LocalUserIdAccelByte.IsValid() && PartyInterface.IsValid())
-		{
-			PartyInterface->RemovePartyFromInterface(LocalUserIdAccelByte.ToSharedRef());
-		}
-#endif
 	{
 		FScopeLock Lock(&LockObject);
 		LogoutDelegates.Remove(InLocalUserNum);
@@ -1016,18 +995,6 @@ void FOnlineSubsystemAccelByte::OnLobbyReconnected(int32 InLocalUserNum)
 		}
 	}
 
-#if !AB_USE_V2_SESSIONS
-	if (IdentityInterface.IsValid() && PartyInterface.IsValid())
-	{
-		TSharedPtr<FUniqueNetIdAccelByteUser const> LocalUserId = StaticCastSharedPtr<FUniqueNetIdAccelByteUser const>(IdentityInterface->GetUniquePlayerId(InLocalUserNum));
-
-		if (LocalUserId.IsValid())
-		{
-			PartyInterface->RemovePartyFromInterface(LocalUserId.ToSharedRef());
-			PartyInterface->RestoreParties(LocalUserId.ToSharedRef().Get(), FOnRestorePartiesComplete());
-		}
-	}
-#else
 	if (SessionInterface.IsValid())
 	{
 		SessionInterface->RefreshActiveSessionsV2AfterReconnected(InLocalUserNum);
@@ -1036,7 +1003,6 @@ void FOnlineSubsystemAccelByte::OnLobbyReconnected(int32 InLocalUserNum)
 	{
 		UE_LOG_AB(Warning, TEXT("Error due to SessionInterface is invalid"));
 	}
-#endif
 
 	IdentityInterface->TriggerAccelByteOnLobbyReconnectedDelegates(InLocalUserNum);
 }
@@ -1060,6 +1026,12 @@ void FOnlineSubsystemAccelByte::OnLobbyMassiveOutageEvent(const FMassiveOutageIn
 
 void FOnlineSubsystemAccelByte::OnNativeTokenRefreshed(bool bWasSuccessful, int32 LocalUserNum)
 {
+	if (Config.IsValid() && Config->GetEnableManualNativePlatformTokenRefresh().GetValue())
+	{
+		UE_LOG_AB(Log, TEXT("Manual native platform token refresh is enabled; skipping automatic platform token refresh."));
+		return;
+	}
+
 	if (!bWasSuccessful)
 	{
 		UE_LOG_AB(Log, TEXT("Refresh Native Platform Token failed."));

@@ -17,7 +17,6 @@
 #include "AsyncTasks/Friends/OnlineAsyncTaskAccelByteQueryBlockedPlayers.h"
 #include "AsyncTasks/Friends/OnlineAsyncTaskAccelByteBlockPlayer.h"
 #include "AsyncTasks/Friends/OnlineAsyncTaskAccelByteUnblockPlayer.h"
-#include "AsyncTasks/Friends/OnlineAsyncTaskAccelByteGetRecentPlayer.h"
 #include "AsyncTasks/Friends/OnlineAsyncTaskAccelByteSyncThirPartyFriend.h"
 #include "AsyncTasks/Friends/OnlineAsyncTaskAccelByteSyncThirdPartyBlockList.h"
 #include "OnlineSubsystemUtils.h"
@@ -1088,11 +1087,7 @@ bool FOnlineFriendsAccelByte::QueryRecentPlayers(const FUniqueNetId& UserId, con
 	FOnlineAsyncTaskInfo TaskInfo;
 	TaskInfo.bCreateEpicForThis = true;
 	TaskInfo.Type = ETypeOfOnlineAsyncTask::Parallel;
-#if !AB_USE_V2_SESSIONS
-	AccelByteSubsystemPtr->CreateAndDispatchAsyncTask<FOnlineAsyncTaskAccelByteGetRecentPlayer>(TaskInfo, AccelByteSubsystemPtr.Get(), UserId, Namespace);
-#else
 	AccelByteSubsystemPtr->CreateAndDispatchAsyncTask<FOnlineAsyncTaskAccelByteV2GetRecentPlayer>(TaskInfo, AccelByteSubsystemPtr.Get(), UserId, Namespace);
-#endif
 	return true;
 }
 
@@ -1105,17 +1100,10 @@ bool FOnlineFriendsAccelByte::QueryRecentTeamPlayers(int32 LocalUserNum, const F
 		return false;
 	}
 
-#if !AB_USE_V2_SESSIONS
-	AccelByteSubsystemPtr->ExecuteNextTick([this, Namespace, LocalUserNum]() {
-		TriggerOnQueryRecentTeamPlayersCompleteDelegates(LocalUserNum, Namespace, false, TEXT("recent-team-players-invalid-request"));
-	});
-	return false;
-#else
 	FOnlineAsyncTaskInfo TaskInfo;
 	TaskInfo.bCreateEpicForThis = true;
 	TaskInfo.Type = ETypeOfOnlineAsyncTask::Parallel;
 	AccelByteSubsystemPtr->CreateAndDispatchAsyncTask<FOnlineAsyncTaskAccelByteV2GetRecentTeamPlayer>(TaskInfo, AccelByteSubsystemPtr.Get(), LocalUserNum, UserId, Namespace);
-#endif
 	return true;
 }
 

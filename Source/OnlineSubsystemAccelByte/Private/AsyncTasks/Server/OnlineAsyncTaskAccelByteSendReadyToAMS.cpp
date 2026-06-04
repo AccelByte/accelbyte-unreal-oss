@@ -4,11 +4,7 @@
 
 #include "OnlineAsyncTaskAccelByteSendReadyToAMS.h"
 #include "OnlineSubsystemAccelByte.h"
-#if !AB_USE_V2_SESSIONS
-#include "OnlineSessionInterfaceV1AccelByte.h"
-#else
 #include "OnlineSessionInterfaceV2AccelByte.h"
-#endif
 
 #include "OnlineSubsystemAccelByteLog.h"
 #include "AsyncTasks/OnlineAsyncTaskAccelByteLog.h"
@@ -83,13 +79,6 @@ void FOnlineAsyncTaskAccelByteSendReadyToAMS::OnAMSConnectSuccess()
 	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT(""));
-
-#if !AB_USE_V2_SESSIONS
-	// return failed if not using session v2
-	CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
-	AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Failed to connect to send ready message to AMS! session v1 is not supported."));
-	return;
-#endif
 
 	const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(SubsystemPin->GetSessionInterface());
 	if (ensure(SessionInterface.IsValid()))

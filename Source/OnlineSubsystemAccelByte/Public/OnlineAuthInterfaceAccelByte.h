@@ -7,7 +7,6 @@
 #include "CoreMinimal.h"
 #include "OnlineSubsystemAccelByte.h"
 #include "OnlineSubsystemAccelByteTypes.h"
-#include "OnlinePartyInterfaceAccelByte.h"
 #include "OnlineSessionInterfaceV2AccelByte.h"
 
 #include "Core/AccelByteApiClient.h"

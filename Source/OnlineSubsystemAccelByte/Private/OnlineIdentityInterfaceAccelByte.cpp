@@ -343,12 +343,6 @@ bool FOnlineIdentityAccelByte::AutoLogin(int32 LocalUserNum)
 
 	if (IsRunningDedicatedServer())
 	{
-#if !AB_USE_V2_SESSIONS
-		// #NOTE For compatibility reasons, V1 sessions still won't support auto login, since those tasks already have a way
-		// to authenticate a server.
-		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("AutoLogin does not work with AccelByte servers, server login is done automatically during registration."));
-		return false;
-#else
 		// Servers have a custom authentication flow where we just associate them with user index zero. Async task code for
 		// servers should not access the identity interface, this is basically just implemented to fit the flow of a dedicated
 		// server on Unreal closely.
@@ -378,7 +372,6 @@ bool FOnlineIdentityAccelByte::AutoLogin(int32 LocalUserNum)
 			AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteLoginServer>(AccelByteSubsystemPtr.Get(), LocalUserNum);
 		}
 		return true;
-#endif
 	}
 
 	FOnlineAccountCredentialsAccelByte Credentials{ bIsAutoLoginCreateHeadless.load(std::memory_order_acquire) };
@@ -839,9 +832,6 @@ bool FOnlineIdentityAccelByte::AuthenticateAccelByteServer(const FOnAuthenticate
 {
 	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
 
-#if !AB_USE_V2_SESSIONS
-// Empty statement, do nothing.
-#else
 	UE_LOG_AB(Warning, TEXT("FOnlineIdentityAccelByte::AuthenticateAccelByteServer is deprecated with V2 sessions. Servers should be authenticated through AutoLogin!"));
 	
 	if (AccelByteSubsystemPtr.IsValid())
@@ -851,73 +841,6 @@ bool FOnlineIdentityAccelByte::AuthenticateAccelByteServer(const FOnAuthenticate
 			Delegate.ExecuteIfBound(false);
 		});
 	}
-	return false;
-#endif
-
-#if (defined(UE_SERVER) && UE_SERVER) || (defined(UE_EDITOR) && UE_EDITOR)
-	if (!bIsServerAuthenticated.load(std::memory_order_acquire)
-		&& !bIsAuthenticatingServer.load(std::memory_order_acquire))
-	{
-		bIsAuthenticatingServer.store(true, std::memory_order_release);
-		{
-			FWriteScopeLock Lock(ServerAuthDelegatesMtx);
-			ServerAuthDelegates.Add(Delegate);
-		}
-
-		const TSharedRef<FOnlineIdentityAccelByte, ESPMode::ThreadSafe> IdentityInterface = SharedThis(this);
-		const FVoidHandler OnLoginSuccess = FVoidHandler::CreateThreadSafeSP(IdentityInterface, &FOnlineIdentityAccelByte::OnAuthenticateAccelByteServerSuccess, LocalUserNum);
-		const FErrorHandler OnLoginError = FErrorHandler::CreateThreadSafeSP(IdentityInterface, &FOnlineIdentityAccelByte::OnAuthenticateAccelByteServerError);
-
-		if(!AccelByteSubsystemPtr.IsValid())
-		{
-			AccelByteSubsystemPtr->ExecuteNextTick([Delegate]()
-			{
-				UE_LOG_AB(Warning, TEXT("Server AccelByteSubsystem is invalid, skipping call!"));
-				Delegate.ExecuteIfBound(false);
-			});
-		}
-
-		FAccelByteInstancePtr AccelByteInstancePtr = AccelByteSubsystemPtr->GetAccelByteInstance().Pin();
-		if(!AccelByteInstancePtr.IsValid())
-		{
-			AccelByteSubsystemPtr->ExecuteNextTick([Delegate]()
-			{
-				UE_LOG_AB(Warning, TEXT("Server AccelByteInstance is invalid, skipping call!"));
-				Delegate.ExecuteIfBound(false);
-			});
-		}
-
-		FServerApiClientPtr ServerApiClientPtr = AccelByteInstancePtr->GetServerApiClient();
-		if(!ServerApiClientPtr.IsValid())
-		{
-			AccelByteSubsystemPtr->ExecuteNextTick([Delegate]()
-			{
-				UE_LOG_AB(Warning, TEXT("Server ServerApiClient is invalid, skipping call!"));
-				Delegate.ExecuteIfBound(false);
-			});
-		}
-		
-		ServerApiClientPtr->ServerOauth2.LoginWithClientCredentials(OnLoginSuccess, OnLoginError);
-	}
-	else
-	{
-		UE_LOG_AB(Warning, TEXT("Server is being or has already authenticated, skipping call!"));
-		
-		if (bIsServerAuthenticated.load(std::memory_order_acquire))
-		{
-			Delegate.ExecuteIfBound(true);
-		}
-		else if (bIsAuthenticatingServer.load(std::memory_order_acquire))
-		{
-			FWriteScopeLock Lock(ServerAuthDelegatesMtx);
-			ServerAuthDelegates.Add(Delegate);
-		}
-
-		return false;
-	}
-
-	return true;
-#endif
 	return false;
 }
 
@@ -1014,9 +937,6 @@ void FOnlineIdentityAccelByte::OnLogout(const int32 LocalUserNum, bool bWasSucce
 {
 	SetLoginStatus(LocalUserNum, ELoginStatus::NotLoggedIn);
 
-#if !AB_USE_V2_SESSIONS
-// Empty statement, do nothing.
-#else
 	// Signal to the session interface that a player has logged out to clean the local cache
 	FOnlineSessionV2AccelBytePtr SessionInterface{};
 	const TSharedRef<const FUniqueNetId>* LocalPlayerId = nullptr;
@@ -1032,7 +952,6 @@ void FOnlineIdentityAccelByte::OnLogout(const int32 LocalUserNum, bool bWasSucce
 	{
 		SessionInterface->HandleUserLogoutCleanUp((*LocalPlayerId).Get());
 	}
-#endif
 
 	// Signal to game client that log out has completed
 	TriggerOnLogoutCompleteDelegates(LocalUserNum, bWasSuccessful);

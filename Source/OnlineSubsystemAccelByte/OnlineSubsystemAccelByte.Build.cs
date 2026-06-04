@@ -78,14 +78,6 @@ public class OnlineSubsystemAccelByte : ModuleRules
 		});
 #endif
 
-		bool bEnableV2Sessions = true;
-
-		if(!GetBoolFromEngineConfigOrDefault("OnlineSubsystemAccelByte", "bEnableV2Sessions", true, out bEnableV2Sessions))
-		{
-			Console.WriteLine("[AccelByte OSS] bEnableV2Sessions not found in Engine config; defaulting to V2 (true). Set [OnlineSubsystemAccelByte] bEnableV2Sessions=False to opt out.");
-		}
-		PublicDefinitions.Add(string.Format("AB_USE_V2_SESSIONS={0}", bEnableV2Sessions ? 1 : 0));
-
 		string TargetPlatformName = Target.Platform.ToString().ToUpper();
 		if (TargetPlatformName == "PS5")
 		{

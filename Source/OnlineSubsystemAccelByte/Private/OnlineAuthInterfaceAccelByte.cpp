@@ -6,9 +6,7 @@
 #include "OnlineSubsystemAccelByte.h"
 #include "OnlineSubsystemUtils.h"
 #include "OnlineIdentityInterfaceAccelByte.h"
-#include "OnlineSessionInterfaceV1AccelByte.h"
 #include "OnlineSessionInterfaceV2AccelByte.h"
-#include "OnlinePartyInterfaceAccelByte.h"
 #include "Core/AccelByteUtilities.h"
 
 #include "AsyncTasks/Auth/OnlineAsyncTaskAccelByteJwks.h"
@@ -70,11 +68,7 @@ FOnlineAuthAccelByte::FOnlineAuthAccelByte(FOnlineSubsystemAccelByte* InSubsyste
 
 		UE_LOG_AB(Log, TEXT("AUTH: AccelByte Authentication Enabled."));
 
-#if !AB_USE_V2_SESSIONS
-		SessionInterface = StaticCastSharedPtr<FOnlineSessionV1AccelByte>(OnlineSubsystem->GetSessionInterface());
-#else
 		SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(OnlineSubsystem->GetSessionInterface());
-#endif
 		if (!SessionInterface.IsValid())
 		{
 			UE_LOG_AB(Warning, TEXT("AUTH: AccelByte Authentication Disabled. (Session interface is null.)"));
@@ -299,9 +293,6 @@ void FOnlineAuthAccelByte::GetBanUser(const FString& InUserId)
 	bool bDoubleCheckBanned = true;
 	if (SessionInterface.IsValid())
 	{
-#if !AB_USE_V2_SESSIONS
-		bDoubleCheckBanned = IsRunningDedicatedServer();
-#else
 		const FNamedOnlineSession* NamedSession = SessionInterface->GetNamedSession(NAME_GameSession);
 		if (NamedSession)
 		{
@@ -311,7 +302,6 @@ void FOnlineAuthAccelByte::GetBanUser(const FString& InUserId)
 				bDoubleCheckBanned = (SessionInfo->GetServerType() == EAccelByteV2SessionConfigurationServerType::DS);
 			}
 		}
-#endif
 	}
 
 	if (TargetUser->IsBanned(InUserId))
@@ -512,11 +502,6 @@ bool FOnlineAuthAccelByte::IsInSessionUser(const FString& InUserId)
 		return true;
 	}
 
-#if !AB_USE_V2_SESSIONS
-	if (!IsRunningDedicatedServer()) {
-		return true;
-	}
-#else
 	TSharedPtr<FOnlineSessionInfoAccelByteV2> SessionInfo = StaticCastSharedPtr<FOnlineSessionInfoAccelByteV2>(NamedSession->SessionInfo);
 	if (!ensure(SessionInfo.IsValid()))
 	{
@@ -534,7 +519,6 @@ bool FOnlineAuthAccelByte::IsInSessionUser(const FString& InUserId)
 		AuthUser->Status &= ~EAccelByteAuthStatus::PendingSession;
 		return true;
 	}
-#endif
 
 	TArray< FUniqueNetIdRef > PartyMembers = NamedSession->RegisteredPlayers;
 	for (auto Member : PartyMembers)

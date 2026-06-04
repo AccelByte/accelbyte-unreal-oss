@@ -29,7 +29,6 @@ FOnlineErrorAccelByte::FOnlineErrorAccelByte(EOnlineErrorResult InResult, const 
 	SetFromErrorCode(Result, InErrorCode, InErrorMessage);
 }
 
-bool FOnlineErrorAccelByte::bIsTablesRegistered = false;
 TCHAR const* FOnlineErrorAccelByte::DefaultLanguage = TEXT("en");
 FString FOnlineErrorAccelByte::Language = TEXT("");
 
@@ -119,8 +118,8 @@ FString FOnlineErrorAccelByte::GetErrorKey(const int32 ErrorCode)
 
 void FOnlineErrorAccelByte::RegisterTables()
 {
-	if (!bIsTablesRegistered)
-	{
+	// Since C++11 local static is guaranteed to be thread safe and initiated once
+	static bool Registered = [](){	
 		const FString ContentDir = IPluginManager::Get().FindPlugin("OnlineSubsystemAccelByte")->GetContentDir();
 		Language = FInternationalization::Get().GetCurrentLanguage()->GetTwoLetterISOLanguageName();
 		if (!FPaths::FileExists(FString::Printf(TEXT("%s/Localization/AccelByteErrorMessages_%s.csv"), *ContentDir, *Language)))
@@ -133,6 +132,6 @@ void FOnlineErrorAccelByte::RegisterTables()
 		LOCTABLE_FROMFILE_ACCELBYTE(ACCELBYTE_DEFAULT_ERROR_KEY_TABLE_ID, ACCELBYTE_DEFAULT_ERROR_KEY_TABLE_NAMESPACE, DefaultLangPath);
 		LOCTABLE_FROMFILE_ACCELBYTE(ACCELBYTE_ERROR_KEY_TABLE_ID, ACCELBYTE_ERROR_KEY_TABLE_NAMESPACE, LocalizationPath);
 		LOCTABLE_FROMFILE_ACCELBYTE(ACCELBYTE_ERROR_CODE_TABLE_ID, ACCELBYTE_ERROR_CODE_TABLE_NAMESPACE, TEXT("AccelByteErrorCodes.csv"));
-		bIsTablesRegistered = true;
-	}
+		return true;
+	}();
 }

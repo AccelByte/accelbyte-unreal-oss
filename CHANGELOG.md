@@ -2,6 +2,34 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.13.13](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.13.13%0D0.13.12) (2026-06-04)
+
+
+### Features
+
+* **oss:** expose force platform link endpoint in OSS layer (AAX-1876) ([bc5e87e](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/bc5e87e59107ef30a9f8a7132108d8bbfc52375d))
+
+
+### Bug Fixes
+
+* adhere to PR review result ([c52cb8a](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/c52cb8a7798ce2c91bf1255b8253b7af02272187))
+* ensure that FOnlineErrorAccelByte::RegisterTables executes only once ([47afe18](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/47afe182a8b7f6d1abcfd48fbf8053839712d90d))
+* fix broken equality/hash in FUniqueNetIdAccelByteUser ([15c0ba4](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/15c0ba499c6e5d32fda6c54d0c4c4c8b4e334162))
+* fix broken storage session on lobby logic ([dcc562e](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/dcc562ee6c0df4cadb7231efa665e871b5c16ffa))
+* guard GetTypeHash override for UE4 compatibility ([df0af8a](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/df0af8a83cb187d50614c43f4fd82305f0764ef0))
+* **identity:** respect manual native-platform-token-refresh flag (ASP-13260) ([79a3b8a](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/79a3b8ac4663414620a7b9f95df5046c00ee7e40))
+* only returns from uniquedisplayname if platform is not specified when calling GetDisplayName ([43c1963](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/43c1963bfaaa71eaaed57eeebdcc05c0edbaf662))
+* possible avenue where OnSessionServerUpdateDelegates aren't fired due to ExistingBackendData has the latest version and no session data update is applied ([c01af75](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/c01af75ba5169f05fdd8483233df5731dc45092a))
+* session rejoin without reinvite ([406b4db](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/406b4db5937310e96e1065dabb5b55817ac7c692))
+* session rejoin without reinvite ([55da441](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/55da4415a243b21b766a05abb88937c6aa2b0fe6))
+* **types:** export FAccelByteUniqueIdComposite for cross-module use ([6055155](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/6055155aa6205c62331b3c10f5094d83310afa10))
+
+
+### Documentations
+
+* added introduction doc ([d89e127](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/d89e1279a876bec86d94824aa745706d9ad65aa5))
+* remove support for UE5.0 - UE5.4 ([4a77819](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/4a77819ae90c9a1280a0148abe7d55ee80398b7a))
+
 ### [0.13.12](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.13.12%0D0.13.11) (2026-05-06)
 
 

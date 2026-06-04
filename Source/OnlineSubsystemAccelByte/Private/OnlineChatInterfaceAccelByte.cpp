@@ -824,12 +824,6 @@ EAccelByteChatRoomType FOnlineChatAccelByte::GetChatRoomType(const FString& Topi
 	{
 		return EAccelByteChatRoomType::PARTY_V2;
 	}
-#if 1 // MMv1 Deprecation
-	else if (TopicId.StartsWith(TEXT("pv1.")))
-	{
-		return EAccelByteChatRoomType::PARTY_V1;
-	}
-#endif
 	else if (TopicId.StartsWith(TEXT("#")))
 	{
 		return EAccelByteChatRoomType::PERSONAL;
@@ -1720,9 +1714,6 @@ void FAccelByteChatRoomInfo::SetTopicData(const FAccelByteModelsChatTopicQueryDa
 	switch (RoomType) {
 	case EAccelByteChatRoomType::PERSONAL:
 	case EAccelByteChatRoomType::PARTY_V2:
-#if 1 // MMv1 Deprecation
-	case EAccelByteChatRoomType::PARTY_V1:
-#endif
 	case EAccelByteChatRoomType::SESSION_V2:
 		// auto create room should be private and cannot be joined
 		bIsPrivate = true;

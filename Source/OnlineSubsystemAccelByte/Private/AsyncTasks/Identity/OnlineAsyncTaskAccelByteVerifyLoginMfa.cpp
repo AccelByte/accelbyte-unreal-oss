@@ -408,9 +408,6 @@ void FOnlineAsyncTaskAccelByteVerifyLoginMfa::OnLoginSuccess()
 	UserInterface->QueryUserInfo(LocalUserNum, { UserId.ToSharedRef() });
 
 	// If we are using V2 sessions, send a request to update stored platform data in the session service for native sync and crossplay
-#if !AB_USE_V2_SESSIONS
-// Empty statement, do nothing.
-#else
 	FOnlineSessionV2AccelBytePtr SessionInterface = nullptr;
 	const bool bSessionInterfaceRetrieved = FOnlineSessionV2AccelByte::GetFromSubsystem(SubsystemPin.Get(), SessionInterface);
 	if (!bSessionInterfaceRetrieved || !SessionInterface.IsValid())
@@ -424,8 +421,6 @@ void FOnlineAsyncTaskAccelByteVerifyLoginMfa::OnLoginSuccess()
 	{
 		SessionInterface->InitializePlayerAttributes(UserId.ToSharedRef().Get());
 	}
-
-#endif 
 
 	CompleteTask(EAccelByteAsyncTaskCompleteState::Success);
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));

@@ -186,6 +186,26 @@ void FOnlineAsyncTaskAccelByteStartV2Matchmaking::CreateMatchTicket()
 	Optionals.SessionId = GetTicketSessionId();
 
 	AttributesJsonObject = SessionInterface->ConvertSearchParamsToJsonObject(SearchHandle->QuerySettings);
+
+	// Inject role preferences if set on the search handle.
+	// Role preferences are stored directly on FOnlineSessionSearchAccelByte and merged here before the ticket is created.
+	const TMap<FString, TArray<FString>>& RolePreferences = SearchHandle->GetRolePreferences();
+	if (RolePreferences.Num() > 0)
+	{
+		TSharedRef<FJsonObject> RoleJson = MakeShared<FJsonObject>();
+		for (const TPair<FString, TArray<FString>>& RolePair : RolePreferences)
+		{
+			TArray<TSharedPtr<FJsonValue>> RolesArray;
+			RolesArray.Reserve(RolePair.Value.Num());
+			for (const FString& Role : RolePair.Value)
+			{
+				RolesArray.Add(MakeShared<FJsonValueString>(Role));
+			}
+			RoleJson->SetArrayField(RolePair.Key, MoveTemp(RolesArray));
+		}
+		AttributesJsonObject->SetObjectField(TEXT("role"), RoleJson);
+	}
+
 	Optionals.Attributes.JsonObject = AttributesJsonObject;
 
 	if(SearchHandle->GetSearchStorage().IsValid())

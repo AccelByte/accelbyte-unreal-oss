@@ -17,10 +17,7 @@
 #include "Core/AccelByteServerApiClient.h"
 #include "OnlineSubsystemAccelBytePackage.h"
 
-#define AB_USE_V2_SESSIONS_CONFIG_KEY TEXT("bEnableV2Sessions")
-
 class FOnlineIdentityAccelByte;
-class FOnlineSessionV1AccelByte;
 class FOnlineSessionV2AccelByte;
 class FOnlineIdentityAccelByte;
 class FOnlineExternalUIAccelByte;
@@ -28,7 +25,6 @@ class FOnlineUserAccelByte;
 class FOnlineUserCloudAccelByte;
 class FOnlinePresenceAccelByte;
 class FOnlineFriendsAccelByte;
-class FOnlinePartySystemAccelByte;
 class FOnlineUserCacheAccelByte;
 class FOnlineEntitlementsAccelByte;
 class FOnlineStoreV2AccelByte;
@@ -64,11 +60,7 @@ struct FAccelByteModelsNotificationMessage;
 class FOnlineSubsystemAccelByteConfig;
 
 /** Shared pointer to the AccelByte implementation of the Session interface */
-#if !AB_USE_V2_SESSIONS
-typedef TSharedPtr<FOnlineSessionV1AccelByte, ESPMode::ThreadSafe> FOnlineSessionAccelBytePtr;
-#else
 typedef TSharedPtr<FOnlineSessionV2AccelByte, ESPMode::ThreadSafe> FOnlineSessionAccelBytePtr;
-#endif
 
 /** Shared pointer to the AccelByte implementation of the Identity interface */
 typedef TSharedPtr<FOnlineSessionV2AccelByte, ESPMode::ThreadSafe> FOnlineSessionV2AccelBytePtr;
@@ -90,10 +82,6 @@ typedef TSharedPtr<FOnlinePresenceAccelByte, ESPMode::ThreadSafe> FOnlinePresenc
 
 /** Shared pointer to the AccelByte implementation of the friends interface */
 typedef TSharedPtr<FOnlineFriendsAccelByte, ESPMode::ThreadSafe> FOnlineFriendsAccelBytePtr;
-#if 1 // MMv1 Deprecation
-/** Shared pointer to the AccelByte implementation of the party system interface */
-typedef TSharedPtr<FOnlinePartySystemAccelByte, ESPMode::ThreadSafe> FOnlinePartySystemAccelBytePtr;
-#endif
 /** Shared pointer to the AccelByte user store */
 typedef TSharedPtr<FOnlineUserCacheAccelByte, ESPMode::ThreadSafe> FOnlineUserCacheAccelBytePtr;
 
@@ -333,9 +321,6 @@ PACKAGE_SCOPE:
 		, UserInterface(nullptr)
 		, UserCloudInterface(nullptr)
 		, FriendsInterface(nullptr)
-#if 1 // MMv1 Deprecation
-		, PartyInterface(nullptr)
-#endif
 		, PresenceInterface(nullptr)
 		, UserCache(nullptr)
 		, AsyncTaskManager(nullptr)
@@ -554,10 +539,6 @@ private:
 	/** Shared instance of our friends interface implementation */
 	FOnlineFriendsAccelBytePtr FriendsInterface;
 
-#if 1 // MMv1 Deprecation
-	/** Shared instance of our party system interface implementation */
-	FOnlinePartySystemAccelBytePtr PartyInterface;
-#endif
 	/** Shared instance of our presence interface implementation */
 	FOnlinePresenceAccelBytePtr PresenceInterface;
 

@@ -256,11 +256,7 @@ bool FOnlineAnalyticsAccelByte::IsUserLoggedIn(const int32 InLocalUserNum) const
 
 	if (IsDS.GetValue())
 	{
-		#if !AB_USE_V2_SESSIONS
-			return IdentityInterface->IsServerAuthenticated();
-		#else
 			return IdentityInterface->GetLoginStatus(InLocalUserNum) == ELoginStatus::LoggedIn;
-		#endif
 	}
 	else 
 	{

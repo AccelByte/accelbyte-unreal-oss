@@ -12,7 +12,6 @@
 #include "Interfaces/OnlineExternalUIInterface.h"
 #include "Interfaces/OnlineIdentityInterface.h"
 #include "OnlineSubsystemAccelByteTypes.h"
-#include "OnlineSessionInterfaceV1AccelByte.h"
 #include "OnlineSessionInterfaceV2AccelByte.h"
 #include "OnlinePredefinedEventInterfaceAccelByte.h"
 #include "OnlineSubsystemAccelByteUtils.h"
@@ -859,15 +858,11 @@ void FOnlineAsyncTaskAccelByteLogin::OnLoginSuccess()
 	UserInterface->QueryUserInfo(LocalUserNum, { UserId.ToSharedRef() });
 
 	// If we are using V2 sessions, send a request to update stored platform data in the session service for native sync and crossplay
-#if !AB_USE_V2_SESSIONS
-// Empty statement, do nothing.
-#else
 	FOnlineSessionV2AccelBytePtr SessionInterface = nullptr;
 	if (FOnlineSessionV2AccelByte::GetFromSubsystem(SubsystemPin.Get(),  SessionInterface) && ApiClient->CredentialsRef->IsComply())
 	{
 		SessionInterface->InitializePlayerAttributes(UserId.ToSharedRef().Get());	
 	}
-#endif
 
 	SubsystemPin->SetRunningState(LocalUserNum, EAccelByteState::Client);
 

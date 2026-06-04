@@ -141,12 +141,6 @@ static EAccelBytePlatformType ConvertOSSTypeToAccelBytePlatformType(EAccelByteLo
 	}
 }
 
-#if 1 // MMv1 Deprecation
-enum class EAccelBytePartyType : uint32
-{
-	PRIMARY_PARTY = 1
-};
-#endif
 
 /**
  * @brief Enum representing the types of chat room
@@ -154,20 +148,20 @@ enum class EAccelBytePartyType : uint32
 UENUM(BlueprintType)
 enum class EAccelByteChatRoomType : uint8
 {
-	NORMAL,
-	PERSONAL,
-	PARTY_V2, // Party from session service
-#if 1 // MMv1 Deprecation
-	PARTY_V1, // Party form lobby service
-#endif
-	SESSION_V2,
+	NORMAL   = 0,
+	PERSONAL = 1,
+	PARTY_V2 = 2, // Party from session service
+	// NOTE: PARTY_V1 = 3 was removed as part of Session V1 deprecation.
+	// SESSION_V2 is pinned at ordinal 4 (not 3) to preserve backward compatibility
+	// for any existing persisted or replicated data that encodes this enum value.
+	SESSION_V2 = 4,
 };
 
 /**
  * @brief Simple structure to represent the JSON encoded data for an FUniqueNetIdAccelByte.
  */
 USTRUCT()
-struct FAccelByteUniqueIdComposite
+struct ONLINESUBSYSTEMACCELBYTE_API FAccelByteUniqueIdComposite
 {
 	GENERATED_BODY()
 
@@ -544,10 +538,23 @@ public:
 	 * @brief Override equal check operator to check the AccelByte ID first, and then the platform type/ID.
 	 *
 	 * @param Other Another UniqueNetId object.
-	 * 
+	 *
 	 * @return true if both object has the same ID and false if not the same
 	 */
 	virtual bool Compare(FUniqueNetId const& Other) const override;
+
+	/**
+	 * @brief Hash on AccelByte ID only, matching Compare()'s equality definition.
+	 *
+	 * FUniqueNetIdString::GetTypeHash() hashes the full Base64 composite string. Two instances
+	 * with the same AccelByte ID but different platform info are Compare()-equal but produce
+	 * different hashes, breaking TUniqueNetIdMap key lookups.
+	 */
+#if ENGINE_MAJOR_VERSION >= 5
+	virtual uint32 GetTypeHash() const override;
+#else
+	virtual uint32 GetTypeHash() const;
+#endif
 
 PACKAGE_SCOPE:
 	/**
@@ -644,6 +651,17 @@ protected:
 	explicit FUniqueNetIdAccelByteUser(FString && InNetIdStr, FName const InType);
 };
 
+// Free function overload so direct GetTypeHash(FUniqueNetIdAccelByteUser) calls also use
+// AccelByte ID only, consistent with the virtual GetTypeHash() override above.
+inline uint32 GetTypeHash(FUniqueNetIdAccelByteUser const& Id)
+{
+#if ENGINE_MAJOR_VERSION >= 5
+	return GetTypeHashHelper(Id.GetAccelByteId());
+#else
+	return ::GetTypeHash(Id.GetAccelByteId());
+#endif
+}
+
 /**
  * Key functions for indexing a map with a shared reference to an AccelByte User Unique ID as a key.
  */
@@ -667,160 +685,6 @@ struct ONLINESUBSYSTEMACCELBYTE_API TUserUniqueIdConstSharedRefMapKeyFuncs
 	}
 };
 
-#if 1 // MMv1 Deprecation
-/**
- * Array of user IDs corresponding to players in a party in this session
- */
-using TPartyMemberArray = TArray<FUniqueNetIdRef>;
-
-/**
- * Array of parties for the session, contains a nested array of user IDs for members
- */
-using TSessionPartyArray = TArray<TPartyMemberArray>;
-
-/**
- * Delegate fired when we get information about matchmaking teams
- */
-DECLARE_DELEGATE_OneParam(FOnTeamInformationReceived, const TUniqueNetIdMap<int32>&);
-
-/**
- * Delegate fired when we get information about matchmaking parties
- */
-DECLARE_DELEGATE_OneParam(FOnPartyInformationReceived, const TSessionPartyArray&);
-
-class ONLINESUBSYSTEMACCELBYTE_API FOnlineSessionInfoAccelByteV1
-	: public FOnlineSessionInfo
-{
-public:
-	FOnlineSessionInfoAccelByteV1();
-
-	FOnlineSessionInfoAccelByteV1(const FOnlineSessionInfoAccelByteV1& Other);
-
-	virtual ~FOnlineSessionInfoAccelByteV1() override = default;
-
-	bool operator==(const FOnlineSessionInfoAccelByteV1& Other) const;
-
-	FOnlineSessionInfoAccelByteV1& operator=(const FOnlineSessionInfoAccelByteV1& Src);
-
-	virtual const uint8* GetBytes() const override;
-
-	virtual int32 GetSize() const override;
-
-	virtual bool IsValid() const override;
-
-	virtual FString ToString() const override;
-
-	virtual FString ToDebugString() const override;
-
-	/**
-	 * @brief Get the Remote ID of the P2P connection peer
-	 */
-	virtual const FString& GetRemoteId() const;
-
-	/**
-	 * @brief Set the Remote ID of the P2P connection peer
-	 */
-	virtual void SetRemoteId(const FString& InRemoteId);
-
-	FUniqueNetIdAccelByteResourceRef GetSessionIdRef() const;
-
-	/**
-	 * @brief Get the Session ID
-	 */
-	virtual const FUniqueNetId& GetSessionId() const override;
-
-	/**
-	 * @brief Set the Session ID
-	 */
-	virtual void SetSessionId(const FString& InSessionId);
-
-	/**
-	 * @brief Get the Host IP Address
-	 */
-	virtual TSharedPtr<FInternetAddr> GetHostAddr() const;
-
-	/**
-	 * @brief Set the Host IP Address
-	 */
-	virtual void SetHostAddr(const TSharedRef<FInternetAddr>& InHostAddr);
-
-	/**
-	 * @brief Whether or not we have information regarding teams for this session's information, will only be true if this is a matchmaking session
-	 */
-	bool HasTeamInfo() const;
-
-	/**
-	 * @brief Attempts to get a team index for a user, returns INDEX_NONE if not found
-	 * 
-	 * Note that team indices are just mapped from 0 to how ever many teams are matched. If you have special team numbers
-	 * you'll want to map these values on the client side.
-	 */
-	int32 GetTeamIndex(const FUniqueNetId& UserId) const;
-
-	const TUniqueNetIdMap<int32>& GetTeams() const;
-	
-	void SetTeams(const TUniqueNetIdMap<int32>& InTeams);
-
-	/**
-	 * @brief Whether or not we have information regarding parties for this session, will only be true if this is a matchmaking session
-	 */
-	bool HasPartyInfo() const;
-
-	const TSessionPartyArray& GetParties() const;
-
-	void SetParties(const TSessionPartyArray& InParties);
-
-	const FAccelByteModelsMatchmakingResult& GetSessionResult() const;
-
-	void SetSessionResult(const FAccelByteModelsMatchmakingResult& InSessionResult);
-
-	void SetP2PChannel(int32 InChannel);
-
-	int32 GetP2PChannel();
-	
-PACKAGE_SCOPE:
-
-	// #AB #TODO (Afif) : make it accessible from game
-	//FOnlineSessionInfoAccelByte();
-
-	/**
-	 * Set up the session info to match a new session that is using the AccelByte P2P relay.
-	 */
-	void SetupP2PRelaySessionInfo(const FOnlineSubsystemAccelByte& Subsystem);
-	
-private:
-	/**
-	 * @brief The IP and port of the host address of the session. This will be a loopback on P2P relay sessions, or will be an
-	 * actual ip:port for dedicated/LAN sessions.
-	 */
-	TSharedPtr<FInternetAddr> HostAddr;
-
-	/** @brief Remote ID of the P2P connection peer */
-	FString RemoteId;
-
-	/** @brief Channel of the P2P connection */
-	int32 P2PChannel;
-
-	/** @brief Unique Id for this session */
-	FUniqueNetIdAccelByteResourceRef SessionId = FUniqueNetIdAccelByteResource::Invalid();
-
-	/** @brief Mapping of user IDs to the index representing the team they are on, usually will be zero or one */
-	TUniqueNetIdMap<int32> Teams;
-
-	/** 
-	 * @brief Array of multiple players to represent a party
-	 */
-	TSessionPartyArray Parties;
-
-	/** Delegate for when we get team information for a session, should be subscribed to on the game server side */
-	FOnTeamInformationReceived OnTeamInformationReceivedDelegate;
-
-	/** Delegate for when we get party information for a session, should be subscribed to on the game server side */
-	FOnPartyInformationReceived OnPartyInformationReceivedDelegate;
-
-	FAccelByteModelsMatchmakingResult SessionResult;
-};
-#endif // MMv1 Deprecation
 
 /**
  * Attribute key for a stored user account's publisher level avatar

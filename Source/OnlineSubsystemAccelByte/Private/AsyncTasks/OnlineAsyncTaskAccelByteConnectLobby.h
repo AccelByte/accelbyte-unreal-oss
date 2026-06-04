@@ -7,7 +7,6 @@
 #include "AsyncTasks/OnlineAsyncTaskAccelByteUtils.h"
 #include "OnlineSubsystemAccelByteTypes.h"
 #include "OnlineIdentityInterfaceAccelByte.h"
-#include "OnlinePartyInterfaceAccelByte.h"
 
 /**
  * Task for connect AccelByte Lobby

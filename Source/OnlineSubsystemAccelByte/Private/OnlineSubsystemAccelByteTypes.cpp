@@ -492,6 +492,15 @@ bool FUniqueNetIdAccelByteUser::Compare(FUniqueNetId const& Other) const
 	return FUniqueNetIdString::Compare(Other);
 }
 
+uint32 FUniqueNetIdAccelByteUser::GetTypeHash() const
+{
+#if ENGINE_MAJOR_VERSION >= 5
+	return GetTypeHashHelper(CompositeStructure.Id);
+#else
+	return ::GetTypeHash(CompositeStructure.Id);
+#endif
+}
+
 void FUniqueNetIdAccelByteUser::DecodeIDElements()
 {
 	// If this is supposed to be an invalid ID, then just return that accordingly
@@ -525,197 +534,6 @@ void FUniqueNetIdAccelByteUser::DecodeIDElements()
 #pragma endregion // FUniquneNetIdAccelByteUser
 
 #pragma region FOnlineSessionInfoAccelByte
-#if 1 // MMv1 Deprecation
-FOnlineSessionInfoAccelByteV1::FOnlineSessionInfoAccelByteV1()
-	: FOnlineSessionInfo()
-	, HostAddr(ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM)->CreateInternetAddr())
-	, RemoteId(TEXT(""))
-	, SessionId(FUniqueNetIdAccelByteResource::Invalid())
-{
-}
-
-FOnlineSessionInfoAccelByteV1::FOnlineSessionInfoAccelByteV1(const FOnlineSessionInfoAccelByteV1& Other)
-	: FOnlineSessionInfo(Other)
-	, HostAddr(Other.HostAddr->Clone())
-	, RemoteId(Other.RemoteId)
-	, SessionId(Other.SessionId)
-	, Teams(Other.Teams)
-	, Parties(Other.Parties)
-{
-}
-
-bool FOnlineSessionInfoAccelByteV1::operator==(const FOnlineSessionInfoAccelByteV1& Other) const
-{
-	return false;
-}
-
-FOnlineSessionInfoAccelByteV1& FOnlineSessionInfoAccelByteV1::operator=(const FOnlineSessionInfoAccelByteV1& Src)
-{
-	return *this;
-}
-
-const uint8* FOnlineSessionInfoAccelByteV1::GetBytes() const
-{
-	return nullptr;
-}
-
-int32 FOnlineSessionInfoAccelByteV1::GetSize() const
-{
-	return sizeof(uint64) + sizeof(TSharedPtr<class FInternetAddr>);
-}
-
-bool FOnlineSessionInfoAccelByteV1::IsValid() const
-{
-	const bool bIsValidDedicatedSession = (SessionId->IsValid() && (HostAddr.IsValid() && HostAddr->IsValid()));
-	const bool bIsValidP2PSession = !RemoteId.IsEmpty();
-	return bIsValidDedicatedSession || bIsValidP2PSession;
-}
-
-FString FOnlineSessionInfoAccelByteV1::ToString() const
-{
-	return SessionId->ToString();
-}
-
-void FOnlineSessionInfoAccelByteV1::SetupP2PRelaySessionInfo(const FOnlineSubsystemAccelByte& Subsystem)
-{
-	// Read the IP from the system
-	bool bCanBindAll;
-	HostAddr = ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM)->GetLocalHostAddr(*GLog, bCanBindAll);
-
-	// The below is a workaround for systems that set hostname to a distinct address from 127.0.0.1 on a loopback interface.
-	// See e.g. https://www.debian.org/doc/manuals/debian-reference/ch05.en.html#_the_hostname_resolution
-	// and http://serverfault.com/questions/363095/why-does-my-hostname-appear-with-the-address-127-0-1-1-rather-than-127-0-0-1-in
-	// Since we bind to 0.0.0.0, we won't answer on 127.0.1.1, so we need to advertise ourselves as 127.0.0.1 for any other loopback address we may have.
-	uint32 HostIp = 0; // will return in host order
-	// if this address is on loopback interface, advertise it as 127.0.0.1
-	HostAddr->GetIp(HostIp);
-	if ((HostIp & 0xff000000) == 0x7f000000)
-	{
-		HostAddr->SetIp(0x7f000001);	// 127.0.0.1
-	}
-
-	// Now set the port that was configured
-	HostAddr->SetPort(GetPortFromNetDriver(Subsystem.GetInstanceName()));
-
-	FGuid OwnerGuid;
-	FPlatformMisc::CreateGuid(OwnerGuid);
-	FString Guid = OwnerGuid.ToString();
-	SessionId =  FUniqueNetIdAccelByteResource::Create(MoveTemp(Guid), ACCELBYTE_RESOURCE_ID_TYPE);
-}
-
-void FOnlineSessionInfoAccelByteV1::SetP2PChannel(int32 InChannel)
-{
-	P2PChannel = InChannel;
-}
-
-FString FOnlineSessionInfoAccelByteV1::ToDebugString() const
-{
-	if (!RemoteId.IsEmpty())
-	{
-		return FString::Printf(TEXT("ID: %s SessionId: %s"),
-			*RemoteId,
-			*SessionId->ToDebugString());
-	}
-	return FString::Printf(TEXT("HOST: %s SessionId: %s"),
-		*RemoteId,
-		*SessionId->ToDebugString());
-}
-
-const FString& FOnlineSessionInfoAccelByteV1::GetRemoteId() const
-{
-	return RemoteId;
-}
-
-void FOnlineSessionInfoAccelByteV1::SetRemoteId(const FString& InRemoteId)
-{
-	RemoteId = InRemoteId;
-}
-
-FUniqueNetIdAccelByteResourceRef FOnlineSessionInfoAccelByteV1::GetSessionIdRef() const
-{
-	return SessionId;
-}
-
-const FUniqueNetId& FOnlineSessionInfoAccelByteV1::GetSessionId() const
-{
-	return SessionId.Get();
-}
-
-void FOnlineSessionInfoAccelByteV1::SetSessionId(const FString& InSessionId)
-{
-	FString TempString = InSessionId;
-	SessionId = FUniqueNetIdAccelByteResource::Create(MoveTemp(TempString), ACCELBYTE_RESOURCE_ID_TYPE);
-}
-
-TSharedPtr<FInternetAddr> FOnlineSessionInfoAccelByteV1::GetHostAddr() const
-{
-	return HostAddr;
-}
-
-void FOnlineSessionInfoAccelByteV1::SetHostAddr(const TSharedRef<FInternetAddr>& InHostAddr)
-{
-	HostAddr = InHostAddr;
-}
-
-bool FOnlineSessionInfoAccelByteV1::HasTeamInfo() const
-{
-	return Teams.Num() > 0;
-}
-
-int32 FOnlineSessionInfoAccelByteV1::GetTeamIndex(const FUniqueNetId& UserId) const
-{
-	const int32* FoundTeamIndex = Teams.Find(UserId.AsShared());
-	if (FoundTeamIndex != nullptr)
-	{
-		return *FoundTeamIndex;
-	}
-
-	return INDEX_NONE;
-}
-
-const TUniqueNetIdMap<int32>& FOnlineSessionInfoAccelByteV1::GetTeams() const
-{
-	return Teams;
-}
-
-void FOnlineSessionInfoAccelByteV1::SetTeams(const TUniqueNetIdMap<int32>& InTeams)
-{
-	Teams = InTeams;
-	OnTeamInformationReceivedDelegate.ExecuteIfBound(Teams);
-}
-
-bool FOnlineSessionInfoAccelByteV1::HasPartyInfo() const
-{
-	return Parties.Num() > 0;
-}
-
-const TSessionPartyArray& FOnlineSessionInfoAccelByteV1::GetParties() const
-{
-	return Parties;
-}
-
-
-void FOnlineSessionInfoAccelByteV1::SetParties(const TSessionPartyArray& InParties)
-{
-	Parties = InParties;
-	OnPartyInformationReceivedDelegate.ExecuteIfBound(Parties);
-}
-
-const FAccelByteModelsMatchmakingResult& FOnlineSessionInfoAccelByteV1::GetSessionResult() const
-{
-	return SessionResult;
-}
-
-void FOnlineSessionInfoAccelByteV1::SetSessionResult(const FAccelByteModelsMatchmakingResult& InSessionResult)
-{
-	SessionResult = InSessionResult;
-}
-
-int32 FOnlineSessionInfoAccelByteV1::GetP2PChannel()
-{
-	return P2PChannel;
-}
-#endif // MMv1 Deprecation
 #pragma endregion // FOnlineSessionInfoAccelByte
 
 #pragma region FUserOnlineAccountAccelByte
@@ -768,13 +586,12 @@ FString FUserOnlineAccountAccelByte::GetRealName() const
 
 FString FUserOnlineAccountAccelByte::GetDisplayName(const FString& Platform) const
 {
-	if (!UniqueDisplayName.IsEmpty())
-	{
-		return UniqueDisplayName;
-	}
-
 	if (Platform.IsEmpty())
 	{
+		if (!UniqueDisplayName.IsEmpty())
+		{
+			return UniqueDisplayName;
+		}
 		return DisplayName;
 	}
 

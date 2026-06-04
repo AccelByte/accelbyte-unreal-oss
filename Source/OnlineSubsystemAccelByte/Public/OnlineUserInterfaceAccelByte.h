@@ -220,7 +220,10 @@ DECLARE_MULTICAST_DELEGATE_TwoParams(FOnLinkOtherPlatformIdComplete, bool /*bWas
 typedef FOnLinkOtherPlatformIdComplete::FDelegate FOnLinkOtherPlatformIdCompleteDelegate;
 
 DECLARE_MULTICAST_DELEGATE_TwoParams(FOnUnlinkOtherPlatformIdComplete, bool /*bWasSuccessful*/, const FOnlineError & /*OnlineError*/);
-typedef FOnUnlinkOtherPlatformIdComplete::FDelegate FOnUnlinkOtherPlatformIdCompleteDelegate; 
+typedef FOnUnlinkOtherPlatformIdComplete::FDelegate FOnUnlinkOtherPlatformIdCompleteDelegate;
+
+DECLARE_MULTICAST_DELEGATE_TwoParams(FOnForcePlatformLinkV3Complete, bool /*bWasSuccessful*/, const FOnlineError & /*OnlineError*/);
+typedef FOnForcePlatformLinkV3Complete::FDelegate FOnForcePlatformLinkV3CompleteDelegate;
 
 DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnCheckUserAccountAvailabilityComplete, bool /*bWasSuccessful*/, bool /*bUserExisted*/, const FOnlineError & /*OnlineError*/);
 typedef FOnCheckUserAccountAvailabilityComplete::FDelegate FOnCheckUserAccountAvailabilityCompleteDelegate;
@@ -608,6 +611,14 @@ public:
 	 */
 	DEFINE_ONLINE_DELEGATE_TWO_PARAM(OnUnlinkOtherPlatformIdComplete, bool /*bWasSuccessful*/, const FOnlineError & /*OnlineError*/);
 	void UnlinkOtherPlatformId(const FUniqueNetId& UserId, const FString& PlatformId);
+
+	DEFINE_ONLINE_DELEGATE_TWO_PARAM(OnForcePlatformLinkV3Complete, bool /*bWasSuccessful*/, const FOnlineError & /*OnlineError*/);
+	/*
+	 * Force link user's current account to their platform account.
+	 * This forcefully links the platform account even if it's already linked to another AccelByte account.
+	 * Ticket from platform (Platform Token/Authorization Code) can be obtained from Platform OSS or Plugin.
+	 */
+	void ForcePlatformLinkV3(const FUniqueNetId& UserId, const FString& PlatformId, const FString& Ticket);
 
 	/**
 	 * Delegate called when a controller-user check user account availability.

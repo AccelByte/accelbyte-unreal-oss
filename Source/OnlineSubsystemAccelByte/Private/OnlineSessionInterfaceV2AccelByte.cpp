@@ -53,7 +53,6 @@
 #include "AsyncTasks/Server/OnlineAsyncTaskAccelByteSendReadyToAMS.h"
 #include "AsyncTasks/Server/OnlineAsyncTaskAccelByteUpdateDSInformation.h"
 #include "OnlineIdentityInterfaceAccelByte.h"
-#include "OnlineSessionInterfaceV1AccelByte.h"
 #include "OnlineVoiceInterfaceAccelByte.h"
 #include "OnlinePredefinedEventInterfaceAccelByte.h"
 #include "OnlineSubsystemAccelByte.h"
@@ -655,6 +654,16 @@ void FOnlineSessionSearchAccelByte::SetSearchStorage(TSharedPtr<FJsonObject> con
 	SearchStorage = JsonObject;
 }
 
+void FOnlineSessionSearchAccelByte::SetRolePreferences(TMap<FString, TArray<FString>> const& InRolePreferences)
+{
+	RolePreferences = InRolePreferences;
+}
+
+TMap<FString, TArray<FString>> const& FOnlineSessionSearchAccelByte::GetRolePreferences() const
+{
+	return RolePreferences;
+}
+
 FOnlineSessionInviteAccelByte::FOnlineSessionInviteAccelByte()
 	: TimeManager(nullptr)
 {
@@ -703,13 +712,8 @@ FOnlineSessionV2AccelByte::~FOnlineSessionV2AccelByte()
 
 bool FOnlineSessionV2AccelByte::GetFromSubsystem(const IOnlineSubsystem* Subsystem, FOnlineSessionV2AccelBytePtr& OutInterfaceInstance)
 {
-#if !AB_USE_V2_SESSIONS
-	OutInterfaceInstance = nullptr;
-	return false;
-#else
 	OutInterfaceInstance = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(Subsystem->GetSessionInterface());
 	return OutInterfaceInstance.IsValid();
-#endif
 }
 
 bool FOnlineSessionV2AccelByte::GetFromSubsystem(const FOnlineSubsystemAccelByte* Subsystem, TSharedPtr<FOnlineSessionV2AccelByte, ESPMode::ThreadSafe>& OutInterfaceInstance)
@@ -719,21 +723,12 @@ bool FOnlineSessionV2AccelByte::GetFromSubsystem(const FOnlineSubsystemAccelByte
 		return false;
 	}
 
-#if !AB_USE_V2_SESSIONS
-	OutInterfaceInstance = nullptr;
-	return false;
-#else
 	OutInterfaceInstance = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(Subsystem->GetSessionInterface());
 	return OutInterfaceInstance.IsValid();
-#endif
 }
 
 bool FOnlineSessionV2AccelByte::GetFromWorld(const UWorld* World, FOnlineSessionV2AccelBytePtr& OutInterfaceInstance)
 {
-#if !AB_USE_V2_SESSIONS
-	OutInterfaceInstance = nullptr;
-	return false;
-#else
 	const IOnlineSubsystem* Subsystem = ::Online::GetSubsystem(World);
 	if (Subsystem == nullptr)
 	{
@@ -741,7 +736,6 @@ bool FOnlineSessionV2AccelByte::GetFromWorld(const UWorld* World, FOnlineSession
 		return false;
 	}
 	return GetFromSubsystem(Subsystem, OutInterfaceInstance);
-#endif
 }
 
 void FOnlineSessionV2AccelByte::Init()
@@ -821,6 +815,13 @@ void FOnlineSessionV2AccelByte::UpdateSessionEntries()
 		const bool bHasUpdateToApply = LatestUpdate.IsValid() && LatestUpdate->Version > ExistingBackendData->Version;
 		if (!bHasUpdateToApply)
 		{
+			// ExistingBackendData may contain the latest the session data version and skip the OnSessionServerUpdate
+			// below. So trigger here if an update is actually present.
+			if (SessionInfo->GetDSReadyUpdateReceived())
+			{
+				SessionInfo->SetDSReadyUpdateReceived(false);
+				TriggerOnSessionServerUpdateDelegates(SessionEntry.Value->SessionName);
+			}
 			SessionInfo->SetLatestBackendSessionDataUpdate(nullptr);
 			SessionsWithPendingQueuedUpdates.RemoveAt(PendingUpdateIndex);
 			continue;
@@ -849,9 +850,11 @@ void FOnlineSessionV2AccelByte::UpdateSessionEntries()
 				continue;
 			}
 
-			// assumption we only update game session from notifications here
-			// we don't update leader and member storages here since data from notifications might be reduced
-			UpdateInternalGameSession(SessionEntry.Key, GameSessionData.ToSharedRef().Get(), bIsConnectingToP2P, false, false);
+			// bUpdateSessionStorages=true: backend confirmed OnSessionMembersChanged carries the full Storage
+			// payload (reducePayloadSize only trims the Members array, never Storage). Passing false here
+			// discarded storage on every member-change notification, causing GetSessionMemberStorage to
+			// return empty for members whose storage was written via the notification path.
+			UpdateInternalGameSession(SessionEntry.Key, GameSessionData.ToSharedRef().Get(), bIsConnectingToP2P, false, true);
 		}
 		else
 		{
@@ -4096,10 +4099,22 @@ bool FOnlineSessionV2AccelByte::JoinSession(const FUniqueNetId& LocalUserId, FNa
 	NewSession->SessionState = EOnlineSessionState::Creating;
 	NewSession->LocalOwnerId = LocalUserId.AsShared();
 
-	// Check if the local player attempting to join the session is already marked as joined on the backend. This will
-	// skip the subsequent join session call in the async task if true.
+	// Check whether or not we are just restoring this session. Will impact the call made to the backend on join.
+	bool bIsRestoreSession = false;
+	for (const FOnlineRestoredSessionAccelByte& Session : RestoredSessions)
+	{
+		if (Session.Session.GetSessionIdStr().Equals(DesiredSession.GetSessionIdStr()))
+		{
+			bIsRestoreSession = true;
+			break;
+		}
+	}
+
+	// For restored sessions, check if the local player is already marked as joined on the backend. 
+	// If true, this will skip the JoinGameSession/JoinParty API call in the async task and reuse cached session data. 
+	// For non-restore joins (e.g., invite-based or simple rejoin open session), always call the backend regardless of cached member status.
 	bool bIsLocalUserJoined { false };
-	if (NewSession->SessionInfo.IsValid())
+	if (bIsRestoreSession && NewSession->SessionInfo.IsValid())
 	{
 		TSharedPtr<FOnlineSessionInfoAccelByteV2> SessionInfo = StaticCastSharedPtr<FOnlineSessionInfoAccelByteV2>(NewSession->SessionInfo);
 		if (SessionInfo.IsValid())
@@ -4111,17 +4126,6 @@ bool FOnlineSessionV2AccelByte::JoinSession(const FUniqueNetId& LocalUserId, FNa
 				bIsLocalUserJoined = FoundMember->StatusV2 == EAccelByteV2SessionMemberStatus::JOINED
 					|| FoundMember->StatusV2 == EAccelByteV2SessionMemberStatus::CONNECTED;
 			}
-		}
-	}
-
-	// Check whether or not we are just restoring this session. Will impact the call made to the backend on join.
-	bool bIsRestoreSession = false;
-	for (const FOnlineRestoredSessionAccelByte& Session : RestoredSessions)
-	{
-		if (Session.Session.GetSessionIdStr().Equals(DesiredSession.GetSessionIdStr()))
-		{
-			bIsRestoreSession = true;
-			break;
 		}
 	}
 
@@ -9331,15 +9335,11 @@ void FOnlineSessionV2AccelByte::HandleUserLogoutCleanUp(const FUniqueNetId& Loca
 				continue;
 			}
 
-#if !AB_USE_V2_SESSIONS
-// Empty statement, do nothing.
-#else
 			TSharedPtr<FOnlineSessionInfoAccelByteV2> SessionInfo = StaticCastSharedPtr<FOnlineSessionInfoAccelByteV2>(SessionEntry.Value->SessionInfo);
 			if(SessionInfo.IsValid())
 			{
 				StopSessionInviteCheckPoll(LocalUserId.AsShared(), SessionInfo->GetSessionId().ToString());
 			}
-#endif
 
 			StopSessionServerCheckPoll(LocalUserId.AsShared(), SessionEntry.Key);
 

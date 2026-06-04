@@ -7,12 +7,7 @@
 #include "OnlineIdentityInterfaceAccelByte.h"
 #include "OnlinePresenceInterfaceAccelByte.h"
 #include "OnlineFriendsInterfaceAccelByte.h"
-#include "OnlinePartyInterfaceAccelByte.h"
-#if !AB_USE_V2_SESSIONS
-#include "OnlineSessionInterfaceV1AccelByte.h"
-#else
 #include "OnlineSessionInterfaceV2AccelByte.h"
-#endif
 #include "OnlinePredefinedEventInterfaceAccelByte.h"
 #include "OnlineWalletInterfaceAccelByte.h"
 #include "OnlineEntitlementsInterfaceAccelByte.h"
@@ -158,32 +153,12 @@ void FOnlineAsyncTaskAccelByteConnectLobby::OnLobbyConnectSuccess()
 		FriendsInterface->RegisterRealTimeLobbyDelegates(LocalUserNum);
 	}
 
-#if !AB_USE_V2_SESSIONS
-	// Grab party interface for lobby delegates and to register realtime notification handlers.
-	// #NOTE Not guarded in V2 as the lobby close and reconnect delegates rely on a valid interface instance. Any
-	// functionality is guarded by an if preprocessor in those delegates anyway.
-	const TSharedPtr<FOnlinePartySystemAccelByte, ESPMode::ThreadSafe> PartyInterface = StaticCastSharedPtr<FOnlinePartySystemAccelByte>(SubsystemPin->GetPartyInterface());
-	
-	// Also register all delegates for the V1 session interface to get updates for matchmaking
-	const TSharedPtr<FOnlineSessionV1AccelByte, ESPMode::ThreadSafe> SessionInterface = StaticCastSharedPtr<FOnlineSessionV1AccelByte>(SubsystemPin->GetSessionInterface());
-	if (SessionInterface.IsValid())
-	{
-		SessionInterface->RegisterRealTimeLobbyDelegates(LocalUserNum);
-	}
-
-	// Also register all delegates for the party interface to get notifications for party actions
-	if (PartyInterface.IsValid())
-	{
-		PartyInterface->RegisterRealTimeLobbyDelegates(UserId.ToSharedRef());
-	}
-#else
 	// Register delegates for the V2 session interface
 	const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(SubsystemPin->GetSessionInterface());
 	if (ensure(SessionInterface.IsValid()))
 	{
 		SessionInterface->RegisterSessionNotificationDelegates(UserId.ToSharedRef().Get());
 	}
-#endif
 
 	// Register all delegates for the Entitlements interface to get real time notifications for entitlements-related actions
 	const TSharedPtr<FOnlineEntitlementsAccelByte, ESPMode::ThreadSafe> EntitlementsInterface = StaticCastSharedPtr<FOnlineEntitlementsAccelByte>(SubsystemPin->GetEntitlementsInterface());

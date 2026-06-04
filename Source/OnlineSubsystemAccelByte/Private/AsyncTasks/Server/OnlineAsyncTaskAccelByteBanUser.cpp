@@ -4,7 +4,6 @@
 
 #include "OnlineAsyncTaskAccelByteBanUser.h"
 #include "OnlineSubsystemAccelByte.h"
-#include "OnlineSessionInterfaceV1AccelByte.h"
 #include "AsyncTasks/OnlineAsyncTaskAccelByteLog.h"
 #include "AsyncTasks/OnlineAsyncTaskAccelByteHelpers.h"
 
