@@ -21,7 +21,8 @@ public:
 	FOnlineAsyncTaskAccelByteJoinV2GameSession(FOnlineSubsystemAccelByte* const InABInterface
 		, const FUniqueNetId& InLocalUserId
 		, const FName& InSessionName
-		, bool bInHasLocalUserJoined);
+		, bool bInHasLocalUserJoined
+		, const FString& InPassword = FString());
 
 	virtual void Initialize() override;
 	virtual void Finalize() override;
@@ -52,6 +53,9 @@ private:
 
 	/** Whether or not we are trying to connect to a P2P socket for this session */
 	bool bJoiningP2P{false};
+
+	/** Optional password supplied for joining a PASSWORD_PROTECTED session. Empty for non-protected joins. */
+	FString Password{};
 
 	THandler<FAccelByteModelsV2GameSession> OnJoinGameSessionSuccessDelegate;
 	FErrorHandler OnJoinGameSessionErrorDelegate;

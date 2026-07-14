@@ -76,8 +76,11 @@ void FOnlineSubsystemAccelByte::OnPostEngineInit()
 		Config->Dump();
 	}
 
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION <= 7 || ENGINE_MAJOR_VERSION == 4
 	FCoreDelegates::OnPostEngineInit.Remove(OnPostEngineInitDelegate);
-	
+#else
+	FCoreDelegates::GetOnPostEngineInit().Remove(OnPostEngineInitDelegate);
+#endif
 	UE_LOG_AB(Log, TEXT("OnlineSubsystemAccelByte version: %s"), *FAccelByteUtilities::GetPluginVersionOnlineSubsystemAccelByte());
 }
 
@@ -160,7 +163,11 @@ bool FOnlineSubsystemAccelByte::Init()
 		// todo: create a new ticker to check UObjectInitialized then initialize AccelbyteInstance
 		if(!OnPostEngineInitDelegate.IsValid())
 		{
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION <= 7 || ENGINE_MAJOR_VERSION == 4
 			OnPostEngineInitDelegate = FCoreDelegates::OnPostEngineInit.AddThreadSafeSP(AsShared(), &FOnlineSubsystemAccelByte::OnPostEngineInit);
+#else
+			OnPostEngineInitDelegate = FCoreDelegates::GetOnPostEngineInit().AddThreadSafeSP(AsShared(), &FOnlineSubsystemAccelByte::OnPostEngineInit);
+#endif
 		}	
 	}
 	else

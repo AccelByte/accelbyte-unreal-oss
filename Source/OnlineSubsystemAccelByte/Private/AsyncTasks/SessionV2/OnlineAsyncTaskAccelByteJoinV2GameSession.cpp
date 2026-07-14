@@ -14,10 +14,12 @@ using namespace AccelByte;
 FOnlineAsyncTaskAccelByteJoinV2GameSession::FOnlineAsyncTaskAccelByteJoinV2GameSession(FOnlineSubsystemAccelByte* const InABInterface
 	, const FUniqueNetId& InLocalUserId
 	, const FName& InSessionName
-	, bool bInHasLocalUserJoined)
+	, bool bInHasLocalUserJoined
+	, const FString& InPassword)
 	: FOnlineAsyncTaskAccelByte(InABInterface)
 	, SessionName(InSessionName)
 	, bHasLocalUserJoined(bInHasLocalUserJoined)
+	, Password(InPassword)
 {
 	UserId = FUniqueNetIdAccelByteUser::CastChecked(InLocalUserId);
 }
@@ -47,6 +49,10 @@ void FOnlineAsyncTaskAccelByteJoinV2GameSession::Initialize()
 		// the local session cache with proper session data. If some how we do not have valid data for the pending named
 		// session, then we will fall back to doing the join session API call to retrieve that data. Session service will
 		// return a no-op success response if we do end up calling while joined.
+		if (!Password.IsEmpty())
+		{
+			UE_LOG_AB(Verbose, TEXT("JoinV2GameSession: password supplied but local user is already joined; backend call skipped, password not validated against the backend."));
+		}
 		TSharedPtr<FOnlineSessionInfoAccelByteV2> SessionInfo = StaticCastSharedPtr<FOnlineSessionInfoAccelByteV2>(SessionToJoin->SessionInfo);
 		if (SessionInfo.IsValid())
 		{
@@ -64,7 +70,14 @@ void FOnlineAsyncTaskAccelByteJoinV2GameSession::Initialize()
 	OnJoinGameSessionSuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsV2GameSession>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteJoinV2GameSession::OnJoinGameSessionSuccess);
 	OnJoinGameSessionErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteJoinV2GameSession::OnJoinGameSessionError);
 	API_FULL_CHECK_GUARD(Session);
-	Session->JoinGameSession(SessionId, OnJoinGameSessionSuccessDelegate, OnJoinGameSessionErrorDelegate);
+	if (Password.IsEmpty())
+	{
+		Session->JoinGameSession(SessionId, OnJoinGameSessionSuccessDelegate, OnJoinGameSessionErrorDelegate);
+	}
+	else
+	{
+		Session->JoinGameSession(SessionId, Password, OnJoinGameSessionSuccessDelegate, OnJoinGameSessionErrorDelegate);
+	}
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
@@ -101,13 +114,14 @@ void FOnlineAsyncTaskAccelByteJoinV2GameSession::Finalize()
 
 		// This will seem pretty silly, but take the open slots for the session and set them to the max number of slots. This
 		// way registering and unregistering throughout the lifetime of the session will show proper counts.
-		if (UpdatedBackendSessionInfo.Configuration.Joinability == EAccelByteV2SessionJoinability::INVITE_ONLY || UpdatedBackendSessionInfo.Configuration.Joinability == EAccelByteV2SessionJoinability::CLOSED)
+		// Route via IsUsingPublicConnectionPool() so the active pool matches what FinalizeCreate*/ConstructGameSessionFromBackendSessionModel populated.
+		if (SessionInterface->IsUsingPublicConnectionPool(UpdatedBackendSessionInfo.Configuration.Joinability))
 		{
-			JoinedSession->NumOpenPrivateConnections = JoinedSession->SessionSettings.NumPrivateConnections;
+			JoinedSession->NumOpenPublicConnections = JoinedSession->SessionSettings.NumPublicConnections;
 		}
 		else
 		{
-			JoinedSession->NumOpenPublicConnections = JoinedSession->SessionSettings.NumPublicConnections;
+			JoinedSession->NumOpenPrivateConnections = JoinedSession->SessionSettings.NumPrivateConnections;
 		}
 
 		// Remove any restored session instance or invite that we had for this session, since we joined it
@@ -173,6 +187,10 @@ void FOnlineAsyncTaskAccelByteJoinV2GameSession::TriggerDelegates()
 	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
+
+	// Discard the cached plaintext password before this async task is destroyed -- the SDK call has
+	// already been made by this point, so we no longer need it. Mirrors the Get* tasks' pattern.
+	Password.Empty();
 
 	if (!bJoiningP2P)
 	{

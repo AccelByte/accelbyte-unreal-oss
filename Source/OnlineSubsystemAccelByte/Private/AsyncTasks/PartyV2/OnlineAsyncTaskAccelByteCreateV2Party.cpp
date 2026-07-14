@@ -140,7 +140,16 @@ void FOnlineAsyncTaskAccelByteCreateV2Party::OnGetMyPartiesSuccess(const FAccelB
 	{
 		CreatePartyRequest.Joinability = JoinType;
 	}
-		
+
+	FString Password{};
+	if (NewSessionSettings.Get(SETTING_SESSION_PASSWORD, Password) && !Password.IsEmpty())
+	{
+		CreatePartyRequest.Password = Password;
+		// Strip from settings so it does not get serialized into Attributes (which would expose
+		// the password in cleartext to other members + may cause backend rejection).
+		NewSessionSettings.Remove(SETTING_SESSION_PASSWORD);
+	}
+
 	// Ensure that we have a session template set and associate it with the create party request
 	if (!NewSessionSettings.Get(SETTING_SESSION_TEMPLATE_NAME, CreatePartyRequest.ConfigurationName))
 	{

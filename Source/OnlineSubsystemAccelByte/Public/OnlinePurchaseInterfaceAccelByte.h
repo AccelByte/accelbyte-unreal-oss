@@ -48,7 +48,9 @@ public:
 	 * @returns boolean that is true if we could get an instance of the interface, false otherwise
 	 */
 	static bool GetFromWorld(const UWorld* World, TSharedPtr<FOnlinePurchaseAccelByte, ESPMode::ThreadSafe>& OutInterfaceInstance);
-
+#if ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION >= 8
+	virtual bool IsAllowedToPurchase(const FUniqueNetId& UserId, FOnlineError& Error) override;
+#endif
 	virtual bool IsAllowedToPurchase(const FUniqueNetId& UserId) override;
 	virtual void Checkout(const FUniqueNetId& UserId, const FPurchaseCheckoutRequest& CheckoutRequest, const FOnPurchaseCheckoutComplete& Delegate) override;
 	virtual void FinalizePurchase(const FUniqueNetId& UserId, const FString& ReceiptId) override;

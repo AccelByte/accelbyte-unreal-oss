@@ -36,7 +36,7 @@ void FOnlineAsyncTaskAccelByteKickV2GameSession::Initialize()
 	const FNamedOnlineSession* OnlineSession = SessionInterface->GetNamedSession(SessionName);
 	if (OnlineSession == nullptr)
 	{
-		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to kick player from game session as the session can't be found."), *SessionName.ToString());
+		AB_OSS_ASYNC_TASK_TRACE_END_VERBOSITY(Warning, TEXT("Failed to kick player from game session as session %s can't be found."), *SessionName.ToString());
 		CompleteTask(EAccelByteAsyncTaskCompleteState::InvalidState);
 		return;
 	}

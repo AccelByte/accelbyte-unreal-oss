@@ -99,6 +99,15 @@ void FOnlineAsyncTaskAccelByteCreateGameSessionV2::Initialize()
 		}
 	}
 
+	FString Password{};
+	if (NewSessionSettings.Get(SETTING_SESSION_PASSWORD, Password) && !Password.IsEmpty())
+	{
+		CreateRequest.Password = Password;
+		// Strip from settings so it does not get serialized into Attributes (which would expose
+		// the password in cleartext to other members + may cause backend rejection).
+		NewSessionSettings.Remove(SETTING_SESSION_PASSWORD);
+	}
+
 	FString ServerTypeString{};
 	if (NewSessionSettings.Get(SETTING_SESSION_SERVER_TYPE, ServerTypeString) && !ServerTypeString.IsEmpty())
 	{

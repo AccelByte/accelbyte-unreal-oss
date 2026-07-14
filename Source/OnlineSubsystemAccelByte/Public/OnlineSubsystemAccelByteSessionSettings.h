@@ -20,6 +20,9 @@
 #define SETTING_SESSION_CODE FName(TEXT("SESSIONCODE"))
 #define SETTING_SESSION_TEAMS FName(TEXT("SESSIONTEAMS"))
 #define SETTING_SESSION_PASTSESSIONS FName(TEXT("PASTSESSIONATTR"))
+// Password used when SETTING_SESSION_JOIN_TYPE is "PASSWORD_PROTECTED". Read on Create/Update to
+// populate the backend request's Password field. Not advertised in search results.
+#define SETTING_SESSION_PASSWORD FName(TEXT("SESSIONPASSWORD"))
 
 // GENERIC SESSIONS END
 

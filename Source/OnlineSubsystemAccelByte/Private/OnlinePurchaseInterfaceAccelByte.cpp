@@ -47,6 +47,13 @@ bool FOnlinePurchaseAccelByte::GetFromWorld(const UWorld* World, FOnlinePurchase
 	return GetFromSubsystem(Subsystem, OutInterfaceInstance);
 }
 
+#if ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION >= 8
+bool FOnlinePurchaseAccelByte::IsAllowedToPurchase(const FUniqueNetId& UserId, FOnlineError& Error)
+{
+	return true;
+}
+#endif
+
 bool FOnlinePurchaseAccelByte::IsAllowedToPurchase(const FUniqueNetId& UserId)
 {
 	return true;

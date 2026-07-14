@@ -37,6 +37,10 @@
 #include "AsyncTasks/PartyV2/OnlineAsyncTaskAccelByteJoinV2PartyByCode.h"
 #include "AsyncTasks/PartyV2/OnlineAsyncTaskAccelByteGenerateNewV2PartyCode.h"
 #include "AsyncTasks/PartyV2/OnlineAsyncTaskAccelByteRevokeV2PartyCode.h"
+#include "AsyncTasks/PartyV2/OnlineAsyncTaskAccelByteGetV2PartyPassword.h"
+#include "AsyncTasks/SessionV2/OnlineAsyncTaskAccelByteGetV2GameSessionPassword.h"
+#include "AsyncTasks/PartyV2/OnlineAsyncTaskAccelByteUpdateV2PartyPassword.h"
+#include "AsyncTasks/SessionV2/OnlineAsyncTaskAccelByteUpdateV2GameSessionPassword.h"
 #include "AsyncTasks/Matchmaking/OnlineAsyncTaskAccelByteStartV2Matchmaking.h"
 #include "AsyncTasks/Matchmaking/OnlineAsyncTaskAccelByteCancelV2Matchmaking.h"
 #include "AsyncTasks/Server/OnlineAsyncTaskAccelByteGetServerClaimedV2Session.h"
@@ -929,7 +933,7 @@ void FOnlineSessionV2AccelByte::OnMatchTicketCheckGetSessionInfoById(int32 Local
 	TSharedPtr<FOnlineSessionInfoAccelByteV2> SessionInfo = StaticCastSharedPtr<FOnlineSessionInfoAccelByteV2>(SessionSearchResult.Session.SessionInfo);
 	if(!SessionInfo.IsValid())
 	{
-		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Log, TEXT("failed to check matchmaking progress as session info from search result is invalid!"), *SearchingPlayerId.ToDebugString());
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Log, TEXT("failed to check matchmaking progress as session info from search result of searching player %s is invalid!"), *SearchingPlayerId.ToDebugString());
 		return;
 	}
 
@@ -949,7 +953,7 @@ void FOnlineSessionV2AccelByte::OnMatchTicketCheckGetSessionInfoById(int32 Local
 	FString MessageContent;
 	if(!FJsonObjectConverter::UStructToJsonObjectString(MatchFoundNotif, MessageContent))
 	{
-		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Log, TEXT("failed to spoof match found notif as converting notification to json string failed"), *SearchingPlayerId.ToDebugString());
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Log, TEXT("failed to spoof match found notif of searching player %s as converting notification to json string failed"), *SearchingPlayerId.ToDebugString());
 		return;
 	}
 
@@ -1826,6 +1830,12 @@ FString FOnlineSessionV2AccelByte::GetJoinabilityAsString(const EAccelByteV2Sess
 	return JoinabilityEnum->GetAuthoredNameStringByValue(static_cast<int64>(Joinability)).ToUpper();
 }
 
+bool FOnlineSessionV2AccelByte::IsUsingPublicConnectionPool(EAccelByteV2SessionJoinability Joinability) const
+{
+	return Joinability == EAccelByteV2SessionJoinability::OPEN
+		|| Joinability == EAccelByteV2SessionJoinability::PASSWORD_PROTECTED;
+}
+
 FString FOnlineSessionV2AccelByte::GetServerTypeAsString(const EAccelByteV2SessionConfigurationServerType& ServerType) const
 {
 	UEnum* ServerTypeEnum = StaticEnum<EAccelByteV2SessionConfigurationServerType>();
@@ -2238,22 +2248,22 @@ void FOnlineSessionV2AccelByte::FinalizeCreateGameSession(const FName& SessionNa
 	}
 	NewSession->SessionInfo = SessionInfo;
 
-	// Closed and invite only sessions populate the private connection num, open populates the public num
-	if (BackendSessionInfo.Configuration.Joinability == EAccelByteV2SessionJoinability::INVITE_ONLY || BackendSessionInfo.Configuration.Joinability == EAccelByteV2SessionJoinability::CLOSED)
-	{
-		NewSession->SessionSettings.NumPrivateConnections = BackendSessionInfo.Configuration.MaxPlayers;
-		NewSession->NumOpenPrivateConnections = NewSession->SessionSettings.NumPrivateConnections;
-
-		NewSession->SessionSettings.NumPublicConnections = 0;
-		NewSession->NumOpenPublicConnections = 0;
-	}
-	else if (BackendSessionInfo.Configuration.Joinability == EAccelByteV2SessionJoinability::OPEN)
+	// Route MaxPlayers into the public or private connection pool based on joinability. See IsUsingPublicConnectionPool().
+	if (IsUsingPublicConnectionPool(BackendSessionInfo.Configuration.Joinability))
 	{
 		NewSession->SessionSettings.NumPublicConnections = BackendSessionInfo.Configuration.MaxPlayers;
 		NewSession->NumOpenPublicConnections = NewSession->SessionSettings.NumPublicConnections;
 
 		NewSession->SessionSettings.NumPrivateConnections = 0;
 		NewSession->NumOpenPrivateConnections = 0;
+	}
+	else
+	{
+		NewSession->SessionSettings.NumPrivateConnections = BackendSessionInfo.Configuration.MaxPlayers;
+		NewSession->NumOpenPrivateConnections = NewSession->SessionSettings.NumPrivateConnections;
+
+		NewSession->SessionSettings.NumPublicConnections = 0;
+		NewSession->NumOpenPublicConnections = 0;
 	}
 
 	// Populate session code regardless of session joinablity since all session can be joined by code
@@ -2319,9 +2329,21 @@ void FOnlineSessionV2AccelByte::FinalizeCreatePartySession(const FName& SessionN
 	SessionInfo->SetBackendSessionData(MakeShared<FAccelByteModelsV2PartySession>(BackendSessionInfo));
 	Session->SessionInfo = SessionInfo;
 
-	// Parties are always invite only, so we just want to update the private connection num
-	Session->SessionSettings.NumPrivateConnections = BackendSessionInfo.Configuration.MaxPlayers;
-	Session->NumOpenPrivateConnections = Session->SessionSettings.NumPrivateConnections;
+	// Route MaxPlayers into the public or private connection pool based on joinability. See IsUsingPublicConnectionPool().
+	if (IsUsingPublicConnectionPool(BackendSessionInfo.Configuration.Joinability))
+	{
+		Session->SessionSettings.NumPublicConnections = BackendSessionInfo.Configuration.MaxPlayers;
+		Session->NumOpenPublicConnections = Session->SessionSettings.NumPublicConnections;
+		Session->SessionSettings.NumPrivateConnections = 0;
+		Session->NumOpenPrivateConnections = 0;
+	}
+	else
+	{
+		Session->SessionSettings.NumPrivateConnections = BackendSessionInfo.Configuration.MaxPlayers;
+		Session->NumOpenPrivateConnections = Session->SessionSettings.NumPrivateConnections;
+		Session->SessionSettings.NumPublicConnections = 0;
+		Session->NumOpenPublicConnections = 0;
+	}
 	Session->SessionSettings.Set(SETTING_PARTYSESSION_CODE, BackendSessionInfo.Code);
 	Session->SessionSettings.Set(SETTING_SESSION_CODE, BackendSessionInfo.Code);
 
@@ -2372,20 +2394,8 @@ bool FOnlineSessionV2AccelByte::ConstructGameSessionFromBackendSessionModel(cons
 		SessionInfo->SetSessionMemberStorage(MemberUniqueNetId, MemberStorages.Value);
 	}
 
-	// Closed and invite only sessions populate the private connection num, open populates the public num
-	if (BackendSession.Configuration.Joinability == EAccelByteV2SessionJoinability::INVITE_ONLY || BackendSession.Configuration.Joinability == EAccelByteV2SessionJoinability::CLOSED)
-	{
-		OutResult.SessionSettings.NumPrivateConnections = BackendSession.Configuration.MaxPlayers;
-		OutResult.NumOpenPrivateConnections = OutResult.SessionSettings.NumPrivateConnections - SessionInfo->GetJoinedMembers().Num();
-		if (OutResult.NumOpenPrivateConnections < 0)
-		{
-			OutResult.NumOpenPrivateConnections = 0;
-		}
-
-		OutResult.SessionSettings.NumPublicConnections = 0;
-		OutResult.NumOpenPublicConnections = 0;
-	}
-	else if (BackendSession.Configuration.Joinability == EAccelByteV2SessionJoinability::OPEN)
+	// Route MaxPlayers into the public or private connection pool based on joinability. See IsUsingPublicConnectionPool().
+	if (IsUsingPublicConnectionPool(BackendSession.Configuration.Joinability))
 	{
 		OutResult.SessionSettings.NumPublicConnections = BackendSession.Configuration.MaxPlayers;
 		OutResult.NumOpenPublicConnections = OutResult.SessionSettings.NumPublicConnections - SessionInfo->GetJoinedMembers().Num();
@@ -2396,6 +2406,18 @@ bool FOnlineSessionV2AccelByte::ConstructGameSessionFromBackendSessionModel(cons
 
 		OutResult.SessionSettings.NumPrivateConnections = 0;
 		OutResult.NumOpenPrivateConnections = 0;
+	}
+	else
+	{
+		OutResult.SessionSettings.NumPrivateConnections = BackendSession.Configuration.MaxPlayers;
+		OutResult.NumOpenPrivateConnections = OutResult.SessionSettings.NumPrivateConnections - SessionInfo->GetJoinedMembers().Num();
+		if (OutResult.NumOpenPrivateConnections < 0)
+		{
+			OutResult.NumOpenPrivateConnections = 0;
+		}
+
+		OutResult.SessionSettings.NumPublicConnections = 0;
+		OutResult.NumOpenPublicConnections = 0;
 	}
 
 	OutResult.SessionInfo = SessionInfo;
@@ -2428,12 +2450,28 @@ bool FOnlineSessionV2AccelByte::ConstructPartySessionFromBackendSessionModel(con
 	TSharedRef<FOnlineSessionInfoAccelByteV2> SessionInfo = MakeShared<FOnlineSessionInfoAccelByteV2>(BackendSession.ID);
 	SessionInfo->SetBackendSessionData(MakeShared<FAccelByteModelsV2PartySession>(BackendSession));
 	
-	// Party sessions are always invite only, thus just update the private connection num
-	OutResult.SessionSettings.NumPrivateConnections = BackendSession.Configuration.MaxPlayers;
-	OutResult.NumOpenPrivateConnections = OutResult.SessionSettings.NumPrivateConnections - SessionInfo->GetJoinedMembers().Num();
-	if (OutResult.NumOpenPrivateConnections < 0)
+	// Route MaxPlayers into the public or private connection pool based on joinability. See IsUsingPublicConnectionPool().
+	if (IsUsingPublicConnectionPool(BackendSession.Configuration.Joinability))
 	{
+		OutResult.SessionSettings.NumPublicConnections = BackendSession.Configuration.MaxPlayers;
+		OutResult.NumOpenPublicConnections = OutResult.SessionSettings.NumPublicConnections - SessionInfo->GetJoinedMembers().Num();
+		if (OutResult.NumOpenPublicConnections < 0)
+		{
+			OutResult.NumOpenPublicConnections = 0;
+		}
+		OutResult.SessionSettings.NumPrivateConnections = 0;
 		OutResult.NumOpenPrivateConnections = 0;
+	}
+	else
+	{
+		OutResult.SessionSettings.NumPrivateConnections = BackendSession.Configuration.MaxPlayers;
+		OutResult.NumOpenPrivateConnections = OutResult.SessionSettings.NumPrivateConnections - SessionInfo->GetJoinedMembers().Num();
+		if (OutResult.NumOpenPrivateConnections < 0)
+		{
+			OutResult.NumOpenPrivateConnections = 0;
+		}
+		OutResult.SessionSettings.NumPublicConnections = 0;
+		OutResult.NumOpenPublicConnections = 0;
 	}
 
 	OutResult.SessionInfo = SessionInfo;
@@ -2488,7 +2526,9 @@ bool FOnlineSessionV2AccelByte::ShouldSkipAddingFieldToSessionAttributes(const F
 		FieldName == SETTING_SESSION_SERVER_TYPE ||
 		FieldName == SETTING_PARTYSESSION_CODE ||
 		FieldName == SETTING_SESSION_CODE ||
-		FieldName == SETTING_MATCHMAKING_BACKFILL_TICKET_ID;
+		FieldName == SETTING_MATCHMAKING_BACKFILL_TICKET_ID ||
+		FieldName == SETTING_MATCHMAKING_SESSION_ID ||
+		FieldName == SETTING_SESSION_PASSWORD;
 }
 
 bool FOnlineSessionV2AccelByte::GetServerLocalIp(FString& OutIp) const
@@ -2824,7 +2864,11 @@ bool FOnlineSessionV2AccelByte::ReadSessionSettingsFromSessionModel(FOnlineSessi
 
 	// Now, go through the attributes object and load attributes into session settings
 	TSharedRef<FJsonObject> OriginalObject = Session.Attributes.JsonObject.ToSharedRef();
+#if ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION >=8
+	for (const TPair<FString, TSharedPtr<FJsonValue>> Attribute : OriginalObject->Values)
+#else
 	for (const TPair<FString, TSharedPtr<FJsonValue>>& Attribute : OriginalObject->Values)
+#endif
 	{
 		if (!Attribute.Value.IsValid())
 		{
@@ -2957,7 +3001,11 @@ bool FOnlineSessionV2AccelByte::ReadSessionSettingsFromSessionModel(FOnlineSessi
 bool FOnlineSessionV2AccelByte::ReadMemberSettingsFromJsonObject(FSessionSettings& OutSettings, const TSharedRef<FJsonObject>& Object) const
 {
 
+#if ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION >=8
+	for (const TPair<FString, TSharedPtr<FJsonValue>> Attribute : Object->Values)
+#else
 	for (const TPair<FString, TSharedPtr<FJsonValue>>& Attribute : Object->Values)
+#endif
 	{
 		if (!Attribute.Value.IsValid())
 		{
@@ -3404,7 +3452,7 @@ bool FOnlineSessionV2AccelByte::UpdateSession(FName SessionName, FOnlineSessionS
 	FString UpdatedSessionTypeStr{};
 	if (!UpdatedSessionSettings.Get(SETTING_SESSION_TYPE, UpdatedSessionTypeStr) || UpdatedSessionTypeStr.IsEmpty())
 	{
-		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to update session settings as 'SETTING_SESSION_TYPE' was not set in the new settings object! Use GetSessionSettings(SessionName) to update an existing session's settings."), *SessionName.ToString());
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to update session %s settings as 'SETTING_SESSION_TYPE' was not set in the new settings object! Use GetSessionSettings(SessionName) to update an existing session's settings."), *SessionName.ToString());
 		AccelByteSubsystemPtr->ExecuteNextTick([SessionInterface = AsShared(), SessionName]() {
 			SessionInterface->TriggerOnUpdateSessionCompleteDelegates(SessionName, false);
 			SessionInterface->TriggerOnSessionUpdateRequestCompleteDelegates(SessionName, false);
@@ -4075,7 +4123,12 @@ bool FOnlineSessionV2AccelByte::JoinSession(int32 LocalUserNum, FName SessionNam
 
 bool FOnlineSessionV2AccelByte::JoinSession(const FUniqueNetId& LocalUserId, FName SessionName, const FOnlineSessionSearchResult& DesiredSession)
 {
-	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("LocalUserId: %s; SessionName: %s"), *LocalUserId.ToDebugString(), *SessionName.ToString());
+	return JoinSession(LocalUserId, SessionName, DesiredSession, FString());
+}
+
+bool FOnlineSessionV2AccelByte::JoinSession(const FUniqueNetId& LocalUserId, FName SessionName, const FOnlineSessionSearchResult& DesiredSession, const FString& Password)
+{
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("LocalUserId: %s; SessionName: %s; HasPassword: %s"), *LocalUserId.ToDebugString(), *SessionName.ToString(), LOG_BOOL_FORMAT(!Password.IsEmpty()));
 
 	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
 	if(!AccelByteSubsystemPtr.IsValid())
@@ -4087,7 +4140,7 @@ bool FOnlineSessionV2AccelByte::JoinSession(const FUniqueNetId& LocalUserId, FNa
 	if (GetNamedSession(SessionName) != nullptr)
 	{
 		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to join session with name '%s' as a session with that name already exists!"), *SessionName.ToString());
-		
+
 		AccelByteSubsystemPtr->ExecuteNextTick([SessionInterface = SharedThis(this), SessionName]() {
 			SessionInterface->TriggerOnJoinSessionCompleteDelegates(SessionName, EOnJoinSessionCompleteResult::AlreadyInSession);
 		});
@@ -4110,8 +4163,8 @@ bool FOnlineSessionV2AccelByte::JoinSession(const FUniqueNetId& LocalUserId, FNa
 		}
 	}
 
-	// For restored sessions, check if the local player is already marked as joined on the backend. 
-	// If true, this will skip the JoinGameSession/JoinParty API call in the async task and reuse cached session data. 
+	// For restored sessions, check if the local player is already marked as joined on the backend.
+	// If true, this will skip the JoinGameSession/JoinParty API call in the async task and reuse cached session data.
 	// For non-restore joins (e.g., invite-based or simple rejoin open session), always call the backend regardless of cached member status.
 	bool bIsLocalUserJoined { false };
 	if (bIsRestoreSession && NewSession->SessionInfo.IsValid())
@@ -4146,7 +4199,8 @@ bool FOnlineSessionV2AccelByte::JoinSession(const FUniqueNetId& LocalUserId, FNa
 		AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskSerial<FOnlineAsyncTaskAccelByteJoinV2GameSession>(AccelByteSubsystemPtr.Get()
 			, LocalUserId
 			, SessionName
-			, bIsLocalUserJoined);
+			, bIsLocalUserJoined
+			, Password);
 		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Spawning async task to join game session on backend!"));
 		return true;
 	}
@@ -4155,7 +4209,8 @@ bool FOnlineSessionV2AccelByte::JoinSession(const FUniqueNetId& LocalUserId, FNa
 		AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskSerial<FOnlineAsyncTaskAccelByteJoinV2Party>(AccelByteSubsystemPtr.Get()
 			, LocalUserId
 			, SessionName
-			, bIsLocalUserJoined);
+			, bIsLocalUserJoined
+			, Password);
 		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Spawning async task to join party session on backend!"));
 		return true;
 	}
@@ -4359,6 +4414,214 @@ bool FOnlineSessionV2AccelByte::GenerateNewPartyCode(const FUniqueNetId& LocalUs
 	}
 
 	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGenerateNewV2PartyCode>(AccelByteSubsystemPtr.Get(), LocalUserId, SessionName, Delegate);
+
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
+	return true;
+}
+
+bool FOnlineSessionV2AccelByte::GetGameSessionPassword(const FUniqueNetId& LocalUserId, FName SessionName, const FOnGetGameSessionPasswordComplete& Delegate)
+{
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("LocalUserId: %s; SessionName: %s"), *LocalUserId.ToDebugString(), *SessionName.ToString());
+
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Failed to get game session password as our AccelByte subsystem is invalid"));
+		return false;
+	}
+
+	FNamedOnlineSession* Session = GetNamedSession(SessionName);
+	if (Session == nullptr)
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to get password for session with name '%s' as the session does not exist locally!"), *SessionName.ToString());
+		AccelByteSubsystemPtr->ExecuteNextTick([Delegate]() {
+			Delegate.ExecuteIfBound(false, TEXT(""));
+		});
+		return false;
+	}
+
+	EAccelByteV2SessionType SessionType = GetSessionTypeFromSettings(Session->SessionSettings);
+	if (SessionType != EAccelByteV2SessionType::GameSession)
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to get game session password for session with name '%s' as the session is not a game session!"), *SessionName.ToString());
+		AccelByteSubsystemPtr->ExecuteNextTick([Delegate]() {
+			Delegate.ExecuteIfBound(false, TEXT(""));
+		});
+		return false;
+	}
+
+	// Pre-flight joinability check: only PASSWORD_PROTECTED sessions have a password to fetch. Surface a local error
+	// instead of a confusing backend 403 if the caller targets a session of any other joinability.
+	if (GetJoinabiltyFromSessionSettings(Session->SessionSettings) != EAccelByteV2SessionJoinability::PASSWORD_PROTECTED)
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to get game session password for session with name '%s' as the session is not PASSWORD_PROTECTED!"), *SessionName.ToString());
+		AccelByteSubsystemPtr->ExecuteNextTick([Delegate]() {
+			Delegate.ExecuteIfBound(false, TEXT(""));
+		});
+		return false;
+	}
+
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGetV2GameSessionPassword>(AccelByteSubsystemPtr.Get(), LocalUserId, SessionName, Delegate);
+
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
+	return true;
+}
+
+bool FOnlineSessionV2AccelByte::GetPartyPassword(const FUniqueNetId& LocalUserId, FName SessionName, const FOnGetPartyPasswordComplete& Delegate)
+{
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("LocalUserId: %s; SessionName: %s"), *LocalUserId.ToDebugString(), *SessionName.ToString());
+
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Failed to get party password as our AccelByte subsystem is invalid"));
+		return false;
+	}
+
+	FNamedOnlineSession* Session = GetNamedSession(SessionName);
+	if (Session == nullptr)
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to get password for party with session name '%s' as the session does not exist locally!"), *SessionName.ToString());
+		AccelByteSubsystemPtr->ExecuteNextTick([Delegate]() {
+			Delegate.ExecuteIfBound(false, TEXT(""));
+		});
+		return false;
+	}
+
+	EAccelByteV2SessionType SessionType = GetSessionTypeFromSettings(Session->SessionSettings);
+	if (SessionType != EAccelByteV2SessionType::PartySession)
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to get party password for session with name '%s' as the session is not a party session!"), *SessionName.ToString());
+		AccelByteSubsystemPtr->ExecuteNextTick([Delegate]() {
+			Delegate.ExecuteIfBound(false, TEXT(""));
+		});
+		return false;
+	}
+
+	// Pre-flight joinability check: only PASSWORD_PROTECTED parties have a password to fetch. Surface a local error
+	// instead of a confusing backend 403 if the caller targets a party of any other joinability.
+	if (GetJoinabiltyFromSessionSettings(Session->SessionSettings) != EAccelByteV2SessionJoinability::PASSWORD_PROTECTED)
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to get party password for session with name '%s' as the party is not PASSWORD_PROTECTED!"), *SessionName.ToString());
+		AccelByteSubsystemPtr->ExecuteNextTick([Delegate]() {
+			Delegate.ExecuteIfBound(false, TEXT(""));
+		});
+		return false;
+	}
+
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGetV2PartyPassword>(AccelByteSubsystemPtr.Get(), LocalUserId, SessionName, Delegate);
+
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
+	return true;
+}
+
+bool FOnlineSessionV2AccelByte::UpdateGameSessionPassword(const FUniqueNetId& LocalUserId, FName SessionName, const FString& NewPassword, const FOnUpdateGameSessionPasswordComplete& Delegate)
+{
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("LocalUserId: %s; SessionName: %s"), *LocalUserId.ToDebugString(), *SessionName.ToString());
+
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Failed to update game session password as our AccelByte subsystem is invalid"));
+		return false;
+	}
+
+	if (NewPassword.IsEmpty())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to update game session password as the new password is empty! Clearing a password on a PASSWORD_PROTECTED session is not supported via this method."));
+		AccelByteSubsystemPtr->ExecuteNextTick([Delegate]() {
+			Delegate.ExecuteIfBound(false);
+		});
+		return false;
+	}
+
+	FNamedOnlineSession* Session = GetNamedSession(SessionName);
+	if (Session == nullptr)
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to update password for session with name '%s' as the session does not exist locally!"), *SessionName.ToString());
+		AccelByteSubsystemPtr->ExecuteNextTick([Delegate]() {
+			Delegate.ExecuteIfBound(false);
+		});
+		return false;
+	}
+
+	EAccelByteV2SessionType SessionType = GetSessionTypeFromSettings(Session->SessionSettings);
+	if (SessionType != EAccelByteV2SessionType::GameSession)
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to update game session password for session with name '%s' as the session is not a game session!"), *SessionName.ToString());
+		AccelByteSubsystemPtr->ExecuteNextTick([Delegate]() {
+			Delegate.ExecuteIfBound(false);
+		});
+		return false;
+	}
+
+	// Pre-flight joinability check: parity with GetGameSessionPassword. Reject locally rather than letting the backend 403.
+	if (GetJoinabiltyFromSessionSettings(Session->SessionSettings) != EAccelByteV2SessionJoinability::PASSWORD_PROTECTED)
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to update game session password for session with name '%s' as the session is not PASSWORD_PROTECTED!"), *SessionName.ToString());
+		AccelByteSubsystemPtr->ExecuteNextTick([Delegate]() {
+			Delegate.ExecuteIfBound(false);
+		});
+		return false;
+	}
+
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteUpdateV2GameSessionPassword>(AccelByteSubsystemPtr.Get(), LocalUserId, SessionName, NewPassword, Delegate);
+
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
+	return true;
+}
+
+bool FOnlineSessionV2AccelByte::UpdatePartyPassword(const FUniqueNetId& LocalUserId, FName SessionName, const FString& NewPassword, const FOnUpdatePartyPasswordComplete& Delegate)
+{
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT("LocalUserId: %s; SessionName: %s"), *LocalUserId.ToDebugString(), *SessionName.ToString());
+
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Failed to update party password as our AccelByte subsystem is invalid"));
+		return false;
+	}
+
+	if (NewPassword.IsEmpty())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to update party password as the new password is empty! Clearing a password on a PASSWORD_PROTECTED party is not supported via this method."));
+		AccelByteSubsystemPtr->ExecuteNextTick([Delegate]() {
+			Delegate.ExecuteIfBound(false);
+		});
+		return false;
+	}
+
+	FNamedOnlineSession* Session = GetNamedSession(SessionName);
+	if (Session == nullptr)
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to update password for party with session name '%s' as the session does not exist locally!"), *SessionName.ToString());
+		AccelByteSubsystemPtr->ExecuteNextTick([Delegate]() {
+			Delegate.ExecuteIfBound(false);
+		});
+		return false;
+	}
+
+	EAccelByteV2SessionType SessionType = GetSessionTypeFromSettings(Session->SessionSettings);
+	if (SessionType != EAccelByteV2SessionType::PartySession)
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to update party password for session with name '%s' as the session is not a party session!"), *SessionName.ToString());
+		AccelByteSubsystemPtr->ExecuteNextTick([Delegate]() {
+			Delegate.ExecuteIfBound(false);
+		});
+		return false;
+	}
+
+	// Pre-flight joinability check: parity with GetPartyPassword. Reject locally rather than letting the backend 403.
+	if (GetJoinabiltyFromSessionSettings(Session->SessionSettings) != EAccelByteV2SessionJoinability::PASSWORD_PROTECTED)
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to update party password for session with name '%s' as the party is not PASSWORD_PROTECTED!"), *SessionName.ToString());
+		AccelByteSubsystemPtr->ExecuteNextTick([Delegate]() {
+			Delegate.ExecuteIfBound(false);
+		});
+		return false;
+	}
+
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteUpdateV2PartyPassword>(AccelByteSubsystemPtr.Get(), LocalUserId, SessionName, NewPassword, Delegate);
 
 	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""));
 	return true;
@@ -5610,7 +5873,7 @@ bool FOnlineSessionV2AccelByte::RegisterPlayers(FName SessionName, const TArray<
 	TSharedPtr<FOnlineSessionInfoAccelByteV2> SessionInfo = StaticCastSharedPtr<FOnlineSessionInfoAccelByteV2>(Session->SessionInfo);
 	if (!SessionInfo.IsValid())
 	{
-		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to register players to session as a session info does not exist!"), *SessionName.ToString());
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to register players to session %s as a session info does not exist!"), *SessionName.ToString());
 		
 		AccelByteSubsystemPtr->ExecuteNextTick([SessionInterface = SharedThis(this), Players, SessionName]() {
 			SessionInterface->TriggerOnRegisterPlayersCompleteDelegates(SessionName, Players, false);
@@ -5622,7 +5885,7 @@ bool FOnlineSessionV2AccelByte::RegisterPlayers(FName SessionName, const TArray<
 	TSharedPtr<FAccelByteModelsV2BaseSession> SessionData = SessionInfo->GetBackendSessionData();
 	if (!ensure(SessionData.IsValid()))
 	{
-		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to register players to session as a backend session data does not exist!"), *SessionName.ToString());
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to register players to session %s as a backend session data does not exist!"), *SessionName.ToString());
 
 		AccelByteSubsystemPtr->ExecuteNextTick([SessionInterface = SharedThis(this), Players, SessionName]() {
 			SessionInterface->TriggerOnRegisterPlayersCompleteDelegates(SessionName, Players, false);
@@ -5673,22 +5936,21 @@ bool FOnlineSessionV2AccelByte::RegisterPlayers(FName SessionName, const TArray<
 				Session->SessionSettings.MemberSettings.Add(PlayerToAdd, FSessionSettings());
 			}
 
-			// Update session player counts based on join type
-			const bool bClosedSession = SessionData->Configuration.Joinability == EAccelByteV2SessionJoinability::INVITE_ONLY || SessionData->Configuration.Joinability == EAccelByteV2SessionJoinability::CLOSED;
-			if (bClosedSession)
-			{
-				Session->NumOpenPrivateConnections--;
-				if (Session->NumOpenPrivateConnections < 0)
-				{
-					Session->NumOpenPrivateConnections = 0;
-				}
-			}
-			else
+			// Update session player counts via the same pool-routing as FinalizeCreate* / Construct*FromBackendSessionModel.
+			if (IsUsingPublicConnectionPool(SessionData->Configuration.Joinability))
 			{
 				Session->NumOpenPublicConnections--;
 				if (Session->NumOpenPublicConnections < 0)
 				{
 					Session->NumOpenPublicConnections = 0;
+				}
+			}
+			else
+			{
+				Session->NumOpenPrivateConnections--;
+				if (Session->NumOpenPrivateConnections < 0)
+				{
+					Session->NumOpenPrivateConnections = 0;
 				}
 			}
 
@@ -5777,7 +6039,7 @@ bool FOnlineSessionV2AccelByte::UnregisterPlayers(FName SessionName, const TArra
 	TSharedPtr<FOnlineSessionInfoAccelByteV2> SessionInfo = StaticCastSharedPtr<FOnlineSessionInfoAccelByteV2>(Session->SessionInfo);
 	if (!SessionInfo.IsValid())
 	{
-		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to unregister players to session as a session info does not exist!"), *SessionName.ToString());
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to unregister players to session %s as a session info does not exist!"), *SessionName.ToString());
 		
 		AccelByteSubsystemPtr->ExecuteNextTick([SessionInterface = SharedThis(this), Players, SessionName]() {
 			SessionInterface->TriggerOnUnregisterPlayersCompleteDelegates(SessionName, Players, false);
@@ -5789,7 +6051,7 @@ bool FOnlineSessionV2AccelByte::UnregisterPlayers(FName SessionName, const TArra
 	TSharedPtr<FAccelByteModelsV2BaseSession> SessionData = SessionInfo->GetBackendSessionData();
 	if (!ensure(SessionData.IsValid()))
 	{
-		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to unregister players to session as a backend session data does not exist!"), *SessionName.ToString());
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed to unregister players to session '%s' as a backend session data does not exist!"), *SessionName.ToString());
 
 		AccelByteSubsystemPtr->ExecuteNextTick([SessionInterface = SharedThis(this), Players, SessionName]() {
 			SessionInterface->TriggerOnUnregisterPlayersCompleteDelegates(SessionName, Players, false);
@@ -5823,15 +6085,14 @@ bool FOnlineSessionV2AccelByte::UnregisterPlayers(FName SessionName, const TArra
 		{
 			Session->RegisteredPlayers.RemoveAt(FoundPlayerIndex);
 
-			// Update session player counts based on join type
-			const bool bClosedSession = SessionData->Configuration.Joinability == EAccelByteV2SessionJoinability::INVITE_ONLY || SessionData->Configuration.Joinability == EAccelByteV2SessionJoinability::CLOSED;
-			if (bClosedSession)
+			// Update session player counts via the same pool-routing as FinalizeCreate* / Construct*FromBackendSessionModel.
+			if (IsUsingPublicConnectionPool(SessionData->Configuration.Joinability))
 			{
-				Session->NumOpenPrivateConnections++;
+				Session->NumOpenPublicConnections++;
 			}
 			else
 			{
-				Session->NumOpenPublicConnections++;
+				Session->NumOpenPrivateConnections++;
 			}
 
 			if (bIsDedicatedServer)
@@ -6574,13 +6835,13 @@ int32 FOnlineSessionV2AccelByte::GetSessionPlayerCount(const FName& SessionName)
 int32 FOnlineSessionV2AccelByte::GetSessionPlayerCount(const FOnlineSession& Session) const
 {
 	bool bHasJoinability = false;
-	bool bIsOpenSession = false;
+	bool bUsesPublicPool = false;
 
 	TSharedPtr<FOnlineSessionInfoAccelByteV2> SessionInfo = StaticCastSharedPtr<FOnlineSessionInfoAccelByteV2>(Session.SessionInfo);
 	TSharedPtr<FAccelByteModelsV2BaseSession> SessionData = (SessionInfo.IsValid()) ? SessionInfo->GetBackendSessionData() : nullptr;
 	if (SessionData.IsValid())
 	{
-		bIsOpenSession = SessionData->Configuration.Joinability == EAccelByteV2SessionJoinability::OPEN;
+		bUsesPublicPool = IsUsingPublicConnectionPool(SessionData->Configuration.Joinability);
 		bHasJoinability = true;
 	}
 	else
@@ -6589,14 +6850,14 @@ int32 FOnlineSessionV2AccelByte::GetSessionPlayerCount(const FOnlineSession& Ses
 		const EAccelByteV2SessionJoinability Joinability = GetJoinabiltyFromSessionSettings(Session.SessionSettings);
 		if (Joinability != EAccelByteV2SessionJoinability::EMPTY)
 		{
-			bIsOpenSession = Joinability == EAccelByteV2SessionJoinability::OPEN;
+			bUsesPublicPool = IsUsingPublicConnectionPool(Joinability);
 			bHasJoinability = true;
 		}
 	}
 
 	if (bHasJoinability)
 	{
-		return (bIsOpenSession) ? Session.SessionSettings.NumPublicConnections - Session.NumOpenPublicConnections : Session.SessionSettings.NumPrivateConnections - Session.NumOpenPrivateConnections;
+		return (bUsesPublicPool) ? Session.SessionSettings.NumPublicConnections - Session.NumOpenPublicConnections : Session.SessionSettings.NumPrivateConnections - Session.NumOpenPrivateConnections;
 	}
 
 	// Otherwise, we're still probably creating the session and have no join type set, so just get the maximum of either
@@ -6617,13 +6878,13 @@ int32 FOnlineSessionV2AccelByte::GetSessionMaxPlayerCount(const FName& SessionNa
 int32 FOnlineSessionV2AccelByte::GetSessionMaxPlayerCount(const FOnlineSession& Session) const
 {
 	bool bHasJoinability = false;
-	bool bIsOpenSession = false;
+	bool bUsesPublicPool = false;
 
 	TSharedPtr<FOnlineSessionInfoAccelByteV2> SessionInfo = StaticCastSharedPtr<FOnlineSessionInfoAccelByteV2>(Session.SessionInfo);
 	TSharedPtr<FAccelByteModelsV2BaseSession> SessionData = (SessionInfo.IsValid()) ? SessionInfo->GetBackendSessionData() : nullptr;
 	if (SessionData.IsValid())
 	{
-		bIsOpenSession = SessionData->Configuration.Joinability == EAccelByteV2SessionJoinability::OPEN;
+		bUsesPublicPool = IsUsingPublicConnectionPool(SessionData->Configuration.Joinability);
 		bHasJoinability = true;
 	}
 	else
@@ -6631,14 +6892,14 @@ int32 FOnlineSessionV2AccelByte::GetSessionMaxPlayerCount(const FOnlineSession& 
 		const EAccelByteV2SessionJoinability Joinability = GetJoinabiltyFromSessionSettings(Session.SessionSettings);
 		if (Joinability != EAccelByteV2SessionJoinability::EMPTY)
 		{
-			bIsOpenSession = Joinability == EAccelByteV2SessionJoinability::OPEN;
+			bUsesPublicPool = IsUsingPublicConnectionPool(Joinability);
 			bHasJoinability = true;
 		}
 	}
 
 	if (bHasJoinability)
 	{
-		return (bIsOpenSession) ? Session.SessionSettings.NumPublicConnections : Session.SessionSettings.NumPrivateConnections;
+		return (bUsesPublicPool) ? Session.SessionSettings.NumPublicConnections : Session.SessionSettings.NumPrivateConnections;
 	}
 
 	// Otherwise, we're probably still creating this session without a join type, so just use the maximum of either of the values
@@ -6659,14 +6920,14 @@ bool FOnlineSessionV2AccelByte::SetSessionMaxPlayerCount(const FName& SessionNam
 bool FOnlineSessionV2AccelByte::SetSessionMaxPlayerCount(FOnlineSession* Session, int32 NewMaxPlayerCount) const
 {
 	bool bHasJoinability = false;
-	bool bIsOpenSession = false;
+	bool bUsesPublicPool = false;
 
 	TSharedPtr<FOnlineSessionInfoAccelByteV2> SessionInfo = StaticCastSharedPtr<FOnlineSessionInfoAccelByteV2>(Session->SessionInfo);
 	TSharedPtr<FAccelByteModelsV2BaseSession> SessionData = (SessionInfo.IsValid()) ? SessionInfo->GetBackendSessionData() : nullptr;
 	if (SessionData.IsValid())
 	{
 		// If we have session data, use it to determine the joinability of this session, and thus what number of connections to use
-		bIsOpenSession = SessionData->Configuration.Joinability == EAccelByteV2SessionJoinability::OPEN;
+		bUsesPublicPool = IsUsingPublicConnectionPool(SessionData->Configuration.Joinability);
 		bHasJoinability = true;
 	}
 	else
@@ -6675,7 +6936,7 @@ bool FOnlineSessionV2AccelByte::SetSessionMaxPlayerCount(FOnlineSession* Session
 		const EAccelByteV2SessionJoinability Joinability = GetJoinabiltyFromSessionSettings(Session->SessionSettings);
 		if (Joinability != EAccelByteV2SessionJoinability::EMPTY)
 		{
-			bIsOpenSession = Joinability == EAccelByteV2SessionJoinability::OPEN;
+			bUsesPublicPool = IsUsingPublicConnectionPool(Joinability);
 			bHasJoinability = true;
 		}
 	}
@@ -6688,7 +6949,7 @@ bool FOnlineSessionV2AccelByte::SetSessionMaxPlayerCount(FOnlineSession* Session
 		return false;
 	}
 
-	if (bIsOpenSession)
+	if (bUsesPublicPool)
 	{
 		Session->SessionSettings.NumPublicConnections = NewMaxPlayerCount;
 	}
@@ -9443,7 +9704,7 @@ bool FOnlineSessionV2AccelByte::HandleAutoJoinGameSession(const FAccelByteModels
 
 	if (FoundMember == nullptr)
 	{
-		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Not marked as joined to the session on the backend, ignoring auto join for now."), *GameSession.ID);
+		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("Not marked as joined to the session %s on the backend, ignoring auto join for now."), *GameSession.ID);
 		TriggerOnAutoJoinGameSessionCompleteDelegates(LocalUserNum, false, GameSession.ID);
 		return false;
 	}

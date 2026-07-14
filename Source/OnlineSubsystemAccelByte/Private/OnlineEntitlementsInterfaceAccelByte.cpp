@@ -9,6 +9,7 @@
 #include "AsyncTasks/Entitlements/OnlineAsyncTaskAccelByteConsumeEntitlement.h"
 #include "AsyncTasks/Entitlements/OnlineAsyncTaskAccelByteSyncPlatformPurchase.h"
 #include "AsyncTasks/Entitlements/OnlineAsyncTaskAccelByteSyncDLC.h"
+#include "AsyncTasks/Entitlements/OnlineAsyncTaskAccelByteGetDLCContent.h"
 #include "AsyncTasks/Entitlements/OnlineAsyncTaskAccelByteGetUserEntitlementHistory.h"
 #include "AsyncTasks/Entitlements/OnlineAsyncTaskAccelByteGetCurrentUserEntitlementHistory.h"
 #include "AsyncTasks/Entitlements/OnlineAsyncTaskAccelByteSyncPlatformGooglePlay.h"
@@ -338,6 +339,24 @@ void FOnlineEntitlementsAccelByte::SyncDLC(const FUniqueNetId& InLocalUserId, co
 	}
 	
 	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteSyncDLC>(AccelByteSubsystemPtr.Get(), InLocalUserId, CompletionDelegate);
+
+	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""))
+}
+
+void FOnlineEntitlementsAccelByte::GetDLCContent(const FUniqueNetId& InLocalUserId, EAccelByteDLCType DLCType, bool bIncludeAllNamespaces)
+{
+	AB_OSS_PTR_INTERFACE_TRACE_BEGIN(TEXT(""))
+
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelByteSubsystem is invalid"));
+		TriggerOnGetDLCContentCompleteDelegates(INDEX_NONE, false, {}, FOnlineError(TEXT("subsystem-invalid")));
+		return;
+	}
+
+	AccelByteSubsystemPtr->CreateAndDispatchAsyncTaskParallel<FOnlineAsyncTaskAccelByteGetDLCContent>(
+		AccelByteSubsystemPtr.Get(), InLocalUserId, DLCType, bIncludeAllNamespaces);
 
 	AB_OSS_PTR_INTERFACE_TRACE_END(TEXT(""))
 }

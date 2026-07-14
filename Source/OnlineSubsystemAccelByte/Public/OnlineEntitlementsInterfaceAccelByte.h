@@ -49,6 +49,9 @@ DECLARE_DELEGATE_TwoParams(FOnSyncSteamAbnormalIAPTransactionComplete, FUniqueNe
 DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnEntitlementUpdatedNotification, int32 /*LocalUserNum*/, const FUniqueNetId& /*UserId*/, const FAccelByteModelsEntitlementUpdatedNotification& /*Notification*/);
 typedef FOnEntitlementUpdatedNotification::FDelegate FOnEntitlementUpdatedNotificationDelegate;
 
+DECLARE_MULTICAST_DELEGATE_FourParams(FOnGetDLCContentComplete, int32 /*LocalUserNum*/, bool /*bWasSuccessful*/, const TArray<FAccelByteModelsSimpleUserDLCRewardContent>& /*Contents*/, const FOnlineError& /*Error*/);
+typedef FOnGetDLCContentComplete::FDelegate FOnGetDLCContentCompleteDelegate;
+
 // Server Delegates
 DECLARE_MULTICAST_DELEGATE_FourParams(FOnGetUserEntitlementHistoryComplete, int32 /*LocalUserNum*/, bool /*bWasSuccessful*/, const TArray<FAccelByteModelsUserEntitlementHistory>& /*Entitlement History*/, const FOnlineError& /*Error*/);
 typedef FOnGetUserEntitlementHistoryComplete::FDelegate FOnGetUserEntitlementHistoryCompleteDelegate;
@@ -152,6 +155,7 @@ public:
 	DEFINE_ONLINE_PLAYER_DELEGATE_FOUR_PARAM(MAX_LOCAL_PLAYERS, OnQueryPlatformSubscriptionComplete, bool, const FUniqueNetId&, const TArray<FAccelByteModelsThirdPartySubscriptionTransactionInfo>&, const FOnlineError&);
 	DEFINE_ONLINE_PLAYER_DELEGATE_THREE_PARAM(MAX_LOCAL_PLAYERS, OnSyncMetaQuestIAPComplete, const FUniqueNetId&, const TArray<TSharedRef<FPurchaseReceipt>>&, const FOnlineError&);
 	DEFINE_ONLINE_PLAYER_DELEGATE_TWO_PARAM(MAX_LOCAL_PLAYERS, OnEntitlementUpdatedNotification, const FUniqueNetId& /*UserId*/, const FAccelByteModelsEntitlementUpdatedNotification& /*Notification*/);
+	DEFINE_ONLINE_PLAYER_DELEGATE_THREE_PARAM(MAX_LOCAL_PLAYERS, OnGetDLCContentComplete, bool, const TArray<FAccelByteModelsSimpleUserDLCRewardContent>&, const FOnlineError&);
 
 	// Server Delegates
 	DEFINE_ONLINE_DELEGATE_FOUR_PARAM(OnGetUserEntitlementHistoryComplete, int32, bool, const TArray<FAccelByteModelsUserEntitlementHistory>&, const FOnlineError&);
@@ -211,6 +215,15 @@ public:
 	 * @param CompletionDelegate Will be triggered after the request completed
 	 */
 	void SyncDLC(const FUniqueNetId& InLocalUserId, const FOnRequestCompleted& CompletionDelegate);
+
+	/**
+	 * Get user DLC reward contents.
+	 *
+	 * @param InLocalUserId User ID of the requesting user
+	 * @param DLCType Platform type: PSN, STEAM, XBOX, EPICGAMES, OCULUS
+	 * @param bIncludeAllNamespaces If false, only returns DLC synced from the current namespace
+	 */
+	void GetDLCContent(const FUniqueNetId& InLocalUserId, EAccelByteDLCType DLCType, bool bIncludeAllNamespaces = false);
 
 #pragma region Sync Platform Subscription
 	/*

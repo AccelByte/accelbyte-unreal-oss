@@ -2,6 +2,27 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.13.14](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.13.14%0D0.13.13) (2026-07-14)
+
+
+### Features
+
+* add GetDLCContent OSS API ([3e42552](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/3e42552baa9e3a298efd4c3fb78788f5e2f0cc33))
+* add unreal 5.8 preview support ([913eab9](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/913eab995d18e2d57bbc5573134dbcfa25534197))
+* **session:** expose PASSWORD_PROTECTED joinability (ASP-13073) ([45b832f](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/45b832f6f8a47ef2f25d05956c56ec261433f752))
+
+
+### Bug Fixes
+
+* add missing filter to query an open session ([fc07dae](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/fc07dae7a6ebfcb768a73db7108ac2bf58145dd0))
+* add two interface method for voice chat class in ue5.8 ([ae259db](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/ae259dbe517a54bcac851e12e025c5358280e221))
+* **session:** address PR review (IsUsingPublicConnectionPool in Register/UnregisterPlayers, Update*Password joinability pre-flight, zero plaintext on Join/Update tasks) ([131e345](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/131e3457afa69d1a88fd6056358b34facfdf3d49))
+
+
+### Documentations
+
+* update readme ([f6cace0](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/f6cace029009f1ff03df1434b0d003f2f254ec25))
+
 ### [0.13.13](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.13.13%0D0.13.12) (2026-06-04)
 
 

@@ -349,10 +349,12 @@ FOnVoiceChatChannelExitedDelegate& FAccelByteVoiceChat::OnVoiceChatChannelExited
 	return GetVoiceChatUser()->OnVoiceChatChannelExited();
 }
 
+PRAGMA_DISABLE_DEPRECATION_WARNINGS
 FOnVoiceChatCallStatsUpdatedDelegate& FAccelByteVoiceChat::OnVoiceChatCallStatsUpdated()
 {
 	return GetVoiceChatUser()->OnVoiceChatCallStatsUpdated();
 }
+PRAGMA_ENABLE_DEPRECATION_WARNINGS
 
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >=4
 void FAccelByteVoiceChat::Set3DPosition(const FString& ChannelName, const FVector& Position)
@@ -517,6 +519,7 @@ FDelegateHandle FAccelByteVoiceChat::RegisterOnVoiceChatBeforeCaptureAudioSentDe
 {
 	return GetVoiceChatUser()->RegisterOnVoiceChatBeforeCaptureAudioSentDelegate(Delegate);
 }
+
 #else
 FDelegateHandle FAccelByteVoiceChat::RegisterOnVoiceChatAfterCaptureAudioReadDelegate(const FOnVoiceChatAfterCaptureAudioReadDelegate2::FDelegate& Delegate)
 {
@@ -526,6 +529,51 @@ FDelegateHandle FAccelByteVoiceChat::RegisterOnVoiceChatAfterCaptureAudioReadDel
 FDelegateHandle FAccelByteVoiceChat::RegisterOnVoiceChatBeforeCaptureAudioSentDelegate(const FOnVoiceChatBeforeCaptureAudioSentDelegate2::FDelegate& Delegate)
 {
 	return GetVoiceChatUser()->RegisterOnVoiceChatBeforeCaptureAudioSentDelegate(Delegate);
+}
+
+#if ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION >= 8
+FDelegateHandle FAccelByteVoiceChat::RegisterOnVoiceChatBeforeRecvMixedAudioRenderedDelegate(const FOnVoiceChatBeforeRecvAudioRenderedDelegate::FDelegate& Delegate)
+{
+	return GetVoiceChatUser()->RegisterOnVoiceChatBeforeRecvMixedAudioRenderedDelegate(Delegate);
+}
+
+void FAccelByteVoiceChat::UnregisterOnVoiceChatBeforeRecvMixedAudioRenderedDelegate(FDelegateHandle Handle)
+{
+	GetVoiceChatUser()->UnregisterOnVoiceChatBeforeRecvMixedAudioRenderedDelegate(Handle);
+}
+
+FDelegateHandle FAccelByteVoiceChat::RegisterOnVoiceChatBeforeRecvUnmixedAudioRenderedDelegate(const FOnVoiceChatBeforeRecvAudioRenderedDelegate::FDelegate& Delegate)
+{
+	return GetVoiceChatUser()->RegisterOnVoiceChatBeforeRecvUnmixedAudioRenderedDelegate(Delegate);
+}
+
+void FAccelByteVoiceChat::UnregisterOnVoiceChatBeforeRecvUnmixedAudioRenderedDelegate(FDelegateHandle Handle)
+{
+	GetVoiceChatUser()->UnregisterOnVoiceChatBeforeRecvUnmixedAudioRenderedDelegate(Handle);
+}
+
+FOnVoiceChatCallStatsUpdatedDelegate2& FAccelByteVoiceChat::OnVoiceChatCallStatsUpdated2()
+{
+	return GetVoiceChatUser()->OnVoiceChatCallStatsUpdated2();
+}
+
+TOptional<FVoiceChatCallStats> FAccelByteVoiceChat::GetChannelCallStats(const FString& ChannelName) const
+{
+	return GetVoiceChatUser()->GetChannelCallStats(ChannelName);
+}
+#endif
+
+#endif
+
+#if ENGINE_MAJOR_VERSION >= 5 && ENGINE_MINOR_VERSION <= 7 || ENGINE_MAJOR_VERSION == 4
+FDelegateHandle FAccelByteVoiceChat::RegisterOnVoiceChatBeforeRecvAudioRenderedDelegate(const FOnVoiceChatBeforeRecvAudioRenderedDelegate::FDelegate& Delegate)
+{
+	return GetVoiceChatUser()->RegisterOnVoiceChatBeforeRecvAudioRenderedDelegate(Delegate);
+}
+
+void FAccelByteVoiceChat::UnregisterOnVoiceChatBeforeRecvAudioRenderedDelegate(FDelegateHandle Handle)
+{
+	GetVoiceChatUser()->UnregisterOnVoiceChatBeforeRecvAudioRenderedDelegate(Handle);
 }
 #endif
 
@@ -539,15 +587,6 @@ void FAccelByteVoiceChat::UnregisterOnVoiceChatBeforeCaptureAudioSentDelegate(FD
 	GetVoiceChatUser()->UnregisterOnVoiceChatBeforeCaptureAudioSentDelegate(Handle);
 }
 
-FDelegateHandle FAccelByteVoiceChat::RegisterOnVoiceChatBeforeRecvAudioRenderedDelegate(const FOnVoiceChatBeforeRecvAudioRenderedDelegate::FDelegate& Delegate)
-{
-	return GetVoiceChatUser()->RegisterOnVoiceChatBeforeRecvAudioRenderedDelegate(Delegate);
-}
-
-void FAccelByteVoiceChat::UnregisterOnVoiceChatBeforeRecvAudioRenderedDelegate(FDelegateHandle Handle)
-{
-	GetVoiceChatUser()->UnregisterOnVoiceChatBeforeRecvAudioRenderedDelegate(Handle);
-}
 
 FString FAccelByteVoiceChat::InsecureGetLoginToken(const FString& PlayerName)
 {

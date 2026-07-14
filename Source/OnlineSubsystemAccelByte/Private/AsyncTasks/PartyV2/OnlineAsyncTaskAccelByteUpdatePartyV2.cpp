@@ -68,6 +68,19 @@ void FOnlineAsyncTaskAccelByteUpdatePartyV2::Initialize()
 		UpdateRequest.Joinability = JoinType;
 	}
 
+	// Password is opaque (the backend never echoes it back), so we cannot do a diff-style check. Send
+	// whatever the caller put in SETTING_SESSION_PASSWORD; the backend ignores it unless Joinability is
+	// PASSWORD_PROTECTED. For password-only updates without other config changes, prefer
+	// UpdatePartyPassword.
+	FString Password{};
+	if (NewSessionSettings.Get(SETTING_SESSION_PASSWORD, Password) && !Password.IsEmpty())
+	{
+		UpdateRequest.Password = Password;
+		// Strip from settings so it does not get serialized into Attributes (which would expose
+		// the password in cleartext to other members + may cause backend rejection).
+		NewSessionSettings.Remove(SETTING_SESSION_PASSWORD);
+	}
+
 	int32 MinimumPlayers = 0;
 	if (NewSessionSettings.Get(SETTING_SESSION_MINIMUM_PLAYERS, MinimumPlayers) && MinimumPlayers != PartySessionBackendData->Configuration.MinPlayers)
 	{

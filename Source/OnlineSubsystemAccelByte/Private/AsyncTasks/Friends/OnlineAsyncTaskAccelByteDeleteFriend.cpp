@@ -133,7 +133,7 @@ void FOnlineAsyncTaskAccelByteDeleteFriend::OnUnfriendFailed(int32 ErrorCode, co
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("FriendId: %s"), *FriendId->ToDebugString());
 	ErrorStr = TEXT("friend-error-remove-failed");
 	CompleteTask(EAccelByteAsyncTaskCompleteState::RequestFailed);
-	AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Failed to remove friend %s as the request failed on the backend. Error code: %d. Error Message"), *FriendId->ToDebugString(), ErrorCode, *ErrorMessage);
+	AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Failed to remove friend %s as the request failed on the backend. Error code: %d. Error Message: %s"), *FriendId->ToDebugString(), ErrorCode, *ErrorMessage);
 }
 
 void FOnlineAsyncTaskAccelByteDeleteFriend::OnCancelFriendRequestSuccess()

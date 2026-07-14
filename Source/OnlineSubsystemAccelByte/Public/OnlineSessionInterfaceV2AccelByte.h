@@ -507,6 +507,10 @@ DECLARE_DELEGATE_TwoParams(FOnGenerateNewPartyCodeComplete, bool /*bWasSuccessfu
 DECLARE_DELEGATE_OneParam(FOnRevokePartyCodeComplete, bool /*bWasSuccessful*/);
 DECLARE_DELEGATE_TwoParams(FOnGenerateNewGameCodeComplete, bool /*bWasSuccessful*/, FString /*NewGameCode*/);
 DECLARE_DELEGATE_OneParam(FOnRevokeGameCodeComplete, bool /*bWasSuccessful*/);
+DECLARE_DELEGATE_TwoParams(FOnGetGameSessionPasswordComplete, bool /*bWasSuccessful*/, FString /*Password*/);
+DECLARE_DELEGATE_TwoParams(FOnGetPartyPasswordComplete, bool /*bWasSuccessful*/, FString /*Password*/);
+DECLARE_DELEGATE_OneParam(FOnUpdateGameSessionPasswordComplete, bool /*bWasSuccessful*/);
+DECLARE_DELEGATE_OneParam(FOnUpdatePartyPasswordComplete, bool /*bWasSuccessful*/);
 DECLARE_DELEGATE_TwoParams(FOnKickPlayerComplete, bool /*bWasSuccessful*/, const FUniqueNetId& /*KickedPlayerId*/);
 DECLARE_DELEGATE_OneParam(FOnCreateBackfillTicketComplete, bool /*bWasSuccessful*/);
 DECLARE_DELEGATE_OneParam(FOnDeleteBackfillTicketComplete, bool /*bWasSuccessful*/);
@@ -1046,6 +1050,39 @@ public:
 	 * code, grab the SETTING_PARTYSESSION_CODE setting out of a party session's settings.
 	 */
 	bool JoinSession(const FUniqueNetId& LocalUserId, FName SessionName, const FString& Code, EAccelByteV2SessionType SessionType = EAccelByteV2SessionType::PartySession);
+
+	/**
+	 * Join a PASSWORD_PROTECTED session by supplying the required password. AccelByte-specific overload of
+	 * IOnlineSession::JoinSession; forwarded to the SDK's password-aware join endpoint. For non-password
+	 * sessions, use the regular IOnlineSession::JoinSession (no password) instead.
+	 */
+	bool JoinSession(const FUniqueNetId& LocalUserId, FName SessionName, const FOnlineSessionSearchResult& DesiredSession, const FString& Password);
+
+	/**
+	 * Fetch the plaintext password of a PASSWORD_PROTECTED game session. Only active members of the session
+	 * (status JOINED or CONNECTED) may call this; the backend returns 403 for non-members.
+	 */
+	bool GetGameSessionPassword(const FUniqueNetId& LocalUserId, FName SessionName, const FOnGetGameSessionPasswordComplete& Delegate);
+
+	/**
+	 * Fetch the plaintext password of a PASSWORD_PROTECTED party. Only active members of the party
+	 * (status JOINED or CONNECTED) may call this; the backend returns 403 for non-members.
+	 */
+	bool GetPartyPassword(const FUniqueNetId& LocalUserId, FName SessionName, const FOnGetPartyPasswordComplete& Delegate);
+
+	/**
+	 * Update the password of a PASSWORD_PROTECTED game session. Only the session leader may call this;
+	 * the backend returns 403 otherwise. Other members are not notified of the change through OSS
+	 * specifically and should refetch via GetGameSessionPassword if needed.
+	 */
+	bool UpdateGameSessionPassword(const FUniqueNetId& LocalUserId, FName SessionName, const FString& NewPassword, const FOnUpdateGameSessionPasswordComplete& Delegate);
+
+	/**
+	 * Update the password of a PASSWORD_PROTECTED party. Only the party leader may call this;
+	 * the backend returns 403 otherwise. Other members are not notified of the change through OSS
+	 * specifically and should refetch via GetPartyPassword if needed.
+	 */
+	bool UpdatePartyPassword(const FUniqueNetId& LocalUserId, FName SessionName, const FString& NewPassword, const FOnUpdatePartyPasswordComplete& Delegate);
 
 	/**
 	 * Generate a new party code for this party session. Once updated, this new generated code will be reflected in the
@@ -1714,6 +1751,16 @@ PACKAGE_SCOPE:
 	 * Get a string representation of the joinability enum passed in
 	 */
 	FString GetJoinabilityAsString(const EAccelByteV2SessionJoinability& Joinability);
+
+	/**
+	 * Whether a given joinability routes to Unreal's public connection pool (NumPublicConnections /
+	 * NumOpenPublicConnections) vs. the private pool. Centralizes the mapping from AccelByte joinability
+	 * to Unreal's two-pool model so future enum additions only update one place.
+	 *
+	 * Public pool: OPEN, PASSWORD_PROTECTED (anyone-can-join, optionally gated by a credential).
+	 * Private pool: everything else (controlled-roster: INVITE_ONLY, CLOSED, FRIENDS_OF_*).
+	 */
+	bool IsUsingPublicConnectionPool(EAccelByteV2SessionJoinability Joinability) const;
 
 	/**
 	 * Get an AccelByte joinability enum from a string value

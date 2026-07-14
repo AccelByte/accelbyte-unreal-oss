@@ -16,10 +16,12 @@ using namespace AccelByte;
 FOnlineAsyncTaskAccelByteJoinV2Party::FOnlineAsyncTaskAccelByteJoinV2Party(FOnlineSubsystemAccelByte* const InABInterface
 	, const FUniqueNetId& InLocalUserId
 	, const FName& InSessionName
-	, bool bInHasLocalUserJoined)
+	, bool bInHasLocalUserJoined
+	, const FString& InPassword)
 	: FOnlineAsyncTaskAccelByte(InABInterface)
 	, SessionName(InSessionName)
 	, bHasLocalUserJoined(bInHasLocalUserJoined)
+	, Password(InPassword)
 {
 	UserId = FUniqueNetIdAccelByteUser::CastChecked(InLocalUserId);
 }
@@ -49,6 +51,10 @@ void FOnlineAsyncTaskAccelByteJoinV2Party::Initialize()
 		// the local session cache with proper session data. If some how we do not have valid data for the pending named
 		// session, then we will fall back to doing the join party API call to retrieve that data. Session service will
 		// return a no-op success response if we do end up calling while joined.
+		if (!Password.IsEmpty())
+		{
+			UE_LOG_AB(Verbose, TEXT("JoinV2Party: password supplied but local user is already joined; backend call skipped, password not validated against the backend."));
+		}
 		TSharedPtr<FOnlineSessionInfoAccelByteV2> SessionInfo = StaticCastSharedPtr<FOnlineSessionInfoAccelByteV2>(JoinedSession->SessionInfo);
 		if (SessionInfo.IsValid())
 		{
@@ -66,7 +72,14 @@ void FOnlineAsyncTaskAccelByteJoinV2Party::Initialize()
 	OnJoinPartySuccessDelegate = TDelegateUtils<THandler<FAccelByteModelsV2PartySession>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteJoinV2Party::OnJoinPartySuccess);
 	OnJoinPartyErrorDelegate = TDelegateUtils<FErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteJoinV2Party::OnJoinPartyError);
 	API_FULL_CHECK_GUARD(Session);
-	Session->JoinParty(SessionId, OnJoinPartySuccessDelegate, OnJoinPartyErrorDelegate);
+	if (Password.IsEmpty())
+	{
+		Session->JoinParty(SessionId, OnJoinPartySuccessDelegate, OnJoinPartyErrorDelegate);
+	}
+	else
+	{
+		Session->JoinParty(SessionId, Password, OnJoinPartySuccessDelegate, OnJoinPartyErrorDelegate);
+	}
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));
 }
@@ -152,6 +165,10 @@ void FOnlineAsyncTaskAccelByteJoinV2Party::TriggerDelegates()
 	TRY_PIN_SUBSYSTEM();
 
 	AB_OSS_ASYNC_TASK_TRACE_BEGIN(TEXT("bWasSuccessful: %s"), LOG_BOOL_FORMAT(bWasSuccessful));
+
+	// Discard the cached plaintext password before this async task is destroyed -- the SDK call has
+	// already been made by this point, so we no longer need it. Mirrors the Get* tasks' pattern.
+	Password.Empty();
 
 	const FOnlineSessionV2AccelBytePtr SessionInterface = StaticCastSharedPtr<FOnlineSessionV2AccelByte>(SubsystemPin->GetSessionInterface());
 	if (!ensure(SessionInterface.IsValid()))

@@ -22,7 +22,8 @@ public:
 	FOnlineAsyncTaskAccelByteJoinV2Party(FOnlineSubsystemAccelByte* const InABInterface
 		, const FUniqueNetId& InLocalUserId
 		, const FName& InSessionName
-		, bool bInHasLocalUserJoined);
+		, bool bInHasLocalUserJoined
+		, const FString& InPassword = FString());
 
 	virtual void Initialize() override;
 	virtual void Finalize() override;
@@ -47,6 +48,9 @@ private:
 
 	/** Information on the party just obtained from the backend */
 	FAccelByteModelsV2PartySession PartyInfo{};
+
+	/** Optional password supplied for joining a PASSWORD_PROTECTED party. Empty for non-protected joins. */
+	FString Password{};
 
 	/** Enum used to signal what result occurred with the join session call */
 	EOnJoinSessionCompleteResult::Type JoinSessionResult;

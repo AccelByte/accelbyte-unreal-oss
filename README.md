@@ -15,7 +15,8 @@ delegates, and is also designed to  be modular by grouping similar service-speci
 - [ ] Unreal Engine 5.4.x
 - [x] Unreal Engine 5.5.x
 - [x] Unreal Engine 5.6.x
-- [x] Unreal Engine 5.7.x (Beta)
+- [x] Unreal Engine 5.7.x
+- [x] Unreal Engine 5.8.x
 
 ## Dependencies
 AccelByte OSS have some dependencies to another Plugins/Modules, such as the following:
