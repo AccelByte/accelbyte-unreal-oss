@@ -53,6 +53,12 @@ PACKAGE_SCOPE:
 	 */
 	virtual void RegisterRealTimeLobbyDelegates(int32 LocalUserNum);
 
+	/**
+	 * Method used by the Identity interface on logout to remove the delegates registered by
+	 * RegisterRealTimeLobbyDelegates, so that the next login can register them again.
+	 */
+	virtual void UnregisterRealTimeLobbyDelegates(int32 LocalUserNum);
+
 public:
 	virtual ~FOnlineWalletV2AccelByte() {};
 

@@ -50,6 +50,9 @@
 #include "AsyncTasks/Identity/OnlineAsyncTaskAccelByteVerifyLoginMfa.h"
 #include "AsyncTasks/LoginQueue/OnlineAsyncTaskAccelByteLoginQueueClaimTicket.h"
 #include "OnlineSubsystemAccelByteLog.h"
+#include "OnlineEntitlementsInterfaceAccelByte.h"
+#include "OnlineWalletInterfaceAccelByte.h"
+#include "OnlineWalletV2InterfaceAccelByte.h"
 
 using namespace AccelByte;
 
@@ -243,8 +246,29 @@ bool FOnlineIdentityAccelByte::Logout(int32 LocalUserNum, FString Reason)
 		, &FOnlineIdentityAccelByte::OnLogoutError
 		, LocalUserNum);
 
+	// Unregister the entitlement notification delegates registered for this user so the next login can register them again
+	const TSharedPtr<FOnlineEntitlementsAccelByte, ESPMode::ThreadSafe> EntitlementsInterface = StaticCastSharedPtr<FOnlineEntitlementsAccelByte>(PinnedSubsystem->GetEntitlementsInterface());
+	if (EntitlementsInterface.IsValid())
+	{
+		EntitlementsInterface->UnregisterRealTimeLobbyDelegates(LocalUserNum);
+	}
+
 	if (!IsDS.GetValue())
 	{
+		// Unregister the wallet notification delegates registered for this user so the next login can register them again.
+		// Registration only ever happens on this client-only path (via ConnectLobby), so unregister is scoped the same way.
+		const TSharedPtr<FOnlineWalletAccelByte, ESPMode::ThreadSafe> WalletInterface = StaticCastSharedPtr<FOnlineWalletAccelByte>(PinnedSubsystem->GetWalletInterface());
+		if (WalletInterface.IsValid())
+		{
+			WalletInterface->UnregisterRealTimeLobbyDelegates(LocalUserNum);
+		}
+
+		const TSharedPtr<FOnlineWalletV2AccelByte, ESPMode::ThreadSafe> WalletV2Interface = StaticCastSharedPtr<FOnlineWalletV2AccelByte>(PinnedSubsystem->GetWalletV2Interface());
+		if (WalletV2Interface.IsValid())
+		{
+			WalletV2Interface->UnregisterRealTimeLobbyDelegates(LocalUserNum);
+		}
+
 		AccelByte::FApiClientPtr ApiClient = GetApiClient(LocalUserNum);
 		if (!ApiClient.IsValid())
 		{

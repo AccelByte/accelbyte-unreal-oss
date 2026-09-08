@@ -146,6 +146,9 @@ bool FOnlineLeaderboardAccelByte::ReadLeaderboardsForFriendsCycle(
 
 	if (FriendList.Num() == 0)
 	{
+		// Nothing to read, but the read itself completed. Set the state before broadcasting:
+		// the delegate fires synchronously, and handlers commonly inspect ReadState from within it.
+		ReadObject->ReadState = EOnlineAsyncTaskState::Done;
 		LeaderboardInterface->TriggerOnLeaderboardReadCompleteDelegates(true);
 		UE_LOG_ONLINE_LEADERBOARD(Warning, TEXT("Fail to read friend list as The User Has 0 Friends"));
 		return true;
@@ -249,6 +252,9 @@ bool FOnlineLeaderboardAccelByte::ReadLeaderboardsForFriends(
 
 	if (FriendList.Num() == 0)
 	{
+		// Nothing to read, but the read itself completed. Set the state before broadcasting:
+		// the delegate fires synchronously, and handlers commonly inspect ReadState from within it.
+		ReadObject->ReadState = EOnlineAsyncTaskState::Done;
 		LeaderboardInterface->TriggerOnLeaderboardReadCompleteDelegates(true);
 		UE_LOG_ONLINE_LEADERBOARD(Warning, TEXT("Fail to read friend list as The User Has 0 Friends"));
 		return true;

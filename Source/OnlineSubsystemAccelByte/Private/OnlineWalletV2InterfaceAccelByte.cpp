@@ -367,10 +367,57 @@ void FOnlineWalletV2AccelByte::RegisterRealTimeLobbyDelegates(int32 LocalUserNum
 		THandler<FAccelByteModelsWalletBalanceChangedNotification> OnBalanceChangedNotificationReceivedDelegate = THandler<FAccelByteModelsWalletBalanceChangedNotification>::CreateThreadSafeSP(AsShared(), &FOnlineWalletV2AccelByte::OnWalletBalanceChangedNotificationReceived, LocalUserNum);
 		OnWalletBalanceChangedNotificationReceivedDelegateHandleMap.Add(LocalUserNum, Lobby->AddWalletBalanceChangedNotifDelegate(OnBalanceChangedNotificationReceivedDelegate));
 	}
+	else
+	{
+		UE_LOG_AB(Warning, TEXT("User %d already in OnWalletBalanceChangedNotificationReceivedDelegateHandleMap. Will not subscribe."), LocalUserNum);
+	}
 
 	if (OnWalletStatusChangedNotificationReceivedDelegateHandleMap.Find(LocalUserNum) == nullptr)
 	{
 		THandler<FAccelByteModelsWalletStatusChangedNotification> OnStatusChangedNotificationReceivedDelegate = THandler<FAccelByteModelsWalletStatusChangedNotification>::CreateThreadSafeSP(AsShared(), &FOnlineWalletV2AccelByte::OnWalletStatusChangedNotificationReceived, LocalUserNum);
 		OnWalletStatusChangedNotificationReceivedDelegateHandleMap.Add(LocalUserNum, Lobby->AddWalletStatusChangedNotifDelegate(OnStatusChangedNotificationReceivedDelegate));
+	}
+	else
+	{
+		UE_LOG_AB(Warning, TEXT("User %d already in OnWalletStatusChangedNotificationReceivedDelegateHandleMap. Will not subscribe."), LocalUserNum);
+	}
+}
+
+void FOnlineWalletV2AccelByte::UnregisterRealTimeLobbyDelegates(int32 LocalUserNum)
+{
+	// Get our identity interface to retrieve the API client for this user
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return;
+	}
+
+	AccelByte::FApiClientPtr ApiClient = AccelByteSubsystemPtr->GetApiClient(LocalUserNum);
+	if (!ApiClient.IsValid())
+	{
+		UE_LOG_AB(Warning, TEXT("Failed to unregister real-time lobby as an Api client could not be retrieved for user num %d!"), LocalUserNum);
+		return;
+	}
+
+	const auto Lobby = ApiClient->GetLobbyApi().Pin();
+	if (!Lobby.IsValid())
+	{
+		UE_LOG_AB(Warning, TEXT("Failed to unregister real-time lobby as an Lobby Api could not be retrieved for user num %d!"), LocalUserNum);
+		return;
+	}
+
+	FDelegateHandle* BalanceHandlePtr = OnWalletBalanceChangedNotificationReceivedDelegateHandleMap.Find(LocalUserNum);
+	if (BalanceHandlePtr)
+	{
+		Lobby->RemoveWalletBalanceChangedNotifDelegate(*BalanceHandlePtr);
+		OnWalletBalanceChangedNotificationReceivedDelegateHandleMap.Remove(LocalUserNum);
+	}
+
+	FDelegateHandle* StatusHandlePtr = OnWalletStatusChangedNotificationReceivedDelegateHandleMap.Find(LocalUserNum);
+	if (StatusHandlePtr)
+	{
+		Lobby->RemoveWalletStatusChangedNotifDelegate(*StatusHandlePtr);
+		OnWalletStatusChangedNotificationReceivedDelegateHandleMap.Remove(LocalUserNum);
 	}
 }

@@ -2,6 +2,30 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.13.15](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.13.15%0D0.13.14) (2026-09-08)
+
+
+### Features
+
+* **session:** expose PASSWORD_PROTECTED joinability (ASP-13073) ([9141f86](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/9141f8656400660aa95c95bc902e86550e7cbeeb))
+
+
+### Bug Fixes
+
+* **analytics:** report failure, not success, on the send-event error path ([2485b43](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/2485b43be83d9506360f9801024cfc82162e16be))
+* **entitlements:** unregister entitlement updated notif delegate on logout so next login re-subscribes (ASP-13363) ([1b69984](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/1b69984c2d6095cd1a95fc78bdb61723b4471be0))
+* **leaderboard:** set ReadState before broadcasting completion on an empty friends list (AAX-3506) ([1b372e9](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/1b372e9c15efc56f29422d36a94d4acdd71789b8))
+* **purchase:** give MetaQuest checkout the same 240s timeout as Steam (AAX-3506) ([265e982](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/265e982f6f108ec1e286400fbd294ac08e0d0834))
+* **session:** address PR review (IsUsingPublicConnectionPool in Register/UnregisterPlayers, Update*Password joinability pre-flight, zero plaintext on Join/Update tasks) ([5133e5e](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/5133e5e9aebef5bcef820902c78e5163af8ea80c))
+* **session:** keep session name valid when a game session ends ([998c3df](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/998c3df2dcf17ab4dda30209577a39b56516d7f0))
+* **subsystem:** remove stale LobbyMessageNotifMap handle on login so relogin re-subscribes message notifs (ASP-13363) ([2a5eef2](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/2a5eef2b7da116979cb3b2264cb30e42206d69bb))
+* **wallet:** unregister wallet balance/status notif delegates on logout so next login re-subscribes (ASP-13363) ([b6e9344](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/b6e9344114abd9834195fded773278ffaa60b2cc))
+
+
+### Documentations
+
+* replace engine checklist with per-release version matrix ([0f1df82](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/0f1df82980aadc27bd461559d57f3edcc2a54b85))
+
 ### [0.13.14](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.13.14%0D0.13.13) (2026-07-14)
 
 

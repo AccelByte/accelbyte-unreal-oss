@@ -13,7 +13,10 @@ void FOnlineBaseAnalyticsAccelByte::OnSuccess(int32 LocalUserNum, FString EventN
 
 void FOnlineBaseAnalyticsAccelByte::OnError(int32 ErrorCode, const FString & ErrorMessage, int32 LocalUserNum, FString EventName)
 {
-	TriggerAccelByteOnSendEventCompletedDelegates(LocalUserNum, EventName, true, ONLINE_ERROR_ACCELBYTE(ErrorCode));
+	// bWasSuccessful is false here: this is the error path. It previously passed true, identical to
+	// OnSuccess above, so every caller that branched on the delegate's bool saw a failed send report
+	// success - the attached FOnlineErrorAccelByte was the only indication anything had gone wrong.
+	TriggerAccelByteOnSendEventCompletedDelegates(LocalUserNum, EventName, false, ONLINE_ERROR_ACCELBYTE(ErrorCode));
 }
 
 void FOnlineBaseAnalyticsAccelByte::OnLocalUserNumCachedSuccess()

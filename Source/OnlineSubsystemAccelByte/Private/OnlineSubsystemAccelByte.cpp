@@ -832,19 +832,23 @@ void FOnlineSubsystemAccelByte::OnLoginCallback(int32 LocalUserNum, bool bWasSuc
 		return;
 	}
 
-	if (!LobbyMessageNotifMap.Contains(LocalUserNum))
+	auto Lobby = ApiClient->GetLobbyApi().Pin();
+	if (Lobby.IsValid())
 	{
-		FDelegateHandle MessageNotifDelegate;
-		auto Lobby = ApiClient->GetLobbyApi().Pin();
-		if (Lobby.IsValid())
+		// Remove the delegate registered by a previous login first; its handle goes stale when the
+		// Lobby API is recreated on relogin and must not block re-registration
+		FDelegateHandle* ExistingHandle = LobbyMessageNotifMap.Find(LocalUserNum);
+		if (ExistingHandle != nullptr && ExistingHandle->IsValid())
 		{
-			MessageNotifDelegate = Lobby->AddMessageNotifDelegate(Delegate);
-			LobbyMessageNotifMap.Emplace(LocalUserNum, MessageNotifDelegate);
+			Lobby->RemoveMessageNotifBroadcasterDelegate(*ExistingHandle);
+			LobbyMessageNotifMap.Remove(LocalUserNum);
 		}
-		else
-		{
-			UE_LOG_AB(Warning, TEXT("Invalid Lobby API from API Client"));
-		}
+
+		LobbyMessageNotifMap.Emplace(LocalUserNum, Lobby->AddMessageNotifDelegate(Delegate));
+	}
+	else
+	{
+		UE_LOG_AB(Warning, TEXT("Invalid Lobby API from API Client"));
 	}
 
 	if (IsAutoConnectLobby() && IdentityInterface.IsValid())

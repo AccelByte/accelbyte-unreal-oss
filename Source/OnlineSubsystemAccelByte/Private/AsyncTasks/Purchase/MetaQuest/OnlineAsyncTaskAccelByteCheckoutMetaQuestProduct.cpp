@@ -18,6 +18,11 @@ FOnlineAsyncTaskAccelByteCheckoutMetaQuestProduct::FOnlineAsyncTaskAccelByteChec
 	, CheckoutRequest(InPurchaseCheckoutRequest)
 	, Delegate(InDelegate)
 {
+	// Checkout opens the Oculus overlay and waits on the user to confirm the purchase, which may
+	// include entering payment details first. The default task timeout is far too short for that,
+	// so allow four minutes, matching the Steam checkout task.
+	TaskTimeoutInSeconds = 240.0;
+
 	UserId = FUniqueNetIdAccelByteUser::CastChecked(InUserId);
 }
 

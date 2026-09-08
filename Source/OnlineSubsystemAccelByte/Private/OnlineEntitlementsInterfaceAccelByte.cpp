@@ -134,6 +134,42 @@ void FOnlineEntitlementsAccelByte::RegisterRealTimeLobbyDelegates(int32 LocalUse
 		THandler<FAccelByteModelsEntitlementUpdatedNotification> OnEntitlementUpdatedNotificationReceivedDelegate = THandler<FAccelByteModelsEntitlementUpdatedNotification>::CreateThreadSafeSP(AsShared(), &FOnlineEntitlementsAccelByte::OnEntitlementUpdatedNotificationReceived, LocalUserNum);
 		OnEntitlementUpdatedNotificationReceivedDelegateHandleMap.Add(LocalUserNum, Lobby->AddEntitlementUpdatedNotifDelegate(OnEntitlementUpdatedNotificationReceivedDelegate));
 	}
+	else
+	{
+		UE_LOG_AB(Warning, TEXT("User %d already in OnEntitlementUpdatedNotificationReceivedDelegateHandleMap. Will not subscribe."), LocalUserNum);
+	}
+}
+
+void FOnlineEntitlementsAccelByte::UnregisterRealTimeLobbyDelegates(int32 LocalUserNum)
+{
+	// Get our identity interface to retrieve the API client for this user
+	FOnlineSubsystemAccelBytePtr AccelByteSubsystemPtr = AccelByteSubsystem.Pin();
+	if (!AccelByteSubsystemPtr.IsValid())
+	{
+		AB_OSS_PTR_INTERFACE_TRACE_END_VERBOSITY(Warning, TEXT("Failed, AccelbyteSubsystem is invalid"));
+		return;
+	}
+
+	AccelByte::FApiClientPtr ApiClient = AccelByteSubsystemPtr->GetApiClient(LocalUserNum);
+	if (!ApiClient.IsValid())
+	{
+		UE_LOG_AB(Warning, TEXT("Failed to unregister real-time lobby as an Api client could not be retrieved for user num %d!"), LocalUserNum);
+		return;
+	}
+
+	const auto Lobby = ApiClient->GetLobbyApi().Pin();
+	if (!Lobby.IsValid())
+	{
+		UE_LOG_AB(Warning, TEXT("Failed to unregister real-time lobby as an Lobby Api could not be retrieved for user num %d!"), LocalUserNum);
+		return;
+	}
+
+	FDelegateHandle* HandlePtr = OnEntitlementUpdatedNotificationReceivedDelegateHandleMap.Find(LocalUserNum);
+	if (HandlePtr)
+	{
+		Lobby->RemoveEntitlementUpdatedNotifDelegate(*HandlePtr);
+		OnEntitlementUpdatedNotificationReceivedDelegateHandleMap.Remove(LocalUserNum);
+	}
 }
 
 bool FOnlineEntitlementsAccelByte::GetFromSubsystem(const IOnlineSubsystem* Subsystem, FOnlineEntitlementsAccelBytePtr& OutInterfaceInstance)

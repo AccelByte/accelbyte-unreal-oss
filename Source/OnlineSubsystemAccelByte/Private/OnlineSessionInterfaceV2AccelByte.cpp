@@ -10064,8 +10064,15 @@ void FOnlineSessionV2AccelByte::OnGameSessionEndedNotification(FAccelByteModelsV
 	FNamedOnlineSession* ExistingSession = GetNamedSessionById(EndedEvent.SessionID);
 	if (ExistingSession != nullptr)
 	{
-		RemoveNamedSession(ExistingSession->SessionName);
-		TriggerOnDestroySessionCompleteDelegates(ExistingSession->SessionName, true);
+		// Copy the name out before removing the session. Sessions is a
+		// TMap<FName, TSharedPtr<FNamedOnlineSession>>, so RemoveNamedSession drops the last
+		// reference and destroys the FNamedOnlineSession - reading ExistingSession->SessionName
+		// after that point is a use-after-free, and the freed FName reaches every
+		// OnDestroySessionComplete listener.
+		const FName EndedSessionName = ExistingSession->SessionName;
+
+		RemoveNamedSession(EndedSessionName);
+		TriggerOnDestroySessionCompleteDelegates(EndedSessionName, true);
 		AB_OSS_PTR_INTERFACE_TRACE_END(TEXT("The local session will be cleaned to sync with the backend state. SessionId: %s"), *EndedEvent.SessionID);
 		return;
 	}
