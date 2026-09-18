@@ -10,8 +10,6 @@
 #include "OnlineSubsystemUtils.h"
 #include "OnlineSubsystemAccelByteLog.h"
 
-FDelegateHandle FOnlineSubsystemAccelByteUtils::QueryUserHandle = FDelegateHandle();
-
 FUniqueNetIdRef FOnlineSubsystemAccelByteUtils::GetUniqueIdFromString(FString UniqueIdString, bool bIsEncoded /*= true*/) {
 	if (UniqueIdString.IsEmpty()) {
 		return FUniqueNetIdAccelByteUser::Invalid();
@@ -95,56 +93,138 @@ FString FOnlineSubsystemAccelByteUtils::GetPlatformName()
 	return Subsystem->GetSimplifiedNativePlatformName();
 }
 
-bool FOnlineSubsystemAccelByteUtils::GetDisplayName(int32 LocalUserNum, FString UniqueId, FOnGetDisplayNameComplete Delegate, FString DisplayName /*= TEXT("")*/)
+bool FOnlineSubsystemAccelByteUtils::GetDisplayName(int32 LocalUserNum
+	, FString UniqueId
+	, FOnGetDisplayNameComplete Delegate
+	, FString DisplayName /*= TEXT("")*/
+	, FName SubsystemName /*= ACCELBYTE_SUBSYSTEM*/)
 {
 	FUniqueNetIdAccelByteUserRef UniqueIdObj = FUniqueNetIdAccelByteUser::Create(UniqueId);
-	return GetDisplayName(LocalUserNum, UniqueIdObj, Delegate, DisplayName);
+	return GetDisplayName(LocalUserNum, UniqueIdObj, Delegate, DisplayName, SubsystemName);
 }
 
-bool FOnlineSubsystemAccelByteUtils::GetDisplayName(int32 LocalUserNum, FUniqueNetIdPtr UniqueId, FOnGetDisplayNameComplete Delegate, FString DisplayName)
+bool FOnlineSubsystemAccelByteUtils::GetDisplayName(int32 LocalUserNum
+	, FUniqueNetIdPtr UniqueId
+	, FOnGetDisplayNameComplete Delegate
+	, FString DisplayName
+	, FName SubsystemName)
 {
-	if (!UniqueId.IsValid())
+	// IsValidLocalUserNum is pre-existing. Gating on it here is not a new requirement - it keeps
+	// us off FOnlineUserAccelByte::QueryUserInfo's out-of-range branch, whose completion broadcast
+	// is suppressed by the delegate macro's own bounds check and therefore never reaches any
+	// handler. Reaching it would leave the caller without a callback.
+	if (!UniqueId.IsValid() || !IsValidLocalUserNum(LocalUserNum))
 	{
 		Delegate.ExecuteIfBound(DisplayName);
 		return false;
 	}
 
-	IOnlineIdentityPtr IdentityInterface = ::Online::GetIdentityInterface(ACCELBYTE_SUBSYSTEM);
-	FUniqueNetIdPtr LocalUserId = IdentityInterface->GetUniquePlayerId(LocalUserNum);
-	if (UniqueId.IsValid() && (LocalUserId.IsValid() && LocalUserId.Get() == UniqueId.Get())) 
+	const IOnlineIdentityPtr IdentityInterface = ::Online::GetIdentityInterface(SubsystemName);
+	if (!IdentityInterface.IsValid())
+	{
+		Delegate.ExecuteIfBound(DisplayName);
+		return false;
+	}
+
+	const FUniqueNetIdPtr LocalUserId = IdentityInterface->GetUniquePlayerId(LocalUserNum);
+	if (LocalUserId.IsValid() && *LocalUserId == *UniqueId)
 	{
 		Delegate.ExecuteIfBound(IdentityInterface->GetPlayerNickname(LocalUserId.ToSharedRef().Get()));
 		return true;
 	}
-	
-	IOnlineUserPtr UserInterface = ::Online::GetUserInterface(ACCELBYTE_SUBSYSTEM);
-	TArray<FUniqueNetIdRef> IdsToQuery;
-	IdsToQuery.Add(UniqueId.ToSharedRef());
 
-	FOnQueryUserInfoCompleteDelegate OnQueryUserInfoCompleteDelegate = FOnQueryUserInfoCompleteDelegate::CreateStatic(FOnlineSubsystemAccelByteUtils::OnQueryUserInfoComplete, Delegate);
-	QueryUserHandle = OnQueryUserInfoCompleteDelegate.GetHandle();
-	UserInterface->AddOnQueryUserInfoCompleteDelegate_Handle(LocalUserNum, OnQueryUserInfoCompleteDelegate);
-	UserInterface->QueryUserInfo(LocalUserNum, IdsToQuery);
+	const IOnlineUserPtr UserInterface = ::Online::GetUserInterface(SubsystemName);
+	if (!UserInterface.IsValid())
+	{
+		Delegate.ExecuteIfBound(DisplayName);
+		return false;
+	}
+
+	const FUniqueNetIdRef RequestedId = UniqueId.ToSharedRef();
+	TArray<FUniqueNetIdRef> IdsToQuery{ RequestedId };
+
+	// Per-call state, replacing the shared static handle this class used to carry.
+	const FGetDisplayNameRequestRef Request = MakeShared<FGetDisplayNameRequest, ESPMode::ThreadSafe>();
+
+	FOnQueryUserInfoCompleteDelegate CompleteDelegate =
+		FOnQueryUserInfoCompleteDelegate::CreateStatic(&FOnlineSubsystemAccelByteUtils::OnQueryUserInfoComplete
+			, Delegate, RequestedId, DisplayName, Request, SubsystemName);
+
+	Request->Handle = UserInterface->AddOnQueryUserInfoCompleteDelegate_Handle(LocalUserNum, CompleteDelegate);
+
+	// QueryUserInfo can refuse. Unwind and answer the caller rather than leaving it hanging.
+	if (!UserInterface->QueryUserInfo(LocalUserNum, IdsToQuery))
+	{
+		UserInterface->ClearOnQueryUserInfoCompleteDelegate_Handle(LocalUserNum, Request->Handle);
+
+		// Guarded rather than unconditional. One false-returning path (out-of-range LocalUserNum)
+		// does schedule a broadcast before returning false - it is only suppressed by the trigger
+		// macro's bounds check, and the IsValidLocalUserNum gate above means we never reach it.
+		// Both of those are invariants of code we do not own, so guard rather than assume.
+		if (!Request->bCompleted)
+		{
+			Request->bCompleted = true;
+			Delegate.ExecuteIfBound(DisplayName);
+		}
+		return false;
+	}
+
 	return true;
 }
 
-void FOnlineSubsystemAccelByteUtils::OnQueryUserInfoComplete(int32 LocalUserNum, bool bWasSuccessful, const TArray<TSharedRef<const FUniqueNetId>>& FoundIds, const FString& ErrorMessage, FOnGetDisplayNameComplete Delegate)
+void FOnlineSubsystemAccelByteUtils::OnQueryUserInfoComplete(int32 LocalUserNum
+	, bool bWasSuccessful
+	, const TArray<FUniqueNetIdRef>& FoundIds
+	, const FString& ErrorMessage
+	, FOnGetDisplayNameComplete Delegate
+	, FUniqueNetIdRef RequestedId
+	, FString FallbackDisplayName
+	, FGetDisplayNameRequestRef Request
+	, FName SubsystemName)
 {
-	if (bWasSuccessful)
+	// A Clear cannot cancel a query already in flight, because the async task broadcasts a
+	// by-value snapshot of the multicast taken at dispatch. Guarantee exactly one callback.
+	if (Request->bCompleted)
 	{
-		for (const FUniqueNetIdRef& UniqueId : FoundIds)
-		{
-			IOnlineUserPtr UserInterface = ::Online::GetUserInterface(ACCELBYTE_SUBSYSTEM);
-			TSharedPtr<FOnlineUser> UserInfo = UserInterface->GetUserInfo(LocalUserNum, UniqueId.Get());
-			if (UserInfo.IsValid())
-			{
-				Delegate.ExecuteIfBound(UserInfo->GetDisplayName());
-			}
-			UserInterface->ClearOnQueryUserInfoCompleteDelegate_Handle(LocalUserNum, QueryUserHandle);
-			QueryUserHandle.Reset();
-			break;
-		}
+		return;
 	}
+
+	// This multicast fires for EVERY QueryUserInfo on LocalUserNum, including unrelated callers.
+	// A NON-EMPTY FoundIds that does not contain our id is provably someone else's completion, so
+	// ignore it and stay registered for ours.
+	//
+	// An EMPTY FoundIds is ambiguous - either our query found nothing, or an unrelated query found
+	// nothing - and is therefore claimed as ours. Same for any failure, which carries no ids to
+	// discriminate on. Claiming is what stops a failed or empty query leaking the registration.
+	const bool bSomeoneElsesResult = bWasSuccessful
+		&& FoundIds.Num() > 0
+		&& !FoundIds.ContainsByPredicate(
+			   [&RequestedId](const FUniqueNetIdRef& Id) { return *Id == *RequestedId; });
+
+	if (bSomeoneElsesResult)
+	{
+		return;
+	}
+
+	// Unregister on every path we claim, not only success-with-non-empty-FoundIds.
+	Request->bCompleted = true;
+
+	const IOnlineUserPtr UserInterface = ::Online::GetUserInterface(SubsystemName);
+	if (UserInterface.IsValid())
+	{
+		UserInterface->ClearOnQueryUserInfoCompleteDelegate_Handle(LocalUserNum, Request->Handle);
+	}
+	Request->Handle.Reset();
+
+	// NOTE: on the empty-FoundIds path bWasSuccessful is still true, so this lookup runs. If the
+	// id is already in this subsystem instance's user cache from an earlier query it returns the
+	// real name rather than the fallback.
+	const TSharedPtr<FOnlineUser> UserInfo = (bWasSuccessful && UserInterface.IsValid())
+		? UserInterface->GetUserInfo(LocalUserNum, RequestedId.Get())
+		: nullptr;
+
+	// Answer the caller exactly once, success or failure.
+	Delegate.ExecuteIfBound(UserInfo.IsValid() ? UserInfo->GetDisplayName() : FallbackDisplayName);
 }
 
 FUniqueNetIdPtr FOnlineSubsystemAccelByteUtils::GetPlatformUniqueIdFromPlatformUserId(const FString& PlatformUserId)

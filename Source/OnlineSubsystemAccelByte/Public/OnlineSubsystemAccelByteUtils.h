@@ -10,6 +10,7 @@
 #endif
 
 #include "Delegates/IDelegateInstance.h"
+#include "OnlineSubsystemAccelByteDefines.h"
 #include "OnlineSubsystemAccelByteTypes.h"
 #include "Models/AccelByteUserModels.h"
 
@@ -39,13 +40,20 @@ public:
 
 	/**
 	 * Convenience method to get display name for either a remote or local user.
+	 *
+	 * The Delegate fires EXACTLY ONCE on every path. On any failure - invalid id, missing
+	 * subsystem, refused or failed query, user not found - it fires with DisplayName as the
+	 * fallback value.
+	 *
+	 * MUST be called on the game thread.
+	 *
+	 * @param SubsystemName Which AccelByte OSS instance to use. Defaults to the process-wide
+	 *                      ACCELBYTE subsystem; pass an isolated instance name to target one.
 	 */
-	static bool GetDisplayName(int32 LocalUserNum, FString UniqueId, FOnGetDisplayNameComplete Delegate, FString DisplayName = TEXT(""));
+	static bool GetDisplayName(int32 LocalUserNum, FString UniqueId, FOnGetDisplayNameComplete Delegate, FString DisplayName = TEXT(""), FName SubsystemName = ACCELBYTE_SUBSYSTEM);
 
-	/**
-	 * Convenience method to get display name for either a remote or local user.
-	 */
-	static bool GetDisplayName(int32 LocalUserNum, FUniqueNetIdPtr UniqueId, FOnGetDisplayNameComplete Delegate, FString DisplayName=TEXT(""));
+	/** @see the FString overload above. Same contract. */
+	static bool GetDisplayName(int32 LocalUserNum, FUniqueNetIdPtr UniqueId, FOnGetDisplayNameComplete Delegate, FString DisplayName=TEXT(""), FName SubsystemName = ACCELBYTE_SUBSYSTEM);
 	
 	/**
 	 * Convert Platform User Id string into UniqueNetId
@@ -106,9 +114,24 @@ public:
 private:
 
 	/**
-	 * Delegate handle for querying user info
+	 * Per-call state for one in-flight GetDisplayName request. Shared between the registering
+	 * frame and the completion handler, so it must outlive the frame and be copyable into the
+	 * delegate's payload tuple - hence TSharedRef rather than TUniquePtr.
+	 *
+	 * Neither field is atomic. All access is confined to the game thread: GetDisplayName must be
+	 * called on the game thread, and TriggerDelegates() runs there
+	 * (FOnlineAsyncTaskManager::GameTick opens with check(IsInGameThread())).
+	 *
+	 * NOTE: must be declared before OnQueryUserInfoComplete below - a parameter type in a member
+	 * declaration is not in complete-class context, so the type has to be complete at that point.
 	 */
-	static FDelegateHandle QueryUserHandle;
+	struct FGetDisplayNameRequest
+	{
+		FDelegateHandle Handle{};
+		bool bCompleted{false};
+	};
+
+	using FGetDisplayNameRequestRef = TSharedRef<FGetDisplayNameRequest, ESPMode::ThreadSafe>;
 
 	/**
 	 * Cache the user platform
@@ -126,8 +149,18 @@ private:
 	static TMap<FString, FString> UserDisconnectedCached;
 
 	/**
-	 * Handler for when we successfully query user information
+	 * Handler for when we query user information. Receives the caller's delegate, the id that was
+	 * actually requested, the fallback name and the per-call request state as CreateStatic
+	 * payloads, so no shared static state is required.
 	 */
-	static void OnQueryUserInfoComplete(int32 LocalUserNum, bool bWasSuccessful, const TArray<TSharedRef<const FUniqueNetId>>& FoundIds, const FString& ErrorMessage, FOnGetDisplayNameComplete Delegate);
+	static void OnQueryUserInfoComplete(int32 LocalUserNum
+		, bool bWasSuccessful
+		, const TArray<FUniqueNetIdRef>& FoundIds
+		, const FString& ErrorMessage
+		, FOnGetDisplayNameComplete Delegate
+		, FUniqueNetIdRef RequestedId
+		, FString FallbackDisplayName
+		, FGetDisplayNameRequestRef Request
+		, FName SubsystemName);
 
 };

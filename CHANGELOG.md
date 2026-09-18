@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.13.16](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.13.16%0D0.13.15) (2026-09-18)
+
+
+### Bug Fixes
+
+* **utils:** make GetDisplayName answer its caller exactly once ([c05a6c9](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/c05a6c99226b7927806ca55bf9ae1c76d0ad66ff))
+
 ### [0.13.15](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.13.15%0D0.13.14) (2026-09-08)
 
 
