@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.13.17](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.13.17%0D0.13.16) (2026-11-03)
+
+
+### Features
+
+* **identity:** auto-send the running Steam App ID on login, link and token refresh, behind bSendPlatformAppId (AAX-3502) ([ebe454c](https://bitbucket.org/accelbyte/justice-ue4-oss/commits/ebe454ca75e32cbd8ae5337284ae4fe6a77ae3c1))
+
 ### [0.13.16](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.13.16%0D0.13.15) (2026-09-18)
 
 

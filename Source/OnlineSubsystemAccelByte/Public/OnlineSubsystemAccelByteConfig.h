@@ -509,6 +509,11 @@ public:
 	 */
 	TOnlineSubsystemAccelByteConfigEntry<int64>& GetPredefinedEventSendIntervalSeconds();
 
+	/**
+	 * @brief Get configuration entry controlling whether the platform App ID is sent with platform tickets.
+	 */
+	TOnlineSubsystemAccelByteConfigEntry<bool>& GetSendPlatformAppId();
+
 // Const Getters
 public:
 	/**
@@ -670,6 +675,11 @@ public:
 	 * @brief Get configuration entry controlling interval at which events from the predefined event API get sent.
 	 */
 	const TOnlineSubsystemAccelByteConfigEntry<int64>& GetPredefinedEventSendIntervalSeconds() const;
+
+	/**
+	 * @brief Get configuration entry controlling whether the platform App ID is sent with platform tickets.
+	 */
+	const TOnlineSubsystemAccelByteConfigEntry<bool>& GetSendPlatformAppId() const;
 
 // Configuration values
 private:
@@ -844,6 +854,13 @@ private:
 	 * @brief Controls interval in seconds in which events from the predefined event API are sent. Defaults to one minute.
 	 */
 	TOnlineSubsystemAccelByteConfigEntry<int64> PredefinedEventSendIntervalSeconds {};
+
+	/**
+	 * @brief Controls whether the App ID of the running platform app (Steam today) is sent with its tickets on login,
+	 * link and platform token refresh, so a namespace with multiple Steam App IDs knows which app the ticket came from.
+	 * Defaults to true.
+	 */
+	TOnlineSubsystemAccelByteConfigEntry<bool> SendPlatformAppId {};
 
 // Disable copy and move constructors for this class. Only access via shared instances.
 public:

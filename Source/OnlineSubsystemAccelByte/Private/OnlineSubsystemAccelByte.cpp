@@ -620,6 +620,37 @@ FString FOnlineSubsystemAccelByte::GetNativeAppId() const
 	return NativeSubsystem->GetAppId();
 }
 
+FString FOnlineSubsystemAccelByte::GetPlatformAppIdForTicket(EAccelBytePlatformType PlatformType) const
+{
+	if (PlatformType != EAccelBytePlatformType::Steam || !Config.IsValid() || !Config->GetSendPlatformAppId().GetValue())
+	{
+		return TEXT("");
+	}
+
+	// Check IsLoaded first, as Get would create the Steam subsystem in a game that never uses it
+	static const FName SteamSubsystemName(TEXT("STEAM"));
+	if (!IOnlineSubsystem::IsLoaded(SteamSubsystemName))
+	{
+		return TEXT("");
+	}
+
+	const IOnlineSubsystem* SteamSubsystem = IOnlineSubsystem::Get(SteamSubsystemName);
+	if (SteamSubsystem == nullptr)
+	{
+		return TEXT("");
+	}
+
+	// The Steam subsystem reports "0" until Steamworks has initialized
+	const FString AppId = SteamSubsystem->GetAppId();
+	return AppId == TEXT("0") ? TEXT("") : AppId;
+}
+
+FString FOnlineSubsystemAccelByte::GetPlatformAppIdForTicket(const FString& PlatformId) const
+{
+	const bool bIsSteam = PlatformId.Equals(FAccelByteUtilities::GetPlatformString(EAccelBytePlatformType::Steam), ESearchCase::IgnoreCase);
+	return bIsSteam ? GetPlatformAppIdForTicket(EAccelBytePlatformType::Steam) : TEXT("");
+}
+
 FOnlineAsyncEpicTaskAccelByte* FOnlineSubsystemAccelByte::CreateAndDispatchEpic(int32 LocalUserNum, const FVoidHandler& InDelegate)
 {
 	FOnlineAsyncEpicTaskAccelByte* NewTask = new FOnlineAsyncEpicTaskAccelByte(this, LocalUserNum, InDelegate);

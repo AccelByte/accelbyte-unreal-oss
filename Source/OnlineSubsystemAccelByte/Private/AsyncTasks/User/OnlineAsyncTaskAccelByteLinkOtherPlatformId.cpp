@@ -33,8 +33,12 @@ void FOnlineAsyncTaskAccelByteLinkOtherPlatformId::Initialize()
 		(this, &FOnlineAsyncTaskAccelByteLinkOtherPlatformId::HandleSuccess);
 	const FCustomErrorHandler& OnLinkOtherPlatformError = TDelegateUtils<FCustomErrorHandler>::CreateThreadSafeSelfPtr
 		(this, &FOnlineAsyncTaskAccelByteLinkOtherPlatformId::HandleError);
+	TRY_PIN_SUBSYSTEM();
+	FAccelByteLinkOtherPlatformOptionalParameters OptionalParams{};
+	OptionalParams.AppId = SubsystemPin->GetPlatformAppIdForTicket(PlatformId);
+
 	API_FULL_CHECK_GUARD(User, OnlineError);
-	User->LinkOtherPlatformId(PlatformId, Ticket, OnLinkOtherPlatformSuccess, OnLinkOtherPlatformError);
+	User->LinkOtherPlatformId(PlatformId, Ticket, OnLinkOtherPlatformSuccess, OnLinkOtherPlatformError, OptionalParams);
 
 	AB_OSS_ASYNC_TASK_TRACE_END(TEXT(""));	
 }

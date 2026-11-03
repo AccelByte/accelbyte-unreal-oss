@@ -234,6 +234,18 @@ public:
 	 * Get the app ID associated with this application from the native subsystem, or empty if no native subsystem is found.
 	 */
 	FString GetNativeAppId() const;
+
+	/**
+	 * Get the App ID to send to IAM alongside a ticket from the given platform, or empty to omit it.
+	 * Only Steam authenticates its ticket against an App ID, so this is the running Steam app's ID taken from the loaded
+	 * Steam subsystem, and empty for every other platform, when Steam is not loaded, or when bSendPlatformAppId is false.
+	 */
+	FString GetPlatformAppIdForTicket(EAccelBytePlatformType PlatformType) const;
+
+	/**
+	 * Same as the platform type overload, for an IAM platform ID string such as "steam".
+	 */
+	FString GetPlatformAppIdForTicket(const FString& PlatformId) const;
 	
 	void ResetLocalUserNumCached();
 	void SetLocalUserNumCached(int32 InLocalUserNum);

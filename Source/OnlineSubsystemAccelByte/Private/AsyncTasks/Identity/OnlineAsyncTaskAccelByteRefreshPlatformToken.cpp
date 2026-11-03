@@ -126,8 +126,12 @@ void FOnlineAsyncTaskAccelByteRefreshPlatformToken::ApiClientRefreshToBackend(EA
 	auto OnSuccess = TDelegateUtils<THandler<FPlatformTokenRefreshResponse>>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteRefreshPlatformToken::HandleSuccess);
 	auto OnError = TDelegateUtils<FOAuthErrorHandler>::CreateThreadSafeSelfPtr(this, &FOnlineAsyncTaskAccelByteRefreshPlatformToken::HandleError);
 
+	TRY_PIN_SUBSYSTEM();
+	FAccelByteRefreshPlatformTokenOptionalParameters OptionalParams{};
+	OptionalParams.AppId = SubsystemPin->GetPlatformAppIdForTicket(PlatformTypeForIAM);
+
 	API_FULL_CHECK_GUARD(User, ErrorMessage);
-	User->RefreshPlatformToken(PlatformTypeForIAM, PlatformToken, OnSuccess, OnError);
+	User->RefreshPlatformToken(PlatformTypeForIAM, PlatformToken, OnSuccess, OnError, OptionalParams);
 }
 
 void FOnlineAsyncTaskAccelByteRefreshPlatformToken::TriggerDelegates()

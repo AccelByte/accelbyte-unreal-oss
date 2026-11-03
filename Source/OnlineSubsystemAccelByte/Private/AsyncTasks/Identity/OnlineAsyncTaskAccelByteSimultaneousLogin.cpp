@@ -256,6 +256,10 @@ void FOnlineAsyncTaskAccelByteSimultaneousLogin::PerformLogin(const FOnlineAccou
 		auto NativePlatformLoginType = FOnlineSubsystemAccelByteUtils::GetAccelByteLoginTypeFromNativeSubsystem(FName(NativePlatformCredentials.Type));
 		auto SecondaryPlatformLoginType = FOnlineSubsystemAccelByteUtils::GetAccelByteLoginTypeFromNativeSubsystem(FName(Credentials.Type));
 
+		// IAM reads the App ID for the native platform ticket only
+		FAccelByteLoginWithSimultaneousPlatformOptionalParameters OptionalParams{};
+		OptionalParams.AppId = SubsystemPin->GetPlatformAppIdForTicket(ConvertOSSTypeToAccelBytePlatformType(NativePlatformLoginType));
+
 		API_FULL_CHECK_GUARD(User, ErrorStr);
 		User->LoginWithSimultaneousPlatformV4(
 			ConvertOSSTypeToAccelBytePlatformType(NativePlatformLoginType),
@@ -263,7 +267,8 @@ void FOnlineAsyncTaskAccelByteSimultaneousLogin::PerformLogin(const FOnlineAccou
 			ConvertOSSTypeToAccelBytePlatformType(SecondaryPlatformLoginType),
 			SecondaryPlatformTicket,
 			OnLoginSuccessDelegate,
-			OnLoginErrorOAuthDelegate);
+			OnLoginErrorOAuthDelegate,
+			OptionalParams);
 		
 		PlatformId = FAccelByteUtilities::GetUEnumValueAsString(ConvertOSSTypeToAccelBytePlatformType(NativePlatformLoginType));
 	}

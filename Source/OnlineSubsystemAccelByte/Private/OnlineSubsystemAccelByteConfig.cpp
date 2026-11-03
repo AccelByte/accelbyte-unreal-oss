@@ -158,6 +158,7 @@ void FOnlineSubsystemAccelByteConfig::Reload()
 	EnableManualLoginQueueClaim.Load();
 	GameStandardEventSendIntervalSeconds.Load();
 	PredefinedEventSendIntervalSeconds.Load();
+	SendPlatformAppId.Load();
 }
 
 void FOnlineSubsystemAccelByteConfig::Reset()
@@ -193,6 +194,7 @@ void FOnlineSubsystemAccelByteConfig::Reset()
 	EnableManualLoginQueueClaim.Reset();
 	GameStandardEventSendIntervalSeconds.Reset();
 	PredefinedEventSendIntervalSeconds.Reset();
+	SendPlatformAppId.Reset();
 }
 
 void FOnlineSubsystemAccelByteConfig::Dump()
@@ -230,6 +232,7 @@ void FOnlineSubsystemAccelByteConfig::Dump()
 	UE_LOG_AB(Log, TEXT("\tEnableManualLoginQueueClaim: %s"), LOG_BOOL_FORMAT(EnableManualLoginQueueClaim.GetValue()));
 	UE_LOG_AB(Log, TEXT("\tGameStandardEventSendIntervalSeconds: %lld"), GameStandardEventSendIntervalSeconds.GetValue());
 	UE_LOG_AB(Log, TEXT("\tPredefinedEventSendIntervalSeconds: %lld"), PredefinedEventSendIntervalSeconds.GetValue());
+	UE_LOG_AB(Log, TEXT("\tSendPlatformAppId: %s"), LOG_BOOL_FORMAT(SendPlatformAppId.GetValue()));
 }
 
 bool FOnlineSubsystemAccelByteConfig::IsInitialized() const
@@ -510,6 +513,13 @@ void FOnlineSubsystemAccelByteConfig::Init()
 		}
 	);
 
+	SendPlatformAppId.Init(
+		ThisRef,
+		OnlineSubsystemAccelByteSection,
+		TEXT("bSendPlatformAppId"),
+		true
+	);
+
 	// Load all configuration entries
 	Reload();
 
@@ -671,6 +681,11 @@ TOnlineSubsystemAccelByteConfigEntry<int64>& FOnlineSubsystemAccelByteConfig::Ge
 	return PredefinedEventSendIntervalSeconds;
 }
 
+TOnlineSubsystemAccelByteConfigEntry<bool>& FOnlineSubsystemAccelByteConfig::GetSendPlatformAppId()
+{
+	return SendPlatformAppId;
+}
+
 const TOnlineSubsystemAccelByteConfigEntry<bool>& FOnlineSubsystemAccelByteConfig::GetAutoConnectLobbyAfterLoginSuccess() const
 {
 	return AutoConnectLobbyAfterLoginSuccess;
@@ -824,4 +839,9 @@ const TOnlineSubsystemAccelByteConfigEntry<int64>& FOnlineSubsystemAccelByteConf
 const TOnlineSubsystemAccelByteConfigEntry<int64>& FOnlineSubsystemAccelByteConfig::GetPredefinedEventSendIntervalSeconds() const
 {
 	return PredefinedEventSendIntervalSeconds;
+}
+
+const TOnlineSubsystemAccelByteConfigEntry<bool>& FOnlineSubsystemAccelByteConfig::GetSendPlatformAppId() const
+{
+	return SendPlatformAppId;
 }

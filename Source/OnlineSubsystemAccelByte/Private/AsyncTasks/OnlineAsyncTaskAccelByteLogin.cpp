@@ -667,10 +667,19 @@ void FOnlineAsyncTaskAccelByteLogin::PerformLogin(const FOnlineAccountCredential
 			break;
 		}
 		case EAccelByteLoginType::Steam:
-			User->LoginWithOtherPlatformV4(EAccelBytePlatformType::Steam, Credentials.Token, OnLoginSuccessDelegate, OnLoginErrorOAuthDelegate, bCreateHeadlessAccount);
-			AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sending async task to login with Steam auth token from native online subsystem."));
+		{
+			TRY_PIN_SUBSYSTEM();
+			// An App ID set by the game wins; otherwise send the running Steam app's, for namespaces with multiple Steam App IDs
+			FAccelByteLoginWithOtherPlatformOptionalParameters OptionalParams = AccountCredentials.OptionalParams;
+			if (OptionalParams.AppId.IsEmpty())
+			{
+				OptionalParams.AppId = SubsystemPin->GetPlatformAppIdForTicket(EAccelBytePlatformType::Steam);
+			}
+			User->LoginWithOtherPlatformV4(EAccelBytePlatformType::Steam, Credentials.Token, OnLoginSuccessDelegate, OnLoginErrorOAuthDelegate, bCreateHeadlessAccount, OptionalParams);
+			AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sending async task to login with Steam auth token from native online subsystem. AppId: '%s'"), *OptionalParams.AppId);
 			PlatformId = FAccelByteUtilities::GetUEnumValueAsString(EAccelBytePlatformType::Steam);
 			break;
+		}
 		case EAccelByteLoginType::RefreshToken:
 			User->LoginWithRefreshTokenV4(OnLoginSuccessDelegate, OnLoginErrorOAuthDelegate, Credentials.Token);
 			AB_OSS_ASYNC_TASK_TRACE_END(TEXT("Sending async task to login with refresh token from native online subsystem."));
