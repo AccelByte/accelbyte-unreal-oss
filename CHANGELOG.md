@@ -2,6 +2,8 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.13.18](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.13.18%0D0.13.17) (2026-11-16)
+
 ### [0.13.17](https://bitbucket.org/accelbyte/justice-ue4-oss/branches/compare/0.13.17%0D0.13.16) (2026-11-03)
 
 
